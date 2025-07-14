@@ -347,7 +347,7 @@ typedef class _ip_in_ip_packet : public ip_packet_t
 #define TEST_IFINDEX 17
 
 static ebpf_result_t
-ebpf_authorize_native_module_wrapper(_In_z_ const char* filename)
+ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const char* filename)
 {
     HANDLE file_handle = INVALID_HANDLE_VALUE;
     ebpf_result_t result = ebpf_verify_signature_and_open_file(filename, &file_handle);
@@ -355,7 +355,7 @@ ebpf_authorize_native_module_wrapper(_In_z_ const char* filename)
         return result;
     }
 
-    result = ebpf_authorize_native_module(file_handle);
+    result = ebpf_authorize_native_module(module_id, file_handle);
     CloseHandle(file_handle);
     return result;
 }
@@ -3163,7 +3163,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -3229,7 +3229,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -3258,6 +3258,44 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
             &count_of_programs) == ERROR_OBJECT_ALREADY_EXISTS);
 }
 
+// Verify that stale module entries are removed.
+TEST_CASE("load_native_program_negative7", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    GUID provider_module_id;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    std::wstring service_path2(SERVICE_PATH_PREFIX);
+    _test_handle_helper module_handle;
+    _test_handle_helper module_handle2;
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    set_native_module_failures(true);
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Create a valid service with valid driver.
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+
+    // Wait for authorization to expire.
+    std::this_thread::sleep_for(std::chrono::seconds(20));
+
+    // Load native module. It should fail as the authorization has expired.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) != ERROR_SUCCESS);
+}
+
 // Load native module and then use module handle for a different purpose.
 TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 {
@@ -3278,7 +3316,7 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
