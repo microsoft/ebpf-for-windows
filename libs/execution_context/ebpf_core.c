@@ -78,14 +78,14 @@ _ebpf_core_get_current_logon_id(_In_ const void* ctx);
 static int32_t
 _ebpf_core_is_current_admin(_In_ const void* ctx);
 static int32_t
-_ebpf_core_memcpy(
+_ebpf_core_memcpy_s(
     _Out_writes_(destination_size) void* destination,
     size_t destination_size,
     _In_reads_(source_size) const void* source,
     size_t source_size);
 
 static int32_t
-_ebpf_core_memcmp(
+_ebpf_core_memcmp_s(
     _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
     _In_reads_(buffer2_length) const void* buffer2,
@@ -95,7 +95,7 @@ static uintptr_t
 _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value);
 
 static int32_t
-_ebpf_core_memmove(
+_ebpf_core_memmove_s(
     _Out_writes_(destination_length) void* destination,
     size_t destination_length,
     _In_reads_(source_length) const void* source,
@@ -145,10 +145,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_pid_tgid,
     (void*)&_ebpf_core_get_current_logon_id,
     (void*)&_ebpf_core_is_current_admin,
-    (void*)&_ebpf_core_memcpy,
-    (void*)&_ebpf_core_memcmp,
+    (void*)&_ebpf_core_memcpy_s,
+    (void*)&_ebpf_core_memcmp_s,
     (void*)&_ebpf_core_memset,
-    (void*)&_ebpf_core_memmove,
+    (void*)&_ebpf_core_memmove_s,
     // No default implementation of bpf_get_socket_cookie
     (void*)NULL, // bpf_get_socket_cookie
     (void*)&_ebpf_core_strncpy_s,
@@ -2609,7 +2609,7 @@ _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 }
 
 static int32_t
-_ebpf_core_memcpy(
+_ebpf_core_memcpy_s(
     _Out_writes_(destination_size) void* destination,
     size_t destination_size,
     _In_reads_(source_size) const void* source,
@@ -2628,7 +2628,7 @@ _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value)
 }
 
 static int32_t
-_ebpf_core_memcmp(
+_ebpf_core_memcmp_s(
     _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
     _In_reads_(buffer2_length) const void* buffer2,
@@ -2649,7 +2649,7 @@ _ebpf_core_memcmp(
 }
 
 static int32_t
-_ebpf_core_memmove(
+_ebpf_core_memmove_s(
     _Out_writes_(destination_length) void* destination,
     size_t destination_length,
     _In_reads_(source_length) const void* source,
