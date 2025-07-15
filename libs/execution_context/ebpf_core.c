@@ -2298,6 +2298,8 @@ _ebpf_core_epoch_synchronize_work_item(_In_ cxplat_preemptible_work_item_t* work
     if (work_item_context != NULL) {
         ebpf_async_complete(work_item_context, 0, EBPF_SUCCESS);
     }
+
+    cxplat_free_preemptible_work_item(work_item);
     return;
 }
 
