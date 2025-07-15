@@ -4351,3 +4351,125 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
 
     REQUIRE(ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list) != EBPF_SUCCESS);
 }
+ebpf_result_t
+ebpf_epoch_synchronize();
+
+/**
+ * @brief This test validates a pattern of map usage where a program switches between two maps
+ * by updating the active map index in a separate map.
+ *
+ * @param execution_type
+ */
+static void
+test_map_switch_atomic(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "map_switch_atomic_um.dll" : "map_switch_atomic.o");
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t outer_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "outer_map");
+    REQUIRE(outer_map_fd > 0);
+
+    fd_t active_map_index_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map_swi.bss");
+    REQUIRE(active_map_index_fd > 0);
+
+    fd_t failure_stats_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "failure_stats");
+    REQUIRE(failure_stats_fd > 0);
+
+    fd_t active_map_fd = ebpf_fd_invalid;
+    fd_t inactive_map_fd = ebpf_fd_invalid;
+    int bpf_prog_test_run_opt_return_value = 0;
+    bool start = false;
+    std::condition_variable cv;
+    std::mutex mtx;
+
+    std::jthread prog_test_run_thread([&]() {
+        // Wait for the main thread to signal that it is ready.
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [&start]() { return start; });
+        }
+
+        bpf_test_run_opts opts = {};
+        sample_program_context_t ctx = {};
+        opts.batch_size = 64;
+        opts.repeat = 10000000;
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(sample_program_context_t);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(sample_program_context_t);
+        bpf_prog_test_run_opt_return_value = bpf_prog_test_run_opts(program_fd, &opts);
+    });
+
+    for (size_t i = 0; i < 100; i++) {
+        uint32_t active_map_index;
+        uint32_t inactive_map_index;
+        uint32_t zero_key = 0;
+
+        REQUIRE(bpf_map_lookup_elem(active_map_index_fd, &zero_key, &active_map_index) == 0);
+        inactive_map_index = (active_map_index + 1) % 2;
+
+        // Allocate new map.
+        if (inactive_map_fd != ebpf_fd_invalid) {
+            Platform::_close(inactive_map_fd);
+            inactive_map_fd = ebpf_fd_invalid;
+        }
+        inactive_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+
+        // Insert the new map into the outer map.
+        REQUIRE(bpf_map_update_elem(outer_map_fd, &inactive_map_index, &inactive_map_fd, 0) == 0);
+
+        // Swap the active map index.
+        REQUIRE(bpf_map_update_elem(active_map_index_fd, &zero_key, &inactive_map_index, 0) == 0);
+
+        ebpf_epoch_synchronize();
+
+        //// Remove the old active map.
+        // REQUIRE(bpf_map_delete_elem(outer_map_fd, &active_map_index) == 0);
+
+        // Swap the active and inactive map file descriptors.
+        std::swap(active_map_fd, inactive_map_fd);
+
+        // Start the program test run thread if it is not already started.
+        if (!start) {
+            std::unique_lock<std::mutex> lock(mtx);
+            // Notify the test run thread that we are ready to start.
+            start = true;
+            cv.notify_all();
+        }
+    }
+
+    prog_test_run_thread.join();
+    REQUIRE(bpf_prog_test_run_opt_return_value == 0);
+
+    // Check the failure stats.
+    uint32_t zero_key = 0;
+    uint32_t failure_count = {};
+    REQUIRE(bpf_map_lookup_elem(failure_stats_fd, &zero_key, &failure_count) == 0);
+    REQUIRE(failure_count == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+// Native only as neither JIT nor Interpreter support global variables.
+DECLARE_NATIVE_TEST("test_map_switch_atomic", "[end_to_end]", test_map_switch_atomic);
