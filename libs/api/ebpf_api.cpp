@@ -5078,7 +5078,7 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_epoch_synchronize() NO_EXCEPT_TRY
+ebpf_program_synchronize() NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_operation_epoch_synchronize_request_t request;

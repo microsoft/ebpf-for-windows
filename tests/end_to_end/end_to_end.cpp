@@ -4232,9 +4232,6 @@ DECLARE_ALL_TEST_CASES("test-sample-perfbuffer", "[end_to_end]", test_sample_per
 DECLARE_ALL_TEST_CASES("bindmonitor-perfbuffer", "[end_to_end]", bindmonitor_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_perf_buffer_test", "[end_to_end]", negative_perf_buffer_test);
 
-ebpf_result_t
-ebpf_epoch_synchronize();
-
 /**
  * @brief This test validates a pattern of map usage where a program switches between two maps
  * by updating the active map index in a separate map.
@@ -4323,10 +4320,9 @@ test_map_switch_atomic(ebpf_execution_type_t execution_type)
         // Swap the active map index.
         REQUIRE(bpf_map_update_elem(active_map_index_fd, &zero_key, &inactive_map_index, 0) == 0);
 
-        ebpf_epoch_synchronize();
-
-        //// Remove the old active map.
-        // REQUIRE(bpf_map_delete_elem(outer_map_fd, &active_map_index) == 0);
+        // Wait for any already executing programs to finish.
+        // This is necessary to ensure that the program is not running on the old map which is being deleted.
+        REQUIRE(ebpf_program_synchronize() == EBPF_SUCCESS);
 
         // Swap the active and inactive map file descriptors.
         std::swap(active_map_fd, inactive_map_fd);
