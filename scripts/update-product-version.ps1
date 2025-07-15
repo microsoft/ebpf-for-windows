@@ -20,6 +20,28 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
         $newcontent | Set-Content $ebpf_version_file -NoNewline
         Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $ebpf_version_file"
 
+        # Update the version.json file as well
+        $version_json_file = "$PSScriptRoot\..\version.json"
+        if (Test-Path -Path $version_json_file) {
+            Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$version_json_file' file..."
+            $version_json_content = @{
+                major = [int]$majorVersion
+                minor = [int]$minorVersion
+                patch = [int]$revisionNumber
+            }
+            $version_json_content | ConvertTo-Json -Compress | Set-Content $version_json_file -NoNewline
+            Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $version_json_file"
+        } else {
+            Write-Host -ForegroundColor Yellow "Warning: '$version_json_file' not found. Creating it..."
+            $version_json_content = @{
+                major = [int]$majorVersion
+                minor = [int]$minorVersion
+                patch = [int]$revisionNumber
+            }
+            $version_json_content | ConvertTo-Json -Compress | Set-Content $version_json_file -NoNewline
+            Write-Host -ForegroundColor DarkGreen "Created '$version_json_file' with version '$majorVersion.$minorVersion.$revisionNumber'"
+        }
+
         # Rebuild the solution, so to regenerate the NuGet packages and the '.o' files with the new version number.
         Write-Host -ForegroundColor DarkGreen "Rebuilding the solution, please wait..."
         $res = & msbuild /m /p:Configuration=Debug /p:Platform=x64 ebpf-for-windows.sln /t:Clean,Build
