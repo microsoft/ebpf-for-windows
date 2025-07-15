@@ -140,6 +140,7 @@ EXPORTS
     ebpf_program_attach_by_fd
     ebpf_program_attach_by_fds
     ebpf_program_query_info
+    ebpf_program_synchronize
     ebpf_ring_buffer_map_map_buffer
     ebpf_ring_buffer_map_unmap_buffer
     ebpf_ring_buffer_map_write
