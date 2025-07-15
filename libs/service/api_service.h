@@ -72,7 +72,22 @@ ebpf_service_initialize() noexcept;
 void
 ebpf_service_cleanup() noexcept;
 
+/**
+ * @brief This macro defines the required issuer for eBPF verification.
+ * The issuer must match the one used for signing eBPF programs.
+ */
 #define EBPF_REQUIRED_ISSUER "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification"
+
+/**
+ * @brief This macro defines the EKU for code signing.
+ */
 #define EBPF_CODE_SIGNING_EKU "1.3.6.1.5.5.7.3.3"
+/**
+ * @brief This macro defines the EKU used by eBPF to denote that a BPF program has been verified using the eBPF
+ * verification process.
+ */
 #define EBPF_VERIFICATION_EKU "1.3.6.1.4.1.311.133.1"
+/**
+ * @brief This macro defines the EKU used to denote that a driver is a Windows component.
+ */
 #define EBPF_WINDOWS_COMPONENT_EKU "1.3.6.1.4.1.311.10.3.6"

@@ -467,6 +467,7 @@ class WinVerifyTrustHelper
         // Query the number of signatures.
         DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
         if (error != ERROR_SUCCESS) {
+            SetLastError(error);
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
             clean_up_win_verify_trust();
             throw std::runtime_error("WinVerifyTrust failed");
@@ -495,6 +496,7 @@ class WinVerifyTrustHelper
 
             DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
             if (error != ERROR_SUCCESS) {
+                SetLastError(error);
                 EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
                 throw std::runtime_error("WinVerifyTrust failed");
             }
@@ -517,7 +519,8 @@ class WinVerifyTrustHelper
     {
         if (win_trust_data.hWVTStateData) {
             win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
-            WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            // Ignore the return value of WinVerifyTrust on close.
+            (void)WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
             win_trust_data.hWVTStateData = nullptr;
         }
     }
