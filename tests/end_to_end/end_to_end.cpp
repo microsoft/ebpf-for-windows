@@ -4500,13 +4500,13 @@ test_map_switch_atomic(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_prog_test_run_opt_return_value == 0);
 
     // Close the maps.
-    for (auto & map : active_map_fds) {
+    for (auto& map : active_map_fds) {
         if (map != ebpf_fd_invalid) {
             Platform::_close(map);
         }
     }
 
-    for (auto & map : inactive_map_fds) {
+    for (auto& map : inactive_map_fds) {
         if (map != ebpf_fd_invalid) {
             Platform::_close(map);
         }

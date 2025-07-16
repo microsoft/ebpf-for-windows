@@ -14,7 +14,6 @@
 #include "bpf_helpers.h"
 #include "sample_ext_helpers.h"
 
-
 // Goal of this program is to demonstrate how multiple maps can be updated atomically
 // so that the BPF program uses a consistent set of maps (either the old or the new maps).
 
