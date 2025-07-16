@@ -4356,8 +4356,20 @@ ebpf_result_t
 ebpf_epoch_synchronize();
 
 /**
- * @brief This test validates a pattern of map usage where a program switches between two maps
- * by updating the active map index in a separate map.
+ * @brief This test validates a pattern of map usage where a program switches between two sets of maps
+ * by updating the active map index in a global variable. The test does the following while the program is running:
+ * 1) Create new inner maps and populate them with some data.
+ * 2) Insert the new maps into the outer maps at the current inactive map index.
+ * 3) Update the active map index to point to the new maps.
+ * 4) Wait for any already executing programs to finish.
+ * 5) Remove the old maps from the outer maps.
+ *
+ * If the program is running on the old map when it is removed, it will fail to access the map
+ * and will increment the failure stats counter.
+ *
+ * The inner maps are related to each other such that the program expects to find a specific key in the second map
+ * based on the version number stored in the first map. If the program does not find the expected key,
+ * the program will fail and increment the failure stats counter.
  *
  * @param execution_type
  */
@@ -4388,8 +4400,12 @@ test_map_switch_atomic(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    fd_t outer_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "outer_map");
-    REQUIRE(outer_map_fd > 0);
+    std::vector<fd_t> outer_map_fds(2);
+    outer_map_fds[0] = bpf_object__find_map_fd_by_name(unique_object.get(), "outer_map_1");
+    REQUIRE(outer_map_fds[0] > 0);
+
+    outer_map_fds[1] = bpf_object__find_map_fd_by_name(unique_object.get(), "outer_map_2");
+    REQUIRE(outer_map_fds[1] > 0);
 
     fd_t active_map_index_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map_swi.bss");
     REQUIRE(active_map_index_fd > 0);
@@ -4397,20 +4413,73 @@ test_map_switch_atomic(ebpf_execution_type_t execution_type)
     fd_t failure_stats_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "failure_stats");
     REQUIRE(failure_stats_fd > 0);
 
-    fd_t active_map_fd = ebpf_fd_invalid;
-    fd_t inactive_map_fd = ebpf_fd_invalid;
+    std::vector<fd_t> active_map_fds(2);
+    std::vector<fd_t> inactive_map_fds(2);
     int bpf_prog_test_run_opt_return_value = 0;
-    bool start = false;
-    std::condition_variable cv;
-    std::mutex mtx;
 
-    std::jthread prog_test_run_thread([&]() {
-        // Wait for the main thread to signal that it is ready.
-        {
-            std::unique_lock<std::mutex> lock(mtx);
-            cv.wait(lock, [&start]() { return start; });
+    auto swap_maps = [&](uint32_t version) {
+        uint32_t active_map_index;
+        uint32_t inactive_map_index;
+        uint32_t zero_key = 0;
+
+        // Get the active map index.
+        REQUIRE(bpf_map_lookup_elem(active_map_index_fd, &zero_key, &active_map_index) == 0);
+        // Compute the inactive map index.
+        inactive_map_index = (active_map_index + 1) % 2;
+
+        // Close any inactive map file descriptor.
+        for (size_t i = 0; i < inactive_map_fds.size(); i++) {
+            if (inactive_map_fds[i] != ebpf_fd_invalid) {
+                Platform::_close(inactive_map_fds[i]);
+                inactive_map_fds[i] = ebpf_fd_invalid;
+            }
         }
 
+        // Allocate new maps.
+        inactive_map_fds[0] =
+            bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(inactive_map_fds[0] > 0);
+
+        inactive_map_fds[1] =
+            bpf_map_create(BPF_MAP_TYPE_HASH, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(inactive_map_fds[1] > 0);
+
+        // Initialize the new map with some data.
+        // Value at index 0 in the first map will be the version number.
+        // The second map will use the version number as the key and value.
+        // The program will report a failure if it doesn't find the expected key in the second map.
+        // This is done to create a dependency between the two maps so that if they aren't updated atomically,
+        // then then the program will fail to find the expected key and increment the failure stats counter.
+        REQUIRE(bpf_map_update_elem(inactive_map_fds[0], &zero_key, &version, 0) == 0);
+        REQUIRE(bpf_map_update_elem(inactive_map_fds[1], &version, &version, 0) == 0);
+
+        // Insert the new maps into the outer maps.
+        REQUIRE(bpf_map_update_elem(outer_map_fds[0], &inactive_map_index, &inactive_map_fds[0], 0) == 0);
+        REQUIRE(bpf_map_update_elem(outer_map_fds[1], &inactive_map_index, &inactive_map_fds[1], 0) == 0);
+
+        // Swap the active map index.
+        REQUIRE(bpf_map_update_elem(active_map_index_fd, &zero_key, &inactive_map_index, 0) == 0);
+        std::swap(active_map_index, inactive_map_index);
+
+        // Wait for any already executing programs to finish.
+        // This is necessary to ensure that any instances of the program that are running on the old map
+        // have completed before we remove the old map.
+        REQUIRE(ebpf_program_synchronize() == EBPF_SUCCESS);
+
+        // Remove the old map from the outer map.
+        // If any programs are still running on the old map, this will fail.
+        for (size_t i = 0; i < outer_map_fds.size(); i++) {
+            REQUIRE(bpf_map_delete_elem(outer_map_fds[i], &inactive_map_index) == 0);
+        }
+
+        // Swap the active and inactive map file descriptors.
+        std::swap(active_map_fds, inactive_map_fds);
+    };
+
+    // Setup initial maps.
+    swap_maps(0);
+
+    std::jthread prog_test_run_thread([&]() {
         bpf_test_run_opts opts = {};
         sample_program_context_t ctx = {};
         opts.batch_size = 64;
@@ -4422,45 +4491,26 @@ test_map_switch_atomic(ebpf_execution_type_t execution_type)
         bpf_prog_test_run_opt_return_value = bpf_prog_test_run_opts(program_fd, &opts);
     });
 
-    for (size_t i = 0; i < 100; i++) {
-        uint32_t active_map_index;
-        uint32_t inactive_map_index;
-        uint32_t zero_key = 0;
-
-        REQUIRE(bpf_map_lookup_elem(active_map_index_fd, &zero_key, &active_map_index) == 0);
-        inactive_map_index = (active_map_index + 1) % 2;
-
-        // Allocate new map.
-        if (inactive_map_fd != ebpf_fd_invalid) {
-            Platform::_close(inactive_map_fd);
-            inactive_map_fd = ebpf_fd_invalid;
-        }
-        inactive_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-
-        // Insert the new map into the outer map.
-        REQUIRE(bpf_map_update_elem(outer_map_fd, &inactive_map_index, &inactive_map_fd, 0) == 0);
-
-        // Swap the active map index.
-        REQUIRE(bpf_map_update_elem(active_map_index_fd, &zero_key, &inactive_map_index, 0) == 0);
-
-        // Wait for any already executing programs to finish.
-        // This is necessary to ensure that the program is not running on the old map which is being deleted.
-        REQUIRE(ebpf_program_synchronize() == EBPF_SUCCESS);
-
-        // Swap the active and inactive map file descriptors.
-        std::swap(active_map_fd, inactive_map_fd);
-
-        // Start the program test run thread if it is not already started.
-        if (!start) {
-            std::unique_lock<std::mutex> lock(mtx);
-            // Notify the test run thread that we are ready to start.
-            start = true;
-            cv.notify_all();
-        }
+    for (uint32_t i = 1; i < 1000; i++) {
+        // Swap the maps.
+        swap_maps(i);
     }
 
     prog_test_run_thread.join();
     REQUIRE(bpf_prog_test_run_opt_return_value == 0);
+
+    // Close the maps.
+    for (auto & map : active_map_fds) {
+        if (map != ebpf_fd_invalid) {
+            Platform::_close(map);
+        }
+    }
+
+    for (auto & map : inactive_map_fds) {
+        if (map != ebpf_fd_invalid) {
+            Platform::_close(map);
+        }
+    }
 
     // Check the failure stats.
     uint32_t zero_key = 0;

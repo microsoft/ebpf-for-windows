@@ -752,7 +752,7 @@ extern "C"
     /**
      * @brief Wait for currently executing eBPF programs to complete.
      *
-     * @retval EPBF_SUCCESS Successfully synchronized.
+     * @retval EBPF_SUCCESS Successfully synchronized.
      * @retval EBPF_OUT_OF_SPACE Unable perform the operation due to insufficient space.
      */
     _Must_inspect_result_ ebpf_result_t
