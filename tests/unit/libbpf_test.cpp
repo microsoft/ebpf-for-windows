@@ -404,12 +404,30 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
 #define BPF_LD_MAP_FD(reg, fd) \
     {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
-#define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
-#define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
-#define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
-#define BPF_EXIT_INSN() {INST_OP_EXIT}
-#define BPF_CALL_FUNC(imm) {INST_OP_CALL, 0, 0, 0, (imm)}
-#define BPF_STX_MEM(sz, dst, src, off) {INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0}
+#define BPF_ALU64_IMM(op, reg, imm)                                     \
+    {                                                                   \
+        INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
+    }
+#define BPF_MOV64_IMM(reg, imm)                                  \
+    {                                                            \
+        INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm) \
+    }
+#define BPF_MOV64_REG(dst, src)                                  \
+    {                                                            \
+        INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0 \
+    }
+#define BPF_EXIT_INSN() \
+    {                   \
+        INST_OP_EXIT    \
+    }
+#define BPF_CALL_FUNC(imm)           \
+    {                                \
+        INST_OP_CALL, 0, 0, 0, (imm) \
+    }
+#define BPF_STX_MEM(sz, dst, src, off)                              \
+    {                                                               \
+        INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0 \
+    }
 #define BPF_W INST_SIZE_W
 #define BPF_REG_1 R1_ARG
 #define BPF_REG_2 R2_ARG
@@ -3475,7 +3493,7 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
     int key_size = sizeof(uint32_t);
     int value_size = sizeof(uint32_t);
     int max_entries = 1;
-    
+
     // Adjust parameters for different map types
     if (inner_map_type == BPF_MAP_TYPE_LPM_TRIE) {
         // LPM_TRIE has special key format requirements
@@ -3492,7 +3510,8 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
 
     // Create outer hash map with the inner map as template
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
-    fd_t outer_map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    fd_t outer_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Create second inner map of the same type
@@ -3512,7 +3531,7 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
     ebpf_id_t inner_map_id;
     outer_key = 1;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
-    
+
     outer_key = 2;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
@@ -3532,7 +3551,8 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
 
 // Test Array of Maps with different inner map types (with static initializer)
 static void
-_test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t execution_type, bpf_map_type inner_map_type)
+_test_array_of_maps_with_different_inner_types_static_init(
+    ebpf_execution_type_t execution_type, bpf_map_type inner_map_type)
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -3541,7 +3561,7 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
     // Since we can't dynamically create BPF programs with different inner map types,
     // we'll test with the existing hash_of_map and inner_map samples
     // and create a runtime test for array of maps
-    
+
     // Create inner maps of different types at runtime
     _test_helper_end_to_end end_to_end_helper;
     end_to_end_helper.initialize();
@@ -3549,7 +3569,7 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
     int key_size = sizeof(uint32_t);
     int value_size = sizeof(uint32_t);
     int max_entries = 1;
-    
+
     // Adjust parameters for different map types
     if (inner_map_type == BPF_MAP_TYPE_LPM_TRIE) {
         key_size = sizeof(uint64_t);
@@ -3564,7 +3584,8 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
 
     // Create outer array map with the inner map as template
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
-    fd_t outer_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    fd_t outer_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Create second inner map of the same type
@@ -3584,7 +3605,7 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
     ebpf_id_t inner_map_id;
     outer_key = 0;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
-    
+
     outer_key = 1;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
@@ -3595,16 +3616,46 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
 }
 
 // Test cases for Hash of Maps with different inner map types (without static initializer)
-TEST_CASE("hash_of_maps_with_hash_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_HASH); }
-TEST_CASE("hash_of_maps_with_array_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_ARRAY); }
-TEST_CASE("hash_of_maps_with_percpu_hash_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_PERCPU_HASH); }
-TEST_CASE("hash_of_maps_with_percpu_array_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_PERCPU_ARRAY); }
-TEST_CASE("hash_of_maps_with_lru_hash_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LRU_HASH); }
-TEST_CASE("hash_of_maps_with_lru_percpu_hash_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LRU_PERCPU_HASH); }
-TEST_CASE("hash_of_maps_with_lpm_trie_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LPM_TRIE); }
-TEST_CASE("hash_of_maps_with_queue_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_QUEUE); }
-TEST_CASE("hash_of_maps_with_stack_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_STACK); }
-TEST_CASE("hash_of_maps_with_ringbuf_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_RINGBUF); }
+TEST_CASE("hash_of_maps_with_hash_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_HASH);
+}
+TEST_CASE("hash_of_maps_with_array_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_ARRAY);
+}
+TEST_CASE("hash_of_maps_with_percpu_hash_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_PERCPU_HASH);
+}
+TEST_CASE("hash_of_maps_with_percpu_array_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_PERCPU_ARRAY);
+}
+TEST_CASE("hash_of_maps_with_lru_hash_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LRU_HASH);
+}
+TEST_CASE("hash_of_maps_with_lru_percpu_hash_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LRU_PERCPU_HASH);
+}
+TEST_CASE("hash_of_maps_with_lpm_trie_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_LPM_TRIE);
+}
+TEST_CASE("hash_of_maps_with_queue_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_QUEUE);
+}
+TEST_CASE("hash_of_maps_with_stack_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_STACK);
+}
+TEST_CASE("hash_of_maps_with_ringbuf_inner", "[libbpf]")
+{
+    _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_RINGBUF);
+}
 
 // Test function for Array of Maps with different inner map types (with static initializer)
 static void
@@ -3668,16 +3719,30 @@ _array_of_maps_with_ringbuf_inner_static_init(ebpf_execution_type_t execution_ty
 }
 
 // Test cases for Array of Maps with different inner map types (with static initializer)
-DECLARE_JIT_TEST_CASES("array_of_maps_with_hash_inner_static_init", "[libbpf]", _array_of_maps_with_hash_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_array_inner_static_init", "[libbpf]", _array_of_maps_with_array_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_percpu_hash_inner_static_init", "[libbpf]", _array_of_maps_with_percpu_hash_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_percpu_array_inner_static_init", "[libbpf]", _array_of_maps_with_percpu_array_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_lru_hash_inner_static_init", "[libbpf]", _array_of_maps_with_lru_hash_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_lru_percpu_hash_inner_static_init", "[libbpf]", _array_of_maps_with_lru_percpu_hash_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_lpm_trie_inner_static_init", "[libbpf]", _array_of_maps_with_lpm_trie_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_queue_inner_static_init", "[libbpf]", _array_of_maps_with_queue_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_stack_inner_static_init", "[libbpf]", _array_of_maps_with_stack_inner_static_init);
-DECLARE_JIT_TEST_CASES("array_of_maps_with_ringbuf_inner_static_init", "[libbpf]", _array_of_maps_with_ringbuf_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_hash_inner_static_init", "[libbpf]", _array_of_maps_with_hash_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_array_inner_static_init", "[libbpf]", _array_of_maps_with_array_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_percpu_hash_inner_static_init", "[libbpf]", _array_of_maps_with_percpu_hash_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_percpu_array_inner_static_init",
+    "[libbpf]",
+    _array_of_maps_with_percpu_array_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_lru_hash_inner_static_init", "[libbpf]", _array_of_maps_with_lru_hash_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_lru_percpu_hash_inner_static_init",
+    "[libbpf]",
+    _array_of_maps_with_lru_percpu_hash_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_lpm_trie_inner_static_init", "[libbpf]", _array_of_maps_with_lpm_trie_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_queue_inner_static_init", "[libbpf]", _array_of_maps_with_queue_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_stack_inner_static_init", "[libbpf]", _array_of_maps_with_stack_inner_static_init);
+DECLARE_JIT_TEST_CASES(
+    "array_of_maps_with_ringbuf_inner_static_init", "[libbpf]", _array_of_maps_with_ringbuf_inner_static_init);
 
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {

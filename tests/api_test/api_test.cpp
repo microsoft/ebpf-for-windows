@@ -563,7 +563,7 @@ _test_nested_maps_with_inner_type(bpf_map_type outer_map_type, bpf_map_type inne
     int key_size = sizeof(uint32_t);
     int value_size = sizeof(uint32_t);
     int max_entries = 1;
-    
+
     // Adjust parameters for different map types
     if (inner_map_type == BPF_MAP_TYPE_LPM_TRIE) {
         key_size = sizeof(uint64_t);
@@ -609,24 +609,72 @@ _test_nested_maps_with_inner_type(bpf_map_type outer_map_type, bpf_map_type inne
 }
 
 // Test cases for Hash of Maps with different inner map types
-TEST_CASE("hash_of_maps_with_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_HASH); }
-TEST_CASE("hash_of_maps_with_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_ARRAY); }
-TEST_CASE("hash_of_maps_with_percpu_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH); }
-TEST_CASE("hash_of_maps_with_percpu_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY); }
-TEST_CASE("hash_of_maps_with_lru_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_LRU_HASH); }
-TEST_CASE("hash_of_maps_with_queue_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_QUEUE); }
-TEST_CASE("hash_of_maps_with_stack_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_STACK); }
-TEST_CASE("hash_of_maps_with_ringbuf_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_RINGBUF); }
+TEST_CASE("hash_of_maps_with_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_HASH);
+}
+TEST_CASE("hash_of_maps_with_array_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_ARRAY);
+}
+TEST_CASE("hash_of_maps_with_percpu_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH);
+}
+TEST_CASE("hash_of_maps_with_percpu_array_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY);
+}
+TEST_CASE("hash_of_maps_with_lru_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_LRU_HASH);
+}
+TEST_CASE("hash_of_maps_with_queue_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_QUEUE);
+}
+TEST_CASE("hash_of_maps_with_stack_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_STACK);
+}
+TEST_CASE("hash_of_maps_with_ringbuf_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_RINGBUF);
+}
 
 // Test cases for Array of Maps with different inner map types
-TEST_CASE("array_of_maps_with_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH); }
-TEST_CASE("array_of_maps_with_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_ARRAY); }
-TEST_CASE("array_of_maps_with_percpu_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH); }
-TEST_CASE("array_of_maps_with_percpu_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY); }
-TEST_CASE("array_of_maps_with_lru_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_LRU_HASH); }
-TEST_CASE("array_of_maps_with_queue_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_QUEUE); }
-TEST_CASE("array_of_maps_with_stack_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_STACK); }
-TEST_CASE("array_of_maps_with_ringbuf_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_RINGBUF); }
+TEST_CASE("array_of_maps_with_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH);
+}
+TEST_CASE("array_of_maps_with_array_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_ARRAY);
+}
+TEST_CASE("array_of_maps_with_percpu_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH);
+}
+TEST_CASE("array_of_maps_with_percpu_array_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY);
+}
+TEST_CASE("array_of_maps_with_lru_hash_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_LRU_HASH);
+}
+TEST_CASE("array_of_maps_with_queue_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_QUEUE);
+}
+TEST_CASE("array_of_maps_with_stack_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_STACK);
+}
+TEST_CASE("array_of_maps_with_ringbuf_inner_api", "[map_in_map]")
+{
+    _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_RINGBUF);
+}
 
 TEST_CASE("duplicate_fd", "")
 {
