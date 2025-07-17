@@ -25,10 +25,7 @@
  */
 #define EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS 1000000
 
-/**
- * @brief Number of 100ns intervals per filetime tick.
- */
-#define EBPF_NANO_SECONDS_PER_FILETIME_TICK 100
+
 
 #define EBPF_EPOCH_FAIL_FAST(REASON, ASSERTION) \
     if (!(ASSERTION)) {                         \
@@ -264,7 +261,7 @@ ebpf_epoch_initiate()
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         LARGE_INTEGER interval;
-        interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK;
+        interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME;
 
         ebpf_result_t result = ebpf_timed_work_queue_create(
             &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
@@ -634,7 +631,7 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_arm_timer_if_needed(ebpf
     }
     cpu_entry->timer_armed = true;
     LARGE_INTEGER due_time;
-    due_time.QuadPart = -(EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK);
+    due_time.QuadPart = -(EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME);
     KeSetTimer(&_ebpf_epoch_compute_release_epoch_timer, due_time, &_ebpf_epoch_timer_dpc);
     return;
 }
@@ -727,7 +724,7 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
     } else {
         _ebpf_epoch_skipped_timers++;
         LARGE_INTEGER due_time;
-        due_time.QuadPart = -(EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NANO_SECONDS_PER_FILETIME_TICK);
+        due_time.QuadPart = -(EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME);
         KeSetTimer(&_ebpf_epoch_compute_release_epoch_timer, due_time, &_ebpf_epoch_timer_dpc);
     }
 }
