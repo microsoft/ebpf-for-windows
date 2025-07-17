@@ -3302,11 +3302,13 @@ extern bool _ebpf_platform_code_integrity_test_signing_enabled;
 TEST_CASE("load_native_program_negative8", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
+    GUID provider_module_id;
     _ebpf_platform_code_integrity_test_signing_enabled = false;
     test_helper.initialize();
     _ebpf_platform_code_integrity_test_signing_enabled = true;
 
-    ebpf_result_t result = ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll");
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+    ebpf_result_t result = ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll");
 
     REQUIRE(result != EBPF_SUCCESS);
 }
