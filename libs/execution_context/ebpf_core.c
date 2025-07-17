@@ -2285,7 +2285,7 @@ static ebpf_result_t
 _ebpf_core_protocol_authorize_native_module(_In_ const ebpf_operation_authorize_native_module_request_t* request)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t result = ebpf_native_authorize_module(request->module_hash);
+    ebpf_result_t result = ebpf_native_authorize_module(&request->module_id, request->module_hash);
     EBPF_RETURN_RESULT(result);
 }
 

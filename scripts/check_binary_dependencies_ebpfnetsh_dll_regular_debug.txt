@@ -1,10 +1,7 @@
-KERNEL32.dll
 ADVAPI32.dll
-MSVCP140D.dll
-PSAPI.DLL
-ntdll.dll
-VCRUNTIME140D.dll
-VCRUNTIME140_1D.dll
-ucrtbased.dll
-IPHLPAPI.DLL
 EbpfApi.dll
+IPHLPAPI.DLL
+KERNEL32.dll
+ntdll.dll
+PSAPI.DLL
+ucrtbased.dll

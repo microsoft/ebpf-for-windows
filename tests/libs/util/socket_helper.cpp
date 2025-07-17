@@ -68,6 +68,16 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
     return std::string(ip_string);
 }
 
+void
+clean_up_socket(_Inout_ SOCKET& socket)
+{
+    if (socket != INVALID_SOCKET) {
+        shutdown(socket, SD_BOTH);
+        closesocket(socket);
+        socket = INVALID_SOCKET;
+    }
+}
+
 _base_socket::_base_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
@@ -96,9 +106,16 @@ _base_socket::_base_socket(
     local_addr.ss_family = address_family;
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
-    error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
-    if (error != 0) {
-        FAIL("Failed to bind socket with error: " << WSAGetLastError());
+    // Retry bind operation a few times if it fails with WSAENOBUFS (10055) error as it may be transient.
+    for (int i = 0; i < 5; ++i) {
+        error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
+        if (error == 0) {
+            break;
+        }
+        if (WSAGetLastError() != WSAENOBUFS) {
+            FAIL("Failed to bind socket with error: " << WSAGetLastError());
+        }
+        Sleep(1000); // Wait for a short duration before retrying.
     }
 
     error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
@@ -107,12 +124,7 @@ _base_socket::_base_socket(
     }
 }
 
-_base_socket::~_base_socket()
-{
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-}
+_base_socket::~_base_socket() { clean_up_socket(socket); }
 
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
@@ -131,15 +143,13 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 _client_socket::_client_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
-{}
+{
+}
 
 void
 _client_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    clean_up_socket(socket);
 }
 
 void
@@ -272,7 +282,8 @@ _datagram_client_socket::send_message_to_remote_host(
 
 void
 _datagram_client_socket::cancel_send_message()
-{}
+{
+}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
@@ -547,10 +558,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
 void
 _datagram_server_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    clean_up_socket(socket);
 }
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -589,10 +597,7 @@ void
 _stream_server_socket::initialize_accept_socket()
 {
     // Close a previous accept socket, if present.
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-        accept_socket = INVALID_SOCKET;
-    }
+    clean_up_socket(accept_socket);
 
     // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -604,12 +609,7 @@ _stream_server_socket::initialize_accept_socket()
     }
 }
 
-_stream_server_socket::~_stream_server_socket()
-{
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-}
+_stream_server_socket::~_stream_server_socket() { clean_up_socket(accept_socket); }
 
 void
 _stream_server_socket::post_async_receive()
@@ -691,10 +691,7 @@ _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from
 void
 _stream_server_socket::close()
 {
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-    accept_socket = INVALID_SOCKET;
+    clean_up_socket(accept_socket);
 }
 
 int

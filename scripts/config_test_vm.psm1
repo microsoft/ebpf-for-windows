@@ -199,7 +199,7 @@ function Export-BuildArtifactsToVMs
                     New-Item -Path $RegistryPath -Force
                 }
                 Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
-                
+
                 # Enables full memory dump.
                 # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
                 # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
@@ -514,34 +514,91 @@ function Import-ResultsFromVM
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
+function Import-ResultsFromHost {
+    param(
+        [Parameter(Mandatory = $true)][bool] $KmTracing
+    )
+    Write-Log "Importing results from host..."
+    $TestLogsDir = Join-Path $WorkingDirectory 'TestLogs'
+    if (!(Test-Path $TestLogsDir)) {
+        New-Item -ItemType Directory -Path $TestLogsDir | Out-Null
+    }
+
+    # Copy user mode crash dumps if any.
+    if (Test-Path "$WorkingDirectory\dumps") {
+        Copy-Item "$WorkingDirectory\dumps\*" "$TestLogsDir" -Recurse -Force -ErrorAction Ignore | Out-Null
+    }
+
+    # Stop and collect ETL trace if enabled.
+    if ($KmTracing) {
+        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+        Write-Log "Query KM ETL tracing status before trace stop (host)"
+        $ProcInfo = Start-Process -FilePath "wpr.exe" -ArgumentList "-status profiles collectors -details" -NoNewWindow -Wait -PassThru -RedirectStandardOut "$WorkingDirectory\StdOut.txt" -RedirectStandardError "$WorkingDirectory\StdErr.txt"
+        if ($ProcInfo.ExitCode -ne 0) {
+            Write-Log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
+            Write-Log "wpr.exe (query) error output: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr.txt") {
+                Write-Log ( "\t" + $line)
+            }
+        } else {
+            Write-Log "wpr.exe (query) results: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
+                Write-Log ( "  \t" + $line)
+            }
+        }
+        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
+        Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+        wpr.exe -stop "$WorkingDirectory\$EtlFile"
+        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
+        Write-Log "ETL file Size: $EtlFileSize MB"
+        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+        Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+        $LogsDir = Join-Path $TestLogsDir 'Logs'
+        if (!(Test-Path $LogsDir)) {
+            New-Item -ItemType Directory -Path $LogsDir | Out-Null
+        }
+        Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
+    }
+}
+
 #
 # Configure network adapters on VMs.
 #
-function Initialize-NetworkInterfacesOnVMs
-{
-    param([parameter(Mandatory=$true)] $VMMap)
+function Initialize-NetworkInterfaces {
+    param(
+        # Initialize network interfaces directly on the host
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnHost = $false,
+        # Initialize network interfaces on VMs.
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $true,
+        [Parameter(Mandatory=$false)] $VMList = @(),
+        [Parameter(Mandatory=$true)][string] $TestWorkingDirectory
+    )
 
-    foreach ($VM in $VMMap)
-    {
-        $VMName = $VM.Name
+    $commandScriptBlock = {
+        param([Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$true)][string] $LogFileName)
+        Push-Location $WorkingDirectory
+        Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Write-Log "Installing DuoNic driver"
+        .\duonic.ps1 -Install -NumNicPairs 2
+        Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+        Pop-Location
+    }
 
-        Write-Log "Initializing network interfaces on $VMName"
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $argumentList = @($TestWorkingDirectory, $LogFileName)
 
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory = $true)][string] $LogFileName)
-
-            Push-Location "$env:SystemDrive\$WorkingDirectory"
-            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-
-            Write-Log "Installing DuoNic driver"
-            .\duonic.ps1 -Install -NumNicPairs 2
-            # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
-            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
-
-            Pop-Location
-        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+    if ($ExecuteOnHost) {
+        Write-Log "Initializing network interfaces on host"
+        & $commandScriptBlock @argumentList
+    } elseif ($ExecuteOnVM) {
+        $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        foreach ($VM in $VMList) {
+            $VMName = $VM.Name
+            Write-Log "Initializing network interfaces on $VMName"
+            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
+        }
+    } else {
+        throw "Either ExecuteOnHost or ExecuteOnVM must be set."
     }
 }
 
