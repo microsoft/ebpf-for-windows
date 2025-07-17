@@ -39,16 +39,6 @@ $EbpfDrivers = @{
 
 # eBPF Debug Runtime DLLs.
 $VCDebugRuntime = @(
-    "concrt140d.dll",
-    "msvcp140d.dll",
-    "msvcp140d_atomic_wait.dll",
-    "msvcp140d_codecvt_ids.dll",
-    "msvcp140_1d.dll",
-    "msvcp140_2d.dll",
-    "vccorlib140d.dll",
-    "vcruntime140d.dll",
-    "vcruntime140_1d.dll",
-    "vcruntime140_threadsd.dll",
     "ucrtbased.dll"
 )
 
@@ -188,7 +178,8 @@ function Install-eBPFComponents
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false,
-          [parameter(Mandatory=$true)] [string] $TestMode)
+          [parameter(Mandatory=$true)] [string] $TestMode,
+          [parameter(Mandatory=$false)] [switch] $SkipRebootOperations)
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
@@ -353,7 +344,11 @@ function Install-eBPFComponents
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
-        Enable-KMDFVerifier
+        if (-not $SkipRebootOperations) {
+            Enable-KMDFVerifier
+        } else {
+            Write-Log "SkipRebootOperations enabled - skipping KMDF verifier configuration" -ForegroundColor Yellow
+        }
     }
 
     # Start KM tracing.
