@@ -3485,6 +3485,10 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
         // Queue and stack maps don't use keys
         key_size = 0;
         max_entries = 10;
+    } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        // Ring buffer and perf event array require max_entries to be power of 2 and multiple of page size
+        key_size = 0;
+        max_entries = 8192;
     }
 
     fd_t inner_map_fd = bpf_map_create(inner_map_type, "inner_map", key_size, value_size, max_entries, nullptr);
@@ -3558,6 +3562,10 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
     } else if (inner_map_type == BPF_MAP_TYPE_QUEUE || inner_map_type == BPF_MAP_TYPE_STACK) {
         key_size = 0;
         max_entries = 10;
+    } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        // Ring buffer and perf event array require max_entries to be power of 2 and multiple of page size
+        key_size = 0;
+        max_entries = 8192;
     }
 
     fd_t inner_map_fd = bpf_map_create(inner_map_type, "inner_map", key_size, value_size, max_entries, nullptr);
@@ -3606,6 +3614,7 @@ TEST_CASE("hash_of_maps_with_lpm_trie_inner", "[libbpf]") { _test_hash_of_maps_w
 TEST_CASE("hash_of_maps_with_queue_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_QUEUE); }
 TEST_CASE("hash_of_maps_with_stack_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_STACK); }
 TEST_CASE("hash_of_maps_with_ringbuf_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_RINGBUF); }
+TEST_CASE("hash_of_maps_with_perf_event_array_inner", "[libbpf]") { _test_hash_of_maps_with_different_inner_types(BPF_MAP_TYPE_PERF_EVENT_ARRAY); }
 
 // Test function for Array of Maps with different inner map types (with static initializer)
 static void
@@ -3668,6 +3677,12 @@ _array_of_maps_with_ringbuf_inner_static_init(ebpf_execution_type_t execution_ty
     _test_array_of_maps_with_different_inner_types_static_init(execution_type, BPF_MAP_TYPE_RINGBUF);
 }
 
+static void
+_array_of_maps_with_perf_event_array_inner_static_init(ebpf_execution_type_t execution_type)
+{
+    _test_array_of_maps_with_different_inner_types_static_init(execution_type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+}
+
 // Test cases for Array of Maps with different inner map types (with static initializer)
 DECLARE_JIT_TEST_CASES("array_of_maps_with_hash_inner_static_init", "[libbpf]", _array_of_maps_with_hash_inner_static_init);
 DECLARE_JIT_TEST_CASES("array_of_maps_with_array_inner_static_init", "[libbpf]", _array_of_maps_with_array_inner_static_init);
@@ -3679,6 +3694,7 @@ DECLARE_JIT_TEST_CASES("array_of_maps_with_lpm_trie_inner_static_init", "[libbpf
 DECLARE_JIT_TEST_CASES("array_of_maps_with_queue_inner_static_init", "[libbpf]", _array_of_maps_with_queue_inner_static_init);
 DECLARE_JIT_TEST_CASES("array_of_maps_with_stack_inner_static_init", "[libbpf]", _array_of_maps_with_stack_inner_static_init);
 DECLARE_JIT_TEST_CASES("array_of_maps_with_ringbuf_inner_static_init", "[libbpf]", _array_of_maps_with_ringbuf_inner_static_init);
+DECLARE_JIT_TEST_CASES("array_of_maps_with_perf_event_array_inner_static_init", "[libbpf]", _array_of_maps_with_perf_event_array_inner_static_init);
 
 TEST_CASE("libbpf_load_stress", "[libbpf]")
 {
