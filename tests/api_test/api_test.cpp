@@ -574,6 +574,7 @@ _test_nested_maps_with_inner_type(bpf_map_type outer_map_type, bpf_map_type inne
     } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
         // Ring buffer and perf event array require max_entries to be power of 2 and multiple of page size
         key_size = 0;
+        value_size = 0;
         max_entries = 8192;
     }
 

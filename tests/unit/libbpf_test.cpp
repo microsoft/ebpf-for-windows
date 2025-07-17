@@ -3488,6 +3488,7 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
     } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
         // Ring buffer and perf event array require max_entries to be power of 2 and multiple of page size
         key_size = 0;
+        value_size = 0;
         max_entries = 8192;
     }
 
@@ -3565,6 +3566,7 @@ _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t
     } else if (inner_map_type == BPF_MAP_TYPE_RINGBUF || inner_map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
         // Ring buffer and perf event array require max_entries to be power of 2 and multiple of page size
         key_size = 0;
+        value_size = 0;
         max_entries = 8192;
     }
 
