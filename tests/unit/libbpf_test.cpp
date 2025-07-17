@@ -3534,6 +3534,7 @@ _test_hash_of_maps_with_different_inner_types(bpf_map_type inner_map_type)
 static void
 _test_array_of_maps_with_different_inner_types_static_init(ebpf_execution_type_t execution_type, bpf_map_type inner_map_type)
 {
+    UNREFERENCED_PARAMETER(execution_type);
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
