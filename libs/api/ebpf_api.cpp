@@ -5077,6 +5077,34 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_synchronize() NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_operation_epoch_synchronize_request_t request;
+    ebpf_signal_t completion_event;
+    OVERLAPPED overlapped;
+    memset(&overlapped, 0, sizeof(overlapped));
+    overlapped.hEvent = completion_event.get();
+
+    request.header.id = ebpf_operation_id_t::EBPF_OPERATION_EPOCH_SYNCHRONIZE;
+    request.header.length = sizeof(request);
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, _empty_reply, &overlapped));
+
+    if (result == EBPF_PENDING) {
+        unsigned long bytes_returned;
+        completion_event.wait();
+        if (GetOverlappedResult(
+                reinterpret_cast<HANDLE>(get_async_device_handle()), &overlapped, &bytes_returned, FALSE)) {
+            result = EBPF_SUCCESS;
+        } else {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+        }
+    }
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
 void
 ebpf_api_thread_local_cleanup() noexcept
 {
