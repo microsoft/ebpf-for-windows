@@ -20,7 +20,17 @@ extern "C"
 #include "windows_platform.hpp"
 
 #include <map>
+#include <set>
+#include <softpub.h>
 #include <stdexcept>
+#include <string>
+#include <wintrust.h>
+
+// Include wintrust.lib
+#pragma comment(lib, "wintrust.lib")
+
+static bool _ebpf_service_test_signing_enabled = false;
+static bool _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
@@ -432,6 +442,212 @@ Exit:
 
 #endif
 
+class WinVerifyTrustHelper
+{
+  public:
+    WinVerifyTrustHelper(const wchar_t* path)
+    {
+        win_trust_data.cbStruct = sizeof(WINTRUST_DATA);
+        win_trust_data.dwStateAction = WTD_STATEACTION_VERIFY;
+        win_trust_data.dwUIChoice = WTD_UI_NONE;
+        win_trust_data.fdwRevocationChecks = WTD_REVOKE_NONE;
+        win_trust_data.dwUnionChoice = WTD_CHOICE_FILE;
+
+        file_info.cbStruct = sizeof(WINTRUST_FILE_INFO);
+        file_info.pcwszFilePath = path;
+
+        win_trust_data.pFile = &file_info;
+
+        signature_settings.cbStruct = sizeof(WINTRUST_SIGNATURE_SETTINGS);
+        signature_settings.dwFlags = WSS_VERIFY_SPECIFIC | WSS_GET_SECONDARY_SIG_COUNT;
+        signature_settings.dwIndex = 0;
+
+        win_trust_data.pSignatureSettings = &signature_settings;
+
+        // Query the number of signatures.
+        DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+        if (error != ERROR_SUCCESS) {
+            SetLastError(error);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+            clean_up_win_verify_trust();
+            throw std::runtime_error("WinVerifyTrust failed");
+        }
+    }
+
+    ~WinVerifyTrustHelper() { clean_up_win_verify_trust(); }
+
+    DWORD
+    cert_count()
+    {
+        // The number of signatures is stored in signature_settings.cSecondarySigs.
+        // The primary signature is always present, so we add 1 to the count.
+        return signature_settings.cSecondarySigs + 1;
+    }
+
+    CRYPT_PROVIDER_CERT*
+    get_cert(DWORD index)
+    {
+        // Check if the context currently points to the correct index.
+        if (signature_settings.dwIndex != index) {
+            clean_up_win_verify_trust();
+
+            win_trust_data.dwStateAction = WTD_STATEACTION_VERIFY;
+            win_trust_data.pSignatureSettings->dwIndex = index;
+
+            DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            if (error != ERROR_SUCCESS) {
+                SetLastError(error);
+                EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+                throw std::runtime_error("WinVerifyTrust failed");
+            }
+        }
+
+        CRYPT_PROVIDER_DATA* provider_data = WTHelperProvDataFromStateData(win_trust_data.hWVTStateData);
+        CRYPT_PROVIDER_SGNR* provider_signer = WTHelperGetProvSignerFromChain(provider_data, 0, FALSE, 0);
+        CRYPT_PROVIDER_CERT* cert = WTHelperGetProvCertFromChain(provider_signer, 0);
+
+        if (cert == nullptr) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WTHelperGetProvCertFromChain);
+            throw std::runtime_error("WTHelperGetProvCertFromChain failed");
+        }
+        return cert;
+    }
+
+  private:
+    void
+    clean_up_win_verify_trust()
+    {
+        if (win_trust_data.hWVTStateData) {
+            win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
+            // Ignore the return value of WinVerifyTrust on close.
+            (void)WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            win_trust_data.hWVTStateData = nullptr;
+        }
+    }
+
+    GUID generic_action_code = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+    WINTRUST_DATA win_trust_data = {};
+    WINTRUST_FILE_INFO file_info = {};
+    WINTRUST_SIGNATURE_SETTINGS signature_settings = {};
+};
+
+static std::set<std::string>
+_ebpf_extract_eku(_In_ CRYPT_PROVIDER_CERT* cert)
+{
+    std::set<std::string> eku_set;
+    DWORD cb_usage = 0;
+    if (!CertGetEnhancedKeyUsage(cert->pCert, 0, nullptr, &cb_usage)) {
+        return eku_set;
+    }
+    std::vector<uint8_t> usage(cb_usage);
+
+    if (!CertGetEnhancedKeyUsage(cert->pCert, 0, reinterpret_cast<PCERT_ENHKEY_USAGE>(usage.data()), &cb_usage)) {
+        return eku_set;
+    }
+    auto pusage = reinterpret_cast<PCERT_ENHKEY_USAGE>(usage.data());
+    for (size_t index = 0; index < pusage->cUsageIdentifier; index++) {
+        eku_set.insert(pusage->rgpszUsageIdentifier[index]);
+    }
+    return eku_set;
+}
+
+static std::string
+_ebpf_extract_issuer(_In_ const CRYPT_PROVIDER_CERT* cert)
+{
+    DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, nullptr, 0);
+
+    if (name_cb == 0) {
+        return std::string();
+    }
+
+    std::vector<char> issuer(name_cb);
+    if (CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, issuer.data(), name_cb) ==
+        0) {
+        return std::string();
+    }
+    return std::string(issuer.data());
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_sys_file_signature(
+    _In_z_ const wchar_t* file_name,
+    _In_z_ const char* issuer_name,
+    size_t eku_count,
+    _In_reads_(eku_count) const char** eku_list)
+{
+    ebpf_result_t result = EBPF_OBJECT_NOT_FOUND;
+    EBPF_LOG_ENTRY();
+    std::string required_issuer(issuer_name);
+    std::set<std::string> required_eku_set;
+
+    if (_ebpf_service_test_signing_enabled) {
+        // Test signing is enabled, so we don't verify the signature.
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
+
+    for (size_t i = 0; i < eku_count; i++) {
+        required_eku_set.insert(eku_list[i]);
+    }
+
+    try {
+        WinVerifyTrustHelper wrapper(file_name);
+
+        for (DWORD i = 0; i < wrapper.cert_count(); i++) {
+
+            std::set<std::string> eku_set = _ebpf_extract_eku(wrapper.get_cert(i));
+            std::string issuer = _ebpf_extract_issuer(wrapper.get_cert(i));
+
+            if (issuer != required_issuer) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "Certificate issuer mismatch",
+                    issuer.c_str());
+                continue;
+            }
+
+            std::set<std::string> eku_intersection;
+            std::set_intersection(
+                eku_set.begin(),
+                eku_set.end(),
+                required_eku_set.begin(),
+                required_eku_set.end(),
+                std::inserter(eku_intersection, eku_intersection.begin()));
+
+            if (eku_intersection.size() != required_eku_set.size()) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "Certificate EKU mismatch",
+                    "Required EKUs not found in certificate");
+                continue;
+            }
+
+            // The certificate is valid and has the required EKUs.
+            result = EBPF_SUCCESS;
+            break;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "Memory allocation failed during signature verification",
+            result);
+    } catch (const std::runtime_error&) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+
+static const char* _ebpf_required_issuer = EBPF_REQUIRED_ISSUER;
+static const char* _ebpf_required_eku_list[] = {
+    EBPF_CODE_SIGNING_EKU,
+    EBPF_VERIFICATION_EKU,
+};
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* file_handle) noexcept
 {
@@ -455,8 +671,6 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
             EBPF_RETURN_RESULT(result);
         }
 
-        // FUTURE: Use WinVerifyTrustEx to verify the signature of the file.
-
         *file_handle = CreateFileW(
             file_path_wide.c_str(),
             GENERIC_READ,
@@ -472,7 +686,15 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
             EBPF_RETURN_RESULT(result);
         }
 
-        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+        // Note: Signature verification is done after the file is opened to ensure that the file exists and can not be
+        // modified.
+        result = ebpf_verify_sys_file_signature(
+            file_path_wide.c_str(),
+            _ebpf_required_issuer,
+            sizeof(_ebpf_required_eku_list) / sizeof(_ebpf_required_eku_list[0]),
+            _ebpf_required_eku_list);
+
+        EBPF_RETURN_RESULT(result);
     } catch (const std::bad_alloc&) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     } catch (const std::exception&) {
@@ -548,6 +770,39 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
+/**
+ * @brief Initialize the test signing state.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The reply from the driver was invalid.
+ * @retval EBPF_NO_MEMORY Insufficient memory to complete the operation.
+ */
+static _Must_inspect_result_ ebpf_result_t
+_initialize_test_signing_state()
+{
+    _ebpf_service_test_signing_enabled = false;
+    _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
+
+    ebpf_operation_get_code_integrity_state_request_t request{
+        sizeof(ebpf_operation_get_code_integrity_state_request_t),
+        ebpf_operation_id_t::EBPF_OPERATION_GET_CODE_INTEGRITY_STATE};
+    ebpf_operation_get_code_integrity_state_reply_t reply;
+
+    uint32_t error = invoke_ioctl(request, reply);
+    if (error != ERROR_SUCCESS) {
+        return win32_error_code_to_ebpf_result(error);
+    }
+
+    if (reply.header.id != ebpf_operation_id_t::EBPF_OPERATION_GET_CODE_INTEGRITY_STATE) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    _ebpf_service_test_signing_enabled = reply.test_signing_enabled;
+    _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = reply.hypervisor_code_integrity_enabled;
+
+    return EBPF_SUCCESS;
+}
+
 uint32_t
 ebpf_service_initialize() noexcept
 {
@@ -556,6 +811,18 @@ ebpf_service_initialize() noexcept
     // This is needed to ensure the service can successfully start
     // even if the driver is not installed.
     (void)initialize_async_device_handle();
+
+    ebpf_result_t result = _initialize_test_signing_state();
+    if (result != EBPF_SUCCESS) {
+        switch (result) {
+        case EBPF_NO_MEMORY:
+            return ERROR_NOT_ENOUGH_MEMORY;
+        case EBPF_INVALID_ARGUMENT:
+            return ERROR_INVALID_PARAMETER;
+        default:
+            return ERROR_NOT_SUPPORTED;
+        }
+    }
 
     return ERROR_SUCCESS;
 }

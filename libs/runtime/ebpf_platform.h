@@ -38,12 +38,6 @@ extern "C"
 #define EBPF_NS_PER_FILETIME 100
 #define EBPF_FILETIME_PER_MS 10000
 
-    typedef enum _ebpf_code_integrity_state
-    {
-        EBPF_CODE_INTEGRITY_DEFAULT = 0,
-        EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
-    } ebpf_code_integrity_state_t;
-
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
 
@@ -184,12 +178,15 @@ extern "C"
 
     /**
      * @brief Get the code integrity state from the platform.
-     * @param[out] state The code integrity state being enforced.
+     * @param[out] test_signing_enabled Pointer to a boolean that will be set to true if test signing is enabled, to
+     * false otherwise.
+     * @param[out] hypervisor_kernel_mode_enabled Pointer to a boolean that will be set to true if hypervisor kernel
+     * mode is enabled, to false otherwise.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state);
+    ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hypervisor_kernel_mode_enabled);
 
     /**
      * @brief Create an instance of a lock.
