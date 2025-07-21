@@ -38,9 +38,9 @@ UtilityTest(bind_md_t* ctx)
         return 2;
     }
 
-    // Verify that bpf_memcmp handles the case where the first string is shorter than the second.
+    // Verify that bpf_memcmp_s handles the case where the first string is shorter than the second.
     // The overlapping portion of the strings is equal, but the first string is shorter, so it should return < 0.
-    if (bpf_memcmp(test1, 3, test2, 4) >= 0) {
+    if (bpf_memcmp_s(test1, 3, test2, 4) >= 0) {
         return 3;
     }
 

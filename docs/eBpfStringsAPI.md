@@ -8,7 +8,7 @@ are powerful, but fall short of the needs of Application-layer customers like HT
 mandatory to interact with HTTP requests and responses.
 
 This has precedent; in [`ebpf_core_helper_function_prototype_array`](../libs/execution_context/ebpf_general_helpers.c)
-there are `bpf_memcmp()`, `bpf_memcpy()`, `bpf_memmove()`, and `bpf_memset()` -- all of which are also derived from
+there are `bpf_memcmp_s()`, `bpf_memcpy_s()`, `bpf_memmove_s()`, and `bpf_memset()` -- all of which are also derived from
 `<string.h>` functions. As has been pointed out, there are also limited examples
 
 ## Scenarios

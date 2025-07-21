@@ -160,10 +160,10 @@ typedef enum
     BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
     BPF_FUNC_get_current_logon_id = 20,      ///< \ref bpf_get_current_logon_id
     BPF_FUNC_is_current_admin = 21,          ///< \ref bpf_is_current_admin
-    BPF_FUNC_memcpy = 22,                    ///< \ref bpf_memcpy
-    BPF_FUNC_memcmp = 23,                    ///< \ref bpf_memcmp
+    BPF_FUNC_memcpy_s = 22,                  ///< \ref bpf_memcpy_s
+    BPF_FUNC_memcmp_s = 23,                  ///< \ref bpf_memcmp_s
     BPF_FUNC_memset = 24,                    ///< \ref bpf_memset
-    BPF_FUNC_memmove = 25,                   ///< \ref bpf_memmove
+    BPF_FUNC_memmove_s = 25,                 ///< \ref bpf_memmove_s
     BPF_FUNC_get_socket_cookie = 26,         ///< \ref bpf_get_socket_cookie
     BPF_FUNC_strncpy_s = 27,                 ///< \ref bpf_strncpy_s
     BPF_FUNC_strncat_s = 28,                 ///< \ref bpf_strncat_s
