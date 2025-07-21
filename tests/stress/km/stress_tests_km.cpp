@@ -1139,7 +1139,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
 
-    // Choose file extension based on execution type
+    // Choose file extension based on execution type.
     std::string file_extension = (program_type == EBPF_EXECUTION_NATIVE) ? ".sys" : ".o";
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
     
@@ -1240,7 +1240,7 @@ _mt_sockaddr_invoke_program_test(ebpf_execution_type_t program_type, const test_
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    // Choose file extension based on execution type  
+    // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
     std::string file_name = is_native ? _make_unique_file_copy("cgroup_mt_connect6.sys") : "cgroup_mt_connect6.o";
 
@@ -1538,7 +1538,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    // Choose file extension based on execution type
+    // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
     std::string file_name = is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
 
@@ -1788,7 +1788,7 @@ TEST_CASE("jit_invoke_v4_v6_programs_restart_extension_test", "[jit_mt_stress_te
     //
     // 2  Until the end of test, each test thread will:
     //    - Read the initial 'connect' count from its respective 'connect<v4|v6>_map' map.
-    //    - Attempt to (TCP) connect to its respective end-point 'n' times.  Make 'n' large enough (4096?) to try
+    //    - Attempt to (TCP) connect to its respective endpoint 'n' times.  Make 'n' large enough (4096?) to try
     //      and collide with the extension restart event.
     //    - Read the 'connect' count its respective map after this 'burst' connect attempt.
     //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
@@ -1816,7 +1816,7 @@ TEST_CASE("jit_sockaddr_invoke_program_test", "[jit_mt_stress_test]")
     // 1. Load the "cgroup_mt_connect6.o" JIT ebpf program.
     //    - This program monitors an IPv6 endpoint, [::1]:<target_port>. On every invocation, the program returns a
     //      specific value per the following (arbitrary) algorithm:
-    //      > (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
+    //        (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
     //        (target_port % 2 == 0) : BPF_SOCK_ADDR_VERDICT_PROCEED
     //        else                   : BPF_SOCK_ADDR_VERDICT_REDIRECT
     //
