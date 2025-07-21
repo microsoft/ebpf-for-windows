@@ -1,15 +1,11 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 #pragma once
+
 #include "cxplat.h"
+#include "ebpf_shared_framework.h"
 
 CXPLAT_EXTERN_C_BEGIN
-
-#define EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE 4096
-#define EBPF_RING_BUFFER_PRODUCER_PAGE_SIZE 4096
-// TODO (before merging): sort out header size
-// #define EBPF_RING_BUFFER_HEADER_SIZE (EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE + EBPF_RING_BUFFER_PRODUCER_PAGE_SIZE)
-#define EBPF_RING_BUFFER_HEADER_SIZE (64 * 1024)
 
 #define EBPF_RINGBUF_LOCK_BIT (1U << 31)
 #define EBPF_RINGBUF_DISCARD_BIT (1U << 30)
@@ -23,7 +19,7 @@ typedef struct _ebpf_ring_buffer_record
     struct
     {
         uint32_t length;      ///< High 2 bits are lock,discard.
-        uint32_t page_offset; ///< Currently unused.
+        uint32_t page_offset; ///< Offset of the record from the start of the data buffer, in pages.
     } header;
     uint8_t data[1];
 } ebpf_ring_buffer_record_t;
@@ -101,8 +97,9 @@ ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, s
     if (producer == consumer) {
         return NULL;
     }
-    // TODO (before merging): sort out header size
-    return (ebpf_ring_buffer_record_t*)(buffer + EBPF_RING_BUFFER_HEADER_SIZE + consumer % buffer_length);
+
+    ebpf_assert(producer - consumer >= EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
 }
 
 CXPLAT_EXTERN_C_END

@@ -3,6 +3,7 @@
 
 #include "..\..\external\usersim\src\platform.h"
 #include "ebpf_platform.h"
+#include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_utilities.h"
 #include "usersim/ke.h"
@@ -51,8 +52,6 @@ struct _ebpf_ring_descriptor
 {
     void* primary_view;
     void* secondary_view;
-    size_t length;
-    size_t header_length;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -60,7 +59,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
+ebpf_allocate_ring_buffer_memory(size_t length)
 {
     EBPF_LOG_ENTRY();
     bool result = false;
@@ -71,32 +70,40 @@ ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
     void* view1 = nullptr;
     void* view2 = nullptr;
 
-    size_t total_mapped_size = header_length + length * 2;
-
     // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
     GetSystemInfo(&sysInfo);
+    ebpf_assert(sysInfo.dwPageSize == PAGE_SIZE);
 
     if (length == 0) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is zero");
         return nullptr;
     }
 
-    if ((length % sysInfo.dwAllocationGranularity) != 0 || (length > (MAXUINT64 - header_length) / 2) ||
-        (header_length % sysInfo.dwAllocationGranularity) != 0) {
+    if (length % PAGE_SIZE != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
-            "Ring buffer length doesn't match allocation granularity",
+            "Ring buffer length doesn't match page size",
             length);
         return nullptr;
     }
+
+    size_t kernel_pages = 1;
+    size_t user_pages = 2;
+    size_t header_length = (kernel_pages + user_pages) * PAGE_SIZE;
+
+    if (length > (MAXUINT64 - header_length) / 2) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length exceeds maximum", length);
+        return nullptr;
+    }
+
+    size_t total_mapped_size = header_length + length * 2;
 
     ebpf_ring_descriptor_t* descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
     if (!descriptor) {
         goto Exit;
     }
-    descriptor->header_length = header_length;
-    descriptor->length = length;
 
     //
     // Reserve a placeholder region where the buffer will be mapped.
@@ -221,19 +228,30 @@ ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring_de
     return ring_descriptor->primary_view;
 }
 
-_Ret_maybenull_ void*
-ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_map_user(
+    _In_ ebpf_ring_descriptor_t* ring, _Outptr_ void** consumer, _Outptr_ void** producer, _Outptr_ uint8_t** data)
 {
     EBPF_LOG_ENTRY();
-    EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
+    if (!ring || !consumer || !producer || !data) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    *consumer = (uint8_t*)ring->primary_view + PAGE_SIZE;
+    *producer = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE;
+    *data = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE + PAGE_SIZE;
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
-_Ret_maybenull_ void*
-ebpf_ring_map_user(_In_ const ebpf_ring_descriptor_t* ring, size_t writable_pages)
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_unmap_user(
+    _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(writable_pages); // not used in user mode (always writable).
-    EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
+    UNREFERENCED_PARAMETER(ring);
+    UNREFERENCED_PARAMETER(consumer);
+    UNREFERENCED_PARAMETER(producer);
+    UNREFERENCED_PARAMETER(data);
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 static uint32_t

@@ -1394,7 +1394,47 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
 
 TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
 {
-    // TODO: implementme
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // Output a value to the ring buffer.
+    uint64_t value = 42;
+    REQUIRE(ebpf_ring_buffer_map_output(map.get(), reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
+
+    // Map the ring buffer to get consumer and producer pointers.
+    volatile size_t* consumer = nullptr;
+    volatile size_t* producer = nullptr;
+    uint8_t* data = nullptr;
+    size_t data_size = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
+
+    // Use the mapped producer pointer to read the record.
+    auto record = ebpf_ring_buffer_next_record(data, 64 * 1024, *consumer, *producer);
+
+    REQUIRE(record != nullptr);
+    REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
+    REQUIRE(!ebpf_ring_buffer_record_is_discarded(record));
+    REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(uint64_t));
+    REQUIRE(*(uint64_t*)(record->data) == value);
+
+    // Unmap the ring buffer.
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_user(map.get(), (const void*)consumer, (const void*)producer, (const void*)data) ==
+        EBPF_SUCCESS);
 }
 
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")

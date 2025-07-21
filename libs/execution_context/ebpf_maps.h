@@ -207,6 +207,38 @@ extern "C"
         _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
+     * @brief Map the shared data for a ring buffer map to user space.
+     *
+     * @param[in] map Map to query.
+     * @param[out] consumer Pointer to the consumer buffer.
+     * @param[out] producer Pointer to the producer buffer.
+     * @param[out] data Pointer to the data buffer.
+     * @param[out] data_size Size of the mapped data buffer.
+     * @retval EBPF_SUCCESS Successfully mapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_map_user(
+        _In_ const ebpf_map_t* map,
+        _Outptr_ void** consumer,
+        _Outptr_ void** producer,
+        _Outptr_result_buffer_(*data_size) const uint8_t** data,
+        _Out_ size_t* data_size);
+
+    /**
+     * @brief Unmap the memory of a ring buffer map.
+     *
+     * @param[in] map Map to unmap.
+     * @param[in] consumer Pointer to the consumer buffer.
+     * @param[in] producer Pointer to the producer buffer.
+     * @param[in] data Pointer to the data buffer.
+     * @retval EBPF_SUCCESS Successfully unmapped the buffer.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_unmap_user(
+        _In_ const ebpf_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+
+    /**
      * @brief Set the wait handle for a map.
      *
      * @param[in] map Map to set the wait handle for.
@@ -217,8 +249,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to set the wait handle.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_set_wait_handle(
-        _In_ const ebpf_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags);
+    ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags);
 
     /**
      * @brief Issue asynchronous query to map.
