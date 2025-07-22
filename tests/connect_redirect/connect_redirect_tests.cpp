@@ -387,7 +387,7 @@ update_policy_map_and_test_connection(
         SAFE_REQUIRE(authentication_id != 0);
 
         // Try to send and receive message to "destination". It should succeed.
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
         sender_socket->post_async_receive();
