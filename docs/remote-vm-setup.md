@@ -6,34 +6,12 @@ This guide explains how to set up and run eBPF for Windows CI/CD scripts on a re
 
 ## 1. Prepare the Remote VM
 
-1. **Enable Test Signed Binaries**
+Set the execution policy and run the setup script as Administrator:
 
-   Open an **Administrator PowerShell** prompt and run:
-   ```powershell
-   bcdedit.exe -set TESTSIGNING ON
-   ```
-
-   For more information, see [testsigning documentation](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option).
-
-2. **Set Network Profile to Private**
-
-   ```powershell
-   Get-NetConnectionProfile
-   # For each network that is public, run:
-   Set-NetConnectionProfile -Name "YourNetworkName" -NetworkCategory Private
-   ```
-
-3. **Enable PowerShell Remoting**
-
-   ```powershell
-   Enable-PSRemoting
-   ```
-
-4. **Restart the VM**
-
-   ```powershell
-   Restart-Computer
-   ```
+```powershell
+Set-ExecutionPolicy Unrestricted -Force
+.\setup_remote_vm.ps1
+```
 
 ---
 
@@ -93,17 +71,15 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
    }
    ```
 
+   > **Note:**
+   > `<host name>` refers to the name of your host machine.
+   > You can get this value by running `[System.Net.Dns]::GetHostName()` in PowerShell.
+
 ---
 
 ## 5. Run the CI/CD Setup Script
 
-1. **Set Execution Policy**
-
-   ```powershell
-   Set-ExecutionPolicy Unrestricted -Force
-   ```
-
-2. **Run the Setup Script**
+1. **Run the Setup Script**
 
    ```powershell
    .\setup_ebpf_cicd_tests.ps1 -IsVMRemote
@@ -120,8 +96,9 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 
 - The credentials stored in step 3 will be used for authentication to the VM during test execution.
 - When running `setup_ebpf_cicd_tests.ps1` on a Hyper-V VM, the script automatically reverts the VM to a baseline checkpoint before setting up the machine. However, when running the script on a remote VM, you must manually take a snapshot before running the setup script and revert to it after running `execute_ebpf_cicd_tests.ps1`.
-- If your goal is simply to deploy pre-built binaries to a remote virtual machine, you can use the deploy-ebpf.ps1 script instead. This script will prompt you for credentials during execution.:
+- If your goal is simply to deploy pre-built binaries to a remote virtual machine, you can use the deploy-ebpf.ps1 script instead. This script will prompt you for credentials during execution.
+  The script copies files to `c:\temp` on the remote VM.
   ```powershell
-  .\deploy-ebpf.ps1 --dir="c:\some\path" --remote_vm=<remote-vm-ip>
+  .\deploy-ebpf.ps1 --dir="c:\temp" --remote_vm=<remote-vm-ip>
   ```
 ---
