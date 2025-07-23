@@ -101,10 +101,7 @@ if ($EnableTracing -and $tracingInitialized) {
     }
 }
 
-# Extract the output folder and timeout from the arguments.
-$arguments = $arguments[1..($arguments.Length - 1)]
-$Timeout = [int]$arguments[0]
-$arguments = $arguments[1..($arguments.Length - 1)]
+
 
 # Start the test process using the provided command and arguments.
 # This can't use Start-Process as that doesn't save exit code and always returns 0.

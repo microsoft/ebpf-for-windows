@@ -227,9 +227,9 @@ jobs:
           - 'server23h2'
           - 'server2025'
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -GranularTracing
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -237,6 +237,7 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
+      capture_etw: true
 
   driver_native_only_tests:
     needs: regular_native-only
@@ -249,9 +250,9 @@ jobs:
           - 'server23h2'
           - 'server2025'
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -EnableHVCI "On"
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -EnableHVCI "On" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -GranularTracing
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -260,6 +261,7 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+      capture_etw: true
 
   driver_native_only_arm64_tests:
     needs: regular_native-only
@@ -267,9 +269,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost -Architecture arm64
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost -Architecture arm64 -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost -GranularTracing
       name: driver_native_only_arm64
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
@@ -278,6 +280,7 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+      capture_etw: true
 
   # Run the regression driver tests on self-hosted runners (only for 2022).
   regression_driver_ws2022:
@@ -287,9 +290,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression" -RegressionArtifactsVersion "0.21.0"
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression" -RegressionArtifactsVersion "0.21.0" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -GranularTracing
       name: regression_driver_ws2022
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
@@ -297,6 +300,7 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
+      capture_etw: true
 
   ossar:
     # Always run this job.
