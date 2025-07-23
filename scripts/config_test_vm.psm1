@@ -341,7 +341,7 @@ function Compress-KernelModeDumpOnVM
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
             $compressionSucceeded = Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
-            if ($compressionSucceeded -and (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf)) {
+            if ($compressionSucceeded) {
                 $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
                 Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
                 Write-Log `
