@@ -1,0 +1,68 @@
+# Example demonstrating granular ETW tracing usage
+# This shows how to enable the new granular tracing feature for specific tests
+
+# Enable granular tracing for netebpf unit tests
+netebpf_ext_unit_tests_granular:
+  needs: regular
+  if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  uses: ./.github/workflows/reusable-test.yml
+  with:
+    name: netebpf_ext_unit_tests_granular
+    pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+    test_command: .\netebpfext_unit.exe -d yes
+    build_artifact: Build-x64
+    environment: '["windows-2022"]'
+    code_coverage: true
+    gather_dumps: true
+    capture_etw: true
+    granular_etw_tracing: true  # Enable granular tracing instead of workflow-level tracing
+    leak_detection: true
+
+# Enable granular tracing for bpf2c tests
+bpf2c_granular:
+  needs: regular
+  if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  uses: ./.github/workflows/reusable-test.yml
+  with:
+    test_command: .\bpf2c_tests.exe -d yes
+    name: bpf2c_granular
+    build_artifact: Build-x64
+    environment: '["windows-2022"]'
+    vs_dev: true
+    code_coverage: true
+    gather_dumps: true
+    capture_etw: true
+    granular_etw_tracing: true  # Enable granular tracing
+
+# Driver tests with granular tracing for setup/cleanup
+driver_tests_granular:
+  needs: regular
+  if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+  uses: ./.github/workflows/reusable-test.yml
+  strategy:
+    matrix:
+      image:
+        - 'server2022'
+  with:
+    # Enable granular tracing for setup and cleanup operations
+    pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -GranularTracing
+    test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+    post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -GranularTracing
+    name: driver_granular_${{ matrix.image }}
+    build_artifact: Build-x64
+    environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+    gather_dumps: false
+    code_coverage: false
+
+# Note: The above examples show how to enable granular tracing.
+# When granular_etw_tracing: true is set:
+# 1. Workflow-level ETW tracing is automatically disabled
+# 2. Per-test tracing creates individual ETL files like:
+#    - netebpfext_unit_20241220_143045.etl
+#    - bpf2c_tests_20241220_143102.etl
+# 3. Setup/cleanup operations create separate files like:
+#    - setup_ebpf_20241220_143022.etl
+#    - cleanup_ebpf_20241220_143125.etl
+#
+# This results in multiple focused ETL files instead of one large file,
+# making debugging much easier and reducing storage requirements.
