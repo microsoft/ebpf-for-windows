@@ -477,9 +477,9 @@ function Import-ResultsFromVM
                 -DestinationDirectory ".\TestLogs\$VMName\Logs"
             
             if ($result.Success) {
-                Write-Log "Successfully copied compressed ETL file from $VMName: $($result.FinalPath)"
+                Write-Log "Successfully copied compressed ETL file from ${VMName}: $($result.FinalPath)"
             } else {
-                Write-Log "Used uncompressed ETL fallback from $VMName: $($result.FinalPath)"
+                Write-Log "Used uncompressed ETL fallback from ${VMName}: $($result.FinalPath)"
             }
         }
 
