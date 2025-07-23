@@ -76,10 +76,8 @@ function Compress-File
             Write-Log $ErrorMessage
             if ($retryCount -lt 5) {
                 Start-Sleep -seconds (5 * $retryCount)
-                $retryCount++
-            } else {
-                break
             }
+            $retryCount++
         }
     }
     
