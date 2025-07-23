@@ -342,7 +342,9 @@ function Compress-KernelModeDumpOnVM
 
             $result = CompressOrCopy-File -SourcePath "$KernelModeDumpFileSourcePath\*.dmp" -DestinationDirectory $KernelModeDumpFileDestinationPath -CompressedFileName "km_dumps.zip"
             if ($result.Success) {
-                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
+                Write-Log "Successfully compressed kernel dumps: $($result.FinalPath)"
+            } else {
+                Write-Log "Used uncompressed kernel dump fallback: $($result.FinalPath)"
             }
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
@@ -473,6 +475,12 @@ function Import-ResultsFromVM
                 -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
                 -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
                 -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            
+            if ($result.Success) {
+                Write-Log "Successfully copied compressed ETL file from $VMName: $($result.FinalPath)"
+            } else {
+                Write-Log "Used uncompressed ETL fallback from $VMName: $($result.FinalPath)"
+            }
         }
 
         # Copy performance results from Test VM.
@@ -546,6 +554,12 @@ function Import-ResultsFromHost {
         Write-Log "ETL file Size: $EtlFileSize MB"
         Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
         $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
+        
+        if ($result.Success) {
+            Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
+        } else {
+            Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
+        }
     }
 }
 

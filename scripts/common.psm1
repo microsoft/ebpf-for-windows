@@ -103,8 +103,20 @@ function Compress-File
 .PARAMETER CompressedFileName
     The name for the compressed file. If not provided, auto-generates based on source.
 
+.OUTPUTS
+    Returns a hashtable with the following properties:
+    - Success: Boolean indicating if compression succeeded
+    - CompressedPath: Path to compressed file (if compression succeeded) 
+    - UncompressedPath: Path to uncompressed file (if compression failed)
+    - FinalPath: Path to the final file that was copied
+
 .EXAMPLE
-    CompressOrCopy-File -SourcePath "C:\dumps\*.dmp" -DestinationDirectory "C:\output" -CompressedFileName "dumps.zip"
+    $result = CompressOrCopy-File -SourcePath "C:\dumps\*.dmp" -DestinationDirectory "C:\output" -CompressedFileName "dumps.zip"
+    if ($result.Success) {
+        Write-Host "Compression succeeded: $($result.FinalPath)"
+    } else {
+        Write-Host "Compression failed, using uncompressed: $($result.FinalPath)"
+    }
 #>
 function CompressOrCopy-File
 {
@@ -143,8 +155,8 @@ function CompressOrCopy-File
         return @{
             Success = $true
             CompressedPath = $finalCompressedPath
-            UncompressedPaths = @()
-            FinalPaths = @($finalCompressedPath)
+            UncompressedPath = ""
+            FinalPath = $finalCompressedPath
         }
     } else {
         # Compression failed - copy uncompressed files as fallback
@@ -168,8 +180,8 @@ function CompressOrCopy-File
         return @{
             Success = $false
             CompressedPath = ""
-            UncompressedPaths = $copiedPaths
-            FinalPaths = $copiedPaths
+            UncompressedPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
+            FinalPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
         }
     }
 }
@@ -194,8 +206,20 @@ function CompressOrCopy-File
 .PARAMETER DestinationDirectory
     The local directory where files should be copied.
 
+.OUTPUTS
+    Returns a hashtable with the following properties:
+    - Success: Boolean indicating if compressed copy succeeded
+    - CompressedPath: Path to compressed file (if compressed copy succeeded)
+    - UncompressedPath: Path to uncompressed file (if compressed copy failed)  
+    - FinalPath: Path to the final file that was copied
+
 .EXAMPLE
-    CopyCompressedOrUncompressed-FileFromSession -VMSession $session -CompressedSourcePath "C:\eBPF\trace.zip" -UncompressedSourcePath "C:\eBPF\trace.etl" -DestinationDirectory ".\Logs"
+    $result = CopyCompressedOrUncompressed-FileFromSession -VMSession $session -CompressedSourcePath "C:\eBPF\trace.zip" -UncompressedSourcePath "C:\eBPF\trace.etl" -DestinationDirectory ".\Logs"
+    if ($result.Success) {
+        Write-Host "Compressed copy succeeded: $($result.FinalPath)"
+    } else {
+        Write-Host "Using uncompressed fallback: $($result.FinalPath)"
+    }
 #>
 function CopyCompressedOrUncompressed-FileFromSession
 {
