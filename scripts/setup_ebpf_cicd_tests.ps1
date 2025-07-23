@@ -14,7 +14,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][string] $Architecture = "x64")
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64",
+       [Parameter(Mandatory = $false)][switch] $GranularTracing)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -23,6 +24,28 @@ Push-Location $WorkingDirectory
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+# Initialize granular tracing if enabled
+$setupTraceFile = $null
+if ($GranularTracing -and $KmTracing) {
+    try {
+        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+            Write-Log "Starting granular tracing for setup operations"
+            # Create TestLogs directory for trace files
+            $traceDir = Join-Path $WorkingDirectory "TestLogs"
+            if (-not (Test-Path $traceDir)) {
+                New-Item -ItemType Directory -Path $traceDir -Force | Out-Null
+            }
+            $setupTraceFile = Start-OperationTrace -OperationName "setup_ebpf" -OutputDirectory $traceDir -TraceType $KmTraceType
+            if ($setupTraceFile) {
+                Write-Log "Started setup tracing: $setupTraceFile" -ForegroundColor Green
+            }
+        }
+    } catch {
+        Write-Log "Warning: Failed to initialize granular tracing for setup: $_" -ForegroundColor Yellow
+    }
+}
 
 if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
@@ -181,4 +204,16 @@ if ($ExecuteOnVM) {
     Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
 
     Pop-Location
+}
+
+# Stop granular tracing if it was started
+if ($setupTraceFile) {
+    try {
+        $savedTraceFile = Stop-OperationTrace
+        if ($savedTraceFile) {
+            Write-Log "Stopped setup tracing: $savedTraceFile" -ForegroundColor Green
+        }
+    } catch {
+        Write-Log "Warning: Failed to stop setup tracing: $_" -ForegroundColor Yellow
+    }
 }
