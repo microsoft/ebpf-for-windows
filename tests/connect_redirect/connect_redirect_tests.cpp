@@ -363,6 +363,23 @@ update_policy_map_and_test_connection(
     uint16_t proxy_port,
     bool dual_stack)
 {
+    // Debug: Print source, destination, and redirected addresses.
+    PSOCKADDR source_addr;
+    int source_addr_len;
+    sender_socket->get_local_address(source_addr, source_addr_len);
+    
+    uint16_t source_port = 0;
+    if (source_addr->sa_family == AF_INET) {
+        source_port = ntohs(((sockaddr_in*)source_addr)->sin_port);
+    } else if (source_addr->sa_family == AF_INET6) {
+        source_port = ntohs(((sockaddr_in6*)source_addr)->sin6_port);
+    }
+    
+    printf("DEBUG: Address mapping details:\n");
+    printf("  Source: %s:%d\n", get_string_from_address(source_addr).c_str(), source_port);
+    printf("  Original Destination: %s:%d\n", get_string_from_address((SOCKADDR*)&destination).c_str(), destination_port);
+    printf("  Redirect Target: %s:%d\n", get_string_from_address((SOCKADDR*)&proxy).c_str(), proxy_port);
+
     bool add_policy = true;
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
