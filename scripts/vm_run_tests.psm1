@@ -122,6 +122,7 @@ function Start-ProcessHelper {
         Start-Process -FilePath $ProgramName -ArgumentList $Parameters
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
+    Write-Log "Starting process $ProgramName with arguments $Parameters"
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
