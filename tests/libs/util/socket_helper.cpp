@@ -17,15 +17,7 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
-// Define WSACMSGHDR structure if not already defined
-#ifndef WSACMSGHDR
-typedef struct wsacmsghdr {
-    SIZE_T cmsg_len;     /* data byte count, including header */
-    INT    cmsg_level;   /* originating protocol */
-    INT    cmsg_type;    /* protocol-specific type */
-    /* followed by UCHAR cmsg_data[] */
-} WSACMSGHDR, *PWSACMSGHDR;
-#endif
+// WSACMSGHDR is defined in Mswsock.h (included via socket_helper.h)
 
 uint64_t
 get_current_pid_tgid()
