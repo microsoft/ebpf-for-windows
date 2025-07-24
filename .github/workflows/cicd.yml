@@ -238,6 +238,7 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       capture_etw: true
+      granular_etw_tracing: true
 
   driver_native_only_tests:
     needs: regular_native-only
@@ -262,6 +263,7 @@ jobs:
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
       capture_etw: true
+      granular_etw_tracing: true
 
   driver_native_only_arm64_tests:
     needs: regular_native-only
@@ -281,6 +283,7 @@ jobs:
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
       capture_etw: true
+      granular_etw_tracing: true
 
   # Run the regression driver tests on self-hosted runners (only for 2022).
   regression_driver_ws2022:
@@ -301,6 +304,7 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       capture_etw: true
+      granular_etw_tracing: true
 
   ossar:
     # Always run this job.

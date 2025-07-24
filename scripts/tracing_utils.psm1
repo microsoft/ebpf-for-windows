@@ -65,10 +65,24 @@ function Start-OperationTrace {
         [Parameter(Mandatory=$false)] [string] $TraceType = "file"
     )
     
-    # Stop any existing trace first
+    # Stop any existing trace first to avoid conflicts
     if ($script:TracingEnabled) {
         Write-Log "Stopping existing trace before starting new one"
         Stop-OperationTrace
+    }
+    
+    # Cancel any orphaned WPR sessions to avoid "profiles already running" errors
+    try {
+        Write-Log "Cleaning up any existing WPR sessions before starting new trace"
+        $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDirectory\wpr_cancel_error.txt"
+        if ($cancelProcess.ExitCode -eq 0) {
+            Write-Log "Successfully canceled existing WPR sessions" -ForegroundColor Green
+        } else {
+            # Exit code is not 0, but this is expected if no sessions were running
+            Write-Log "No existing WPR sessions to cancel (Exit code: $($cancelProcess.ExitCode))" -ForegroundColor Gray
+        }
+    } catch {
+        Write-Log "Warning: Failed to cancel existing WPR sessions: $_" -ForegroundColor Yellow
     }
     
     if (-not $script:WprpProfilePath -or -not (Test-Path $script:WprpProfilePath)) {
@@ -88,18 +102,22 @@ function Start-OperationTrace {
     
     try {
         if ($TraceType -eq "file") {
-            Write-Log "Starting ETW trace for '$OperationName' (file mode): $script:CurrentTraceFile"
+            Write-Log "Starting ETW trace for '$OperationName' (file mode): $script:CurrentTraceFile" -ForegroundColor Cyan
+            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!EbpfForWindowsProvider-File`" -filemode" -ForegroundColor Yellow
             $arguments = "-start `"$script:WprpProfilePath!EbpfForWindowsProvider-File`" -filemode"
         } else {
-            Write-Log "Starting ETW trace for '$OperationName' (memory mode)"
+            Write-Log "Starting ETW trace for '$OperationName' (memory mode)" -ForegroundColor Cyan
+            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!EbpfForWindowsProvider-Memory`"" -ForegroundColor Yellow
             $arguments = "-start `"$script:WprpProfilePath!EbpfForWindowsProvider-Memory`""
         }
         
+        Write-Log "Debug: ETL file will be created at: $script:CurrentTraceFile" -ForegroundColor Yellow
         $process = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDirectory\wpr_start_error.txt"
         
         if ($process.ExitCode -eq 0) {
             $script:TracingEnabled = $true
             Write-Log "Successfully started ETW trace for '$OperationName'" -ForegroundColor Green
+            Write-Log "Debug: Trace file location confirmed: $script:CurrentTraceFile" -ForegroundColor Yellow
             return $script:CurrentTraceFile
         } else {
             Write-Log "Failed to start ETW trace. Exit code: $($process.ExitCode)" -ForegroundColor Red
@@ -132,7 +150,8 @@ function Stop-OperationTrace {
     }
     
     try {
-        Write-Log "Stopping ETW trace: $script:CurrentTraceFile"
+        Write-Log "Stopping ETW trace: $script:CurrentTraceFile" -ForegroundColor Cyan
+        Write-Log "Debug: WPR stop command will be: wpr.exe -stop `"$script:CurrentTraceFile`"" -ForegroundColor Yellow
         
         $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop `"$script:CurrentTraceFile`"" -NoNewWindow -Wait -PassThru -RedirectStandardError "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt"
         
@@ -142,7 +161,10 @@ function Stop-OperationTrace {
             # Check if file was created and report its size
             if (Test-Path $script:CurrentTraceFile) {
                 $fileSize = (Get-Item $script:CurrentTraceFile).Length / 1MB
-                Write-Log "ETL file size: $([math]::Round($fileSize, 2)) MB"
+                Write-Log "ETL file size: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
+                Write-Log "Debug: Final ETL file confirmed at: $script:CurrentTraceFile" -ForegroundColor Yellow
+            } else {
+                Write-Log "Warning: ETL file was not created at expected location: $script:CurrentTraceFile" -ForegroundColor Yellow
             }
             
             $savedFile = $script:CurrentTraceFile
@@ -175,13 +197,24 @@ function Stop-OperationTrace {
 #>
 function Stop-AllTraces {
     try {
-        Write-Log "Canceling all active ETW traces"
-        $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+        Write-Log "Canceling all active ETW traces" -ForegroundColor Cyan
+        $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "wpr_cancel_all_error.txt"
         
         if ($process.ExitCode -eq 0) {
             Write-Log "Successfully canceled all ETW traces" -ForegroundColor Green
         } else {
-            Write-Log "Failed to cancel ETW traces. Exit code: $($process.ExitCode)" -ForegroundColor Yellow
+            # Check if it's the "no profiles running" error
+            if (Test-Path "wpr_cancel_all_error.txt") {
+                $errorContent = Get-Content "wpr_cancel_all_error.txt" -Raw
+                if ($errorContent -match "no trace profiles running") {
+                    Write-Log "No active ETW traces to cancel" -ForegroundColor Gray
+                } else {
+                    Write-Log "Failed to cancel ETW traces. Exit code: $($process.ExitCode)" -ForegroundColor Yellow
+                    Write-Log "WPR error output: $errorContent" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Log "Failed to cancel ETW traces. Exit code: $($process.ExitCode)" -ForegroundColor Yellow
+            }
         }
     } catch {
         Write-Log "Exception canceling ETW traces: $_" -ForegroundColor Red

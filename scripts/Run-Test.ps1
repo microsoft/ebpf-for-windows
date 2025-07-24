@@ -51,6 +51,39 @@ if (-not $PSBoundParameters.ContainsKey('TestCommand')) {
     if ($arguments.Count -gt 3) {
         $TestArguments = $arguments[3..($arguments.Length - 1)]
     }
+} else {
+    # When using named parameters, TestCommand might contain both executable and arguments
+    # Parse them if TestCommand contains spaces and no separate TestArguments were provided
+    if ($TestCommand.Contains(" ") -and ($TestArguments.Count -eq 0)) {
+        # Split the command string into executable and arguments
+        # Use proper parsing to handle quoted arguments
+        $commandParts = @()
+        $currentPart = ""
+        $inQuotes = $false
+        
+        for ($i = 0; $i -lt $TestCommand.Length; $i++) {
+            $char = $TestCommand[$i]
+            if ($char -eq '"' -and ($i -eq 0 -or $TestCommand[$i-1] -ne '\')) {
+                $inQuotes = -not $inQuotes
+            } elseif ($char -eq ' ' -and -not $inQuotes) {
+                if ($currentPart -ne "") {
+                    $commandParts += $currentPart
+                    $currentPart = ""
+                }
+            } else {
+                $currentPart += $char
+            }
+        }
+        if ($currentPart -ne "") {
+            $commandParts += $currentPart
+        }
+        
+        if ($commandParts.Count -gt 1) {
+            $TestCommand = $commandParts[0]
+            $TestArguments = $commandParts[1..($commandParts.Length - 1)]
+            Write-Output "Debug: Parsed TestCommand='$TestCommand', TestArguments='$($TestArguments -join ' ')'"
+        }
+    }
 }
 
 # Load tracing utilities if tracing is enabled
