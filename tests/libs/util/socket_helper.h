@@ -13,6 +13,7 @@
 #include <Mswsock.h>
 #include <mstcpip.h>
 #include <netiodef.h>
+#include <vector>
 
 #define CLIENT_MESSAGE "ClientRequestMessage"
 #define SERVER_MESSAGE "ServerResponseMessage"
@@ -196,8 +197,6 @@ typedef class _server_socket : public _base_socket
 
   protected:
     WSAOVERLAPPED overlapped;
-
-  private:
     LPFN_WSARECVMSG receive_message;
 } receiver_socket_t;
 
@@ -224,6 +223,8 @@ typedef class _datagram_server_socket : public _server_socket
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
+    std::vector<char> control_buffer;
+    WSAMSG recv_msg;
 } datagram_server_socket_t;
 
 /**
