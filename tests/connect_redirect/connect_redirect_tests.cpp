@@ -398,12 +398,8 @@ update_policy_map_and_test_connection(
         // For local redirection, the redirect context is expected to be set and returned.
         // If the connection is not redirected or is redirected to a remote address,
         // check for the SERVER_MESSAGE generic response.
-        // Note: The eBPF program currently doesn't set redirect context for CONNECTED_UDP
-        // due to issue #3052, so we only expect redirect context for TCP and UNCONNECTED_UDP.
         std::string expected_response;
-        if (redirected && local_redirect && 
-            ((_globals.connection_type == connection_type_t::TCP) || 
-             (_globals.connection_type == connection_type_t::UNCONNECTED_UDP))) {
+        if (redirected && local_redirect) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
