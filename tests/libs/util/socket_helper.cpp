@@ -584,7 +584,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
     size_t message_len = strlen(redirect_context_message);
 
     // Check if buffer is large enough to hold the message (including null terminator)
-    if (buffer_size < message_len + 1) {
+    if (buffer_size < static_cast<uint32_t>(message_len + 1)) {
         return 1; // Buffer too small
     }
 
@@ -613,7 +613,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         }
 
         // Move to next control message (align to pointer boundary)
-        DWORD msg_len = cmsg->cmsg_len;
+        DWORD msg_len = static_cast<DWORD>(cmsg->cmsg_len);
         if (msg_len == 0)
             break; // Prevent infinite loop
         const DWORD align_size = static_cast<DWORD>(sizeof(ULONG_PTR));
