@@ -59,7 +59,7 @@ typedef struct _test_globals
     ADDRESS_FAMILY family = 0;
     connection_type_t connection_type = connection_type_t::INVALID;
     uint16_t destination_port = 4444;
-    uint16_t proxy_port = 4443;
+    uint16_t proxy_port = 5555;
     test_addresses_t addresses[socket_family_t::Max] = {0};
     bool attach_v4_program = false;
     bool attach_v6_program = false;
