@@ -594,10 +594,22 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
     while (offset + cmsg_hdr_size <= control_len) {
         WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
 
+        // Validate cmsg_len field before using it
+        DWORD msg_len = static_cast<DWORD>(cmsg->cmsg_len);
+        if (msg_len == 0 || msg_len < cmsg_hdr_size) {
+            break; // Invalid message length
+        }
+
+        // Ensure the entire message fits within the control buffer
+        if (offset + msg_len > control_len) {
+            break; // Message extends beyond buffer
+        }
+
         // Check if this is an IP_WFP_REDIRECT_CONTEXT message
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Calculate the actual data size (message length minus header)
-            DWORD data_size = static_cast<DWORD>(cmsg->cmsg_len) - cmsg_hdr_size;
+            DWORD data_size = msg_len - cmsg_hdr_size;
+            // Only process data if it is non-zero in size.
             if (data_size > 0) {
                 // Check if buffer is large enough to hold the redirect context data
                 if (buffer_size < data_size) {
@@ -612,9 +624,6 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         }
 
         // Move to next control message (align to pointer boundary)
-        DWORD msg_len = static_cast<DWORD>(cmsg->cmsg_len);
-        if (msg_len == 0)
-            break; // Prevent infinite loop
         const DWORD align_size = static_cast<DWORD>(sizeof(ULONG_PTR));
         offset += ((msg_len + align_size - 1) & ~(align_size - 1));
     }
