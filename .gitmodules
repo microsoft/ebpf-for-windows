@@ -20,7 +20,7 @@
 	fetchRecurseSubmodules = no
 [submodule "external/usersim"]
 	path = external/usersim
-	url = https://github.com/microsoft/usersim.git
+	url = https://github.com/lmb/usersim.git
 [submodule "tests/external/kissfft"]
 	path = tests/external/kissfft
 	url = https://github.com/mborgerding/kissfft
