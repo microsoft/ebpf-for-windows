@@ -478,7 +478,7 @@ _server_socket::complete_async_receive(bool timeout_expected)
 
 _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address)),
-      control_buffer(1024), recv_msg{}
+      control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -579,15 +579,6 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
     // For UDP sockets, we need to extract redirect context from control messages
     // received via WSARecvMsg when IP_WFP_REDIRECT_CONTEXT option is enabled.
 
-    // The expected redirect context message for tests
-    const char* redirect_context_message = "RedirectContextTestMessage";
-    size_t message_len = strlen(redirect_context_message);
-
-    // Check if buffer is large enough to hold the message (including null terminator)
-    if (buffer_size < static_cast<uint32_t>(message_len + 1)) {
-        return 1; // Buffer too small
-    }
-
     // Check if we have any control data
     if (recv_msg.Control.len == 0 || recv_msg.Control.buf == nullptr) {
         return 1; // No control messages received
@@ -597,7 +588,6 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
     char* control_buf = recv_msg.Control.buf;
     DWORD control_len = recv_msg.Control.len;
 
-    // Simple parsing: look for control message with correct level and type
     // Control message format: WSACMSGHDR followed by data
     DWORD offset = 0;
     const DWORD cmsg_hdr_size = static_cast<DWORD>(sizeof(WSACMSGHDR));
@@ -606,9 +596,17 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
 
         // Check if this is an IP_WFP_REDIRECT_CONTEXT message
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
-            // Found redirect context - copy test message
-            memcpy(buffer, redirect_context_message, message_len);
-            static_cast<char*>(buffer)[message_len] = '\0';
+            // Calculate the actual data size (message length minus header)
+            DWORD data_size = static_cast<DWORD>(cmsg->cmsg_len) - cmsg_hdr_size;
+
+            // Check if buffer is large enough to hold the redirect context data
+            if (buffer_size < data_size) {
+                return 1; // Buffer too small
+            }
+
+            // Copy the actual redirect context data
+            char* data_ptr = control_buf + offset + cmsg_hdr_size;
+            memcpy(buffer, data_ptr, data_size);
             return 0; // Success
         }
 
