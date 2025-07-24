@@ -52,40 +52,26 @@ function Compress-File
 
     Write-Log "Compressing $SourcePath -> $DestinationPath"
 
-    # Retry 5 times to ensure compression operation succeeds.
+    # Retry 3 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
-    while ($retryCount -le 5) {
-        try {
-            $ErrorActionPreference = "Stop"
-            Compress-Archive `
-                -Path $SourcePath `
-                -DestinationPath $DestinationPath `
-                -CompressionLevel Fastest `
-                -Force
-                
-            # Verify the compressed file was actually created
-            if (Test-Path $DestinationPath) {
-                Write-Log "Compression completed successfully."
-                return $true
-            } else {
-                throw "Compressed file was not created at $DestinationPath"
-            }
-        } catch {
-            $ErrorMessage = "*** ERROR *** Failed to compress files (attempt $retryCount of 5): $($_.Exception.Message)"
-            Write-Log $ErrorMessage
-            if ($retryCount -lt 5) {
-                Start-Sleep -seconds (5 * $retryCount)
-                $retryCount++
-            } else {
-                break
-            }
+    while ($retryCount -lt 4) {
+        $error.clear()
+        Compress-Archive `
+            -Path $SourcePath `
+            -DestinationPath $DestinationPath `
+            -CompressionLevel Fastest `
+            -Force
+        if ($error[0] -ne $null) {
+            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+            Write-Output $ErrorMessage
+            Start-Sleep -seconds (5 * $retryCount)
+            $retryCount++
+        } else {
+            # Compression succeeded.
+            break;
         }
     }
-    
-    # All retries failed
-    Write-Log "*** ERROR *** Failed to compress after 5 attempts. Compression failed."
-    return $false
 }
 
 function Wait-TestJobToComplete
