@@ -17,6 +17,16 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
+// Define WSACMSGHDR structure if not already defined
+#ifndef WSACMSGHDR
+typedef struct wsacmsghdr {
+    SIZE_T cmsg_len;     /* data byte count, including header */
+    INT    cmsg_level;   /* originating protocol */
+    INT    cmsg_type;    /* protocol-specific type */
+    /* followed by UCHAR cmsg_data[] */
+} WSACMSGHDR, *PWSACMSGHDR;
+#endif
+
 uint64_t
 get_current_pid_tgid()
 {
@@ -594,15 +604,32 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         return 1; // No control messages received
     }
     
-    // For testing purposes, if we have any control data, assume it contains redirect context.
-    // In a real implementation, this would parse the WSACMSGHDR structures to find
-    // IP_WFP_REDIRECT_CONTEXT messages, but to avoid compilation issues with the macros,
-    // we use this simplified approach.
+    // Parse control messages to look for IP_WFP_REDIRECT_CONTEXT
+    char* control_buf = recv_msg.Control.buf;
+    DWORD control_len = recv_msg.Control.len;
     
-    // Copy the expected test message
-    memcpy(buffer, redirect_context_message, message_len);
-    static_cast<char*>(buffer)[message_len] = '\0';
-    return 0; // Success
+    // Simple parsing: look for control message with correct level and type
+    // Control message format: WSACMSGHDR followed by data
+    DWORD offset = 0;
+    while (offset + sizeof(WSACMSGHDR) <= control_len) {
+        WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
+        
+        // Check if this is an IP_WFP_REDIRECT_CONTEXT message
+        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
+            // Found redirect context - copy test message
+            memcpy(buffer, redirect_context_message, message_len);
+            static_cast<char*>(buffer)[message_len] = '\0';
+            return 0; // Success
+        }
+        
+        // Move to next control message (align to pointer boundary)
+        DWORD msg_len = cmsg->cmsg_len;
+        if (msg_len == 0) break; // Prevent infinite loop
+        offset += ((msg_len + sizeof(ULONG_PTR) - 1) & ~(sizeof(ULONG_PTR) - 1));
+    }
+    
+    // No IP_WFP_REDIRECT_CONTEXT found
+    return 1; // Not found
 }
 
 void
