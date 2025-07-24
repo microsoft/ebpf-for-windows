@@ -363,6 +363,26 @@ update_policy_map_and_test_connection(
     uint16_t proxy_port,
     bool dual_stack)
 {
+    // Debug: Print source, destination, and redirected addresses.
+    PSOCKADDR source_addr;
+    int source_addr_len;
+    sender_socket->get_local_address(source_addr, source_addr_len);
+
+    uint16_t source_port = 0;
+    if (source_addr->sa_family == AF_INET) {
+        source_port = ntohs(((sockaddr_in*)source_addr)->sin_port);
+    } else if (source_addr->sa_family == AF_INET6) {
+        source_port = ntohs(((sockaddr_in6*)source_addr)->sin6_port);
+    }
+
+    printf("  DEBUG: Address mapping details:\n");
+    printf("    Source: %s:%d\n", get_string_from_address(source_addr).c_str(), source_port);
+    printf(
+        "    Original Destination: %s:%d\n",
+        get_string_from_address((SOCKADDR*)&destination).c_str(),
+        destination_port);
+    printf("    Redirect Target: %s:%d\n", get_string_from_address((SOCKADDR*)&proxy).c_str(), proxy_port);
+
     bool add_policy = true;
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
@@ -404,6 +424,8 @@ update_policy_map_and_test_connection(
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
         }
+        printf("  Expected response: %s\n", expected_response.c_str());
+        printf("  Received response: %s\n", received_message);
         SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
@@ -482,11 +504,17 @@ connect_redirect_test_wrapper(
     _In_ const sockaddr_storage& source_address,
     _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
-    bool dual_stack)
+    bool dual_stack,
+    bool implicit_bind)
 {
     client_socket_t* sender_socket = nullptr;
 
-    get_client_socket(dual_stack, &sender_socket, source_address);
+    if (implicit_bind) {
+        // Use implicit bind (no source_address specified).
+        get_client_socket(dual_stack, &sender_socket);
+    } else {
+        get_client_socket(dual_stack, &sender_socket, source_address);
+    }
     update_policy_map_and_test_connection(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
@@ -618,8 +646,24 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
             connection_type_string,                                                                                  \
             family_string,                                                                                           \
             dual_stack_string);                                                                                      \
+        /* Test with explicit bind (bind to specific source address) */                                              \
+        printf("  Testing with explicit bind to source address...\n");                                               \
+        bool implicit_bind = false;                                                                                  \
         connect_redirect_test_wrapper(                                                                               \
-            addresses.##source##, addresses.##original_destination##, addresses.##new_destination##, dual_stack);    \
+            addresses.##source##,                                                                                    \
+            addresses.##original_destination##,                                                                      \
+            addresses.##new_destination##,                                                                           \
+            dual_stack,                                                                                              \
+            implicit_bind);                                                                                          \
+        /* Test with implicit bind (bind to wildcard address) */                                                     \
+        printf("  Testing with implicit bind (wildcard address)...\n");                                              \
+        implicit_bind = true;                                                                                        \
+        connect_redirect_test_wrapper(                                                                               \
+            addresses.##source##,                                                                                    \
+            addresses.##original_destination##,                                                                      \
+            addresses.##new_destination##,                                                                           \
+            dual_stack,                                                                                              \
+            implicit_bind);                                                                                          \
     }
 
 // Declare connection_redirection_* test functions.

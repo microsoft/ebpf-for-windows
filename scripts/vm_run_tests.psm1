@@ -122,6 +122,7 @@ function Start-ProcessHelper {
         Start-Process -FilePath $ProgramName -ArgumentList $Parameters
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
+    Write-Log "Starting process $ProgramName with arguments $Parameters"
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
@@ -365,6 +366,9 @@ function Invoke-ConnectRedirectTestHelper
         param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+
+        netstat -ab
+        ipconfig /all
 
         Write-Log "Invoking connect redirect tests [Mode=$UserType]"
         Invoke-ConnectRedirectTest `

@@ -100,7 +100,7 @@ _base_socket::_base_socket(
         }
     }
 
-    // Bind it to the wildcard address and supplied port.
+    // Bind it to the supplied address and port.
     SOCKADDR_STORAGE local_addr;
     memcpy(&local_addr, &_source_address, sizeof(_source_address));
     local_addr.ss_family = address_family;
