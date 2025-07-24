@@ -100,7 +100,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863  # v2.12.1
+        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49  # v2.12.2
         with:
           egress-policy: audit
 
@@ -138,7 +138,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/init@39edc492dbe16b1465b0cafca41432d857bdb31a
+        uses: github/codeql-action/init@181d5eefc20863364f96762470ba6f862bdef56b
         with:
           languages: 'cpp'
 
@@ -146,6 +146,29 @@ jobs:
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
         with:
           msbuild-architecture: x64
+
+      - name: Cache chocolatey packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        env:
+          cache-name: cache-choco-packages
+        with:
+          path: C:\ProgramData\chocolatey
+          key: ${{ runner.os }}-choco-llvm-18.1.8
+
+      - name: Install LLVM 18.1.8
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          # Install LLVM 18.1.8 to ensure consistent version across runners
+          try {
+            choco install llvm --version=18.1.8 --allow-downgrade -y --force
+            # Add installed LLVM to PATH first so it takes precedence
+            echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Successfully installed LLVM 18.1.8"
+          } catch {
+            Write-Warning "Failed to install LLVM 18.1.8 via chocolatey: $($_.Exception.Message)"
+            Write-Host "Continuing with pre-installed LLVM version"
+          }
 
       - name: Add Visual Studio LLVM to path
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -161,7 +184,7 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true'
         shell: cmd
         run:
-          '"c:\Program Files\llvm\bin\clang.exe" --version'
+          '"C:\Program Files\LLVM\bin\clang.exe" --version'
 
       - name: Cache nuget packages
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -333,4 +356,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/analyze@39edc492dbe16b1465b0cafca41432d857bdb31a
+        uses: github/codeql-action/analyze@181d5eefc20863364f96762470ba6f862bdef56b
