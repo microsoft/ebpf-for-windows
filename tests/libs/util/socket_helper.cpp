@@ -598,16 +598,17 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Calculate the actual data size (message length minus header)
             DWORD data_size = static_cast<DWORD>(cmsg->cmsg_len) - cmsg_hdr_size;
+            if (data_size > 0) {
+                // Check if buffer is large enough to hold the redirect context data
+                if (buffer_size < data_size) {
+                    return 1; // Buffer too small
+                }
 
-            // Check if buffer is large enough to hold the redirect context data
-            if (buffer_size < data_size) {
-                return 1; // Buffer too small
+                // Copy the actual redirect context data
+                char* data_ptr = control_buf + offset + cmsg_hdr_size;
+                memcpy(buffer, data_ptr, data_size);
+                return 0; // Success
             }
-
-            // Copy the actual redirect context data
-            char* data_ptr = control_buf + offset + cmsg_hdr_size;
-            memcpy(buffer, data_ptr, data_size);
-            return 0; // Success
         }
 
         // Move to next control message (align to pointer boundary)

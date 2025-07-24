@@ -71,6 +71,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
     if (policy != NULL) {
         bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
 
+        // Always set redirect context - ebpf extension handles this even when the connection is not redirected.
         if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
             return verdict;
         }
@@ -109,9 +110,11 @@ redirect_v6(bpf_sock_addr_t* ctx)
     if (policy != NULL) {
         bpf_printk("Found v6 proxy entry value");
 
+        // Always set redirect context - ebpf extension handles this even when the connection is not redirected.
         if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
             return verdict;
         }
+
         __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
         ctx->user_port = policy->destination_port;
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #define CATCH_CONFIG_RUNNER
-#define REDIRECT_CONTEXT_BUFFER_SIZE 128
+#define REDIRECT_CONTEXT_BUFFER_SIZE 2048
 
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"

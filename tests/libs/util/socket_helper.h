@@ -15,8 +15,8 @@
 #include <netiodef.h>
 #include <vector>
 
-#define CLIENT_MESSAGE "request from client"
-#define SERVER_MESSAGE "response from server"
+#define CLIENT_MESSAGE "ClientRequestMessage"
+#define SERVER_MESSAGE "ServerResponseMessage"
 
 typedef enum _socket_family
 {
