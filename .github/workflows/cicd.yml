@@ -54,7 +54,8 @@ jobs:
       generate_release_package: true
       build_msi: true
       build_nuget: true
-      configurations: '["Debug", "FuzzerDebug", "Release"]'
+      # configurations: '["Debug", "FuzzerDebug", "Release"]'
+      configurations: '["Release"]'
 
   # onebranch:
   #   strategy:
