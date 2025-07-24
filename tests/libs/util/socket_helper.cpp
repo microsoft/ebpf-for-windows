@@ -8,6 +8,7 @@
 
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
+
 #include <cstring>
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
@@ -505,7 +506,8 @@ _datagram_server_socket::post_async_receive()
     int error = 0;
 
     WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
-    WSABUF wsa_control_buffer{static_cast<unsigned long>(control_buffer.size()), reinterpret_cast<char*>(control_buffer.data())};
+    WSABUF wsa_control_buffer{
+        static_cast<unsigned long>(control_buffer.size()), reinterpret_cast<char*>(control_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -522,13 +524,8 @@ _datagram_server_socket::post_async_receive()
     recv_msg.dwFlags = 0;
 
     // Post an asynchronous receive using WSARecvMsg to get ancillary data
-    error = receive_message(
-        socket,
-        &recv_msg,
-        nullptr,
-        &overlapped,
-        nullptr);
-    
+    error = receive_message(socket, &recv_msg, nullptr, &overlapped, nullptr);
+
     if (error != 0) {
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING) {
@@ -581,31 +578,32 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
 {
     // For UDP sockets, we need to extract redirect context from control messages
     // received via WSARecvMsg when IP_WFP_REDIRECT_CONTEXT option is enabled.
-    
+
     // The expected redirect context message for tests
     const char* redirect_context_message = "RedirectContextTestMessage";
     size_t message_len = strlen(redirect_context_message);
-    
+
     // Check if buffer is large enough to hold the message (including null terminator)
     if (buffer_size < message_len + 1) {
         return 1; // Buffer too small
     }
-    
+
     // Check if we have any control data
     if (recv_msg.Control.len == 0 || recv_msg.Control.buf == nullptr) {
         return 1; // No control messages received
     }
-    
+
     // Parse control messages to look for IP_WFP_REDIRECT_CONTEXT
     char* control_buf = recv_msg.Control.buf;
     DWORD control_len = recv_msg.Control.len;
-    
+
     // Simple parsing: look for control message with correct level and type
     // Control message format: WSACMSGHDR followed by data
     DWORD offset = 0;
-    while (offset + sizeof(WSACMSGHDR) <= control_len) {
+    const DWORD cmsg_hdr_size = static_cast<DWORD>(sizeof(WSACMSGHDR));
+    while (offset + cmsg_hdr_size <= control_len) {
         WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
-        
+
         // Check if this is an IP_WFP_REDIRECT_CONTEXT message
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Found redirect context - copy test message
@@ -613,13 +611,15 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
             static_cast<char*>(buffer)[message_len] = '\0';
             return 0; // Success
         }
-        
+
         // Move to next control message (align to pointer boundary)
         DWORD msg_len = cmsg->cmsg_len;
-        if (msg_len == 0) break; // Prevent infinite loop
-        offset += ((msg_len + sizeof(ULONG_PTR) - 1) & ~(sizeof(ULONG_PTR) - 1));
+        if (msg_len == 0)
+            break; // Prevent infinite loop
+        const DWORD align_size = static_cast<DWORD>(sizeof(ULONG_PTR));
+        offset += ((msg_len + align_size - 1) & ~(align_size - 1));
     }
-    
+
     // No IP_WFP_REDIRECT_CONTEXT found
     return 1; // Not found
 }
