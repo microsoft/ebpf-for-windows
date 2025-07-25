@@ -1121,8 +1121,6 @@ _invoke_test_thread_function(thread_context& context)
 void
 _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
-    UNREFERENCED_PARAMETER(program_type);
-
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
@@ -1141,9 +1139,13 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
 
+    // Choose file extension based on execution type.
+    std::string file_extension = (program_type == EBPF_EXECUTION_NATIVE) ? ".sys" : ".o";
+    bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
+    
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
-        {{_make_unique_file_copy("cgroup_count_connect4.sys")}, {"connect4_count_map"}},
-        {{_make_unique_file_copy("cgroup_count_connect6.sys")}, {"connect6_count_map"}}};
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"}, {"connect4_count_map"}},
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"}, {"connect6_count_map"}}};
     ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
@@ -1151,7 +1153,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         auto& context_entry = thread_context_table[i];
         auto& [file_name, map_name] = program_file_map_names[i];
         context_entry.file_name = file_name;
-        context_entry.is_native_program = true;
+        context_entry.is_native_program = is_native;
         context_entry.map_name = map_name;
         context_entry.role = (i == 0 ? thread_role_type::MONITOR_IPV4 : thread_role_type::MONITOR_IPV6);
         context_entry.thread_index = i;
@@ -1232,16 +1234,20 @@ _invoke_mt_sockaddr_thread_function(thread_context& context)
 }
 
 static void
-_mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
+_mt_sockaddr_invoke_program_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
+    // Choose file extension based on execution type.
+    bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
+    std::string file_name = is_native ? _make_unique_file_copy("cgroup_mt_connect6.sys") : "cgroup_mt_connect6.o";
+
     std::vector<object_table_entry> dummy_table(1);
     thread_context program_load_context = {
         {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
-    program_load_context.file_name = _make_unique_file_copy("cgroup_mt_connect6.sys");
+    program_load_context.file_name = file_name;
     program_load_context.thread_index = 0;
     auto [program_object, _] = _load_attach_program(program_load_context, BPF_CGROUP_INET6_CONNECT);
     REQUIRE(program_load_context.succeeded == true);
@@ -1254,7 +1260,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
 
         // First, prepare the context for this thread.
         auto& context_entry = thread_context_table[i];
-        context_entry.is_native_program = true;
+        context_entry.is_native_program = is_native;
         context_entry.role = thread_role_type::MONITOR_IPV6;
         context_entry.thread_index = i;
         context_entry.duration_minutes = test_control_info.duration_minutes;
@@ -1526,18 +1532,22 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
 }
 
 static void
-_mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_control_info)
+_mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
+
+    // Choose file extension based on execution type.
+    bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
+    std::string file_name = is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
 
     // Load the program.
     std::vector<object_table_entry> dummy_table(1);
     thread_context program_load_context = {
         {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
     program_load_context.program_name = "BindMonitor_Caller";
-    program_load_context.file_name = _make_unique_file_copy("bindmonitor_mt_tailcall.sys");
+    program_load_context.file_name = file_name;
     program_load_context.map_name = "bind_tail_call_map";
     program_load_context.thread_index = 0;
     auto [program_object, _] =
@@ -1570,7 +1580,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
 
         // First, prepare the context for this thread.
         auto& context_entry = thread_context_table[i];
-        context_entry.is_native_program = true;
+        context_entry.is_native_program = is_native;
         context_entry.role = thread_role_type::MONITOR_IPV6;
         context_entry.thread_index = i;
         context_entry.duration_minutes = test_control_info.duration_minutes;
@@ -1724,7 +1734,7 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_sockaddr_invoke_program_test(local_test_control_info);
+    _mt_sockaddr_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
 TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
@@ -1741,5 +1751,106 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+}
+
+TEST_CASE("jit_unique_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
+{
+    // This test attempts to load a unique JIT ebpf program multiple times in different threads. Specifically:
+    //
+    // - Load, attach, detach and unload each JIT ebpf program with each event happening in a different thread with
+    //   all threads executing in parallel with the bare minimum synchronization between them.
+    //
+    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
+    //   (if specified on the command line).
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** jit_unique_load_attach_detach_unload_random_v4_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    // Use a unique JIT program for each 'creator' thread.
+    local_test_control_info.use_unique_native_programs = true;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+}
+
+TEST_CASE("jit_invoke_v4_v6_programs_restart_extension_test", "[jit_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Create 2 'monitor' threads:
+    //    - Thread #1 loads a JIT ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT4.
+    //      > This program monitors an IPv4 endpoint, 127.0.0.1:<target_port>. On every invocation, the program updates
+    //        the count (TCP) 'connect' attempts in the 'connect4_count_map' map at its port.
+    //    - Thread #2 loads another JIT ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT6.
+    //      > The behavior of this program is identical to that of the v4 program (loaded by thread #1), except it is
+    //        invoked for IPv6 connection attempts ([::1]:<target_port>).
+    //
+    // 2  Until the end of test, each test thread will:
+    //    - Read the initial 'connect' count from its respective 'connect<v4|v6>_map' map.
+    //    - Attempt to (TCP) connect to its respective endpoint 'n' times.  Make 'n' large enough (4096?) to try
+    //      and collide with the extension restart event.
+    //    - Read the 'connect' count its respective map after this 'burst' connect attempt.
+    //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
+    //      number of times.  A stalled counter is a fatal bug and the test should return failure.
+    //
+    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
+    //    (if specified on the command line).
+    //
+    // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** jit_invoke_v4_v6_programs_restart_extension_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    // This test needs only 2 threads (one per program).
+    local_test_control_info.threads_count = 2;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_invoke_prog_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+}
+
+TEST_CASE("jit_sockaddr_invoke_program_test", "[jit_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Load the "cgroup_mt_connect6.o" JIT ebpf program.
+    //    - This program monitors an IPv6 endpoint, [::1]:<target_port>. On every invocation, the program returns a
+    //      specific value per the following (arbitrary) algorithm:
+    //        (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
+    //        (target_port % 2 == 0) : BPF_SOCK_ADDR_VERDICT_PROCEED
+    //        else                   : BPF_SOCK_ADDR_VERDICT_REDIRECT
+    //
+    // 2. Create the specified # of threads and for the duration of test, each thread will:
+    //    - Attempt a TCP 'connect' to the remote endpoint [::1]:<target_port + thread_context.thread_index>
+    //      continuously in a loop.
+    //      (The test set up ensures that the thread_index passed in each thread_context is unique to that thread.)
+    //
+    //    We ignore the result of the 'connect' attempt as the intent here is to test the parallel invocation of the
+    //    WFP callout and ensure this test doesn't cause kernel mode crashes.
+    //
+    // 3. If specified, start the 'extension restart' thread as well to continuously restart the netebpf extension.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** jit_sockaddr_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_sockaddr_invoke_program_test(EBPF_EXECUTION_JIT, local_test_control_info);
+}
+
+TEST_CASE("jit_bindmonitor_tail_call_invoke_program_test", "[jit_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Load the "bindmonitor_mt_tailcall.o" JIT ebpf program.
+    // 2. Load MAX_TAIL_CALL_CNT tail call programs.
+    // 3. Create the specified number of threads.
+    //   - Each thread will invoke the TCP 'bind'.
+    //   - This will invoke MAX_TAIL_CALL_CNT tail call programs for permit.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** jit_bindmonitor_tailcall_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
