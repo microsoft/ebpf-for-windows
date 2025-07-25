@@ -469,7 +469,10 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 
 void
 get_client_socket(
-    bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {0})
+    bool dual_stack,
+    _Inout_ client_socket_t** sender_socket,
+    const sockaddr_storage& source_address = {0},
+    const bool is_redirect_to_local = false)
 {
     impersonation_helper_t helper(_globals.user_type);
 
@@ -482,8 +485,13 @@ get_client_socket(
         new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family, source_address);
     } else {
         bool connected_udp = (_globals.connection_type == connection_type_t::CONNECTED_UDP);
-        new_socket = (client_socket_t*)new datagram_client_socket_t(
-            SOCK_DGRAM, IPPROTO_UDP, 0, family, connected_udp, source_address);
+        if (is_redirect_to_local) {
+            new_socket = (client_socket_t*)new datagram_client_socket_t(
+                SOCK_DGRAM, IPPROTO_UDP, 0, family, connected_udp, source_address);
+        } else {
+            new_socket =
+                (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family, connected_udp);
+        }
     }
 
     *sender_socket = new_socket;
@@ -508,7 +516,8 @@ connect_redirect_test_wrapper(
     _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
     bool dual_stack,
-    bool implicit_bind)
+    bool implicit_bind,
+    bool is_redirect_to_local)
 {
     client_socket_t* sender_socket = nullptr;
 
@@ -516,7 +525,7 @@ connect_redirect_test_wrapper(
         // Use implicit bind (no source_address specified).
         get_client_socket(dual_stack, &sender_socket);
     } else {
-        get_client_socket(dual_stack, &sender_socket, source_address);
+        get_client_socket(dual_stack, &sender_socket, source_address, is_redirect_to_local);
     }
     update_policy_map_and_test_connection(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
@@ -652,14 +661,14 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
         /* Test with explicit bind (bind to specific source address) */                                              \
         printf("  Testing with explicit bind to source address...\n");                                               \
         bool implicit_bind = false;                                                                                  \
+        bool is_redirect_to_local = (strcmp(#new_destination, "local_address") == 0);                                \
         connect_redirect_test_wrapper(                                                                               \
             addresses.##source##,                                                                                    \
             addresses.##original_destination##,                                                                      \
             addresses.##new_destination##,                                                                           \
             dual_stack,                                                                                              \
-            implicit_bind);                                                                                          \
-        /* Skip implicit bind test when redirecting to local address (not expected to pass) */                       \
-        bool is_redirect_to_local = (strcmp(#new_destination, "local_address") == 0);                                \
+            implicit_bind,                                                                                           \
+            is_redirect_to_local);                                                                                   \
         if (!is_redirect_to_local) {                                                                                 \
             /* Test with implicit bind (bind to wildcard address) */                                                 \
             printf("  Testing with implicit bind (wildcard address)...\n");                                          \
@@ -669,8 +678,10 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
                 addresses.##original_destination##,                                                                  \
                 addresses.##new_destination##,                                                                       \
                 dual_stack,                                                                                          \
-                implicit_bind);                                                                                      \
+                implicit_bind,                                                                                       \
+                is_redirect_to_local);                                                                               \
         } else {                                                                                                     \
+            /* Skip implicit bind test when redirecting to local address (not expected to pass) */                   \
             printf("  Skipping implicit bind test for local address redirect (not compatible with duonic, which "    \
                    "treats this as non-loopback/local traffic).\n");                                                 \
         }                                                                                                            \
