@@ -77,8 +77,7 @@ typedef class _base_socket
     uint32_t recv_flags;
     uint32_t bytes_received = 0;
     sockaddr_storage local_address;
-    int local_address_size;
-
+    mutable int local_address_size;
 } base_socket_t;
 
 /**
