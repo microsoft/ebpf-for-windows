@@ -27,6 +27,15 @@ If this command fails, ensure the VM is powered on, network connectivity is work
 
 ---
 
+## 2.1. Add Remote VM to Trusted Hosts
+
+On your host machine, allow connections to the remote VM by adding its IP address to the list of trusted hosts:
+
+```powershell
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "<remote-vm-ip>"
+```
+---
+
 ## 3. Store VM Credentials on the Host
 
 On your host machine, save the VM administrator and standard user credentials using the `CredentialManager` module:
@@ -82,13 +91,13 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 1. **Run the Setup Script**
 
    ```powershell
-   .\setup_ebpf_cicd_tests.ps1 -IsVMRemote
+   .\setup_ebpf_cicd_tests.ps1 -VMIsRemote
    ```
 
 3. **Run the Test Execution Script**
 
    ```powershell
-   .\execute_ebpf_cicd_tests.ps1 -IsVMRemote
+   .\execute_ebpf_cicd_tests.ps1 -VMIsRemote
    ```
 
 ---

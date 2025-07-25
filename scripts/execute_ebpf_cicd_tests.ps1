@@ -14,11 +14,11 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
         # This parameter is only used when ExecuteOnHost is false.
-       [Parameter(Mandatory = $false)][switch] $IsVMRemote)
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
-$IsVMRemote = [bool]$IsVMRemote
+$VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
@@ -46,7 +46,7 @@ $Job = Start-Job -ScriptBlock {
     param (
         [Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
         [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
-        [Parameter(Mandatory = $True)] [bool] $IsVMRemote,
+        [Parameter(Mandatory = $True)] [bool] $VMIsRemote,
         [Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
         [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
         [Parameter(Mandatory = $True)] [PSCustomObject] $Config,
@@ -76,7 +76,7 @@ $Job = Start-Job -ScriptBlock {
         -ArgumentList(
             $ExecuteOnHost,
             $ExecuteOnVM,
-            $IsVMRemote,
+            $VMIsRemote,
             $VMName,
             $AdminTestVMCredential.UserName,
             $AdminTestVMCredential.Password,
@@ -105,7 +105,7 @@ $Job = Start-Job -ScriptBlock {
 } -ArgumentList (
     $ExecuteOnHost,
     $ExecuteOnVM,
-    $IsVMRemote,
+    $VMIsRemote,
     $AdminTestVMCredential,
     $StandardUserTestVMCredential,
     $Config,
