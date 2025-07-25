@@ -76,10 +76,9 @@ typedef class _base_socket
     std::vector<char> recv_buffer;
     uint32_t recv_flags;
     uint32_t bytes_received = 0;
-
-  private:
     sockaddr_storage local_address;
     int local_address_size;
+
 } base_socket_t;
 
 /**
