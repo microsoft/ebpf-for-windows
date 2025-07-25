@@ -683,7 +683,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, remote_address)
 // remote (vip) address to loopback address.
 // connection_redirection_tests_vip_address_loopback_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, vip_address, loopback_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, loopback_address)
 // remote (vip) address to local address.
 // connection_redirection_tests_vip_address_local_address
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, local_address)
@@ -698,7 +698,7 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, lo
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, remote_address)
 // local address to loopback address.
 // connection_redirection_tests_local_address_loopback_address
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(loopback_address, local_address, loopback_address)
+DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopback_address)
 
 #define DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                            \
     socket_family_name, socket_family_type, dual_stack, connection_type, original_destination, new_destination) \
