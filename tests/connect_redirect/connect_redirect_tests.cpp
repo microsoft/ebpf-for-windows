@@ -376,12 +376,9 @@ update_policy_map_and_test_connection(
     }
 
     printf("  DEBUG: Address mapping details:\n");
-    printf("    Source: %s:%d\n", get_string_from_address(source_addr).c_str(), source_port);
-    printf(
-        "    Original Destination: %s:%d\n",
-        get_string_from_address((SOCKADDR*)&destination).c_str(),
-        destination_port);
-    printf("    Redirect Target: %s:%d\n", get_string_from_address((SOCKADDR*)&proxy).c_str(), proxy_port);
+    printf("    Source: %s\n", get_string_from_address(source_addr).c_str());
+    printf("    Original Destination: %s\n", get_string_from_address((SOCKADDR*)&destination).c_str());
+    printf("    Redirect Target: %s\n", get_string_from_address((SOCKADDR*)&proxy).c_str());
 
     bool add_policy = true;
     uint32_t bytes_received = 0;
@@ -414,6 +411,10 @@ update_policy_map_and_test_connection(
         sender_socket->complete_async_receive(2000, false);
 
         sender_socket->get_received_message(bytes_received, received_message);
+
+        // print the local address again after the send
+        sender_socket->get_local_address(source_addr, source_addr_len);
+        printf("    Source (after send): %s\n", get_string_from_address(source_addr).c_str());
 
         // For local redirection, the redirect context is expected to be set and returned.
         // If the connection is not redirected or is redirected to a remote address,
@@ -467,7 +468,8 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 }
 
 void
-get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {})
+get_client_socket(
+    bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {0})
 {
     impersonation_helper_t helper(_globals.user_type);
 

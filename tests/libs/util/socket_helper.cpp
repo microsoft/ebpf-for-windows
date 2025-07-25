@@ -125,10 +125,11 @@ _base_socket::_base_socket(
         Sleep(1000); // Wait for a short duration before retrying.
     }
 
-    error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
-    if (error != 0) {
-        FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
-    }
+    // memcpy(&local_address, &_source_address, sizeof(_source_address));
+    // error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
+    // if (error != 0) {
+    //     FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
+    // }
 }
 
 _base_socket::~_base_socket() { clean_up_socket(socket); }
@@ -136,8 +137,12 @@ _base_socket::~_base_socket() { clean_up_socket(socket); }
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
 {
-    address = (PSOCKADDR)&local_address;
-    address_length = local_address_size;
+    // address = (PSOCKADDR)&local_address;
+    // address_length = local_address_size;
+    int error = getsockname(socket, (PSOCKADDR)&address, &address_length);
+    if (error != 0) {
+        FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
+    }
 }
 
 void
