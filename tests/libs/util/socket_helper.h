@@ -120,7 +120,12 @@ typedef class _datagram_client_socket : public _client_socket
 {
   public:
     _datagram_client_socket(
-        int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual, bool connected_udp = false);
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        socket_family_t family = Dual,
+        bool connected_udp = false,
+        const sockaddr_storage& source_address = {});
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);

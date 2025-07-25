@@ -238,8 +238,13 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
 }
 
 _datagram_client_socket::_datagram_client_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, bool _connected_udp)
-    : _client_socket{_sock_type, _protocol, _port, _family}, connected_udp{_connected_udp}
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    socket_family_t _family,
+    bool _connected_udp,
+    const sockaddr_storage& _source_address)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}, connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
