@@ -240,6 +240,7 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
+      configurations: '["Release"]'
 
   # driver_native_only_tests:
   #   needs: regular_native-only
