@@ -124,12 +124,6 @@ _base_socket::_base_socket(
         }
         Sleep(1000); // Wait for a short duration before retrying.
     }
-
-    // Get the actual local address after binding
-    error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
-    if (error != 0) {
-        FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
-    }
 }
 
 _base_socket::~_base_socket() { clean_up_socket(socket); }
