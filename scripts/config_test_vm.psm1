@@ -357,16 +357,11 @@ function Compress-KernelModeDumpOnVM
             Write-Log `
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
-            Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
-            if (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf) {
-                $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
-                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
-                Write-Log `
-                    "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
+            $result = CompressOrCopy-File -SourcePath "$KernelModeDumpFileSourcePath\*.dmp" -DestinationDirectory $KernelModeDumpFileDestinationPath -CompressedFileName "km_dumps.zip"
+            if ($result.Success) {
+                Write-Log "Successfully compressed kernel dumps: $($result.FinalPath)"
             } else {
-                $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found.`n`n"
-                Write-Log $ErrorMessage
-                throw $ErrorMessage
+                Write-Log "Used uncompressed kernel dump fallback: $($result.FinalPath)"
             }
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
@@ -485,18 +480,24 @@ function Import-ResultsFromVM
                 Write-Log "ETL file Size: $EtlFileSize MB"
 
                 Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\$EtlFile.zip")) {
+                    Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL file."
+                }
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
-            # Copy ETL from Test VM.
-            Write-Log ("Copy $VMSystemDrive\eBPF\$EtlFile.zip on $VMName to $pwd\TestLogs\$VMName\Logs")
-            Copy-Item `
-                -FromSession $VMSession `
-                -Path "$VMSystemDrive\eBPF\$EtlFile.zip" `
-                -Destination ".\TestLogs\$VMName\Logs" `
-                -Recurse `
-                -Force `
-                -ErrorAction Ignore 2>&1 | Write-Log
+            # Copy ETL from Test VM - try compressed first, then uncompressed if needed.
+            $result = CopyCompressedOrUncompressed-FileFromSession `
+                -VMSession $VMSession `
+                -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
+                -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
+                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            
+            if ($result.Success) {
+                Write-Log "Successfully copied compressed ETL file from ${VMName}: $($result.FinalPath)"
+            } else {
+                Write-Log "Used uncompressed ETL fallback from ${VMName}: $($result.FinalPath)"
+            }
         }
 
         # Copy performance results from Test VM.
@@ -569,12 +570,13 @@ function Import-ResultsFromHost {
         $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
         Write-Log "ETL file Size: $EtlFileSize MB"
         Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-        Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
-        $LogsDir = Join-Path $TestLogsDir 'Logs'
-        if (!(Test-Path $LogsDir)) {
-            New-Item -ItemType Directory -Path $LogsDir | Out-Null
+        $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
+        
+        if ($result.Success) {
+            Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
+        } else {
+            Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
         }
-        Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
     }
 }
 
