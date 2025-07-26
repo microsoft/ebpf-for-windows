@@ -5,6 +5,7 @@ param (
     [Parameter(Mandatory = $True)][bool] $ExecuteOnHost = $false,
     # The following parameters are only used when ExecuteOnVM is true
     [Parameter(Mandatory = $True)][bool] $ExecuteOnVM = $false,
+    [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
     [Parameter(Mandatory = $True)] [string] $VMName,
     [Parameter(Mandatory = $True)] [string] $Admin,
     [Parameter(Mandatory = $True)] [SecureString] $AdminPassword,
@@ -33,7 +34,11 @@ function Invoke-OnHostOrVM {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
-        Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        if ($script:VMIsRemote) {
+            Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        } else {
+            Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        }
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }

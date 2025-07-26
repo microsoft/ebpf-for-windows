@@ -172,7 +172,10 @@ function Stop-AllVMs
 
 function Export-BuildArtifactsToVMs
 {
-    param([Parameter(Mandatory=$True)] $VMList)
+    param(
+        [Parameter(Mandatory=$True)] $VMList,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+    )
 
     $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
     Write-Log "Creating $tempFileName containing files in $pwd"
@@ -183,11 +186,16 @@ function Export-BuildArtifactsToVMs
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+        if ($VMIsRemote) {
+            $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential
+        }
+        else {
+            $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+        }
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         } else {
-            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            Invoke-Command -Session $VMSession -ScriptBlock {
                 # Create working directory c:\eBPF.
                 if(!(Test-Path "$Env:SystemDrive\eBPF")) {
                     New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
@@ -215,12 +223,14 @@ function Export-BuildArtifactsToVMs
         Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
 
         Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        Invoke-Command -Session $VMSession -ScriptBlock {
             cd $Env:SystemDrive\eBPF
             &tar @("xf", "ebpf.tgz")
         }
         Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
+
+        Remove-PSSession $VMSession
     }
 
     Remove-Item -Force $tempFileName
@@ -231,14 +241,18 @@ function Export-BuildArtifactsToVMs
 #
 function Install-eBPFComponentsOnVM
 {
-    param([parameter(Mandatory=$true)][string] $VMName,
-          [parameter(Mandatory=$true)][string] $TestMode,
-          [parameter(Mandatory=$true)][bool] $KmTracing,
-          [parameter(Mandatory=$true)][string] $KmTraceType)
+    param(
+        [parameter(Mandatory=$true)][string] $VMName,
+        [parameter(Mandatory=$true)][string] $TestMode,
+        [parameter(Mandatory=$true)][bool] $KmTracing,
+        [parameter(Mandatory=$true)][string] $KmTraceType,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+    )
 
     Write-Log "Installing eBPF components on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+
+    $scriptBlock = {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
@@ -249,7 +263,10 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -ErrorAction Stop
-    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
+    }
+
+    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
+
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
@@ -571,7 +588,8 @@ function Initialize-NetworkInterfaces {
         # Initialize network interfaces on VMs.
         [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $true,
         [Parameter(Mandatory=$false)] $VMList = @(),
-        [Parameter(Mandatory=$true)][string] $TestWorkingDirectory
+        [Parameter(Mandatory=$true)][string] $TestWorkingDirectory,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
     )
 
     $commandScriptBlock = {
@@ -595,7 +613,8 @@ function Initialize-NetworkInterfaces {
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
-            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
+
+            Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote  -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
         }
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be set."
@@ -972,4 +991,20 @@ function Enable-HVCIOnVM {
     Wait-AllVMsToInitialize -VMList @(@{ Name = $VmName }) -UserName $Admin -AdminPassword $AdminPassword
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
+}
+
+
+function Invoke-CommandOnVM {
+    param(
+        [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
+        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory = $true)][string] $VMName,
+        [Parameter(Mandatory = $true)] $Credential
+    )
+    if ($VMIsRemote) {
+        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    } else {
+        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    }
 }
