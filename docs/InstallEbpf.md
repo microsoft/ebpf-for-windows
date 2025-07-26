@@ -1,8 +1,10 @@
 ## Installing eBPF into a Test VM
 
-Follow the [VM Installation Instructions](vm-setup.md) for one-time setup of a test VM.
+Follow the [VM Installation Instructions](vm-setup.md) for one-time setup of a test Hyper-V VM.
 Once the one-time setup has been completed, the following steps will
 install or update the eBPF installation in the VM.
+
+To install files you built yourself and run CI/CD scripts on a remote VM, follow the [remote VM setup instructions](remote-vm-setup.md) instead.
 
 ### Method 1 (Install a release with the MSI installer)
 

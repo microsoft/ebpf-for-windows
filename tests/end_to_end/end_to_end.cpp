@@ -3296,6 +3296,23 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
             &count_of_programs) != ERROR_SUCCESS);
 }
 
+extern bool _ebpf_platform_code_integrity_test_signing_enabled;
+
+// Wrong signature.
+TEST_CASE("load_native_program_negative8", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    GUID provider_module_id;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+    ebpf_result_t result = ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll");
+
+    REQUIRE(result != EBPF_SUCCESS);
+}
+
 // Load native module and then use module handle for a different purpose.
 TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 {
@@ -4231,3 +4248,54 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("test-sample-perfbuffer", "[end_to_end]", test_sample_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-perfbuffer", "[end_to_end]", bindmonitor_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_perf_buffer_test", "[end_to_end]", negative_perf_buffer_test);
+
+TEST_CASE("signature_checking", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    const char* eku_list[] = {
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_WINDOWS_COMPONENT_EKU,
+    };
+    const char* issuer_production =
+        "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows Production PCA 2011";
+    const char* issuer_test = "US, Washington, Redmond, Microsoft Corporation, Microsoft Development PCA 2014";
+
+    std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
+
+    // Expand environment variables in the file name.
+    wchar_t expanded_path[MAX_PATH];
+    REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
+
+    ebpf_result result = ebpf_verify_sys_file_signature(expanded_path, issuer_production, 0, eku_list);
+    if (result != EBPF_SUCCESS) {
+        // If the production signature check fails, try the test signature.
+        result = ebpf_verify_sys_file_signature(expanded_path, issuer_test, 0, eku_list);
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+}
+
+TEST_CASE("signature_checking_negative", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    const char* eku_list[] = {
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_VERIFICATION_EKU,
+    };
+    const char* issuer = EBPF_REQUIRED_ISSUER;
+
+    std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
+
+    // Expand environment variables in the file name.
+    wchar_t expanded_path[MAX_PATH];
+    REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
+
+    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list) != EBPF_SUCCESS);
+}
