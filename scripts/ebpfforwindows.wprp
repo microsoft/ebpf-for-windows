@@ -12,6 +12,9 @@
 
     <EventProvider Id="ExecutionContext" Name="394f321c-5cf4-404c-aa34-4df1428a7f9c" NonPagedMemory="true"/>
     <EventProvider Id="NetEbpfExt" Name="f2f2ca01-ad02-4a07-9e90-95a2334f3692" NonPagedMemory="true"/>
+    <EventProvider Id="TCPIP" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true"/>
+    <EventProvider Id="WFP-Callout" Name="00e7ee66-5b24-5c41-22cb-af98f63e2f90" NonPagedMemory="true"/>
+    <EventProvider Id="NETIO" Name="EB004A05-9B1A-11D4-9123-0050047759BC" NonPagedMemory="true"/>
 
     <Profile
         Id="EbpfForWindowsProvider-File.Verbose.File"
@@ -23,9 +26,10 @@
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
-          </EventProviders>
-          <EventProviders>
             <EventProviderId Value="NetEbpfExt"/>
+            <EventProviderId Value="TCPIP"/>
+            <EventProviderId Value="WFP-Callout"/>
+            <EventProviderId Value="NETIO"/>
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -41,9 +45,10 @@
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
-          </EventProviders>
-          <EventProviders>
             <EventProviderId Value="NetEbpfExt"/>
+            <EventProviderId Value="TCPIP"/>
+            <EventProviderId Value="WFP-Callout"/>
+            <EventProviderId Value="NETIO"/>
           </EventProviders>
         </EventCollectorId>
       </Collectors>

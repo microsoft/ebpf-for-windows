@@ -71,14 +71,9 @@ redirect_v4(bpf_sock_addr_t* ctx)
     if (policy != NULL) {
         bpf_printk("Found v4 proxy entry value: %u, %u", policy->destination_ip.ipv4, policy->destination_port);
 
-        // Currently, we are unable to validate the redirect context path for connected UDP.
-        // Tracking issue #3052
-        // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
-        // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-        if (policy->connection_type != CONNECTED_UDP) {
-            if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-                return verdict;
-            }
+        // Always set redirect context - ebpf extension handles this even when the connection is not redirected.
+        if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+            return verdict;
         }
 
         ctx->user_ip4 = policy->destination_ip.ipv4;
@@ -115,14 +110,9 @@ redirect_v6(bpf_sock_addr_t* ctx)
     if (policy != NULL) {
         bpf_printk("Found v6 proxy entry value");
 
-        // Currently, we are unable to validate the redirect context path for connected UDP.
-        // Tracking issue #3052
-        // When the above issue is resolved, we should validate setting the redirect_context unconditionally,
-        // including when the verdict is BPF_SOCK_ADDR_VERDICT_REJECT.
-        if (policy->connection_type != CONNECTED_UDP) {
-            if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
-                return verdict;
-            }
+        // Always set redirect context - ebpf extension handles this even when the connection is not redirected.
+        if (bpf_sock_addr_set_redirect_context(ctx, redirect_context, sizeof(redirect_context)) < 0) {
+            return verdict;
         }
         __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
         ctx->user_port = policy->destination_port;
