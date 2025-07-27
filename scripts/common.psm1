@@ -64,7 +64,7 @@ function Compress-File
                 -CompressionLevel Fastest `
                 -Force
                 
-            # Verify the compressed file was actually created
+            # Verify the compressed file was actually created.
             if (Test-Path $DestinationPath) {
                 Write-Log "Compression completed successfully."
                 return $true
@@ -81,7 +81,7 @@ function Compress-File
         }
     }
     
-    # All retries failed
+    # All retries failed.
     Write-Log "*** ERROR *** Failed to compress after 5 attempts. Compression failed."
     return $false
 }
@@ -126,26 +126,26 @@ function CompressOrCopy-File
         [Parameter(Mandatory=$False)][string] $CompressedFileName
     )
 
-    # Ensure destination directory exists
+    # Ensure destination directory exists.
     if (-not (Test-Path $DestinationDirectory -PathType Container)) {
         New-Item -Path $DestinationDirectory -ItemType Directory -Force | Out-Null
     }
 
-    # Auto-generate compressed filename if not provided
+    # Auto-generate compressed filename if not provided.
     if (-not $CompressedFileName) {
         $sourceName = Split-Path $SourcePath -Leaf
         $CompressedFileName = "$sourceName.zip"
     }
 
-    # Create temporary path for compression
+    # Create temporary path for compression.
     $tempCompressedPath = Join-Path $env:TEMP $CompressedFileName
     $finalCompressedPath = Join-Path $DestinationDirectory $CompressedFileName
 
-    # Attempt compression
+    # Attempt compression.
     $compressionSucceeded = Compress-File -SourcePath $SourcePath -DestinationPath $tempCompressedPath
 
     if ($compressionSucceeded -and (Test-Path $tempCompressedPath)) {
-        # Compression succeeded - copy compressed file
+        # Compression succeeded - copy compressed file.
         Copy-Item -Path $tempCompressedPath -Destination $finalCompressedPath -Force
         Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
         
@@ -159,7 +159,7 @@ function CompressOrCopy-File
             FinalPath = $finalCompressedPath
         }
     } else {
-        # Compression failed - copy uncompressed files as fallback
+        # Compression failed - copy uncompressed files as fallback.
         Write-Log "*** WARNING *** Compression failed. Copying uncompressed files instead."
         
         $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction SilentlyContinue
@@ -172,7 +172,7 @@ function CompressOrCopy-File
             $copiedPaths += $destinationPath
         }
         
-        # Clean up temporary compressed file if it exists
+        # Clean up temporary compressed file if it exists.
         if (Test-Path $tempCompressedPath) {
             Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
         }
@@ -230,7 +230,7 @@ function CopyCompressedOrUncompressed-FileFromSession
         [Parameter(Mandatory=$True)][string] $DestinationDirectory
     )
 
-    # Ensure destination directory exists
+    # Ensure destination directory exists.
     if (-not (Test-Path $DestinationDirectory -PathType Container)) {
         New-Item -Path $DestinationDirectory -ItemType Directory -Force | Out-Null
     }
@@ -239,7 +239,7 @@ function CopyCompressedOrUncompressed-FileFromSession
     $uncompressedFileName = Split-Path $UncompressedSourcePath -Leaf
     $compressedDestPath = Join-Path $DestinationDirectory $compressedFileName
 
-    # Try to copy compressed file first
+    # Try to copy compressed file first.
     Write-Log "Copy $CompressedSourcePath to $DestinationDirectory"
     Copy-Item `
         -FromSession $VMSession `
@@ -249,7 +249,7 @@ function CopyCompressedOrUncompressed-FileFromSession
         -Force `
         -ErrorAction Ignore 2>&1 | Write-Log
     
-    # Check if compressed copy succeeded
+    # Check if compressed copy succeeded.
     if (Test-Path $compressedDestPath) {
         Write-Log "Successfully copied compressed file: $compressedFileName"
         return @{
@@ -259,7 +259,7 @@ function CopyCompressedOrUncompressed-FileFromSession
             FinalPath = $compressedDestPath
         }
     } else {
-        # Compressed copy failed, try uncompressed
+        # Compressed copy failed, try uncompressed.
         Write-Log "Compressed file not found, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
         Copy-Item `
             -FromSession $VMSession `
@@ -294,7 +294,7 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true)
     $TimeElapsed = 0
-    # Loop to fetch and print job output in near real-time
+    # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
         $JobOutput = Receive-Job -Job $job
         $JobOutput | ForEach-Object { Write-Host $_ }
@@ -320,7 +320,7 @@ function Wait-TestJobToComplete
         }
     }
 
-    # Print any remaining output after the job completes
+    # Print any remaining output after the job completes.
     $JobOutput = Receive-Job -Job $job
     $JobOutput | ForEach-Object { Write-Host $_ }
 
