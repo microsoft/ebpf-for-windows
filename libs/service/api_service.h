@@ -46,8 +46,48 @@ ebpf_authorize_native_module(_In_ const GUID* module_id, _In_ HANDLE native_imag
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* file_handle) noexcept;
 
+/**
+ * @brief Verify the signature of a system file.
+ *
+ * @param[in] file_name The name of the file to verify.
+ * @param[in] issuer_name The name of the issuer to check against.
+ * @param[in] eku_count The number of EKUs to check.
+ * @param[in] eku_list The list of EKUs to check against.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The file does not have the expected signature.
+ * @retval EBPF_INVALID_ARGUMENT The file name or issuer name is invalid.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_FAILED A failure occurred during the verification process.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_sys_file_signature(
+    _In_z_ const wchar_t* file_name,
+    _In_z_ const char* issuer_name,
+    size_t eku_count,
+    _In_reads_(eku_count) const char** eku_list);
+
 uint32_t
 ebpf_service_initialize() noexcept;
 
 void
 ebpf_service_cleanup() noexcept;
+
+/**
+ * @brief This macro defines the required issuer for eBPF verification.
+ * The issuer must match the one used for signing eBPF programs.
+ */
+#define EBPF_REQUIRED_ISSUER "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification"
+
+/**
+ * @brief This macro defines the EKU for code signing.
+ */
+#define EBPF_CODE_SIGNING_EKU "1.3.6.1.5.5.7.3.3"
+/**
+ * @brief This macro defines the EKU used by eBPF to denote that a BPF program has been verified using the eBPF
+ * verification process.
+ */
+#define EBPF_VERIFICATION_EKU "1.3.6.1.4.1.311.133.1"
+/**
+ * @brief This macro defines the EKU used to denote that a driver is a Windows component.
+ */
+#define EBPF_WINDOWS_COMPONENT_EKU "1.3.6.1.4.1.311.10.3.6"
