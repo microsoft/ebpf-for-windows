@@ -14,10 +14,13 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][string] $Architecture = "x64")
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64",
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote
+)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
+$VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
@@ -64,7 +67,31 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
-if ($ExecuteOnVM) {
+if ($ExecuteOnVM -and $VMIsRemote) {
+    # Setup for remote machine execution.
+    $VMList = $Config.VMMap.$SelfHostedRunnerName
+
+    # Export build artifacts to the remote machine(s).
+    Export-BuildArtifactsToVMs -VMList $VMList -VMIsRemote:$VMIsRemote -ErrorAction Stop
+
+    # Configure network adapters on remote machine(s).
+    Initialize-NetworkInterfaces `
+        -ExecuteOnHost $false `
+        -ExecuteOnVM $true `
+        -VMList $VMList `
+        -TestWorkingDirectory "C:\ebpf" `
+        -VMIsRemote:$VMIsRemote `
+        -ErrorAction Stop
+
+    # Install eBPF Components on the remote machine(s).
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -ErrorAction Stop
+    }
+
+    Pop-Location
+}
+elseif ($ExecuteOnVM) {
     $Job = Start-Job -ScriptBlock {
         param (
             [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
