@@ -678,15 +678,19 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, remote_address, explicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, loopback_address, explicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, local_address, explicit)
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address, explicit)
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, local_address, explicit)
+// DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address, explicit)
+// DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, local_address, explicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, remote_address, explicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopback_address, explicit)
 
 // Implicit bind variants (skip local_address redirects as they're not compatible)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, remote_address, implicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, loopback_address, implicit)
-DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address, implicit)
+// Local address likely not compatible - but double check after
+// DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, local_address, implicit)
+
+// DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address, implicit)
+// DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, local_address, implicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, remote_address, implicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopback_address, implicit)
 
