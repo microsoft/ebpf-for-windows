@@ -634,9 +634,9 @@ function Initialize-NetworkInterfaces {
                 netsh interface ipv6 set interface $interface weakhostsend=enabled
                 netsh interface ipv6 set interface $interface weakhostreceive=enabled
 
-                # add ipv4 and ipv6 loopback routes for this interface
-                netsh int ipv4 add route prefix=127.0.0.1/32 interface=$interface nexthop=0.0.0.0 metric=0
-                netsh int ipv6 add route prefix=::1/128 interface=$interface nexthop=:: metric=0
+                # # add ipv4 and ipv6 loopback routes for this interface
+                # netsh int ipv4 add route prefix=127.0.0.1/32 interface=$interface nexthop=0.0.0.0 metric=0
+                # netsh int ipv6 add route prefix=::1/128 interface=$interface nexthop=:: metric=0
             } catch {
                 Write-Log "Failed to update $interface with error $_"
             }
