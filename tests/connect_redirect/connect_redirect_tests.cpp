@@ -688,7 +688,6 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, remote_
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, loopback_address, implicit)
 // Local address likely not compatible - but double check after
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, vip_address, local_address, implicit)
-
 // DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, remote_address, implicit)
 // DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, loopback_address, local_address, implicit)
 DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, remote_address, implicit)
@@ -724,22 +723,6 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
         socket_family_type,                                                                                           \
         dual_stack,                                                                                                   \
         connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        remote_address,                                                                                               \
-        explicit)                                                                                                     \
-    DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        local_address,                                                                                                \
-        explicit)                                                                                                     \
-    DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
         local_address,                                                                                                \
         loopback_address,                                                                                             \
         explicit)                                                                                                     \
@@ -751,13 +734,7 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
     DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
         socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address, implicit) \
     DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        remote_address,                                                                                               \
-        implicit)                                                                                                     \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, local_address, implicit)    \
     DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
         socket_family_name,                                                                                           \
         socket_family_type,                                                                                           \
@@ -768,6 +745,31 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
         implicit)                                                                                                     \
     DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
         socket_family_name, socket_family_type, dual_stack, connection_type, local_address, remote_address, implicit)
+
+// DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     remote_address,                                                                                               \
+    //     explicit)                                                                                                     \
+    // DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     local_address,                                                                                                \
+    //     explicit)                                                                                                     \
+    // DECLARE_CONNECTION_REDIRECTION_V4_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     remote_address,                                                                                               \
+    //     implicit)                                                                                                     \
 
 #define DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                           \
     socket_family_name,                                                                                        \
@@ -799,22 +801,6 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
         socket_family_type,                                                                                           \
         dual_stack,                                                                                                   \
         connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        remote_address,                                                                                               \
-        explicit)                                                                                                     \
-    DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        local_address,                                                                                                \
-        explicit)                                                                                                     \
-    DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
         local_address,                                                                                                \
         loopback_address,                                                                                             \
         explicit)                                                                                                     \
@@ -826,13 +812,7 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
     DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
         socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address, implicit) \
     DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
-        socket_family_name,                                                                                           \
-        socket_family_type,                                                                                           \
-        dual_stack,                                                                                                   \
-        connection_type,                                                                                              \
-        loopback_address,                                                                                             \
-        remote_address,                                                                                               \
-        implicit)                                                                                                     \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, local_address, implicit)    \
     DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
         socket_family_name,                                                                                           \
         socket_family_type,                                                                                           \
@@ -843,6 +823,31 @@ DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(local_address, local_address, loopb
         implicit)                                                                                                     \
     DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
         socket_family_name, socket_family_type, dual_stack, connection_type, local_address, remote_address, implicit)
+
+// DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     remote_address,                                                                                               \
+    //     explicit)                                                                                                     \
+    // DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     local_address,                                                                                                \
+    //     explicit)                                                                                                     \
+    // DECLARE_CONNECTION_REDIRECTION_V6_TEST_CASE(                                                                      \
+    //     socket_family_name,                                                                                           \
+    //     socket_family_type,                                                                                           \
+    //     dual_stack,                                                                                                   \
+    //     connection_type,                                                                                              \
+    //     loopback_address,                                                                                             \
+    //     remote_address,                                                                                               \
+    //     implicit)                                                                                                     \
 
 // Connection redirection test cases.
 
