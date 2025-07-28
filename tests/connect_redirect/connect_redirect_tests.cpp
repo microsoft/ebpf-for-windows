@@ -512,6 +512,41 @@ connect_redirect_test_wrapper(
 {
     client_socket_t* sender_socket = nullptr;
 
+    // Skip tests if applicable. The following test cases are skipped:
+    // 1 - implicit bind with proxy == local_address. This is because local_address redirections validate that the
+    // redirect_context can be fetched.
+    //     The redirect_context can only be fetched for OS determined loopback connections, which may not be the case if
+    //     the source address is a different dual_stack interface, which occurs in practice.
+    // 2 - Explicit bind for src == loopback_address - remote address is not routable.
+    // 3 - (possibly) explicit bind src == local_address, destination == loopback (not routable by OS stack)
+
+    // Determine address family for lookups
+    socket_family_t address_family = (_globals.family == AF_INET6)
+                                         ? socket_family_t::IPv6
+                                         : (dual_stack ? socket_family_t::Dual : socket_family_t::IPv4);
+
+    // Skip case 1: implicit bind with proxy == local_address
+    if (implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[address_family].local_address)) {
+        printf("  Skipping test (implicit bind test with proxy == local_address)\n");
+        return;
+    }
+
+    // Skip case 2: explicit bind for src == loopback_address and destination == remote_address (not routable)
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf("  Skipping test (explicit bind test with src == loopback_address)\n");
+        return;
+    }
+
+    // Skip case 3: explicit bind src == local_address, destination == loopback (not routable by OS stack)
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].local_address) &&
+        INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf("  Skipping test (explicit bind test with src == local_address and destination == loopback_address)\n");
+        return;
+    }
+
     if (implicit_bind) {
         // Use implicit bind (no source_address specified).
         get_client_socket(dual_stack, &sender_socket);
