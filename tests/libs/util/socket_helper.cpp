@@ -549,6 +549,30 @@ _server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
     }
 }
 
+_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _base_socket{_sock_type, _protocol, _port, Dual, local_address}, overlapped{}
+{
+    overlapped.hEvent = INVALID_HANDLE_VALUE;
+    receive_message = nullptr;
+
+    GUID guid = WSAID_WSARECVMSG;
+    uint32_t bytes;
+    int error = WSAIoctl(
+        socket,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &guid,
+        sizeof(guid),
+        &receive_message,
+        sizeof(receive_message),
+        reinterpret_cast<unsigned long*>(&bytes),
+        NULL,
+        NULL);
+
+    if (error != 0) {
+        FAIL("Obtaining ReceiveMsg function pointer failed with " << WSAGetLastError());
+    }
+}
+
 _server_socket::~_server_socket()
 {
     if (overlapped.hEvent != INVALID_HANDLE_VALUE) {
@@ -636,6 +660,68 @@ _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, 
     }
     // Enable packet information for IPv6
     else if (local_address.ss_family == AF_INET6) {
+        DWORD option_value = 1;
+        result = setsockopt(
+            socket, IPPROTO_IPV6, IPV6_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
+        if (result != 0) {
+            printf("Warning: Failed to set IPV6_PKTINFO option: %d\n", WSAGetLastError());
+        }
+    }
+
+    // Enable redirect context for UDP sockets
+    if (protocol == IPPROTO_UDP) {
+        DWORD option_value = 1;
+        result = setsockopt(
+            socket,
+            IPPROTO_IP,
+            IP_WFP_REDIRECT_CONTEXT,
+            reinterpret_cast<const char*>(&option_value),
+            sizeof(option_value));
+        if (result != 0) {
+            printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+        }
+    }
+}
+
+_datagram_server_socket::_datagram_server_socket(
+    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _server_socket{_sock_type, _protocol, _port, local_address}, sender_address{},
+      sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}, original_destination_address{},
+      send_message(nullptr)
+{
+    if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
+        !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
+        FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
+             "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
+
+    // Get WSASendMsg function pointer
+    GUID wsaSendMsgGuid = WSAID_WSASENDMSG;
+    DWORD bytes_returned = 0;
+    int result = WSAIoctl(
+        socket,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &wsaSendMsgGuid,
+        sizeof(wsaSendMsgGuid),
+        &send_message,
+        sizeof(send_message),
+        &bytes_returned,
+        nullptr,
+        nullptr);
+    if (result != 0) {
+        printf("Warning: Failed to get WSASendMsg function pointer: %d\n", WSAGetLastError());
+    }
+
+    // Enable packet information for IPv4
+    if (this->local_address.ss_family == AF_INET) {
+        DWORD option_value = 1;
+        result = setsockopt(
+            socket, IPPROTO_IP, IP_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
+        if (result != 0) {
+            printf("Warning: Failed to set IP_PKTINFO option: %d\n", WSAGetLastError());
+        }
+    }
+    // Enable packet information for IPv6
+    else if (this->local_address.ss_family == AF_INET6) {
         DWORD option_value = 1;
         result = setsockopt(
             socket, IPPROTO_IPV6, IPV6_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
@@ -926,6 +1012,39 @@ _datagram_server_socket::close()
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _server_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
+      message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
+{
+    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
+        FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
+    }
+
+    GUID guid = WSAID_ACCEPTEX;
+    uint32_t bytes;
+    int error = WSAIoctl(
+        socket,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &guid,
+        sizeof(guid),
+        &acceptex,
+        sizeof(acceptex),
+        reinterpret_cast<unsigned long*>(&bytes),
+        NULL,
+        NULL);
+
+    if (error != 0) {
+        FAIL("Obtaining AcceptEx function pointer failed with " << WSAGetLastError());
+    }
+
+    // Post listen.
+    listen(socket, SOMAXCONN);
+
+    // Create accept socket.
+    initialize_accept_socket();
+}
+
+_stream_server_socket::_stream_server_socket(
+    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _server_socket{_sock_type, _protocol, _port, local_address}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {

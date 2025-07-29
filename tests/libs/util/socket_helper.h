@@ -186,6 +186,7 @@ typedef class _server_socket : public _base_socket
         MODE_DONT_CARE
     };
     _server_socket(int _sock_type, int _protocol, uint16_t port);
+    _server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address);
     ~_server_socket();
     void
     complete_async_receive(bool timeout_expected = false);
@@ -219,6 +220,7 @@ typedef class _datagram_server_socket : public _server_socket
 {
   public:
     _datagram_server_socket(int _sock_type, int _protocol, uint16_t port);
+    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address);
     void
     post_async_receive();
     void
@@ -256,6 +258,7 @@ typedef class _stream_server_socket : public _server_socket
 {
   public:
     _stream_server_socket(int _sock_type, int _protocol, uint16_t port);
+    _stream_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address);
     ~_stream_server_socket();
     void
     post_async_receive();

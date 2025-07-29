@@ -9,6 +9,7 @@
 
 std::string _protocol;
 uint16_t _local_port;
+std::string _local_address;
 
 volatile static LONG _global_counter = 0;
 
@@ -53,9 +54,15 @@ create_listener(_Inout_ receiver_socket_t* receiver_socket)
 }
 
 void
-create_tcp_listener(uint16_t local_port)
+create_tcp_listener(uint16_t local_port, const std::string& local_address)
 {
-    stream_server_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port);
+    sockaddr_storage local_addr = {};
+    if (!local_address.empty()) {
+        std::string addr_str = local_address;
+        get_address_from_string(addr_str, local_addr, true);
+    }
+
+    stream_server_socket_t receiver_socket(SOCK_STREAM, IPPROTO_TCP, local_port, local_addr);
     // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {
@@ -64,10 +71,21 @@ create_tcp_listener(uint16_t local_port)
 }
 
 void
-create_udp_listener(uint16_t local_port)
+create_udp_listener(uint16_t local_port, const std::string& local_address)
 {
-    printf("Creating UDP listener socket with local port %d ...\n", local_port);
-    datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port);
+    sockaddr_storage local_addr = {};
+    if (!local_address.empty()) {
+        std::string addr_str = local_address;
+        get_address_from_string(addr_str, local_addr, true);
+    }
+
+    printf("Creating UDP listener socket with local port %d", local_port);
+    if (!local_address.empty()) {
+        printf(" and local address %s", local_address.c_str());
+    }
+    printf(" ...\n");
+
+    datagram_server_socket_t receiver_socket(SOCK_DGRAM, IPPROTO_UDP, local_port, local_addr);
     // Create a listener in a loop to accept new connections.
     // The tests / user need to kill the process to stop the listener.
     while (true) {
@@ -80,9 +98,9 @@ TEST_CASE("create_listener", "[connect_redirect_tests]")
     IPPROTO protocol = _get_protocol_from_string(_protocol);
 
     if (protocol == IPPROTO_TCP) {
-        create_tcp_listener(_local_port);
+        create_tcp_listener(_local_port, _local_address);
     } else {
-        create_udp_listener(_local_port);
+        create_udp_listener(_local_port, _local_address);
     }
 }
 
@@ -94,7 +112,8 @@ main(int argc, char* argv[])
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
     auto cli = session.cli() | Opt(_protocol, "protocol (TCP / UDP)")["-proto"]["--protocol"]("Protocol") |
-               Opt(_local_port, "Local Port")["-lport"]["--local-port"]("Local Port");
+               Opt(_local_port, "Local Port")["-lport"]["--local-port"]("Local Port") |
+               Opt(_local_address, "Local Address")["-laddr"]["--local-address"]("Local Address");
 
     session.cli(cli);
 

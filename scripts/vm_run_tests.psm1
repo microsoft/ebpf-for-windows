@@ -348,19 +348,26 @@ function Invoke-ConnectRedirectTestHelper
     $DestinationPort = $ConnectRedirectTestConfig.DestinationPort
     $ProxyPort = $ConnectRedirectTestConfig.ProxyPort
 
-    $ProgramName = "tcp_udp_listener.exe"
-    $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
-    $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
-    $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
-    $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
-
-    $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
-    # Start TCP and UDP listeners on both the VMs.
-    foreach ($parameter in $ParameterArray)
-    {
-        Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter
+    # Build array of all IP addresses from all interfaces
+    $IPAddresses = @()
+    foreach ($Interface in $Interfaces) {
+        $IPAddresses += $Interface.V4Address
+        $IPAddresses += $Interface.V6Address
+    }
+
+    # Start TCP and UDP listeners
+    $ProgramName = "tcp_udp_listener.exe"
+    $Ports = @($DestinationPort, $ProxyPort)
+    $Protocols = @("tcp", "udp")
+
+    foreach ($IPAddress in $IPAddresses) {
+        foreach ($Protocol in $Protocols) {
+            foreach ($Port in $Ports) {
+                Start-ProcessHelper -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
+            }
+        }
     }
 
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($script:StandardUserPassword))
