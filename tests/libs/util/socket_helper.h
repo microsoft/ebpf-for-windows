@@ -228,10 +228,6 @@ typedef class _datagram_server_socket : public _server_socket
     void
     complete_async_send(int timeout_in_ms);
     void
-    complete_async_receive(bool timeout_expected = false);
-    void
-    complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
-    void
     complete_async_receive(int timeout_in_ms, receiver_mode mode);
     void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
