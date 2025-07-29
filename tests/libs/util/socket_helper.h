@@ -128,12 +128,6 @@ typedef class _datagram_client_socket : public _client_socket
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
     void
-    send_message_with_source_address(
-        _In_z_ const char* message,
-        _Inout_ sockaddr_storage& remote_address,
-        uint16_t remote_port,
-        _In_ const sockaddr_storage& source_address);
-    void
     cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
@@ -144,9 +138,6 @@ typedef class _datagram_client_socket : public _client_socket
 
     // Indicates if we have already called connect on this socket.
     bool connected = false;
-
-    // WSASendMsg function pointer for sending with control data
-    LPFN_WSASENDMSG send_message;
 } datagram_client_socket_t;
 
 /**
@@ -228,11 +219,7 @@ typedef class _datagram_server_socket : public _server_socket
     void
     complete_async_send(int timeout_in_ms);
     void
-    complete_async_receive(int timeout_in_ms, receiver_mode mode);
-    void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length);
-    void
-    extract_original_destination_address(); // Extract destination address from control data
     void
     close();
     int
@@ -243,8 +230,6 @@ typedef class _datagram_server_socket : public _server_socket
     int sender_address_size;
     std::vector<char> control_buffer;
     WSAMSG recv_msg;
-    sockaddr_storage original_destination_address; // Address the packet was originally sent to
-    LPFN_WSASENDMSG send_message;                  // WSASendMsg function pointer for sending with control data
 } datagram_server_socket_t;
 
 /**

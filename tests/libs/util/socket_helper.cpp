@@ -246,51 +246,12 @@ _datagram_client_socket::_datagram_client_socket(
     socket_family_t _family,
     bool _connected_udp,
     const sockaddr_storage& _source_address)
-    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}, connected_udp{_connected_udp},
-      send_message(nullptr)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}, connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
-
-    // Get WSASendMsg function pointer for sending with control data
-    GUID guid = WSAID_WSASENDMSG;
-    uint32_t bytes;
-    int error = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &guid,
-        sizeof(guid),
-        &send_message,
-        sizeof(send_message),
-        reinterpret_cast<unsigned long*>(&bytes),
-        NULL,
-        NULL);
-
-    if (error != 0) {
-        FAIL("Obtaining WSASendMsg function pointer failed with " << WSAGetLastError());
-    }
-
-    // Enable IP_PKTINFO for IPv4 to allow specifying source address
-    if (family == IPv4 || family == Dual) {
-        DWORD option_value = 1;
-        error = setsockopt(
-            socket, IPPROTO_IP, IP_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (error != 0) {
-            printf("Warning: Failed to set IP_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
-
-    // Enable IPV6_PKTINFO for IPv6 to allow specifying source address
-    if (family == IPv6 || family == Dual) {
-        DWORD option_value = 1;
-        error = setsockopt(
-            socket, IPPROTO_IPV6, IPV6_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (error != 0) {
-            printf("Warning: Failed to set IPV6_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
 }
 
 void
@@ -330,85 +291,6 @@ _datagram_client_socket::send_message_to_remote_host(
 
     if (error != 0) {
         FAIL("Sending message to remote host failed with " << WSAGetLastError());
-    }
-}
-
-void
-_datagram_client_socket::send_message_with_source_address(
-    _In_z_ const char* message,
-    _Inout_ sockaddr_storage& remote_address,
-    uint16_t remote_port,
-    _In_ const sockaddr_storage& source_address)
-{
-    int error = 0;
-
-    ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
-
-    // If this is a connected socket, issue a connect call prior to sending traffic.
-    if (connected_udp && !connected) {
-        error = WSAConnect(
-            socket, (const SOCKADDR*)&remote_address, sizeof(remote_address), nullptr, nullptr, nullptr, nullptr);
-        if (error != 0) {
-            FAIL("WSAConnect failed with " << WSAGetLastError());
-            return;
-        }
-        connected = true;
-    }
-
-    // Prepare message buffer
-    std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
-
-    // Prepare control buffer for IP_PKTINFO or IPV6_PKTINFO
-    std::vector<char> control_buffer(1024, 0); // Large enough for control messages
-    WSAMSG msg = {};
-
-    // Set up message structure
-    msg.name = (LPSOCKADDR)&remote_address;
-    msg.namelen = sizeof(remote_address);
-    msg.lpBuffers = &wsa_send_buffer;
-    msg.dwBufferCount = 1;
-    msg.Control.buf = control_buffer.data();
-    msg.Control.len = static_cast<ULONG>(control_buffer.size());
-    msg.dwFlags = 0;
-
-    // Set up control message for source address specification
-    WSACMSGHDR* cmsg = (WSACMSGHDR*)control_buffer.data();
-
-    if (source_address.ss_family == AF_INET) {
-        // IPv4: Use IP_PKTINFO
-        cmsg->cmsg_level = IPPROTO_IP;
-        cmsg->cmsg_type = IP_PKTINFO;
-        cmsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
-
-        IN_PKTINFO* pktinfo = (IN_PKTINFO*)WSA_CMSG_DATA(cmsg);
-        pktinfo->ipi_addr = ((SOCKADDR_IN*)&source_address)->sin_addr;
-        pktinfo->ipi_ifindex = 0; // Let system choose interface
-
-        msg.Control.len = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
-    } else if (source_address.ss_family == AF_INET6) {
-        // IPv6: Use IPV6_PKTINFO
-        cmsg->cmsg_level = IPPROTO_IPV6;
-        cmsg->cmsg_type = IPV6_PKTINFO;
-        cmsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
-
-        IN6_PKTINFO* pktinfo = (IN6_PKTINFO*)WSA_CMSG_DATA(cmsg);
-        pktinfo->ipi6_addr = ((SOCKADDR_IN6*)&source_address)->sin6_addr;
-        pktinfo->ipi6_ifindex = 0; // Let system choose interface
-
-        msg.Control.len = WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
-    } else {
-        // No source address specified or invalid family, fall back to normal send
-        send_message_to_remote_host(message, remote_address, remote_port);
-        return;
-    }
-
-    // Send the message with specified source address
-    uint32_t bytes_sent = 0;
-    error = send_message(socket, &msg, 0, reinterpret_cast<unsigned long*>(&bytes_sent), nullptr, nullptr);
-
-    if (error != 0) {
-        FAIL("Sending message with source address failed with " << WSAGetLastError());
     }
 }
 
@@ -625,53 +507,17 @@ _server_socket::complete_async_receive(bool timeout_expected)
 
 _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
     : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address)),
-      control_buffer(2048), recv_msg{}, original_destination_address{}, send_message(nullptr)
+      control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 
-    // Get WSASendMsg function pointer
-    GUID wsaSendMsgGuid = WSAID_WSASENDMSG;
-    DWORD bytes_returned = 0;
-    int result = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &wsaSendMsgGuid,
-        sizeof(wsaSendMsgGuid),
-        &send_message,
-        sizeof(send_message),
-        &bytes_returned,
-        nullptr,
-        nullptr);
-    if (result != 0) {
-        printf("Warning: Failed to get WSASendMsg function pointer: %d\n", WSAGetLastError());
-    }
-
-    // Enable packet information for IPv4
-    if (local_address.ss_family == AF_INET) {
-        DWORD option_value = 1;
-        result = setsockopt(
-            socket, IPPROTO_IP, IP_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IP_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
-    // Enable packet information for IPv6
-    else if (local_address.ss_family == AF_INET6) {
-        DWORD option_value = 1;
-        result = setsockopt(
-            socket, IPPROTO_IPV6, IPV6_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IPV6_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
-
     // Enable redirect context for UDP sockets
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
-        result = setsockopt(
+        int result = setsockopt(
             socket,
             IPPROTO_IP,
             IP_WFP_REDIRECT_CONTEXT,
@@ -787,114 +633,13 @@ _datagram_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& fr
 }
 
 void
-_datagram_server_socket::extract_original_destination_address()
-{
-    // Clear the original destination address
-    memset(&original_destination_address, 0, sizeof(original_destination_address));
-
-    // Parse control messages to find packet information
-    for (LPWSACMSGHDR cmsg = WSA_CMSG_FIRSTHDR(&recv_msg); cmsg != nullptr; cmsg = WSA_CMSG_NXTHDR(&recv_msg, cmsg)) {
-        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
-            // IPv4 packet information
-            PIN_PKTINFO pktinfo = (PIN_PKTINFO)WSA_CMSG_DATA(cmsg);
-            sockaddr_in* addr_in = (sockaddr_in*)&original_destination_address;
-            addr_in->sin_family = AF_INET;
-            addr_in->sin_addr = pktinfo->ipi_addr;
-            // Port will be set from the original destination port when sending
-            break;
-        } else if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
-            // IPv6 packet information
-            PIN6_PKTINFO pktinfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(cmsg);
-            sockaddr_in6* addr_in6 = (sockaddr_in6*)&original_destination_address;
-            addr_in6->sin6_family = AF_INET6;
-            addr_in6->sin6_addr = pktinfo6->ipi6_addr;
-            addr_in6->sin6_scope_id = pktinfo6->ipi6_ifindex;
-            // Port will be set from the original destination port when sending
-            break;
-        }
-    }
-}
-
-void
-_datagram_server_socket::complete_async_receive(int timeout_in_ms, receiver_mode mode)
-{
-    // Call the base class implementation
-    _server_socket::complete_async_receive(timeout_in_ms, mode);
-
-    // If receive completed successfully, extract the original destination address
-    if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
-        // The base implementation sets the event to INVALID_HANDLE_VALUE on success
-        extract_original_destination_address();
-    }
-}
-
-void
 _datagram_server_socket::send_async_response(_In_z_ const char* message)
 {
     int error = 0;
 
-    // Send a response to the sender using the original destination address as source.
+    // Send a response to the sender.
     std::vector<char> send_buffer(message, message + strlen(message));
     WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
-
-    // Check if we have WSASendMsg function pointer and original destination address
-    if (send_message != nullptr && original_destination_address.ss_family != AF_UNSPEC) {
-        // Set up control message buffer for source address specification
-        std::vector<char> control_data(256);
-        WSAMSG send_msg = {};
-
-        send_msg.name = (LPSOCKADDR)&sender_address;
-        send_msg.namelen = (sender_address.ss_family == AF_INET) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
-        send_msg.lpBuffers = &wsa_send_buffer;
-        send_msg.dwBufferCount = 1;
-        send_msg.Control.buf = control_data.data();
-        send_msg.Control.len = control_data.size();
-        send_msg.dwFlags = 0;
-
-        // Set up control message for source address
-        LPWSACMSGHDR cmsg = WSA_CMSG_FIRSTHDR(&send_msg);
-
-        if (original_destination_address.ss_family == AF_INET) {
-            // IPv4: Set up IP_PKTINFO control message
-            cmsg->cmsg_level = IPPROTO_IP;
-            cmsg->cmsg_type = IP_PKTINFO;
-            cmsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN_PKTINFO));
-
-            PIN_PKTINFO pktinfo = (PIN_PKTINFO)WSA_CMSG_DATA(cmsg);
-            memset(pktinfo, 0, sizeof(IN_PKTINFO));
-
-            sockaddr_in* orig_addr = (sockaddr_in*)&original_destination_address;
-            pktinfo->ipi_addr = orig_addr->sin_addr;
-
-            send_msg.Control.len = WSA_CMSG_SPACE(sizeof(IN_PKTINFO));
-        } else if (original_destination_address.ss_family == AF_INET6) {
-            // IPv6: Set up IPV6_PKTINFO control message
-            cmsg->cmsg_level = IPPROTO_IPV6;
-            cmsg->cmsg_type = IPV6_PKTINFO;
-            cmsg->cmsg_len = WSA_CMSG_LEN(sizeof(IN6_PKTINFO));
-
-            PIN6_PKTINFO pktinfo6 = (PIN6_PKTINFO)WSA_CMSG_DATA(cmsg);
-            memset(pktinfo6, 0, sizeof(IN6_PKTINFO));
-
-            sockaddr_in6* orig_addr6 = (sockaddr_in6*)&original_destination_address;
-            pktinfo6->ipi6_addr = orig_addr6->sin6_addr;
-            pktinfo6->ipi6_ifindex = orig_addr6->sin6_scope_id;
-
-            send_msg.Control.len = WSA_CMSG_SPACE(sizeof(IN6_PKTINFO));
-        }
-
-        DWORD bytes_sent = 0;
-        error = send_message(socket, &send_msg, 0, &bytes_sent, nullptr, nullptr);
-
-        if (error != 0) {
-            printf("Warning: WSASendMsg failed (%d), falling back to WSASendTo\n", WSAGetLastError());
-        } else {
-            // Success with source address control
-            return;
-        }
-    }
-
-    // Fallback to regular WSASendTo if WSASendMsg is not available or failed
     uint32_t bytes_sent = 0;
     uint32_t send_flags = 0;
     error = WSASendTo(
