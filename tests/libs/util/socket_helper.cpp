@@ -743,6 +743,32 @@ _datagram_server_socket::complete_async_receive(int timeout_in_ms, receiver_mode
 }
 
 void
+_datagram_server_socket::complete_async_receive(bool timeout_expected)
+{
+    // Call the base class implementation
+    _server_socket::complete_async_receive(timeout_expected);
+
+    // If receive completed successfully, extract the original destination address
+    if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
+        // The base implementation sets the event to INVALID_HANDLE_VALUE on success
+        extract_original_destination_address();
+    }
+}
+
+void
+_datagram_server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
+{
+    // Call the base class implementation
+    _server_socket::complete_async_receive(timeout_in_ms, timeout_expected);
+
+    // If receive completed successfully, extract the original destination address
+    if (overlapped.hEvent == INVALID_HANDLE_VALUE) {
+        // The base implementation sets the event to INVALID_HANDLE_VALUE on success
+        extract_original_destination_address();
+    }
+}
+
+void
 _datagram_server_socket::send_async_response(_In_z_ const char* message)
 {
     int error = 0;
