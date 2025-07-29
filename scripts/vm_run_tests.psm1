@@ -348,6 +348,7 @@ function Invoke-ConnectRedirectTestHelper
     $DestinationPort = $ConnectRedirectTestConfig.DestinationPort
     $ProxyPort = $ConnectRedirectTestConfig.ProxyPort
 
+    $ProgramName = "tcp_udp_listener.exe"
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     # Build array of all IP addresses from all interfaces
@@ -358,7 +359,6 @@ function Invoke-ConnectRedirectTestHelper
     }
 
     # Start TCP and UDP listeners
-    $ProgramName = "tcp_udp_listener.exe"
     $Ports = @($DestinationPort, $ProxyPort)
     $Protocols = @("tcp", "udp")
 
