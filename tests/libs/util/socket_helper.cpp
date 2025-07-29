@@ -532,54 +532,17 @@ _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, 
 _datagram_server_socket::_datagram_server_socket(
     int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
     : _server_socket{_sock_type, _protocol, _port, local_address}, sender_address{},
-      sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}, original_destination_address{},
-      send_message(nullptr)
+      sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 
-    // Get WSASendMsg function pointer
-    GUID wsaSendMsgGuid = WSAID_WSASENDMSG;
-    DWORD bytes_returned = 0;
-    int result = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &wsaSendMsgGuid,
-        sizeof(wsaSendMsgGuid),
-        &send_message,
-        sizeof(send_message),
-        &bytes_returned,
-        nullptr,
-        nullptr);
-    if (result != 0) {
-        printf("Warning: Failed to get WSASendMsg function pointer: %d\n", WSAGetLastError());
-    }
-
-    // Enable packet information for IPv4
-    if (this->local_address.ss_family == AF_INET) {
-        DWORD option_value = 1;
-        result = setsockopt(
-            socket, IPPROTO_IP, IP_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IP_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
-    // Enable packet information for IPv6
-    else if (this->local_address.ss_family == AF_INET6) {
-        DWORD option_value = 1;
-        result = setsockopt(
-            socket, IPPROTO_IPV6, IPV6_PKTINFO, reinterpret_cast<const char*>(&option_value), sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IPV6_PKTINFO option: %d\n", WSAGetLastError());
-        }
-    }
-
     // Enable redirect context for UDP sockets
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
-        result = setsockopt(
+        int result = setsockopt(
             socket,
             IPPROTO_IP,
             IP_WFP_REDIRECT_CONTEXT,
