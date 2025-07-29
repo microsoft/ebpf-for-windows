@@ -762,7 +762,7 @@ _datagram_server_socket::send_async_response(_In_z_ const char* message)
         send_msg.lpBuffers = &wsa_send_buffer;
         send_msg.dwBufferCount = 1;
         send_msg.Control.buf = control_data.data();
-        send_msg.Control.len = control_data.size();
+        send_msg.Control.len = static_cast<ULONG>(control_data.size());
         send_msg.dwFlags = 0;
 
         // Set up control message for source address
