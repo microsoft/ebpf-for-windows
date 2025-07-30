@@ -527,22 +527,25 @@ connect_redirect_test_wrapper(
         return;
     }
 
-    // // Skip case 2: explicit bind for src == loopback_address and destination == remote_address
-    // // When the loopback address is used for the source address, sending traffic to a remote address is determined as
-    // not routable by the OS stack, and the connection fails. if (!implicit_bind &&
-    //     INETADDR_ISEQUAL((SOCKADDR*)&source_address,
-    //     (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) { printf("  Skipping test variation:
-    //     explicit bind and src == loopback_address\n"); return;
-    // }
+    // Skip case 2: explicit bind for src == loopback_address and destination == remote_address
+    // When the loopback address is used for the source address, sending traffic to a remote address is determined as
+    // not routable by the OS stack, and the connection fails.
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf("  Skipping test variation: explicit bind and src == loopback_address\n");
+        return;
+    }
 
-    // // Skip case 3: explicit bind src == local_address and destination == loopback.
-    // // When the local_address is used as the source address, sending traffic to the loopback_address is determined as
-    // not routable by the OS stack, and the connection fails. if (!implicit_bind &&
-    //     INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].local_address) &&
-    //     INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
-    //     printf("  Skipping test variation: explicit bind and src == local_address and destination ==
-    //     loopback_address\n"); return;
-    // }
+    // Skip case 3: explicit bind src == local_address and destination == loopback.
+    // When the local_address is used as the source address, sending traffic to the loopback_address is determined as
+    // not routable by the OS stack, and the connection fails.
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].local_address) &&
+        INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf(
+            "  Skipping test variation: explicit bind and src == local_address and destination == loopback_address\n");
+        return;
+    }
 
     if (implicit_bind) {
         // Use implicit bind (no source_address specified).

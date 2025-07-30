@@ -423,49 +423,49 @@ function Run-KernelTests {
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
     Write-Log "Execute Run-KernelTests"
-    # $scriptBlock = {
-    #     param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
-    #     Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-    #     Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
-    #     $TestMode = $TestMode.ToLower()
-    #     switch ($TestMode) {
-    #         "ci/cd" {
-    #             Invoke-CICDTests `
-    #                 -VerboseLogs $VerboseLogs `
-    #                 -ExecuteSystemTests $true `
-    #                 2>&1 | Write-Log
-    #         }
-    #         "regression" {
-    #             Invoke-CICDTests `
-    #                 -VerboseLogs $VerboseLogs `
-    #                 -ExecuteSystemTests $false `
-    #                 2>&1 | Write-Log
-    #         }
-    #         "stress" {
-    #             # Set RestartExtension to true if options contains that string.
-    #             $RestartExtension = $Options -contains "RestartExtension"
-    #             Invoke-CICDStressTests `
-    #                 -VerboseLogs $VerboseLogs `
-    #                 -RestartExtension $RestartExtension `
-    #                 2>&1 | Write-Log
-    #         }
-    #         "performance" {
-    #             # Set CaptureProfle to true if options contains that string.
-    #             $CaptureProfile = $Options -contains "CaptureProfile"
-    #             Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
-    #         }
-    #         default {
-    #             throw "Invalid test mode: $TestMode"
-    #         }
-    #     }
-    # }
-    # $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
-    # Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
-    # Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
+    $scriptBlock = {
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+        $TestMode = $TestMode.ToLower()
+        switch ($TestMode) {
+            "ci/cd" {
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $true `
+                    2>&1 | Write-Log
+            }
+            "regression" {
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $false `
+                    2>&1 | Write-Log
+            }
+            "stress" {
+                # Set RestartExtension to true if options contains that string.
+                $RestartExtension = $Options -contains "RestartExtension"
+                Invoke-CICDStressTests `
+                    -VerboseLogs $VerboseLogs `
+                    -RestartExtension $RestartExtension `
+                    2>&1 | Write-Log
+            }
+            "performance" {
+                # Set CaptureProfle to true if options contains that string.
+                $CaptureProfile = $Options -contains "CaptureProfile"
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
+            }
+            default {
+                throw "Invalid test mode: $TestMode"
+            }
+        }
+    }
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
-        # Write-Log "Running XDP tests"
-        # Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+        Write-Log "Running XDP tests"
+        Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword

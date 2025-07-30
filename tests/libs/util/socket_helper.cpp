@@ -13,16 +13,6 @@
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
 
-// Define IP_WFP_REDIRECT_CONTEXT if not already defined
-#ifndef IP_WFP_REDIRECT_CONTEXT
-#define IP_WFP_REDIRECT_CONTEXT 70
-#endif
-
-// Define IPV6_WFP_REDIRECT_CONTEXT if not already defined
-#ifndef IPV6_WFP_REDIRECT_CONTEXT
-#define IPV6_WFP_REDIRECT_CONTEXT 70
-#endif
-
 uint64_t
 get_current_pid_tgid()
 {
