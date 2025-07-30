@@ -17,7 +17,7 @@ CATCH_REGISTER_LISTENER(_watchdog)
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
-
+#define CONCURRENT_THREAD_ITERATION_COUNT 1000
 typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
@@ -1023,5 +1023,103 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
+}
+
+// Thread function for concurrent sock_ops invocation.
+void
+sock_ops_thread_function(
+    std::stop_token token,
+    _In_ netebpf_ext_helper_t* helper,
+    _In_ fwp_classify_parameters_t* parameters,
+    std::atomic<size_t>* failure_count,
+    size_t iteration_count)
+{
+    FWP_ACTION_TYPE result;
+    bool fault_injection_enabled = cxplat_fault_injection_is_enabled();
+    size_t count = 0;
+    while (count < iteration_count) {
+        result = helper->test_sock_ops_v4(parameters);
+        if (result != FWP_ACTION_PERMIT) {
+            if (fault_injection_enabled) {
+                return;
+            }
+            (*failure_count)++;
+            break;
+        }
+        count++;
+    }
+}
+
+// Invoke SOCK_OPS concurrently with same classify parameters.
+TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
+{
+    std::cin.ignore();
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+    std::vector<std::jthread> threads;
+    std::atomic<size_t> failure_count = 0;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+    client_context->sock_ops_action = 0; // Success
+
+    uint32_t thread_count = 2 * ebpf_get_cpu_count();
+    for (uint32_t i = 0; i < thread_count; i++) {
+        threads.emplace_back(
+            sock_ops_thread_function, &helper, &parameters, &failure_count, CONCURRENT_THREAD_ITERATION_COUNT);
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    REQUIRE(failure_count == 0);
+}
+
+// Invoke SOCK_OPS concurrently with different classify parameters.
+TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
+    std::vector<std::jthread> threads;
+    std::vector<fwp_classify_parameters_t> parameters;
+    std::atomic<size_t> failure_count = 0;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    client_context->sock_ops_action = 0; // Success
+
+    uint32_t thread_count = 2 * ebpf_get_cpu_count();
+    parameters.resize(thread_count);
+
+    for (uint32_t i = 0; i < thread_count; i++) {
+        netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
+        // Optionally, vary some parameter for each thread.
+        parameters[i].destination_port = (uint16_t)(1000 + i);
+        threads.emplace_back(
+            sock_ops_thread_function, &helper, &parameters[i], &failure_count, CONCURRENT_THREAD_ITERATION_COUNT);
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    REQUIRE(failure_count == 0);
 }
 #pragma endregion sock_ops
