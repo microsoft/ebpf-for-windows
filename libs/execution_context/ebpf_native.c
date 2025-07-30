@@ -145,6 +145,8 @@ static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
 
+static ebpf_lock_t _ebpf_native_map_pinning_lock = {0};
+
 static ebpf_lock_t _ebpf_native_authorized_module_table_lock = {0};
 static _Guarded_by_(_ebpf_native_authorized_module_table_lock)
     ebpf_hash_table_t* _ebpf_native_authorized_module_table = NULL;
@@ -665,6 +667,7 @@ ebpf_native_terminate()
     ebpf_hash_table_destroy(_ebpf_native_client_table);
     _ebpf_native_client_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_client_table_lock);
+    ebpf_lock_destroy(&_ebpf_native_map_pinning_lock);
 
     EBPF_RETURN_VOID();
 }
@@ -1022,6 +1025,7 @@ ebpf_native_initiate()
     bool authorized_module_cleanup_work_item_created = false;
 
     ebpf_lock_create(&_ebpf_native_client_table_lock);
+    ebpf_lock_create(&_ebpf_native_map_pinning_lock);
 
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(GUID),
@@ -1073,6 +1077,7 @@ Done:
             _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
+        ebpf_lock_destroy(&_ebpf_native_map_pinning_lock);
         if (authorized_module_table_created) {
             ebpf_hash_table_destroy(_ebpf_native_authorized_module_table);
             _ebpf_native_authorized_module_table = NULL;
@@ -1514,13 +1519,56 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         }
 
         if (native_map->entry.definition.pinning == LIBBPF_PIN_BY_NAME) {
+            // Serialize the "check and create" map logic for LIBBPF_PIN_BY_NAME maps
+            // to prevent race conditions when multiple threads load programs in parallel
+            ebpf_lock_state_t pinning_lock_state = ebpf_lock_lock(&_ebpf_native_map_pinning_lock);
+            
             result = _ebpf_native_reuse_map(native_map);
             if (result != EBPF_SUCCESS) {
+                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
                 break;
             }
             if (native_map->reused) {
+                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
                 continue;
             }
+            
+            // Map was not reused, create new map and pin it atomically
+            ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
+            map_name.length = strlen(native_map->entry.name);
+            map_name.value = (uint8_t*)ebpf_allocate_with_tag(map_name.length, EBPF_POOL_TAG_NATIVE);
+            if (map_name.value == NULL) {
+                result = EBPF_NO_MEMORY;
+                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+                break;
+            }
+            memcpy(map_name.value, native_map->entry.name, map_name.length);
+            map_definition.type = native_map->entry.definition.type;
+            map_definition.key_size = native_map->entry.definition.key_size;
+            map_definition.value_size = native_map->entry.definition.value_size;
+            map_definition.max_entries = native_map->entry.definition.max_entries;
+
+            result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
+            if (result != EBPF_SUCCESS) {
+                ebpf_free(map_name.value);
+                map_name.value = NULL;
+                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+                break;
+            }
+
+            ebpf_free(map_name.value);
+            map_name.value = NULL;
+
+            // Pin the newly created map
+            result = ebpf_core_update_pinning(native_map->handle, &native_map->pin_path);
+            if (result != EBPF_SUCCESS) {
+                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+                break;
+            }
+            native_map->pinned = true;
+            
+            ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+            continue;
         }
 
         ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
