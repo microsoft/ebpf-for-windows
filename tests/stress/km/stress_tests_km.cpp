@@ -1870,8 +1870,14 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
 
     size_t actual_threads = std::min((size_t)test_control_info.threads_count, (size_t)MAX_PROGRAM_COPIES);
     std::vector<object_table_entry> object_table(actual_threads);
-    for (auto& entry : object_table) {
+    for (uint32_t index = 0; auto& entry : object_table) {
+        entry.available = true;
+        entry.lock = std::make_unique<std::mutex>();
         entry.object.reset();
+        entry.attach = !(index % 2) ? true : false;
+        entry.index = index++;
+        entry.reuse_count = 0;
+        entry.tag = 0xC001DEA1;
     }
 
     std::vector<thread_context> thread_context_table(
@@ -1898,8 +1904,11 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
         context_entry.compartment_id = i + 1; // Unique compartment IDs
         context_entry.duration_minutes = test_control_info.duration_minutes;
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
+    }
 
-        // Now create the thread.
+    // Now create all the threads after context setup is complete
+    for (uint32_t i = 0; i < actual_threads; i++) {
+        auto& context_entry = thread_context_table[i];
         auto& thread_entry = test_thread_table[i];
         thread_entry = std::move(std::thread(_test_thread_function, std::ref(context_entry)));
     }
