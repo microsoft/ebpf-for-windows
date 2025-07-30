@@ -18,6 +18,11 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
+// Define IPV6_WFP_REDIRECT_CONTEXT if not already defined
+#ifndef IPV6_WFP_REDIRECT_CONTEXT
+#define IPV6_WFP_REDIRECT_CONTEXT 70
+#endif
+
 uint64_t
 get_current_pid_tgid()
 {
@@ -517,14 +522,31 @@ _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, 
     // Enable redirect context for UDP sockets
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
-        int result = setsockopt(
-            socket,
-            IPPROTO_IP,
-            IP_WFP_REDIRECT_CONTEXT,
-            reinterpret_cast<const char*>(&option_value),
-            sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+
+        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
+        if (family == IPv4 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IP,
+                IP_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
+        }
+
+        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
+        if (family == IPv6 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IPV6,
+                IPV6_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IPV6_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
         }
     }
 }
@@ -542,14 +564,31 @@ _datagram_server_socket::_datagram_server_socket(
     // Enable redirect context for UDP sockets
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
-        int result = setsockopt(
-            socket,
-            IPPROTO_IP,
-            IP_WFP_REDIRECT_CONTEXT,
-            reinterpret_cast<const char*>(&option_value),
-            sizeof(option_value));
-        if (result != 0) {
-            printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+
+        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
+        if (family == IPv4 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IP,
+                IP_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
+        }
+
+        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
+        if (family == IPv6 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IPV6,
+                IPV6_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IPV6_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
         }
     }
 }
