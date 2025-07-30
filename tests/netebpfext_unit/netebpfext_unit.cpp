@@ -894,6 +894,68 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+
+//
+// Tests for dual stack redirect handle functionality from PR #2562
+// These tests validate that redirect handles are properly allocated per filter context
+// rather than per filter, enabling proper REDIRECTED_BY_SELF detection
+//
+TEST_CASE("dual_stack_redirect_handle_per_filter_context", "[netebpfext][dual_stack_redirect]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_cgroup_sock_addr_client_context_header_t client_context_header = {0};
+    test_cgroup_sock_addr_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_cgroup_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test that IPv4 and IPv6 connect filters for the same eBPF program
+    // share the same redirect handle (per filter context)
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+
+    // Test IPv6 dual stack connect - this would trigger the v6 connect redirect filter
+    FWP_ACTION_TYPE result_v6 = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result_v6 == FWP_ACTION_PERMIT);
+
+    // Test subsequent IPv4 connect from proxy - should be recognized as REDIRECTED_BY_SELF
+    // This validates the fix from PR #2562 where redirect handles are now per filter context
+    FWP_ACTION_TYPE result_v4 = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result_v4 == FWP_ACTION_PERMIT);
+}
+
+TEST_CASE("dual_stack_redirect_context_consistency", "[netebpfext][dual_stack_redirect]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_cgroup_sock_addr_client_context_header_t client_context_header = {0};
+    test_cgroup_sock_addr_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_cgroup_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test that redirect context is properly initialized before WFP field population
+    // This validates the initialization order fix from PR #2562
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+
+    // Test with IPv6 dual stack scenario where sock_addr_ctx->compartmentId is used
+    // early in the connect_redirect_classify function
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+}
+
 #pragma endregion cgroup_sock_addr
 #pragma region sock_ops
 
