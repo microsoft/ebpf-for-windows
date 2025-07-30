@@ -7,7 +7,7 @@
   <PropertyGroup>
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
-    <WDKVersion>10.0.26100.3323</WDKVersion>
+    <WDKVersion>10.0.26100.4204</WDKVersion>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
