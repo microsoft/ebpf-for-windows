@@ -1778,41 +1778,41 @@ _mt_load_stress_test_with_restart_timing(
     // An incrementing 'compartment Id' to ensure that _each_ 'Attacher' thread gets a unique compartment id.
     uint32_t compartment_id{1};
 
-    for (const auto& program_info : _test_program_info) {
-        const auto& program_name = program_info.first;
-        const auto& program_attribs = program_info.second;
-        extension_names.push_back(program_attribs.extension_name);
+    // Get the single program info - we only have one program in km tests
+    const auto& program_info = _test_program_info.begin();
+    const auto& program_name = program_info->first;
+    const auto& program_attribs = program_info->second;
+    extension_names.push_back(program_attribs.extension_name);
 
-        for (size_t i = 0; i < total_threads; i++) {
+    // Configure context for each thread
+    for (size_t i = 0; i < total_threads; i++) {
+        // First, prepare the context for this thread.
+        auto& context_entry = thread_context_table[i];
+        context_entry.program_name = program_name;
 
-            // First, prepare the context for this thread.
-            auto& context_entry = thread_context_table[i];
-            context_entry.program_name = program_name;
-
-            if (!(compartment_id % 3)) {
-                context_entry.role = thread_role_type::DESTROYER;
-            } else if (!(compartment_id % 2)) {
-                context_entry.role = thread_role_type::ATTACHER;
-            } else {
-                context_entry.role = thread_role_type::CREATOR;
-            }
-
-            if (program_type == EBPF_EXECUTION_NATIVE) {
-                context_entry.is_native_program = true;
-                if (test_control_info.use_unique_native_programs && context_entry.role == thread_role_type::CREATOR) {
-                    // Create unique native programs for 'creator' threads only.
-                    context_entry.file_name = _make_unique_file_copy(program_attribs.native_file_name);
-                } else {
-                    context_entry.file_name = program_attribs.native_file_name;
-                }
-            } else {
-                context_entry.file_name = program_attribs.jit_file_name;
-            }
-            context_entry.thread_index = (uint32_t)i;
-            context_entry.compartment_id = compartment_id++;
-            context_entry.duration_minutes = test_control_info.duration_minutes;
-            context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
+        if (!(compartment_id % 3)) {
+            context_entry.role = thread_role_type::DESTROYER;
+        } else if (!(compartment_id % 2)) {
+            context_entry.role = thread_role_type::ATTACHER;
+        } else {
+            context_entry.role = thread_role_type::CREATOR;
         }
+
+        if (program_type == EBPF_EXECUTION_NATIVE) {
+            context_entry.is_native_program = true;
+            if (test_control_info.use_unique_native_programs && context_entry.role == thread_role_type::CREATOR) {
+                // Create unique native programs for 'creator' threads only.
+                context_entry.file_name = _make_unique_file_copy(program_attribs.native_file_name);
+            } else {
+                context_entry.file_name = program_attribs.native_file_name;
+            }
+        } else {
+            context_entry.file_name = program_attribs.jit_file_name;
+        }
+        context_entry.thread_index = (uint32_t)i;
+        context_entry.compartment_id = compartment_id++;
+        context_entry.duration_minutes = test_control_info.duration_minutes;
+        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
     }
 
     // Handle extension restart timing based on the test scenario
