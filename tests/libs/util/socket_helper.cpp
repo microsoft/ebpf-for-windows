@@ -698,8 +698,9 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
             break; // Message extends beyond buffer
         }
 
-        // Check if this is an IP_WFP_REDIRECT_CONTEXT message
-        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
+        // Check if this is an IP_WFP_REDIRECT_CONTEXT or IPV6_WFP_REDIRECT_CONTEXT message
+        if ((cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) ||
+            (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_WFP_REDIRECT_CONTEXT)) {
             // Calculate the actual data size (message length minus header)
             DWORD data_size = msg_len - cmsg_hdr_size;
             // Only process data if it is non-zero in size.
