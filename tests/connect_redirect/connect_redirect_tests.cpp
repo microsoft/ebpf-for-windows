@@ -740,6 +740,134 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP(
 // Dual stack socket, IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
+//
+// Tests for redirected_by_self scenario with dual stack sockets
+// These tests validate the fix from PR #2562 where dual stack socket redirects
+// were not properly recognized as REDIRECTED_BY_SELF when the proxy used a different IP family
+//
+
+void
+dual_stack_redirected_by_self_test(ADDRESS_FAMILY family, connection_type_t connection_type, bool dual_stack, _In_ test_addresses_t& addresses)
+{
+    _initialize_test_globals();
+    _globals.family = family;
+    _globals.connection_type = connection_type;
+    
+    const char* connection_type_string =
+        (_globals.connection_type == connection_type_t::TCP)
+            ? "TCP"
+            : ((_globals.connection_type == connection_type_t::UNCONNECTED_UDP) ? "UNCONNECTED_UDP"
+                                                                                : "CONNECTED_UDP");
+    const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";
+    const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";
+    printf(
+        "DUAL_STACK_REDIRECTED_BY_SELF: vip_address -> local_address | %s | %s | %s\n", 
+        connection_type_string, 
+        family_string, 
+        dual_stack_string);
+
+    client_socket_t* dual_stack_sender_socket = nullptr;
+    client_socket_t* ipv4_proxy_socket = nullptr;
+    
+    // Create dual stack client socket (this triggers the v6 connect filter)
+    get_client_socket(true, &dual_stack_sender_socket, addresses.local_address);
+    
+    // Create IPv4 proxy socket (this should be recognized as REDIRECTED_BY_SELF, not REDIRECTED_BY_OTHER)
+    get_client_socket(false, &ipv4_proxy_socket, addresses.local_address);
+    
+    // Test the dual stack redirect scenario from PR #2562:
+    // 1. Dual stack socket connects to IPv4-mapped destination (triggers v6 filter)
+    // 2. v6 filter redirects to proxy port (using shared redirect handle per filter context)
+    // 3. Proxy creates IPv4 socket to connect to original destination
+    // 4. v4 filter should recognize this as REDIRECTED_BY_SELF (same redirect handle)
+    // 5. Connection should proceed without infinite redirection loop
+    
+    // Setup policy to redirect VIP to local proxy
+    _update_policy_map(
+        addresses.vip_address, 
+        addresses.local_address, 
+        _globals.destination_port, 
+        _globals.proxy_port, 
+        _globals.connection_type, 
+        dual_stack, 
+        true); // add policy
+
+    {
+        impersonation_helper_t helper(_globals.user_type);
+        uint64_t authentication_id = _get_current_thread_authentication_id();
+        SAFE_REQUIRE(authentication_id != 0);
+
+        // Step 1: Dual stack socket connects to VIP (triggers v6 filter, gets redirected)
+        dual_stack_sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, addresses.vip_address, _globals.destination_port);
+        dual_stack_sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+
+        dual_stack_sender_socket->post_async_receive();
+        dual_stack_sender_socket->complete_async_receive(2000, false);
+
+        uint32_t bytes_received = 0;
+        char* received_message = nullptr;
+        dual_stack_sender_socket->get_received_message(bytes_received, received_message);
+
+        // Verify the dual stack connection was redirected to proxy
+        std::string expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(_globals.proxy_port);
+        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+    }
+
+    // Step 2: Simulate proxy making IPv4 connection to original destination
+    // This tests the core fix: redirect handle is shared between v4/v6 filters for same eBPF program
+    // so FwpsQueryConnectionRedirectState should return REDIRECTED_BY_SELF, not REDIRECTED_BY_OTHER
+    {
+        impersonation_helper_t helper(_globals.user_type);
+
+        // The proxy connects directly to the original destination (no redirection)
+        ipv4_proxy_socket->send_message_to_remote_host(CLIENT_MESSAGE, addresses.vip_address, _globals.destination_port);
+        ipv4_proxy_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+
+        ipv4_proxy_socket->post_async_receive();
+        ipv4_proxy_socket->complete_async_receive(2000, false);
+
+        uint32_t bytes_received = 0;
+        char* received_message = nullptr;
+        ipv4_proxy_socket->get_received_message(bytes_received, received_message);
+
+        // Verify the proxy connection was NOT redirected (recognized as REDIRECTED_BY_SELF)
+        // It should get the direct server response, not the redirect context message
+        std::string expected_response = SERVER_MESSAGE + std::to_string(_globals.destination_port);
+        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+    }
+
+    // Remove policy from map
+    _update_policy_map(
+        addresses.vip_address, 
+        addresses.local_address, 
+        _globals.destination_port, 
+        _globals.proxy_port, 
+        _globals.connection_type, 
+        dual_stack, 
+        false); // remove policy
+        
+    delete dual_stack_sender_socket;
+    delete ipv4_proxy_socket;
+}
+
+// Test cases for dual stack redirected_by_self scenario
+TEST_CASE("dual_stack_redirected_by_self_vip_address_local_address_TCP", "[connect_authorize_redirect_tests_dual_stack_redirected_by_self]")
+{
+    dual_stack_redirected_by_self_test(AF_INET, connection_type_t::TCP, true, _globals.addresses[socket_family_t::Dual]);
+}
+
+TEST_CASE("dual_stack_redirected_by_self_vip_address_local_address_UNCONNECTED_UDP", "[connect_authorize_redirect_tests_dual_stack_redirected_by_self]")
+{
+    dual_stack_redirected_by_self_test(AF_INET, connection_type_t::UNCONNECTED_UDP, true, _globals.addresses[socket_family_t::Dual]);
+}
+
+TEST_CASE("dual_stack_redirected_by_self_vip_address_local_address_CONNECTED_UDP", "[connect_authorize_redirect_tests_dual_stack_redirected_by_self]")
+{
+    dual_stack_redirected_by_self_test(AF_INET, connection_type_t::CONNECTED_UDP, true, _globals.addresses[socket_family_t::Dual]);
+}
+
 int
 main(int argc, char* argv[])
 {
