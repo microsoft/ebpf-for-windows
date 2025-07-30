@@ -412,30 +412,6 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
     }
 }
 
-_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port, Dual}, overlapped{}
-{
-    overlapped.hEvent = INVALID_HANDLE_VALUE;
-    receive_message = nullptr;
-
-    GUID guid = WSAID_WSARECVMSG;
-    uint32_t bytes;
-    int error = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &guid,
-        sizeof(guid),
-        &receive_message,
-        sizeof(receive_message),
-        reinterpret_cast<unsigned long*>(&bytes),
-        NULL,
-        NULL);
-
-    if (error != 0) {
-        FAIL("Obtaining ReceiveMsg function pointer failed with " << WSAGetLastError());
-    }
-}
-
 _server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
     : _base_socket{_sock_type, _protocol, _port, Dual, local_address}, overlapped{}
 {
@@ -508,47 +484,6 @@ void
 _server_socket::complete_async_receive(bool timeout_expected)
 {
     complete_async_receive(1000, timeout_expected);
-}
-
-_datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address)),
-      control_buffer(2048), recv_msg{}
-{
-    if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
-        !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
-        FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
-             "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
-
-    // Enable redirect context for UDP sockets
-    if (protocol == IPPROTO_UDP) {
-        DWORD option_value = 1;
-
-        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
-        if (family == IPv4 || family == Dual) {
-            int result = setsockopt(
-                socket,
-                IPPROTO_IP,
-                IP_WFP_REDIRECT_CONTEXT,
-                reinterpret_cast<const char*>(&option_value),
-                sizeof(option_value));
-            if (result != 0) {
-                printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
-            }
-        }
-
-        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
-        if (family == IPv6 || family == Dual) {
-            int result = setsockopt(
-                socket,
-                IPPROTO_IPV6,
-                IPV6_WFP_REDIRECT_CONTEXT,
-                reinterpret_cast<const char*>(&option_value),
-                sizeof(option_value));
-            if (result != 0) {
-                printf("Warning: Failed to set IPV6_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
-            }
-        }
-    }
 }
 
 _datagram_server_socket::_datagram_server_socket(
@@ -730,38 +665,6 @@ void
 _datagram_server_socket::close()
 {
     clean_up_socket(socket);
-}
-
-_stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _server_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
-      message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
-{
-    if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
-        FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
-    }
-
-    GUID guid = WSAID_ACCEPTEX;
-    uint32_t bytes;
-    int error = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &guid,
-        sizeof(guid),
-        &acceptex,
-        sizeof(acceptex),
-        reinterpret_cast<unsigned long*>(&bytes),
-        NULL,
-        NULL);
-
-    if (error != 0) {
-        FAIL("Obtaining AcceptEx function pointer failed with " << WSAGetLastError());
-    }
-
-    // Post listen.
-    listen(socket, SOMAXCONN);
-
-    // Create accept socket.
-    initialize_accept_socket();
 }
 
 _stream_server_socket::_stream_server_socket(

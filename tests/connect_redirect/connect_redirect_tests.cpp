@@ -516,13 +516,6 @@ connect_redirect_test_wrapper(
                                          : (dual_stack ? socket_family_t::Dual : socket_family_t::IPv4);
 
     // Certain combinations of parameters are not compatible with our test setup, so those tests are skipped.
-    // Skip tests if applicable. The following test cases are skipped:
-    // 1 - implicit bind with proxy == local_address. This is because local_address redirections validate that the
-    // redirect_context can be fetched.
-    //     The redirect_context can only be fetched for OS determined loopback connections, which may not be the case if
-    //     the source address is a different dual_stack interface, which occurs in practice.
-    // 2 - Explicit bind for src == loopback_address - remote address is not routable.
-    // 3 - (possibly) explicit bind src == local_address, destination == loopback (not routable by OS stack)
 
     // Skip case 1: implicit bind and proxy == local_address.
     // local_address testcases require that the OS stack treats the traffic as loopback (to ensure we can obtain the
