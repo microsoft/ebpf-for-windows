@@ -375,9 +375,10 @@ update_policy_map_and_test_connection(
         source_port = ntohs(((sockaddr_in6*)source_addr)->sin6_port);
     }
 
-    printf("    Source: %s\n", get_string_from_address(source_addr).c_str());
-    printf("    Original Destination: %s\n", get_string_from_address((SOCKADDR*)&destination).c_str());
-    printf("    Redirect Target: %s:%d\n", get_string_from_address((SOCKADDR*)&proxy).c_str(), proxy_port);
+    std::string source_address_str = get_string_from_address(source_addr);
+    std::string destination_address_str = get_string_from_address((SOCKADDR*)&destination);
+    std::string proxy_address_str = get_string_from_address((SOCKADDR*)&proxy);
+    CAPTURE(source_address_str, destination_address_str, proxy_address_str, proxy_port);
 
     bool add_policy = true;
     uint32_t bytes_received = 0;
@@ -411,9 +412,10 @@ update_policy_map_and_test_connection(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
-        // print the local address again after the send
+        // capture the local address again after the send
         sender_socket->get_local_address(source_addr, source_addr_len);
-        printf("    Source (after send): %s\n", get_string_from_address(source_addr).c_str());
+        std::string source_after_send_str = get_string_from_address(source_addr);
+        CAPTURE(source_after_send_str);
 
         // For local redirection, the redirect context is expected to be set and returned.
         // If the connection is not redirected or is redirected to a remote address,
@@ -424,8 +426,7 @@ update_policy_map_and_test_connection(
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
         }
-        printf("  Expected response: %s\n", expected_response.c_str());
-        printf("  Received response: %s\n", received_message);
+        CAPTURE(expected_response, received_message);
         SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
