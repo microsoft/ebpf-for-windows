@@ -492,7 +492,7 @@ function Import-ResultsFromVM
                 -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
                 -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
                 -DestinationDirectory ".\TestLogs\$VMName\Logs"
-            
+
             if ($result.Success) {
                 Write-Log "Successfully copied compressed ETL file from ${VMName}: $($result.FinalPath)"
             } else {
@@ -571,7 +571,7 @@ function Import-ResultsFromHost {
         Write-Log "ETL file Size: $EtlFileSize MB"
         Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
         $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
-        
+
         if ($result.Success) {
             Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
         } else {

@@ -63,7 +63,7 @@ function Compress-File
                 -DestinationPath $DestinationPath `
                 -CompressionLevel Fastest `
                 -Force
-                
+
             # Verify the compressed file was actually created.
             if (Test-Path $DestinationPath) {
                 Write-Log "Compression completed successfully."
@@ -80,7 +80,7 @@ function Compress-File
             $retryCount++
         }
     }
-    
+
     # All retries failed.
     Write-Log "*** ERROR *** Failed to compress after 5 attempts. Compression failed."
     return $false
@@ -106,7 +106,7 @@ function Compress-File
 .OUTPUTS
     Returns a hashtable with the following properties:
     - Success: Boolean indicating if compression succeeded
-    - CompressedPath: Path to compressed file (if compression succeeded) 
+    - CompressedPath: Path to compressed file (if compression succeeded)
     - UncompressedPath: Path to uncompressed file (if compression failed)
     - FinalPath: Path to the final file that was copied
 
@@ -148,10 +148,10 @@ function CompressOrCopy-File
         # Compression succeeded - copy compressed file.
         Copy-Item -Path $tempCompressedPath -Destination $finalCompressedPath -Force
         Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
-        
+
         $compressedFile = Get-ChildItem -Path $finalCompressedPath
         Write-Log "Copied compressed file: $($compressedFile.Name), Size: $((($compressedFile.Length) / 1MB).ToString("F2")) MB"
-        
+
         return @{
             Success = $true
             CompressedPath = $finalCompressedPath
@@ -161,22 +161,22 @@ function CompressOrCopy-File
     } else {
         # Compression failed - copy uncompressed files as fallback.
         Write-Log "*** WARNING *** Compression failed. Copying uncompressed files instead."
-        
+
         $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction SilentlyContinue
         $copiedPaths = @()
-        
+
         foreach ($file in $sourceFiles) {
             $destinationPath = Join-Path $DestinationDirectory $file.Name
             Copy-Item -Path $file.FullName -Destination $destinationPath -Force
             Write-Log "Copied uncompressed file: $($file.Name)"
             $copiedPaths += $destinationPath
         }
-        
+
         # Clean up temporary compressed file if it exists.
         if (Test-Path $tempCompressedPath) {
             Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
         }
-        
+
         return @{
             Success = $false
             CompressedPath = ""
@@ -210,7 +210,7 @@ function CompressOrCopy-File
     Returns a hashtable with the following properties:
     - Success: Boolean indicating if compressed copy succeeded
     - CompressedPath: Path to compressed file (if compressed copy succeeded)
-    - UncompressedPath: Path to uncompressed file (if compressed copy failed)  
+    - UncompressedPath: Path to uncompressed file (if compressed copy failed)
     - FinalPath: Path to the final file that was copied
 
 .EXAMPLE
@@ -248,7 +248,7 @@ function CopyCompressedOrUncompressed-FileFromSession
         -Recurse `
         -Force `
         -ErrorAction Ignore 2>&1 | Write-Log
-    
+
     # Check if compressed copy succeeded.
     if (Test-Path $compressedDestPath) {
         Write-Log "Successfully copied compressed file: $compressedFileName"
@@ -268,14 +268,14 @@ function CopyCompressedOrUncompressed-FileFromSession
             -Recurse `
             -Force `
             -ErrorAction Ignore 2>&1 | Write-Log
-        
+
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
         if (Test-Path $uncompressedDestPath) {
             Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
         } else {
             Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files"
         }
-        
+
         return @{
             Success = $false
             CompressedPath = ""
