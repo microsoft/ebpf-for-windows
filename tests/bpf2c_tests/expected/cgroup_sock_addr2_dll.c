@@ -55,7 +55,7 @@ static map_entry_t _maps[] = {
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          24,                // Size in bytes of a map key.
-         24,                // Size in bytes of a map value.
+         28,                // Size in bytes of a map value.
          100,               // Maximum number of entries allowed in the map.
          0,                 // Inner map index.
          LIBBPF_PIN_NONE,   // Pinning type for the map.
@@ -422,9 +422,9 @@ label_2:
     // EBPF_OP_STXH pc=70 dst=r6 src=r1 offset=40 imm=0
 #line 85 "sample/cgroup_sock_addr2.c"
     *(uint16_t*)(uintptr_t)(r6 + OFFSET(40)) = (uint16_t)r1;
-    // EBPF_OP_MOV64_IMM pc=71 dst=r7 src=r0 offset=0 imm=1
-#line 85 "sample/cgroup_sock_addr2.c"
-    r7 = IMMEDIATE(1);
+    // EBPF_OP_LDXW pc=71 dst=r7 src=r8 offset=24 imm=0
+#line 87 "sample/cgroup_sock_addr2.c"
+    r7 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(24));
 label_3:
     // EBPF_OP_STXDW pc=72 dst=r10 src=r9 offset=-88 imm=0
 #line 43 "sample/cgroup_sock_addr2.c"
