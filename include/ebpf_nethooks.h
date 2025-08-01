@@ -56,6 +56,7 @@ bind_hook_t(bind_md_t* context);
 
 #define BPF_SOCK_ADDR_VERDICT_REJECT 0
 #define BPF_SOCK_ADDR_VERDICT_PROCEED 1
+#define BPF_SOCK_ADDR_VERDICT_PROCEED_HARD 2
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -134,10 +135,11 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
  *
  * @param[in] context \ref bpf_sock_addr_t
- * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Block the socket operation.
- * @retval BPF_SOCK_ADDR_VERDICT_REJECT Allow the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Allow the socket operation. Maps to a soft permit in WFP.
+ * @retval BPF_SOCK_ADDR_VERDICT_PROCEED_HARD Allow the socket operation. Maps to a hard permit in WFP.
  *
- * Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
+ * Any return value other than the ones mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
  */
 typedef int
 sock_addr_hook_t(bpf_sock_addr_t* context);

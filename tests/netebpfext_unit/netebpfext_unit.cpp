@@ -27,6 +27,7 @@ typedef enum _sock_addr_test_type
 typedef enum _sock_addr_test_action
 {
     SOCK_ADDR_TEST_ACTION_PERMIT,
+    SOCK_ADDR_TEST_ACTION_PERMIT_HARD,
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
@@ -442,7 +443,8 @@ static inline FWP_ACTION_TYPE
 _get_fwp_sock_addr_action(uint16_t destination_port)
 {
     sock_addr_test_action_t action = _get_sock_addr_action(destination_port);
-    if (action == SOCK_ADDR_TEST_ACTION_PERMIT || action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
+    if (action == SOCK_ADDR_TEST_ACTION_PERMIT || action == SOCK_ADDR_TEST_ACTION_PERMIT_HARD ||
+        action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
         return FWP_ACTION_PERMIT;
     }
 
@@ -478,14 +480,14 @@ netebpfext_unit_invoke_sock_addr_program(
         REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
         REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
         REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
-        REQUIRE(sock_addr_context->user_port == htons(1234));
+        REQUIRE(sock_addr_context->user_port == htons(1235));
         REQUIRE(sock_addr_context->msg_src_port == htons(5678));
     } else {
         ASSERT((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
         ASSERT(sock_addr_context->user_ip4 == htonl(0x01020304));
         ASSERT(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
         ASSERT(sock_addr_context->protocol == IPPROTO_TCP);
-        ASSERT(sock_addr_context->user_port == htons(1234));
+        ASSERT(sock_addr_context->user_port == htons(1235));
         ASSERT(sock_addr_context->msg_src_port == htons(5678));
     }
 
@@ -501,6 +503,9 @@ netebpfext_unit_invoke_sock_addr_program(
     switch (action) {
     case SOCK_ADDR_TEST_ACTION_PERMIT:
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        break;
+    case SOCK_ADDR_TEST_ACTION_PERMIT_HARD:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
         break;
     case SOCK_ADDR_TEST_ACTION_BLOCK:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -571,6 +576,15 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Classify operations for hard permit.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_HARD;
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify operations for redirect.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
@@ -659,6 +673,14 @@ sock_addr_thread_function(
         }
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
+
+        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive
+        // Workaround for now - map to block
+        if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
+            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
+            expected_result = FWP_ACTION_BLOCK;
+        }
+
         if (result != expected_result) {
             if (fault_injection_enabled) {
                 // If fault injection is enabled, then the result can be different.
