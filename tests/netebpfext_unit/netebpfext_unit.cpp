@@ -938,19 +938,19 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
     // Do some operations that return success.
     client_context->sock_ops_action = 0;
 
-    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters);
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_sock_ops_v6(&parameters);
+    result = helper.test_sock_ops_v6(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Do some operations that return failure.
     client_context->sock_ops_action = -1;
 
-    result = helper.test_sock_ops_v4(&parameters);
+    result = helper.test_sock_ops_v4(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_sock_ops_v6(&parameters);
+    result = helper.test_sock_ops_v6(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
@@ -1032,13 +1032,18 @@ sock_ops_thread_function(
     _In_ netebpf_ext_helper_t* helper,
     _In_ fwp_classify_parameters_t* parameters,
     std::atomic<size_t>* failure_count,
-    size_t iteration_count)
+    size_t iteration_count,
+    uint8_t flow_duration_seconds)
 {
     FWP_ACTION_TYPE result;
     bool fault_injection_enabled = cxplat_fault_injection_is_enabled();
+    std::vector<uint64_t> flow_ids;
+    flow_ids.reserve(iteration_count);
+
     size_t count = 0;
     while (count < iteration_count) {
-        result = helper->test_sock_ops_v4(parameters);
+        uint64_t flow_id = 0;
+        result = helper->test_sock_ops_v4(parameters, &flow_id);
         if (result != FWP_ACTION_PERMIT) {
             if (fault_injection_enabled) {
                 return;
@@ -1046,14 +1051,20 @@ sock_ops_thread_function(
             (*failure_count)++;
             break;
         }
+        flow_ids.push_back(flow_id);
         count++;
+    }
+
+    // Sleep for the specified flow duration before removing flow contexts.
+    std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
+    for (auto id : flow_ids) {
+        helper->test_sock_ops_v4_remove_flow_context(id);
     }
 }
 
-// Invoke SOCK_OPS concurrently with same classify parameters.
+// Invoke SOCK_OPS concurrently with same classify parameters and flow duration.
 TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
 {
-    std::cin.ignore();
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
@@ -1070,11 +1081,16 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
     client_context->sock_ops_action = 0; // Success
-
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
+
     for (uint32_t i = 0; i < thread_count; i++) {
         threads.emplace_back(
-            sock_ops_thread_function, &helper, &parameters, &failure_count, CONCURRENT_THREAD_ITERATION_COUNT);
+            sock_ops_thread_function,
+            &helper,
+            &parameters,
+            &failure_count,
+            CONCURRENT_THREAD_ITERATION_COUNT,
+            CONCURRENT_THREAD_RUN_TIME_IN_SECONDS);
     }
 
     // Wait for all threads to stop.
@@ -1085,7 +1101,7 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
     REQUIRE(failure_count == 0);
 }
 
-// Invoke SOCK_OPS concurrently with different classify parameters.
+// Invoke SOCK_OPS concurrently with different classify parameters and flow duration.
 TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {
@@ -1103,16 +1119,22 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
         (netebpfext_helper_base_client_context_t*)client_context);
 
     client_context->sock_ops_action = 0; // Success
-
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     parameters.resize(thread_count);
-
+    uint8_t flow_duration = 1;
     for (uint32_t i = 0; i < thread_count; i++) {
+        if (flow_duration < CONCURRENT_THREAD_RUN_TIME_IN_SECONDS) {
+            flow_duration++;
+        }
         netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
-        // Optionally, vary some parameter for each thread.
         parameters[i].destination_port = (uint16_t)(1000 + i);
         threads.emplace_back(
-            sock_ops_thread_function, &helper, &parameters[i], &failure_count, CONCURRENT_THREAD_ITERATION_COUNT);
+            sock_ops_thread_function,
+            &helper,
+            &parameters[i],
+            &failure_count,
+            CONCURRENT_THREAD_ITERATION_COUNT,
+            flow_duration);
     }
 
     // Wait for all threads to stop.
