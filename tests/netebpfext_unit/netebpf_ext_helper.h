@@ -81,10 +81,22 @@ typedef class _netebpf_ext_helper
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v4(parameters); }
+    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    {
+        return usersim_fwp_sock_ops_v4(parameters, flow_id);
+    }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_sock_ops_v6(parameters); }
+    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    {
+        return usersim_fwp_sock_ops_v6(parameters, flow_id);
+    }
+
+    void
+    test_sock_ops_v4_remove_flow_context(uint64_t flow_id)
+    {
+        usersim_fwp_sock_ops_v4_remove_flow_context(flow_id);
+    }
 
   private:
     bool trace_initiated = false;
