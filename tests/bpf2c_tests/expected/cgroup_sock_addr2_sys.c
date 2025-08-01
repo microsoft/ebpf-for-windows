@@ -170,12 +170,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -188,12 +187,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "policy_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -227,44 +225,44 @@ _get_global_variable_sections(
 
 static helper_function_entry_t connect_redirect4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     65537,
-     "helper_id_65537",
+        {1, 40, 40}, // Version header.
+        65537,
+        "helper_id_65537",
     },
     {
-     {1, 40, 40}, // Version header.
-     19,
-     "helper_id_19",
+        {1, 40, 40}, // Version header.
+        19,
+        "helper_id_19",
     },
     {
-     {1, 40, 40}, // Version header.
-     20,
-     "helper_id_20",
+        {1, 40, 40}, // Version header.
+        20,
+        "helper_id_20",
     },
     {
-     {1, 40, 40}, // Version header.
-     21,
-     "helper_id_21",
+        {1, 40, 40}, // Version header.
+        21,
+        "helper_id_21",
     },
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
 };
 
@@ -666,44 +664,44 @@ label_3:
 
 static helper_function_entry_t connect_redirect6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
     {
-     {1, 40, 40}, // Version header.
-     65537,
-     "helper_id_65537",
+        {1, 40, 40}, // Version header.
+        65537,
+        "helper_id_65537",
     },
     {
-     {1, 40, 40}, // Version header.
-     19,
-     "helper_id_19",
+        {1, 40, 40}, // Version header.
+        19,
+        "helper_id_19",
     },
     {
-     {1, 40, 40}, // Version header.
-     20,
-     "helper_id_20",
+        {1, 40, 40}, // Version header.
+        20,
+        "helper_id_20",
     },
     {
-     {1, 40, 40}, // Version header.
-     21,
-     "helper_id_21",
+        {1, 40, 40}, // Version header.
+        21,
+        "helper_id_21",
     },
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
 };
 
