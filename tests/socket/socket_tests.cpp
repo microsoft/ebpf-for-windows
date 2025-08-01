@@ -870,8 +870,11 @@ multi_attach_test_redirection(
             }
         }
 
+        std::cout << "123: " << std::endl;
         // Validate that the connection is successfully redirected.
         validate_connection_multi_attach(family, address_family, proxy_port, destination_port, protocol, RESULT_ALLOW);
+
+        std::cout << "456: " << std::endl;
 
         if (program_index > 0) {
             // If this is not the first program, configure the preceding program to block the connection.
