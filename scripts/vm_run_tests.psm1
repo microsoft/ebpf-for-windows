@@ -17,7 +17,11 @@ param (
     [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
     [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
     [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
-    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+    # Granular tracing parameters (passed through to run_driver_tests.psm1)
+    [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
+    [Parameter(Mandatory = $false)][string] $TraceDir = "",
+    [Parameter(Mandatory = $false)][string] $KmTraceType = "file"
 )
 
 if (-not (Test-Path .\common.psm1)) {
@@ -416,9 +420,9 @@ function Run-KernelTests {
     )
     Write-Log "Execute Run-KernelTests"
     $scriptBlock = {
-        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing, $TraceDir, $KmTraceType)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing, $TraceDir, $KmTraceType) -Force -WarningAction SilentlyContinue
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
@@ -451,7 +455,7 @@ function Run-KernelTests {
             }
         }
     }
-    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing, $TraceDir, $KmTraceType)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 

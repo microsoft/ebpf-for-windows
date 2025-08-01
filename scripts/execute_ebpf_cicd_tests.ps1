@@ -14,7 +14,10 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
         # This parameter is only used when ExecuteOnHost is false.
-       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote,
+       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
+       [Parameter(Mandatory = $false)][switch] $KmTracing = $false,
+       [Parameter(Mandatory = $false)][string] $KmTraceType = "file")
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -23,6 +26,27 @@ $VMIsRemote = [bool]$VMIsRemote
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
+
+# Initialize granular tracing if enabled
+$tracingInitialized = $false
+$traceDir = $null
+if ($GranularTracing -and $KmTracing) {
+    try {
+        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+            Write-Log "Starting granular tracing for test execution"
+            # Create TestLogs directory for trace files
+            $traceDir = Join-Path $WorkingDirectory "TestLogs"
+            if (-not (Test-Path $traceDir)) {
+                New-Item -ItemType Directory -Path $traceDir -Force | Out-Null
+            }
+            $tracingInitialized = $true
+            Write-Log "Granular tracing initialized successfully" -ForegroundColor Green
+        }
+    } catch {
+        Write-Log "Warning: Failed to initialize granular tracing for test execution: $_" -ForegroundColor Yellow
+    }
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -56,11 +80,30 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string] $TestMode,
         [Parameter(Mandatory = $True)] [string[]] $Options,
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
+        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
+        [Parameter(Mandatory = $True)] [bool] $GranularTracing,
+        [Parameter(Mandatory = $True)] [bool] $KmTracing,
+        [Parameter(Mandatory = $True)] [string] $KmTraceType,
+        [Parameter(Mandatory = $True)] [string] $TraceDir
     )
     Push-Location $WorkingDirectory
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+    # Initialize granular tracing in the job context if enabled
+    $tracingInitialized = $false
+    if ($GranularTracing -and $KmTracing -and $TraceDir) {
+        try {
+            Import-Module $WorkingDirectory\tracing_utils.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+            if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+                $tracingInitialized = $true
+                Write-Output "Granular tracing initialized in job context"
+            }
+        } catch {
+            Write-Output "Warning: Failed to initialize granular tracing in job context: $_"
+        }
+    }
+
     if ($ExecuteOnVM) {
         Write-Log "Tests will be executed on VM" -ForegroundColor Cyan
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -87,11 +130,15 @@ $Job = Start-Job -ScriptBlock {
             $TestMode,
             $Options,
             $TestHangTimeout,
-            $UserModeDumpFolder) `
+            $UserModeDumpFolder,
+            $GranularTracing,
+            $TraceDir,
+            $KmTraceType) `
         -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
+
         Stop-eBPFComponents
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
@@ -115,7 +162,11 @@ $Job = Start-Job -ScriptBlock {
     $TestMode,
     $Options,
     $TestHangTimeout,
-    $UserModeDumpFolder)
+    $UserModeDumpFolder,
+    $GranularTracing,
+    $KmTracing,
+    $KmTraceType,
+    $traceDir)
 
 # Keep track of the last received output count
 $JobTimedOut = `
@@ -128,6 +179,16 @@ $JobTimedOut = `
 
 # Clean up
 Remove-Job -Job $Job -Force
+
+# Stop granular tracing if it was started
+if ($GranularTracing -and $tracingInitialized) {
+    try {
+        # Any remaining cleanup for tracing
+        Write-Log "Cleaning up granular tracing resources" -ForegroundColor Yellow
+    } catch {
+        Write-Log "Warning: Error during tracing cleanup: $_" -ForegroundColor Yellow
+    }
+}
 
 Pop-Location
 

@@ -4,12 +4,73 @@
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName,
        [parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
+       [Parameter(Mandatory = $false)][string] $TraceDir = "",
+       [Parameter(Mandatory = $false)][string] $KmTraceType = "file")
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+
+# Initialize granular tracing if enabled
+$script:TracingInitialized = $false
+if ($GranularTracing -and $TraceDir) {
+    try {
+        $tracingUtilsPath = Join-Path $WorkingDirectory "tracing_utils.psm1"
+        if (Test-Path $tracingUtilsPath) {
+            Import-Module $tracingUtilsPath -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+            if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+                $script:TracingInitialized = $true
+                Write-Log "Granular tracing initialized in run_driver_tests module" -ForegroundColor Green
+            }
+        }
+    } catch {
+        Write-Log "Warning: Failed to initialize granular tracing in run_driver_tests: $_" -ForegroundColor Yellow
+    }
+}
+
+# Helper function to start test tracing for individual executables
+function Start-ExecutableTrace {
+    param(
+        [Parameter(Mandatory = $true)] [string] $ExecutableName
+    )
+
+    if ($script:TracingInitialized -and $GranularTracing) {
+        try {
+            # Clean the executable name for use in trace file names
+            $cleanName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutableName).Replace(" ", "_")
+            $traceFile = Start-OperationTrace -OperationName $cleanName -OutputDirectory $TraceDir -TraceType $KmTraceType
+            if ($traceFile) {
+                Write-Log "Started tracing for executable $ExecutableName : $traceFile" -ForegroundColor Green
+                return $traceFile
+            }
+        } catch {
+            Write-Log "Warning: Failed to start tracing for executable $ExecutableName : $_" -ForegroundColor Yellow
+        }
+    }
+    return $null
+}
+
+# Helper function to stop test tracing for individual executables
+function Stop-ExecutableTrace {
+    param(
+        [Parameter(Mandatory = $true)] [string] $ExecutableName,
+        [Parameter(Mandatory = $false)] [string] $TraceFile
+    )
+
+    if ($script:TracingInitialized -and $GranularTracing -and $TraceFile) {
+        try {
+            $savedTraceFile = Stop-OperationTrace
+            if ($savedTraceFile) {
+                Write-Log "Stopped tracing for executable $ExecutableName : $savedTraceFile" -ForegroundColor Green
+            }
+        } catch {
+            Write-Log "Warning: Failed to stop tracing for executable $ExecutableName : $_" -ForegroundColor Yellow
+        }
+    }
+}
 
 
 #
@@ -262,37 +323,46 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
-    # Initialize arguments.
-    if ($TestArgs -ne "") {
-        $ArgumentsList = @($TestArgs)
-    }
+    # Start tracing for this specific test executable
+    $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
+    $testTraceFile = Start-ExecutableTrace -ExecutableName $testTraceName
 
-    if ($VerboseLogs -eq $true) {
-        $ArgumentsList += '-s'
-    }
+    try {
+        # Initialize arguments.
+        if ($TestArgs -ne "") {
+            $ArgumentsList = @($TestArgs)
+        }
 
-    # Execute Test.
-    Write-Log "Executing $TestName $TestArgs"
-    $TestFilePath = "$pwd\$TestName"
-    $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
-    $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-    if ($ArgumentsList) {
-        $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-    } else {
-        $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-    }
-    # Cache the process handle to ensure subsequent access of the process is accurate.
-    $handle = $TestProcess.Handle
-    Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
-    if ($InnerTestName -ne "") {
-        Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
-    } else {
-        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
-    }
+        if ($VerboseLogs -eq $true) {
+            $ArgumentsList += '-s'
+        }
 
-    Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
-    Write-Log "`n==============================`n"
+        # Execute Test.
+        Write-Log "Executing $TestName $TestArgs"
+        $TestFilePath = "$pwd\$TestName"
+        $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
+        $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+        if ($ArgumentsList) {
+            $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+        } else {
+            $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+        }
+        # Cache the process handle to ensure subsequent access of the process is accurate.
+        $handle = $TestProcess.Handle
+        Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        if ($InnerTestName -ne "") {
+            Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
+        } else {
+            Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
+        }
 
+        Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
+        Write-Log "`n==============================`n"
+    }
+    finally {
+        # Stop tracing for this specific test executable
+        Stop-ExecutableTrace -ExecutableName $testTraceName -TraceFile $testTraceFile
+    }
 }
 
 # Function to create a tuple with default values for Arguments and Timeout
