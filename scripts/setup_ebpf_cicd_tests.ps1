@@ -16,7 +16,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64",
        [Parameter(Mandatory = $false)][switch] $VMIsRemote,
-       [Parameter(Mandatory = $false)][switch] $GranularTracing)
+       [Parameter(Mandatory = $false)][switch] $GranularTracing
 )
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
