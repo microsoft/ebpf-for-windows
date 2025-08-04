@@ -35,19 +35,6 @@ foreach ($item in $items) {
     Write-Log "Found item $($item.FullName)"
 }
 
-# Initialize granular tracing if enabled
-$setupTraceFile = $null
-if ($GranularTracing) {
-    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
-}
-
-Write-Log "Current directory: $($pwd.toString())"
-$items = Get-ChildItem -File
-foreach ($item in $items) {
-    Write-Log "Found item $($item.FullName)"
-}
-
 if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
         $TestVMCredential = Retrieve-StoredCredential -Target $Target
@@ -87,6 +74,19 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
+
+# Initialize granular tracing if enabled
+$setupTraceFile = $null
+if ($GranularTracing) {
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
+}
+
+Write-Log "Current directory: $($pwd.toString())"
+$items = Get-ChildItem -File
+foreach ($item in $items) {
+    Write-Log "Found item $($item.FullName)"
+}
 
 if ($ExecuteOnVM -and $VMIsRemote) {
     # Setup for remote machine execution.

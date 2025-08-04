@@ -18,13 +18,6 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-# Initialize granular tracing if enabled
-$cleanupTraceFile = $null
-if ($GranularTracing) {
-    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
-}
-
 if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
         $TestVMCredential = Retrieve-StoredCredential -Target $Target
@@ -40,6 +33,13 @@ if ($ExecuteOnVM) {
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
+
+# Initialize granular tracing if enabled
+$cleanupTraceFile = $null
+if ($GranularTracing) {
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
+}
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
