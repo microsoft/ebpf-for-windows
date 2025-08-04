@@ -41,10 +41,6 @@ on:
       capture_etw:
         required: false
         type: boolean
-      # Set to true to enable granular per-test ETW tracing instead of workflow-level tracing.
-      granular_etw_tracing:
-        required: false
-        type: boolean
       # Set to true to use Visual Studio Developer command shell.
       vs_dev:
         required: false
@@ -211,7 +207,7 @@ jobs:
 
       - name: Start ETW tracing
         id: start_etw_tracing
-        if: (inputs.capture_etw == true) && (inputs.granular_etw_tracing != true) && (steps.skip_check.outputs.should_skip != 'true')
+        if: (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
         shell: cmd
         run: |
           mkdir ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
@@ -294,11 +290,7 @@ jobs:
         shell: cmd
         run: |
             set EBPF_ENABLE_WER_REPORT=yes
-            if "${{inputs.granular_etw_tracing}}" == "true" (
-              OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 -OutputFolder ${{env.DUMP_PATH}} -Timeout ${{env.TEST_TIMEOUT}} -TestCommand ${{env.TEST_COMMAND}} -EnableTracing -TraceOutputDirectory ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
-            ) else (
-              OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
-            )
+            OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run test on self-hosted runner
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd') && (inputs.fault_injection != true)
@@ -329,11 +321,7 @@ jobs:
         run: |
           set EBPF_ENABLE_WER_REPORT=yes
           cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
-          if "${{inputs.granular_etw_tracing}}" == "true" (
-            powershell.exe .\Run-Test.ps1 -OutputFolder ${{env.DUMP_PATH}} -Timeout ${{env.TEST_TIMEOUT}} -TestCommand ${{env.TEST_COMMAND}} -EnableTracing -TraceOutputDirectory ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs
-          ) else (
-            powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
-          )
+          powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run post test command
         # Run the post test command even if the workflow has failed.
@@ -433,7 +421,7 @@ jobs:
 
       - name: Stop ETW tracing
         id: stop_etw_tracing
-        if: always() && (inputs.capture_etw == true) && (inputs.granular_etw_tracing != true) && (steps.skip_check.outputs.should_skip != 'true')
+        if: always() && (inputs.capture_etw == true) && (steps.skip_check.outputs.should_skip != 'true')
         shell: cmd
         run: |
             wpr.exe -stop ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\TestLogs\ebpfforwindows.etl

@@ -16,7 +16,6 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
         # This parameter is only used when ExecuteOnHost is false.
        [Parameter(Mandatory = $false)][switch] $VMIsRemote,
        [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
-       [Parameter(Mandatory = $false)][switch] $KmTracing = $false,
        [Parameter(Mandatory = $false)][string] $KmTraceType = "file")
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
@@ -68,7 +67,6 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
         [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
         [Parameter(Mandatory = $True)] [bool] $GranularTracing,
-        [Parameter(Mandatory = $True)] [bool] $KmTracing,
         [Parameter(Mandatory = $True)] [string] $KmTraceType,
         [Parameter(Mandatory = $True)] [string] $TraceDir
     )
@@ -136,7 +134,6 @@ $Job = Start-Job -ScriptBlock {
     $TestHangTimeout,
     $UserModeDumpFolder,
     $GranularTracing,
-    $KmTracing,
     $KmTraceType,
     $traceDir)
 
