@@ -105,7 +105,7 @@ if ($EnableTracing) {
     $tracingUtilsPath = Join-Path $PSScriptRoot "tracing_utils.psm1"
     if (Test-Path $tracingUtilsPath) {
         try {
-            Import-Module $tracingUtilsPath -Force -ArgumentList "Run-Test.log"
+            Import-Module $tracingUtilsPath -Force -ArgumentList "Run-Test.log", $PSScriptRoot
             
             if (Initialize-TracingUtils -WorkingDirectory $PWD) {
                 $tracingInitialized = $true

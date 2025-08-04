@@ -22,7 +22,7 @@ if (-not (Test-Path $TestLogDirectory)) {
 try {
     # Test 1: Load tracing utilities
     Write-Host "`nTest 1: Loading tracing utilities module..." -ForegroundColor Yellow
-    Import-Module "$WorkingDirectory\scripts\tracing_utils.psm1" -Force -ArgumentList "test_granular_tracing.log"
+    Import-Module "$WorkingDirectory\scripts\tracing_utils.psm1" -Force -ArgumentList "test_granular_tracing.log", $WorkingDirectory
     Write-Host "✓ Tracing utilities module loaded successfully" -ForegroundColor Green
     
     # Test 2: Initialize tracing

@@ -22,7 +22,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 $cleanupTraceFile = $null
 if ($GranularTracing -and $KmTracing) {
     try {
-        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
         if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
             Write-Log "Starting granular tracing for cleanup operations"
             # Create TestLogs directory for trace files if it doesn't exist

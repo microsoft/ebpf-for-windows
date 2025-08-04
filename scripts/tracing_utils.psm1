@@ -4,9 +4,12 @@
 # This module provides utility functions for granular ETW tracing
 # to enable per-test and per-operation trace collection
 
-param([Parameter(Mandatory=$true)] [string] $LogFileName)
+param(
+    [Parameter(Mandatory=$true)] [string] $LogFileName,
+    [Parameter(Mandatory=$true)] [string] $WorkingDirectory
+)
 
-Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 # Global variables to track tracing state
 $script:TracingEnabled = $false

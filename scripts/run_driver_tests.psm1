@@ -20,7 +20,7 @@ if ($GranularTracing -and $TraceDir) {
     try {
         $tracingUtilsPath = Join-Path $WorkingDirectory "tracing_utils.psm1"
         if (Test-Path $tracingUtilsPath) {
-            Import-Module $tracingUtilsPath -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+            Import-Module $tracingUtilsPath -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
             if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
                 $script:TracingInitialized = $true
                 Write-Log "Granular tracing initialized in run_driver_tests module" -ForegroundColor Green

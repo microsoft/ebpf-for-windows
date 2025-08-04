@@ -32,7 +32,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 $setupTraceFile = $null
 if ($GranularTracing -and $KmTracing) {
     try {
-        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
         if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
             Write-Log "Starting granular tracing for setup operations"
             # Create TestLogs directory for trace files
