@@ -50,7 +50,7 @@ try {
     
     # Test 5: Test basic function exports
     Write-Host "`nTest 5: Testing function exports..." -ForegroundColor Yellow
-    $functions = @('Initialize-TracingUtils', 'Start-OperationTrace', 'Stop-OperationTrace', 'Stop-AllTraces', 'Test-TracingActive', 'Get-CurrentTraceFile')
+    $functions = @('Initialize-TracingUtils', 'Start-OperationTrace', 'Stop-OperationTrace', 'Stop-AllTraces', 'Test-TracingActive', 'Get-CurrentTraceFile', 'Start-ScriptTracing', 'Stop-ScriptTracing')
     $moduleCommands = Get-Command -Module tracing_utils
     
     foreach ($func in $functions) {

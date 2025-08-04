@@ -87,7 +87,6 @@ if (-not $PSBoundParameters.ContainsKey('TestCommand')) {
 }
 
 # Load tracing utilities if tracing is enabled
-$tracingInitialized = $false
 $traceFile = $null
 
 if ($EnableTracing) {
@@ -96,41 +95,33 @@ if ($EnableTracing) {
         $TraceOutputDirectory = $OutputFolder
     }
     
-    # Ensure trace output directory exists
+    # Extract test name for tracing
+    $testName = [System.IO.Path]::GetFileNameWithoutExtension($TestCommand)
+
+    # Start tracing using helper function
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList "Run-Test.log", $PSScriptRoot -WarningAction SilentlyContinue
+
+    # Create temporary parameters that match our helper function
+    $tempParams = @{
+        OperationName = $testName
+        WorkingDirectory = $PSScriptRoot
+        LogFileName = "Run-Test.log"
+        KmTraceType = $TracingType
+        GranularTracing = $true
+        KmTracing = $true
+    }
+
+    # Override the trace directory creation in Start-ScriptTracing by pre-creating and using custom directory
     if (-not (Test-Path $TraceOutputDirectory)) {
         New-Item -ItemType Directory -Path $TraceOutputDirectory -Force | Out-Null
     }
     
-    # Load tracing utilities
-    $tracingUtilsPath = Join-Path $PSScriptRoot "tracing_utils.psm1"
-    if (Test-Path $tracingUtilsPath) {
-        try {
-            Import-Module $tracingUtilsPath -Force -ArgumentList "Run-Test.log", $PSScriptRoot
-            
-            if (Initialize-TracingUtils -WorkingDirectory $PWD) {
-                $tracingInitialized = $true
-                Write-Output "Tracing utilities initialized successfully"
-            } else {
-                Write-Output "Warning: Failed to initialize tracing utilities"
-            }
-        } catch {
-            Write-Output "Warning: Failed to load tracing utilities: $_"
+    # Use the lower-level functions since we need custom output directory
+    if (Initialize-TracingUtils -WorkingDirectory $PSScriptRoot) {
+        $traceFile = Start-OperationTrace -OperationName $testName -OutputDirectory $TraceOutputDirectory -TraceType $TracingType
+        if ($traceFile) {
+            Write-Output "Started ETW tracing for test '$testName': $traceFile"
         }
-    } else {
-        Write-Output "Warning: Tracing utilities not found at $tracingUtilsPath"
-    }
-}
-
-# Extract test name for tracing
-$testName = [System.IO.Path]::GetFileNameWithoutExtension($TestCommand)
-
-# Start tracing if enabled and initialized
-if ($EnableTracing -and $tracingInitialized) {
-    $traceFile = Start-OperationTrace -OperationName $testName -OutputDirectory $TraceOutputDirectory -TraceType $TracingType
-    if ($traceFile) {
-        Write-Output "Started ETW tracing for test '$testName': $traceFile"
-    } else {
-        Write-Output "Warning: Failed to start ETW tracing for test '$testName'"
     }
 }
 
@@ -166,9 +157,10 @@ if (!$process.WaitForExit($Timeout * 1000)) {
 }
 
 # Stop tracing if it was started
-if ($EnableTracing -and $tracingInitialized -and $traceFile) {
+if ($traceFile) {
     $savedTraceFile = Stop-OperationTrace
     if ($savedTraceFile) {
+        $testName = [System.IO.Path]::GetFileNameWithoutExtension($TestCommand)
         Write-Output "Stopped ETW tracing for test '$testName': $savedTraceFile"
     }
 }

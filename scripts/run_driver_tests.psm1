@@ -17,17 +17,10 @@ Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogF
 # Initialize granular tracing if enabled
 $script:TracingInitialized = $false
 if ($GranularTracing -and $TraceDir) {
-    try {
-        $tracingUtilsPath = Join-Path $WorkingDirectory "tracing_utils.psm1"
-        if (Test-Path $tracingUtilsPath) {
-            Import-Module $tracingUtilsPath -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-            if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
-                $script:TracingInitialized = $true
-                Write-Log "Granular tracing initialized in run_driver_tests module" -ForegroundColor Green
-            }
-        }
-    } catch {
-        Write-Log "Warning: Failed to initialize granular tracing in run_driver_tests: $_" -ForegroundColor Yellow
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+    $script:TracingInitialized = Initialize-TracingUtils -WorkingDirectory $WorkingDirectory
+    if ($script:TracingInitialized) {
+        Write-Log "Granular tracing initialized in run_driver_tests module" -ForegroundColor Green
     }
 }
 
@@ -38,16 +31,12 @@ function Start-ExecutableTrace {
     )
 
     if ($script:TracingInitialized -and $GranularTracing) {
-        try {
-            # Clean the executable name for use in trace file names
-            $cleanName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutableName).Replace(" ", "_")
-            $traceFile = Start-OperationTrace -OperationName $cleanName -OutputDirectory $TraceDir -TraceType $KmTraceType
-            if ($traceFile) {
-                Write-Log "Started tracing for executable $ExecutableName : $traceFile" -ForegroundColor Green
-                return $traceFile
-            }
-        } catch {
-            Write-Log "Warning: Failed to start tracing for executable $ExecutableName : $_" -ForegroundColor Yellow
+        # Clean the executable name for use in trace file names
+        $cleanName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutableName).Replace(" ", "_")
+        $traceFile = Start-OperationTrace -OperationName $cleanName -OutputDirectory $TraceDir -TraceType $KmTraceType
+        if ($traceFile) {
+            Write-Log "Started tracing for executable $ExecutableName : $traceFile" -ForegroundColor Green
+            return $traceFile
         }
     }
     return $null
@@ -61,13 +50,9 @@ function Stop-ExecutableTrace {
     )
 
     if ($script:TracingInitialized -and $GranularTracing -and $TraceFile) {
-        try {
-            $savedTraceFile = Stop-OperationTrace
-            if ($savedTraceFile) {
-                Write-Log "Stopped tracing for executable $ExecutableName : $savedTraceFile" -ForegroundColor Green
-            }
-        } catch {
-            Write-Log "Warning: Failed to stop tracing for executable $ExecutableName : $_" -ForegroundColor Yellow
+        $savedTraceFile = Stop-OperationTrace
+        if ($savedTraceFile) {
+            Write-Log "Stopped tracing for executable $ExecutableName : $savedTraceFile" -ForegroundColor Green
         }
     }
 }

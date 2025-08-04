@@ -20,24 +20,9 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 
 # Initialize granular tracing if enabled
 $cleanupTraceFile = $null
-if ($GranularTracing -and $KmTracing) {
-    try {
-        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
-            Write-Log "Starting granular tracing for cleanup operations"
-            # Create TestLogs directory for trace files if it doesn't exist
-            $traceDir = Join-Path $WorkingDirectory "TestLogs"
-            if (-not (Test-Path $traceDir)) {
-                New-Item -ItemType Directory -Path $traceDir -Force | Out-Null
-            }
-            $cleanupTraceFile = Start-OperationTrace -OperationName "cleanup_ebpf" -OutputDirectory $traceDir -TraceType "file"
-            if ($cleanupTraceFile) {
-                Write-Log "Started cleanup tracing: $cleanupTraceFile" -ForegroundColor Green
-            }
-        }
-    } catch {
-        Write-Log "Warning: Failed to initialize granular tracing for cleanup: $_" -ForegroundColor Yellow
-    }
+if ($GranularTracing) {
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing
 }
 
 if ($ExecuteOnVM) {
@@ -139,14 +124,7 @@ Pop-Location
 
 # Stop granular tracing if it was started
 if ($cleanupTraceFile) {
-    try {
-        $savedTraceFile = Stop-OperationTrace
-        if ($savedTraceFile) {
-            Write-Log "Stopped cleanup tracing: $savedTraceFile" -ForegroundColor Green
-        }
-    } catch {
-        Write-Log "Warning: Failed to stop cleanup tracing: $_" -ForegroundColor Yellow
-    }
+    Stop-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -TraceFile $cleanupTraceFile
 }
 
 if ($JobTimedOut) {

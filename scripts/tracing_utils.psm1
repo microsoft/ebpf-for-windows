@@ -249,5 +249,125 @@ function Get-CurrentTraceFile {
     return $script:CurrentTraceFile
 }
 
+<#
+.SYNOPSIS
+    Starts granular tracing for a script if enabled.
+
+.DESCRIPTION
+    Handles the complete initialization and startup of granular tracing for a script.
+    This is a convenience function that combines module loading, initialization, and trace start.
+
+.PARAMETER OperationName
+    The name of the operation being traced (e.g., "setup_ebpf", "cleanup_ebpf").
+
+.PARAMETER WorkingDirectory
+    The working directory where the trace files will be saved and where common.psm1 is located.
+
+.PARAMETER LogFileName
+    The log file name for common.psm1.
+
+.PARAMETER KmTraceType
+    The type of tracing to use ("file" or "memory"). Defaults to "file".
+
+.PARAMETER GranularTracing
+    Whether granular tracing is enabled.
+
+.PARAMETER KmTracing
+    Whether kernel mode tracing is enabled.
+
+.RETURNS
+    The full path to the ETL file that will be created, or $null if tracing is not enabled or fails.
+#>
+function Start-ScriptTracing {
+    param(
+        [Parameter(Mandatory=$true)] [string] $OperationName,
+        [Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+        [Parameter(Mandatory=$true)] [string] $LogFileName,
+        [Parameter(Mandatory=$false)] [string] $KmTraceType = "file",
+        [Parameter(Mandatory=$false)] [bool] $GranularTracing = $false,
+        [Parameter(Mandatory=$false)] [bool] $KmTracing = $false
+    )
+
+    if (-not ($GranularTracing -and $KmTracing)) {
+        return $null
+    }
+
+    try {
+        # Import common module for Write-Log function
+        Import-Module "$WorkingDirectory\common.psm1" -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+            Write-Log "Starting granular tracing for $OperationName operations"
+
+            # Create TestLogs directory for trace files
+            $traceDir = Join-Path $WorkingDirectory "TestLogs"
+            if (-not (Test-Path $traceDir)) {
+                New-Item -ItemType Directory -Path $traceDir -Force | Out-Null
+            }
+
+            $traceFile = Start-OperationTrace -OperationName $OperationName -OutputDirectory $traceDir -TraceType $KmTraceType
+            if ($traceFile) {
+                Write-Log "Started $OperationName tracing: $traceFile" -ForegroundColor Green
+                return $traceFile
+            }
+        }
+    } catch {
+        Write-Log "Warning: Failed to initialize granular tracing for $OperationName`: $_" -ForegroundColor Yellow
+    }
+
+    return $null
+}
+
+<#
+.SYNOPSIS
+    Stops granular tracing for a script if it was started.
+
+.DESCRIPTION
+    Handles the complete shutdown of granular tracing for a script.
+    This is a convenience function that stops the trace and logs the results.
+
+.PARAMETER OperationName
+    The name of the operation being traced (for logging purposes).
+
+.PARAMETER WorkingDirectory
+    The working directory where common.psm1 is located.
+
+.PARAMETER LogFileName
+    The log file name for common.psm1.
+
+.PARAMETER TraceFile
+    The trace file path returned from Start-ScriptTracing, or $null if tracing wasn't started.
+
+.RETURNS
+    The path to the saved ETL file, or $null if no trace was active or stop failed.
+#>
+function Stop-ScriptTracing {
+    param(
+        [Parameter(Mandatory=$true)] [string] $OperationName,
+        [Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+        [Parameter(Mandatory=$true)] [string] $LogFileName,
+        [Parameter(Mandatory=$false)] [string] $TraceFile = $null
+    )
+
+    if (-not $TraceFile) {
+        return $null
+    }
+
+    try {
+        # Import common module for Write-Log function
+        Import-Module "$WorkingDirectory\common.psm1" -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+        $savedTraceFile = Stop-OperationTrace
+        if ($savedTraceFile) {
+            Write-Log "Stopped $OperationName tracing: $savedTraceFile" -ForegroundColor Green
+            return $savedTraceFile
+        }
+    } catch {
+        Write-Log "Warning: Failed to stop $OperationName tracing: $_" -ForegroundColor Yellow
+    }
+
+    return $null
+}
+
 # Export the public functions
-Export-ModuleMember -Function Initialize-TracingUtils, Start-OperationTrace, Stop-OperationTrace, Stop-AllTraces, Test-TracingActive, Get-CurrentTraceFile
+Export-ModuleMember -Function Initialize-TracingUtils, Start-OperationTrace, Stop-OperationTrace, Stop-AllTraces, Test-TracingActive, Get-CurrentTraceFile, Start-ScriptTracing, Stop-ScriptTracing

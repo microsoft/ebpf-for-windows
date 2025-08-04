@@ -30,24 +30,9 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 
 # Initialize granular tracing if enabled
 $setupTraceFile = $null
-if ($GranularTracing -and $KmTracing) {
-    try {
-        Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
-            Write-Log "Starting granular tracing for setup operations"
-            # Create TestLogs directory for trace files
-            $traceDir = Join-Path $WorkingDirectory "TestLogs"
-            if (-not (Test-Path $traceDir)) {
-                New-Item -ItemType Directory -Path $traceDir -Force | Out-Null
-            }
-            $setupTraceFile = Start-OperationTrace -OperationName "setup_ebpf" -OutputDirectory $traceDir -TraceType $KmTraceType
-            if ($setupTraceFile) {
-                Write-Log "Started setup tracing: $setupTraceFile" -ForegroundColor Green
-            }
-        }
-    } catch {
-        Write-Log "Warning: Failed to initialize granular tracing for setup: $_" -ForegroundColor Yellow
-    }
+if ($GranularTracing) {
+    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing
 }
 
 if ($ExecuteOnVM) {
@@ -235,12 +220,5 @@ elseif ($ExecuteOnVM) {
 
 # Stop granular tracing if it was started
 if ($setupTraceFile) {
-    try {
-        $savedTraceFile = Stop-OperationTrace
-        if ($savedTraceFile) {
-            Write-Log "Stopped setup tracing: $savedTraceFile" -ForegroundColor Green
-        }
-    } catch {
-        Write-Log "Warning: Failed to stop setup tracing: $_" -ForegroundColor Yellow
-    }
+    Stop-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -TraceFile $setupTraceFile
 }
