@@ -107,7 +107,7 @@ if ($ExecuteOnVM -and $VMIsRemote) {
     # Install eBPF Components on the remote machine(s).
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -ErrorAction Stop
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -SkipTracing $GranularTracing -ErrorAction Stop
     }
 
     Pop-Location
@@ -177,7 +177,7 @@ elseif ($ExecuteOnVM) {
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
             $VMName = $VM.Name
-            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipTracing $GranularTracing -ErrorAction Stop
         }
 
         # Log OS build information on the test VM.

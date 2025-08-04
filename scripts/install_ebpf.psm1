@@ -179,7 +179,8 @@ function Install-eBPFComponents
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false,
           [parameter(Mandatory=$true)] [string] $TestMode,
-          [parameter(Mandatory=$false)] [switch] $SkipRebootOperations)
+          [parameter(Mandatory=$false)] [switch] $SkipRebootOperations,
+          [parameter(Mandatory=$false)] [switch] $SkipTracing)
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
@@ -352,7 +353,11 @@ function Install-eBPFComponents
     }
 
     # Start KM tracing.
-    Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+    if (-not $SkipTracing) {
+        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+    } else {
+        Write-Log "Skipping WPR trace start (granular tracing may already be active)" -ForegroundColor Yellow
+    }
 }
 
 function Uninstall-eBPFComponents

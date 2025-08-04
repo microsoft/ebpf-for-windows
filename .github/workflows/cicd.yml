@@ -229,7 +229,7 @@ jobs:
   #   with:
   #     pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
   #     test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
-  #     post_test: .\cleanup_ebpf_cicd_tests.ps1 -GranularTracing
+  #     post_test: .\cleanup_ebpf_cicd_tests.ps1
   #     name: driver_${{ matrix.image }}
   #     build_artifact: Build-x64
   #     environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -254,7 +254,7 @@ jobs:
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -EnableHVCI "On" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -274,7 +274,7 @@ jobs:
       build_platform: 'ARM64'
       pre_test: .\setup_ebpf_cicd_tests.ps1 -ExecuteOnHost -Architecture arm64 -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost -GranularTracing
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -ExecuteOnHost -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -ExecuteOnHost
       name: driver_native_only_arm64
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
@@ -296,7 +296,7 @@ jobs:
   #   with:
   #     pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "0.21.0" -GranularTracing
   #     test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -GranularTracing
-  #     post_test: .\cleanup_ebpf_cicd_tests.ps1 -GranularTracing
+  #     post_test: .\cleanup_ebpf_cicd_tests.ps1
   #     name: regression_driver_ws2022
   #     build_artifact: Build-x64
   #     environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'

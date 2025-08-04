@@ -246,7 +246,8 @@ function Install-eBPFComponentsOnVM
         [parameter(Mandatory=$true)][string] $TestMode,
         [parameter(Mandatory=$true)][bool] $KmTracing,
         [parameter(Mandatory=$true)][string] $KmTraceType,
-        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
+        [parameter(Mandatory=$false)][bool] $SkipTracing = $false
     )
 
     Write-Log "Installing eBPF components on $VMName"
@@ -257,15 +258,16 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
               [Parameter(Mandatory=$true)] [string] $KmTraceType,
-              [parameter(Mandatory=$true)][string] $TestMode)
+              [parameter(Mandatory=$true)][string] $TestMode,
+              [parameter(Mandatory=$false)][bool] $SkipTracing = $false)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -ErrorAction Stop
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -SkipTracing:$SkipTracing -ErrorAction Stop
     }
 
-    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
+    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode, $SkipTracing) -ErrorAction Stop
 
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }

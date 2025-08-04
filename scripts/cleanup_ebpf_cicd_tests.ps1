@@ -8,8 +8,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][switch] $GranularTracing)
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -33,13 +32,6 @@ if ($ExecuteOnVM) {
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
-
-# Initialize granular tracing if enabled
-$cleanupTraceFile = $null
-if ($GranularTracing) {
-    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
-}
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
@@ -121,11 +113,6 @@ $JobTimedOut = `
 Remove-Job -Job $Job -Force
 
 Pop-Location
-
-# Stop granular tracing if it was started
-if ($cleanupTraceFile) {
-    Stop-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -TraceFile $cleanupTraceFile
-}
 
 if ($JobTimedOut) {
     exit 1
