@@ -17,8 +17,8 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 $script:TracingEnabled = $false
 $script:CurrentTraceFile = $null
 $script:WprpProfilePath = $null
-$script:WprpFileName = if ($WprpFileName) { $WprpFileName } else { "ebpfforwindows.wprp" }
-$script:TracingProfileName = if ($TracingProfileName) { $TracingProfileName } else { "EbpfForWindowsProvider" }
+$script:WprpFileName = $WprpFileName
+$script:TracingProfileName = $TracingProfileName
 
 <#
 .SYNOPSIS
