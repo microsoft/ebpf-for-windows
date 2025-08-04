@@ -22,7 +22,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 $cleanupTraceFile = $null
 if ($GranularTracing) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing
+    $cleanupTraceFile = Start-ScriptTracing -OperationName "cleanup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType "file" -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
 }
 
 if ($ExecuteOnVM) {

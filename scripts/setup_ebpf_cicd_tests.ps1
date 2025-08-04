@@ -32,7 +32,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 $setupTraceFile = $null
 if ($GranularTracing) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing
+    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
 }
 
 if ($ExecuteOnVM) {

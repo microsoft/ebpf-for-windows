@@ -6,7 +6,9 @@
 
 param(
     [Parameter(Mandatory=$true)] [string] $LogFileName,
-    [Parameter(Mandatory=$true)] [string] $WorkingDirectory
+    [Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+    [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
+    [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindowsProvider-File"
 )
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
@@ -15,6 +17,8 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 $script:TracingEnabled = $false
 $script:CurrentTraceFile = $null
 $script:WprpProfilePath = $null
+$script:WprpFileName = if ($WprpFileName) { $WprpFileName } else { "ebpfforwindows.wprp" }
+$script:TracingProfileName = if ($TracingProfileName) { $TracingProfileName } else { "EbpfForWindowsProvider" }
 
 <#
 .SYNOPSIS
@@ -24,21 +28,33 @@ $script:WprpProfilePath = $null
     Sets up the tracing environment and locates the WPRP profile file.
 
 .PARAMETER WorkingDirectory
-    The working directory where the ebpfforwindows.wprp file is located.
+    The working directory where the WPRP file is located.
+
+.PARAMETER WprpFileName
+    The name of the WPRP file to use. Defaults to "ebpfforwindows.wprp".
+
+.PARAMETER TracingProfileName
+    The name of the tracing profile to use. Defaults to "EbpfForWindowsProvider-File".
 #>
 function Initialize-TracingUtils {
     param(
-        [Parameter(Mandatory=$true)] [string] $WorkingDirectory
+        [Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+        [Parameter(Mandatory=$false)] [string] $WprpFileName = $script:WprpFileName,
+        [Parameter(Mandatory=$false)] [string] $TracingProfileName = $script:TracingProfileName
     )
     
-    $script:WprpProfilePath = Join-Path $WorkingDirectory "ebpfforwindows.wprp"
+    # Update global variables if parameters are provided
+    if ($WprpFileName) { $script:WprpFileName = $WprpFileName }
+    if ($TracingProfileName) { $script:TracingProfileName = $TracingProfileName }
+
+    $script:WprpProfilePath = Join-Path $WorkingDirectory $script:WprpFileName
     
     if (-not (Test-Path $script:WprpProfilePath)) {
         Write-Log "Warning: WPRP profile not found at $script:WprpProfilePath" -ForegroundColor Yellow
         return $false
     }
     
-    Write-Log "Tracing utils initialized with profile: $script:WprpProfilePath"
+    Write-Log "Tracing utils initialized with profile: $script:WprpProfilePath using profile: $script:TracingProfileName"
     return $true
 }
 
@@ -104,14 +120,28 @@ function Start-OperationTrace {
     $script:CurrentTraceFile = Join-Path $OutputDirectory $etlFileName
     
     try {
+        # Determine the profile name based on trace type and configured profile
+        $baseProfileName = $script:TracingProfileName
         if ($TraceType -eq "file") {
+            # If the profile name already includes the mode, use as-is, otherwise append -File
+            if ($baseProfileName -match "-(File|Memory)$") {
+                $profileName = $baseProfileName -replace "-(File|Memory)$", "-File"
+            } else {
+                $profileName = "$baseProfileName-File"
+            }
             Write-Log "Starting ETW trace for '$OperationName' (file mode): $script:CurrentTraceFile" -ForegroundColor Cyan
-            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!EbpfForWindowsProvider-File`" -filemode" -ForegroundColor Yellow
-            $arguments = "-start `"$script:WprpProfilePath!EbpfForWindowsProvider-File`" -filemode"
+            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!$profileName`" -filemode" -ForegroundColor Yellow
+            $arguments = "-start `"$script:WprpProfilePath!$profileName`" -filemode"
         } else {
+            # If the profile name already includes the mode, use as-is, otherwise append -Memory
+            if ($baseProfileName -match "-(File|Memory)$") {
+                $profileName = $baseProfileName -replace "-(File|Memory)$", "-Memory"
+            } else {
+                $profileName = "$baseProfileName-Memory"
+            }
             Write-Log "Starting ETW trace for '$OperationName' (memory mode)" -ForegroundColor Cyan
-            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!EbpfForWindowsProvider-Memory`"" -ForegroundColor Yellow
-            $arguments = "-start `"$script:WprpProfilePath!EbpfForWindowsProvider-Memory`""
+            Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!$profileName`"" -ForegroundColor Yellow
+            $arguments = "-start `"$script:WprpProfilePath!$profileName`""
         }
         
         Write-Log "Debug: ETL file will be created at: $script:CurrentTraceFile" -ForegroundColor Yellow
@@ -275,6 +305,12 @@ function Get-CurrentTraceFile {
 .PARAMETER KmTracing
     Whether kernel mode tracing is enabled.
 
+.PARAMETER WprpFileName
+    The name of the WPRP file to use. Defaults to "ebpfforwindows.wprp".
+
+.PARAMETER TracingProfileName
+    The name of the tracing profile to use. Defaults to "EbpfForWindowsProvider".
+
 .RETURNS
     The full path to the ETL file that will be created, or $null if tracing is not enabled or fails.
 #>
@@ -285,7 +321,9 @@ function Start-ScriptTracing {
         [Parameter(Mandatory=$true)] [string] $LogFileName,
         [Parameter(Mandatory=$false)] [string] $KmTraceType = "file",
         [Parameter(Mandatory=$false)] [bool] $GranularTracing = $false,
-        [Parameter(Mandatory=$false)] [bool] $KmTracing = $false
+        [Parameter(Mandatory=$false)] [bool] $KmTracing = $false,
+        [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
+        [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindowsProvider"
     )
 
     if (-not ($GranularTracing -and $KmTracing)) {
@@ -296,7 +334,7 @@ function Start-ScriptTracing {
         # Import common module for Write-Log function
         Import-Module "$WorkingDirectory\common.psm1" -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory) {
+        if (Initialize-TracingUtils -WorkingDirectory $WorkingDirectory -WprpFileName $WprpFileName -TracingProfileName $TracingProfileName) {
             Write-Log "Starting granular tracing for $OperationName operations"
 
             # Create TestLogs directory for trace files

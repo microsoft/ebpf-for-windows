@@ -18,9 +18,9 @@ Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogF
 $script:TracingInitialized = $false
 if ($GranularTracing -and $TraceDir) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $script:TracingInitialized = Initialize-TracingUtils -WorkingDirectory $WorkingDirectory
+    $script:TracingInitialized = Initialize-TracingUtils -WorkingDirectory $WorkingDirectory -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
     if ($script:TracingInitialized) {
-        Write-Log "Granular tracing initialized in run_driver_tests module" -ForegroundColor Green
+        Write-Log "Granular tracing initialized in run_driver_tests module with Networking profile" -ForegroundColor Green
     }
 }
 
