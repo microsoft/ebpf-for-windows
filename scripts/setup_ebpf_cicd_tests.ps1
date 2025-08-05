@@ -123,7 +123,8 @@ elseif ($ExecuteOnVM) {
             [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
             [parameter(Mandatory = $true)] [bool] $KmTracing,
             [parameter(Mandatory = $true)] [string] $KmTraceType,
-            [parameter(Mandatory = $true)] [string] $EnableHVCI
+            [parameter(Mandatory = $true)] [string] $EnableHVCI,
+            [parameter(Mandatory = $true)] [bool] $GranularTracing
         )
         Push-Location $WorkingDirectory
 
@@ -196,7 +197,8 @@ elseif ($ExecuteOnVM) {
         $WorkingDirectory,
         $KmTracing,
         $KmTraceType,
-        $EnableHVCI)
+        $EnableHVCI,
+        $GranularTracing)
 
     # Wait for the job to complete.
     $JobTimedOut = `

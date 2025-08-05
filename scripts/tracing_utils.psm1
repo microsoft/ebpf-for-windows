@@ -184,32 +184,72 @@ function Stop-OperationTrace {
     
     try {
         Write-Log "Stopping ETW trace: $script:CurrentTraceFile" -ForegroundColor Cyan
+
+        # First, check WPR status to see if there are active sessions
+        try {
+            Write-Log "Debug: Checking WPR status before stop..." -ForegroundColor Yellow
+            $statusProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-status" -NoNewWindow -Wait -PassThru -RedirectStandardOutput "$(Split-Path $script:CurrentTraceFile)\wpr_status.txt" -RedirectStandardError "$(Split-Path $script:CurrentTraceFile)\wpr_status_error.txt"
+            if (Test-Path "$(Split-Path $script:CurrentTraceFile)\wpr_status.txt") {
+                $statusContent = Get-Content "$(Split-Path $script:CurrentTraceFile)\wpr_status.txt" -Raw
+                Write-Log "WPR status: $statusContent" -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Log "Warning: Could not check WPR status: $_" -ForegroundColor Yellow
+        }
+
         Write-Log "Debug: WPR stop command will be: wpr.exe -stop `"$script:CurrentTraceFile`"" -ForegroundColor Yellow
-        
-        $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop `"$script:CurrentTraceFile`"" -NoNewWindow -Wait -PassThru -RedirectStandardError "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt"
-        
-        if ($process.ExitCode -eq 0) {
-            Write-Log "Successfully stopped ETW trace: $script:CurrentTraceFile" -ForegroundColor Green
-            
-            # Check if file was created and report its size
-            if (Test-Path $script:CurrentTraceFile) {
-                $fileSize = (Get-Item $script:CurrentTraceFile).Length / 1MB
-                Write-Log "ETL file size: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
-                Write-Log "Debug: Final ETL file confirmed at: $script:CurrentTraceFile" -ForegroundColor Yellow
+
+        # Use a timeout for the WPR stop command (30 seconds)
+        $job = Start-Job -ScriptBlock {
+            param($TraceFile)
+            $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop `"$TraceFile`"" -NoNewWindow -Wait -PassThru -RedirectStandardError "$(Split-Path $TraceFile)\wpr_stop_error.txt"
+            return $process.ExitCode
+        } -ArgumentList $script:CurrentTraceFile
+
+        $completed = Wait-Job -Job $job -Timeout 30
+
+        if ($completed) {
+            $exitCode = Receive-Job -Job $job
+            Remove-Job -Job $job -Force
+
+            if ($exitCode -eq 0) {
+                Write-Log "Successfully stopped ETW trace: $script:CurrentTraceFile" -ForegroundColor Green
+
+                # Check if file was created and report its size
+                if (Test-Path $script:CurrentTraceFile) {
+                    $fileSize = (Get-Item $script:CurrentTraceFile).Length / 1MB
+                    Write-Log "ETL file size: $([math]::Round($fileSize, 2)) MB" -ForegroundColor Green
+                    Write-Log "Debug: Final ETL file confirmed at: $script:CurrentTraceFile" -ForegroundColor Yellow
+                } else {
+                    Write-Log "Warning: ETL file was not created at expected location: $script:CurrentTraceFile" -ForegroundColor Yellow
+                }
+
+                $savedFile = $script:CurrentTraceFile
+                $script:TracingEnabled = $false
+                $script:CurrentTraceFile = $null
+                return $savedFile
             } else {
-                Write-Log "Warning: ETL file was not created at expected location: $script:CurrentTraceFile" -ForegroundColor Yellow
+                Write-Log "Failed to stop ETW trace. Exit code: $exitCode" -ForegroundColor Red
+                if (Test-Path "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt") {
+                    $errorContent = Get-Content "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt" -Raw
+                    Write-Log "WPR error output: $errorContent" -ForegroundColor Red
+                }
+                return $null
             }
-            
-            $savedFile = $script:CurrentTraceFile
-            $script:TracingEnabled = $false
-            $script:CurrentTraceFile = $null
-            return $savedFile
         } else {
-            Write-Log "Failed to stop ETW trace. Exit code: $($process.ExitCode)" -ForegroundColor Red
-            if (Test-Path "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt") {
-                $errorContent = Get-Content "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt" -Raw
-                Write-Log "WPR error output: $errorContent" -ForegroundColor Red
+            # Timeout occurred, kill the job and try to cancel WPR
+            Write-Log "WPR stop command timed out after 30 seconds. Attempting to cancel..." -ForegroundColor Red
+            Remove-Job -Job $job -Force
+
+            # Try to cancel any running WPR sessions
+            try {
+                Write-Log "Attempting to cancel WPR sessions..." -ForegroundColor Yellow
+                $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+                Write-Log "WPR cancel exit code: $($cancelProcess.ExitCode)" -ForegroundColor Yellow
+            } catch {
+                Write-Log "Failed to cancel WPR sessions: $_" -ForegroundColor Red
             }
+
             return $null
         }
     } catch {
