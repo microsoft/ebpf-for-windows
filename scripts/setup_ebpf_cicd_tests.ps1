@@ -79,6 +79,11 @@ Get-PSExec
 $setupTraceFile = $null
 if ($GranularTracing) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
+
+    # Reset any stuck WPR sessions before starting granular tracing
+    Write-Log "Resetting WPR sessions before starting granular tracing..." -ForegroundColor Yellow
+    Reset-WPRSessions -LogFileName $LogFileName -WorkingDirectory $WorkingDirectory
+
     $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
 }
 

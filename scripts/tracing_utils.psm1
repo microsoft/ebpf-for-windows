@@ -22,6 +22,31 @@ $script:TracingProfileName = $TracingProfileName
 
 <#
 .SYNOPSIS
+    Decodes WPR error codes to human-readable descriptions.
+
+.PARAMETER ExitCode
+    The WPR exit code to decode.
+
+.RETURNS
+    A human-readable description of the error.
+#>
+function Get-WPRErrorDescription {
+    param([int]$ExitCode)
+
+    switch ($ExitCode) {
+        0 { return "Success" }
+        1 { return "General WPR error or no recording in progress" }
+        -983562752 { return "ETW session corruption or invalid state (0xC55A0000)" }
+        -2147483648 { return "Severe system error or access violation (0x80000000)" }
+        -1073741819 { return "Access denied (0xC0000005)" }
+        -1073741502 { return "Invalid parameter (0xC0000022)" }
+        -1073741515 { return "No such file or directory (0xC0000015)" }
+        default { return "Unknown error (0x$($ExitCode.ToString('X')))" }
+    }
+}
+
+<#
+.SYNOPSIS
     Initializes the tracing utilities module.
 
 .DESCRIPTION
@@ -93,32 +118,68 @@ function Start-OperationTrace {
     # Cancel any orphaned WPR sessions to avoid "profiles already running" errors
     try {
         Write-Log "Cleaning up any existing WPR sessions before starting new trace"
-        $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDirectory\wpr_cancel_error.txt"
-        if ($cancelProcess.ExitCode -eq 0) {
-            Write-Log "Successfully canceled existing WPR sessions" -ForegroundColor Green
+
+        # Use a timeout for the initial cleanup as well
+        $cleanupJob = Start-Job -ScriptBlock {
+            param($OutputDir)
+            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDir\wpr_cancel_error.txt"
+            return $cancelProcess.ExitCode
+        } -ArgumentList $OutputDirectory
+
+        $cleanupCompleted = Wait-Job -Job $cleanupJob -Timeout 10
+
+        if ($cleanupCompleted) {
+            $cleanupExitCode = Receive-Job -Job $cleanupJob
+            Remove-Job -Job $cleanupJob -Force
+
+            if ($cleanupExitCode -eq 0) {
+                Write-Log "Successfully canceled existing WPR sessions" -ForegroundColor Green
+            } else {
+                # Exit code is not 0, but this is expected if no sessions were running
+                Write-Log "No existing WPR sessions to cancel (Exit code: $cleanupExitCode)" -ForegroundColor Gray
+            }
         } else {
-            # Exit code is not 0, but this is expected if no sessions were running
-            Write-Log "No existing WPR sessions to cancel (Exit code: $($cancelProcess.ExitCode))" -ForegroundColor Gray
+            Write-Log "WPR cleanup timed out, forcing process cleanup..." -ForegroundColor Yellow
+            Remove-Job -Job $cleanupJob -Force
+
+            # Kill any hung WPR processes from previous sessions
+            try {
+                $wprProcesses = Get-Process -Name "wpr" -ErrorAction SilentlyContinue
+                if ($wprProcesses) {
+                    Write-Log "Terminating $($wprProcesses.Count) stuck WPR process(es)..." -ForegroundColor Yellow
+                    foreach ($proc in $wprProcesses) {
+                        try {
+                            $proc.Kill()
+                            Write-Log "Terminated WPR process $($proc.Id)" -ForegroundColor Yellow
+                        } catch {
+                            Write-Log "Failed to kill WPR process $($proc.Id): $_" -ForegroundColor Red
+                        }
+                    }
+                    Start-Sleep -Seconds 2
+                }
+            } catch {
+                Write-Log "Failed to enumerate/kill WPR processes: $_" -ForegroundColor Red
+            }
         }
     } catch {
         Write-Log "Warning: Failed to cancel existing WPR sessions: $_" -ForegroundColor Yellow
     }
-    
+
     if (-not $script:WprpProfilePath -or -not (Test-Path $script:WprpProfilePath)) {
         Write-Log "WPRP profile not available, skipping trace start" -ForegroundColor Yellow
         return $null
     }
-    
+
     # Create output directory if it doesn't exist
     if (-not (Test-Path $OutputDirectory)) {
         New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
     }
-    
+
     # Generate unique ETL filename
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $etlFileName = "${OperationName}_${timestamp}.etl"
     $script:CurrentTraceFile = Join-Path $OutputDirectory $etlFileName
-    
+
     try {
         # Determine the profile name based on trace type and configured profile
         $baseProfileName = $script:TracingProfileName
@@ -143,21 +204,50 @@ function Start-OperationTrace {
             Write-Log "Debug: WPR command will be: wpr.exe -start `"$script:WprpProfilePath!$profileName`"" -ForegroundColor Yellow
             $arguments = "-start `"$script:WprpProfilePath!$profileName`""
         }
-        
+
         Write-Log "Debug: ETL file will be created at: $script:CurrentTraceFile" -ForegroundColor Yellow
         $process = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDirectory\wpr_start_error.txt"
-        
+
         if ($process.ExitCode -eq 0) {
             $script:TracingEnabled = $true
             Write-Log "Successfully started ETW trace for '$OperationName'" -ForegroundColor Green
             Write-Log "Debug: Trace file location confirmed: $script:CurrentTraceFile" -ForegroundColor Yellow
             return $script:CurrentTraceFile
         } else {
-            Write-Log "Failed to start ETW trace. Exit code: $($process.ExitCode)" -ForegroundColor Red
+            $startErrorDescription = Get-WPRErrorDescription -ExitCode $process.ExitCode
+            Write-Log "Failed to start ETW trace. Exit code: $($process.ExitCode) ($startErrorDescription)" -ForegroundColor Red
+
             if (Test-Path "$OutputDirectory\wpr_start_error.txt") {
                 $errorContent = Get-Content "$OutputDirectory\wpr_start_error.txt" -Raw
                 Write-Log "WPR error output: $errorContent" -ForegroundColor Red
             }
+
+            # For any start failure, try a more aggressive cleanup and retry once
+            Write-Log "Attempting recovery for WPR start failure..." -ForegroundColor Yellow
+            try {
+                # Force cancel any sessions
+                $forceCancel = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+                Write-Log "Force cancel for recovery - Exit code: $($forceCancel.ExitCode)" -ForegroundColor Yellow
+
+                # Brief pause to let system stabilize
+                Start-Sleep -Seconds 3
+
+                # Retry the start command once
+                Write-Log "Retrying WPR start after recovery..." -ForegroundColor Yellow
+                $retryProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -Wait -PassThru -RedirectStandardError "$OutputDirectory\wpr_start_retry_error.txt"
+
+                if ($retryProcess.ExitCode -eq 0) {
+                    $script:TracingEnabled = $true
+                    Write-Log "Successfully started ETW trace after recovery for '$OperationName'" -ForegroundColor Green
+                    return $script:CurrentTraceFile
+                } else {
+                    $retryErrorDescription = Get-WPRErrorDescription -ExitCode $retryProcess.ExitCode
+                    Write-Log "Retry also failed. Exit code: $($retryProcess.ExitCode) ($retryErrorDescription)" -ForegroundColor Red
+                }
+            } catch {
+                Write-Log "Recovery attempt failed: $_" -ForegroundColor Red
+            }
+
             return $null
         }
     } catch {
@@ -181,7 +271,7 @@ function Stop-OperationTrace {
         Write-Log "No active trace to stop"
         return $null
     }
-    
+
     try {
         Write-Log "Stopping ETW trace: $script:CurrentTraceFile" -ForegroundColor Cyan
 
@@ -229,11 +319,24 @@ function Stop-OperationTrace {
                 $script:CurrentTraceFile = $null
                 return $savedFile
             } else {
-                Write-Log "Failed to stop ETW trace. Exit code: $exitCode" -ForegroundColor Red
+                # Decode the WPR error code for better diagnostics
+                $errorDescription = Get-WPRErrorDescription -ExitCode $exitCode
+                Write-Log "Failed to stop ETW trace. Exit code: $exitCode ($errorDescription)" -ForegroundColor Red
+
                 if (Test-Path "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt") {
                     $errorContent = Get-Content "$(Split-Path $script:CurrentTraceFile)\wpr_stop_error.txt" -Raw
                     Write-Log "WPR error output: $errorContent" -ForegroundColor Red
                 }
+
+                # For any error code, try to force a cancel and cleanup
+                Write-Log "Attempting to force cancel due to WPR stop failure..." -ForegroundColor Yellow
+                try {
+                    $forceCancel = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+                    Write-Log "Force cancel exit code: $($forceCancel.ExitCode)" -ForegroundColor Yellow
+                } catch {
+                    Write-Log "Failed to force cancel: $_" -ForegroundColor Red
+                }
+
                 return $null
             }
         } else {
@@ -241,11 +344,50 @@ function Stop-OperationTrace {
             Write-Log "WPR stop command timed out after 30 seconds. Attempting to cancel..." -ForegroundColor Red
             Remove-Job -Job $job -Force
 
-            # Try to cancel any running WPR sessions
+            # Try to cancel any running WPR sessions with timeout
             try {
                 Write-Log "Attempting to cancel WPR sessions..." -ForegroundColor Yellow
-                $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
-                Write-Log "WPR cancel exit code: $($cancelProcess.ExitCode)" -ForegroundColor Yellow
+
+                # Use a job for cancel as well to avoid hanging
+                $cancelJob = Start-Job -ScriptBlock {
+                    $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+                    return $cancelProcess.ExitCode
+                }
+
+                $cancelCompleted = Wait-Job -Job $cancelJob -Timeout 15
+
+                if ($cancelCompleted) {
+                    $cancelExitCode = Receive-Job -Job $cancelJob
+                    Remove-Job -Job $cancelJob -Force
+                    Write-Log "WPR cancel exit code: $cancelExitCode" -ForegroundColor Yellow
+
+                    if ($cancelExitCode -eq 0) {
+                        Write-Log "Successfully canceled WPR sessions" -ForegroundColor Green
+                    } else {
+                        Write-Log "WPR cancel failed with exit code: $cancelExitCode" -ForegroundColor Red
+                    }
+                } else {
+                    Write-Log "WPR cancel also timed out. Forcing cleanup..." -ForegroundColor Red
+                    Remove-Job -Job $cancelJob -Force
+
+                    # Try one more aggressive approach - kill any wpr.exe processes
+                    try {
+                        $wprProcesses = Get-Process -Name "wpr" -ErrorAction SilentlyContinue
+                        if ($wprProcesses) {
+                            Write-Log "Found $($wprProcesses.Count) WPR process(es). Attempting to terminate..." -ForegroundColor Yellow
+                            foreach ($proc in $wprProcesses) {
+                                try {
+                                    $proc.Kill()
+                                    Write-Log "Terminated WPR process with ID: $($proc.Id)" -ForegroundColor Yellow
+                                } catch {
+                                    Write-Log "Failed to terminate WPR process $($proc.Id): $_" -ForegroundColor Red
+                                }
+                            }
+                        }
+                    } catch {
+                        Write-Log "Failed to enumerate/kill WPR processes: $_" -ForegroundColor Red
+                    }
+                }
             } catch {
                 Write-Log "Failed to cancel WPR sessions: $_" -ForegroundColor Red
             }
@@ -271,22 +413,60 @@ function Stop-OperationTrace {
 function Stop-AllTraces {
     try {
         Write-Log "Canceling all active ETW traces" -ForegroundColor Cyan
-        $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "wpr_cancel_all_error.txt"
         
-        if ($process.ExitCode -eq 0) {
-            Write-Log "Successfully canceled all ETW traces" -ForegroundColor Green
-        } else {
-            # Check if it's the "no profiles running" error
-            if (Test-Path "wpr_cancel_all_error.txt") {
-                $errorContent = Get-Content "wpr_cancel_all_error.txt" -Raw
-                if ($errorContent -match "no trace profiles running") {
-                    Write-Log "No active ETW traces to cancel" -ForegroundColor Gray
-                } else {
-                    Write-Log "Failed to cancel ETW traces. Exit code: $($process.ExitCode)" -ForegroundColor Yellow
-                    Write-Log "WPR error output: $errorContent" -ForegroundColor Yellow
-                }
+        # Use a job with timeout for the cancel operation
+        $cancelJob = Start-Job -ScriptBlock {
+            $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru -RedirectStandardError "wpr_cancel_all_error.txt"
+            return @{
+                ExitCode = $process.ExitCode
+                ErrorFile = "wpr_cancel_all_error.txt"
+            }
+        }
+
+        $cancelCompleted = Wait-Job -Job $cancelJob -Timeout 15
+
+        if ($cancelCompleted) {
+            $result = Receive-Job -Job $cancelJob
+            Remove-Job -Job $cancelJob -Force
+
+            if ($result.ExitCode -eq 0) {
+                Write-Log "Successfully canceled all ETW traces" -ForegroundColor Green
             } else {
-                Write-Log "Failed to cancel ETW traces. Exit code: $($process.ExitCode)" -ForegroundColor Yellow
+                # Check if it's the "no profiles running" error
+                if (Test-Path $result.ErrorFile) {
+                    $errorContent = Get-Content $result.ErrorFile -Raw
+                    if ($errorContent -match "no trace profiles running") {
+                        Write-Log "No active ETW traces to cancel" -ForegroundColor Gray
+                    } else {
+                        Write-Log "Failed to cancel ETW traces. Exit code: $($result.ExitCode)" -ForegroundColor Yellow
+                        Write-Log "WPR error output: $errorContent" -ForegroundColor Yellow
+                    }
+                } else {
+                    Write-Log "Failed to cancel ETW traces. Exit code: $($result.ExitCode)" -ForegroundColor Yellow
+                }
+            }
+        } else {
+            Write-Log "WPR cancel operation timed out. Attempting to force cleanup..." -ForegroundColor Red
+            Remove-Job -Job $cancelJob -Force
+
+            # Try to kill WPR processes as last resort
+            try {
+                $wprProcesses = Get-Process -Name "wpr" -ErrorAction SilentlyContinue
+                if ($wprProcesses) {
+                    Write-Log "Found $($wprProcesses.Count) WPR process(es). Attempting to terminate..." -ForegroundColor Yellow
+                    foreach ($proc in $wprProcesses) {
+                        try {
+                            $proc.Kill()
+                            Write-Log "Terminated WPR process with ID: $($proc.Id)" -ForegroundColor Yellow
+                        } catch {
+                            Write-Log "Failed to terminate WPR process $($proc.Id): $_" -ForegroundColor Red
+                        }
+                    }
+                } else {
+                    Write-Log "No WPR processes found to terminate" -ForegroundColor Gray
+                }
+            } catch {
+                Write-Log "Failed to enumerate/kill WPR processes: $_" -ForegroundColor Red
             }
         }
     } catch {
@@ -447,5 +627,108 @@ function Stop-ScriptTracing {
     return $null
 }
 
+<#
+.SYNOPSIS
+    Aggressively resets WPR sessions when they become unresponsive.
+
+.DESCRIPTION
+    This function provides a more aggressive approach to cleaning up stuck WPR sessions.
+    It attempts multiple cleanup strategies including process termination and service restart.
+#>
+function Reset-WPRSessions {
+    param(
+        [Parameter(Mandatory=$false)] [string] $LogFileName = "ResetWPR.log",
+        [Parameter(Mandatory=$false)] [string] $WorkingDirectory = $pwd.ToString()
+    )
+
+    try {
+        # Import common module for Write-Log function
+        Import-Module "$WorkingDirectory\common.psm1" -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+        Write-Log "Starting aggressive WPR session reset..." -ForegroundColor Red
+
+        # Step 1: Kill all WPR processes
+        try {
+            $wprProcesses = Get-Process -Name "wpr" -ErrorAction SilentlyContinue
+            if ($wprProcesses) {
+                Write-Log "Found $($wprProcesses.Count) WPR process(es). Terminating..." -ForegroundColor Yellow
+                foreach ($proc in $wprProcesses) {
+                    try {
+                        $proc.Kill()
+                        Write-Log "Terminated WPR process with ID: $($proc.Id)" -ForegroundColor Yellow
+                    } catch {
+                        Write-Log "Failed to terminate WPR process $($proc.Id): $_" -ForegroundColor Red
+                    }
+                }
+                Start-Sleep -Seconds 2
+            }
+        } catch {
+            Write-Log "Failed to enumerate WPR processes: $_" -ForegroundColor Red
+        }
+
+        # Step 2: Try to restart the WPR service (Windows Performance Toolkit)
+        try {
+            Write-Log "Attempting to restart Windows Performance Toolkit service..." -ForegroundColor Yellow
+
+            # Check if WinRM service is running (needed for some operations)
+            $winrm = Get-Service -Name "WinRM" -ErrorAction SilentlyContinue
+            if ($winrm -and $winrm.Status -eq "Running") {
+                # Try using WMI to query ETW sessions and terminate problematic ones
+                try {
+                    $sessions = Get-WmiObject -Class Win32_PerfRawData_Kernel_EtwSession -ErrorAction SilentlyContinue
+                    if ($sessions) {
+                        $ebpfSessions = $sessions | Where-Object { $_.Name -like "*ebpf*" -or $_.Name -like "*eBPF*" }
+                        if ($ebpfSessions) {
+                            Write-Log "Found $($ebpfSessions.Count) eBPF-related ETW session(s)" -ForegroundColor Yellow
+                        }
+                    }
+                } catch {
+                    Write-Log "Could not query ETW sessions via WMI: $_" -ForegroundColor Yellow
+                }
+            }
+        } catch {
+            Write-Log "Failed to restart WPR service: $_" -ForegroundColor Red
+        }
+
+        # Step 3: Final check - try a simple WPR status with timeout
+        try {
+            Write-Log "Performing final WPR status check..." -ForegroundColor Yellow
+            $statusJob = Start-Job -ScriptBlock {
+                try {
+                    $process = Start-Process -FilePath "wpr.exe" -ArgumentList "-status" -NoNewWindow -Wait -PassThru
+                    return $process.ExitCode
+                } catch {
+                    return -1
+                }
+            }
+
+            $statusCompleted = Wait-Job -Job $statusJob -Timeout 10
+            if ($statusCompleted) {
+                $statusExitCode = Receive-Job -Job $statusJob
+                Remove-Job -Job $statusJob -Force
+
+                if ($statusExitCode -eq 0) {
+                    Write-Log "WPR is responsive after reset" -ForegroundColor Green
+                } elseif ($statusExitCode -eq 1) {
+                    Write-Log "WPR is responsive - no active sessions" -ForegroundColor Green
+                } else {
+                    Write-Log "WPR status returned exit code: $statusExitCode" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Log "WPR status check timed out - WPR may still be unresponsive" -ForegroundColor Red
+                Remove-Job -Job $statusJob -Force
+            }
+        } catch {
+            Write-Log "Failed to perform final WPR status check: $_" -ForegroundColor Red
+        }
+        Write-Log "WPR session reset completed" -ForegroundColor Yellow
+    } catch {
+        Write-Log "Exception during WPR session reset: $_" -ForegroundColor Red
+    } finally {
+        $script:TracingEnabled = $false
+        $script:CurrentTraceFile = $null
+    }
+}
+
 # Export the public functions
-Export-ModuleMember -Function Initialize-TracingUtils, Start-OperationTrace, Stop-OperationTrace, Stop-AllTraces, Test-TracingActive, Get-CurrentTraceFile, Start-ScriptTracing, Stop-ScriptTracing
+Export-ModuleMember -Function Initialize-TracingUtils, Start-OperationTrace, Stop-OperationTrace, Stop-AllTraces, Test-TracingActive, Get-CurrentTraceFile, Start-ScriptTracing, Stop-ScriptTracing, Reset-WPRSessions
