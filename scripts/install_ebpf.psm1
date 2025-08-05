@@ -354,7 +354,9 @@ function Install-eBPFComponents
 
     # Start KM tracing.
     if (-not $SkipTracing) {
-        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+        if ($KmTracing) {
+            Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+        }
     } else {
         Write-Log "Skipping WPR trace start (granular tracing may already be active)" -ForegroundColor Yellow
     }

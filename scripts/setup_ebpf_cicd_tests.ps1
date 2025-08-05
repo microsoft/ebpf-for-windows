@@ -80,11 +80,9 @@ $setupTraceFile = $null
 if ($GranularTracing) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
 
-    # Reset any stuck WPR sessions before starting granular tracing
-    Write-Log "Resetting WPR sessions before starting granular tracing..." -ForegroundColor Yellow
-    Reset-WPRSessions -LogFileName $LogFileName -WorkingDirectory $WorkingDirectory
-
-    $setupTraceFile = Start-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -KmTraceType $KmTraceType -GranularTracing $GranularTracing -KmTracing $KmTracing -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
+    # Start granular tracing for setup operation
+    Write-Log "Starting granular tracing for setup operation..." -ForegroundColor Yellow
+    $setupTraceStarted = Start-WPRTrace -TraceType $KmTraceType
 }
 
 Write-Log "Current directory: $($pwd.toString())"
@@ -239,6 +237,9 @@ elseif ($ExecuteOnVM) {
 }
 
 # Stop granular tracing if it was started
-if ($setupTraceFile) {
-    Stop-ScriptTracing -OperationName "setup_ebpf" -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName -TraceFile $setupTraceFile
+if ($setupTraceStarted) {
+    $savedTraceFile = Stop-WPRTrace -FileName "setup_ebpf"
+    if ($savedTraceFile) {
+        Write-Log "Setup tracing completed: $savedTraceFile" -ForegroundColor Green
+    }
 }

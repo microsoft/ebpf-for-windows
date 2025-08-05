@@ -18,7 +18,7 @@ Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogF
 $script:TracingInitialized = $false
 if ($GranularTracing -and $TraceDir) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $script:TracingInitialized = Initialize-TracingUtils -WorkingDirectory $WorkingDirectory -WprpFileName "ebpfforwindows.wprp" -TracingProfileName "EbpfForWindows-Networking"
+    $script:TracingInitialized = $true
     if ($script:TracingInitialized) {
         Write-Log "Granular tracing initialized in run_driver_tests module with Networking profile" -ForegroundColor Green
     }
@@ -33,10 +33,10 @@ function Start-ExecutableTrace {
     if ($script:TracingInitialized -and $GranularTracing) {
         # Clean the executable name for use in trace file names
         $cleanName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutableName).Replace(" ", "_")
-        $traceFile = Start-OperationTrace -OperationName $cleanName -OutputDirectory $TraceDir -TraceType $KmTraceType
-        if ($traceFile) {
-            Write-Log "Started tracing for executable $ExecutableName : $traceFile" -ForegroundColor Green
-            return $traceFile
+        $traceStarted = Start-WPRTrace -TraceType $KmTraceType
+        if ($traceStarted) {
+            Write-Log "Started tracing for executable $ExecutableName" -ForegroundColor Green
+            return $cleanName
         }
     }
     return $null
@@ -50,7 +50,7 @@ function Stop-ExecutableTrace {
     )
 
     if ($script:TracingInitialized -and $GranularTracing -and $TraceFile) {
-        $savedTraceFile = Stop-OperationTrace
+        $savedTraceFile = Stop-WPRTrace -FileName $TraceFile
         if ($savedTraceFile) {
             Write-Log "Stopped tracing for executable $ExecutableName : $savedTraceFile" -ForegroundColor Green
         }
