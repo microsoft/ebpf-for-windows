@@ -499,7 +499,7 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     REQUIRE(wait_handle != NULL);
 
     // Set map wait handle.
-    ebpf_result result = ebpf_ring_buffer_map_set_wait_handle(map_fd, 0, (ebpf_handle_t)wait_handle);
+    ebpf_result result = ebpf_map_set_wait_handle(map_fd, 0, (ebpf_handle_t)wait_handle);
     REQUIRE(result == EBPF_SUCCESS);
 
     // Get pointers to the mapped memory regions.
@@ -1447,7 +1447,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[ring_buffer]")
         REQUIRE(prod >= cons);
         REQUIRE(prod - cons < 4096);
 
-        // Consumer all data.
+        // Consume all data.
         WriteRelease64(consumer_ptr, prod);
     }
 

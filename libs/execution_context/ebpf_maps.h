@@ -249,7 +249,8 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to set the wait handle.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags);
+    ebpf_map_set_wait_handle_internal(
+        _In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags);
 
     /**
      * @brief Issue asynchronous query to map.

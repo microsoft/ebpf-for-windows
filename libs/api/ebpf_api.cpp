@@ -5170,7 +5170,7 @@ ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const v
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
+ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;

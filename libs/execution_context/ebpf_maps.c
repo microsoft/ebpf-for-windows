@@ -2636,7 +2636,7 @@ ebpf_ring_buffer_map_unmap_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
+ebpf_map_set_wait_handle_internal(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
 {
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
@@ -2644,7 +2644,7 @@ ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_map_set_wait_handle not supported on map",
+            "ebpf_map_set_wait_handle_internal not supported on map",
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }

@@ -1407,7 +1407,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     }
 
     _wait_event event;
-    REQUIRE(ebpf_map_set_wait_handle(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
 
     // Output a value to the ring buffer.
     uint64_t value = 42;

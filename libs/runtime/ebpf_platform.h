@@ -127,7 +127,7 @@ extern "C"
      * @brief Allocate pages from physical memory and create a mapping into the
      * system address space with the same pages mapped twice.
      *
-     * @param[in] length Size of memory to allocat, must be a multiple of the page size.
+     * @param[in] length Size of memory to allocate, must be a multiple of the page size.
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
@@ -160,7 +160,8 @@ extern "C"
      * @param[out] consumer Pointer to the mapped consumer page.
      * @param[out] producer Pointer to the mapped producer page.
      * @param[out] data Pointer to the mapped data region.
-     * @return EBPF_SUCCESS on success, EBPF_INVALID_ARGUMENT on failure.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_map_user(

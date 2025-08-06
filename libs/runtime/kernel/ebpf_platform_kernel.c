@@ -66,7 +66,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
     source_mdl = ring_descriptor->memory;
 
-    // Create a MDL big enough to include the header and double-mapped pages
+    // Create a MDL big enough to include the header and double-mapped pages.
     uint32_t total_mapped_size = (uint32_t)((kernel_pages + user_pages) * PAGE_SIZE + length * 2);
     ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
     if (!ring_descriptor->kernel_mdl) {
@@ -90,7 +90,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    // Black magic to create a MDL where the data pages are mapped twice.
+    // Black magic to create an MDL where the data pages are mapped twice.
     // We set MDL_PAGES_LOCKED here, but crucially never unlock the MDL.
     // Instead this happens via ebpf_unmap_memory.
     memcpy(MmGetMdlPfnArray(kernel_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);

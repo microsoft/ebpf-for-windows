@@ -493,7 +493,7 @@ ebpf_ring_buffer_set_wait_handle(
 
     kernel_page->wait_event = wait_event;
 
-    // Dereference the old event if it exists
+    // Dereference the old event if it exists.
     if (old_wait_event != NULL) {
         ObDereferenceObject(old_wait_event);
     }

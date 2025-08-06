@@ -738,9 +738,8 @@ extern "C"
      *
      * @returns Wait handle
      */
-    // TODO: clashes with internal api
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) EBPF_NO_EXCEPT;
+    ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) EBPF_NO_EXCEPT;
 
     /**
      * @brief Get eBPF program type for the specified BPF program type.
