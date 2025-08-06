@@ -47,10 +47,12 @@ function Start-WPRTrace {
         Write-Log "Starting WPR trace with TraceType: $TraceType WprpFileName: $WprpFileName TracingProfileName: $TracingProfileName"
         if ($TraceType -eq "file") {
             $profileName = "$TracingProfileName-File"
-            $exitCode = (wpr.exe -start "$wprpProfilePath!$profileName" -filemode; $LASTEXITCODE)
+            wpr.exe -start "$wprpProfilePath!$profileName" -filemode
+            $exitCode = $LASTEXITCODE
         } else {
             $profileName = "$TracingProfileName-Memory"
-            $exitCode = (wpr.exe -start "$wprpProfilePath!$profileName"; $LASTEXITCODE)
+            wpr.exe -start "$wprpProfilePath!$profileName"
+            $exitCode = $LASTEXITCODE
         }
 
         if ($exitCode -ne 0) {
@@ -92,16 +94,16 @@ function Stop-WPRTrace {
     Write-Log "Stopping WPR trace: $traceFile" -ForegroundColor Cyan
 
     try {
-        $exitCode = (wpr.exe -stop "$traceFile"; $LASTEXITCODE)
+        wpr.exe -stop "$traceFile"
+        $exitCode = $LASTEXITCODE
 
         if ($exitCode -ne 0) {
-            throw "Failed to stop WPR trace wiht error $_"
+            throw "Failed to stop WPR trace with error $_"
         }
 
         Write-Log "Successfully stopped WPR trace: $traceFile"
     } catch {
         Write-Log "Exception stopping WPR trace: $_" -ForegroundColor Red
-        return $null
     }
 }
 
