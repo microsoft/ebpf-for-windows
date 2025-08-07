@@ -84,7 +84,7 @@
   </PropertyGroup>
   <!-- Workaround for issue with WDK nuget package -->
   <PropertyGroup>
-    <DriverCatalog_Enable>false</DriverCatalog_Enable>
+    <DriverCatalog_Enable>true</DriverCatalog_Enable>
   </PropertyGroup>
   <!-- Select the best version of clang available. -->
   <!-- If $(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe exists, set ClangExe to that value -->
