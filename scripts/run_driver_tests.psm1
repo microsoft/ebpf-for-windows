@@ -269,7 +269,7 @@ function Invoke-Test
 
     # Start tracing for this specific test executable
     $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
-    Start-WPRTrace -TraceType $KmTraceType
+    Start-WPRTrace
 
     try {
         # Initialize arguments.
