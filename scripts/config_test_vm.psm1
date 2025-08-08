@@ -620,24 +620,46 @@ function Import-ResultsFromHost {
             foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr.txt") {
                 Write-Log ( "\t" + $line)
             }
+            Write-Log "No WPR tracing session found on host - may be using granular tracing instead"
         } else {
             Write-Log "wpr.exe (query) results: "
             foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
                 Write-Log ( "  \t" + $line)
             }
-        }
-        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
-        Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
-        wpr.exe -stop "$WorkingDirectory\$EtlFile"
-        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
-        Write-Log "ETL file Size: $EtlFileSize MB"
-        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-        $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
+            Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
-        if ($result.Success) {
-            Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
-        } else {
-            Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
+            # Check if WPR is actually recording before attempting to stop
+            $wprOutput = Get-Content -Path "$WorkingDirectory\StdOut.txt" -Raw
+            if ($wprOutput -match "WPR is not recording") {
+                Write-Log "WPR is not recording - no tracing session to stop (may be using granular tracing instead)"
+            } else {
+                Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+                $stopResult = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop `"$WorkingDirectory\$EtlFile`"" -NoNewWindow -Wait -PassThru -RedirectStandardError "$WorkingDirectory\StdErr_stop.txt"
+
+                if ($stopResult.ExitCode -eq 0) {
+                    if (Test-Path "$WorkingDirectory\$EtlFile") {
+                        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
+                        Write-Log "ETL file Size: $EtlFileSize MB"
+                        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+                        $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
+
+                        if ($result.Success) {
+                            Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
+                        } else {
+                            Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
+                        }
+                    } else {
+                        Write-Log "*** WARNING *** ETL file was not created at $WorkingDirectory\$EtlFile"
+                    }
+                } else {
+                    Write-Log "wpr.exe stop failed with exit code: $($stopResult.ExitCode)"
+                    Write-Log "wpr.exe (stop) error output: "
+                    foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr_stop.txt" -ErrorAction SilentlyContinue) {
+                        Write-Log ( "\t" + $line)
+                    }
+                    Write-Log "Legacy WPR stop failed on host - may be using granular tracing instead"
+                }
+            }
         }
     }
 }

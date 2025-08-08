@@ -267,11 +267,11 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
-    # Start tracing for this specific test executable
-    $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
-    Start-WPRTrace
-
     try {
+        # Start tracing for this specific test executable
+        $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
+        Start-WPRTrace
+
         # Initialize arguments.
         if ($TestArgs -ne "") {
             $ArgumentsList = @($TestArgs)
