@@ -13,50 +13,9 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-
-# Initialize granular tracing if enabled
-$script:TracingInitialized = $false
-if ($GranularTracing -and $TraceDir) {
+if ($GranularTracing) {
     Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-    $script:TracingInitialized = $true
-    if ($script:TracingInitialized) {
-        Write-Log "Granular tracing initialized in run_driver_tests module with Networking profile" -ForegroundColor Green
-    }
 }
-
-# Helper function to start test tracing for individual executables
-function Start-ExecutableTrace {
-    param(
-        [Parameter(Mandatory = $true)] [string] $ExecutableName
-    )
-
-    if ($script:TracingInitialized -and $GranularTracing) {
-        # Clean the executable name for use in trace file names
-        $cleanName = [System.IO.Path]::GetFileNameWithoutExtension($ExecutableName).Replace(" ", "_")
-        $traceStarted = Start-WPRTrace -TraceType $KmTraceType
-        if ($traceStarted) {
-            Write-Log "Started tracing for executable $ExecutableName" -ForegroundColor Green
-            return $cleanName
-        }
-    }
-    return $null
-}
-
-# Helper function to stop test tracing for individual executables
-function Stop-ExecutableTrace {
-    param(
-        [Parameter(Mandatory = $true)] [string] $ExecutableName,
-        [Parameter(Mandatory = $false)] [string] $TraceFile
-    )
-
-    if ($script:TracingInitialized -and $GranularTracing -and $TraceFile) {
-        $savedTraceFile = Stop-WPRTrace -FileName $TraceFile
-        if ($savedTraceFile) {
-            Write-Log "Stopped tracing for executable $ExecutableName : $savedTraceFile" -ForegroundColor Green
-        }
-    }
-}
-
 
 #
 # Utility functions.
@@ -310,7 +269,7 @@ function Invoke-Test
 
     # Start tracing for this specific test executable
     $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
-    $testTraceFile = Start-ExecutableTrace -ExecutableName $testTraceName
+    Start-WPRTrace -TraceType $KmTraceType
 
     try {
         # Initialize arguments.
@@ -346,7 +305,7 @@ function Invoke-Test
     }
     finally {
         # Stop tracing for this specific test executable
-        Stop-ExecutableTrace -ExecutableName $testTraceName -TraceFile $testTraceFile
+        Stop-WPRTrace -FileName $testTraceName
     }
 }
 
