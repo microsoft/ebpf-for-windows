@@ -466,39 +466,60 @@ function Import-ResultsFromVM
                     foreach ($line in get-content -Path .\StdErr.txt) {
                         write-log ( "`t" + $line)
                     }
-                    throw "Query ETL trace status failed."
+                    Write-Log "No WPR tracing session found"
                 } else {
                     Write-log "wpr.exe (query) results: "
                     foreach ($line in get-content -Path .\StdOut.txt) {
                         write-log ( "  `t" + $line)
                     }
-                }
-                Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
+                    Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
-                Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
-                wpr.exe -stop $WorkingDirectory\$EtlFile
+                    Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+                    $stopProcInfo = Start-Process -FilePath "wpr.exe" `
+                        -ArgumentList "-stop `"$WorkingDirectory\$EtlFile`"" `
+                        -NoNewWindow -Wait -PassThru `
+                        -RedirectStandardError .\StdErr_stop.txt
 
-                $EtlFileSize = (Get-ChildItem $WorkingDirectory\$EtlFile).Length/1MB
-                Write-Log "ETL file Size: $EtlFileSize MB"
+                    if ($stopProcInfo.ExitCode -eq 0) {
+                        if (Test-Path "$WorkingDirectory\$EtlFile") {
+                            $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
+                            Write-Log "ETL file Size: $EtlFileSize MB"
 
-                Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
-                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\$EtlFile.zip")) {
-                    Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL file."
+                            Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+                            $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                            if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\$EtlFile.zip")) {
+                                Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL file."
+                            }
+                        } else {
+                            Write-Log "*** WARNING *** ETL file was not created at $WorkingDirectory\$EtlFile"
+                        }
+                    } else {
+                        Write-Log "wpr.exe stop failed with exit code: $($stopProcInfo.ExitCode)"
+                        Write-log "wpr.exe (stop) error output: "
+                        foreach ($line in get-content -Path .\StdErr_stop.txt -ErrorAction SilentlyContinue) {
+                            write-log ( "`t" + $line)
+                        }
+                        Write-Log "Legacy WPR stop failed - may be using granular tracing instead"
+                    }
                 }
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
             # Copy ETL from Test VM - try compressed first, then uncompressed if needed.
-            $result = CopyCompressedOrUncompressed-FileFromSession `
-                -VMSession $VMSession `
-                -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
-                -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
-                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            # Only attempt copy if the ETL file exists (legacy tracing was actually running)
+            if (Invoke-Command -Session $VMSession -ScriptBlock { param($path) Test-Path $path } -ArgumentList "$VMSystemDrive\eBPF\$EtlFile") {
+                $result = CopyCompressedOrUncompressed-FileFromSession `
+                    -VMSession $VMSession `
+                    -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
+                    -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
+                    -DestinationDirectory ".\TestLogs\$VMName\Logs"
 
-            if ($result.Success) {
-                Write-Log "Successfully copied compressed ETL file from ${VMName}: $($result.FinalPath)"
+                if ($result.Success) {
+                    Write-Log "Successfully copied compressed legacy ETL file from ${VMName}: $($result.FinalPath)"
+                } else {
+                    Write-Log "Used uncompressed legacy ETL fallback from ${VMName}: $($result.FinalPath)"
+                }
             } else {
-                Write-Log "Used uncompressed ETL fallback from ${VMName}: $($result.FinalPath)"
+                Write-Log "No legacy ETL file found on ${VMName} - may be using granular tracing instead"
             }
         }
 
@@ -511,6 +532,45 @@ function Import-ResultsFromVM
             -Recurse `
             -Force `
             -ErrorAction Ignore 2>&1 | Write-Log
+
+        # Copy granular tracing ETL files from Test VM (if any).
+        Write-Log ("Copy granular tracing ETL files from eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
+
+        # First, compress the granular tracing ETL files on the VM
+        Invoke-Command -Session $VMSession -ScriptBlock {
+            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+
+            if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
+                Write-Log "Found granular tracing ETL files in $WorkingDirectory\TestLogs"
+                Get-ChildItem "$WorkingDirectory\TestLogs\*.etl" | ForEach-Object {
+                    Write-Log "  ETL file: $($_.Name), Size: $((($_.Length) / 1MB).ToString('F2')) MB"
+                }
+
+                Write-Log "Compressing granular tracing ETL files..."
+                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\TestLogs\*.etl" -DestinationPath "$WorkingDirectory\granular_traces.zip"
+                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\granular_traces.zip")) {
+                    Write-Log "*** WARNING *** Granular tracing ETL compression failed on VM. Will attempt to copy uncompressed ETL files."
+                } else {
+                    Write-Log "Successfully compressed granular tracing ETL files to granular_traces.zip"
+                }
+            } else {
+                Write-Log "No granular tracing ETL files found in $WorkingDirectory\TestLogs"
+            }
+        } -ArgumentList ("eBPF") -ErrorAction Ignore
+
+        # Copy compressed granular tracing ETL files from Test VM - try compressed first, then uncompressed fallback
+        $granularTracingResult = CopyCompressedOrUncompressed-FileFromSession `
+            -VMSession $VMSession `
+            -CompressedSourcePath "$VMSystemDrive\eBPF\granular_traces.zip" `
+            -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
+            -DestinationDirectory ".\TestLogs\$VMName\Logs"
+
+        if ($granularTracingResult.Success) {
+            Write-Log "Successfully copied compressed granular tracing ETL files from ${VMName}: $($granularTracingResult.FinalPath)"
+        } else {
+            Write-Log "Used uncompressed granular tracing ETL fallback from ${VMName}: $($granularTracingResult.FinalPath)"
+        }
 
         # Compress and copy the performance profile if present.
         Invoke-Command -Session $VMSession -ScriptBlock {
