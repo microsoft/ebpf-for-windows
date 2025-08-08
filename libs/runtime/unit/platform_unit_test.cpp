@@ -1688,6 +1688,103 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     // After event is signaled and cleared, wait should timeout if no new data.
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
 
+    // Test reserve/submit/discard with different flags.
+    // Clear any remaining data first.
+    size_t next_offset;
+    while (ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset) != nullptr) {
+        REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+    }
+
+    // Test 1: EBPF_RINGBUF_FLAG_NO_WAKEUP - should not signal event.
+    uint8_t* reserved_data = nullptr;
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+
+    // Submit with NO_WAKEUP flag - should not signal event.
+    REQUIRE(ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
+
+    // Consume the record.
+    auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record != nullptr);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+
+    // Test 2: EBPF_RINGBUF_FLAG_FORCE_WAKEUP - should always signal event.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+
+    // Submit with FORCE_WAKEUP flag - should signal event even if ring is empty.
+    REQUIRE(ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    // Consume the record.
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record != nullptr);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+
+    // Test 3: Default behavior (flags = 0) - adaptive notification.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+
+    // Submit with default flags - should signal event since ring was empty.
+    REQUIRE(ebpf_ring_buffer_submit(reserved_data, 0) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    // Consume the record.
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record != nullptr);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+
+    // Test 4: Discard with different flags.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+
+    // Discard with NO_WAKEUP flag - should not signal event.
+    REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
+
+    // Verify discarded record is skipped.
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record == nullptr);
+
+    // Test 5: Discard with FORCE_WAKEUP flag.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+
+    // Discard with FORCE_WAKEUP flag - should signal event.
+    REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    // Verify discarded record is skipped.
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record == nullptr);
+
+    // Test 6: Mixed submit and discard with different flags.
+    // Submit a record with NO_WAKEUP.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+    REQUIRE(ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
+
+    // Discard a record with FORCE_WAKEUP.
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
+    REQUIRE(reserved_data != nullptr);
+    REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    // Consume the submitted record (discarded one should be skipped).
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record != nullptr);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+
+    // Verify no more records.
+    record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
+    REQUIRE(record == nullptr);
+
     ebpf_ring_buffer_destroy(ring_buffer);
 }
 
