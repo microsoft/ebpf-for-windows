@@ -1428,7 +1428,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     REQUIRE(record != nullptr);
     REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
     REQUIRE(!ebpf_ring_buffer_record_is_discarded(record));
-    REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(uint64_t));
+    REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(value));
     REQUIRE(*(uint64_t*)(record->data) == value);
 
     // Unmap the ring buffer.

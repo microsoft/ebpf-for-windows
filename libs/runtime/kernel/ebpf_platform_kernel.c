@@ -36,7 +36,9 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 / 2 - 2 * PAGE_SIZE)) {
+    const size_t kernel_pages = 1;
+    const size_t user_pages = 2; // consumer, producer
+    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 / 2 - (kernel_pages + user_pages) * PAGE_SIZE)) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -46,8 +48,6 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    const size_t kernel_pages = 1;
-    const size_t user_pages = 2; // consumer, producer
     size_t data_pages = length / PAGE_SIZE;
     size_t requested_page_count = kernel_pages + user_pages + data_pages;
 
