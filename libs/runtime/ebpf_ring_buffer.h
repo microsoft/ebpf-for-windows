@@ -106,6 +106,9 @@ ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring);
  *
  * @param[in, out] ring_buffer Ring buffer to update.
  * @param[in] wait_handle Handle to notify the consumer.
+ * @param[in] flags Flags to control the behavior of the function. Must be 0.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The provided arguments are not valid.
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_set_wait_handle(
