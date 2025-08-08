@@ -55,6 +55,10 @@ on:
         required: false
         type: string
         default: '["Debug", "Release"]'
+      build_platform:
+        required: false
+        type: string
+        default: 'x64'
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -77,7 +81,7 @@ jobs:
       SOURCE_ROOT: ${{github.workspace}}
       NAME: ${{inputs.name}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
-      BUILD_PLATFORM: x64
+      BUILD_PLATFORM: ${{inputs.build_platform}}
       TEST_COMMAND: ${{inputs.test_command}}
       PRE_COMMAND: ${{inputs.pre_test}}
       POST_COMMAND: ${{inputs.post_test}}
@@ -87,7 +91,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863  # v2.12.1
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
         with:
           egress-policy: audit
 
@@ -155,7 +159,7 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         run: |
-          choco install -y procdump --version 11.0
+          choco install -y --requirechecksum=true --checksum=d58e81b96d53ded74570ad028d605fcfa1bfcc2e7cb2f5ab24bd64901b0c8783 --checksum-type=sha256 procdump --version=11.0
           where procdump.exe
 
       - name: Set up OpenCppCoverage and add to PATH
@@ -302,8 +306,15 @@ jobs:
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner'
 
+      - name: Run test on github runner
+        if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_platform == 'arm64') && (inputs.fault_injection != true)
+        id: run_test_github_runner
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        run: |
+          ${{env.TEST_COMMAND}} -LogFileName arm64_runner.log
+
       - name: Run test without Code Coverage
-        if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES')) && (inputs.fault_injection != true)
+        if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES') && (inputs.build_platform != 'arm64')) && (inputs.fault_injection != true)
         id: run_test_without_code_coverage
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         shell: cmd
@@ -487,7 +498,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863  # v2.12.1
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
         with:
           disable-sudo: true
           egress-policy: block

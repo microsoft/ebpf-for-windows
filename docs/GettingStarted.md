@@ -97,8 +97,8 @@ The following steps need to be executed *once* before the first build on a new c
 
 To build with the specific compile time options for disabling JIT compiler and/or the Interpreter, append "`/p:<option>=True`". Available options are:
 
-1. `DisableJIT` - Compile eBPF's *Execution Context* without support for eBPF JIT compiler.
-1. `DisableInterpreter` - Compile eBPF's *Execution Context* without support for eBPF interpreter.
+1. `DisableJIT` - Compile eBPF's *execution context* without support for eBPF JIT compiler.
+1. `DisableInterpreter` - Compile eBPF's *execution context* without support for eBPF interpreter.
 
 Both options are set when compiling with the "NativeOnlyDebug" or "NativeOnlyRelease" configurations.
 
@@ -116,8 +116,8 @@ To build with the specific compile time options for disabling JIT compiler and/o
 1. Navigate to "`C/C++`" -> "`Preprocessor`" -> "`Preprocessor Definitions`"
 1. Click the "`V`" combobox arrow and then "`Edit`" for adding the option(s) to the list of preprocessor options. Available options are:
 
-   *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF JIT compiler.
-   *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *Execution Context* without support for the eBPF interpreter.
+   *  `CONFIG_BPF_JIT_DISABLED` - Compile eBPF's *execution context* without support for the eBPF JIT compiler.
+   *  `CONFIG_BPF_INTERPRETER_DISABLED` - Compile eBPF's *execution context* without support for the eBPF interpreter.
 
       >*Note for Linux users*: this option is similar to the `CONFIG_BPF_JIT_ALWAYS_ON` which, as documented
 [here](https://googleprojectzero.blogspot.com/2018/01/reading-privileged-memory-with-side.html), is used to disable support for the interpreter.

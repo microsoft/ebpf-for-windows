@@ -283,10 +283,7 @@ enum bpf_link_type
     BPF_LINK_TYPE_MAX
 };
 
-static const char* const _ebpf_link_display_names[] = {
-    "unspec",
-    "plain",
-};
+static const char* const _ebpf_link_display_names[] = {"unspec", "plain", "cgroup", "xdp"};
 
 enum bpf_attach_type
 {

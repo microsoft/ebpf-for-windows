@@ -347,7 +347,7 @@ typedef class _ip_in_ip_packet : public ip_packet_t
 #define TEST_IFINDEX 17
 
 static ebpf_result_t
-ebpf_authorize_native_module_wrapper(_In_z_ const char* filename)
+ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const char* filename)
 {
     HANDLE file_handle = INVALID_HANDLE_VALUE;
     ebpf_result_t result = ebpf_verify_signature_and_open_file(filename, &file_handle);
@@ -355,7 +355,7 @@ ebpf_authorize_native_module_wrapper(_In_z_ const char* filename)
         return result;
     }
 
-    result = ebpf_authorize_native_module(file_handle);
+    result = ebpf_authorize_native_module(module_id, file_handle);
     CloseHandle(file_handle);
     return result;
 }
@@ -2216,6 +2216,58 @@ TEST_CASE("create_map_name", "[end_to_end]")
     Platform::_close(map_fd);
 }
 
+TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Create an inner map that we'll use as a template and values.
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd > 0);
+
+    // Create additional inner maps to use as values for testing.
+    int inner_map_fd2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
+
+    int inner_map_fd3 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd3 > 0);
+
+    // Create an array-of-maps with 1000 entries to test indices > 255.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", 
+                                      sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Test updating at various indices including ones > 255.
+    uint32_t test_indices[] = {0, 255, 256, 300, 500, 999};
+    fd_t test_map_fds[] = {inner_map_fd, inner_map_fd2, inner_map_fd3, inner_map_fd, inner_map_fd2, inner_map_fd3};
+    size_t test_count = sizeof(test_indices) / sizeof(test_indices[0]);
+
+    // Update entries at test indices - this exercises _update_array_map_entry_with_handle.
+    for (size_t i = 0; i < test_count; i++) {
+        uint32_t key = test_indices[i];
+        fd_t value_fd = test_map_fds[i];
+        REQUIRE(bpf_map_update_elem(outer_map_fd, &key, &value_fd, 0) == 0);
+    }
+
+    // Verify entries were stored correctly.
+    for (size_t i = 0; i < test_count; i++) {
+        uint32_t key = test_indices[i];
+        ebpf_id_t stored_map_id;
+        REQUIRE(bpf_map_lookup_elem(outer_map_fd, &key, &stored_map_id) == 0);
+
+        // Verify we can get the map FD from the stored ID.
+        int retrieved_fd = bpf_map_get_fd_by_id(stored_map_id);
+        REQUIRE(retrieved_fd > 0);
+        Platform::_close(retrieved_fd);
+    }
+
+    Platform::_close(inner_map_fd);
+    Platform::_close(inner_map_fd2); 
+    Platform::_close(inner_map_fd3);
+    Platform::_close(outer_map_fd);
+}
+
 static void
 _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
@@ -3163,7 +3215,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -3229,7 +3281,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -3258,6 +3310,61 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
             &count_of_programs) == ERROR_OBJECT_ALREADY_EXISTS);
 }
 
+// Verify that stale module entries are removed.
+TEST_CASE("load_native_program_negative7", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    GUID provider_module_id;
+    SC_HANDLE service_handle = nullptr;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    std::wstring service_path2(SERVICE_PATH_PREFIX);
+    _test_handle_helper module_handle;
+    _test_handle_helper module_handle2;
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+    set_native_module_failures(true);
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+
+    // Create a valid service with valid driver.
+    _create_service_helper(
+        L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+
+    // Wait for authorization to expire.
+    std::this_thread::sleep_for(std::chrono::seconds(20));
+
+    // Load native module. It should fail as the authorization has expired.
+    service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
+    REQUIRE(
+        test_ioctl_load_native_module(
+            service_path,
+            &provider_module_id,
+            module_handle.get_handle_pointer(),
+            &count_of_maps,
+            &count_of_programs) != ERROR_SUCCESS);
+}
+
+extern bool _ebpf_platform_code_integrity_test_signing_enabled;
+
+// Wrong signature.
+TEST_CASE("load_native_program_negative8", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    GUID provider_module_id;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
+    ebpf_result_t result = ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll");
+
+    REQUIRE(result != EBPF_SUCCESS);
+}
+
 // Load native module and then use module handle for a different purpose.
 TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
 {
@@ -3278,7 +3385,7 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
-    REQUIRE(ebpf_authorize_native_module_wrapper("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+    REQUIRE(ebpf_authorize_native_module_wrapper(&provider_module_id, "test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
@@ -4193,3 +4300,54 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("test-sample-perfbuffer", "[end_to_end]", test_sample_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-perfbuffer", "[end_to_end]", bindmonitor_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_perf_buffer_test", "[end_to_end]", negative_perf_buffer_test);
+
+TEST_CASE("signature_checking", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    const char* eku_list[] = {
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_WINDOWS_COMPONENT_EKU,
+    };
+    const char* issuer_production =
+        "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows Production PCA 2011";
+    const char* issuer_test = "US, Washington, Redmond, Microsoft Corporation, Microsoft Development PCA 2014";
+
+    std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
+
+    // Expand environment variables in the file name.
+    wchar_t expanded_path[MAX_PATH];
+    REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
+
+    ebpf_result result = ebpf_verify_sys_file_signature(expanded_path, issuer_production, 0, eku_list);
+    if (result != EBPF_SUCCESS) {
+        // If the production signature check fails, try the test signature.
+        result = ebpf_verify_sys_file_signature(expanded_path, issuer_test, 0, eku_list);
+    }
+    REQUIRE(result == EBPF_SUCCESS);
+}
+
+TEST_CASE("signature_checking_negative", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    _ebpf_platform_code_integrity_test_signing_enabled = false;
+    test_helper.initialize();
+    _ebpf_platform_code_integrity_test_signing_enabled = true;
+
+    const char* eku_list[] = {
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_VERIFICATION_EKU,
+    };
+    const char* issuer = EBPF_REQUIRED_ISSUER;
+
+    std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
+
+    // Expand environment variables in the file name.
+    wchar_t expanded_path[MAX_PATH];
+    REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
+
+    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list) != EBPF_SUCCESS);
+}
