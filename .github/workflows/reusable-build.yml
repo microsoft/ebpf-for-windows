@@ -353,20 +353,6 @@ jobs:
           path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
           retention-days: 10
 
-  codeql:
-    needs: build
-    if: ${{ needs.build.outputs.should_skip != 'true' && inputs.build_codeql == true }}
-    permissions:
-      contents: read
-      security-events: write
-    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2022' || 'windows-11-arm' }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          repository: ${{inputs.repository}}
-          submodules: 'recursive'
-          ref: ${{inputs.ref}}
-
       - name: Perform CodeQL Analysis
+        if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
         uses: github/codeql-action/analyze@4e828ff8d448a8a6e532957b1811f387a63867e8

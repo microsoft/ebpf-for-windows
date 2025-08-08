@@ -1,0 +1,41 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This is the top-level workflow that runs codeql analysis on scheduled runs.
+---
+name: CodeQl Analysis
+
+on:
+  # Run on a daily schedule to perform the full set of tests.
+  schedule:
+    - cron: '00 8 * * *'
+  # Permit manual runs of the workflow.
+  workflow_dispatch:
+
+concurrency:
+  # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
+  # Allow running concurrently with any commits on any other branch.
+  # Using GITHUB_REF instead of GITHUB_SHA allows parallel runs on
+  # different branches with the same HEAD commit.
+  group: codeql-${{ github.event.schedule || github.event.pull_request.number || github.event.after || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write  # Required to log in to Azure.
+  contents: read
+  checks: read  # Required by reusable-test.yml to check build status.
+  security-events: write  # Required by codeql task.
+  issues: write  # Required to create issues.
+
+jobs:
+  # Jobs to run on a schedule only (skip push and pull request).
+  # ---------------------------------------------------------------------------
+  codeql:
+    # Only run during daily scheduled run
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true
