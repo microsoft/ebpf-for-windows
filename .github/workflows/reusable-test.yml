@@ -148,7 +148,7 @@ jobs:
         # Add cache entry for any choco packages that are installed.
         # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         env:
           cache-name: cache-choco-packages
         with:
@@ -187,7 +187,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
