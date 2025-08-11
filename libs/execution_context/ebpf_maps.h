@@ -233,6 +233,7 @@ extern "C"
      * @param[in] producer Pointer to the producer buffer.
      * @param[in] data Pointer to the data buffer.
      * @retval EBPF_SUCCESS Successfully unmapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT The operation is not supported on this map.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_unmap_user(

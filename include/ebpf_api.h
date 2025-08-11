@@ -691,7 +691,7 @@ extern "C"
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
 
     /**
-     * Map the memory of a map.
+     * @brief Map the memory of a map.
      *
      * Calling this multiple times will create distinct mappings.
      *
@@ -720,13 +720,14 @@ extern "C"
      * @param[in] consumer Pointer to the consumer buffer.
      * @param[in] producer Pointer to the producer buffer.
      * @retval EBPF_SUCCESS The operation was successful.
+     * @retval other An error occurred.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_unmap_buffer(
         fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) EBPF_NO_EXCEPT;
 
     /**
-     * Set the wait handle that will be signaled for new data.
+     * @brief Set the wait handle that will be signaled for new data.
      *
      * For ring buffer maps the index must be zero.
      *
