@@ -28,13 +28,6 @@ Push-Location $WorkingDirectory
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-# Log all files
-Write-Log "Current directory: $($pwd.toString())"
-$items = Get-ChildItem -File
-foreach ($item in $items) {
-    Write-Log "Found item $($item.FullName)"
-}
-
 if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
         $TestVMCredential = Retrieve-StoredCredential -Target $Target
@@ -75,22 +68,6 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
-# Initialize granular tracing if enabled
-$setupTraceFile = $null
-if ($GranularTracing) {
-    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-
-    # Start granular tracing for setup operation
-    Write-Log "Starting granular tracing for setup operation..." -ForegroundColor Yellow
-    $setupTraceStarted = Start-WPRTrace -TraceType $KmTraceType
-}
-
-Write-Log "Current directory: $($pwd.toString())"
-$items = Get-ChildItem -File
-foreach ($item in $items) {
-    Write-Log "Found item $($item.FullName)"
-}
-
 if ($ExecuteOnVM -and $VMIsRemote) {
     # Setup for remote machine execution.
     $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -110,7 +87,7 @@ if ($ExecuteOnVM -and $VMIsRemote) {
     # Install eBPF Components on the remote machine(s).
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -SkipTracing:$GranularTracing -ErrorAction Stop
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -GranularTracing:$GranularTracing -ErrorAction Stop
     }
 
     Pop-Location
@@ -181,7 +158,7 @@ elseif ($ExecuteOnVM) {
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
             $VMName = $VM.Name
-            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipTracing:$GranularTracing -ErrorAction Stop
+            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -GranularTracing:$GranularTracing -ErrorAction Stop
         }
 
         # Log OS build information on the test VM.
@@ -231,15 +208,7 @@ elseif ($ExecuteOnVM) {
     # Install eBPF components but skip anything that requires reboot.
     # Note that installing ebpf components requires psexec which does not run in a powershell job.
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -SkipTracing:$GranularTracing
+    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -GranularTracing:$GranularTracing
 
     Pop-Location
-}
-
-# Stop granular tracing if it was started
-if ($setupTraceStarted) {
-    $savedTraceFile = Stop-WPRTrace -FileName "setup_ebpf"
-    if ($savedTraceFile) {
-        Write-Log "Setup tracing completed: $savedTraceFile" -ForegroundColor Green
-    }
 }

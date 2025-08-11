@@ -247,7 +247,7 @@ function Install-eBPFComponentsOnVM
         [parameter(Mandatory=$true)][bool] $KmTracing,
         [parameter(Mandatory=$true)][string] $KmTraceType,
         [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false,
-        [parameter(Mandatory=$false)][bool] $SkipTracing = $false
+        [parameter(Mandatory=$false)][bool] $GranularTracing = $false
     )
 
     Write-Log "Installing eBPF components on $VMName"
@@ -259,15 +259,15 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
               [Parameter(Mandatory=$true)] [string] $KmTraceType,
               [parameter(Mandatory=$true)][string] $TestMode,
-              [parameter(Mandatory=$false)][bool] $SkipTracing = $false)
+              [parameter(Mandatory=$false)][bool] $GranularTracing = $false)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -SkipTracing:$SkipTracing -ErrorAction Stop
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -GranularTracing $GranularTracing -ErrorAction Stop
     }
 
-    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode, $SkipTracing) -ErrorAction Stop
+    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode, $GranularTracing) -ErrorAction Stop
 
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
@@ -293,7 +293,8 @@ function Uninstall-eBPFComponentsOnVM
 
 function Stop-eBPFComponentsOnVM
 {
-    param([parameter(Mandatory=$true)][string] $VMName)
+    param([parameter(Mandatory=$true)][string] $VMName,
+          [parameter(Mandatory=$false)][bool] $GranularTracing = $false)
 
     Write-Log "Stopping eBPF components on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -303,7 +304,8 @@ function Stop-eBPFComponentsOnVM
         -Credential $TestCredential `
         -ScriptBlock {
             param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory=$True)] [string] $LogFileName
+                  [Parameter(Mandatory=$True)] [string] $LogFileName,
+                  [Parameter(Mandatory=$false)] [bool] $GranularTracing = $false
             )
 
             $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
@@ -314,9 +316,9 @@ function Stop-eBPFComponentsOnVM
                 -ArgumentList($WorkingDirectory, $LogFileName) `
                 -Force -WarningAction SilentlyContinue
 
-            Stop-eBPFComponents
+            Stop-eBPFComponents -GranularTracing $GranularTracing
 
-        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+        } -ArgumentList ("eBPF", $LogFileName, $GranularTracing) -ErrorAction Stop
 
     Write-Log "eBPF components stopped on $VMName" -ForegroundColor Green
 }

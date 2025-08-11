@@ -15,8 +15,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
         # This parameter is only used when ExecuteOnHost is false.
        [Parameter(Mandatory = $false)][switch] $VMIsRemote,
-       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
-       [Parameter(Mandatory = $false)][string] $KmTraceType = "file")
+       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -34,9 +33,7 @@ $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) |
 
 if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
-        Write-Log "(DEBUG) obtaining admin credential"
         $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-        Write-Log "(DEBUG) obtaining standard user credential"
         $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
     } else {
         $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
@@ -48,8 +45,6 @@ if ($ExecuteOnVM) {
     $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
     $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential("TestStandardUser", $EmptySecureString)
 }
-
-Write-Log "(DEBUG) Invoking script block"
 
 $Job = Start-Job -ScriptBlock {
     param (
@@ -105,7 +100,7 @@ $Job = Start-Job -ScriptBlock {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
 
-        Stop-eBPFComponents
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
