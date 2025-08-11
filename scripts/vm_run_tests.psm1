@@ -1,5 +1,4 @@
-# Copyright (c) eBPF    # Granular tracing parameters
-    [Parameter(Mandatory = $false)][bool] $GranularTracing = $false) Windows contributors
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param (
@@ -56,7 +55,7 @@ function Generate-KernelDump {
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName, $VerboseLogs)
         Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue
-        Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName, (10*60), "C:\Dumps", $false -Force -WarningAction SilentlyContinue
+        Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName -Force -WarningAction SilentlyContinue
         Generate-KernelDump
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName, $VerboseLogs)
@@ -72,7 +71,7 @@ function Add-eBPFProgram {
     $scriptBlock = {
         param($Program, $Interface, $WorkingDirectory, $LogFileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, (10*60), "C:\Dumps", $false) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         if ([System.String]::IsNullOrEmpty($Interface)){
             Write-Log "Loading $Program on $VM."
             $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program"
@@ -96,7 +95,7 @@ function Set-eBPFProgram {
     $scriptBlock = {
         param($ProgId, $Interface, $WorkingDirectory, $LogFileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, (10*60), "C:\Dumps", $false) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Write-Log "Setting program $ProgId at interface $Interface."
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
     }
@@ -112,7 +111,7 @@ function Remove-eBPFProgram {
     $scriptBlock = {
         param($ProgId, $WorkingDirectory, $LogFileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, (10*60), "C:\Dumps", $false) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Write-Log "Unloading program $ProgId."
         Invoke-NetshEbpfCommand -Arguments "del program $ProgId"
         return $ProgId
@@ -205,7 +204,7 @@ function Invoke-XDPTestHelper {
     $scriptBlock = {
         param($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $TestHangTimeout, $UserModeDumpFolder, $WorkingDirectory, $LogFileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $false) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
         Write-Log "Invoking $XDPTestName"
         Invoke-XDPTest `
             -RemoteIPV4Address $RemoteIPV4Address `
@@ -396,7 +395,7 @@ function Invoke-ConnectRedirectTestHelper
     $scriptBlock = {
         param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $false) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking connect redirect tests [Mode=$UserType]"
         Invoke-ConnectRedirectTest `

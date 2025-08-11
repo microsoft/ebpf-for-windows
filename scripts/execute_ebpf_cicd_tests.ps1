@@ -1,4 +1,4 @@
-# Copyright (c) e       [Parameter(Mandatory = $false)][bool] $GranularTracing = $false)F for Windows contributors
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
