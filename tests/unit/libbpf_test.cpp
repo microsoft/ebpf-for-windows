@@ -2622,13 +2622,28 @@ TEST_CASE("libbpf link type names", "[libbpf]")
 {
     REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_PLAIN), "plain") == 0);
     REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_CGROUP), "cgroup") == 0);
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_XDP), "xdp") == 0);
     REQUIRE(libbpf_bpf_link_type_str((bpf_link_type)123) == nullptr);
 }
 
 TEST_CASE("libbpf map type names", "[libbpf]")
 {
-    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY), "array") == 0);
     REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_HASH), "hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY), "array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PROG_ARRAY), "prog_array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERCPU_HASH), "percpu_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERCPU_ARRAY), "percpu_array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_HASH_OF_MAPS), "hash_of_maps") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY_OF_MAPS), "array_of_maps") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LRU_HASH), "lru_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LPM_TRIE), "lpm_trie") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_QUEUE), "queue") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LRU_PERCPU_HASH), "lru_percpu_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_STACK), "stack") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_RINGBUF), "ringbuf") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERF_EVENT_ARRAY), "perf_event_array") == 0);
     REQUIRE(libbpf_bpf_map_type_str((bpf_map_type)123) == nullptr);
 }
 
@@ -4052,6 +4067,19 @@ _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
 
     // Verify that the id of the inner map matches the id in the outer map.
     REQUIRE(inner_map_id == info.id);
+
+    // Lookup in the inner map with a non-zero key should fail.
+    uint32_t non_zero_key = 1;
+    uint32_t value = 0;
+    int result = bpf_map_lookup_elem(inner_map_fd, &non_zero_key, &value);
+    REQUIRE(result != 0);
+    REQUIRE(errno == ENOENT);
+
+    // Lookup in the inner map with a clearly nonexistent key should also fail.
+    uint32_t nonexistent_key = 12345;
+    result = bpf_map_lookup_elem(inner_map_fd, &nonexistent_key, &value);
+    REQUIRE(result != 0);
+    REQUIRE(errno == ENOENT);
 }
 
 TEST_CASE("hash_of_map", "[libbpf]")

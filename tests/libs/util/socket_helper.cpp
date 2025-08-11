@@ -9,6 +9,8 @@
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
 
+#include <cstring>
+
 #define MAXIMUM_IP_BUFFER_SIZE 65
 
 uint64_t
@@ -68,6 +70,16 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
     return std::string(ip_string);
 }
 
+void
+clean_up_socket(_Inout_ SOCKET& socket)
+{
+    if (socket != INVALID_SOCKET) {
+        shutdown(socket, SD_BOTH);
+        closesocket(socket);
+        socket = INVALID_SOCKET;
+    }
+}
+
 _base_socket::_base_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
@@ -90,33 +102,37 @@ _base_socket::_base_socket(
         }
     }
 
-    // Bind it to the wildcard address and supplied port.
+    // Bind to the supplied address and port.
     SOCKADDR_STORAGE local_addr;
     memcpy(&local_addr, &_source_address, sizeof(_source_address));
     local_addr.ss_family = address_family;
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
-    error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
-    if (error != 0) {
-        FAIL("Failed to bind socket with error: " << WSAGetLastError());
-    }
-
-    error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
-    if (error != 0) {
-        FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
-    }
-}
-
-_base_socket::~_base_socket()
-{
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
+    // Retry bind operation a few times if it fails with WSAENOBUFS (10055) error as it may be transient.
+    for (int i = 0; i < 5; ++i) {
+        error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
+        if (error == 0) {
+            break;
+        }
+        if (WSAGetLastError() != WSAENOBUFS) {
+            FAIL("Failed to bind socket with error: " << WSAGetLastError());
+        }
+        Sleep(1000); // Wait for a short duration before retrying.
     }
 }
+
+_base_socket::~_base_socket() { clean_up_socket(socket); }
 
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
 {
+    // Query the current local address from the socket
+    int error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
+    if (error != 0) {
+        FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
+    }
+
+    // Return the freshly queried address
     address = (PSOCKADDR)&local_address;
     address_length = local_address_size;
 }
@@ -131,15 +147,13 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 _client_socket::_client_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
-{}
+{
+}
 
 void
 _client_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    clean_up_socket(socket);
 }
 
 void
@@ -221,8 +235,13 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
 }
 
 _datagram_client_socket::_datagram_client_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, bool _connected_udp)
-    : _client_socket{_sock_type, _protocol, _port, _family}, connected_udp{_connected_udp}
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    socket_family_t _family,
+    bool _connected_udp,
+    const sockaddr_storage& _source_address)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}, connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -272,7 +291,8 @@ _datagram_client_socket::send_message_to_remote_host(
 
 void
 _datagram_client_socket::cancel_send_message()
-{}
+{
+}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)
@@ -382,8 +402,8 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
     }
 }
 
-_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _base_socket{_sock_type, _protocol, _port, Dual}, overlapped{}
+_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _base_socket{_sock_type, _protocol, _port, Dual, local_address}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
     receive_message = nullptr;
@@ -456,13 +476,46 @@ _server_socket::complete_async_receive(bool timeout_expected)
     complete_async_receive(1000, timeout_expected);
 }
 
-_datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
+_datagram_server_socket::_datagram_server_socket(
+    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _server_socket{_sock_type, _protocol, _port, local_address}, sender_address{},
+      sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
+
+    // Enable redirect context for UDP sockets
+    if (protocol == IPPROTO_UDP) {
+        DWORD option_value = 1;
+
+        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
+        if (family == IPv4 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IP,
+                IP_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
+        }
+
+        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
+        if (family == IPv6 || family == Dual) {
+            int result = setsockopt(
+                socket,
+                IPPROTO_IPV6,
+                IPV6_WFP_REDIRECT_CONTEXT,
+                reinterpret_cast<const char*>(&option_value),
+                sizeof(option_value));
+            if (result != 0) {
+                printf("Warning: Failed to set IPV6_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+            }
+        }
+    }
 }
 
 void
@@ -471,6 +524,8 @@ _datagram_server_socket::post_async_receive()
     int error = 0;
 
     WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_control_buffer{
+        static_cast<unsigned long>(control_buffer.size()), reinterpret_cast<char*>(control_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -478,21 +533,21 @@ _datagram_server_socket::post_async_receive()
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
     }
 
-    // Post an asynchronous receive on the socket.
-    error = WSARecvFrom(
-        socket,
-        &wsa_recv_buffer,
-        1,
-        nullptr,
-        reinterpret_cast<unsigned long*>(&recv_flags),
-        (PSOCKADDR)&sender_address,
-        &sender_address_size,
-        &overlapped,
-        nullptr);
+    // Set up WSAMSG structure for WSARecvMsg
+    recv_msg.name = (LPSOCKADDR)&sender_address;
+    recv_msg.namelen = sender_address_size;
+    recv_msg.lpBuffers = &wsa_recv_buffer;
+    recv_msg.dwBufferCount = 1;
+    recv_msg.Control = wsa_control_buffer;
+    recv_msg.dwFlags = 0;
+
+    // Post an asynchronous receive using WSARecvMsg to get ancillary data
+    error = receive_message(socket, &recv_msg, nullptr, &overlapped, nullptr);
+
     if (error != 0) {
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING) {
-            FAIL("WSARecvFrom failed with " << wsaerr);
+            FAIL("WSARecvMsg failed with " << wsaerr);
         }
     }
 }
@@ -539,22 +594,72 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 int
 _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
-    UNREFERENCED_PARAMETER(buffer);
-    UNREFERENCED_PARAMETER(buffer_size);
-    return 1;
+    // For UDP sockets, we need to extract redirect context from control messages
+    // received via WSARecvMsg when IP_WFP_REDIRECT_CONTEXT option is enabled.
+
+    // Check if we have any control data
+    if (recv_msg.Control.len == 0 || recv_msg.Control.buf == nullptr) {
+        return 1; // No control messages received
+    }
+
+    // Parse control messages to look for IP_WFP_REDIRECT_CONTEXT
+    char* control_buf = recv_msg.Control.buf;
+    DWORD control_len = recv_msg.Control.len;
+
+    // Control message format: WSACMSGHDR followed by data
+    DWORD offset = 0;
+    const DWORD cmsg_hdr_size = static_cast<DWORD>(sizeof(WSACMSGHDR));
+    while (offset + cmsg_hdr_size <= control_len) {
+        WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
+
+        // Validate cmsg_len field before using it
+        DWORD msg_len = static_cast<DWORD>(cmsg->cmsg_len);
+        if (msg_len == 0 || msg_len < cmsg_hdr_size) {
+            break; // Invalid message length
+        }
+
+        // Ensure the entire message fits within the control buffer
+        if (offset + msg_len > control_len) {
+            break; // Message extends beyond buffer
+        }
+
+        // Check if this is an IP_WFP_REDIRECT_CONTEXT or IPV6_WFP_REDIRECT_CONTEXT message
+        if ((cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) ||
+            (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_WFP_REDIRECT_CONTEXT)) {
+            // Calculate the actual data size (message length minus header)
+            DWORD data_size = msg_len - cmsg_hdr_size;
+            // Only process data if it is non-zero in size.
+            if (data_size > 0) {
+                // Check if buffer is large enough to hold the redirect context data
+                if (buffer_size < data_size) {
+                    return 1; // Buffer too small
+                }
+
+                // Copy the actual redirect context data
+                char* data_ptr = control_buf + offset + cmsg_hdr_size;
+                memcpy(buffer, data_ptr, data_size);
+                return 0; // Success
+            }
+        }
+
+        // Move to next control message (align to pointer boundary)
+        const DWORD align_size = static_cast<DWORD>(sizeof(ULONG_PTR));
+        offset += ((msg_len + align_size - 1) & ~(align_size - 1));
+    }
+
+    // No IP_WFP_REDIRECT_CONTEXT found
+    return 1; // Not found
 }
 
 void
 _datagram_server_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    clean_up_socket(socket);
 }
 
-_stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _server_socket{_sock_type, _protocol, _port}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
+_stream_server_socket::_stream_server_socket(
+    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
+    : _server_socket{_sock_type, _protocol, _port, local_address}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
       message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
@@ -589,10 +694,7 @@ void
 _stream_server_socket::initialize_accept_socket()
 {
     // Close a previous accept socket, if present.
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-        accept_socket = INVALID_SOCKET;
-    }
+    clean_up_socket(accept_socket);
 
     // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -604,12 +706,7 @@ _stream_server_socket::initialize_accept_socket()
     }
 }
 
-_stream_server_socket::~_stream_server_socket()
-{
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-}
+_stream_server_socket::~_stream_server_socket() { clean_up_socket(accept_socket); }
 
 void
 _stream_server_socket::post_async_receive()
@@ -691,10 +788,7 @@ _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from
 void
 _stream_server_socket::close()
 {
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-    accept_socket = INVALID_SOCKET;
+    clean_up_socket(accept_socket);
 }
 
 int

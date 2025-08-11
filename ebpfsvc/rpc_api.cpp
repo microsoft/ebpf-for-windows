@@ -54,6 +54,7 @@ ebpf_server_verify_and_load_program(
 
 ebpf_result_t
 ebpf_server_verify_and_authorize_native_image(
+    /* [in] */ GUID* module_id,
     /* [string][in] */ char* image_path)
 {
     HANDLE native_image_handle = INVALID_HANDLE_VALUE;
@@ -67,7 +68,7 @@ ebpf_server_verify_and_authorize_native_image(
         goto Exit;
     }
 
-    result = ebpf_authorize_native_module(native_image_handle);
+    result = ebpf_authorize_native_module(module_id, native_image_handle);
 Exit:
     if (native_image_handle != INVALID_HANDLE_VALUE) {
         CloseHandle(native_image_handle);

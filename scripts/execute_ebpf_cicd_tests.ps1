@@ -11,79 +11,101 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60)
-)
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+        # This parameter is only used when ExecuteOnHost is false.
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
+
+$ExecuteOnHost = [bool]$ExecuteOnHost
+$ExecuteOnVM = (-not $ExecuteOnHost)
+$VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
-if ($SelfHostedRunnerName -eq "1ESRunner") {
-    $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
-} else {
-    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
-}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
+if ($ExecuteOnVM) {
+    if ($SelfHostedRunnerName -eq "1ESRunner") {
+        $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
+        $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
+    } else {
+        $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+        $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+    }
+} else {
+    # Username and password are not used when running on host - use empty but non-null values.
+    $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
+    $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential("TestStandardUser", $EmptySecureString)
+}
+
 $Job = Start-Job -ScriptBlock {
-    param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
-           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
-           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
-           [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
-           [Parameter(Mandatory = $True)] [string] $LogFileName,
-           [Parameter(Mandatory = $True)] [string] $TestMode,
-           [Parameter(Mandatory = $True)] [string[]] $Options,
-           [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-           [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
-
+    param (
+        [Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
+        [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
+        [Parameter(Mandatory = $True)] [bool] $VMIsRemote,
+        [Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
+        [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
+        [Parameter(Mandatory = $True)] [PSCustomObject] $Config,
+        [Parameter(Mandatory = $True)] [string] $SelfHostedRunnerName,
+        [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
+        [Parameter(Mandatory = $True)] [string] $LogFileName,
+        [Parameter(Mandatory = $True)] [string] $TestMode,
+        [Parameter(Mandatory = $True)] [string[]] $Options,
+        [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
+        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
+    )
     Push-Location $WorkingDirectory
-
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+    if ($ExecuteOnVM) {
+        Write-Log "Tests will be executed on VM" -ForegroundColor Cyan
+        $VMList = $Config.VMMap.$SelfHostedRunnerName
+        $VMName = $VMList[0].Name
+        $TestWorkingDirectory = "C:\ebpf"
+    } else {
+        Write-Log "Executing on host" -ForegroundColor Cyan
+        $VMName = $null
+        $TestWorkingDirectory = $WorkingDirectory
+    }
     Import-Module $WorkingDirectory\vm_run_tests.psm1 `
         -Force `
-        -ArgumentList (
+        -ArgumentList(
+            $ExecuteOnHost,
+            $ExecuteOnVM,
+            $VMIsRemote,
+            $VMName,
             $AdminTestVMCredential.UserName,
             $AdminTestVMCredential.Password,
             $StandardUserTestVMCredential.UserName,
             $StandardUserTestVMCredential.Password,
-            $WorkingDirectory,
+            $TestWorkingDirectory,
             $LogFileName,
             $TestMode,
             $Options,
             $TestHangTimeout,
             $UserModeDumpFolder) `
         -WarningAction SilentlyContinue
-
-    $VMList = $Config.VMMap.$SelfHostedRunnerName
-    # currently one VM runs per runner.
-    $TestVMName = $VMList[0].Name
-
     try {
-        # Run Kernel tests on test VM.
-        Write-Log "Running kernel tests on $TestVMName"
-        Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
-
-        # Stop eBPF components on test VMs.
-        Stop-eBPFComponentsOnVM -VMName $TestVMName
+        Write-Log "Running kernel tests"
+        Run-KernelTests -Config $Config
+        Stop-eBPFComponents
     } catch [System.Management.Automation.RemoteException] {
-        # Next, generate kernel dump.
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
         if ($_.CategoryInfo.Reason -eq "TimeoutException") {
-            Generate-KernelDumpOnVM($TestVMName)
+            Generate-KernelDump
         }
-
-        # Throw to ensure the job is marked as failed.
         throw $_.Exception.Message
     }
-
     Pop-Location
 } -ArgumentList (
+    $ExecuteOnHost,
+    $ExecuteOnVM,
+    $VMIsRemote,
     $AdminTestVMCredential,
     $StandardUserTestVMCredential,
     $Config,
@@ -101,7 +123,8 @@ $JobTimedOut = `
     -Config $Config `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Execute"
+    -CheckpointPrefix "Execute" `
+    -ExecuteOnVM $ExecuteOnVM
 
 # Clean up
 Remove-Job -Job $Job -Force

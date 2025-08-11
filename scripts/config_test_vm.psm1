@@ -172,7 +172,10 @@ function Stop-AllVMs
 
 function Export-BuildArtifactsToVMs
 {
-    param([Parameter(Mandatory=$True)] $VMList)
+    param(
+        [Parameter(Mandatory=$True)] $VMList,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+    )
 
     $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
     Write-Log "Creating $tempFileName containing files in $pwd"
@@ -183,11 +186,16 @@ function Export-BuildArtifactsToVMs
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+        if ($VMIsRemote) {
+            $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential
+        }
+        else {
+            $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+        }
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         } else {
-            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            Invoke-Command -Session $VMSession -ScriptBlock {
                 # Create working directory c:\eBPF.
                 if(!(Test-Path "$Env:SystemDrive\eBPF")) {
                     New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
@@ -199,7 +207,7 @@ function Export-BuildArtifactsToVMs
                     New-Item -Path $RegistryPath -Force
                 }
                 Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
-                
+
                 # Enables full memory dump.
                 # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
                 # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
@@ -215,12 +223,14 @@ function Export-BuildArtifactsToVMs
         Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
 
         Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        Invoke-Command -Session $VMSession -ScriptBlock {
             cd $Env:SystemDrive\eBPF
             &tar @("xf", "ebpf.tgz")
         }
         Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
+
+        Remove-PSSession $VMSession
     }
 
     Remove-Item -Force $tempFileName
@@ -231,14 +241,18 @@ function Export-BuildArtifactsToVMs
 #
 function Install-eBPFComponentsOnVM
 {
-    param([parameter(Mandatory=$true)][string] $VMName,
-          [parameter(Mandatory=$true)][string] $TestMode,
-          [parameter(Mandatory=$true)][bool] $KmTracing,
-          [parameter(Mandatory=$true)][string] $KmTraceType)
+    param(
+        [parameter(Mandatory=$true)][string] $VMName,
+        [parameter(Mandatory=$true)][string] $TestMode,
+        [parameter(Mandatory=$true)][bool] $KmTracing,
+        [parameter(Mandatory=$true)][string] $KmTraceType,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+    )
 
     Write-Log "Installing eBPF components on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+
+    $scriptBlock = {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
@@ -249,7 +263,10 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -ErrorAction Stop
-    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
+    }
+
+    Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote -ScriptBlock $scriptBlock -ArgumentList  ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
+
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
@@ -340,16 +357,11 @@ function Compress-KernelModeDumpOnVM
             Write-Log `
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
-            Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
-            if (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf) {
-                $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
-                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
-                Write-Log `
-                    "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
+            $result = CompressOrCopy-File -SourcePath "$KernelModeDumpFileSourcePath\*.dmp" -DestinationDirectory $KernelModeDumpFileDestinationPath -CompressedFileName "km_dumps.zip"
+            if ($result.Success) {
+                Write-Log "Successfully compressed kernel dumps: $($result.FinalPath)"
             } else {
-                $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found.`n`n"
-                Write-Log $ErrorMessage
-                throw $ErrorMessage
+                Write-Log "Used uncompressed kernel dump fallback: $($result.FinalPath)"
             }
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
@@ -468,18 +480,24 @@ function Import-ResultsFromVM
                 Write-Log "ETL file Size: $EtlFileSize MB"
 
                 Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\$EtlFile.zip")) {
+                    Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL file."
+                }
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
-            # Copy ETL from Test VM.
-            Write-Log ("Copy $VMSystemDrive\eBPF\$EtlFile.zip on $VMName to $pwd\TestLogs\$VMName\Logs")
-            Copy-Item `
-                -FromSession $VMSession `
-                -Path "$VMSystemDrive\eBPF\$EtlFile.zip" `
-                -Destination ".\TestLogs\$VMName\Logs" `
-                -Recurse `
-                -Force `
-                -ErrorAction Ignore 2>&1 | Write-Log
+            # Copy ETL from Test VM - try compressed first, then uncompressed if needed.
+            $result = CopyCompressedOrUncompressed-FileFromSession `
+                -VMSession $VMSession `
+                -CompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile.zip" `
+                -UncompressedSourcePath "$VMSystemDrive\eBPF\$EtlFile" `
+                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            
+            if ($result.Success) {
+                Write-Log "Successfully copied compressed ETL file from ${VMName}: $($result.FinalPath)"
+            } else {
+                Write-Log "Used uncompressed ETL fallback from ${VMName}: $($result.FinalPath)"
+            }
         }
 
         # Copy performance results from Test VM.
@@ -514,34 +532,94 @@ function Import-ResultsFromVM
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
+function Import-ResultsFromHost {
+    param(
+        [Parameter(Mandatory = $true)][bool] $KmTracing
+    )
+    Write-Log "Importing results from host..."
+    $TestLogsDir = Join-Path $WorkingDirectory 'TestLogs'
+    if (!(Test-Path $TestLogsDir)) {
+        New-Item -ItemType Directory -Path $TestLogsDir | Out-Null
+    }
+
+    # Copy user mode crash dumps if any.
+    if (Test-Path "$WorkingDirectory\dumps") {
+        Copy-Item "$WorkingDirectory\dumps\*" "$TestLogsDir" -Recurse -Force -ErrorAction Ignore | Out-Null
+    }
+
+    # Stop and collect ETL trace if enabled.
+    if ($KmTracing) {
+        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+        Write-Log "Query KM ETL tracing status before trace stop (host)"
+        $ProcInfo = Start-Process -FilePath "wpr.exe" -ArgumentList "-status profiles collectors -details" -NoNewWindow -Wait -PassThru -RedirectStandardOut "$WorkingDirectory\StdOut.txt" -RedirectStandardError "$WorkingDirectory\StdErr.txt"
+        if ($ProcInfo.ExitCode -ne 0) {
+            Write-Log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
+            Write-Log "wpr.exe (query) error output: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr.txt") {
+                Write-Log ( "\t" + $line)
+            }
+        } else {
+            Write-Log "wpr.exe (query) results: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
+                Write-Log ( "  \t" + $line)
+            }
+        }
+        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
+        Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+        wpr.exe -stop "$WorkingDirectory\$EtlFile"
+        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
+        Write-Log "ETL file Size: $EtlFileSize MB"
+        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+        $result = CompressOrCopy-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationDirectory (Join-Path $TestLogsDir 'Logs') -CompressedFileName "$EtlFile.zip"
+        
+        if ($result.Success) {
+            Write-Log "Successfully compressed and copied ETL file: $($result.FinalPath)"
+        } else {
+            Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
+        }
+    }
+}
+
 #
 # Configure network adapters on VMs.
 #
-function Initialize-NetworkInterfacesOnVMs
-{
-    param([parameter(Mandatory=$true)] $VMMap)
+function Initialize-NetworkInterfaces {
+    param(
+        # Initialize network interfaces directly on the host
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnHost = $false,
+        # Initialize network interfaces on VMs.
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $true,
+        [Parameter(Mandatory=$false)] $VMList = @(),
+        [Parameter(Mandatory=$true)][string] $TestWorkingDirectory,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
+    )
 
-    foreach ($VM in $VMMap)
-    {
-        $VMName = $VM.Name
+    $commandScriptBlock = {
+        param([Parameter(Mandatory=$true)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$true)][string] $LogFileName)
+        Push-Location $WorkingDirectory
+        Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Write-Log "Installing DuoNic driver"
+        .\duonic.ps1 -Install -NumNicPairs 2
+        Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+        Pop-Location
+    }
 
-        Write-Log "Initializing network interfaces on $VMName"
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $argumentList = @($TestWorkingDirectory, $LogFileName)
 
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory = $true)][string] $LogFileName)
+    if ($ExecuteOnHost) {
+        Write-Log "Initializing network interfaces on host"
+        & $commandScriptBlock @argumentList
+    } elseif ($ExecuteOnVM) {
+        $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        foreach ($VM in $VMList) {
+            $VMName = $VM.Name
+            Write-Log "Initializing network interfaces on $VMName"
 
-            Push-Location "$env:SystemDrive\$WorkingDirectory"
-            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-
-            Write-Log "Installing DuoNic driver"
-            .\duonic.ps1 -Install -NumNicPairs 2
-            # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
-            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
-
-            Pop-Location
-        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+            Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote  -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
+        }
+    } else {
+        throw "Either ExecuteOnHost or ExecuteOnVM must be set."
     }
 }
 
@@ -915,4 +993,20 @@ function Enable-HVCIOnVM {
     Wait-AllVMsToInitialize -VMList @(@{ Name = $VmName }) -UserName $Admin -AdminPassword $AdminPassword
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
+}
+
+
+function Invoke-CommandOnVM {
+    param(
+        [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
+        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory = $true)][string] $VMName,
+        [Parameter(Mandatory = $true)] $Credential
+    )
+    if ($VMIsRemote) {
+        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    } else {
+        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+    }
 }

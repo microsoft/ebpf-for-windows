@@ -272,11 +272,11 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int code_size = 1152;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size = 316;
+    const int code_size = 312;
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 1124;
-    const int old_code_size = 1076;
+    const int code_size = 1116;
+    const int old_code_size = 1124;
 #else
 #error "Unsupported architecture"
 #endif
@@ -372,13 +372,20 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
+    // Old code size is for MSVC 2022 version 17.13.7
+    // Code size is for MSVC 2022 version 17.14.0 and later.
+
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size[] = {333, 350, 333, 350};
+    const int old_code_size[] = {333, 350, 333, 350};
+    const int code_size[] = {333, 353, 333, 353};
 #elif defined(_M_X64) && !defined(NDEBUG)
+    const int old_code_size[] = {961, 1036, 961, 1036};
     const int code_size[] = {961, 1036, 961, 1036};
 #elif defined(_M_ARM64) && defined(NDEBUG)
+    const int old_code_size[] = {328, 344, 328, 344};
     const int code_size[] = {328, 344, 328, 344};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
+    const int old_code_size[] = {1100, 1232, 1100, 1232};
     const int code_size[] = {1100, 1232, 1100, 1232};
 #else
 #error "Unsupported architecture"
@@ -402,7 +409,11 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 
     bool output_matches =
         (output ==
-         std::vformat(expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])));
+             std::vformat(
+                 expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])) ||
+         output == std::vformat(
+                       expected_output,
+                       std::make_format_args(old_code_size[0], old_code_size[1], old_code_size[2], old_code_size[3])));
 
     if (!output_matches) {
         std::cerr << "Expected output:\n" << expected_output << "\n";

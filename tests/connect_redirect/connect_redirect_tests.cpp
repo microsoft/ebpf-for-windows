@@ -59,7 +59,7 @@ typedef struct _test_globals
     ADDRESS_FAMILY family = 0;
     connection_type_t connection_type = connection_type_t::INVALID;
     uint16_t destination_port = 4444;
-    uint16_t proxy_port = 4443;
+    uint16_t proxy_port = 5555;
     test_addresses_t addresses[socket_family_t::Max] = {0};
     bool attach_v4_program = false;
     bool attach_v6_program = false;
@@ -363,6 +363,23 @@ update_policy_map_and_test_connection(
     uint16_t proxy_port,
     bool dual_stack)
 {
+    // Print source, destination, and redirected addresses for debugging purposes
+    PSOCKADDR source_addr;
+    int source_addr_len;
+    sender_socket->get_local_address(source_addr, source_addr_len);
+
+    uint16_t source_port = 0;
+    if (source_addr->sa_family == AF_INET) {
+        source_port = ntohs(((sockaddr_in*)source_addr)->sin_port);
+    } else if (source_addr->sa_family == AF_INET6) {
+        source_port = ntohs(((sockaddr_in6*)source_addr)->sin6_port);
+    }
+
+    std::string source_address_str = get_string_from_address(source_addr);
+    std::string destination_address_str = get_string_from_address((SOCKADDR*)&destination);
+    std::string proxy_address_str = get_string_from_address((SOCKADDR*)&proxy);
+    CAPTURE(source_address_str, destination_address_str, proxy_address_str, proxy_port);
+
     bool add_policy = true;
     uint32_t bytes_received = 0;
     char* received_message = nullptr;
@@ -395,15 +412,21 @@ update_policy_map_and_test_connection(
 
         sender_socket->get_received_message(bytes_received, received_message);
 
+        // capture the local address again after the send
+        sender_socket->get_local_address(source_addr, source_addr_len);
+        std::string source_after_send_str = get_string_from_address(source_addr);
+        CAPTURE(source_after_send_str);
+
         // For local redirection, the redirect context is expected to be set and returned.
         // If the connection is not redirected or is redirected to a remote address,
         // check for the SERVER_MESSAGE generic response.
         std::string expected_response;
-        if (redirected && local_redirect && (_globals.connection_type == connection_type_t::TCP)) {
+        if (redirected && local_redirect) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
         }
+        CAPTURE(expected_response, received_message);
         SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
         SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
@@ -445,7 +468,8 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 }
 
 void
-get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {})
+get_client_socket(
+    bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {0})
 {
     impersonation_helper_t helper(_globals.user_type);
 
@@ -458,7 +482,8 @@ get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, cons
         new_socket = (client_socket_t*)new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0, family, source_address);
     } else {
         bool connected_udp = (_globals.connection_type == connection_type_t::CONNECTED_UDP);
-        new_socket = (client_socket_t*)new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0, family, connected_udp);
+        new_socket = (client_socket_t*)new datagram_client_socket_t(
+            SOCK_DGRAM, IPPROTO_UDP, 0, family, connected_udp, source_address);
     }
 
     *sender_socket = new_socket;
@@ -482,11 +507,53 @@ connect_redirect_test_wrapper(
     _In_ const sockaddr_storage& source_address,
     _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
-    bool dual_stack)
+    bool dual_stack,
+    bool implicit_bind)
 {
     client_socket_t* sender_socket = nullptr;
+    // Determine address family for lookups
+    socket_family_t address_family = (_globals.family == AF_INET6)
+                                         ? socket_family_t::IPv6
+                                         : (dual_stack ? socket_family_t::Dual : socket_family_t::IPv4);
 
-    get_client_socket(dual_stack, &sender_socket, source_address);
+    // Certain combinations of parameters are not compatible with our test setup, so those tests are skipped.
+
+    // Skip case 1: implicit bind and proxy == local_address.
+    // local_address testcases require that the OS stack treats the traffic as loopback (to ensure we can obtain the
+    // redirect_context). When an implicit bind is used, the sending interface may differ from the receiving interface.
+    // As both interfaces are duonic interfaces, This can therefore result in the traffic being treated as non-loopback.
+    if (implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&proxy, (SOCKADDR*)&_globals.addresses[address_family].local_address)) {
+        printf("  Skipping test variation: implicit bind and proxy == local_address\n");
+        return;
+    }
+
+    // Skip case 2: explicit bind for src == loopback_address and destination == remote_address
+    // When the loopback address is used for the source address, sending traffic to a remote address is determined as
+    // not routable by the OS stack, and the connection fails.
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf("  Skipping test variation: explicit bind and src == loopback_address\n");
+        return;
+    }
+
+    // Skip case 3: explicit bind src == local_address and destination == loopback.
+    // When the local_address is used as the source address, sending traffic to the loopback_address is determined as
+    // not routable by the OS stack, and the connection fails.
+    if (!implicit_bind &&
+        INETADDR_ISEQUAL((SOCKADDR*)&source_address, (SOCKADDR*)&_globals.addresses[address_family].local_address) &&
+        INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&_globals.addresses[address_family].loopback_address)) {
+        printf(
+            "  Skipping test variation: explicit bind and src == local_address and destination == loopback_address\n");
+        return;
+    }
+
+    if (implicit_bind) {
+        // Use implicit bind (no source_address specified).
+        get_client_socket(dual_stack, &sender_socket);
+    } else {
+        get_client_socket(dual_stack, &sender_socket, source_address);
+    }
     update_policy_map_and_test_connection(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
@@ -599,27 +666,45 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
     "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
-#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)                  \
-    void connection_redirection_tests_##original_destination##_##new_destination##(                                  \
-        ADDRESS_FAMILY family, connection_type_t connection_type, bool dual_stack, _In_ test_addresses_t& addresses) \
-    {                                                                                                                \
-        _initialize_test_globals();                                                                                  \
-        _globals.family = family;                                                                                    \
-        _globals.connection_type = connection_type;                                                                  \
-        const char* connection_type_string =                                                                         \
-            (_globals.connection_type == connection_type_t::TCP)                                                     \
-                ? "TCP"                                                                                              \
-                : ((_globals.connection_type == connection_type_t::UNCONNECTED_UDP) ? "UNCONNECTED_UDP"              \
-                                                                                    : "CONNECTED_UDP");              \
-        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                                  \
-        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                                 \
-        printf(                                                                                                      \
-            "REDIRECT: " #original_destination " -> " #new_destination " | %s | %s | %s\n",                          \
-            connection_type_string,                                                                                  \
-            family_string,                                                                                           \
-            dual_stack_string);                                                                                      \
-        connect_redirect_test_wrapper(                                                                               \
-            addresses.##source##, addresses.##original_destination##, addresses.##new_destination##, dual_stack);    \
+#define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)                   \
+    void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
+        ADDRESS_FAMILY family, connection_type_t connection_type, bool dual_stack, _In_ test_addresses_t& addresses)  \
+    {                                                                                                                 \
+        _initialize_test_globals();                                                                                   \
+        _globals.family = family;                                                                                     \
+        _globals.connection_type = connection_type;                                                                   \
+        const char* connection_type_string =                                                                          \
+            (_globals.connection_type == connection_type_t::TCP)                                                      \
+                ? "TCP"                                                                                               \
+                : ((_globals.connection_type == connection_type_t::UNCONNECTED_UDP) ? "UNCONNECTED_UDP"               \
+                                                                                    : "CONNECTED_UDP");               \
+        const char* family_string = (_globals.family == AF_INET) ? "IPv4" : "IPv6";                                   \
+        const char* dual_stack_string = dual_stack ? "Dual Stack" : "No Dual Stack";                                  \
+        printf(                                                                                                       \
+            "REDIRECT: " #source " (explicit) -> " #original_destination " -> " #new_destination " | %s | %s | %s\n", \
+            connection_type_string,                                                                                   \
+            family_string,                                                                                            \
+            dual_stack_string);                                                                                       \
+        /* Test with explicit bind (bind to specific source address) */                                               \
+        printf("  Testing with explicit bind to source address...\n");                                                \
+        connect_redirect_test_wrapper(                                                                                \
+            addresses.##source##,                                                                                     \
+            addresses.##original_destination##,                                                                       \
+            addresses.##new_destination##,                                                                            \
+            dual_stack,                                                                                               \
+            false);                                                                                                   \
+        /* Test with implicit bind (bind to wildcard address) */                                                      \
+        printf(                                                                                                       \
+            "REDIRECT: " #source " (implicit) -> " #original_destination " -> " #new_destination " | %s | %s | %s\n", \
+            connection_type_string,                                                                                   \
+            family_string,                                                                                            \
+            dual_stack_string);                                                                                       \
+        connect_redirect_test_wrapper(                                                                                \
+            addresses.##source##,                                                                                     \
+            addresses.##original_destination##,                                                                       \
+            addresses.##new_destination##,                                                                            \
+            dual_stack,                                                                                               \
+            true);                                                                                                    \
     }
 
 // Declare connection_redirection_* test functions.

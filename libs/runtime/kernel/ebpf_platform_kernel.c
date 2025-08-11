@@ -145,6 +145,7 @@ typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
     unsigned long Length;
     unsigned long CodeIntegrityOptions;
 } SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
+#define CODEINTEGRITY_OPTION_TEST_SIGN 0x02
 #define CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED 0x400
 NTSTATUS
 NtQuerySystemInformation(
@@ -155,7 +156,7 @@ NtQuerySystemInformation(
 // End code pulled from winternl.h.
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hypervisor_kernel_mode_enabled)
 {
     NTSTATUS status;
     SYSTEM_CODEINTEGRITY_INFORMATION code_integrity_information = {sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 0};
@@ -164,12 +165,18 @@ ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
     status = NtQuerySystemInformation(
         SystemCodeIntegrityInformation, &code_integrity_information, system_information_length, &returned_length);
     if (NT_SUCCESS(status)) {
+        if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_TEST_SIGN) != 0) {
+            EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Test signing enabled");
+            *test_signing_enabled = true;
+        } else {
+            *test_signing_enabled = false;
+        }
         if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) != 0) {
             EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
-            *state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
+            *hypervisor_kernel_mode_enabled = true;
         } else {
             EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
-            *state = EBPF_CODE_INTEGRITY_DEFAULT;
+            *hypervisor_kernel_mode_enabled = false;
         }
         return EBPF_SUCCESS;
     } else {
