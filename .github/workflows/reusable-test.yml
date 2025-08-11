@@ -91,7 +91,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49  # v2.12.2
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
         with:
           egress-policy: audit
 
@@ -159,7 +159,7 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         run: |
-          choco install -y procdump --version 11.0
+          choco install -y --requirechecksum=true --checksum=d58e81b96d53ded74570ad028d605fcfa1bfcc2e7cb2f5ab24bd64901b0c8783 --checksum-type=sha256 procdump --version=11.0
           where procdump.exe
 
       - name: Set up OpenCppCoverage and add to PATH
@@ -498,7 +498,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49  # v2.12.2
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
         with:
           disable-sudo: true
           egress-policy: block

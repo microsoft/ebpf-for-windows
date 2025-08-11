@@ -899,7 +899,7 @@ _update_array_map_entry_with_handle(
         }
     }
 
-    uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
+    uint8_t* entry = &map->data[*(uint32_t*)key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
         EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);

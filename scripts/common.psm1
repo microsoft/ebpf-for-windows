@@ -52,24 +52,235 @@ function Compress-File
 
     Write-Log "Compressing $SourcePath -> $DestinationPath"
 
-    # Retry 3 times to ensure compression operation succeeds.
+    # Retry 5 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
-    while ($retryCount -lt 4) {
-        $error.clear()
-        Compress-Archive `
-            -Path $SourcePath `
-            -DestinationPath $DestinationPath `
-            -CompressionLevel Fastest `
-            -Force
-        if ($error[0] -ne $null) {
-            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
-            Write-Output $ErrorMessage
-            Start-Sleep -seconds (5 * $retryCount)
+    while ($retryCount -le 5) {
+        try {
+            $ErrorActionPreference = "Stop"
+            Compress-Archive `
+                -Path $SourcePath `
+                -DestinationPath $DestinationPath `
+                -CompressionLevel Fastest `
+                -Force
+                
+            # Verify the compressed file was actually created.
+            if (Test-Path $DestinationPath) {
+                Write-Log "Compression completed successfully."
+                return $true
+            } else {
+                throw "Compressed file was not created at $DestinationPath"
+            }
+        } catch {
+            $ErrorMessage = "*** ERROR *** Failed to compress files (attempt $retryCount of 5): $($_.Exception.Message)"
+            Write-Log $ErrorMessage
+            if ($retryCount -lt 5) {
+                Start-Sleep -seconds (5 * $retryCount)
+            }
             $retryCount++
+        }
+    }
+    
+    # All retries failed.
+    Write-Log "*** ERROR *** Failed to compress after 5 attempts. Compression failed."
+    return $false
+}
+
+<#
+.SYNOPSIS
+    Attempts to compress files and copies them to a destination, with fallback to uncompressed files.
+
+.DESCRIPTION
+    This function standardizes the pattern of trying to compress files and copying the result,
+    with automatic fallback to copying uncompressed files if compression fails.
+
+.PARAMETER SourcePath
+    The source files to compress (supports wildcards like *.dmp).
+
+.PARAMETER DestinationDirectory
+    The directory where the final files should be copied.
+
+.PARAMETER CompressedFileName
+    The name for the compressed file. If not provided, auto-generates based on source.
+
+.OUTPUTS
+    Returns a hashtable with the following properties:
+    - Success: Boolean indicating if compression succeeded
+    - CompressedPath: Path to compressed file (if compression succeeded) 
+    - UncompressedPath: Path to uncompressed file (if compression failed)
+    - FinalPath: Path to the final file that was copied
+
+.EXAMPLE
+    $result = CompressOrCopy-File -SourcePath "C:\dumps\*.dmp" -DestinationDirectory "C:\output" -CompressedFileName "dumps.zip"
+    if ($result.Success) {
+        Write-Host "Compression succeeded: $($result.FinalPath)"
+    } else {
+        Write-Host "Compression failed, using uncompressed: $($result.FinalPath)"
+    }
+#>
+function CompressOrCopy-File
+{
+    param(
+        [Parameter(Mandatory=$True)][string] $SourcePath,
+        [Parameter(Mandatory=$True)][string] $DestinationDirectory,
+        [Parameter(Mandatory=$False)][string] $CompressedFileName
+    )
+
+    # Ensure destination directory exists.
+    if (-not (Test-Path $DestinationDirectory -PathType Container)) {
+        New-Item -Path $DestinationDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    # Auto-generate compressed filename if not provided.
+    if (-not $CompressedFileName) {
+        $sourceName = Split-Path $SourcePath -Leaf
+        $CompressedFileName = "$sourceName.zip"
+    }
+
+    # Create temporary path for compression.
+    $tempCompressedPath = Join-Path $env:TEMP $CompressedFileName
+    $finalCompressedPath = Join-Path $DestinationDirectory $CompressedFileName
+
+    # Attempt compression.
+    $compressionSucceeded = Compress-File -SourcePath $SourcePath -DestinationPath $tempCompressedPath
+
+    if ($compressionSucceeded -and (Test-Path $tempCompressedPath)) {
+        # Compression succeeded - copy compressed file.
+        Copy-Item -Path $tempCompressedPath -Destination $finalCompressedPath -Force
+        Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
+        
+        $compressedFile = Get-ChildItem -Path $finalCompressedPath
+        Write-Log "Copied compressed file: $($compressedFile.Name), Size: $((($compressedFile.Length) / 1MB).ToString("F2")) MB"
+        
+        return @{
+            Success = $true
+            CompressedPath = $finalCompressedPath
+            UncompressedPath = ""
+            FinalPath = $finalCompressedPath
+        }
+    } else {
+        # Compression failed - copy uncompressed files as fallback.
+        Write-Log "*** WARNING *** Compression failed. Copying uncompressed files instead."
+        
+        $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction SilentlyContinue
+        $copiedPaths = @()
+        
+        foreach ($file in $sourceFiles) {
+            $destinationPath = Join-Path $DestinationDirectory $file.Name
+            Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+            Write-Log "Copied uncompressed file: $($file.Name)"
+            $copiedPaths += $destinationPath
+        }
+        
+        # Clean up temporary compressed file if it exists.
+        if (Test-Path $tempCompressedPath) {
+            Remove-Item -Path $tempCompressedPath -Force -ErrorAction Ignore
+        }
+        
+        return @{
+            Success = $false
+            CompressedPath = ""
+            UncompressedPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
+            FinalPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    Copies compressed files from a remote session, with fallback to uncompressed files.
+
+.DESCRIPTION
+    This function standardizes the pattern of trying to copy compressed files from a remote session
+    and falling back to uncompressed files if the compressed copy fails.
+
+.PARAMETER VMSession
+    The remote PowerShell session to copy from.
+
+.PARAMETER CompressedSourcePath
+    The path to the compressed file on the remote session.
+
+.PARAMETER UncompressedSourcePath
+    The path to the uncompressed file on the remote session.
+
+.PARAMETER DestinationDirectory
+    The local directory where files should be copied.
+
+.OUTPUTS
+    Returns a hashtable with the following properties:
+    - Success: Boolean indicating if compressed copy succeeded
+    - CompressedPath: Path to compressed file (if compressed copy succeeded)
+    - UncompressedPath: Path to uncompressed file (if compressed copy failed)  
+    - FinalPath: Path to the final file that was copied
+
+.EXAMPLE
+    $result = CopyCompressedOrUncompressed-FileFromSession -VMSession $session -CompressedSourcePath "C:\eBPF\trace.zip" -UncompressedSourcePath "C:\eBPF\trace.etl" -DestinationDirectory ".\Logs"
+    if ($result.Success) {
+        Write-Host "Compressed copy succeeded: $($result.FinalPath)"
+    } else {
+        Write-Host "Using uncompressed fallback: $($result.FinalPath)"
+    }
+#>
+function CopyCompressedOrUncompressed-FileFromSession
+{
+    param(
+        [Parameter(Mandatory=$True)] $VMSession,
+        [Parameter(Mandatory=$True)][string] $CompressedSourcePath,
+        [Parameter(Mandatory=$True)][string] $UncompressedSourcePath,
+        [Parameter(Mandatory=$True)][string] $DestinationDirectory
+    )
+
+    # Ensure destination directory exists.
+    if (-not (Test-Path $DestinationDirectory -PathType Container)) {
+        New-Item -Path $DestinationDirectory -ItemType Directory -Force | Out-Null
+    }
+
+    $compressedFileName = Split-Path $CompressedSourcePath -Leaf
+    $uncompressedFileName = Split-Path $UncompressedSourcePath -Leaf
+    $compressedDestPath = Join-Path $DestinationDirectory $compressedFileName
+
+    # Try to copy compressed file first.
+    Write-Log "Copy $CompressedSourcePath to $DestinationDirectory"
+    Copy-Item `
+        -FromSession $VMSession `
+        -Path $CompressedSourcePath `
+        -Destination $DestinationDirectory `
+        -Recurse `
+        -Force `
+        -ErrorAction Ignore 2>&1 | Write-Log
+    
+    # Check if compressed copy succeeded.
+    if (Test-Path $compressedDestPath) {
+        Write-Log "Successfully copied compressed file: $compressedFileName"
+        return @{
+            Success = $true
+            CompressedPath = $compressedDestPath
+            UncompressedPath = ""
+            FinalPath = $compressedDestPath
+        }
+    } else {
+        # Compressed copy failed, try uncompressed.
+        Write-Log "Compressed file not found, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
+        Copy-Item `
+            -FromSession $VMSession `
+            -Path $UncompressedSourcePath `
+            -Destination $DestinationDirectory `
+            -Recurse `
+            -Force `
+            -ErrorAction Ignore 2>&1 | Write-Log
+        
+        $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
+        if (Test-Path $uncompressedDestPath) {
+            Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
         } else {
-            # Compression succeeded.
-            break;
+            Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files"
+        }
+        
+        return @{
+            Success = $false
+            CompressedPath = ""
+            UncompressedPath = $uncompressedDestPath
+            FinalPath = $uncompressedDestPath
         }
     }
 }
@@ -83,7 +294,7 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true)
     $TimeElapsed = 0
-    # Loop to fetch and print job output in near real-time
+    # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
         $JobOutput = Receive-Job -Job $job
         $JobOutput | ForEach-Object { Write-Host $_ }
@@ -109,7 +320,7 @@ function Wait-TestJobToComplete
         }
     }
 
-    # Print any remaining output after the job completes
+    # Print any remaining output after the job completes.
     $JobOutput = Receive-Job -Job $job
     $JobOutput | ForEach-Object { Write-Host $_ }
 
