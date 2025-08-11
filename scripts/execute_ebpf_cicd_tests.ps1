@@ -1,4 +1,4 @@
-# Copyright (c) eBPF for Windows contributors
+# Copyright (c) e       [Parameter(Mandatory = $false)][bool] $GranularTracing = $false)F for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
@@ -27,7 +27,7 @@ Push-Location $WorkingDirectory
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
 # Set up trace directory for granular tracing
-$traceDir = Join-Path $WorkingDirectory "TestLogs"
+
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -66,9 +66,7 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string[]] $Options,
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
         [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-        [Parameter(Mandatory = $True)] [bool] $GranularTracing,
-        [Parameter(Mandatory = $True)] [string] $KmTraceType,
-        [Parameter(Mandatory = $True)] [string] $TraceDir
+        [Parameter(Mandatory = $True)] [bool] $GranularTracing
     )
     Push-Location $WorkingDirectory
     # Load other utility modules.
@@ -101,9 +99,7 @@ $Job = Start-Job -ScriptBlock {
             $Options,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $GranularTracing,
-            $TraceDir,
-            $KmTraceType) `
+            $GranularTracing) `
         -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
@@ -133,9 +129,7 @@ $Job = Start-Job -ScriptBlock {
     $Options,
     $TestHangTimeout,
     $UserModeDumpFolder,
-    $GranularTracing,
-    $KmTraceType,
-    $traceDir)
+    $GranularTracing)
 
 # Keep track of the last received output count
 $JobTimedOut = `
