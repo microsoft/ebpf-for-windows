@@ -2226,18 +2226,16 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     REQUIRE(inner_map_fd > 0);
 
     // Create additional inner maps to use as values for testing.
-    int inner_map_fd2 =
-        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    int inner_map_fd2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner_map_fd2 > 0);
 
-    int inner_map_fd3 =
-        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    int inner_map_fd3 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner_map_fd3 > 0);
 
     // Create an array-of-maps with 1000 entries to test indices > 255.
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
-    int outer_map_fd =
-        bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", 
+                                      sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Test updating at various indices including ones > 255.
