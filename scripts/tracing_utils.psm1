@@ -29,21 +29,21 @@ function Start-WPRTrace {
         [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
         [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
     )
-    
-    # Quick cleanup of any orphaned sessions
-    try {
-        wpr.exe -cancel | Out-Null
-    } catch {
-        # Ignore cleanup errors
-    }
-
-    # Build profile path and check if it exists
-    $wprpProfilePath = Join-Path $WorkingDirectory $WprpFileName
-    if (-not (Test-Path $wprpProfilePath)) {
-        Write-Log "Warning: WPRP profile not found at $wprpProfilePath" -ForegroundColor Yellow
-    }
 
     try {
+        # Quick cleanup of any orphaned sessions
+        try {
+            wpr.exe -cancel | Out-Null
+        } catch {
+            # Ignore cleanup errors
+        }
+
+        # Build profile path and check if it exists
+        $wprpProfilePath = Join-Path $WorkingDirectory $WprpFileName
+        if (-not (Test-Path $wprpProfilePath)) {
+            Write-Log "Warning: WPRP profile not found at $wprpProfilePath" -ForegroundColor Yellow
+        }
+
         Write-Log "Starting WPR trace with TraceType: $TraceType WprpFileName: $WprpFileName TracingProfileName: $TracingProfileName"
         if ($TraceType -eq "file") {
             $profileName = "$TracingProfileName-File"
@@ -80,20 +80,20 @@ function Stop-WPRTrace {
         [Parameter(Mandatory=$true)] [string] $FileName
     )
 
-    # Create output directory if needed
-    $outputDir = Join-Path $WorkingDirectory "TestLogs"
-    if (-not (Test-Path $outputDir)) {
-        New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
-    }
-
-    # Generate unique ETL filename with timestamp
-    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    $etlFileName = "${FileName}_${timestamp}.etl"
-    $traceFile = Join-Path $outputDir $etlFileName
-
-    Write-Log "Stopping WPR trace: $traceFile" -ForegroundColor Cyan
-
     try {
+        # Create output directory if needed
+        $outputDir = Join-Path $WorkingDirectory "TestLogs"
+        if (-not (Test-Path $outputDir)) {
+            New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
+        }
+
+        # Generate unique ETL filename with timestamp
+        $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+        $etlFileName = "${FileName}_${timestamp}.etl"
+        $traceFile = Join-Path $outputDir $etlFileName
+
+        Write-Log "Stopping WPR trace: $traceFile" -ForegroundColor Cyan
+
         wpr.exe -stop "$traceFile"
         $exitCode = $LASTEXITCODE
 
@@ -106,6 +106,3 @@ function Stop-WPRTrace {
         Write-Log "Exception stopping WPR trace: $_" -ForegroundColor Red
     }
 }
-
-# Export the simplified functions
-Export-ModuleMember -Function Start-WPRTrace, Stop-WPRTrace

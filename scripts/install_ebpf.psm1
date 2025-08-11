@@ -148,7 +148,6 @@ function Stop-DriverWithTimeout {
 function Stop-eBPFComponents {
     param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
-    # Stop granular tracing if enabled
     if ($GranularTracing) {
         Start-WPRTrace
     }
@@ -170,8 +169,9 @@ function Stop-eBPFComponents {
             Stop-DriverWithTimeout -DriverName $_.Key
         }
     }
+
     if ($GranularTracing) {
-        Stop-WPRTrace -FileName "stop_ebpfcomponents"
+        Stop-WPRTrace -FileName "stop_ebpf"
     }
 }
 
@@ -199,7 +199,6 @@ function Install-eBPFComponents
 
     # Start granular tracing before installation if enabled.
     if ($GranularTracing) {
-        Write-Log "Starting WPR trace before installation" -ForegroundColor Yellow
         Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
     }
 
@@ -370,7 +369,6 @@ function Install-eBPFComponents
     }
 
     if ($GranularTracing) {
-        Write-Log "Stopping tracing after setup"
         Stop-WPRTrace -FileName "install_ebpf"
     } else {
         # Start regular KM tracing if not using granular tracing

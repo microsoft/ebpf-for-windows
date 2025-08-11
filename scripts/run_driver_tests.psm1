@@ -266,10 +266,6 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
     try {
-        # Start tracing for this specific test executable
-        $testTraceName = if ($InnerTestName -ne "") { $InnerTestName } else { $TestName }
-        Start-WPRTrace
-
         # Initialize arguments.
         if ($TestArgs -ne "") {
             $ArgumentsList = @($TestArgs)
@@ -284,6 +280,7 @@ function Invoke-Test
         $TestFilePath = "$pwd\$TestName"
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+        Start-WPRTrace
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
         } else {
@@ -302,8 +299,7 @@ function Invoke-Test
         Write-Log "`n==============================`n"
     }
     finally {
-        # Stop tracing for this specific test executable
-        Stop-WPRTrace -FileName $testTraceName
+        Stop-WPRTrace -FileName $testName
     }
 }
 

@@ -12,10 +12,10 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (30*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
+       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
         # This parameter is only used when ExecuteOnHost is false.
-       [Parameter(Mandatory = $false)][switch] $VMIsRemote,
-       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false)
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -24,9 +24,6 @@ $VMIsRemote = [bool]$VMIsRemote
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
-
-# Set up trace directory for granular tracing
-
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -99,6 +96,7 @@ $Job = Start-Job -ScriptBlock {
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
+        Write-Log "Running kernel tests completed"
 
         Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
@@ -141,5 +139,8 @@ Remove-Job -Job $Job -Force
 Pop-Location
 
 if ($JobTimedOut) {
+    Write-Log "exiting with error as job timed out"
     exit 1
 }
+
+Write-Log "execute_ebpf_cicd_tests.ps1 completed successfully"
