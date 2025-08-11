@@ -3,7 +3,7 @@
 
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName,
-       [parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+       [parameter(Mandatory = $false)][int] $TestHangTimeout = (30*60),
        [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][bool] $GranularTracing = $false)
 

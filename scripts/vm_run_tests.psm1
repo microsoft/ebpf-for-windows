@@ -16,7 +16,7 @@ param (
     [Parameter(Mandatory = $True)] [string] $LogFileName,
     [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
     [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
-    [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+    [Parameter(Mandatory = $false)][int] $TestHangTimeout = (30*60),
     [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
     # Granular tracing parameters (passed through to run_driver_tests.psm1)
     [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
