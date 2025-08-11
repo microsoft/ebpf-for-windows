@@ -1064,7 +1064,7 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
 void
 sock_ops_thread_function(
     std::stop_token token,
-    _In_ const netebpf_ext_helper_t* helper,
+    _In_ netebpf_ext_helper_t* helper,
     _In_ fwp_classify_parameters_t* parameters,
     std::atomic<size_t>* failure_count,
     size_t iteration_count,
