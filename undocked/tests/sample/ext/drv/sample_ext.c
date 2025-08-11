@@ -747,10 +747,11 @@ _sample_context_create(
     ebpf_result_t result;
     sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
+    void* context_data_in = NULL;
 
     *context = NULL;
 
-    if (data_in == NULL && data_size_in != 0) {
+    if ((data_in == NULL && data_size_in != 0) || (data_in != NULL && data_size_in == 0)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -773,7 +774,7 @@ _sample_context_create(
 
     // Add data_in into the sample_program_context_t.
     if (data_in != NULL) {
-        void * context_data_in = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, data_size_in, SAMPLE_EXT_POOL_TAG_DEFAULT);
+        context_data_in = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, data_size_in, SAMPLE_EXT_POOL_TAG_DEFAULT);
         if (context_data_in == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
