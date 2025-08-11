@@ -942,7 +942,7 @@ netebpfext_unit_invoke_sock_ops_program(
     int action = client_context->sock_ops_action;
 
     if (action == SOCK_OPS_TEST_ACTION_ROUND_ROBIN) {
-        // If the action is round robin, decide the action based on the locsl port number.
+        // If the action is round robin, decide the action based on the local port number.
         bpf_sock_ops_t* sock_ops_context = (bpf_sock_ops_t*)context;
         action = _get_sock_ops_action(sock_ops_context->local_port);
     }
