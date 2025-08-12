@@ -31,15 +31,20 @@ function Start-WPRTrace {
     )
 
     try {
+        Write-Log "Start-WPRTrace called with TraceType: $TraceType, WorkingDirectory: $WorkingDirectory"
+
         # Quick cleanup of any orphaned sessions
         try {
-            wpr.exe -cancel | Out-Null
+            Write-Log "Attempting to cancel any existing WPR sessions..."
+            $null = wpr.exe -cancel 2>&1
+            Write-Log "WPR cancel completed (exit code: $LASTEXITCODE)"
         } catch {
-            # Ignore cleanup errors
+            Write-Log "WPR cancel failed or not needed: $_"
         }
 
         # Build profile path and check if it exists
         $wprpProfilePath = Join-Path $WorkingDirectory $WprpFileName
+        Write-Log "Looking for WPRP profile at: $wprpProfilePath"
         if (-not (Test-Path $wprpProfilePath)) {
             Write-Log "Warning: WPRP profile not found at $wprpProfilePath" -ForegroundColor Yellow
         }
@@ -47,13 +52,17 @@ function Start-WPRTrace {
         Write-Log "Starting WPR trace with TraceType: $TraceType WprpFileName: $WprpFileName TracingProfileName: $TracingProfileName"
         if ($TraceType -eq "file") {
             $profileName = "$TracingProfileName-File"
+            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`" -filemode"
             wpr.exe -start "$wprpProfilePath!$profileName" -filemode
             $exitCode = $LASTEXITCODE
         } else {
             $profileName = "$TracingProfileName-Memory"
+            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`""
             wpr.exe -start "$wprpProfilePath!$profileName"
             $exitCode = $LASTEXITCODE
         }
+
+        Write-Log "WPR command completed with exit code: $exitCode"
 
         if ($exitCode -ne 0) {
             throw "Failed to start trace with exit code $exitCode"
@@ -71,9 +80,6 @@ function Start-WPRTrace {
 
 .PARAMETER FileName
     The base filename (without timestamp and extension) to use for the ETL file.
-
-.RETURNS
-    The path to the saved ETL file, or $null if stop failed.
 #>
 function Stop-WPRTrace {
     param(
