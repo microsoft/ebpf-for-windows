@@ -1103,7 +1103,8 @@ sock_ops_thread_function(
         count++;
 
         if (result != expected_result) {
-            if (fault_injection_enabled) {
+            // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
+            if (fault_injection_enabled && flow_id == 0) {
                 continue;
             }
             (*failure_count)++;
@@ -1113,6 +1114,10 @@ sock_ops_thread_function(
     // Sleep for the specified flow duration before removing flow contexts.
     std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
     for (auto id : flow_ids) {
+        // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
+        if (fault_injection_enabled && id == 0) {
+            continue;
+        }
         helper->test_sock_ops_v4_remove_flow_context(id);
     }
 }
