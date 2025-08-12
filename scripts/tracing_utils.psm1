@@ -56,7 +56,7 @@ function Start-WPRTrace {
         }
 
         if ($exitCode -ne 0) {
-            throw "Failed to start trace with error $_"
+            throw "Failed to start trace with exit code $exitCode"
         }
 
         Write-Log "Successfully started trace"
@@ -98,7 +98,7 @@ function Stop-WPRTrace {
         $exitCode = $LASTEXITCODE
 
         if ($exitCode -ne 0) {
-            throw "Failed to stop WPR trace with error $_"
+            throw "Failed to stop WPR trace with exit code $exitCode"
         }
 
         Write-Log "Successfully stopped WPR trace: $traceFile"
