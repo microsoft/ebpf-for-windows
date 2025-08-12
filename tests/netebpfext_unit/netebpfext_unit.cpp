@@ -1100,6 +1100,8 @@ sock_ops_thread_function(
         flow_ids.push_back(flow_id);
         auto expected_result = _get_fwp_sock_ops_action(port_number);
 
+        count++;
+
         if (result != expected_result) {
             if (fault_injection_enabled) {
                 continue;
@@ -1107,9 +1109,7 @@ sock_ops_thread_function(
             (*failure_count)++;
             break;
         }
-        count++;
     }
-
     // Sleep for the specified flow duration before removing flow contexts.
     std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
     for (auto id : flow_ids) {
