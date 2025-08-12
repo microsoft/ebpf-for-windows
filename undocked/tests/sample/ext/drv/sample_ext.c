@@ -747,14 +747,9 @@ _sample_context_create(
     ebpf_result_t result;
     sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
+    void* context_data_in = NULL;
 
     *context = NULL;
-
-    // This provider doesn't support data.
-    if (data_in != NULL || data_size_in != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     // This provider requires context.
     if (context_in == NULL || context_size_in < sizeof(sample_program_context_t)) {
@@ -771,6 +766,18 @@ _sample_context_create(
     sample_context = (sample_program_context_t*)&context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
+
+    // Add data_in into the sample_program_context_t.
+    if (data_in != NULL && data_size_in > 0) {
+        context_data_in = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, data_size_in, SAMPLE_EXT_POOL_TAG_DEFAULT);
+        if (context_data_in == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        memcpy(context_data_in, data_in, data_size_in);
+        sample_context->data_start = context_data_in;
+        sample_context->data_end = (uint8_t*)context_data_in + data_size_in;
+    }
 
     *context = sample_context;
     context_header = NULL;
@@ -792,21 +799,25 @@ _sample_context_destroy(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    UNREFERENCED_PARAMETER(data_out);
     sample_program_context_header_t* context_header = NULL;
     if (context == NULL) {
         return;
     }
     context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
-    // This provider doesn't support data.
-    *data_size_out = 0;
 
     if (context_out != NULL && *context_size_out >= sizeof(sample_program_context_t)) {
         memcpy(context_out, context, sizeof(sample_program_context_t));
         *context_size_out = sizeof(sample_program_context_t);
     } else {
         *context_size_out = 0;
+    }
+
+    size_t data_size = context_header->context.data_end - context_header->context.data_start;
+    if (context_header->context.data_start != NULL && *data_size_out >= data_size) {
+        memcpy(data_out, context_header->context.data_start, data_size);
+        CXPLAT_FREE(context_header->context.data_start);
+        context_header->context.data_start = NULL;
     }
 
     CXPLAT_FREE(context_header);
