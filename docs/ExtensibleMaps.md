@@ -39,7 +39,7 @@ Even though the extensible map will be created by and reside in the extension, e
 Map lifetime will also be maintained by eBPFcore, and it will invoke extension's map delete API when the map needs to be finally deleted.
 Similarly, map pinning will also be handled by eBPFcore as that impacts map lifetime.
 
-Another thing to note is that once an extensible map is created, the corresponding extension cannot be allowed to unload / restart, as that will delete the map and its entries. This will be a limitation / restriction for the extension that is implementing extensible maps, and may impact their servicing flow.
+Another thing to note is that once an extensible map is created, the corresponding extension **cannot be allowed to unload / restart**, as that will delete the map and its entries. This will be a limitation / restriction for the extension that is implementing extensible maps, and may impact their servicing flow.
 
 ## Map creation
 Assuming option 1 for `Map ID partitioning`, below is the expected flow for map creation.
