@@ -751,11 +751,6 @@ _sample_context_create(
 
     *context = NULL;
 
-    if ((data_in == NULL && data_size_in != 0) || (data_in != NULL && data_size_in == 0)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     // This provider requires context.
     if (context_in == NULL || context_size_in < sizeof(sample_program_context_t)) {
         result = EBPF_INVALID_ARGUMENT;
@@ -773,7 +768,7 @@ _sample_context_create(
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     // Add data_in into the sample_program_context_t.
-    if (data_in != NULL) {
+    if (data_in != NULL && data_size_in > 0) {
         context_data_in = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, data_size_in, SAMPLE_EXT_POOL_TAG_DEFAULT);
         if (context_data_in == NULL) {
             result = EBPF_NO_MEMORY;
