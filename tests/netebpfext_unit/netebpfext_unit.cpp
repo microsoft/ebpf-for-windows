@@ -901,6 +901,7 @@ typedef enum _sock_ops_test_action
 {
     SOCK_OPS_TEST_ACTION_PERMIT,
     SOCK_OPS_TEST_ACTION_BLOCK,
+    SOCK_OPS_TEST_ACTION_FAILURE,
     SOCK_OPS_TEST_ACTION_ROUND_ROBIN
 } sock_ops_test_action_t;
 
@@ -938,6 +939,7 @@ netebpfext_unit_invoke_sock_ops_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
     UNREFERENCED_PARAMETER(context);
+    ebpf_result_t return_result = EBPF_SUCCESS;
     auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
     int action = client_context->sock_ops_action;
 
@@ -947,12 +949,21 @@ netebpfext_unit_invoke_sock_ops_program(
         action = _get_sock_ops_action(sock_ops_context->local_port);
     }
 
-    if (action == SOCK_OPS_TEST_ACTION_PERMIT) {
-        *result = EBPF_SUCCESS;
-    } else {
-        *result = EBPF_FAILED;
+    switch (action) {
+    case SOCK_OPS_TEST_ACTION_PERMIT:
+        *result = 0;
+        break;
+    case SOCK_OPS_TEST_ACTION_BLOCK:
+        *result = -1;
+        break;
+    case SOCK_OPS_TEST_ACTION_FAILURE:
+        return_result = EBPF_FAILED;
+        break;
+    default:
+        *result = -1;
+        break;
     }
-    return EBPF_SUCCESS;
+    return return_result;
 }
 
 TEST_CASE("sock_ops_invoke", "[netebpfext]")
