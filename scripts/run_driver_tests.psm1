@@ -11,9 +11,7 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-if ($GranularTracing) {
-    Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
-}
+Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
 
 #
 # Utility functions.
@@ -280,7 +278,11 @@ function Invoke-Test
         $TestFilePath = "$pwd\$TestName"
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-        Start-WPRTrace
+        try {
+            Start-WPRTrace
+        } catch {
+            Write-Log "Failed to start WPR trace with error $_"
+        }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
         } else {
@@ -299,7 +301,11 @@ function Invoke-Test
         Write-Log "`n==============================`n"
     }
     finally {
-        Stop-WPRTrace -FileName $testName
+        try {
+            Stop-WPRTrace -FileName $testName
+        } catch {
+            Write-Log "Failed to stop WPR trace for $testName with error $_"
+        }
     }
 }
 
