@@ -46,7 +46,7 @@ Linux provides several eBPF program types, including:
 - SOCK_FILTER: Stream-layer filtering based on socket-level data, enabling payload inspection and application-specific processing.
 - BPF_PROG_TYPE_SK_MSG: Socket-level filtering of outgoing messages being sent by attaching an SK_MSG program to an eBPF socket map.
 - BPF_PROG_TYPE_SK_SKB: Socket parsing and filtering for incoming packets based on socket maps.
-  - SK_SKB_STREAM_PARSER: L4 layer message parser for L7 protocol.
+  - SK_SKB_STREAM_PARSER: L4 message parser for L7 protocol.
   - SK_SKB_STREAM_VERDICT: Pass/drop "messages" from stream.
   - SK_SKB_VERDICT: Pass/drop segments from TCP stream.
 
@@ -71,28 +71,28 @@ _Note:_ Using a single program type for all 3 hooks enables tail calls between p
 to simplify flow classification designs.
 
 ```c
-typedef enum _flow_classify_action
+typedef enum _ebpf_flow_classify_action
 {
-    FLOW_CLASSIFY_ALLOW,
-    FLOW_CLASSIFY_BLOCK,
-    FLOW_CLASSIFY_NEED_MORE_DATA,
-} flow_classify_action_t;
+    EBPF_FLOW_CLASSIFY_ALLOW,
+    EBPF_FLOW_CLASSIFY_BLOCK,
+    EBPF_FLOW_CLASSIFY_NEED_MORE_DATA,
+} ebpf_flow_classify_action_t;
 
-typedef enum _flow_direction
+typedef enum _ebpf_flow_direction
 {
-    FLOW_DIRECTION_INBOUND,
-    FLOW_DIRECTION_OUTBOUND,
-} flow_direction_t;
+    EBPF_FLOW_DIRECTION_INBOUND,
+    EBPF_FLOW_DIRECTION_OUTBOUND,
+} ebpf_flow_direction_t;
 
-typedef enum _flow_state
+typedef enum _ebpf_flow_state
 {
-    FLOW_STATE_NEW,
-    FLOW_STATE_ESTABLISHED,
-    FLOW_STATE_DELETED,
-    FLOW_STATE_INVALID,
-} flow_state_t;
+    EBPF_FLOW_STATE_NEW,
+    EBPF_FLOW_STATE_ESTABLISHED,
+    EBPF_FLOW_STATE_DELETED,
+    EBPF_FLOW_STATE_INVALID,
+} ebpf_flow_state_t;
 
-typedef struct _bpf_flow_classify
+typedef struct _ebpf_flow_classify
 {
     uint32_t family; ///< IP address family.
     struct
@@ -121,7 +121,7 @@ typedef struct _bpf_flow_classify
     uint32_t state;          ///< State of the flow.
     uint8_t* data_start;     ///< Pointer to start of stream segment data
     uint8_t* data_end;       ///< Pointer to end of stream segment data
-} bpf_flow_classify_t;
+} ebpf_flow_classify_t;
 ```
 
 ### Hooks
@@ -204,9 +204,9 @@ The extension uses the Windows Filtering Platform (WFP) to register callouts at 
 1. When a new TCP flow is established, the extension initializes a per-flow context and invokes the `new_flow_classify` hook.
 2. The program can return ALLOW/NEED_MORE_DATA to ignore the flow or classify the flow at the stream layer.
 
-    b. If no stream-layer inspection is needed, the bpf program context is freed immediately.
+    a. If no stream-layer inspection is needed, the bpf program context is freed immediately.
 
-    a. If further inspection is needed, the extension associates the context with the WFP stream layer callout to enable conditional callouts for this flow (using the WFP `CONDITIONAL_ON_FLOW` flag).
+    b. If further inspection is needed, the extension associates the context with the WFP stream layer callout to enable conditional callouts for this flow (using the WFP `CONDITIONAL_ON_FLOW` flag).
 3. For each TCP segment, the extension invokes the `stream_flow_classify` hook, passing the current segment data and flow metadata. The program can allow/block the flow or request more data as needed.
 
     a. If the program returns `FLOW_CLASSIFY_ALLOW` or `FLOW_CLASSIFY_BLOCK` the context is freed and there will be no further invocations for this flow.
@@ -235,7 +235,7 @@ The extension uses the Windows Filtering Platform (WFP) to register callouts at 
 4. **Stream Inspection**
     - The eBPF program performs parsing/inspection tasks on the stream.
     - If the “Need More Data” return code is used, the inspection until a definitive decision is returned.
-6. **Connection Termination or Continuation**
+5. **Connection Termination or Continuation**
     - Once a decision other than "Need More Data" is reached (Allow or Block), the lifecycle for that connection ends within the context of the filter program.
     - For “Block,” the connection is terminated.
     - For “Allow,” the connection proceeds without further filtering.
