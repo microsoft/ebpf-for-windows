@@ -278,11 +278,7 @@ function Invoke-Test
         $TestFilePath = "$pwd\$TestName"
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-        try {
-            Start-WPRTrace
-        } catch {
-            Write-Log "Failed to start WPR trace with error $_"
-        }
+        Start-WPRTrace
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
         } else {
@@ -301,11 +297,7 @@ function Invoke-Test
         Write-Log "`n==============================`n"
     }
     finally {
-        try {
-            Stop-WPRTrace -FileName $testName
-        } catch {
-            Write-Log "Failed to stop WPR trace for $testName with error $_"
-        }
+        Stop-WPRTrace -FileName $testName
     }
 }
 
