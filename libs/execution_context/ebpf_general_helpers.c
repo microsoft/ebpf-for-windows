@@ -212,7 +212,21 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
       EBPF_ARGUMENT_TYPE_ANYTHING,
       EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-};
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_get_current_process_start_key,
+     "bpf_get_current_process_start_key",
+     EBPF_RETURN_TYPE_INTEGER,
+     {0}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_get_current_tid,
+     "bpf_get_current_tid",
+     EBPF_RETURN_TYPE_INTEGER,
+     {0}} ,
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_get_thread_create_time,
+     "bpf_get_thread_create_time",
+     EBPF_RETURN_TYPE_INTEGER,
+     {0}},};
 
 #ifdef __cplusplus
 extern "C"

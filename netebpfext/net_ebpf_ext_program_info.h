@@ -95,7 +95,7 @@ enum _sock_addr_global_helper_functions
     SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
     SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_LOGON_ID,
     SOCK_ADDR_GLOBAL_HELPER_IS_CURRENT_ADMIN,
-    SOCK_ADDR_GLOBAL_HELPER_GET_SOCKET_COOKIE,
+    SOCK_ADDR_GLOBAL_HELPER_GET_SOCKET_COOKIE
 };
 
 // CGROUP_SOCK_ADDR global helper function prototypes.
@@ -199,7 +199,26 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
      .name = "bpf_get_current_pid_tgid",
      .return_type = EBPF_RETURN_TYPE_INTEGER,
      .arguments = {},
+     .implicit_context = true},
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_process_start_key,
+     .name = "bpf_get_current_process_start_key",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true},
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_tid,
+     .name = "bpf_get_current_tid",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true},
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_thread_create_time,
+     .name = "bpf_get_thread_create_time",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
      .implicit_context = true}};
+
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_ebpf_sock_ops_program_type_descriptor,
