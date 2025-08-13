@@ -703,12 +703,22 @@ _datagram_server_socket::close()
 }
 
 _stream_server_socket::_stream_server_socket(
-    int _sock_type, int _protocol, uint16_t _port, _In_ const sockaddr_storage& local_address, int expected_bind_error)
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    _In_ const sockaddr_storage& local_address,
+    int expected_bind_error,
+    int expected_listen_error)
     : _server_socket{_sock_type, _protocol, _port, local_address, expected_bind_error}, acceptex(nullptr),
       accept_socket(INVALID_SOCKET), message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
+    }
+
+    // If bind failed, skip listen setup.
+    if (expected_bind_error != 0) {
+        return;
     }
 
     GUID guid = WSAID_ACCEPTEX;
@@ -729,7 +739,25 @@ _stream_server_socket::_stream_server_socket(
     }
 
     // Post listen.
-    listen(socket, SOMAXCONN);
+    int listen_result = listen(socket, SOMAXCONN);
+    int listen_error = (listen_result != 0) ? WSAGetLastError() : 0;
+
+    if (expected_listen_error != 0) {
+        // Expect listen to fail.
+        if (listen_result == 0) {
+            FAIL("listen() was expected to fail but succeeded");
+        }
+        if (listen_error != expected_listen_error) {
+            FAIL("listen() failed with unexpected error " << listen_error << ", expected " << expected_listen_error);
+        }
+        // Listen failed as expected, don't continue setup.
+        return;
+    } else {
+        // Expect listen to succeed.
+        if (listen_result != 0) {
+            FAIL("listen() failed with error " << listen_error);
+        }
+    }
 
     // Create accept socket.
     initialize_accept_socket();

@@ -52,7 +52,17 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wf
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
      L"net eBPF sock_ops hook",
-     L"net eBPF sock_ops hook WFP filter"}};
+     L"net eBPF sock_ops hook WFP filter"},
+    {&FWPM_LAYER_ALE_AUTH_LISTEN_V4,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_LISTEN_V4_CALLOUT,
+     L"net eBPF sock_ops listen hook",
+     L"net eBPF sock_ops listen hook WFP filter"},
+    {&FWPM_LAYER_ALE_AUTH_LISTEN_V6,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_LISTEN_V6_CALLOUT,
+     L"net eBPF sock_ops listen hook",
+     L"net eBPF sock_ops listen hook WFP filter"}};
 
 #define NET_EBPF_SOCK_OPS_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_ops_wfp_filter_parameters)
 
@@ -386,6 +396,27 @@ wfp_ale_layer_fields_t wfp_flow_established_fields[] = {
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_FLOW_ESTABLISHED_V6_IP_LOCAL_INTERFACE}};
 
+// WFP layer fields for listen hooks.
+wfp_ale_layer_fields_t wfp_auth_listen_fields[] = {
+    // EBPF_HOOK_ALE_AUTH_LISTEN_V4
+    {FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_PORT,
+     0, // No remote address for listen.
+     0, // No remote port for listen.
+     0, // No protocol field for listen layer.
+     0, // No direction field for listen (always inbound).
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_INTERFACE},
+    // EBPF_HOOK_ALE_AUTH_LISTEN_V6
+    {FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_PORT,
+     0, // No remote address for listen.
+     0, // No remote port for listen.
+     0, // No protocol field for listen layer.
+     0, // No direction field for listen (always inbound).
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_INTERFACE}};
+
 static void
 _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -422,6 +453,53 @@ _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
     sock_ops->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
     sock_ops->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
     sock_ops->protocol = incoming_values[fields->protocol_field].value.uint8;
+    sock_ops->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_ops->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
+    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+        sock_ops_context->process_id = incoming_metadata_values->processId;
+    } else {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "FWPS_METADATA_FIELD_PROCESS_ID not present",
+            hook_id);
+
+        sock_ops_context->process_id = 0;
+    }
+}
+
+static void
+_net_ebpf_extension_sock_ops_copy_wfp_listen_fields(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ net_ebpf_sock_ops_t* sock_ops_context)
+{
+    uint16_t wfp_layer_id = incoming_fixed_values->layerId;
+    net_ebpf_extension_hook_id_t hook_id = net_ebpf_extension_get_hook_id_from_wfp_layer_id(wfp_layer_id);
+    wfp_ale_layer_fields_t* fields = &wfp_auth_listen_fields[hook_id - EBPF_HOOK_ALE_AUTH_LISTEN_V4];
+    bpf_sock_ops_t* sock_ops = &sock_ops_context->context;
+
+    FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
+
+    // Listen operations are always of type BPF_SOCK_OPS_TCP_LISTEN_CB.
+    sock_ops->op = BPF_SOCK_OPS_TCP_LISTEN_CB;
+
+    // Copy IP address fields.
+    if (hook_id == EBPF_HOOK_ALE_AUTH_LISTEN_V4) {
+        sock_ops->family = AF_INET;
+        sock_ops->local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
+        sock_ops->remote_ip4 = 0; // No remote address for listen.
+    } else {
+        sock_ops->family = AF_INET6;
+        RtlCopyMemory(
+            sock_ops->local_ip6,
+            incoming_values[fields->local_ip_address_field].value.byteArray16,
+            sizeof(FWP_BYTE_ARRAY16));
+        memset(sock_ops->remote_ip6, 0, sizeof(sock_ops->remote_ip6)); // No remote address for listen.
+    }
+    sock_ops->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
+    sock_ops->remote_port = 0;        // No remote port for listen.
+    sock_ops->protocol = IPPROTO_TCP; // Only supported for TCP listen.
     sock_ops->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
     sock_ops->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
     if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
@@ -622,6 +700,100 @@ Exit:
     if (local_flow_context != NULL) {
         ExFreePool(local_flow_context);
     }
+}
+
+//
+// WFP classifyFn callback function for listen operations.
+//
+void
+net_ebpf_extension_sock_ops_listen_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+{
+    uint32_t result;
+    net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_sock_ops_t sock_ops_context = {0};
+    uint32_t client_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    ebpf_result_t program_result;
+
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    filter_context = (net_ebpf_extension_sock_ops_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+    if (filter_context == NULL) {
+        goto Exit;
+    }
+
+    if (filter_context->base.context_deleting) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_listen_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        goto Exit;
+    }
+
+    // Copy WFP fields for listen operation.
+    _net_ebpf_extension_sock_ops_copy_wfp_listen_fields(
+        incoming_fixed_values, incoming_metadata_values, &sock_ops_context);
+
+    client_compartment_id = filter_context->compartment_id;
+    ASSERT(
+        (client_compartment_id == UNSPECIFIED_COMPARTMENT_ID) ||
+        (client_compartment_id == sock_ops_context.context.compartment_id));
+    if (client_compartment_id != UNSPECIFIED_COMPARTMENT_ID &&
+        client_compartment_id != sock_ops_context.context.compartment_id) {
+        // The client is not interested in this compartment Id.
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "The sock_ops eBPF program is not interested in this compartmentId",
+            sock_ops_context.context.compartment_id);
+        goto Exit;
+    }
+
+    program_result = net_ebpf_extension_hook_invoke_programs(&sock_ops_context.context, &filter_context->base, &result);
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        // No program is attached to this hook.
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_listen_classify - No attached client.");
+        goto Exit;
+    } else if (program_result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_listen_classify - Program invocation failed.",
+            program_result);
+        goto Exit;
+    }
+
+    // For listen operations, the result determines whether to allow or block the listen operation.
+    classify_output->actionType = (result == 0) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
+    if (classify_output->actionType == FWP_ACTION_BLOCK) {
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+    }
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        "Listen operation processed, port:",
+        sock_ops_context.context.local_port);
+
+Exit:
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 static ebpf_result_t

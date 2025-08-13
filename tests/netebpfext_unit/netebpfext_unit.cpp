@@ -980,6 +980,7 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+
 // Thread function for concurrent sock_ops invocation.
 void
 sock_ops_thread_function(
@@ -1134,4 +1135,147 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
 
     REQUIRE(failure_count == 0);
 }
+
+TEST_CASE("sock_ops_listen_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test listen operations that should be allowed.
+    client_context->sock_ops_action = 0;
+
+    FWP_ACTION_TYPE result = helper.test_sock_ops_listen_v4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_sock_ops_listen_v6(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test listen operations that should be blocked.
+    client_context->sock_ops_action = -1;
+
+    result = helper.test_sock_ops_listen_v4(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_sock_ops_listen_v6(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+}
+
+TEST_CASE("sock_ops_listen_context", "[netebpfext]")
+{
+    netebpf_ext_helper_t helper;
+    auto sock_ops_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
+    REQUIRE(sock_ops_program_data != nullptr);
+
+    size_t output_data_size = 0;
+
+    // Test BPF_SOCK_OPS_TCP_LISTEN_CB context for IPv4.
+    bpf_sock_ops_t input_context_v4 = {
+        BPF_SOCK_OPS_TCP_LISTEN_CB,
+        AF_INET,
+        0x7f000001,         // 127.0.0.1 in host byte order.
+        8080,               // Port 8080.
+        0,                  // No remote IP for listen.
+        0,                  // No remote port for listen.
+        IPPROTO_TCP,        // TCP protocol.
+        0x12345678,         // Compartment ID.
+        0x1234567890abcdef, // Interface LUID.
+    };
+    size_t output_context_size = sizeof(bpf_sock_ops_t);
+    bpf_sock_ops_t output_context = {};
+    bpf_sock_ops_t* sock_ops_context = nullptr;
+
+    REQUIRE(
+        sock_ops_program_data->context_create(
+            nullptr, 0, (const uint8_t*)&input_context_v4, sizeof(input_context_v4), (void**)&sock_ops_context) == 0);
+
+    // Verify the context was created with the correct listen operation type.
+    REQUIRE(sock_ops_context->op == BPF_SOCK_OPS_TCP_LISTEN_CB);
+    REQUIRE(sock_ops_context->family == AF_INET);
+    REQUIRE(sock_ops_context->local_ip4 == 0x7f000001);
+    REQUIRE(sock_ops_context->local_port == 8080);
+    REQUIRE(sock_ops_context->remote_ip4 == 0);  // No remote address for listen.
+    REQUIRE(sock_ops_context->remote_port == 0); // No remote port for listen.
+    REQUIRE(sock_ops_context->protocol == IPPROTO_TCP);
+
+    // Modify the context to test updates.
+    sock_ops_context->local_port = 9090;
+    sock_ops_context->compartment_id = 0x87654321;
+
+    output_context_size = sizeof(bpf_sock_ops_t);
+    output_data_size = 0;
+
+    sock_ops_program_data->context_destroy(
+        sock_ops_context, nullptr, &output_data_size, (uint8_t*)&output_context, &output_context_size);
+
+    REQUIRE(output_data_size == 0);
+    REQUIRE(output_context_size == sizeof(bpf_sock_ops_t));
+    REQUIRE(output_context.op == BPF_SOCK_OPS_TCP_LISTEN_CB);
+    REQUIRE(output_context.family == AF_INET);
+    REQUIRE(output_context.local_ip4 == 0x7f000001);
+    REQUIRE(output_context.local_port == 9090); // Modified value.
+    REQUIRE(output_context.remote_ip4 == 0);
+    REQUIRE(output_context.remote_port == 0);
+    REQUIRE(output_context.protocol == IPPROTO_TCP);
+    REQUIRE(output_context.compartment_id == 0x87654321); // Modified value.
+
+    // Test BPF_SOCK_OPS_TCP_LISTEN_CB context for IPv6.
+    uint32_t local_ipv6[4] = {0x00000000, 0x00000000, 0x00000000, 0x00000001};  // ::1 localhost IPv6.
+    uint32_t remote_ipv6[4] = {0x00000000, 0x00000000, 0x00000000, 0x00000000}; // no remote for listen.
+    bpf_sock_ops_t input_context_v6{};
+    input_context_v6.op = BPF_SOCK_OPS_TCP_LISTEN_CB;
+    input_context_v6.family = AF_INET6;
+    memcpy(input_context_v6.local_ip6, local_ipv6, sizeof(local_ipv6));
+    input_context_v6.local_port = 443;
+    memcpy(input_context_v6.remote_ip6, remote_ipv6, sizeof(remote_ipv6));
+    input_context_v6.remote_port = 0; // no remote port for listen.
+    input_context_v6.protocol = IPPROTO_TCP;
+    input_context_v6.compartment_id = 0x11223344;
+    input_context_v6.interface_luid = 0xfedcba0987654321;
+
+    sock_ops_context = nullptr;
+    REQUIRE(
+        sock_ops_program_data->context_create(
+            nullptr, 0, (const uint8_t*)&input_context_v6, sizeof(input_context_v6), (void**)&sock_ops_context) == 0);
+
+    // Verify IPv6 listen context.
+    REQUIRE(sock_ops_context->op == BPF_SOCK_OPS_TCP_LISTEN_CB);
+    REQUIRE(sock_ops_context->family == AF_INET6);
+    REQUIRE(sock_ops_context->local_ip6[0] == 0);
+    REQUIRE(sock_ops_context->local_ip6[1] == 0);
+    REQUIRE(sock_ops_context->local_ip6[2] == 0);
+    REQUIRE(sock_ops_context->local_ip6[3] == 1);
+    REQUIRE(sock_ops_context->local_port == 443);
+    REQUIRE(sock_ops_context->remote_ip6[0] == 0);
+    REQUIRE(sock_ops_context->remote_ip6[1] == 0);
+    REQUIRE(sock_ops_context->remote_ip6[2] == 0);
+    REQUIRE(sock_ops_context->remote_ip6[3] == 0);
+    REQUIRE(sock_ops_context->remote_port == 0);
+    REQUIRE(sock_ops_context->protocol == IPPROTO_TCP);
+
+    output_context_size = sizeof(bpf_sock_ops_t);
+    output_data_size = 0;
+    memset(&output_context, 0, sizeof(output_context));
+
+    sock_ops_program_data->context_destroy(
+        sock_ops_context, nullptr, &output_data_size, (uint8_t*)&output_context, &output_context_size);
+
+    REQUIRE(output_context.op == BPF_SOCK_OPS_TCP_LISTEN_CB);
+    REQUIRE(output_context.family == AF_INET6);
+    REQUIRE(output_context.local_ip6[3] == 1);
+    REQUIRE(output_context.local_port == 443);
+    REQUIRE(output_context.remote_port == 0);
+    REQUIRE(output_context.protocol == IPPROTO_TCP);
+}
+
 #pragma endregion sock_ops

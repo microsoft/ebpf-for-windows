@@ -202,7 +202,9 @@ typedef enum _bpf_sock_op_type
     /** @brief Indicates when a passive (inbound) connection is established. **/
     BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB,
     /** @brief Indicates when a connection is deleted. **/
-    BPF_SOCK_OPS_CONNECTION_DELETED_CB
+    BPF_SOCK_OPS_CONNECTION_DELETED_CB,
+    /** @brief Indicates when a connection transitions to the listening state. **/
+    BPF_SOCK_OPS_TCP_LISTEN_CB,
 } bpf_sock_op_type_t;
 
 typedef struct _bpf_sock_ops
