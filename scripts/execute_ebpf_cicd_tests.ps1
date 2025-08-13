@@ -98,7 +98,7 @@ $Job = Start-Job -ScriptBlock {
         Run-KernelTests -Config $Config
         Write-Log "Running kernel tests completed"
 
-         -GranularTracing $GranularTracing
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
