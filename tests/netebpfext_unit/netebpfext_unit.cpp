@@ -906,20 +906,22 @@ typedef enum _sock_ops_test_action
 } sock_ops_test_action_t;
 
 static inline sock_ops_test_action_t
-_get_sock_ops_action(uint16_t destination_port)
+_get_sock_ops_action(sock_ops_test_action_t action, uint16_t destination_port)
 {
+    if (action != SOCK_OPS_TEST_ACTION_ROUND_ROBIN) {
+        return action;
+    }
     return (sock_ops_test_action_t)(destination_port % SOCK_OPS_TEST_ACTION_ROUND_ROBIN);
 }
 
 static inline FWP_ACTION_TYPE
-_get_fwp_sock_ops_action(uint16_t destination_port)
+_get_fwp_sock_ops_action(sock_ops_test_action_t action)
 {
-    sock_ops_test_action_t action = _get_sock_ops_action(destination_port);
-    if (action == SOCK_OPS_TEST_ACTION_PERMIT) {
-        return FWP_ACTION_PERMIT;
+    if (action == SOCK_OPS_TEST_ACTION_BLOCK) {
+        return FWP_ACTION_BLOCK;
     }
 
-    return FWP_ACTION_BLOCK;
+    return FWP_ACTION_PERMIT;
 }
 
 typedef struct test_sock_ops_client_context_t
@@ -946,7 +948,7 @@ netebpfext_unit_invoke_sock_ops_program(
     if (action == SOCK_OPS_TEST_ACTION_ROUND_ROBIN) {
         // If the action is round robin, decide the action based on the local port number.
         bpf_sock_ops_t* sock_ops_context = (bpf_sock_ops_t*)context;
-        action = _get_sock_ops_action(sock_ops_context->local_port);
+        action = _get_sock_ops_action(SOCK_OPS_TEST_ACTION_ROUND_ROBIN, sock_ops_context->local_port);
     }
 
     switch (action) {
@@ -1081,7 +1083,8 @@ sock_ops_thread_function(
     size_t iteration_count,
     uint8_t flow_duration_seconds,
     uint16_t start_port,
-    uint16_t end_port)
+    uint16_t end_port,
+    sock_ops_test_action_t action)
 {
     FWP_ACTION_TYPE result;
     bool fault_injection_enabled = cxplat_fault_injection_is_enabled();
@@ -1108,8 +1111,14 @@ sock_ops_thread_function(
 
         uint64_t flow_id = 0;
         result = helper->test_sock_ops_v4(parameters, &flow_id);
-        flow_ids.push_back(flow_id);
-        auto expected_result = _get_fwp_sock_ops_action(port_number);
+
+        sock_ops_test_action_t iteration_action = _get_sock_ops_action(action, port_number);
+        if (iteration_action != SOCK_OPS_TEST_ACTION_FAILURE) {
+            // Create a list of flow context ids to delete after timeout. Flow context is created only if the invocation
+            // is successful.
+            flow_ids.push_back(flow_id);
+        }
+        auto expected_result = _get_fwp_sock_ops_action(iteration_action);
 
         count++;
 
@@ -1163,7 +1172,8 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
             CONCURRENT_THREAD_ITERATION_COUNT,
             CONCURRENT_THREAD_RUN_TIME_IN_SECONDS,
             parameters.destination_port,
-            parameters.destination_port);
+            parameters.destination_port,
+            (sock_ops_test_action_t)client_context->sock_ops_action);
     }
 
     // Wait for all threads to stop.
@@ -1200,7 +1210,6 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
             flow_duration++;
         }
         netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
-        parameters[i].destination_port = (uint16_t)(1000 + i);
         threads.emplace_back(
             sock_ops_thread_function,
             &helper,
@@ -1209,7 +1218,8 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
             CONCURRENT_THREAD_ITERATION_COUNT,
             flow_duration,
             (uint16_t)(1000 + i),
-            (uint16_t)(1000 + i + 1000));
+            (uint16_t)(1000 + i + 1000),
+            (sock_ops_test_action_t)client_context->sock_ops_action);
     }
 
     // Wait for all threads to stop.
