@@ -422,16 +422,17 @@ function Invoke-ConnectRedirectTestHelper
 function Stop-eBPFComponents {
     param(
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false,
-        [Parameter(Mandatory = $true)] [string] $LogFileName
+        [Parameter(Mandatory = $true)] [string] $LogFileName,
+        [Parameter(Mandatory = $false)] [bool] $GranularTracing = $false
     )
     Write-Log "Stopping eBPF components"
     $scriptBlock = {
-        param($WorkingDirectory, $LogFileName)
+        param($WorkingDirectory, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-        Stop-eBPFComponents
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     }
-    $argList = @($script:WorkingDirectory, $LogFileName)
+    $argList = @($script:WorkingDirectory, $LogFileName, $GranularTracing)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
