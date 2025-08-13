@@ -481,6 +481,233 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     SAFE_REQUIRE(result == 0);
 }
 
+void
+listen_monitor_test(ADDRESS_FAMILY address_family, uint16_t listen_port, uint32_t protocol)
+{
+    native_module_helper_t helper;
+    helper.initialize("sockops", _is_main_thread);
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Ring buffer event callback context.
+    std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
+    context->test_event_count = 1; // Expect one listen event
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
+    SAFE_REQUIRE(_program != nullptr);
+
+    uint64_t process_id = get_current_pid_tgid();
+    // Ignore the thread Id.
+    process_id >>= 32;
+
+    // Create expected audit entry for listen operation
+    connection_tuple_t tuple{};
+    if (address_family == AF_INET) {
+        tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    } else {
+        memcpy(tuple.local_ip.ipv6, &in6addr_loopback, sizeof(tuple.local_ip.ipv6));
+    }
+    tuple.local_port = htons(listen_port);
+    tuple.remote_port = 0; // No remote port for listen
+    tuple.protocol = protocol;
+    NET_LUID net_luid = {};
+    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    tuple.interface_luid = net_luid.Value;
+
+    std::vector<std::vector<char>> audit_entry_list;
+    audit_entry_t audit_entry = {0};
+
+    // Listen operation
+    audit_entry.tuple = tuple;
+    audit_entry.process_id = process_id;
+    audit_entry.connected = true; // Listen is considered a connection state change
+    audit_entry.outbound = false; // Listen is always inbound-facing
+    char* p = reinterpret_cast<char*>(&audit_entry);
+    audit_entry_list.push_back(std::vector<char>(p, p + sizeof(audit_entry_t)));
+
+    context->records = &audit_entry_list;
+
+    // Get the std::future from the promise field in ring buffer event context
+    auto ring_buffer_event_callback = context->ring_buffer_event_promise.get_future();
+
+    // Create a new ring buffer manager and subscribe to ring buffer events.
+    bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "audit_map");
+    SAFE_REQUIRE(ring_buffer_map != nullptr);
+    context->ring_buffer = ring_buffer__new(
+        bpf_map__fd(ring_buffer_map), (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
+    SAFE_REQUIRE(context->ring_buffer != nullptr);
+
+    bpf_map* connection_map = bpf_object__find_map_by_name(object, "connection_map");
+    SAFE_REQUIRE(connection_map != nullptr);
+
+    // Update connection map to allow listen operation
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Attach the sockops program.
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Create a listening socket to trigger the listen hook
+    SOCKET listen_socket = INVALID_SOCKET;
+    if (protocol == IPPROTO_TCP) {
+        listen_socket = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
+    } else {
+        listen_socket = socket(address_family, SOCK_DGRAM, IPPROTO_UDP);
+    }
+    SAFE_REQUIRE(listen_socket != INVALID_SOCKET);
+
+    // Bind to the specified port
+    sockaddr_storage bind_address{};
+    int addr_size = 0;
+    if (address_family == AF_INET) {
+        sockaddr_in* addr_v4 = reinterpret_cast<sockaddr_in*>(&bind_address);
+        addr_v4->sin_family = AF_INET;
+        addr_v4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr_v4->sin_port = htons(listen_port);
+        addr_size = sizeof(sockaddr_in);
+    } else {
+        sockaddr_in6* addr_v6 = reinterpret_cast<sockaddr_in6*>(&bind_address);
+        addr_v6->sin6_family = AF_INET6;
+        addr_v6->sin6_addr = in6addr_loopback;
+        addr_v6->sin6_port = htons(listen_port);
+        addr_size = sizeof(sockaddr_in6);
+    }
+
+    int bind_result = bind(listen_socket, reinterpret_cast<sockaddr*>(&bind_address), addr_size);
+    SAFE_REQUIRE(bind_result == 0);
+
+    // For TCP, call listen() to trigger the listen hook
+    if (protocol == IPPROTO_TCP) {
+        int listen_result = listen(listen_socket, 5);
+        SAFE_REQUIRE(listen_result == 0);
+    }
+
+    // Wait for event handler getting notifications for the listen audit event
+    SAFE_REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+
+    // Mark the event context as canceled, such that the event callback stops processing events.
+    context->canceled = true;
+
+    // Unsubscribe.
+    context->unsubscribe();
+
+    // Clean up the socket
+    closesocket(listen_socket);
+}
+
+TEST_CASE("listen_monitor_test_tcp_v4", "[sock_ops_tests]")
+{
+    listen_monitor_test(AF_INET, SOCKET_TEST_PORT + 100, IPPROTO_TCP);
+}
+
+TEST_CASE("listen_monitor_test_tcp_v6", "[sock_ops_tests]")
+{
+    listen_monitor_test(AF_INET6, SOCKET_TEST_PORT + 101, IPPROTO_TCP);
+}
+
+TEST_CASE("listen_monitor_test_udp_v4", "[sock_ops_tests]")
+{
+    listen_monitor_test(AF_INET, SOCKET_TEST_PORT + 102, IPPROTO_UDP);
+}
+
+TEST_CASE("listen_monitor_test_udp_v6", "[sock_ops_tests]")
+{
+    listen_monitor_test(AF_INET6, SOCKET_TEST_PORT + 103, IPPROTO_UDP);
+}
+
+TEST_CASE("listen_hook_enforcement_test", "[sock_ops_tests]")
+{
+    native_module_helper_t helper;
+    helper.initialize("sockops", _is_main_thread);
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
+    SAFE_REQUIRE(_program != nullptr);
+
+    bpf_map* connection_map = bpf_object__find_map_by_name(object, "connection_map");
+    SAFE_REQUIRE(connection_map != nullptr);
+
+    // Create a tuple for the listen operation that will be blocked
+    connection_tuple_t tuple{};
+    tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    tuple.local_port = htons(SOCKET_TEST_PORT + 200);
+    tuple.remote_port = 0; // No remote port for listen
+    tuple.protocol = IPPROTO_TCP;
+    NET_LUID net_luid = {};
+    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    tuple.interface_luid = net_luid.Value;
+
+    // Set the verdict to block the listen operation
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Attach the sockops program.
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Create a listening socket
+    SOCKET listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    SAFE_REQUIRE(listen_socket != INVALID_SOCKET);
+
+    // Bind to the specified port
+    sockaddr_in bind_address{};
+    bind_address.sin_family = AF_INET;
+    bind_address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    bind_address.sin_port = htons(SOCKET_TEST_PORT + 200);
+
+    int bind_result = bind(listen_socket, reinterpret_cast<sockaddr*>(&bind_address), sizeof(bind_address));
+    SAFE_REQUIRE(bind_result == 0);
+
+    // Try to listen - this should be blocked by the eBPF program
+    int listen_result = listen(listen_socket, 5);
+
+    // The listen should fail because the eBPF program blocked it
+    // Note: The exact error code may vary depending on the WFP implementation
+    SAFE_REQUIRE(listen_result != 0);
+    SAFE_REQUIRE(WSAGetLastError() != 0);
+
+    // Clean up the socket
+    closesocket(listen_socket);
+
+    // Now test with a permitted listen operation
+    connection_tuple_t permitted_tuple{};
+    permitted_tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    permitted_tuple.local_port = htons(SOCKET_TEST_PORT + 201);
+    permitted_tuple.remote_port = 0;
+    permitted_tuple.protocol = IPPROTO_TCP;
+    permitted_tuple.interface_luid = net_luid.Value;
+
+    // Set the verdict to allow the listen operation
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &permitted_tuple, &verdict, EBPF_ANY) == 0);
+
+    // Create another listening socket
+    SOCKET permitted_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    SAFE_REQUIRE(permitted_socket != INVALID_SOCKET);
+
+    // Bind to the permitted port
+    bind_address.sin_port = htons(SOCKET_TEST_PORT + 201);
+    bind_result = bind(permitted_socket, reinterpret_cast<sockaddr*>(&bind_address), sizeof(bind_address));
+    SAFE_REQUIRE(bind_result == 0);
+
+    // This listen should succeed
+    listen_result = listen(permitted_socket, 5);
+    SAFE_REQUIRE(listen_result == 0);
+
+    // Clean up the socket
+    closesocket(permitted_socket);
+}
+
 // This function populates map polcies for multi-attach tests.
 // It assumes that the destination and proxy are loopback addresses.
 static void
