@@ -474,6 +474,9 @@ function Import-ResultsFromVM
                     foreach ($line in get-content -Path .\StdOut.txt) {
                         write-log ( "  `t" + $line)
                     }
+                }
+
+                try {
                     Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
                     Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
@@ -487,6 +490,10 @@ function Import-ResultsFromVM
                     if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\$EtlFile.zip")) {
                         Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL file."
                     }
+                } catch {
+                    # Log failures but don't treat as fatal, as some cases may not have a session running
+                    Write-Log "Failed to stop KM ETW session $_"
+                }
 
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
@@ -612,6 +619,9 @@ function Import-ResultsFromHost {
             foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
                 Write-Log ( "  \t" + $line)
             }
+        }
+
+        try {
             Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
             Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
             wpr.exe -stop "$WorkingDirectory\$EtlFile"
@@ -625,6 +635,9 @@ function Import-ResultsFromHost {
             } else {
                 Write-Log "Used uncompressed ETL fallback: $($result.FinalPath)"
             }
+        } catch {
+            # Log failures but don't treat as fatal, as some cases may not have a session running
+            Write-Log "Failed to stop KM ETW session $_"
         }
     }
 }
