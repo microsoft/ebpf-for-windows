@@ -98,9 +98,9 @@ function Stop-WPRTrace {
         $etlFileName = "${FileName}_${timestamp}.etl"
         $traceFile = Join-Path $outputDir $etlFileName
 
-        Write-Log "Stopping WPR trace: $traceFile" -ForegroundColor Cyan
+        Write-Log "Stopping WPR trace" -ForegroundColor Cyan
 
-        wpr.exe -stop "$traceFile"
+        $null = wpr.exe -stop "$traceFile" 2>&1
         $exitCode = $LASTEXITCODE
 
         if ($exitCode -ne 0) {
@@ -109,6 +109,6 @@ function Stop-WPRTrace {
 
         Write-Log "Successfully stopped WPR trace: $traceFile"
     } catch {
-        Write-Log "Exception stopping WPR trace: $_" -ForegroundColor Red
+        Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
     }
 }
