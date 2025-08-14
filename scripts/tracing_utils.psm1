@@ -39,7 +39,7 @@ function Start-WPRTrace {
             $null = wpr.exe -cancel 2>&1
             Write-Log "WPR cancel completed (exit code: $LASTEXITCODE)"
         } catch {
-            Write-Log "WPR cancel failed or not needed: $_"
+            Write-Log "WPR cancel failed. This may be expected if no WPR session was in progress. Error: $_"
         }
 
         # Build profile path and check if it exists
