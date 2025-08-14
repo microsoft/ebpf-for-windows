@@ -527,6 +527,8 @@ function Import-ResultsFromVM
             -Recurse `
             -Force `
             -ErrorAction Ignore 2>&1 | Write-Log
+
+        Write-Log "Completed importing results from $VMName"
     }
     # Move runner test logs to TestLogs folder.
     Write-Log "Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs"
@@ -554,6 +556,7 @@ function Import-ResultsFromHost {
         $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
         Stop-WPRTrace -FileName $baseFileName
     }
+    Write-Log "Completed Importing results from host..."
 }
 
 #

@@ -260,8 +260,10 @@ function Invoke-Test
     param([Parameter(Mandatory = $True)][string] $TestName,
           [Parameter(Mandatory = $False)][string] $TestArgs = "",
           [Parameter(Mandatory = $False)][string] $InnerTestName = "",
+          [Parameter(Mandatory = $False)][string] $TraceFileName = "",
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
-          [Parameter(Mandatory = $True)][int] $TestHangTimeout)
+          [Parameter(Mandatory = $True)][int] $TestHangTimeout,
+          [Parameter(Mandatory = $False)][switch] $SkipTracing)
 
     try {
         # Initialize arguments.
@@ -278,7 +280,9 @@ function Invoke-Test
         $TestFilePath = "$pwd\$TestName"
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-        Start-WPRTrace
+        if (-not $SkipTracing) {
+            Start-WPRTrace
+        }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
         } else {
@@ -297,7 +301,16 @@ function Invoke-Test
         Write-Log "`n==============================`n"
     }
     finally {
-        Stop-WPRTrace -FileName $testName
+        if (-not $SkipTracing) {
+            if ($TraceFileName -ne "") {
+                $traceName = $TraceFileName
+            } elseif ($InnerTestName -ne "") {
+                $traceName = $InnerTestName
+            } else {
+                $traceName = $testName
+            }
+            Stop-WPRTrace -FileName $traceName
+        }
     }
 }
 
@@ -338,7 +351,7 @@ function Invoke-CICDTests
     )
 
     foreach ($Test in $TestList) {
-        Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+        Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName $($Test.Test)
     }
 
     # Now run the system tests.
@@ -348,12 +361,12 @@ function Invoke-CICDTests
         foreach ($Test in $SystemTestList) {
             $TestCommand = "PsExec64.exe"
             $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
-            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName "$($Test.Test)_System"
         }
     }
 
     if ($Env:BUILD_CONFIGURATION -eq "Release") {
-        Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
+        Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs -SkipTracing
     }
 
     Pop-Location
@@ -364,19 +377,20 @@ function Invoke-XDPTest
     param([parameter(Mandatory = $true)][string] $RemoteIPV4Address,
           [parameter(Mandatory = $true)][string] $RemoteIPV6Address,
           [parameter(Mandatory = $true)][string] $XDPTestName,
-          [parameter(Mandatory = $true)][string] $WorkingDirectory)
+          [parameter(Mandatory = $true)][string] $WorkingDirectory,
+          [parameter(Mandatory = $true)][string] $TraceFileName)
 
     Push-Location $WorkingDirectory
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V4"
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V6"
 
     Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
     Write-Log "`n`n"
@@ -418,7 +432,7 @@ function Invoke-ConnectRedirectTest
             " --user-type $UserType"
 
         Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
-        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_v6_$($UserType)"
 
         ## Run test with only v4 program attached.
         $TestArguments =
@@ -433,7 +447,7 @@ function Invoke-ConnectRedirectTest
             " [connect_authorize_redirect_tests_v4]"
 
         Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
-        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_$($UserType)"
 
         ## Run tests with only v6 program attached.
         $TestArguments =
@@ -448,7 +462,7 @@ function Invoke-ConnectRedirectTest
             " [connect_authorize_redirect_tests_v6]"
 
         Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
-        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v6_$($UserType)"
 
         Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
 
