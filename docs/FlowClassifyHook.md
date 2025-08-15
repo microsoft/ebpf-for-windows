@@ -72,14 +72,6 @@ The proposed stream inspection extension introduces a new eBPF program type for 
 _Note:_ Using a single program type for all 3 hooks enables tail calls between programs attached to the 3 hooks
 to simplify flow classification designs.
 
-### Attach Types
-
-The stream inspection extension defines two new attach types for the `EBPF_PROGRAM_TYPE_FLOW_CLASSIFY` program type:
-
-- **EBPF_ATTACH_TYPE_FLOW_CLASSIFY**: For attaching eBPF programs that perform stream-layer flow classification. Programs attached with this type are invoked for both new flow establishment (at ALE flow established layer) and stream data inspection (at WFP stream layer).
-
-- **EBPF_ATTACH_TYPE_FLOW_CLEANUP**: For attaching eBPF programs that handle cleanup of flows that are deleted while still being classified (i.e., flows where the last classification action was `FLOW_CLASSIFY_NEED_MORE_DATA`). Programs attached with this type are only invoked when a flow is being deleted.
-
 ```c
 typedef enum _ebpf_flow_classify_action
 {
@@ -136,7 +128,7 @@ typedef struct _ebpf_flow_classify
 
 ### Hooks
 
-1. **new_flow_classify**
+1. **EBPF_ATTACH_TYPE_NEW_FLOW_CLASSIFY**
    - **Invocation:** Invoked when a new TCP flow is established (at the WFP flow established layer).
    - **Purpose:** Allows the eBPF program to make an initial classification decision based on connection metadata (addresses, ports, process, etc.) before any stream data is seen.
    - **Return values:**
@@ -144,7 +136,7 @@ typedef struct _ebpf_flow_classify
      - `FLOW_CLASSIFY_NEED_MORE_DATA`: The flow requires inspection at the stream layer; subsequent TCP segments will trigger `stream_flow_classify` invocations.
    - **Notes:** This avoids unnecessary stream processing for flows that do not require data inspection at the stream layer.
 
-2. **stream_flow_classify**
+2. **EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY**
    - **Invocation:** Called for each TCP segment on flows that were marked as needing more data by `new_flow_classify`.
    - **Purpose:** Allows the eBPF program to inspect stream data and allow/block the connection, or request more data if classification is not yet possible.
    - **Return values:**
@@ -153,7 +145,7 @@ typedef struct _ebpf_flow_classify
      - `FLOW_CLASSIFY_NEED_MORE_DATA`: The current segment is allowed, but the program will be invoked again for subsequent segments until a final decision is made.
    - **Notes:** This is only invoked for each flow segment until allow/block are returned.
 
-3. **flow_deleted**
+3. **EBPF_ATTACH_TYPE_FLOW_DELETED**
    - **Invocation:** Called when a flow is deleted (e.g., connection teardown) and the last action for the flow was `FLOW_CLASSIFY_NEED_MORE_DATA` (i.e., the program never returned a final allow/block decision).
    - **Purpose:** Allows the eBPF program to perform cleanup of any per-flow state (e.g., in maps) that was maintained during inspection.
    - **Return value:**
