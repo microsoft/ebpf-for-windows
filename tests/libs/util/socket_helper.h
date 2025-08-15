@@ -13,9 +13,10 @@
 #include <Mswsock.h>
 #include <mstcpip.h>
 #include <netiodef.h>
+#include <vector>
 
-#define CLIENT_MESSAGE "request from client"
-#define SERVER_MESSAGE "response from server"
+#define CLIENT_MESSAGE "ClientRequestMessage"
+#define SERVER_MESSAGE "ServerResponseMessage"
 
 typedef enum _socket_family
 {
@@ -75,10 +76,8 @@ typedef class _base_socket
     std::vector<char> recv_buffer;
     uint32_t recv_flags;
     uint32_t bytes_received = 0;
-
-  private:
     sockaddr_storage local_address;
-    int local_address_size;
+    mutable int local_address_size;
 } base_socket_t;
 
 /**
@@ -119,7 +118,12 @@ typedef class _datagram_client_socket : public _client_socket
 {
   public:
     _datagram_client_socket(
-        int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual, bool connected_udp = false);
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        socket_family_t family = Dual,
+        bool connected_udp = false,
+        const sockaddr_storage& source_address = {});
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -172,7 +176,7 @@ typedef class _server_socket : public _base_socket
         MODE_NO_TIMEOUT,
         MODE_DONT_CARE
     };
-    _server_socket(int _sock_type, int _protocol, uint16_t port);
+    _server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
     ~_server_socket();
     void
     complete_async_receive(bool timeout_expected = false);
@@ -196,8 +200,6 @@ typedef class _server_socket : public _base_socket
 
   protected:
     WSAOVERLAPPED overlapped;
-
-  private:
     LPFN_WSARECVMSG receive_message;
 } receiver_socket_t;
 
@@ -207,7 +209,7 @@ typedef class _server_socket : public _base_socket
 typedef class _datagram_server_socket : public _server_socket
 {
   public:
-    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port);
+    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
     void
     post_async_receive();
     void
@@ -224,6 +226,8 @@ typedef class _datagram_server_socket : public _server_socket
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
+    std::vector<char> control_buffer;
+    WSAMSG recv_msg;
 } datagram_server_socket_t;
 
 /**
@@ -232,7 +236,7 @@ typedef class _datagram_server_socket : public _server_socket
 typedef class _stream_server_socket : public _server_socket
 {
   public:
-    _stream_server_socket(int _sock_type, int _protocol, uint16_t port);
+    _stream_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
     ~_stream_server_socket();
     void
     post_async_receive();

@@ -5,6 +5,7 @@ param (
     [Parameter(Mandatory = $True)][bool] $ExecuteOnHost = $false,
     # The following parameters are only used when ExecuteOnVM is true
     [Parameter(Mandatory = $True)][bool] $ExecuteOnVM = $false,
+    [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
     [Parameter(Mandatory = $True)] [string] $VMName,
     [Parameter(Mandatory = $True)] [string] $Admin,
     [Parameter(Mandatory = $True)] [SecureString] $AdminPassword,
@@ -33,7 +34,11 @@ function Invoke-OnHostOrVM {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
-        Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        if ($script:VMIsRemote) {
+            Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        } else {
+            Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        }
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }
@@ -122,6 +127,7 @@ function Start-ProcessHelper {
         Start-Process -FilePath $ProgramName -ArgumentList $Parameters
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
+    Write-Log "Starting process $ProgramName with arguments $Parameters"
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
@@ -343,18 +349,39 @@ function Invoke-ConnectRedirectTestHelper
     $ProxyPort = $ConnectRedirectTestConfig.ProxyPort
 
     $ProgramName = "tcp_udp_listener.exe"
-    $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
-    $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
-    $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
-    $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
-
-    $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
-    # Start TCP and UDP listeners on both the VMs.
-    foreach ($parameter in $ParameterArray)
-    {
-        Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter
+    if ($script:TestMode -eq "Regression") {
+        # Previous versions of tcp_udp_listener did not suport the local_address parameter, use old parameter sets.
+        $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
+        $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
+        $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
+        $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
+
+        $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
+        foreach ($parameter in $ParameterArray)
+        {
+            Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter
+        }
+    } else {
+        # Build array of all IP addresses from all interfaces
+        $IPAddresses = @()
+        foreach ($Interface in $Interfaces) {
+            $IPAddresses += $Interface.V4Address
+            $IPAddresses += $Interface.V6Address
+        }
+
+        # Start TCP and UDP listeners
+        $Ports = @($DestinationPort, $ProxyPort)
+        $Protocols = @("tcp", "udp")
+
+        foreach ($IPAddress in $IPAddresses) {
+            foreach ($Protocol in $Protocols) {
+                foreach ($Port in $Ports) {
+                    Start-ProcessHelper -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
+                }
+            }
+        }
     }
 
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($script:StandardUserPassword))

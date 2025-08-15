@@ -51,6 +51,7 @@ $source_directory="$PSScriptRoot"
 $destination_directory="C:\temp\eBPF"
 $copy_file_list = $install_files
 $vm="Windows 10 dev environment"
+$remote_vm = $null
 $error.clear()
 
 ##
@@ -72,6 +73,7 @@ OPTIONS:
     -h, --help     Print this help message.
     -d, --dir      Specifies the destination directory for the copy (default is "c:\temp\eBPF"), within the local machine or the VM.
     --vm           Specifies where to copy the files. If this option is specified, the files are copied to the specified VM, otherwise they are copied to the local machine.
+    --remote_vm    Specifies the IP address or name of a remote VM. If this option is specified, files are copied using scp to the remote machine.
     -t, --test     Includes the files needed for testing and debugging.
 
 '@
@@ -80,6 +82,11 @@ OPTIONS:
     "--vm=*"
         {
             $vm=($arg -split "=")[1];
+            break
+        }
+    "--remote_vm=*"
+        {
+            $remote_vm=($arg -split "=")[1];
             break
         }
     "^(?:-d|--dir)(?:=(.+))?$"
@@ -103,27 +110,40 @@ OPTIONS:
     }
 }
 
-if ($null -eq $vm) {
-   ##
-   ## Copy files to a local directory
-   ##
-   Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
-   foreach ($filePattern in $copy_file_list) {
+if ($null -ne $remote_vm) {
+    ##
+    ## Copy files to a remote VM using PowerShell Remoting (WSMan).
+    ##
+    Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`" on remote VM $remote_vm using PowerShell Remoting (WSMan)..."
+    $credential = Get-Credential -Message "Enter credentials for $remote_vm"
+    $session = New-PSSession -ComputerName $remote_vm -Credential $credential
+    if (-not $session) {
+        Write-Error "Failed to create PowerShell session to $remote_vm"
+        exit 1
+    }
+    foreach ($filePattern in $copy_file_list) {
         $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
         foreach ($file in $files) {
-            # Check if the file should be excluded
             if ($exclude_files -notcontains $file.Name) {
-                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
-                Copy-Item -Path $file.FullName -Destination $destinationPath -Force
-                Write-Host "Copied $($file.FullName) to $($destinationPath)."
+                $destinationPath = Join-Path $destination_directory $file.Name
+                Copy-Item -Path $file.FullName -Destination $destinationPath -ToSession $session -Force
+                if ($?) {
+                    Write-Host "Copied $($file.FullName) to $remote_vm`:$destinationPath."
+                } else {
+                    Write-Error "Copy-Item failed for $($file.FullName)"
+                    Remove-PSSession $session
+                    exit 1
+                }
             } else {
                 Write-Host "Excluded $($file.FullName) from copying."
             }
         }
-   }
-} else {
+    }
+    Remove-PSSession $session
+}
+elseif ($null -ne $vm) {
     ##
-    ## Copy files to a VM
+    ## Copy files to a VM.
     ##
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal $identity
@@ -152,6 +172,27 @@ if ($null -eq $vm) {
             }
         }
     }
+} else {
+   ##
+   ## Copy files to a local directory.
+   ##
+   Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
+   foreach ($filePattern in $copy_file_list) {
+        $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
+        foreach ($file in $files) {
+            # Check if the file should be excluded
+            if ($exclude_files -notcontains $file.Name) {
+                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
+                Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+                Write-Host "Copied $($file.FullName) to $($destinationPath)."
+            } else {
+                Write-Host "Excluded $($file.FullName) from copying."
+            }
+        }
+   }
+
+
+
 }
 
 exit 0

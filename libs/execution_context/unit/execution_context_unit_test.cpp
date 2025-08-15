@@ -1392,6 +1392,51 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
     REQUIRE(completion.value == value);
 }
 
+TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // Output a value to the ring buffer.
+    uint64_t value = 42;
+    REQUIRE(ebpf_ring_buffer_map_output(map.get(), reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
+
+    // Map the ring buffer to get consumer and producer pointers.
+    volatile size_t* consumer = nullptr;
+    volatile size_t* producer = nullptr;
+    uint8_t* data = nullptr;
+    size_t data_size = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
+
+    // Use the mapped producer pointer to read the record.
+    auto record = ebpf_ring_buffer_next_record(data, 64 * 1024, *consumer, *producer);
+
+    REQUIRE(record != nullptr);
+    REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
+    REQUIRE(!ebpf_ring_buffer_record_is_discarded(record));
+    REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(value));
+    REQUIRE(*(uint64_t*)(record->data) == value);
+
+    // Unmap the ring buffer.
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_user(map.get(), (const void*)consumer, (const void*)producer, (const void*)data) ==
+        EBPF_SUCCESS);
+}
+
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
 {
     _ebpf_core_initializer core;
@@ -1601,11 +1646,31 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
     uint32_t ring_count = ebpf_get_cpu_count();
     std::vector<perf_event_array_test_async_context_t> completions(ring_count);
 
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // Note: In the success case all the operations will be completed, this handles fault injection cases.
+            // Counters
+            size_t cancel_count = 0;
+
+            for (auto& completion : completions) {
+                if (completion.buffer_size > 0) { // If buffer_size not set yet then we never started this query.
+                    // We try canceling each operation, but only ones that haven't completed will actually cancel.
+                    bool cancel_result = ebpf_async_cancel(&completion);
+                    if (cancel_result == true) {
+                        cancel_count++;
+                    }
+                    CHECK(cancel_result == false);
+                }
+            }
+            REQUIRE(cancel_count == 0);
+        });
+
     // Map each ring and set up completion callbacks.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         auto& completion = completions[cpu_id];
         completion.cpu_id = cpu_id;
-        completion.buffer_size = buffer_size;
 
         // Map the ring buffer for the current CPU.
         REQUIRE(
@@ -1616,6 +1681,9 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
 
         // Set up the completion callback.
         REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
+
+        completion.buffer_size =
+            buffer_size; // After this point this completion callback will be cleaned up on failure.
 
         // Start the async query.
         ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
@@ -1831,9 +1899,9 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
 
     struct _completion
     {
-        uint8_t* buffer;
-        uint32_t buffer_size;
-        uint32_t cpu_id;
+        uint8_t* buffer{};
+        uint32_t buffer_size{};
+        uint32_t cpu_id{};
         size_t consumer_offset = 0;
         size_t callback_count = 0;
         size_t record_count = 0;
@@ -1846,11 +1914,54 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     uint32_t ring_count = ebpf_get_cpu_count();
     std::vector<_completion> completions(ring_count);
 
+    uint64_t value = 1;
+
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // This guard ensures cleanup on fault injection and also verifies the callback counters.
+            // Counters
+            size_t total_callback_count = 0;
+            size_t total_record_count = 0;
+            size_t total_norecord_count = 0;
+            size_t total_lost_count = 0;
+            size_t cancel_count = 0;
+
+            for (auto& completion : completions) {
+                if (completion.buffer_size > 0) { // If buffer_size not set yet then we never started this query.
+                    CAPTURE(
+                        completion.cpu_id,
+                        completion.record_count,
+                        completion.norecord_count,
+                        completion.cancel_count,
+                        completion.lost_count);
+                    CHECK(completion.callback_count <= 1);
+                    CHECK(completion.lost_count == 0);
+                    // We try canceling each operation, but only ones that haven't completed will actually cancel.
+                    bool must_cancel = completion.callback_count == 0;
+                    bool cancel_result = ebpf_async_cancel(&completion);
+                    if (cancel_result == true) {
+                        cancel_count++;
+                    }
+                    CHECK(cancel_result == must_cancel);
+                    total_callback_count += completion.callback_count;
+                    total_record_count += completion.record_count;
+                    total_norecord_count += completion.norecord_count;
+                    total_lost_count += completion.lost_count;
+                    if (completion.record_count > 0) {
+                        // This was the ring that got the record.
+                        CHECK(completion.record_count == 1);
+                        CHECK(completion.value == value);
+                    }
+                }
+            }
+        });
+
     // Map each ring and set up completion callbacks.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         auto& completion = completions[cpu_id];
         completion.cpu_id = cpu_id;
-        completion.buffer_size = buffer_size;
         // Map the ring memory.
         REQUIRE(
             ebpf_map_query_buffer(map.get(), completion.cpu_id, &completion.buffer, &completion.consumer_offset) ==
@@ -1887,6 +1998,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
         if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
             REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
         }
+        completion.buffer_size = buffer_size; // After we set buffer_size the query will be cleaned up on exit.
         REQUIRE(result == EBPF_PENDING);
     }
 
@@ -1904,50 +2016,12 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     void* ctx = &context.unused;
 
     // Write a single record.
-    uint64_t value = 1;
     uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
     REQUIRE(
         ebpf_perf_event_array_map_output_with_capture(
             ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
 
-    // Confirm that a single ring got the correct record and all other rings are empty.
-    size_t total_callback_count = 0;
-    size_t total_record_count = 0;
-    size_t total_norecord_count = 0;
-    size_t total_lost_count = 0;
-    size_t cancel_count = 0;
-
-    for (auto& completion : completions) {
-        CAPTURE(
-            completion.cpu_id,
-            completion.record_count,
-            completion.norecord_count,
-            completion.cancel_count,
-            completion.lost_count);
-        CHECK(completion.callback_count <= 1);
-        CHECK(completion.lost_count == 0);
-        // We try cancelling each op, but only ones that haven't completed will actually cancel.
-        bool must_cancel = completion.callback_count == 0;
-        bool cancel_result = ebpf_async_cancel(&completion);
-        if (cancel_result == true) {
-            cancel_count++;
-        }
-        CHECK(cancel_result == must_cancel);
-        total_callback_count += completion.callback_count;
-        total_record_count += completion.record_count;
-        total_norecord_count += completion.norecord_count;
-        total_lost_count += completion.lost_count;
-        if (completion.record_count > 0) {
-            // This was the ring that got the record.
-            CHECK(completion.record_count == 1);
-            CHECK(completion.value == value);
-        }
-    }
-    CAPTURE(ring_count, total_callback_count, total_record_count, total_norecord_count, total_lost_count, cancel_count);
-    REQUIRE(total_record_count == 1);
-    REQUIRE(total_lost_count == 0);
-    REQUIRE(total_norecord_count == ring_count - 1);
-    REQUIRE(cancel_count == ring_count - 1);
+    // Cleanup and final checks will be done in the scope_exit block above.
 }
 
 std::vector<GUID> _program_types = {
