@@ -134,7 +134,8 @@ typedef struct _ebpf_flow_classify
    - **Return values:**
      - `FLOW_CLASSIFY_ALLOW`: The flow is permitted and will not be further inspected at the stream layer; no additional hook invocations for this flow.
      - `FLOW_CLASSIFY_NEED_MORE_DATA`: The flow requires inspection at the stream layer; subsequent TCP segments will trigger `stream_flow_classify` invocations.
-   - **Notes:** This avoids unnecessary stream processing for flows that do not require data inspection at the stream layer.
+   - **Notes:** This avoids unnecessary stream processing for flows that do not require data inspection at the stream layer. Block is not supported because WFP does not support blocking
+   flows at the flow established layer -- but can be handled with a sockops program.
 
 2. **EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY**
    - **Invocation:** Called for each TCP segment on flows that were marked as needing more data by `new_flow_classify`.
