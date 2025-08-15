@@ -254,6 +254,15 @@ Functions</h2></td></tr>
 <tr class="memitem:a3b2aa710f3a51e37cf91f5061c3be300" id="r_a3b2aa710f3a51e37cf91f5061c3be300"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3b2aa710f3a51e37cf91f5061c3be300">ebpf_ring_buffer_map_write</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> ring_buffer_map_fd, _In_reads_bytes_(data_length) const void *data, size_t data_length) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a3b2aa710f3a51e37cf91f5061c3be300"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write data into the ring buffer map.  <br /></td></tr>
 <tr class="separator:a3b2aa710f3a51e37cf91f5061c3be300"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea5c8ecf68bd8b24565370bb79cc53ea" id="r_aea5c8ecf68bd8b24565370bb79cc53ea"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aea5c8ecf68bd8b24565370bb79cc53ea">ebpf_ring_buffer_map_map_buffer</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> map_fd, _Outptr_result_maybenull_ void **consumer, _Outptr_result_maybenull_ const void **producer,(*data_size) const uint8_t **data, size_t *data_size) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aea5c8ecf68bd8b24565370bb79cc53ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map the memory of a map.  <br /></td></tr>
+<tr class="separator:aea5c8ecf68bd8b24565370bb79cc53ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad8054e5b8ecc8497b8157c140d1e407d" id="r_ad8054e5b8ecc8497b8157c140d1e407d"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d">ebpf_ring_buffer_map_unmap_buffer</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> map_fd, void *consumer, const void *producer, const void *data) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:ad8054e5b8ecc8497b8157c140d1e407d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unmap the memory of a map.  <br /></td></tr>
+<tr class="separator:ad8054e5b8ecc8497b8157c140d1e407d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22929de36c9df83a110440b2caa39d99" id="r_a22929de36c9df83a110440b2caa39d99"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a22929de36c9df83a110440b2caa39d99">ebpf_map_set_wait_handle</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> map_fd, uint64_t index, <a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> handle) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a22929de36c9df83a110440b2caa39d99"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the wait handle that will be signaled for new data.  <br /></td></tr>
+<tr class="separator:a22929de36c9df83a110440b2caa39d99"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1030c64fa3e37b07a773c1ce1da1dd0" id="r_aa1030c64fa3e37b07a773c1ce1da1dd0"><td class="memItemLeft" align="right" valign="top">const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa1030c64fa3e37b07a773c1ce1da1dd0">ebpf_get_ebpf_program_type</a> (<a class="el" href="ebpf__structs_8h.html#a35a5dda657202d3aa5cdbc41f809714f">bpf_prog_type_t</a> bpf_program_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:aa1030c64fa3e37b07a773c1ce1da1dd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get eBPF program type for the specified BPF program type.  <br /></td></tr>
 <tr class="separator:aa1030c64fa3e37b07a773c1ce1da1dd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1820,6 +1829,53 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a22929de36c9df83a110440b2caa39d99" name="a22929de36c9df83a110440b2caa39d99"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a22929de36c9df83a110440b2caa39d99">&#9670;&#160;</a></span>ebpf_map_set_wait_handle()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_map_set_wait_handle </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>index</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>&#160;</td>
+          <td class="paramname"><em>handle</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the wait handle that will be signaled for new data. </p>
+<p>For ring buffer maps the index must be zero.</p>
+<dl class="section note"><dt>Note</dt><dd>Overwrites the wait handle currently stored in the map.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer or perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">index</td><td>Map-specific index of wait handle to set. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">handle</td><td>Wait handle to signal events on.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Wait handle </dd></dl>
+
+</div>
+</div>
 <a id="a5d348f57fccaeb2e62503dd46e6d75a6" name="a5d348f57fccaeb2e62503dd46e6d75a6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5d348f57fccaeb2e62503dd46e6d75a6">&#9670;&#160;</a></span>ebpf_object_get_execution_type()</h2>
 
@@ -2439,6 +2495,130 @@ Variables</h2></td></tr>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
     <tr><td class="paramname">EBPF_INVALID_OBJECT</td><td>Invalid object was passed. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aea5c8ecf68bd8b24565370bb79cc53ea" name="aea5c8ecf68bd8b24565370bb79cc53ea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea5c8ecf68bd8b24565370bb79cc53ea">&#9670;&#160;</a></span>ebpf_ring_buffer_map_map_buffer()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_ring_buffer_map_map_buffer </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Outptr_result_maybenull_ void **&#160;</td>
+          <td class="paramname"><em>consumer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Outptr_result_maybenull_ const void **&#160;</td>
+          <td class="paramname"><em>producer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">*data_size const uint8_t **&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>data_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Map the memory of a map. </p>
+<p>Calling this multiple times will create distinct mappings.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to map. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">data</td><td>Pointer to the mapped data buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">offset</td><td>Offset into the mapped data buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size of the mapping. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">page_protection</td><td>Page protection for the mapping (PAGE_READONLY, PAGE_READWRITE).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">other</td><td>An error occurred. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d" title="Unmap the memory of a map.">ebpf_ring_buffer_map_unmap_buffer</a> </dd></dl>
+
+</div>
+</div>
+<a id="ad8054e5b8ecc8497b8157c140d1e407d" name="ad8054e5b8ecc8497b8157c140d1e407d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8054e5b8ecc8497b8157c140d1e407d">&#9670;&#160;</a></span>ebpf_ring_buffer_map_unmap_buffer()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_ring_buffer_map_unmap_buffer </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>consumer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>producer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>data</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Unmap the memory of a map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">consumer</td><td>Pointer to the consumer buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">producer</td><td>Pointer to the producer buffer. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">other</td><td>An error occurred. </td></tr>
   </table>
   </dd>
 </dl>
