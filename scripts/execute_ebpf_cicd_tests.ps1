@@ -9,9 +9,10 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
        [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+       [Parameter(Mandatory = $false)][int] $TestHangTimeout = (30*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
+       [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
         # This parameter is only used when ExecuteOnHost is false.
        [Parameter(Mandatory = $false)][switch] $VMIsRemote)
@@ -56,11 +57,13 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string] $TestMode,
         [Parameter(Mandatory = $True)] [string[]] $Options,
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
+        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
+        [Parameter(Mandatory = $True)] [bool] $GranularTracing
     )
     Push-Location $WorkingDirectory
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
     if ($ExecuteOnVM) {
         Write-Log "Tests will be executed on VM" -ForegroundColor Cyan
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -87,12 +90,15 @@ $Job = Start-Job -ScriptBlock {
             $TestMode,
             $Options,
             $TestHangTimeout,
-            $UserModeDumpFolder) `
+            $UserModeDumpFolder,
+            $GranularTracing) `
         -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
-        Stop-eBPFComponents
+        Write-Log "Running kernel tests completed"
+
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
@@ -115,7 +121,8 @@ $Job = Start-Job -ScriptBlock {
     $TestMode,
     $Options,
     $TestHangTimeout,
-    $UserModeDumpFolder)
+    $UserModeDumpFolder,
+    $GranularTracing)
 
 # Keep track of the last received output count
 $JobTimedOut = `
@@ -132,5 +139,8 @@ Remove-Job -Job $Job -Force
 Pop-Location
 
 if ($JobTimedOut) {
+    Write-Log "exiting with error as job timed out"
     exit 1
 }
+
+Write-Log "execute_ebpf_cicd_tests.ps1 completed successfully"

@@ -15,7 +15,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64",
-       [Parameter(Mandatory = $false)][switch] $VMIsRemote
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote,
+       [Parameter(Mandatory = $false)][switch] $GranularTracing
 )
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
@@ -86,7 +87,7 @@ if ($ExecuteOnVM -and $VMIsRemote) {
     # Install eBPF Components on the remote machine(s).
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -ErrorAction Stop
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -GranularTracing:$GranularTracing -ErrorAction Stop
     }
 
     Pop-Location
@@ -102,7 +103,8 @@ elseif ($ExecuteOnVM) {
             [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
             [parameter(Mandatory = $true)] [bool] $KmTracing,
             [parameter(Mandatory = $true)] [string] $KmTraceType,
-            [parameter(Mandatory = $true)] [string] $EnableHVCI
+            [parameter(Mandatory = $true)] [string] $EnableHVCI,
+            [parameter(Mandatory = $true)] [bool] $GranularTracing
         )
         Push-Location $WorkingDirectory
 
@@ -156,7 +158,7 @@ elseif ($ExecuteOnVM) {
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
             $VMName = $VM.Name
-            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -GranularTracing:$GranularTracing -ErrorAction Stop
         }
 
         # Log OS build information on the test VM.
@@ -175,7 +177,8 @@ elseif ($ExecuteOnVM) {
         $WorkingDirectory,
         $KmTracing,
         $KmTraceType,
-        $EnableHVCI)
+        $EnableHVCI,
+        $GranularTracing)
 
     # Wait for the job to complete.
     $JobTimedOut = `
@@ -205,7 +208,7 @@ elseif ($ExecuteOnVM) {
     # Install eBPF components but skip anything that requires reboot.
     # Note that installing ebpf components requires psexec which does not run in a powershell job.
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
+    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -GranularTracing:$GranularTracing
 
     Pop-Location
 }

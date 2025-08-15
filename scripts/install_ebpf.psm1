@@ -6,6 +6,7 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 
 Push-Location $WorkingDirectory
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module $PSScriptRoot\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingDirectory) -WarningAction SilentlyContinue
 
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 
@@ -145,6 +146,12 @@ function Stop-DriverWithTimeout {
 
 # This function specifically tests that all eBPF drivers and services can be stopped.
 function Stop-eBPFComponents {
+    param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
+
+    if ($GranularTracing) {
+        Start-WPRTrace
+    }
+
     # First, stop user mode service, so that EbpfCore does not hang on stop.
     if (Get-Service "eBPFSvc" -ErrorAction SilentlyContinue) {
         try {
@@ -161,6 +168,10 @@ function Stop-eBPFComponents {
         if ($_.Value.IsDriver) {
             Stop-DriverWithTimeout -DriverName $_.Key
         }
+    }
+
+    if ($GranularTracing) {
+        Stop-WPRTrace -FileName "stop_ebpf"
     }
 }
 
@@ -179,11 +190,17 @@ function Install-eBPFComponents
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false,
           [parameter(Mandatory=$true)] [string] $TestMode,
-          [parameter(Mandatory=$false)] [switch] $SkipRebootOperations)
+          [parameter(Mandatory=$false)] [switch] $SkipRebootOperations,
+          [parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
     Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (none should be present)..." | Out-Null
+
+    # Start granular tracing before installation if enabled.
+    if ($GranularTracing) {
+        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+    }
 
     # Start the Windows Installer service.
     Write-Log("Starting the Windows Installer service...")
@@ -351,8 +368,12 @@ function Install-eBPFComponents
         }
     }
 
-    # Start KM tracing.
-    Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+    if ($GranularTracing) {
+        Stop-WPRTrace -FileName "install_ebpf"
+    } else {
+        # Start regular KM tracing if not using granular tracing
+        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
+    }
 }
 
 function Uninstall-eBPFComponents

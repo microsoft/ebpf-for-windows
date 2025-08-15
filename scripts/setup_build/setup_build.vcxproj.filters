@@ -66,6 +66,7 @@
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\..\external\usersim\scripts\Test-FaultInjection.ps1" />
     <CopyFileToFolders Include="..\Run-Test.ps1" />
+    <CopyFileToFolders Include="..\tracing_utils.psm1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pre-commit">

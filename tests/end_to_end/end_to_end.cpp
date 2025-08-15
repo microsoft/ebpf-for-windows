@@ -2263,7 +2263,7 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     }
 
     Platform::_close(inner_map_fd);
-    Platform::_close(inner_map_fd2); 
+    Platform::_close(inner_map_fd2);
     Platform::_close(inner_map_fd3);
     Platform::_close(outer_map_fd);
 }

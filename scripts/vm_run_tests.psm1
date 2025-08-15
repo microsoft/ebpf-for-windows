@@ -16,8 +16,12 @@ param (
     [Parameter(Mandatory = $True)] [string] $LogFileName,
     [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
     [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
-    [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
-    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+    [Parameter(Mandatory = $false)][int] $TestHangTimeout = (30*60),
+    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+    # Granular tracing parameters (passed through to run_driver_tests.psm1)
+    [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
+    [Parameter(Mandatory = $false)][string] $TraceDir = "",
+    [Parameter(Mandatory = $false)][string] $KmTraceType = "file"
 )
 
 if (-not (Test-Path .\common.psm1)) {
@@ -195,10 +199,11 @@ function Invoke-XDPTestHelper {
         [Parameter(Mandatory = $True)] [string] $XDPTestName,
         [Parameter(Mandatory = $True)] [string] $RemoteIPV4Address,
         [Parameter(Mandatory = $True)] [string] $RemoteIPV6Address,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
+        [Parameter(Mandatory = $True)] [string] $LogFileName,
+        [Parameter(Mandatory = $True)] [string] $TraceFileName
     )
     $scriptBlock = {
-        param($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $TestHangTimeout, $UserModeDumpFolder, $WorkingDirectory, $LogFileName)
+        param($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $TestHangTimeout, $UserModeDumpFolder, $WorkingDirectory, $LogFileName, $TracefileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
         Write-Log "Invoking $XDPTestName"
@@ -206,9 +211,10 @@ function Invoke-XDPTestHelper {
             -RemoteIPV4Address $RemoteIPV4Address `
             -RemoteIPV6Address $RemoteIPV6Address `
             -XDPTestName $XDPTestName `
-            -WorkingDirectory $WorkingDirectory
+            -WorkingDirectory $WorkingDirectory `
+            -TraceFileName $TraceFileName
     }
-    $argList = @($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:WorkingDirectory, $LogFileName)
+    $argList = @($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:WorkingDirectory, $LogFileName, $TraceFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
@@ -238,8 +244,8 @@ function Invoke-XDPTest1 {
     )
     Write-Log "Running XDP Test1 ..."
     $ProgId = Add-eBPFProgram -Program "reflect_packet.sys" -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest1_1"
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest1_2"
     Remove-eBPFProgram $ProgId $LogFileName
     Write-Log "XDP Test1 succeeded." -ForegroundColor Green
 }
@@ -259,9 +265,9 @@ function Invoke-XDPTest2 {
     Write-Log "Invoking Set-eBPFProgram for $ProgId interface $VM1Interface2Alias"
     Set-eBPFProgram -ProgId $ProgId -Interface $VM1Interface2Alias -LogFileName $LogFileName
     Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface1V4Address and $VM1Interface1V6Address"
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest2_1"
     Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface2V4Address and $VM1Interface2V6Address"
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest2_2"
     Remove-eBPFProgram $ProgId $LogFileName
     Write-Log "XDP Test2 succeeded." -ForegroundColor Green
 }
@@ -279,8 +285,8 @@ function Invoke-XDPTest3 {
     Write-Log "Running XDP Test3 ..."
     $ProgId1 = Add-eBPFProgram -Program "reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
     $ProgId2 = Add-eBPFProgram -Program "encap_reflect_packet.sys" -Interface $VM1Interface2Alias -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_encap_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest3_1"
+    Invoke-XDPTestHelper -XDPTestName "xdp_encap_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest3_2"
     Remove-eBPFProgram $ProgId1 $LogFileName
     Remove-eBPFProgram $ProgId2 $LogFileName
     Write-Log "XDP Test3 succeeded." -ForegroundColor Green
@@ -297,7 +303,7 @@ function Invoke-XDPTest4 {
     Write-Log "Running XDP Test4 ..."
     $ProgId1 = Add-eBPFProgram -Program "encap_reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
     $ProgId2 = Add-eBPFProgram -Program "decap_permit_packet.sys" -Interface $VM2Interface1Alias -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName
+    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest4"
     Remove-eBPFProgram $ProgId1 $LogFileName
     Remove-eBPFProgram $ProgId2 $LogFileName
     Write-Log "XDP Test4 succeeded." -ForegroundColor Green
@@ -418,16 +424,17 @@ function Invoke-ConnectRedirectTestHelper
 function Stop-eBPFComponents {
     param(
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false,
-        [Parameter(Mandatory = $true)] [string] $LogFileName
+        [Parameter(Mandatory = $true)] [string] $LogFileName,
+        [Parameter(Mandatory = $false)] [bool] $GranularTracing = $false
     )
     Write-Log "Stopping eBPF components"
     $scriptBlock = {
-        param($WorkingDirectory, $LogFileName)
+        param($WorkingDirectory, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-        Stop-eBPFComponents
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     }
-    $argList = @($script:WorkingDirectory, $LogFileName)
+    $argList = @($script:WorkingDirectory, $LogFileName, $GranularTracing)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
@@ -438,9 +445,9 @@ function Run-KernelTests {
     )
     Write-Log "Execute Run-KernelTests"
     $scriptBlock = {
-        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
@@ -473,16 +480,18 @@ function Run-KernelTests {
             }
         }
     }
-    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
         Write-Log "Running XDP tests"
         Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+        Write-Log "XDP tests completed"
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
+        Write-Log "Connect Redirect tests completed"
     }
 }
