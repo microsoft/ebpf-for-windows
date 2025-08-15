@@ -691,6 +691,58 @@ extern "C"
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Map the memory of a map.
+     *
+     * Calling this multiple times will create distinct mappings.
+     *
+     * @param[in] map_fd File descriptor to map.
+     * @param[out] data Pointer to the mapped data buffer.
+     * @param[in] offset Offset into the mapped data buffer.
+     * @param[in] size Size of the mapping.
+     * @param[in] page_protection Page protection for the mapping (PAGE_READONLY, PAGE_READWRITE).
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval other An error occurred.
+     * @sa ebpf_ring_buffer_map_unmap_buffer
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_map_buffer(
+        fd_t map_fd,
+        _Outptr_result_maybenull_ void** consumer,
+        _Outptr_result_maybenull_ const void** producer,
+        _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+        _Out_ size_t* data_size) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Unmap the memory of a map.
+     *
+     * @param[in] map_fd File descriptor to map.
+     * @param[in] consumer Pointer to the consumer buffer.
+     * @param[in] producer Pointer to the producer buffer.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval other An error occurred.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_unmap_buffer(
+        fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Set the wait handle that will be signaled for new data.
+     *
+     * For ring buffer maps the index must be zero.
+     *
+     * @note Overwrites the wait handle currently stored in the map.
+     *
+     * @param[in] map_fd File descriptor to ring buffer or perf event array map.
+     * @param[in] index Map-specific index of wait handle to set.
+     * @param[in] handle Wait handle to signal events on.
+     *
+     * @returns Wait handle
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Get eBPF program type for the specified BPF program type.
      *
      * @param[in] program_type BPF program type.

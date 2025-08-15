@@ -2079,6 +2079,25 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     EBPF_RETURN_RESULT(result);
 }
 
+_Must_inspect_result_ ebpf_result_t
+_ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_handle_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_map_t* map = NULL;
+
+    ebpf_result_t result =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_map_set_wait_handle_internal(map, request->index, request->wait_handle, request->flags);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(result);
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* request)
 {
@@ -2598,6 +2617,54 @@ _ebpf_core_ring_buffer_output(
     return -ebpf_ring_buffer_map_output(map, data, length);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_map_buffer(
+    _In_ const ebpf_operation_ring_buffer_map_map_buffer_request_t* request,
+    _Inout_ ebpf_operation_ring_buffer_map_map_buffer_reply_t* reply)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = NULL;
+    void* consumer = NULL;
+    void* producer = NULL;
+    uint8_t* data = NULL;
+    size_t data_size = 0;
+
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    // Get the consumer and producer pointers to the mapped ring buffer memory.
+    result = ebpf_ring_buffer_map_map_user(map, &consumer, &producer, &data, &data_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+        return result;
+    }
+
+    reply->consumer_address = (uint64_t)consumer;
+    reply->producer_address = (uint64_t)producer;
+    reply->data_address = (uint64_t)data;
+    reply->data_size = data_size;
+
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_unmap_buffer(
+    _In_ const ebpf_operation_ring_buffer_map_unmap_buffer_request_t* request)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = NULL;
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS)
+        return result;
+    result = ebpf_ring_buffer_map_unmap_user(
+        map, (const void*)request->consumer, (const void*)request->producer, (const void*)request->data);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    return result;
+}
+
 static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
@@ -2883,6 +2950,9 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
         authorize_native_module, PROTOCOL_NATIVE_MODE | PROTOCOL_PRIVILEGED_OPERATION),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
         get_code_integrity_state, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_map_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t

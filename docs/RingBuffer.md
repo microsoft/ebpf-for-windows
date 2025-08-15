@@ -239,7 +239,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  *
  * Calling this multiple times will map the ring into user-space multiple times.
  *
- * Note: This is a wrapper around ebpf_map_map_buffer.
+ * Note: This is a wrapper around ebpf_ring_buffer_map_map_user.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer_page Pointer to start of read-only mapped producer page.
@@ -271,7 +271,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_map_map_buffer(
+ebpf_result_t ebpf_ring_buffer_map_map_user(
     fd_t map_fd,
     uint64_t index,
     _Outptr_result_buffer_(*size) const uint8_t **data,
