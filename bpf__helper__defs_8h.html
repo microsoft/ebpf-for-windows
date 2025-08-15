@@ -152,18 +152,18 @@ Functions</h2></td></tr>
 <tr class="memitem:a1cf21c253fa4ea868ddeefba950b1469" id="r_a1cf21c253fa4ea868ddeefba950b1469"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1cf21c253fa4ea868ddeefba950b1469">bpf_is_current_admin</a> (const void *ctx)</td></tr>
 <tr class="memdesc:a1cf21c253fa4ea868ddeefba950b1469"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get whether the current user is admin. In case of sock_addr attach types, returns whether the user initiating the request is admin or not. In other cases, returns whether the current thread user is admin or not.  <br /></td></tr>
 <tr class="separator:a1cf21c253fa4ea868ddeefba950b1469"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a40f52fbbeec82a25a1987641816bb5eb" id="r_a40f52fbbeec82a25a1987641816bb5eb"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a40f52fbbeec82a25a1987641816bb5eb">bpf_memcpy</a> (void *destination, uint32_t destination_size, const void *source, uint32_t source_size)</td></tr>
-<tr class="memdesc:a40f52fbbeec82a25a1987641816bb5eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another.  <br /></td></tr>
-<tr class="separator:a40f52fbbeec82a25a1987641816bb5eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa94070613a8c287facfae0b1e945259f" id="r_aa94070613a8c287facfae0b1e945259f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aa94070613a8c287facfae0b1e945259f">bpf_memcmp</a> (const void *memory1, uint32_t memory1_size, const void *memory2, uint32_t memory2_size)</td></tr>
-<tr class="memdesc:aa94070613a8c287facfae0b1e945259f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compare two memory regions.  <br /></td></tr>
-<tr class="separator:aa94070613a8c287facfae0b1e945259f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afca1f6c72f9e91cda8fde377c50e2df9" id="r_afca1f6c72f9e91cda8fde377c50e2df9"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#afca1f6c72f9e91cda8fde377c50e2df9">bpf_memset</a> (void *memory, uint32_t size, int value)</td></tr>
-<tr class="memdesc:afca1f6c72f9e91cda8fde377c50e2df9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set memory to a specific value.  <br /></td></tr>
-<tr class="separator:afca1f6c72f9e91cda8fde377c50e2df9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a761216d9ea8f44b31f064e238b3f2f75" id="r_a761216d9ea8f44b31f064e238b3f2f75"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a761216d9ea8f44b31f064e238b3f2f75">bpf_memmove</a> (void *destination, uint32_t destination_size, const void *source, uint32_t source_size)</td></tr>
-<tr class="memdesc:a761216d9ea8f44b31f064e238b3f2f75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another, handling overlapping regions.  <br /></td></tr>
-<tr class="separator:a761216d9ea8f44b31f064e238b3f2f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac2b9a1c3a118c95229dd7fca96d8bf0b" id="r_ac2b9a1c3a118c95229dd7fca96d8bf0b"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ac2b9a1c3a118c95229dd7fca96d8bf0b">bpf_memcpy_s</a> (void *destination, size_t destination_size, const void *source, size_t source_size)</td></tr>
+<tr class="memdesc:ac2b9a1c3a118c95229dd7fca96d8bf0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another.  <br /></td></tr>
+<tr class="separator:ac2b9a1c3a118c95229dd7fca96d8bf0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad383e816a27f37e5bee7604309700d3f" id="r_ad383e816a27f37e5bee7604309700d3f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ad383e816a27f37e5bee7604309700d3f">bpf_memcmp_s</a> (const void *memory1, size_t memory1_size, const void *memory2, size_t memory2_size)</td></tr>
+<tr class="memdesc:ad383e816a27f37e5bee7604309700d3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compare two memory regions.  <br /></td></tr>
+<tr class="separator:ad383e816a27f37e5bee7604309700d3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4fb8969ffb66ab2bd62fad465d1ce704" id="r_a4fb8969ffb66ab2bd62fad465d1ce704"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a4fb8969ffb66ab2bd62fad465d1ce704">bpf_memset</a> (void *memory, size_t size, int value)</td></tr>
+<tr class="memdesc:a4fb8969ffb66ab2bd62fad465d1ce704"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set memory to a specific value.  <br /></td></tr>
+<tr class="separator:a4fb8969ffb66ab2bd62fad465d1ce704"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa9a893ddf782d811adafe8cdc7bc3d0" id="r_afa9a893ddf782d811adafe8cdc7bc3d0"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#afa9a893ddf782d811adafe8cdc7bc3d0">bpf_memmove_s</a> (void *destination, size_t destination_size, const void *source, size_t source_size)</td></tr>
+<tr class="memdesc:afa9a893ddf782d811adafe8cdc7bc3d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another, handling overlapping regions.  <br /></td></tr>
+<tr class="separator:afa9a893ddf782d811adafe8cdc7bc3d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a91543269c3d993aa3b79fa250d4df943" id="r_a91543269c3d993aa3b79fa250d4df943"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a91543269c3d993aa3b79fa250d4df943">bpf_get_socket_cookie</a> (const void *ctx)</td></tr>
 <tr class="memdesc:a91543269c3d993aa3b79fa250d4df943"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the socket cookie associated with the socket context. The context can be <em><a class="el" href="structbpf__sock__addr.html" title="Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.">bpf_sock_addr</a></em> struct, <em>bpf_sock_ops</em> struct, or <em>bpf_sock</em> struct.  <br /></td></tr>
 <tr class="separator:a91543269c3d993aa3b79fa250d4df943"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -792,14 +792,14 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aa94070613a8c287facfae0b1e945259f" name="aa94070613a8c287facfae0b1e945259f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa94070613a8c287facfae0b1e945259f">&#9670;&#160;</a></span>bpf_memcmp()</h2>
+<a id="ad383e816a27f37e5bee7604309700d3f" name="ad383e816a27f37e5bee7604309700d3f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad383e816a27f37e5bee7604309700d3f">&#9670;&#160;</a></span>bpf_memcmp_s()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">int bpf_memcmp </td>
+          <td class="memname">int bpf_memcmp_s </td>
           <td>(</td>
           <td class="paramtype">const void *&#160;</td>
           <td class="paramname"><em>memory1</em>, </td>
@@ -807,7 +807,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>memory1_size</em>, </td>
         </tr>
         <tr>
@@ -819,7 +819,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>memory2_size</em>&#160;</td>
         </tr>
         <tr>
@@ -840,18 +840,19 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the contents memory2, or a positive value if the contents memory1 is greater than the contents memory2. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If possible, use __builtin_memcmp instead of this function as it is more efficient. This function is intended for use in cases where the memory regions sizes are not known at compile time, such as when the memory regions are map values. </dd></dl>
 
 </div>
 </div>
-<a id="a40f52fbbeec82a25a1987641816bb5eb" name="a40f52fbbeec82a25a1987641816bb5eb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a40f52fbbeec82a25a1987641816bb5eb">&#9670;&#160;</a></span>bpf_memcpy()</h2>
+<a id="ac2b9a1c3a118c95229dd7fca96d8bf0b" name="ac2b9a1c3a118c95229dd7fca96d8bf0b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac2b9a1c3a118c95229dd7fca96d8bf0b">&#9670;&#160;</a></span>bpf_memcpy_s()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">long bpf_memcpy </td>
+          <td class="memname">long bpf_memcpy_s </td>
           <td>(</td>
           <td class="paramtype">void *&#160;</td>
           <td class="paramname"><em>destination</em>, </td>
@@ -859,7 +860,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>destination_size</em>, </td>
         </tr>
         <tr>
@@ -871,7 +872,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>source_size</em>&#160;</td>
         </tr>
         <tr>
@@ -895,21 +896,22 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid.</td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>If possible, use __builtin_memcpy instead of this function as it is more efficient. This function is intended for use in cases where the memory regions sizes are not known at compile time, such as when the regions are map values. </dd></dl>
 
 </div>
 </div>
-<a id="a761216d9ea8f44b31f064e238b3f2f75" name="a761216d9ea8f44b31f064e238b3f2f75"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a761216d9ea8f44b31f064e238b3f2f75">&#9670;&#160;</a></span>bpf_memmove()</h2>
+<a id="afa9a893ddf782d811adafe8cdc7bc3d0" name="afa9a893ddf782d811adafe8cdc7bc3d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afa9a893ddf782d811adafe8cdc7bc3d0">&#9670;&#160;</a></span>bpf_memmove_s()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">long bpf_memmove </td>
+          <td class="memname">long bpf_memmove_s </td>
           <td>(</td>
           <td class="paramtype">void *&#160;</td>
           <td class="paramname"><em>destination</em>, </td>
@@ -917,7 +919,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>destination_size</em>, </td>
         </tr>
         <tr>
@@ -929,7 +931,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>source_size</em>&#160;</td>
         </tr>
         <tr>
@@ -953,15 +955,16 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid.</td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>If possible, use __builtin_memmove instead of this function as it is more efficient. This function is intended for use in cases where the memory region sizes are not known at compile time, such as when the memory regions are map values. </dd></dl>
 
 </div>
 </div>
-<a id="afca1f6c72f9e91cda8fde377c50e2df9" name="afca1f6c72f9e91cda8fde377c50e2df9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afca1f6c72f9e91cda8fde377c50e2df9">&#9670;&#160;</a></span>bpf_memset()</h2>
+<a id="a4fb8969ffb66ab2bd62fad465d1ce704" name="a4fb8969ffb66ab2bd62fad465d1ce704"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4fb8969ffb66ab2bd62fad465d1ce704">&#9670;&#160;</a></span>bpf_memset()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -975,7 +978,7 @@ Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramtype">size_t&#160;</td>
           <td class="paramname"><em>size</em>, </td>
         </tr>
         <tr>
@@ -1001,7 +1004,8 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to the memory region, or a negative error in case of failure. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the memory region, or a negative error in case of failure.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>If possible, use __builtin_memset instead of this function as it is more efficient. This function is intended for use in cases where the memory region size is not known at compile time, such as when the memory region is a map value. </dd></dl>
 
 </div>
 </div>
