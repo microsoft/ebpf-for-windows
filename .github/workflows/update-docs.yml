@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo apt install doxygen
 
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
 
       - name: Clone docs
         run: |

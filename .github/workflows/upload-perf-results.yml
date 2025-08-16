@@ -39,7 +39,7 @@ jobs:
           egress-policy: audit
 
       - name: Download performance result artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: Test-Logs-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results_artifact
