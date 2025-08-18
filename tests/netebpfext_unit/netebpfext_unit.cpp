@@ -17,7 +17,7 @@ CATCH_REGISTER_LISTENER(_watchdog)
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
-
+#define CONCURRENT_THREAD_ITERATION_COUNT 1000
 typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
@@ -897,6 +897,33 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
 #pragma endregion cgroup_sock_addr
 #pragma region sock_ops
 
+typedef enum _sock_ops_test_action
+{
+    SOCK_OPS_TEST_ACTION_PERMIT,
+    SOCK_OPS_TEST_ACTION_BLOCK,
+    SOCK_OPS_TEST_ACTION_FAILURE,
+    SOCK_OPS_TEST_ACTION_ROUND_ROBIN
+} sock_ops_test_action_t;
+
+static inline sock_ops_test_action_t
+_get_sock_ops_action(sock_ops_test_action_t action, uint16_t destination_port)
+{
+    if (action != SOCK_OPS_TEST_ACTION_ROUND_ROBIN) {
+        return action;
+    }
+    return (sock_ops_test_action_t)(destination_port % SOCK_OPS_TEST_ACTION_ROUND_ROBIN);
+}
+
+static inline FWP_ACTION_TYPE
+_get_fwp_sock_ops_action(sock_ops_test_action_t action)
+{
+    if (action == SOCK_OPS_TEST_ACTION_BLOCK) {
+        return FWP_ACTION_BLOCK;
+    }
+
+    return FWP_ACTION_PERMIT;
+}
+
 typedef struct test_sock_ops_client_context_t
 {
     netebpfext_helper_base_client_context_t base;
@@ -913,10 +940,32 @@ _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_sock_ops_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
 {
-    auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
     UNREFERENCED_PARAMETER(context);
-    *result = client_context->sock_ops_action;
-    return EBPF_SUCCESS;
+    ebpf_result_t return_result = EBPF_SUCCESS;
+    auto client_context = (test_sock_ops_client_context_t*)client_binding_context;
+    int action = client_context->sock_ops_action;
+
+    if (action == SOCK_OPS_TEST_ACTION_ROUND_ROBIN) {
+        // If the action is round robin, decide the action based on the local port number.
+        bpf_sock_ops_t* sock_ops_context = (bpf_sock_ops_t*)context;
+        action = _get_sock_ops_action(SOCK_OPS_TEST_ACTION_ROUND_ROBIN, sock_ops_context->local_port);
+    }
+
+    switch (action) {
+    case SOCK_OPS_TEST_ACTION_PERMIT:
+        *result = 0;
+        break;
+    case SOCK_OPS_TEST_ACTION_BLOCK:
+        *result = -1;
+        break;
+    case SOCK_OPS_TEST_ACTION_FAILURE:
+        return_result = EBPF_FAILED;
+        break;
+    default:
+        *result = -1;
+        break;
+    }
+    return return_result;
 }
 
 TEST_CASE("sock_ops_invoke", "[netebpfext]")
@@ -938,19 +987,19 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
     // Do some operations that return success.
     client_context->sock_ops_action = 0;
 
-    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters);
+    FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_sock_ops_v6(&parameters);
+    result = helper.test_sock_ops_v6(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Do some operations that return failure.
     client_context->sock_ops_action = -1;
 
-    result = helper.test_sock_ops_v4(&parameters);
+    result = helper.test_sock_ops_v4(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_sock_ops_v6(&parameters);
+    result = helper.test_sock_ops_v6(&parameters, nullptr);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
 
@@ -1023,5 +1072,161 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
+}
+// Thread function for concurrent sock_ops invocation.
+void
+sock_ops_thread_function(
+    std::stop_token token,
+    _In_ netebpf_ext_helper_t* helper,
+    _In_ fwp_classify_parameters_t* parameters,
+    std::atomic<size_t>* failure_count,
+    size_t iteration_count,
+    uint8_t flow_duration_seconds,
+    uint16_t start_port,
+    uint16_t end_port,
+    sock_ops_test_action_t action)
+{
+    FWP_ACTION_TYPE result;
+    bool fault_injection_enabled = cxplat_fault_injection_is_enabled();
+    std::vector<uint64_t> flow_ids;
+    flow_ids.reserve(iteration_count);
+    uint16_t port_number;
+
+    if (start_port != end_port) {
+        port_number = start_port - 1;
+    } else {
+        port_number = htons(parameters->destination_port);
+    }
+
+    size_t count = 0;
+    while (count < iteration_count) {
+        // If start_port and end_port are different, cycle through the port range.
+        if (start_port != end_port) {
+            port_number++;
+            if (port_number > end_port) {
+                port_number = start_port;
+            }
+            parameters->destination_port = htons(port_number);
+        }
+
+        uint64_t flow_id = 0;
+        result = helper->test_sock_ops_v4(parameters, &flow_id);
+
+        sock_ops_test_action_t iteration_action = _get_sock_ops_action(action, port_number);
+        if (iteration_action != SOCK_OPS_TEST_ACTION_FAILURE) {
+            // Create a list of flow context ids to delete after timeout. Flow context is created only if the invocation
+            // is successful.
+            flow_ids.push_back(flow_id);
+        }
+        auto expected_result = _get_fwp_sock_ops_action(iteration_action);
+
+        count++;
+
+        if (result != expected_result) {
+            // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
+            if (fault_injection_enabled && flow_id == 0) {
+                continue;
+            }
+            (*failure_count)++;
+            break;
+        }
+    }
+    // Sleep for the specified flow duration before removing flow contexts.
+    std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
+    for (auto id : flow_ids) {
+        // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
+        if (fault_injection_enabled && id == 0) {
+            continue;
+        }
+        helper->test_sock_ops_v4_remove_flow_context(id);
+    }
+}
+
+// Invoke SOCK_OPS concurrently with same classify parameters and flow duration.
+TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+    std::vector<std::jthread> threads;
+    std::atomic<size_t> failure_count = 0;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+    client_context->sock_ops_action = 0; // Success
+    uint32_t thread_count = 2 * ebpf_get_cpu_count();
+
+    for (uint32_t i = 0; i < thread_count; i++) {
+        threads.emplace_back(
+            sock_ops_thread_function,
+            &helper,
+            &parameters,
+            &failure_count,
+            CONCURRENT_THREAD_ITERATION_COUNT,
+            CONCURRENT_THREAD_RUN_TIME_IN_SECONDS,
+            parameters.destination_port,
+            parameters.destination_port,
+            (sock_ops_test_action_t)client_context->sock_ops_action);
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    REQUIRE(failure_count == 0);
+}
+
+// Invoke SOCK_OPS concurrently with different classify parameters and flow duration.
+TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
+    std::vector<std::jthread> threads;
+    std::vector<fwp_classify_parameters_t> parameters;
+    std::atomic<size_t> failure_count = 0;
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    client_context->sock_ops_action = SOCK_OPS_TEST_ACTION_ROUND_ROBIN; // Success
+    uint32_t thread_count = 2 * ebpf_get_cpu_count();
+    parameters.resize(thread_count);
+    uint8_t flow_duration = 1;
+    for (uint32_t i = 0; i < thread_count; i++) {
+        if (flow_duration < CONCURRENT_THREAD_RUN_TIME_IN_SECONDS) {
+            flow_duration++;
+        }
+        netebpfext_initialize_fwp_classify_parameters(&parameters[i]);
+        threads.emplace_back(
+            sock_ops_thread_function,
+            &helper,
+            &parameters[i],
+            &failure_count,
+            CONCURRENT_THREAD_ITERATION_COUNT,
+            flow_duration,
+            (uint16_t)(1000 + i),
+            (uint16_t)(1000 + i + 1000),
+            (sock_ops_test_action_t)client_context->sock_ops_action);
+    }
+
+    // Wait for all threads to stop.
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    REQUIRE(failure_count == 0);
 }
 #pragma endregion sock_ops
