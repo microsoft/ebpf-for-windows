@@ -2226,16 +2226,18 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     REQUIRE(inner_map_fd > 0);
 
     // Create additional inner maps to use as values for testing.
-    int inner_map_fd2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    int inner_map_fd2 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner_map_fd2 > 0);
 
-    int inner_map_fd3 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    int inner_map_fd3 =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(inner_map_fd3 > 0);
 
     // Create an array-of-maps with 1000 entries to test indices > 255.
     bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
-    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", 
-                                      sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
+    int outer_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
     REQUIRE(outer_map_fd > 0);
 
     // Test updating at various indices including ones > 255.
@@ -2263,7 +2265,7 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     }
 
     Platform::_close(inner_map_fd);
-    Platform::_close(inner_map_fd2); 
+    Platform::_close(inner_map_fd2);
     Platform::_close(inner_map_fd3);
     Platform::_close(outer_map_fd);
 }
@@ -4312,9 +4314,7 @@ TEST_CASE("signature_checking", "[end_to_end]")
         EBPF_CODE_SIGNING_EKU,
         EBPF_WINDOWS_COMPONENT_EKU,
     };
-    const char* issuer_production =
-        "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows Production PCA 2011";
-    const char* issuer_test = "US, Washington, Redmond, Microsoft Corporation, Microsoft Development PCA 2014";
+    const char* issuer = "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows";
 
     std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
 
@@ -4322,11 +4322,7 @@ TEST_CASE("signature_checking", "[end_to_end]")
     wchar_t expanded_path[MAX_PATH];
     REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
 
-    ebpf_result result = ebpf_verify_sys_file_signature(expanded_path, issuer_production, 0, eku_list);
-    if (result != EBPF_SUCCESS) {
-        // If the production signature check fails, try the test signature.
-        result = ebpf_verify_sys_file_signature(expanded_path, issuer_test, 0, eku_list);
-    }
+    ebpf_result result = ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list);
     REQUIRE(result == EBPF_SUCCESS);
 }
 

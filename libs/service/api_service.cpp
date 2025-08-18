@@ -552,23 +552,6 @@ _ebpf_extract_eku(_In_ CRYPT_PROVIDER_CERT* cert)
 }
 
 static std::string
-_ebpf_extract_issuer(_In_ const CRYPT_PROVIDER_CERT* cert)
-{
-    DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, nullptr, 0);
-
-    if (name_cb == 0) {
-        return std::string();
-    }
-
-    std::vector<char> issuer(name_cb);
-    if (CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, issuer.data(), name_cb) ==
-        0) {
-        return std::string();
-    }
-    return std::string(issuer.data());
-}
-
-static std::string
 _ebpf_extract_subject(_In_ const CRYPT_PROVIDER_CERT* cert)
 {
     DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, 0, nullptr, nullptr, 0);
