@@ -30,8 +30,7 @@ The NMR interface for program info provider will extended (non-breaking) and ext
 - This will be used when explicitly creating map from user mode.
 
 ## Verfication
-- For offline verification, eBPF store will be used to provide map information to the verfier.
-- For online verification (JIT / interpret), map type to program type conversion will be done using eBPF store data. Then ebpfsvc will query ebpfcore to get program information which will also provide map information.
+- No impact on verfication (online or offline), as the verifier only cares about the actual map definitions.
 
 ## Map lifecycle
 Even though the extensible map will be created by and reside in the extension, ebpfcore will also create a corresponding map entry, as it does for the global maps. The difference being, in case of extensible maps, the map CRUD APIs will be supplied by the extension, and map entry in ebpfcore will contain these function pointers provided by the extension.
