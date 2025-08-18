@@ -36,8 +36,12 @@ without incurring overhead for flows that can be ignored.
     - Allow the segment but keep getting invoked for further data segments (need more data to classify).
 - Hook that supports cleanup of flows that were closed while still being classified.
 - No eBPF programs should be invoked for segments on flows not needing stream layer classification.
-- After a flow is allowed/block, there should be no further stream layer eBPF program invocations for the flow.
-- We do not currently need any stream mutation support for these hooks -- only inspect/allow/block.
+- Multiple programs can be attached to the stream layer classify hooks at once.
+  - Each program will be invoked in attached order until the flow is blocked or the program has allowed the flow.
+- After a flow is allowed/block, there should be no further invocations of that program for the flow.
+  - If the flow is blocked, no further stream-layer eBPF programs will be invoked for the flow.
+  - If the flow is allowed, other stream layer programs that are still classifying the flow will continue to be invoked.
+- We do not currently need any stream mutation support for these hooks -- only inline inspect/allow/block.
 
 ## Alternative - Using existing Linux hooks
 
@@ -132,22 +136,27 @@ typedef struct _ebpf_flow_classify
    - **Invocation:** Invoked when a new TCP flow is established (at the WFP flow established layer).
    - **Purpose:** Allows the eBPF program to make an initial classification decision based on connection metadata (addresses, ports, process, etc.) before any stream data is seen.
    - **Return values:**
-     - `FLOW_CLASSIFY_ALLOW`: The flow is permitted and will not be further inspected at the stream layer; no additional hook invocations for this flow.
-     - `FLOW_CLASSIFY_NEED_MORE_DATA`: The flow requires inspection at the stream layer; subsequent TCP segments will trigger `stream_flow_classify` invocations.
-   - **Notes:** This avoids unnecessary stream processing for flows that do not require data inspection at the stream layer. Block is not supported because WFP does not support blocking
-   flows at the flow established layer -- but can be handled with a sockops program.
-
+     - `EBPF_FLOW_CLASSIFY_ALLOW`: The flow is permitted and will not be further inspected at the stream layer;
+       no additional hook invocations of this program for this flow.
+     - `EBPF_FLOW_CLASSIFY_BLOCK`: This flow will be blocked at the stream layer with no eBPF program invocations.
+       - _Note_: WFP does not support blocking a flow at the flow-established layer,
+         so the extension will remember the decision and block the flow on the first stream-layer WFP callout.
+     - `EBPF_FLOW_CLASSIFY_NEED_MORE_DATA`: The flow requires inspection at the stream layer;
+       subsequent TCP segments will trigger `stream_flow_classify` invocations.
+   - **Notes:** This avoids unnecessary processing for flows that do not require stream layer data inspection.
 2. **EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY**
    - **Invocation:** Called for each TCP segment on flows that were marked as needing more data by `new_flow_classify`.
    - **Purpose:** Allows the eBPF program to inspect stream data and allow/block the connection, or request more data if classification is not yet possible.
    - **Return values:**
-     - `FLOW_CLASSIFY_ALLOW`: The flow is permitted; no further stream inspection for this flow.
-     - `FLOW_CLASSIFY_BLOCK`: The flow is blocked; all further data is dropped (using WFP ABSORB), and the connection will be terminated or time out.
-     - `FLOW_CLASSIFY_NEED_MORE_DATA`: The current segment is allowed, but the program will be invoked again for subsequent segments until a final decision is made.
+     - `EBPF_FLOW_CLASSIFY_ALLOW`: The flow is permitted; the program requires no further stream inspection for this flow.
+     - `EBPF_FLOW_CLASSIFY_BLOCK`: The flow is blocked; all further data is dropped (using WFP ABSORB), and the connection will be terminated or time out.
+     - `EBPF_FLOW_CLASSIFY_NEED_MORE_DATA`: The current segment is allowed, but the program will be invoked again for subsequent segments until a final decision is made.
    - **Notes:** This is only invoked for each flow segment until allow/block are returned.
 
 3. **EBPF_ATTACH_TYPE_FLOW_DELETED**
-   - **Invocation:** Called when a flow is deleted (e.g., connection teardown) and the last action for the flow was `FLOW_CLASSIFY_NEED_MORE_DATA` (i.e., the program never returned a final allow/block decision).
+   - **Invocation:** Called when a flow is deleted (e.g., connection teardown) while still in the `NEED_MORE_DATA` state
+     (i.e., at least 1 program program never returned a final allow/block decision).
+     - All programs attached to this hook will be invoked in attach order for each flow where any eBPF program was still classifying it.
    - **Purpose:** Allows the eBPF program to perform cleanup of any per-flow state (e.g., in maps) that was maintained during inspection.
    - **Return value:**
      - Ignored
@@ -155,7 +164,7 @@ typedef struct _ebpf_flow_classify
 
 ```c
 /*
- * @brief Select flows for stream layer classification
+ * @brief Select flows for stream layer classification.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_FLOW_CLASSIFY
  *
@@ -163,7 +172,9 @@ typedef struct _ebpf_flow_classify
  * \ref EBPF_ATTACH_TYPE_NEW_FLOW_CLASSIFY
  *
  * @param[in] context \ref bpf_flow_classify_t
- * @return ALLOW to ignore(allow) this flow, NEED_MORE_DATA for stream layer classification.
+ * @retval EBPF_FLOW_CLASSIFY_ALLOW The flow is permitted and will not be inspected at the stream layer by this program.
+ * @retval EBPF_FLOW_CLASSIFY_BLOCK The flow will be blocked at the stream layer with no eBPF program invocations.
+ * @retval EBPF_FLOW_CLASSIFY_NEED_MORE_DATA The flow requires inspection at the stream layer.
  */
 typedef flow_classify_action_t
 new_flow_classify_hook_t(bpf_flow_classify_t* context);
@@ -177,15 +188,17 @@ new_flow_classify_hook_t(bpf_flow_classify_t* context);
  * \ref EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY
  *
  * @param[in] context \ref bpf_flow_classify_t
- * @return classification decision (allow, block, or need more data to decide).
+ * @retval FLOW_CLASSIFY_ALLOW The flow is permitted; no further stream inspection by this program for this flow.
+ * @retval FLOW_CLASSIFY_BLOCK The flow is blocked; no further stream inspection for this flow.
+ * @retval FLOW_CLASSIFY_NEED_MORE_DATA Allow current segment but continue inspection of subsequent segments.
  */
 typedef flow_classify_action_t
 stream_flow_classify_hook_t(bpf_flow_classify_t* context);
 
 /*
- * @brief Handle deletion of a flow that is still being classified
+ * @brief Handle deletion of a flow that is still being classified.
  *
- * Called for flows where the last return value was NEED_MORE_DATA
+ * Called for flows where the last return value was NEED_MORE_DATA.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_FLOW_CLASSIFY
  *
@@ -193,7 +206,7 @@ stream_flow_classify_hook_t(bpf_flow_classify_t* context);
  * \ref EBPF_ATTACH_TYPE_FLOW_DELETED
  *
  * @param[in] context \ref bpf_flow_classify_t
- * @return classification decision (allow, block, or need more data to decide).
+ * @return Return value is ignored; attach type is used for cleanup purposes only.
  */
 typedef flow_classify_action_t
 flow_deleted_hook_t(bpf_flow_classify_t* context);
@@ -206,7 +219,7 @@ flow_deleted_hook_t(bpf_flow_classify_t* context);
 The extension uses the Windows Filtering Platform (WFP) to register callouts at both the flow established and stream layers.
 
 1. When a new TCP flow is established, the extension initializes a per-flow context and invokes the `new_flow_classify` hook.
-2. The program can return ALLOW/NEED_MORE_DATA to ignore the flow or classify the flow at the stream layer.
+2. The program can return ALLOW/BLOCK/NEED_MORE_DATA to allow/block the new flow or classify the flow at the stream layer.
 
     a. If no stream-layer inspection is needed, the bpf program context is freed immediately.
 
@@ -270,9 +283,11 @@ The hook implementation maps eBPF program return values to specific WFP actions:
 
 - **FLOW_CLASSIFY_ALLOW**: Returns `FWP_ACTION_PERMIT` and deletes the WFP flow context. This allows the current segment and terminates further classification for this flow by removing the flow context.
 
-- **FLOW_CLASSIFY_BLOCK**: Returns `FWP_ACTION_BLOCK` with the `FWPS_CLASSIFY_OUT_FLAG_ABSORB` flag set. This blocks the current segment and terminates the connection by dropping all subsequent packets.
+- **FLOW_CLASSIFY_BLOCK**: Returns `FWP_ACTION_BLOCK` with the `FWPS_CLASSIFY_OUT_FLAG_ABSORB` flag set. This blocks the current segment and terminates the connection by blocking all subsequent segments.
 
 - **FLOW_CLASSIFY_NEED_MORE_DATA**: Returns `FWP_ACTION_PERMIT`. This allows the current segment to proceed while maintaining the flow context for continued classification of subsequent segments.
+  - The initial stream-layer hook only supports passive inspection until an allow/block decision is made.
+    - This avoids withholding data that higher level protocols need to proceed (which could stall/deadlock the flow).
 
 #### Stream Inspection Model
 
@@ -290,14 +305,15 @@ The implementation supports **inline stream inspection only**, meaning:
 
 The hook provides direct access to stream segment data through the context's `data_start` and `data_end` pointers:
 
-- **Contiguous Data**: When possible, pointers reference the original NET_BUFFER data directly for zero-copy access
-- **Non-contiguous Data**: For fragmented NET_BUFFERs, data is copied into a temporary buffer using `FwpsCopyStreamDataToBuffer0` to provide contiguous access to eBPF programs
-- **Data Lifetime**: Stream data pointers are only valid during the program invocation and must not be accessed after the program returns
+- **Contiguous Data**: When possible, pointers reference the original NET_BUFFER data directly for zero-copy access.
+- **Non-contiguous Data**: For fragmented NET_BUFFERs, data is copied into a temporary buffer using `FwpsCopyStreamDataToBuffer0` to provide contiguous access to eBPF programs.
+- **Data Lifetime**: Stream data pointers are only valid during the program invocation and must not be accessed after the program returns.
 
 #### Resource Management
 
-The implementation manages WFP resources efficiently:
+WFP resource management:
 
-- **Conditional Callouts**: Stream layer callouts use the `FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW` flag to ensure they are only invoked for flows requiring classification
-- **Context Cleanup**: Flow contexts are automatically cleaned up when flows are allowed, blocked, or naturally terminated
-- **Memory Management**: Temporary buffers for non-contiguous data are allocated from non-paged pool and freed immediately after program execution
+- **Conditional Callouts**: Stream layer callouts use the `FWP_CALLOUT_FLAG_CONDITIONAL_ON_FLOW` flag to ensure they are only invoked for flows requiring classification.
+- **Context Cleanup**: Flow contexts are immediately free'd by the extension when the flow is allowed/blocked.
+  For flows that terminate while still being classified, the extension will free them after invoking the program(s) in the flow deleted callout.
+- **Memory Management**: Temporary buffers for non-contiguous data are allocated from non-paged pool and freed immediately after program execution.
