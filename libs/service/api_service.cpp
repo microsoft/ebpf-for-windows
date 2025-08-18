@@ -568,16 +568,32 @@ _ebpf_extract_issuer(_In_ const CRYPT_PROVIDER_CERT* cert)
     return std::string(issuer.data());
 }
 
+static std::string
+_ebpf_extract_subject(_In_ const CRYPT_PROVIDER_CERT* cert)
+{
+    DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, 0, nullptr, nullptr, 0);
+
+    if (name_cb == 0) {
+        return std::string();
+    }
+
+    std::vector<char> subject(name_cb);
+    if (CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, 0, nullptr, subject.data(), name_cb) == 0) {
+        return std::string();
+    }
+    return std::string(subject.data());
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_sys_file_signature(
     _In_z_ const wchar_t* file_name,
-    _In_z_ const char* issuer_name,
+    _In_z_ const char* subject_name,
     size_t eku_count,
     _In_reads_(eku_count) const char** eku_list)
 {
     ebpf_result_t result = EBPF_OBJECT_NOT_FOUND;
     EBPF_LOG_ENTRY();
-    std::string required_issuer(issuer_name);
+    std::string required_subject(subject_name);
     std::set<std::string> required_eku_set;
 
     if (_ebpf_service_test_signing_enabled) {
@@ -595,14 +611,14 @@ ebpf_verify_sys_file_signature(
         for (DWORD i = 0; i < wrapper.cert_count(); i++) {
 
             std::set<std::string> eku_set = _ebpf_extract_eku(wrapper.get_cert(i));
-            std::string issuer = _ebpf_extract_issuer(wrapper.get_cert(i));
+            std::string subject = _ebpf_extract_subject(wrapper.get_cert(i));
 
-            if (issuer != required_issuer) {
+            if (subject != required_subject) {
                 EBPF_LOG_MESSAGE_STRING(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_API,
-                    "Certificate issuer mismatch",
-                    issuer.c_str());
+                    "Certificate subject mismatch",
+                    subject.c_str());
                 continue;
             }
 
@@ -642,7 +658,7 @@ ebpf_verify_sys_file_signature(
     EBPF_RETURN_RESULT(result);
 }
 
-static const char* _ebpf_required_issuer = EBPF_REQUIRED_ISSUER;
+static const char* _ebpf_required_subject = EBPF_REQUIRED_SUBJECT;
 static const char* _ebpf_required_eku_list[] = {
     EBPF_CODE_SIGNING_EKU,
     EBPF_VERIFICATION_EKU,
@@ -690,7 +706,7 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
         // modified.
         result = ebpf_verify_sys_file_signature(
             file_path_wide.c_str(),
-            _ebpf_required_issuer,
+            _ebpf_required_subject,
             sizeof(_ebpf_required_eku_list) / sizeof(_ebpf_required_eku_list[0]),
             _ebpf_required_eku_list);
 
