@@ -63,6 +63,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_verify_sys_file_signature(
     _In_z_ const wchar_t* file_name,
     _In_z_ const char* subject_name,
+    _In_z_ const char* root_certificate_thumbprint,
     size_t eku_count,
     _In_reads_(eku_count) const char** eku_list);
 
@@ -77,6 +78,12 @@ ebpf_service_cleanup() noexcept;
  * The subject must match the one used for signing eBPF programs.
  */
 #define EBPF_REQUIRED_SUBJECT "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification"
+
+/**
+ * @brief This macro defines the required root certificate thumbprint for eBPF verification.
+ * This is the thumbprint for the "Microsoft Root Certificate Authority 2011" root certificate.
+ */
+#define EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT "8f43288ad272f3103b6fb1428485ea3014c0bcfe"
 
 /**
  * @brief This macro defines the EKU for code signing.

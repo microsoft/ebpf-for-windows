@@ -4314,6 +4314,10 @@ TEST_CASE("signature_checking", "[end_to_end]")
         EBPF_CODE_SIGNING_EKU,
         EBPF_WINDOWS_COMPONENT_EKU,
     };
+    // Thumbprint for "Microsoft Flighting Root 2014" certificate.
+    const char* test_signed_root_certificate_thumbprint = "f8db7e1c16f1ffd4aaad4aad8dff0f2445184aeb";
+    // Thumbprint for "Microsoft Root Certificate Authority 2010" certificate.
+    const char* production_signed_root_certificate_thumbprint = "3b1efd3a66ea28b16697394703a72ca340a05bd5";
     const char* issuer = "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows";
 
     std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
@@ -4322,7 +4326,12 @@ TEST_CASE("signature_checking", "[end_to_end]")
     wchar_t expanded_path[MAX_PATH];
     REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
 
-    ebpf_result result = ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list);
+    ebpf_result result = ebpf_verify_sys_file_signature(
+        expanded_path, issuer, production_signed_root_certificate_thumbprint, 0, eku_list);
+    if (result != EBPF_SUCCESS) {
+        result =
+            ebpf_verify_sys_file_signature(expanded_path, issuer, test_signed_root_certificate_thumbprint, 0, eku_list);
+    }
     REQUIRE(result == EBPF_SUCCESS);
 }
 
@@ -4338,6 +4347,7 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
         EBPF_VERIFICATION_EKU,
     };
     const char* subject = EBPF_REQUIRED_SUBJECT;
+    const char* root_tumbprint = EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT;
 
     std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
 
@@ -4345,5 +4355,5 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
     wchar_t expanded_path[MAX_PATH];
     REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
 
-    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, subject, 0, eku_list) != EBPF_SUCCESS);
+    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, subject, root_tumbprint, 0, eku_list) != EBPF_SUCCESS);
 }
