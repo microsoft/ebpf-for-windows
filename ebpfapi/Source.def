@@ -128,6 +128,7 @@ EXPORTS
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name
     ebpf_link_close
+    ebpf_map_set_wait_handle
     ebpf_object_get
     ebpf_object_get_execution_type
     ebpf_object_get_info_by_fd
@@ -139,6 +140,8 @@ EXPORTS
     ebpf_program_attach_by_fd
     ebpf_program_attach_by_fds
     ebpf_program_query_info
+    ebpf_ring_buffer_map_map_buffer
+    ebpf_ring_buffer_map_unmap_buffer
     ebpf_ring_buffer_map_write
     ebpf_store_delete_program_information
     ebpf_store_delete_section_information

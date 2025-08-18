@@ -71,7 +71,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write  # Required by codeql task
 
 jobs:
   build:

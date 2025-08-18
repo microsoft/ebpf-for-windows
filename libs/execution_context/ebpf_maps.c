@@ -243,24 +243,25 @@ typedef struct _ebpf_core_ring_buffer_map
     ebpf_core_map_async_contexts_t async;
 } ebpf_core_ring_buffer_map_t;
 
-typedef struct _ebpf_core_perf_ring
+#pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
+
+__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_core_perf_ring
 {
     ebpf_ring_buffer_t ring;
     volatile size_t lost_records;
     ebpf_core_map_async_contexts_t async;
-    uint32_t pad1;
-    uint64_t pad2[4];
 } ebpf_core_perf_ring_t;
 
-typedef struct _ebpf_core_perf_event_array_map
+__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_core_perf_event_array_map
 {
     ebpf_core_map_t core_map;
     uint32_t ring_count;
-    uint32_t pad1;
-    uint64_t pad2[3];
     ebpf_core_perf_ring_t rings[1];
 } ebpf_core_perf_event_array_map_t;
 
+#pragma warning(pop)
+
+// Validate cache-alignment of the per-cpu perf event array rings so there isn't any false sharing.
 static_assert(sizeof(ebpf_core_perf_ring_t) % EBPF_CACHE_LINE_SIZE == 0, "ebpf_core_perf_ring_t is not cache aligned.");
 static_assert(
     sizeof(ebpf_core_perf_event_array_map_t) % EBPF_CACHE_LINE_SIZE == 0,
@@ -434,6 +435,16 @@ typedef struct _ebpf_map_metadata_table
         _Inout_ void* async_context);
     void (*query_ring_buffer)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result);
+    ebpf_result_t (*map_ring_buffer)(
+        _In_ const ebpf_core_map_t* map,
+        _Outptr_ void** consumer,
+        _Outptr_ void** producer,
+        _Outptr_result_buffer_(*data_size) uint8_t** data,
+        _Out_ size_t* data_size);
+    ebpf_result_t (*unmap_ring_buffer)(
+        _In_ const ebpf_core_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+    ebpf_result_t (*set_wait_handle)(
+        _In_ const ebpf_core_map_t* map, uint64_t index, _In_ ebpf_handle_t handle, uint64_t flags);
     int zero_length_key : 1;
     int zero_length_value : 1;
     int per_cpu : 1;
@@ -2248,6 +2259,16 @@ _query_ring_buffer_map(
         (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
 }
 
+static ebpf_result_t
+_set_wait_handle_ring_buffer_map(
+    _In_ const ebpf_core_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags)
+{
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    return ebpf_ring_buffer_set_wait_handle((ebpf_ring_buffer_t*)map->data, wait_handle, flags);
+}
+
 static void
 _query_perf_event_array_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result)
@@ -2333,13 +2354,42 @@ _ebpf_perf_event_array_map_signal_async_query_complete(
 }
 
 static ebpf_result_t
+_map_user_ring_buffer_map(
+    _In_ const ebpf_core_map_t* map,
+    _Outptr_ void** consumer,
+    _Outptr_ void** producer,
+    _Outptr_result_buffer_(*data_size) uint8_t** data,
+    _Out_ size_t* data_size)
+{
+    ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
+    return ebpf_ring_buffer_map_user(ring_buffer, consumer, producer, data, data_size);
+}
+
+static ebpf_result_t
+_unmap_user_ring_buffer_map(
+    _In_ const ebpf_core_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+{
+    ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
+    return ebpf_ring_buffer_unmap_user(ring_buffer, consumer, producer, data);
+}
+
+static ebpf_result_t
 _query_buffer_ring_buffer_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
     UNREFERENCED_PARAMETER(index);
     size_t producer_offset;
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, consumer_offset, &producer_offset);
-    return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
+    void* consumer = NULL;
+    void* producer = NULL;
+    uint8_t* data = NULL;
+    size_t data_size = 0;
+    ebpf_result_t result =
+        ebpf_ring_buffer_map_user((ebpf_ring_buffer_t*)map->data, &consumer, &producer, &data, &data_size);
+    if (result == EBPF_SUCCESS) {
+        *buffer = data;
+    }
+    return result;
 }
 
 static ebpf_result_t
@@ -2385,9 +2435,13 @@ _query_buffer_perf_event_array_map(
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-
-    ebpf_result_t result = ebpf_ring_buffer_map_buffer(&ring->ring, buffer);
+    void* consumer = NULL;
+    void* producer = NULL;
+    uint8_t* data = NULL;
+    size_t data_size = 0;
+    ebpf_result_t result = ebpf_ring_buffer_map_user(&ring->ring, &consumer, &producer, &data, &data_size);
     if (result == EBPF_SUCCESS) {
+        *buffer = data;
         size_t producer_offset;
         ebpf_ring_buffer_query(&ring->ring, consumer_offset, &producer_offset);
     }
@@ -2548,6 +2602,53 @@ ebpf_map_query_buffer(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
     return table->query_buffer(map, index, buffer, consumer_offset);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_map_user(
+    _In_ const ebpf_map_t* map,
+    _Outptr_ void** consumer,
+    _Outptr_ void** producer,
+    _Outptr_result_buffer_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size)
+{
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->map_ring_buffer == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_ring_buffer_map_map_user not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return table->map_ring_buffer(map, consumer, producer, data, data_size);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_user(
+    _In_ const ebpf_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+{
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+    if (!table->unmap_ring_buffer)
+        return EBPF_INVALID_ARGUMENT;
+    return table->unmap_ring_buffer((const ebpf_core_map_t*)map, consumer, producer, data);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_set_wait_handle_internal(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
+{
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->set_wait_handle == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_set_wait_handle_internal not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return table->set_wait_handle(map, index, wait_handle, flags);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2719,7 +2820,7 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
         goto Exit;
     }
     memcpy(record_data, data, length);
-    result = ebpf_ring_buffer_submit(record_data);
+    result = ebpf_ring_buffer_submit(record_data, 0);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->async.lock);
     _ebpf_perf_event_array_map_signal_async_query_complete(&perf_event_array_map->core_map, cpu_id);
@@ -2806,7 +2907,7 @@ ebpf_perf_event_array_map_output_with_capture(
     if (extra_data != NULL) {
         memcpy(record_data + length, extra_data, extra_length);
     }
-    result = ebpf_ring_buffer_submit(record_data);
+    result = ebpf_ring_buffer_submit(record_data, 0);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->async.lock);
     _ebpf_perf_event_array_map_signal_async_query_complete(&perf_event_array_map->core_map, cpu_id);
@@ -2949,8 +3050,11 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_ring_buffer_map,
         .delete_map = _delete_ring_buffer_map,
         .query_buffer = _query_buffer_ring_buffer_map,
+        .map_ring_buffer = _map_user_ring_buffer_map,
+        .unmap_ring_buffer = _unmap_user_ring_buffer_map,
         .async_query = _async_query_ring_buffer_map,
         .query_ring_buffer = _query_ring_buffer_map,
+        .set_wait_handle = _set_wait_handle_ring_buffer_map,
         .return_buffer = _return_buffer_ring_buffer_map,
         .write_data = _write_data_ring_buffer_map,
         .zero_length_key = true,
