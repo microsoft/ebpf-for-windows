@@ -298,8 +298,8 @@ The implementation supports **inline stream inspection only**, meaning:
 - Stream data is processed segment-by-segment as it arrives
 - No reassembly or reordering of TCP segments is performed by the hook (this is handled by the TCP stack before reaching the stream layer).
 - Data is allowed through when `FLOW_CLASSIFY_NEED_MORE_DATA` is returned.
-  - The allow allow/block decision is at the flow level (not segment level).
-  - **Note**: The `countBytesEnforced` field is not currently used in this implementation as the hook focuses on connection-level allow/block decisions rather than byte-level enforcement.
+  - **Note**: The WFP `countBytesEnforced` field is not modified by these hooks,
+    which currently only allow stream inspection and allow/block of flows.
 
 #### Stream Data Handling
 
