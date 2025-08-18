@@ -4347,7 +4347,7 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
         EBPF_VERIFICATION_EKU,
     };
     const char* subject = EBPF_REQUIRED_SUBJECT;
-    const char* root_tumbprint = EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT;
+    const char* root_thumbprint = EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT;
 
     std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
 
@@ -4355,5 +4355,5 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
     wchar_t expanded_path[MAX_PATH];
     REQUIRE(ExpandEnvironmentStringsW(test_file.c_str(), expanded_path, MAX_PATH) > 0);
 
-    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, subject, root_tumbprint, 0, eku_list) != EBPF_SUCCESS);
+    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, subject, root_thumbprint, 0, eku_list) != EBPF_SUCCESS);
 }
