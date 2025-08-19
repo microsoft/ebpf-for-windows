@@ -262,6 +262,34 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
+    try {
+        # Create a simple test process for process dump testing
+        Write-Log "Creating simple test process for process dump testing..."
+        $SimpleTestProcess = Start-Process -FilePath "ping.exe" -ArgumentList "127.0.0.1", "-t" -PassThru -NoNewWindow
+        if ($SimpleTestProcess) {
+            Write-Log "Started simple test process: ping.exe with PID: $($SimpleTestProcess.Id)"
+
+            # Wait a moment for the process to be fully initialized
+            Start-Sleep -Seconds 2
+
+            # Generate a process dump for testing purposes
+            try {
+                Generate-ProcessDump -TestProcessId $SimpleTestProcess.Id -TestCommand "ping_test_process" -UserModeDumpFolder $UserModeDumpFolder
+                Write-Log "Successfully generated process dump for test process PID: $($SimpleTestProcess.Id)"
+            } catch {
+                Write-Log "Failed to generate process dump for test process: $_" -ForegroundColor Yellow
+            }
+
+            # Clean up the test process
+            Write-Log "Stopping simple test process PID: $($SimpleTestProcess.Id)"
+            Stop-Process -Id $SimpleTestProcess.Id -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-Log "Failed to create simple test process for process dump testing" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Log "Failed to capture test process dump"
+    }
+
     Generate-KernelDump
 
     # Initialize arguments.
