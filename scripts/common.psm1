@@ -309,10 +309,10 @@ function Wait-TestJobToComplete
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
                     Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-                    $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-                    $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
-                    Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-                    Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+                    Write-Log "Generating kernel dump due to test timeout on $TestVMName"
+                    # Import the run_driver_tests module to access Generate-KernelDump function
+                    Import-Module "$PSScriptRoot\run_driver_tests.psm1" -ArgumentList ($PSScriptRoot, "timeout_kernel_dump.log") -Force -WarningAction SilentlyContinue
+                    Generate-KernelDump
                 }
                 $JobTimedOut = $true
                 break

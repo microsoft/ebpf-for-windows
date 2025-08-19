@@ -262,6 +262,10 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
+    while ($true) {
+        Start-Sleep 2147483647
+    }
+
     try {
         # Create a simple test process for process dump testing
         Write-Log "Creating simple test process for process dump testing..."
