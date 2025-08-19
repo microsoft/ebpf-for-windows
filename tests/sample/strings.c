@@ -52,7 +52,7 @@ StringOpsTest(bind_md_t* ctx)
 
     // Test that the first 6 bytes of buffer match the whole 6 bytes of test_str_1, including the
     // null terminators.
-    if (bpf_memcmp(buffer, 6, test_str_1, 6) != 0) {
+    if (bpf_memcmp_s(buffer, 6, test_str_1, 6) != 0) {
         return 6;
     }
 
@@ -65,7 +65,7 @@ StringOpsTest(bind_md_t* ctx)
 
     // Test that the first 10 bytes of buffer match the expected state of concatenating those two
     // strings, including a null terminator in position 10.
-    if (bpf_memcmp(buffer, 10, concat_buffer_state, 10) != 0) {
+    if (bpf_memcmp_s(buffer, 10, concat_buffer_state, 10) != 0) {
         return 8;
     }
 

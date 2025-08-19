@@ -5106,3 +5106,91 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 
     return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_map_buffer(
+    fd_t map_fd,
+    _Outptr_result_maybenull_ void** consumer,
+    _Outptr_result_maybenull_ const void** producer,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+
+    if (!consumer || !producer || !data || !data_size) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_operation_ring_buffer_map_map_buffer_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle};
+    ebpf_operation_ring_buffer_map_map_buffer_reply_t reply{};
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    *consumer = reinterpret_cast<void*>(static_cast<uintptr_t>(reply.consumer_address));
+    *producer = reinterpret_cast<const void*>(static_cast<uintptr_t>(reply.producer_address));
+    *data = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(reply.data_address));
+    *data_size = reply.data_size;
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid)
+        return EBPF_INVALID_FD;
+    ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
+        sizeof(request),
+        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
+        map_handle,
+        reinterpret_cast<uint64_t>(consumer),
+        reinterpret_cast<uint64_t>(producer),
+        reinterpret_cast<uint64_t>(data)};
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+
+    if (index != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_operation_map_set_wait_handle_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_MAP_SET_WAIT_HANDLE, map_handle, handle, index, 0};
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
