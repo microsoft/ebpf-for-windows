@@ -262,6 +262,8 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
+    Generate-KernelDump
+
     # Initialize arguments.
     if ($TestArgs -ne "") {
         $ArgumentsList = @($TestArgs)
