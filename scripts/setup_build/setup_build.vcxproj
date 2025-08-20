@@ -181,6 +181,14 @@ popd
       <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
+    <CopyFileToFolders Include="..\tracing_utils.psm1">
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
+    </CopyFileToFolders>
+
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
