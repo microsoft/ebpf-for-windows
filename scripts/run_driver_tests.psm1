@@ -263,7 +263,7 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
     while ($true) {
-        Start-Sleep 2147483647
+        Start-Sleep 2147483
     }
 
     try {
