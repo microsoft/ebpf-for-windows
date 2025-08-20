@@ -130,55 +130,22 @@ typedef struct _ebpf_flow_classify
 } ebpf_flow_classify_t;
 ```
 
-### Hooks
+### Hook
 
-1. **EBPF_ATTACH_TYPE_NEW_FLOW_CLASSIFY**
-   - **Invocation:** Invoked when a new TCP flow is established (at the WFP flow established layer).
-   - **Purpose:** Allows the eBPF program to make an initial classification decision based on connection metadata (addresses, ports, process, etc.) before any stream data is seen.
-   - **Return values:**
-     - `EBPF_FLOW_CLASSIFY_ALLOW`: The flow is permitted and will not be further inspected at the stream layer;
-       no additional hook invocations of this program for this flow.
-     - `EBPF_FLOW_CLASSIFY_BLOCK`: This flow will be blocked at the stream layer with no eBPF program invocations.
-       - _Note_: WFP does not support blocking a flow at the flow-established layer,
-         so the extension will remember the decision and block the flow on the first stream-layer WFP callout.
-     - `EBPF_FLOW_CLASSIFY_NEED_MORE_DATA`: The flow requires inspection at the stream layer;
-       subsequent TCP segments will trigger `stream_flow_classify` invocations.
-   - **Notes:** This avoids unnecessary processing for flows that do not require stream layer data inspection.
-2. **EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY**
-   - **Invocation:** Called for each TCP segment on flows that were marked as needing more data by `new_flow_classify`.
+1. **EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY**
+   - **Invocation:** Called when new streams are established, for each TCP segment on flows that were classified as needing more data, and on flow deletion for unclassified flows.
    - **Purpose:** Allows the eBPF program to inspect stream data and allow/block the connection, or request more data if classification is not yet possible.
    - **Return values:**
      - `EBPF_FLOW_CLASSIFY_ALLOW`: The flow is permitted; the program requires no further stream inspection for this flow.
      - `EBPF_FLOW_CLASSIFY_BLOCK`: The flow is blocked; all further data is dropped (using WFP ABSORB), and the connection will be terminated or time out.
+       - _Note_: WFP does not support blocking a flow at the flow-established layer, so if block is returned for
+         a new flow the extension will remember the decision and block the flow on the first stream-layer WFP callout.
      - `EBPF_FLOW_CLASSIFY_NEED_MORE_DATA`: The current segment is allowed, but the program will be invoked again for subsequent segments until a final decision is made.
-   - **Notes:** This is only invoked for each flow segment until allow/block are returned.
-
-3. **EBPF_ATTACH_TYPE_FLOW_DELETED**
-   - **Invocation:** Called when a flow is deleted (e.g., connection teardown) while still in the `NEED_MORE_DATA` state
-     (i.e., at least 1 program program never returned a final allow/block decision).
-     - All programs attached to this hook will be invoked in attach order for each flow where any eBPF program was still classifying it.
-   - **Purpose:** Allows the eBPF program to perform cleanup of any per-flow state (e.g., in maps) that was maintained during inspection.
-   - **Return value:**
-     - Ignored
-   - **Notes:** This hook is only invoked for flows that were still being actively classified and not for those that were allowed immediately.
+       - _Note_: If the flow is deleted before classification by an attached program, that program will be invoked
+         one final time for cleanup (with the return value ignored).
+   - **Notes:** This is only invoked for each flow segment until allow/block are returned (and only if NEED_MORE_DATA was returned when the flow was established).
 
 ```c
-/*
- * @brief Select flows for stream layer classification.
- *
- * Program type: \ref EBPF_PROGRAM_TYPE_FLOW_CLASSIFY
- *
- * Attach type(s):
- * \ref EBPF_ATTACH_TYPE_NEW_FLOW_CLASSIFY
- *
- * @param[in] context \ref bpf_flow_classify_t
- * @retval EBPF_FLOW_CLASSIFY_ALLOW The flow is permitted and will not be inspected at the stream layer by this program.
- * @retval EBPF_FLOW_CLASSIFY_BLOCK The flow will be blocked at the stream layer with no eBPF program invocations.
- * @retval EBPF_FLOW_CLASSIFY_NEED_MORE_DATA The flow requires inspection at the stream layer.
- */
-typedef flow_classify_action_t
-new_flow_classify_hook_t(bpf_flow_classify_t* context);
-
 /*
  * @brief Handle flow classification (stream inspection).
  *
@@ -187,6 +154,19 @@ new_flow_classify_hook_t(bpf_flow_classify_t* context);
  * Attach type(s):
  * \ref EBPF_ATTACH_TYPE_STREAM_FLOW_CLASSIFY
  *
+ * Has different behavior based on ctx->state.
+ *   EBPF_FLOW_STATE_NEW - Invoked when new flow is established.
+ *     - ALLOW - No stream-layer classification of this flow needed by this program.
+ *     - BLOCK - Block flow. No further program invocations for this flow.
+ *     - NEED_MORE_DATA - invoke this program for each stream segment until classification.
+ *   EBPF_FLOW_STATE_ESTABLISHED - Invoked for each segment of established flows still needing classification.
+ *     - ALLOW - Allow flow. No further invocations of this program for this flow.
+ *       Other programs still classifying will get a final flow deleted invocation.
+ *     - BLOCK - Block flow. No further invocations for this flow for this program
+ *     - NEED_MORE_DATA - invoke this program for each stream segment until classification.
+ *   EBPF_FLOW_STATE_DELETED - Invoked for each program that was still classifying the flow when it was deleted.
+ *     - Return value ignored.
+ *
  * @param[in] context \ref bpf_flow_classify_t
  * @retval FLOW_CLASSIFY_ALLOW The flow is permitted; no further stream inspection by this program for this flow.
  * @retval FLOW_CLASSIFY_BLOCK The flow is blocked; no further stream inspection for this flow.
@@ -194,22 +174,6 @@ new_flow_classify_hook_t(bpf_flow_classify_t* context);
  */
 typedef flow_classify_action_t
 stream_flow_classify_hook_t(bpf_flow_classify_t* context);
-
-/*
- * @brief Handle deletion of a flow that is still being classified.
- *
- * Called for flows where the last return value was NEED_MORE_DATA.
- *
- * Program type: \ref EBPF_PROGRAM_TYPE_FLOW_CLASSIFY
- *
- * Attach type(s):
- * \ref EBPF_ATTACH_TYPE_FLOW_DELETED
- *
- * @param[in] context \ref bpf_flow_classify_t
- * @return Return value is ignored; attach type is used for cleanup purposes only.
- */
-typedef flow_classify_action_t
-flow_deleted_hook_t(bpf_flow_classify_t* context);
 ```
 
 ## Architecture
@@ -218,29 +182,31 @@ flow_deleted_hook_t(bpf_flow_classify_t* context);
 
 The extension uses the Windows Filtering Platform (WFP) to register callouts at both the flow established and stream layers.
 
-1. When a new TCP flow is established, the extension initializes a per-flow context and invokes the `new_flow_classify` hook.
-2. The program can return ALLOW/BLOCK/NEED_MORE_DATA to allow/block the new flow or classify the flow at the stream layer.
+1. When a new TCP flow is established, the extension initializes a per-flow context and invokes each program attached to the hook.
+  a. Each program can return ALLOW/BLOCK/NEED_MORE_DATA to allow/block the new flow or classify the flow at the stream layer.
 
-    a. If no stream-layer inspection is needed, the bpf program context is freed immediately.
+    b. If no stream-layer inspection is needed, the bpf program context is freed immediately.
+    c. If any program returns `EBPF_FLOW_CLASSIFY_NEED_MORE_DATA`, the extension associates the context with the WFP stream layer callout to enable conditional callouts for this flow (using the WFP `CONDITIONAL_ON_FLOW` flag).
+3. For each TCP segment, the extension invokes the `stream_flow_classify` hook, passing the current segment data and flow metadata. Each program can allow/block the flow or request more data as needed.
 
-    b. If further inspection is needed, the extension associates the context with the WFP stream layer callout to enable conditional callouts for this flow (using the WFP `CONDITIONAL_ON_FLOW` flag).
-3. For each TCP segment, the extension invokes the `stream_flow_classify` hook, passing the current segment data and flow metadata. The program can allow/block the flow or request more data as needed.
+    a. If a program returns `FLOW_CLASSIFY_BLOCK` the context is freed and there will be no further invocations for this flow.
 
-    a. If the program returns `FLOW_CLASSIFY_ALLOW` or `FLOW_CLASSIFY_BLOCK` the context is freed and there will be no further invocations for this flow.
+       - programs that previously returned `NEED_MORE_DATA` will be invoked a final time for this flow with the `state` set to `EBPF_FLOW_STATE_DELETED`.
 
     b. If `FLOW_CLASSIFY_NEED_MORE_DATA` is returned, the current segment is allowed but the context is not freed.
-4. If the flow is deleted while still in the NEED_MORE_DATA state (i.e., no final decision was made), the extension invokes the `flow_deleted` hook for cleanup.
+4. If the flow is deleted while still in the NEED_MORE_DATA state (i.e., no final decision was made),
+   each program that most recently returned NEED_MORE_DATA will be invoked a final timeto notify them.
 
 ### Stream Hook Lifecycle
 
 1. **Load and Attach**
     - The lifecycle begins with the setup of WFP filters. These filters are configured to be called at flow established for all TCP flows, and at the stream layer only for flows with the wfp context still set.
 2. **Flow Established Callback and Invocation**
-    - Extension initializes bpf program context and invokes the `new_flow_classify` hook to decide whether to classify this flow at the stream layer.
+    - Extension initializes bpf program context and invokes the hook programs to decide whether to classify this flow at the stream layer.
     - Context is immediately freed if no classification is needed for this flow.
     - If classification is needed, the context is stored in the WFP stream layer callout context.
 3. **Stream Callback and Invocation**
-    - When stream data arrives, WFP triggers the extension through a callout. This callback serves as the starting point for invoking the eBPF `stream_flow_classify` programs.
+    - When stream data arrives, WFP triggers the extension through a callout. This callback serves as the starting point for stream-layer flow classification.
     - The stream layer callout is only invoked for flows still requiring invocation (using WFP CONDITIONAL_ON_FLOW).
 4. **eBPF Program Invocation**
     - The extension invokes eBPF filter programs in the order they were attached.
@@ -256,7 +222,7 @@ The extension uses the Windows Filtering Platform (WFP) to register callouts at 
     - Once a decision other than "Need More Data" is reached (Allow or Block), the lifecycle for that connection ends within the context of the filter program.
     - For “Block,” the connection is terminated.
     - For “Allow,” the connection proceeds without further filtering.
-    - If a connection is terminated while still being classified, the `flow_deleted` hook is invoked.
+    - If a connection is terminated while still being classified by a program, the program is invoked a final time with `EBPF_FLOW_STATE_DELETED`.
 
 _Notes:_
 
