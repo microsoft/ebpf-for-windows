@@ -69,8 +69,8 @@ function Generate-KernelDump
 
     # This will/should not return (test system will/should bluescreen and reboot).
     $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "-accepteula", "/crash"
-    # wait for 30 minutes to generate the kernel dump.
-    $NotMyFaultProc.WaitForExit(30*60*1000)
+    # wait for 10 minutes to generate the kernel dump.
+    $NotMyFaultProc.WaitForExit(10*60*1000)
 
     # If we get here, notmyfault64.exe failed for some reason. Kill the hung process, throw error.
     ThrowWithErrorMessage `
