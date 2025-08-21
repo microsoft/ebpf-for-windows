@@ -1251,3 +1251,43 @@ typedef class _program_info_provider
 #define ETHERNET_TYPE_IPV4 0x0800
 std::vector<uint8_t>
 prepare_udp_packet(uint16_t udp_length, uint16_t ethertype);
+
+class _wait_event
+{
+  public:
+    ebpf_handle_t
+    handle()
+    {
+        initialize();
+        // ObReferenceObjectByHandle in usersim simply reinterprets the handle as a pointer.
+        return reinterpret_cast<ebpf_handle_t>(&_event);
+    }
+
+    KEVENT*
+    operator&()
+    {
+        initialize();
+        return &_event;
+    }
+
+  private:
+    bool _initialized = false;
+    KEVENT _event = {0};
+
+    void
+    initialize()
+    {
+        if (_initialized) {
+            return;
+        }
+
+        KeInitializeEvent(&_event, SynchronizationEvent, FALSE);
+
+        // Take a refcount on the event, without ever dropping it. This avoids
+        // a call to CloseHandle in the ObfDereferenceObject implementation in
+        // usersim.
+        ObfReferenceObject(&_event);
+
+        _initialized = true;
+    }
+};

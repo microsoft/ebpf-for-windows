@@ -227,9 +227,9 @@ jobs:
           - 'server23h2'
           - 'server2025'
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -237,6 +237,8 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
+      # Skip ETW tracing as the individual testcases will capture their own traces.
+      capture_etw: false
 
   driver_native_only_tests:
     needs: regular_native-only
@@ -249,9 +251,9 @@ jobs:
           - 'server23h2'
           - 'server2025'
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -EnableHVCI "On"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -EnableHVCI "On" -GranularTracing
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
@@ -260,6 +262,8 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+      # Skip ETW tracing as the individual testcases will capture their own traces.
+      capture_etw: false
 
   driver_native_only_arm64_tests:
     needs: regular_native-only
@@ -267,9 +271,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost -Architecture arm64
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -ExecuteOnHost -Architecture arm64 -GranularTracing
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -ExecuteOnHost
       name: driver_native_only_arm64
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
@@ -278,6 +282,8 @@ jobs:
       # Driver tests manually gather code coverage.
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+      # Skip ETW tracing as the individual testcases will capture their own traces.
+      capture_etw: false
 
   # Run the regression driver tests on self-hosted runners (only for 2022).
   regression_driver_ws2022:
@@ -287,9 +293,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression" -RegressionArtifactsVersion "0.21.0"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "0.21.0" -GranularTracing
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -GranularTracing
+      post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
@@ -297,6 +303,8 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
+      # Skip ETW tracing as the individual testcases will capture their own traces.
+      capture_etw: false
 
   ossar:
     # Always run this job.
@@ -520,19 +528,6 @@ jobs:
       leak_detection: false
       gather_dumps: true
       capture_etw: true
-
-  # Additional jobs to run on a schedule only (skip push and pull request).
-  # ---------------------------------------------------------------------------
-  codeql:
-    # Only run during daily scheduled run
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      ref: ${{ github.ref }}
-      repository: ${{ github.repository }}
-      build_artifact: Build-x64-CodeQl
-      build_codeql: true
-
 
   # Run the complete fault injection simulator in GitHub.
   # Runs on a schedule as this takes a long time to run.

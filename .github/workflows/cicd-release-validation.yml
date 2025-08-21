@@ -283,16 +283,6 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  codeql:
-    uses: ./.github/workflows/reusable-build.yml
-  permissions:
-    security-events: write  # Required by codeql task.
-    with:
-      ref: ${{ github.ref }}
-      repository: ${{ github.repository }}
-      build_artifact: Build-x64-CodeQl
-      build_codeql: true
-
   # Run the complete fault injection simulator in GitHub (this takes a long time to run).
   fault_injection_full:
     needs: regular
