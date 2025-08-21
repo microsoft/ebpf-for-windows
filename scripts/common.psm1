@@ -282,33 +282,59 @@ function CopyCompressedOrUncompressed-FileFromSession
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
         $uncompressedCopySucceeded = $false
 
-        for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        # Handle wildcard paths by expanding them on the remote session first
+        $sourceFiles = @()
+        if ($UncompressedSourcePath -like "*\*.*") {
             try {
-                Write-Log "Attempting uncompressed file copy (attempt $attempt of $MaxRetries)"
-                Copy-Item `
-                    -FromSession $VMSession `
-                    -Path $UncompressedSourcePath `
-                    -Destination $DestinationDirectory `
-                    -Recurse `
-                    -Force `
-                    -ErrorAction Stop
+                $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
+                    param($Path)
+                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+                } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
 
-                # Check if uncompressed copy succeeded.
-                if (Test-Path $uncompressedDestPath) {
-                    Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
-                    $uncompressedCopySucceeded = $true
-                    break
+                if ($sourceFiles.Count -eq 0) {
+                    Write-Log "No files found matching pattern: $UncompressedSourcePath"
                 }
             } catch {
-                Write-Log "Uncompressed file copy attempt $attempt failed: $($_.Exception.Message)"
-                if ($attempt -lt $MaxRetries) {
-                    Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+                Write-Log "Failed to expand wildcard path $UncompressedSourcePath : $($_.Exception.Message)"
+            }
+        } else {
+            $sourceFiles = @($UncompressedSourcePath)
+        }
+
+        # Copy each file individually with retry logic
+        $anyCopySucceeded = $false
+        foreach ($sourceFile in $sourceFiles) {
+            $fileName = Split-Path $sourceFile -Leaf
+            $destPath = Join-Path $DestinationDirectory $fileName
+
+            for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+                try {
+                    Write-Log "Attempting to copy $sourceFile (attempt $attempt of $MaxRetries)"
+                    Copy-Item `
+                        -FromSession $VMSession `
+                        -Path $sourceFile `
+                        -Destination $DestinationDirectory `
+                        -Force `
+                        -ErrorAction Stop
+
+                    # Check if copy succeeded.
+                    if (Test-Path $destPath) {
+                        Write-Log "Successfully copied uncompressed file: $fileName"
+                        $anyCopySucceeded = $true
+                        $uncompressedDestPath = $destPath  # Update to last successful file
+                        break
+                    }
+                } catch {
+                    Write-Log "Failed to copy $sourceFile (attempt $attempt): $($_.Exception.Message)"
+                    if ($attempt -lt $MaxRetries) {
+                        Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+                    }
                 }
             }
         }
 
-        if (-not $uncompressedCopySucceeded) {
-            Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files after $MaxRetries attempts each"
+        if (-not $anyCopySucceeded) {
+            Write-Log "*** WARNING *** Failed to copy any files from $UncompressedSourcePath after $MaxRetries attempts each"
         }
 
         return @{
