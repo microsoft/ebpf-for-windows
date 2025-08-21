@@ -227,7 +227,8 @@ function CopyCompressedOrUncompressed-FileFromSession
         [Parameter(Mandatory=$True)] $VMSession,
         [Parameter(Mandatory=$True)][string] $CompressedSourcePath,
         [Parameter(Mandatory=$True)][string] $UncompressedSourcePath,
-        [Parameter(Mandatory=$True)][string] $DestinationDirectory
+        [Parameter(Mandatory=$True)][string] $DestinationDirectory,
+        [Parameter(Mandatory=$False)][int] $MaxRetries = 3
     )
 
     # Ensure destination directory exists.
@@ -239,19 +240,36 @@ function CopyCompressedOrUncompressed-FileFromSession
     $uncompressedFileName = Split-Path $UncompressedSourcePath -Leaf
     $compressedDestPath = Join-Path $DestinationDirectory $compressedFileName
 
-    # Try to copy compressed file first.
+    # Try to copy compressed file first with retry logic.
     Write-Log "Copy $CompressedSourcePath to $DestinationDirectory"
-    Copy-Item `
-        -FromSession $VMSession `
-        -Path $CompressedSourcePath `
-        -Destination $DestinationDirectory `
-        -Recurse `
-        -Force `
-        -ErrorAction Ignore 2>&1 | Write-Log
+    $compressedCopySucceeded = $false
 
-    # Check if compressed copy succeeded.
-    if (Test-Path $compressedDestPath) {
-        Write-Log "Successfully copied compressed file: $compressedFileName"
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            Write-Log "Attempting compressed file copy (attempt $attempt of $MaxRetries)"
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path $CompressedSourcePath `
+                -Destination $DestinationDirectory `
+                -Recurse `
+                -Force `
+                -ErrorAction Stop
+
+            # Check if compressed copy succeeded.
+            if (Test-Path $compressedDestPath) {
+                Write-Log "Successfully copied compressed file: $compressedFileName"
+                $compressedCopySucceeded = $true
+                break
+            }
+        } catch {
+            Write-Log "Compressed file copy attempt $attempt failed: $($_.Exception.Message)"
+            if ($attempt -lt $MaxRetries) {
+                Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+            }
+        }
+    }
+
+    if ($compressedCopySucceeded) {
         return @{
             Success = $true
             CompressedPath = $compressedDestPath
@@ -259,21 +277,38 @@ function CopyCompressedOrUncompressed-FileFromSession
             FinalPath = $compressedDestPath
         }
     } else {
-        # Compressed copy failed, try uncompressed.
-        Write-Log "Compressed file not found, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path $UncompressedSourcePath `
-            -Destination $DestinationDirectory `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
-
+        # Compressed copy failed, try uncompressed with retry logic.
+        Write-Log "Compressed file not found or copy failed, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
-        if (Test-Path $uncompressedDestPath) {
-            Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
-        } else {
-            Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files"
+        $uncompressedCopySucceeded = $false
+
+        for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+            try {
+                Write-Log "Attempting uncompressed file copy (attempt $attempt of $MaxRetries)"
+                Copy-Item `
+                    -FromSession $VMSession `
+                    -Path $UncompressedSourcePath `
+                    -Destination $DestinationDirectory `
+                    -Recurse `
+                    -Force `
+                    -ErrorAction Stop
+
+                # Check if uncompressed copy succeeded.
+                if (Test-Path $uncompressedDestPath) {
+                    Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
+                    $uncompressedCopySucceeded = $true
+                    break
+                }
+            } catch {
+                Write-Log "Uncompressed file copy attempt $attempt failed: $($_.Exception.Message)"
+                if ($attempt -lt $MaxRetries) {
+                    Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+                }
+            }
+        }
+
+        if (-not $uncompressedCopySucceeded) {
+            Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files after $MaxRetries attempts each"
         }
 
         return @{
