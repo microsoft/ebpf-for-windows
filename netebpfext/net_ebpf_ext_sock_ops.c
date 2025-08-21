@@ -105,24 +105,6 @@ _ebpf_sock_ops_get_current_process_start_key(
 }
 
 static uint64_t
-_ebpf_sock_ops_get_current_tid(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
-}
-
-static uint64_t
 _ebpf_sock_ops_get_thread_create_time(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
@@ -147,7 +129,6 @@ _ebpf_sock_ops_get_thread_create_time(
 static const void* _ebpf_sock_ops_global_helper_functions[] = {
     (void*)_ebpf_sock_ops_get_current_pid_tgid,
     (void*)_ebpf_sock_ops_get_current_process_start_key,
-    (void*)_ebpf_sock_ops_get_current_tid,
     (void*)_ebpf_sock_ops_get_thread_create_time};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {

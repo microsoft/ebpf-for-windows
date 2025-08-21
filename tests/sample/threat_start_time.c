@@ -1,0 +1,44 @@
+// Copyright (c) eBPF for Windows contributors
+// SPDX-License-Identifier: MIT
+
+#include "bpf_endian.h"
+#include "bpf_helpers.h"
+
+struct value
+{
+    uint32_t current_tid;
+    uint64_t start_time;
+} value;
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, struct value);
+    __uint(max_entries, 1);
+} thread_start_time_map SEC(".maps");
+
+SEC("bind")
+int
+func(bind_md_t* ctx)
+{
+    const uint16_t ebpf_test_port = 0x3bbf; // Host byte order.
+    struct sockaddr_in
+    {
+        uint16_t sin_family;
+        uint16_t sin_port;
+        uint32_t sin_addr;
+        uint64_t sin_zero;
+    };
+    struct sockaddr_in* sockaddr = (struct sockaddr_in*)ctx->socket_address;
+
+    if (ctx->socket_address_length >= sizeof(struct sockaddr_in) && sockaddr->sin_port == ebpf_test_port) {
+        uint64_t start_time = bpf_get_thread_create_time();
+        uint64_t pid_tgid = bpf_get_current_pid_tgid();
+        struct value value = {.current_tid = pid_tgid & 0xFFFFFFFF, .start_time = start_time};
+        uint32_t key = 0;
+        bpf_map_update_elem(&thread_start_time_map, &key, &value, 0);
+    }
+
+    return BIND_PERMIT;
+}
