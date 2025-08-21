@@ -44,17 +44,14 @@ function Invoke-OnHostOrVM {
     }
 }
 
-function Generate-KernelDump {
-    param(
-        [Parameter(Mandatory = $false)] [bool] $VerboseLogs
-    )
+function Generate-KernelDumpOnVM {
     $scriptBlock = {
-        param($WorkingDirectory, $LogFileName, $VerboseLogs)
+        param($WorkingDirectory, $LogFileName)
         Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue
         Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName -Force -WarningAction SilentlyContinue
         Generate-KernelDump
     }
-    $argList = @($script:WorkingDirectory, $script:LogFileName, $VerboseLogs)
+    $argList = @($script:WorkingDirectory, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 

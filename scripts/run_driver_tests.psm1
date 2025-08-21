@@ -68,7 +68,7 @@ function Generate-KernelDump
     Start-Sleep -seconds 5
 
     # This will/should not return (test system will/should bluescreen and reboot).
-    $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "-accepteula", "/crash"
+    $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
     # wait for 10 minutes to generate the kernel dump.
     $NotMyFaultProc.WaitForExit(10*60*1000)
 

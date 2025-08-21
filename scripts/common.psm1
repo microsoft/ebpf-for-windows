@@ -292,7 +292,17 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $true)] [int] $TestJobTimeout,
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
-           [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true)
+           [Parameter(Mandatory = $false)] [bool] $ExecuteOnHost=$false,
+           [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true,
+           [Parameter(Mandatory = $false)] [PSCredential] $AdminTestVMCredential,
+           [Parameter(Mandatory = $false)] [PSCredential] $StandardUserTestVMCredential,
+           [Parameter(Mandatory = $false)] [bool] $VMIsRemote=$false,
+           [Parameter(Mandatory = $false)] [string] $TestWorkingDirectory="C:\ebpf",
+           [Parameter(Mandatory = $false)] [string] $LogFileName="timeout_kernel_dump.log",
+           [Parameter(Mandatory = $false)] [string] $TestMode="CI/CD",
+           [Parameter(Mandatory = $false)] [string[]] $Options=@("None"),
+           [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
+           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
@@ -308,11 +318,33 @@ function Wait-TestJobToComplete
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
-                    Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-                    Write-Log "Generating kernel dump due to test timeout on $TestVMName"
-                    # Import the run_driver_tests module to access Generate-KernelDump function
-                    Import-Module "$PSScriptRoot\run_driver_tests.psm1" -ArgumentList ($PSScriptRoot, "timeout_kernel_dump.log") -Force -WarningAction SilentlyContinue
-                    Generate-KernelDump
+
+                    try {
+                        Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                        Write-Log "Generating kernel dump due to test timeout on $TestVMName"
+
+                        Import-Module "$PSScriptRoot\vm_run_tests.psm1" -ArgumentList @(
+                            $false,                                      # ExecuteOnHost
+                            $true,                                      # ExecuteOnVM
+                            $VMIsRemote,                                # VMIsRemote
+                            $TestVMName,                                # VMName
+                            $AdminTestVMCredential.UserName,           # Admin
+                            $AdminTestVMCredential.Password,           # AdminPassword
+                            $StandardUserTestVMCredential.UserName,    # StandardUser
+                            $StandardUserTestVMCredential.Password,    # StandardUserPassword
+                            $TestWorkingDirectory,                     # WorkingDirectory
+                            $LogFileName,                              # LogFileName
+                            $TestMode,                                 # TestMode
+                            $Options,                                  # Options
+                            $TestHangTimeout,                          # TestHangTimeout
+                            $UserModeDumpFolder                        # UserModeDumpFolder
+                        ) -Force -WarningAction SilentlyContinue
+
+                        # Generate kernel dump on the VM
+                        Generate-KernelDumpOnVM -VerboseLogs $false
+                    } catch {
+                        Write-Log "Failed to generate kernel dump on VM: $_" -ForegroundColor Red
+                    }
                 }
                 $JobTimedOut = $true
                 break
