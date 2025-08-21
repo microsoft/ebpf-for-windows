@@ -408,11 +408,11 @@ function Import-ResultsFromVM
             New-Item -ItemType Directory -Path $LocalKernelArchiveLocation | Out-Null
         }
 
-        # Copy kernel dumps from Test VM - try compressed first, then uncompressed from KernelDumps folder
+        # Copy kernel dumps from Test VM - try compressed first, then uncompressed from Windows folder
         $result = CopyCompressedOrUncompressed-FileFromSession `
             -VMSession $VMSession `
             -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
-            -UncompressedSourcePath "$VMSystemDrive\KernelDumps\*.dmp" `
+            -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
             -DestinationDirectory $LocalKernelArchiveLocation
 
         if ($result.Success) {
