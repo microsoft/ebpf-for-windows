@@ -19,6 +19,7 @@ extern "C"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
 
+#include <format>
 #include <map>
 #include <set>
 #include <softpub.h>
@@ -487,6 +488,50 @@ class WinVerifyTrustHelper
     CRYPT_PROVIDER_CERT*
     get_cert(DWORD index)
     {
+        set_current_certificate_index(index);
+
+        CRYPT_PROVIDER_DATA* provider_data = WTHelperProvDataFromStateData(win_trust_data.hWVTStateData);
+        CRYPT_PROVIDER_SGNR* provider_signer = WTHelperGetProvSignerFromChain(provider_data, 0, FALSE, 0);
+        CRYPT_PROVIDER_CERT* cert = WTHelperGetProvCertFromChain(provider_signer, 0);
+
+        if (cert == nullptr) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WTHelperGetProvCertFromChain);
+            throw std::runtime_error("WTHelperGetProvCertFromChain failed");
+        }
+        return cert;
+    }
+
+    CRYPT_PROVIDER_CERT*
+    get_root_cert(DWORD index)
+    {
+        set_current_certificate_index(index);
+
+        // Get the root certificate by using the last certificate in the chain.
+        CRYPT_PROVIDER_DATA* provider_data = WTHelperProvDataFromStateData(win_trust_data.hWVTStateData);
+        CRYPT_PROVIDER_SGNR* provider_signer = WTHelperGetProvSignerFromChain(provider_data, 0, FALSE, 0);
+        DWORD cert_count = provider_signer->csCertChain;
+        if (cert_count == 0) {
+            EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "No certificates found in chain");
+            throw std::runtime_error("No certificates found in chain");
+        }
+        return WTHelperGetProvCertFromChain(provider_signer, cert_count - 1);
+    }
+
+  private:
+    void
+    clean_up_win_verify_trust()
+    {
+        if (win_trust_data.hWVTStateData) {
+            win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
+            // Ignore the return value of WinVerifyTrust on close.
+            (void)WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            win_trust_data.hWVTStateData = nullptr;
+        }
+    }
+
+    void
+    set_current_certificate_index(DWORD index)
+    {
         // Check if the context currently points to the correct index.
         if (signature_settings.dwIndex != index) {
             clean_up_win_verify_trust();
@@ -500,28 +545,6 @@ class WinVerifyTrustHelper
                 EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
                 throw std::runtime_error("WinVerifyTrust failed");
             }
-        }
-
-        CRYPT_PROVIDER_DATA* provider_data = WTHelperProvDataFromStateData(win_trust_data.hWVTStateData);
-        CRYPT_PROVIDER_SGNR* provider_signer = WTHelperGetProvSignerFromChain(provider_data, 0, FALSE, 0);
-        CRYPT_PROVIDER_CERT* cert = WTHelperGetProvCertFromChain(provider_signer, 0);
-
-        if (cert == nullptr) {
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WTHelperGetProvCertFromChain);
-            throw std::runtime_error("WTHelperGetProvCertFromChain failed");
-        }
-        return cert;
-    }
-
-  private:
-    void
-    clean_up_win_verify_trust()
-    {
-        if (win_trust_data.hWVTStateData) {
-            win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
-            // Ignore the return value of WinVerifyTrust on close.
-            (void)WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
-            win_trust_data.hWVTStateData = nullptr;
         }
     }
 
@@ -552,32 +575,49 @@ _ebpf_extract_eku(_In_ CRYPT_PROVIDER_CERT* cert)
 }
 
 static std::string
-_ebpf_extract_issuer(_In_ const CRYPT_PROVIDER_CERT* cert)
+_ebpf_extract_subject(_In_ const CRYPT_PROVIDER_CERT* cert)
 {
-    DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, nullptr, 0);
+    DWORD name_cb = CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, 0, nullptr, nullptr, 0);
 
     if (name_cb == 0) {
         return std::string();
     }
 
-    std::vector<char> issuer(name_cb);
-    if (CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, issuer.data(), name_cb) ==
-        0) {
+    std::vector<char> subject(name_cb);
+    if (CertGetNameStringA(cert->pCert, CERT_NAME_RDN_TYPE, 0, nullptr, subject.data(), name_cb) == 0) {
         return std::string();
     }
-    return std::string(issuer.data());
+    return std::string(subject.data());
+}
+
+static std::string
+_ebpf_extract_certificate_thumbprint(_In_ const CRYPT_PROVIDER_CERT* cert)
+{
+    // Note: The thumbprint is the SHA1 hash of the certificate.
+    hash_t hash("SHA1");
+    auto thumbprint = hash.hash_byte_ranges(
+        hash_t::byte_range_t{std::make_tuple(cert->pCert->pbCertEncoded, cert->pCert->cbCertEncoded)});
+
+    std::string thumbprint_string;
+    for (const auto& byte : thumbprint) {
+        thumbprint_string +=
+            std::format("{:02x}", byte); // Convert each byte to a two-digit hexadecimal string and append it.
+    }
+
+    return thumbprint_string;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_sys_file_signature(
     _In_z_ const wchar_t* file_name,
-    _In_z_ const char* issuer_name,
+    _In_z_ const char* subject_name,
+    _In_z_ const char* root_certificate_thumbprint,
     size_t eku_count,
     _In_reads_(eku_count) const char** eku_list)
 {
     ebpf_result_t result = EBPF_OBJECT_NOT_FOUND;
     EBPF_LOG_ENTRY();
-    std::string required_issuer(issuer_name);
+    std::string required_subject(subject_name);
     std::set<std::string> required_eku_set;
 
     if (_ebpf_service_test_signing_enabled) {
@@ -595,14 +635,24 @@ ebpf_verify_sys_file_signature(
         for (DWORD i = 0; i < wrapper.cert_count(); i++) {
 
             std::set<std::string> eku_set = _ebpf_extract_eku(wrapper.get_cert(i));
-            std::string issuer = _ebpf_extract_issuer(wrapper.get_cert(i));
+            std::string thumbprint = _ebpf_extract_certificate_thumbprint(wrapper.get_root_cert(i));
+            std::string subject = _ebpf_extract_subject(wrapper.get_cert(i));
 
-            if (issuer != required_issuer) {
+            if (thumbprint != root_certificate_thumbprint) {
                 EBPF_LOG_MESSAGE_STRING(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_API,
-                    "Certificate issuer mismatch",
-                    issuer.c_str());
+                    "Certificate thumbprint mismatch",
+                    thumbprint.c_str());
+                continue;
+            }
+
+            if (subject != required_subject) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "Certificate subject mismatch",
+                    subject.c_str());
                 continue;
             }
 
@@ -642,7 +692,8 @@ ebpf_verify_sys_file_signature(
     EBPF_RETURN_RESULT(result);
 }
 
-static const char* _ebpf_required_issuer = EBPF_REQUIRED_ISSUER;
+static const char* _ebpf_required_subject = EBPF_REQUIRED_SUBJECT;
+static const char* _ebpf_required_root_certificate_thumbprint = EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT;
 static const char* _ebpf_required_eku_list[] = {
     EBPF_CODE_SIGNING_EKU,
     EBPF_VERIFICATION_EKU,
@@ -690,7 +741,8 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
         // modified.
         result = ebpf_verify_sys_file_signature(
             file_path_wide.c_str(),
-            _ebpf_required_issuer,
+            _ebpf_required_subject,
+            _ebpf_required_root_certificate_thumbprint,
             sizeof(_ebpf_required_eku_list) / sizeof(_ebpf_required_eku_list[0]),
             _ebpf_required_eku_list);
 
