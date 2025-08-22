@@ -19,6 +19,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <processthreadsapi.h>
 #include <chrono>
 #include <io.h>
 #include <lsalookup.h>
@@ -1061,8 +1062,8 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     // Verify PID/TID values.
     unsigned long pid = GetCurrentThreadId();
     long long start_time = 0;
-    FILETIME creation;
-    if (GetThreadTimes(GetCurrentThread(), &creation, nullptr, nullptr, nullptr)) {
+    FILETIME creation, exit, kernel, user;
+    if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
         start_time = static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
     }
     REQUIRE(pid == value.current_tid);
