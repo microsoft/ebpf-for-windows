@@ -119,7 +119,7 @@ _ebpf_sock_ops_get_thread_create_time(
     UNREFERENCED_PARAMETER(dummy_param4);
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
-    return PsGetThreadCreateTime(PsGetCurrentThread());
+    return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 
 //

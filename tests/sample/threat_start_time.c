@@ -7,7 +7,7 @@
 struct value
 {
     uint32_t current_tid;
-    uint64_t start_time;
+    int64_t start_time;
 } value;
 
 struct
@@ -33,7 +33,7 @@ func(bind_md_t* ctx)
     struct sockaddr_in* sockaddr = (struct sockaddr_in*)ctx->socket_address;
 
     if (ctx->socket_address_length >= sizeof(struct sockaddr_in) && sockaddr->sin_port == ebpf_test_port) {
-        uint64_t start_time = bpf_get_thread_create_time();
+        int64_t start_time = bpf_get_thread_create_time();
         uint64_t pid_tgid = bpf_get_current_pid_tgid();
         struct value value = {.current_tid = pid_tgid & 0xFFFFFFFF, .start_time = start_time};
         uint32_t key = 0;

@@ -1054,7 +1054,7 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     struct value
     {
         uint32_t current_tid;
-        uint64_t start_time;
+        int64_t start_time;
     } value;
     REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
