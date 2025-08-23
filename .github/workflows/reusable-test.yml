@@ -106,7 +106,7 @@ jobs:
           paths_ignore: '["**.md", "**/docs/**"]'
 
       # Checking out the branch is needed to gather correct code coverage data.
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         # Only check out source code if code coverage is being gathered.
         if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
         with:
@@ -114,7 +114,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       # Perform shallow checkout for self-hosted runner.
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         if: (contains(inputs.environment, 'ebpf_cicd') || contains(inputs.environment, '1ES')) && (steps.skip_check.outputs.should_skip != 'true')
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
@@ -129,7 +129,7 @@ jobs:
           files: .github/workflows/reusable-test.yml
 
       # Check out just this file if code hasn't been checked out yet.
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         if: (steps.check_reusable_test_locally.outputs.files_exists != 'true') && (steps.skip_check.outputs.should_skip != 'true')
         with:
           sparse-checkout: |
@@ -148,7 +148,7 @@ jobs:
         # Add cache entry for any choco packages that are installed.
         # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         env:
           cache-name: cache-choco-packages
         with:
@@ -187,7 +187,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -356,7 +356,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 1
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24
+        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00
         id: upload_code_coverage_report_1
         continue-on-error: true
         with:
@@ -371,7 +371,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 2
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24
+        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00
         id: upload_code_coverage_report_2
         continue-on-error: true
         with:
@@ -386,7 +386,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 3
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24
+        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00
         id: upload_code_coverage_report_3
         continue-on-error: true
         with:
@@ -401,7 +401,7 @@ jobs:
 
       - name: Upload Report to Codecov attempt 4
         if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-        uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24
+        uses: codecov/codecov-action@fdcc8476540edceab3de004e990f80d881c6cc00
         id: upload_code_coverage_report_4
         continue-on-error: true
         with:
