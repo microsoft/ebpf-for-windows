@@ -53,6 +53,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_SET_WAIT_HANDLE,
     EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER,
     EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
+    EBPF_OPERATION_EPOCH_SYNCHRONIZE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -608,3 +609,8 @@ typedef struct _ebpf_operation_ring_buffer_map_unmap_buffer_request
     uint64_t producer;
     uint64_t data;
 } ebpf_operation_ring_buffer_map_unmap_buffer_request_t;
+
+typedef struct _ebpf_operation_epoch_synchronize_request
+{
+    struct _ebpf_operation_header header;
+} ebpf_operation_epoch_synchronize_request_t;
