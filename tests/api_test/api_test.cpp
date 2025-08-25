@@ -1024,7 +1024,7 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     WSACleanup();
 }
 
-TEST_CASE("bpf_get_process_start_key", "[helpers]")
+TEST_CASE("bpf_get_thread_start_time", "[helpers]")
 {
     // Load and attach ebpf program.
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);

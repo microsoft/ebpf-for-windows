@@ -190,6 +190,8 @@ static const ebpf_program_type_descriptor_t _ebpf_sock_ops_program_type_descript
 enum _sock_ops_global_helper_functions
 {
     SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
+    SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PROCESS_START_KEY,
+    SOCK_OPS_GLOBAL_HELPER_GET_THREAD_CREATE_TIME
 };
 
 // SOCK_OPS global helper function prototypes.
