@@ -47,7 +47,7 @@ jobs:
           paths_ignore: '["**.md", "**/docs/**"]'
 
       # Checking out the branch is needed to correctly log security alerts.
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           # Only check out main repo, not submodules.
@@ -55,7 +55,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -81,6 +81,6 @@ jobs:
 
       - name: Upload results to Security tab
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8
+        uses: github/codeql-action/upload-sarif@3c3833e0f8c1c83d449a7478aa59c036a9165498
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}
