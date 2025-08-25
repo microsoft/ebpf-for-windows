@@ -43,6 +43,7 @@ jobs:
             www.bestpractices.dev:443
             github.com:443
             api.deps.dev:443
+            fulcio.sigstore.dev:443
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
