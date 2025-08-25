@@ -4,11 +4,11 @@
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
 
-struct value
+struct val
 {
     uint32_t current_tid;
     int64_t start_time;
-} value;
+} val;
 
 struct
 {
@@ -31,13 +31,14 @@ func(bind_md_t* ctx)
         uint64_t sin_zero;
     };
     struct sockaddr_in* sockaddr = (struct sockaddr_in*)ctx->socket_address;
+    struct val v = {.current_tid = 0, .start_time = 0};
+
 
     if (ctx->socket_address_length >= sizeof(struct sockaddr_in) && sockaddr->sin_port == ebpf_test_port) {
-        int64_t start_time = bpf_get_thread_create_time();
-        uint64_t pid_tgid = bpf_get_current_pid_tgid();
-        struct value value = {.current_tid = pid_tgid & 0xFFFFFFFF, .start_time = start_time};
+        v.start_time = bpf_get_thread_create_time();
+        v.current_tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
         uint32_t key = 0;
-        bpf_map_update_elem(&thread_start_time_map, &key, &value, 0);
+        bpf_map_update_elem(&thread_start_time_map, &key, &v, 0);
     }
 
     return BIND_PERMIT;

@@ -1,5 +1,3 @@
-// Copyright (c) eBPF for Windows contributors
-// SPDX-License-Identifier: MIT
 
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
@@ -23,15 +21,14 @@ int
 func(bpf_sock_ops_t* ctx)
 {
     const uint16_t ebpf_test_port = 0x3bbf; // Host byte order.
+    struct val v = {.current_pid = 0, .start_key = 0};
 
-    if (ctx->local_port == ebpf_test_port || ctx->remote_port == ebpf_test_port)
-    {
-        uint64_t start_key = bpf_get_current_process_start_key();
-        uint64_t pid_tgid = bpf_get_current_pid_tgid();
-        struct val v = {.current_pid = pid_tgid >> 32, .start_key = start_key};
-        uint32_t key = 0;
-        bpf_map_update_elem(&process_start_key_map, &key, &v, 0);
+    if (ctx->local_port == ebpf_test_port || ctx->remote_port == ebpf_test_port) {
+        v.start_key = bpf_get_current_process_start_key();
+        v.current_pid = bpf_get_current_pid_tgid() >> 32;
     }
+        uint32_t key = 0;
+    bpf_map_update_elem(&process_start_key_map, &key, &v, 0);
 
     return 0;
 }
