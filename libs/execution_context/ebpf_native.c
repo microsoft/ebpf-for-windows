@@ -1485,7 +1485,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
     ebpf_map_definition_in_memory_t map_definition = {0};
     const ebpf_native_module_t* module = instance->module;
     bool map_pinning_lock_acquired = false;
-    ebpf_lock_state_t pinning_lock_state;
+    ebpf_lock_state_t pinning_lock_state = 0;
 
     // Get the maps
     module->table.maps(&maps, &map_count);
