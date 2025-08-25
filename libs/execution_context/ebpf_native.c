@@ -1484,6 +1484,8 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
     cxplat_utf8_string_t map_name = {0};
     ebpf_map_definition_in_memory_t map_definition = {0};
     const ebpf_native_module_t* module = instance->module;
+    bool map_pinning_lock_acquired = false;
+    ebpf_lock_state_t pinning_lock_state;
 
     // Get the maps
     module->table.maps(&maps, &map_count);
@@ -1521,54 +1523,18 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         if (native_map->entry.definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Serialize the "check and create" map logic for LIBBPF_PIN_BY_NAME maps
             // to prevent race conditions when multiple threads load programs in parallel
-            ebpf_lock_state_t pinning_lock_state = ebpf_lock_lock(&_ebpf_native_map_pinning_lock);
-            
+            pinning_lock_state = ebpf_lock_lock(&_ebpf_native_map_pinning_lock);
+            map_pinning_lock_acquired = true;
+
             result = _ebpf_native_reuse_map(native_map);
             if (result != EBPF_SUCCESS) {
-                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
                 break;
             }
             if (native_map->reused) {
                 ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+                map_pinning_lock_acquired = false;
                 continue;
             }
-            
-            // Map was not reused, create new map and pin it atomically
-            ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
-            map_name.length = strlen(native_map->entry.name);
-            map_name.value = (uint8_t*)ebpf_allocate_with_tag(map_name.length, EBPF_POOL_TAG_NATIVE);
-            if (map_name.value == NULL) {
-                result = EBPF_NO_MEMORY;
-                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
-                break;
-            }
-            memcpy(map_name.value, native_map->entry.name, map_name.length);
-            map_definition.type = native_map->entry.definition.type;
-            map_definition.key_size = native_map->entry.definition.key_size;
-            map_definition.value_size = native_map->entry.definition.value_size;
-            map_definition.max_entries = native_map->entry.definition.max_entries;
-
-            result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
-            if (result != EBPF_SUCCESS) {
-                ebpf_free(map_name.value);
-                map_name.value = NULL;
-                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
-                break;
-            }
-
-            ebpf_free(map_name.value);
-            map_name.value = NULL;
-
-            // Pin the newly created map
-            result = ebpf_core_update_pinning(native_map->handle, &native_map->pin_path);
-            if (result != EBPF_SUCCESS) {
-                ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
-                break;
-            }
-            native_map->pinned = true;
-            
-            ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
-            continue;
         }
 
         ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
@@ -1600,9 +1566,18 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
             }
             native_map->pinned = true;
         }
+
+        if (map_pinning_lock_acquired) {
+            ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+            map_pinning_lock_acquired = false;
+        }
     }
 
 Done:
+    if (map_pinning_lock_acquired) {
+        ebpf_lock_unlock(&_ebpf_native_map_pinning_lock, pinning_lock_state);
+        map_pinning_lock_acquired = false;
+    }
     if (result != EBPF_SUCCESS) {
         _ebpf_native_clean_up_maps(instance->maps, instance->map_count, true, true);
         instance->maps = NULL;
