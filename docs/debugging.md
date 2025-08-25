@@ -1,13 +1,91 @@
 # 1. Introduction
 
 Often when writing eBPF programs, the first attempt will fail verification.
-This tutorial illustrates how to understand and debug eBPF verification failures.
+This tutorial illustrates how to understand and debug eBPF verification failures for both native mode (recommended) and JIT mode eBPF programs.
 
 If you're new to eBPF for Windows, we recommend first going through the [basic eBPF tutorial](tutorial.md).
-Once you understand that tutorial and have llvm-objdump and the netsh helper installed
-on your machine, you're ready for the debugging tutorial.
 
-# 2. Debugging a buggy eBPF program
+**Note:** Native mode is the *preferred* way of deploying eBPF programs on Windows. This guide covers debugging for both native mode and JIT mode, starting with native mode.
+
+# 2. Debugging eBPF programs in native mode (recommended)
+
+Native mode compiles eBPF programs into Windows drivers using the `bpf2c` tool. This approach provides better security and is compatible with HVCI-enabled systems.
+
+## Prerequisites for native mode debugging
+
+- Visual Studio or Visual Studio Build Tools installed
+- WDK (Windows Driver Kit) installed
+- eBPF for Windows built from source
+- clang compiler for generating eBPF bytecode
+
+## Native mode debugging workflow
+
+Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program to demonstrate debugging verification failures in native mode.
+
+**Step 1)** Compile the eBPF program to bytecode:
+
+```cmd
+cd tests\sample\unsafe
+clang -target bpf -O2 -g -Werror -c droppacket_unsafe.c -o droppacket_unsafe.o
+```
+
+**Step 2)** Try to convert to native mode (this will fail for the unsafe program):
+
+```powershell
+.\Convert-BpfToNative.ps1 -FileName droppacket_unsafe -Type xdp
+```
+
+This will show verification errors during the bpf2c compilation step, such as:
+
+```
+Error: Verification failed for program 'xdp_test'
+; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:29
+;     if (ip_header->Protocol == IPPROTO_UDP) {
+2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1))
+```
+
+**Step 3)** To see detailed verification information, you can use the bpf2c tool directly:
+
+```cmd
+bpf2c droppacket_unsafe.o --verify --verbose
+```
+
+This provides the same verification engine output that you would see with netsh, but integrated into the native compilation workflow.
+
+**Step 4)** Debug using the generated C code (for programs that pass verification):
+
+For programs that pass verification, you can examine the generated C code to understand the program flow:
+
+```powershell
+.\Convert-BpfToNative.ps1 -FileName droppacket -Type xdp
+```
+
+This generates intermediate files you can examine:
+- `droppacket.c` - The generated C code equivalent of your eBPF program
+- `droppacket.sys` - The final native driver
+
+**Step 5)** Debug the native driver:
+
+Once compiled to a .sys file, you can use standard Windows driver debugging techniques:
+- WinDbg for kernel debugging
+- Event Tracing for Windows (ETW) for runtime tracing
+- Performance counters for monitoring program execution
+
+## Benefits of native mode debugging
+
+- **Compile-time verification**: Verification happens during build, catching errors early
+- **Standard debugging tools**: Use familiar Windows driver debugging techniques
+- **Better performance analysis**: No JIT overhead to account for in performance measurements
+- **Production-ready**: Debug the same code that runs in production
+
+# 3. Debugging eBPF programs in JIT mode (alternative approach)
+
+**Note:** JIT mode requires the eBPF service to be running and may not work on HVCI-enabled systems. It's provided here as an alternative for development scenarios.
+
+Once you understand that tutorial and have llvm-objdump and the netsh helper installed
+on your machine, you're ready for this debugging approach.
+
+## Debugging a buggy eBPF program (JIT mode)
 
 Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
 is compiled as part of building eBPF for Windows, as it is used in the unit tests.
@@ -747,7 +825,9 @@ registers.  Thus in instruction 8, r1's attributes are copied to s[504...511], w
 can be later used by assertions, or used when subsequently loading a stack value into a
 variable.
 
-# 3. Some final notes about other verifier errors and warnings
+# 4. Some final notes about verifier errors and warnings
+
+The following error patterns apply to both native mode and JIT mode, since they both use the same verification engine.
 
 Let's look at a couple of other potential errors/warnings.
 
@@ -778,5 +858,19 @@ state of a `.type` attribute such as:
 r8.type in {number, ctx}
 ```
 
-We hope this tutorial has been useful, and you can use these techniques when debugging your
-own program verification failures.
+# 5. Summary
+
+We hope this tutorial has been useful for debugging eBPF program verification failures in both native and JIT modes.
+
+**For production deployments**, we recommend using native mode as it:
+- Provides compile-time verification
+- Works with HVCI-enabled systems
+- Offers better performance and security
+- Uses standard Windows driver debugging tools
+
+**For development and quick iteration**, JIT mode can be useful when:
+- Rapidly prototyping eBPF programs
+- Working on systems where HVCI is disabled
+- Debugging verification issues interactively with netsh
+
+You can use these techniques when debugging your own program verification failures in either mode.

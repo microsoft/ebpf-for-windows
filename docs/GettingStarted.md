@@ -177,10 +177,66 @@ If you're not already familiar with eBPF, or want a detailed walkthrough, see ou
 
 For API documentation, see <https://microsoft.github.io/ebpf-for-windows/>
 
-### Port leak and bind observability demo
+**Note:** Native mode is the *preferred* way of deploying eBPF programs on Windows, as it provides better security and is compatible with Hypervisor-protected Code Integrity (HVCI). See the [FAQ on HVCI](../README.md#3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci) for more details.
+
+### Native mode eBPF program demo
+
+This section demonstrates how to use eBPF for Windows with native mode, which compiles eBPF programs into Windows drivers for optimal security and performance.
+
+#### Prerequisites for native mode
+
+1. Build the solution with the Release configuration.
+1. Install eBPF on the test machine; see [Installing eBPF for Windows](#installing-ebpf-for-windows), using [Method 2](InstallEbpf.md#method-2-install-files-you-built-yourself)
+1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) if not already installed.
+1. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
+
+#### Native mode compilation workflow
+
+1. Compile the eBPF program to bytecode:
+
+   ```cmd
+   clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
+   ```
+
+1. Convert the eBPF bytecode to a native Windows driver using the `Convert-BpfToNative.ps1` script:
+
+   ```powershell
+   .\Convert-BpfToNative.ps1 -FileName droppacket -Type xdp
+   ```
+
+   This script will:
+   - Verify the eBPF program using the PREVAIL verifier
+   - Generate C code equivalent to the eBPF bytecode using `bpf2c`
+   - Compile the generated C code into a Windows driver (.sys file)
+
+1. Load the native driver instead of the bytecode:
+
+   ```cmd
+   sc create droppacket_service type= kernel binPath= C:\full\path\to\droppacket.sys
+   sc start droppacket_service
+   ```
+
+1. The native eBPF program is now running as a Windows driver and will process packets according to the eBPF program logic.
+
+1. To unload the program:
+
+   ```cmd
+   sc stop droppacket_service
+   sc delete droppacket_service
+   ```
+
+**Benefits of native mode:**
+- Works with HVCI enabled systems
+- Better performance (no JIT compilation overhead)
+- Production-ready signed drivers can be created
+- Standard Windows driver debugging tools can be used
+
+### Port leak and bind observability demo (JIT mode)
 
 This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF
  program to the socket `bind()` call via the `EBPF_ATTACH_TYPE_BIND` hook.
+
+**Note:** This demo uses the pre-built `port_quota.exe` application which uses JIT mode. For production scenarios, consider converting the underlying eBPF program to native mode using the workflow shown in the previous section.
 
 #### Prep
 
@@ -193,7 +249,7 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
 > script is unavailable, install the MSI that you copied over on the VM, then run `ebpfSvc.exe install` to register
 > the usermode service, which is required for `port_quota.exe` to work.
 
-#### Demo
+#### Demo (JIT mode)
 
 1. At a command prompt running as Administrator, run `port_quota.exe load` to load the port quota eBPF program attached to the bind hook.
 1. Set a limit to a threshold number of ports you want to permit an application to bind to by doing `port_quota.exe limit 5000`
@@ -206,7 +262,9 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
 
 This section shows how to use eBPF for Windows in a demo that defends against a 0-byte UDP attack on a DNS server.
 
-#### Prep
+#### Using native mode (recommended)
+
+##### Prep
 
 Set up 2 VMs, which we will refer to as the "attacker" machine and the "defender" machine.
 
@@ -223,13 +281,55 @@ On the attacker machine, do the following:
 
 1. Copy `DnsFlood.exe` to attacker machine
 
-#### Demo
+##### Demo (native mode)
 
-##### On the attacker machine
+###### On the attacker machine
 
 1. Run ```for /L %i in (1,1,4) do start /min DnsFlood <ip of defender>```
 
-##### On the defender machine
+###### On the defender machine
+
+1. Start performance monitor and add UDPv4 Datagrams/sec
+1. Show that 200K packets per second are being received
+1. Show & explain code of `droppacket.c`
+1. Compile `droppacket.c` to eBPF bytecode:
+
+   ```cmd
+   clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
+   ```
+
+1. Convert to native Windows driver:
+
+   ```powershell
+   .\Convert-BpfToNative.ps1 -FileName droppacket -Type xdp
+   ```
+
+   This will generate `droppacket.sys` containing the native compiled eBPF program.
+
+1. Load the native driver:
+
+   ```cmd
+   sc create droppacket_service type= kernel binPath= C:\full\path\to\droppacket.sys
+   sc start droppacket_service
+   ```
+
+1. Show UDP datagrams received drop to under 10 per second
+1. Unload the driver:
+
+   ```cmd
+   sc stop droppacket_service
+   sc delete droppacket_service
+   ```
+
+1. Show UDP datagrams received jump back up to ~200K per second
+
+#### Using JIT mode (alternative approach)
+
+**Note:** This approach requires the eBPF service to be running and may not work on HVCI-enabled systems.
+
+##### Demo (JIT mode)
+
+###### On the defender machine (alternative approach)
 
 1. Start performance monitor and add UDPv4 Datagrams/sec
 1. Show that 200K packets per second are being received
@@ -268,12 +368,29 @@ On the attacker machine, do the following:
    ```
 
 1. Show UDP datagrams received drop to back up to ~200K per second
+
+#### Demonstrating verification with unsafe code
+
+Both native and JIT modes use the same verification process. Here's how to demonstrate verification failure:
+
 1. Modify `droppacket.c` to be unsafe - **Comment out line 20 & 21**
 1. Compile `droppacket.c`:
 
    ```cmd
    clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
    ```
+
+**For native mode:**
+
+1. Try to convert to native driver:
+
+   ```powershell
+   .\Convert-BpfToNative.ps1 -FileName droppacket -Type xdp
+   ```
+
+   This will fail during the verification step, preventing the creation of the unsafe driver.
+
+**For JIT mode:**
 
 1. Show that the verifier rejects the code:
 
