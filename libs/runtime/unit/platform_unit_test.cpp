@@ -1766,13 +1766,16 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     // Submit a record with NO_WAKEUP.
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
-    REQUIRE(ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP) == EBPF_SUCCESS);
+    ebpf_result_t ebpf_ring_buffer_submit_result = ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP);
+    REQUIRE(ebpf_ring_buffer_submit_result == EBPF_SUCCESS);
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
 
     // Discard a record with FORCE_WAKEUP.
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
-    REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
+    ebpf_result_t ebpf_ring_buffer_discard_result =
+        ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP);
+    REQUIRE(ebpf_ring_buffer_discard_result == EBPF_SUCCESS);
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
     KeClearEvent(&event);
 
