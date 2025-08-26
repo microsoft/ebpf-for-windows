@@ -4357,3 +4357,101 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
 
     REQUIRE(ebpf_verify_sys_file_signature(expanded_path, subject, root_thumbprint, 0, eku_list) != EBPF_SUCCESS);
 }
+
+/**
+ * @brief This test validates a pattern of synchronized updates to a map. There are two maps:
+ * map_1 and map_2. map_1 is a hash map that points to a value in map_2, creating a dependency between the two maps.
+ * Removing entries from map_2 requires that all programs that may be using the old value in map_1
+ * have completed before the entry in map_2 can be safely removed, which is ensured by the ebpf_program_synchronize API.
+ *
+ * @param[in] execution_type The execution type for the eBPF program (JIT, Interpreter, or Native).
+ */
+static void
+test_map_synchronized_update(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "map_synchronized_update_um.dll" : "map_synchronized_update.o");
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t map_1_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map_1");
+    REQUIRE(map_1_fd > 0);
+
+    fd_t map_2_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map_2");
+    REQUIRE(map_2_fd > 0);
+
+    fd_t failure_stats_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "failure_stats");
+    REQUIRE(failure_stats_fd > 0);
+
+    // Initialize the maps.
+    uint32_t zero_key = 0;
+    uint32_t value_1 = 0;
+    uint32_t value_2 = 1;
+
+    // Insert the initial values into the maps.
+    REQUIRE(bpf_map_update_elem(map_1_fd, &zero_key, &value_1, 0) == 0);
+    REQUIRE(bpf_map_update_elem(map_2_fd, &value_1, &value_2, 0) == 0);
+
+    int bpf_prog_test_run_opt_return_value = 0;
+    std::jthread prog_test_run_thread([&]() {
+        bpf_test_run_opts opts = {};
+        sample_program_context_t ctx = {};
+        opts.batch_size = 64;
+        opts.repeat = 1000000;
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(sample_program_context_t);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(sample_program_context_t);
+        bpf_prog_test_run_opt_return_value = bpf_prog_test_run_opts(program_fd, &opts);
+    });
+
+    // Replace entry in map_2 with a new value.
+    for (uint32_t i = 0; i < 10000; i++) {
+        uint32_t old_value1 = i;
+        uint32_t new_value_1 = i + 1;
+        uint32_t new_value_2 = i + 2;
+
+        // Insert the new values into map_2.
+        REQUIRE(bpf_map_update_elem(map_2_fd, &new_value_1, &new_value_2, 0) == 0);
+
+        // Update the value in map_1 to point to the new value.
+        REQUIRE(bpf_map_update_elem(map_1_fd, &zero_key, &new_value_1, 0) == 0);
+
+        // Wait for any already executing programs to finish.
+        REQUIRE(ebpf_program_synchronize() == EBPF_SUCCESS);
+
+        // Remove the old value from map_2.
+        // If any programs are still running on the old value, this will increment the failure stats counter.
+        REQUIRE(bpf_map_delete_elem(map_2_fd, &old_value1) == 0);
+    }
+
+    prog_test_run_thread.join();
+
+    // Check the failure stats.
+    uint32_t failure_count = 0;
+    REQUIRE(bpf_map_lookup_elem(failure_stats_fd, &zero_key, &failure_count) == 0);
+    REQUIRE(failure_count == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES("test_map_synchronized_update", "[end_to_end]", test_map_synchronized_update);
