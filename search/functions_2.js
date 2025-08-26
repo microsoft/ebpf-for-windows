@@ -43,13 +43,14 @@ var searchData=
   ['ebpf_5fprogram_5fattach_5fby_5ffds_40',['ebpf_program_attach_by_fds',['../ebpf__api_8h.html#a9a6829b43c8afb90233bd929fd6a3734',1,'ebpf_api.h']]],
   ['ebpf_5fprogram_5fdetach_41',['ebpf_program_detach',['../ebpf__api_8h.html#a883ed5f50a08b56842a8cb47641dc3af',1,'ebpf_api.h']]],
   ['ebpf_5fprogram_5fquery_5finfo_42',['ebpf_program_query_info',['../ebpf__api_8h.html#a505f2faed973ba155517d3ac7d76c1ee',1,'ebpf_api.h']]],
-  ['ebpf_5fprogram_5ftest_5frun_43',['ebpf_program_test_run',['../ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5fmap_5fbuffer_44',['ebpf_ring_buffer_map_map_buffer',['../ebpf__api_8h.html#aea5c8ecf68bd8b24565370bb79cc53ea',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5funmap_5fbuffer_45',['ebpf_ring_buffer_map_unmap_buffer',['../ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5fwrite_46',['ebpf_ring_buffer_map_write',['../ebpf__api_8h.html#a3b2aa710f3a51e37cf91f5061c3be300',1,'ebpf_api.h']]],
-  ['ebpf_5fstore_5fdelete_5fprogram_5finformation_47',['ebpf_store_delete_program_information',['../ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fdelete_5fsection_5finformation_48',['ebpf_store_delete_section_information',['../ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fglobal_5fhelper_5finformation_49',['ebpf_store_update_global_helper_information',['../ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fprogram_5finformation_5farray_50',['ebpf_store_update_program_information_array',['../ebpf__store__helper_8h.html#acaa601b7cbf1a2833d98ab812e271a77',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fsection_5finformation_51',['ebpf_store_update_section_information',['../ebpf__store__helper_8h.html#a0acd3f23560694f25c0fe93bdb2a1f3c',1,'ebpf_store_helper.h']]]
+  ['ebpf_5fprogram_5fsynchronize_43',['ebpf_program_synchronize',['../ebpf__api_8h.html#ada486478edf1b7ce57d26175fdcc2df3',1,'ebpf_api.h']]],
+  ['ebpf_5fprogram_5ftest_5frun_44',['ebpf_program_test_run',['../ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5fmap_5fbuffer_45',['ebpf_ring_buffer_map_map_buffer',['../ebpf__api_8h.html#aea5c8ecf68bd8b24565370bb79cc53ea',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5funmap_5fbuffer_46',['ebpf_ring_buffer_map_unmap_buffer',['../ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5fwrite_47',['ebpf_ring_buffer_map_write',['../ebpf__api_8h.html#a3b2aa710f3a51e37cf91f5061c3be300',1,'ebpf_api.h']]],
+  ['ebpf_5fstore_5fdelete_5fprogram_5finformation_48',['ebpf_store_delete_program_information',['../ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fdelete_5fsection_5finformation_49',['ebpf_store_delete_section_information',['../ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fglobal_5fhelper_5finformation_50',['ebpf_store_update_global_helper_information',['../ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fprogram_5finformation_5farray_51',['ebpf_store_update_program_information_array',['../ebpf__store__helper_8h.html#acaa601b7cbf1a2833d98ab812e271a77',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fsection_5finformation_52',['ebpf_store_update_section_information',['../ebpf__store__helper_8h.html#a0acd3f23560694f25c0fe93bdb2a1f3c',1,'ebpf_store_helper.h']]]
 ];
