@@ -90,34 +90,34 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=1 dst=r10 src=r1 offset=-4 imm=0
 #line 26 "sample/utility.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=2 dst=r2 src=r0 offset=0 imm=1953719668
 #line 26 "sample/utility.c"
     r2 = IMMEDIATE(1953719668);
     // EBPF_OP_STXW pc=3 dst=r10 src=r2 offset=-8 imm=0
 #line 26 "sample/utility.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-8));
     // EBPF_OP_STXW pc=4 dst=r10 src=r2 offset=-16 imm=0
 #line 27 "sample/utility.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-16));
     // EBPF_OP_STXB pc=5 dst=r10 src=r1 offset=-12 imm=0
 #line 27 "sample/utility.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-12));
     // EBPF_OP_STXB pc=6 dst=r10 src=r1 offset=-22 imm=0
 #line 28 "sample/utility.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-22)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-22));
     // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=12345
 #line 28 "sample/utility.c"
     r1 = IMMEDIATE(12345);
     // EBPF_OP_STXH pc=8 dst=r10 src=r1 offset=-24 imm=0
 #line 28 "sample/utility.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=9 dst=r1 src=r0 offset=0 imm=875770417
 #line 28 "sample/utility.c"
     r1 = (uint64_t)4050765991979987505;
     // EBPF_OP_STXDW pc=11 dst=r10 src=r1 offset=-32 imm=0
 #line 28 "sample/utility.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=12 dst=r1 src=r10 offset=0 imm=0
 #line 28 "sample/utility.c"
     r1 = r10;
@@ -169,7 +169,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(84);
     // EBPF_OP_STXB pc=25 dst=r10 src=r1 offset=-8 imm=0
 #line 35 "sample/utility.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r10 offset=0 imm=0
 #line 35 "sample/utility.c"
     r1 = r10;
@@ -267,7 +267,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(1414743380);
     // EBPF_OP_STXW pc=51 dst=r10 src=r1 offset=-8 imm=0
 #line 48 "sample/utility.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r10 offset=0 imm=0
 #line 48 "sample/utility.c"
     r1 = r10;
@@ -316,7 +316,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r0 = IMMEDIATE(5);
     // EBPF_OP_LDXB pc=64 dst=r1 src=r10 offset=-8 imm=0
 #line 59 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8));
+    READ_ONCE_8(r1, r10, OFFSET(-8));
     // EBPF_OP_JNE_IMM pc=65 dst=r1 src=r0 offset=44 imm=116
 #line 59 "sample/utility.c"
     if (r1 != IMMEDIATE(116)) {
@@ -326,7 +326,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=66 dst=r1 src=r10 offset=-7 imm=0
 #line 59 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-7));
+    READ_ONCE_8(r1, r10, OFFSET(-7));
     // EBPF_OP_JNE_IMM pc=67 dst=r1 src=r0 offset=42 imm=101
 #line 59 "sample/utility.c"
     if (r1 != IMMEDIATE(101)) {
@@ -336,7 +336,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=68 dst=r1 src=r10 offset=-6 imm=0
 #line 59 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-6));
+    READ_ONCE_8(r1, r10, OFFSET(-6));
     // EBPF_OP_JNE_IMM pc=69 dst=r1 src=r0 offset=40 imm=115
 #line 59 "sample/utility.c"
     if (r1 != IMMEDIATE(115)) {
@@ -346,7 +346,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=70 dst=r1 src=r10 offset=-5 imm=0
 #line 59 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-5));
+    READ_ONCE_8(r1, r10, OFFSET(-5));
     // EBPF_OP_JNE_IMM pc=71 dst=r1 src=r0 offset=38 imm=116
 #line 59 "sample/utility.c"
     if (r1 != IMMEDIATE(116)) {
@@ -393,7 +393,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r0 = IMMEDIATE(7);
     // EBPF_OP_LDXB pc=81 dst=r1 src=r10 offset=-8 imm=0
 #line 69 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8));
+    READ_ONCE_8(r1, r10, OFFSET(-8));
     // EBPF_OP_JNE_IMM pc=82 dst=r1 src=r0 offset=27 imm=0
 #line 69 "sample/utility.c"
     if (r1 != IMMEDIATE(0)) {
@@ -403,7 +403,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=83 dst=r1 src=r10 offset=-7 imm=0
 #line 69 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-7));
+    READ_ONCE_8(r1, r10, OFFSET(-7));
     // EBPF_OP_JNE_IMM pc=84 dst=r1 src=r0 offset=25 imm=0
 #line 69 "sample/utility.c"
     if (r1 != IMMEDIATE(0)) {
@@ -413,7 +413,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=85 dst=r1 src=r10 offset=-6 imm=0
 #line 69 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-6));
+    READ_ONCE_8(r1, r10, OFFSET(-6));
     // EBPF_OP_JNE_IMM pc=86 dst=r1 src=r0 offset=23 imm=0
 #line 69 "sample/utility.c"
     if (r1 != IMMEDIATE(0)) {
@@ -423,7 +423,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=87 dst=r1 src=r10 offset=-5 imm=0
 #line 69 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-5));
+    READ_ONCE_8(r1, r10, OFFSET(-5));
     // EBPF_OP_JNE_IMM pc=88 dst=r1 src=r0 offset=21 imm=0
 #line 69 "sample/utility.c"
     if (r1 != IMMEDIATE(0)) {
@@ -479,7 +479,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     r0 = IMMEDIATE(9);
     // EBPF_OP_LDXB pc=101 dst=r1 src=r10 offset=-30 imm=0
 #line 79 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-30));
+    READ_ONCE_8(r1, r10, OFFSET(-30));
     // EBPF_OP_JNE_IMM pc=102 dst=r1 src=r0 offset=7 imm=49
 #line 79 "sample/utility.c"
     if (r1 != IMMEDIATE(49)) {
@@ -489,7 +489,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=103 dst=r1 src=r10 offset=-29 imm=0
 #line 79 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-29));
+    READ_ONCE_8(r1, r10, OFFSET(-29));
     // EBPF_OP_JNE_IMM pc=104 dst=r1 src=r0 offset=5 imm=50
 #line 79 "sample/utility.c"
     if (r1 != IMMEDIATE(50)) {
@@ -499,7 +499,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=105 dst=r1 src=r10 offset=-28 imm=0
 #line 79 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-28));
+    READ_ONCE_8(r1, r10, OFFSET(-28));
     // EBPF_OP_JNE_IMM pc=106 dst=r1 src=r0 offset=3 imm=51
 #line 79 "sample/utility.c"
     if (r1 != IMMEDIATE(51)) {
@@ -509,7 +509,7 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXB pc=107 dst=r1 src=r10 offset=-27 imm=0
 #line 79 "sample/utility.c"
-    r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-27));
+    READ_ONCE_8(r1, r10, OFFSET(-27));
     // EBPF_OP_JNE_IMM pc=108 dst=r1 src=r0 offset=1 imm=52
 #line 79 "sample/utility.c"
     if (r1 != IMMEDIATE(52)) {
