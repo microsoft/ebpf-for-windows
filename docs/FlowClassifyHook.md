@@ -231,7 +231,7 @@ The extension uses the Windows Filtering Platform (WFP) to register callouts at 
     - The extension invokes eBPF filter programs in the order they were attached.
     - On each invocation, the eBPF program will be presented with the data for the current segment.
     - Classify programs inspect the stream segment data and classify the connection using return codes:
-        - **Allow**: The connection is deemed safe and permitted to proceed without further inspection.
+        - **Allow**: The connection is deemed safe and permitted to proceed without further inspection by this program.
         - **Block**: Terminates the connection immediately.
         - **Need More Data**: Indicates the need for additional data for a conclusive decision. The extension allows the current segment and will invoke the program again for the next segment.
 5. **Stream Inspection**
@@ -251,7 +251,9 @@ API is used for inspecting the stream-layer data via WFP callouts.
   - The context is freed immediately if the flow is allowed at the flow established layer.
   - Otherwise the context is freed when an allow/block decision is made or the flow is deleted.
 - When returning NEED_MORE_DATA, the current data segment is allowed (but the hook will keep getting invoked).
-- Multiple eBPF programs can be invoked for a single stream but the decision is finalized based on the first conclusive return code.
+- Multiple eBPF programs can be invoked for a single stream.
+  - If a program blocks the flow that decision is immediate and final.
+  - If a program allows the flow, other programs returning NEED_MORE_DATA will continue to be invoked.
 - No stream mutation is supported through these hooks (only inspection and allow/block).
 
 ### WFP Implementation Details
