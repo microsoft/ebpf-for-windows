@@ -191,7 +191,7 @@ enum _sock_ops_global_helper_functions
 {
     SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
     SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PROCESS_START_KEY,
-    SOCK_OPS_GLOBAL_HELPER_GET_THREAD_CREATE_TIME
+    SOCK_OPS_GLOBAL_HELPER_GET_THREAD_CREATE_TIME,
 };
 
 // SOCK_OPS global helper function prototypes.
@@ -206,13 +206,13 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
      .helper_id = BPF_FUNC_get_current_process_start_key,
      .name = "bpf_get_current_process_start_key",
      .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {EBPF_ARGUMENT_TYPE_DONTCARE},
+     .arguments = {EBPF_ARGUMENT_TYPE_CONST_SIZE},
      .implicit_context = true},
     {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      .helper_id = BPF_FUNC_get_thread_create_time,
      .name = "bpf_get_thread_create_time",
      .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {EBPF_ARGUMENT_TYPE_DONTCARE},
+     .arguments = {EBPF_ARGUMENT_TYPE_CONST_SIZE},
      .implicit_context = true}};
 
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {

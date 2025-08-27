@@ -3,6 +3,7 @@
 
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
+#include "../../external/usersim/src/net_platform.h"
 
 struct val
 {
@@ -14,32 +15,22 @@ struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, uint32_t);
-    __type(value, struct value);
+    __type(value, struct val);
     __uint(max_entries, 1);
 } thread_start_time_map SEC(".maps");
 
-SEC("bind")
+SEC("sockops")
 int
-func(bind_md_t* ctx)
+func(bpf_sock_ops_t* ctx)
 {
-    const uint16_t ebpf_test_port = 0x3bbf; // Host byte order.
-    struct sockaddr_in
-    {
-        uint16_t sin_family;
-        uint16_t sin_port;
-        uint32_t sin_addr;
-        uint64_t sin_zero;
-    };
-    struct sockaddr_in* sockaddr = (struct sockaddr_in*)ctx->socket_address;
-    struct val v = {.current_tid = 0, .start_time = 0};
+    UNREFERENCED_PARAMETER(ctx);
+    struct val v;
+    uint64_t pid_tgid = bpf_get_current_pid_tgid();
 
+    v.start_time = bpf_get_thread_create_time();
+    v.current_tid = pid_tgid & 0xFFFFFFFF;
+    uint32_t key = 0;
+    bpf_map_update_elem(&thread_start_time_map, &key, &v, 0);
 
-    if (ctx->socket_address_length >= sizeof(struct sockaddr_in) && sockaddr->sin_port == ebpf_test_port) {
-        v.start_time = bpf_get_thread_create_time();
-        v.current_tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-        uint32_t key = 0;
-        bpf_map_update_elem(&thread_start_time_map, &key, &v, 0);
-    }
-
-    return BIND_PERMIT;
+    return 0;
 }

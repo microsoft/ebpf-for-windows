@@ -86,7 +86,7 @@ _ebpf_sock_ops_get_current_pid_tgid(
     return (sock_ops_ctx->process_id << 32 | (uint32_t)(uintptr_t)PsGetCurrentThreadId());
 }
 
-static int64_t
+static uint64_t
 _ebpf_sock_ops_get_current_process_start_key(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
@@ -104,7 +104,7 @@ _ebpf_sock_ops_get_current_process_start_key(
     return PsGetProcessStartKey(IoGetCurrentProcess());
 }
 
-static uint64_t
+static int64_t
 _ebpf_sock_ops_get_thread_create_time(
     uint64_t dummy_param1,
     uint64_t dummy_param2,

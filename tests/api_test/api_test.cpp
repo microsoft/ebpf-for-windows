@@ -887,6 +887,32 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     WSACleanup();
 }
 
+#define SOCKET_TEST_PORT 0x3bbf
+
+void
+connect_send_udp_ipv4_traffic()
+{
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    // Send some traffic to initiate a connect
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+    datagram_client_socket.get_local_address(local_address, local_address_length);
+    // Post an asynchronous receive on the receiver socket.
+    datagram_server_socket.post_async_receive();
+
+    // Send loopback message to test port.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+
+    datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    datagram_server_socket.complete_async_receive(false);
+    // Cancel send operation.
+    datagram_client_socket.cancel_send_message();
+}
+
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
 TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
@@ -931,7 +957,6 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
     }
 }
 
-#define SOCKET_TEST_PORT 0x3bbf
 
 TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 {
@@ -983,17 +1008,17 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 TEST_CASE("bpf_get_process_start_key", "[helpers]")
 {
     // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
     uint32_t ifindex = 0;
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
+    _native_helper.initialize("process_start_key", EBPF_EXECUTION_ANY);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
+        BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_NATIVE,
+        EBPF_EXECUTION_ANY,
         &ifindex,
         sizeof(ifindex),
         hook);
@@ -1002,7 +1027,7 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     // Bind a socket.
     WSAData data;
     REQUIRE(WSAStartup(2, &data) == 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    connect_send_udp_ipv4_traffic();
 
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "process_start_key_map");
@@ -1017,8 +1042,8 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
 
     // Verify PID/TID values.
     unsigned long pid = GetCurrentProcessId();
-    REQUIRE(pid == value.current_pid);
     REQUIRE(0 < value.start_key);
+    REQUIRE(pid == value.current_pid);
 
     // Clean up.
     WSACleanup();
@@ -1027,17 +1052,17 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
 TEST_CASE("bpf_get_thread_start_time", "[helpers]")
 {
     // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
     uint32_t ifindex = 0;
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
+    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_ANY);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_BIND,
+        BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_NATIVE,
+        EBPF_EXECUTION_ANY,
         &ifindex,
         sizeof(ifindex),
         hook);
@@ -1046,7 +1071,7 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     // Bind a socket.
     WSAData data;
     REQUIRE(WSAStartup(2, &data) == 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+    connect_send_udp_ipv4_traffic();
 
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "thread_start_time_map");
@@ -1060,13 +1085,13 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
     // Verify PID/TID values.
-    unsigned long pid = GetCurrentThreadId();
+    unsigned long tid = GetCurrentThreadId();
     long long start_time = 0;
     FILETIME creation, exit, kernel, user;
     if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
         start_time = static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
     }
-    REQUIRE(pid == value.current_tid);
+    REQUIRE(tid == value.current_tid);
     REQUIRE(start_time == value.start_time);
 
     // Clean up.
