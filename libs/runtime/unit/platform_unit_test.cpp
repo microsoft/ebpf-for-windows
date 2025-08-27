@@ -236,7 +236,8 @@ TEST_CASE("hash_table_test", "[platform]")
     const ebpf_hash_table_creation_options_t options = {
         .key_size = key_1.size(),
         .value_size = data_1.size(),
-        .allocate = ebpf_allocate,
+        .allocate = ebpf_allocate_with_tag,
+        .allocate_tag = EBPF_POOL_TAG_DEFAULT,
         .free = ebpf_free,
         .minimum_bucket_count = 1,
     };

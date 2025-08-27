@@ -57,17 +57,15 @@ struct _ebpf_hash_table
     size_t bucket_count_mask; // Mask to use to get bucket index from hash.
     volatile size_t
         entry_count; // Count of entries in the hash table. Only valid if max_entry_count != EBPF_HASH_TABLE_NO_LIMIT.
-    size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
-    uint32_t seed;                  // Seed used for hashing.
-    size_t key_size;                // Size of key.
-    size_t value_size;              // Size of value.
-    size_t supplemental_value_size; // Size of supplemental value.
-    void* (*allocate)(size_t size); // Function to allocate memory.
-    void (*free)(void* memory);     // Function to free memory.
-    void (*extract)(
-        _In_ const uint8_t* value,
-        _Outptr_ const uint8_t** data,
-        _Out_ size_t* num); // Function to extract bytes to hash from key.
+    size_t max_entry_count;            // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
+    uint32_t seed;                     // Seed used for hashing.
+    size_t key_size;                   // Size of key.
+    size_t value_size;                 // Size of value.
+    size_t supplemental_value_size;    // Size of supplemental value.
+    ebpf_hash_table_allocate allocate; // Function to allocate memory.
+    ebpf_hash_table_free free;         // Function to free memory.
+    ebpf_hash_table_extract_function extract; // Function to extract bytes to hash from key.
+    uint32_t allocate_tag;                    // Pool tag to use for allocations.
 
     void* notification_context; //< Context to pass to notification functions.
     ebpf_hash_table_notification_function notification_callback;
@@ -410,7 +408,7 @@ _ebpf_hash_table_bucket_insert(
     }
 
     // Allocate new bucket.
-    local_new_bucket = hash_table->allocate(new_bucket_size);
+    local_new_bucket = hash_table->allocate(new_bucket_size, hash_table->allocate_tag);
     if (!local_new_bucket) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -418,7 +416,7 @@ _ebpf_hash_table_bucket_insert(
 
     // Allocate a new backup bucket.
     if (old_bucket_size) {
-        backup_bucket = hash_table->allocate(old_bucket_size);
+        backup_bucket = hash_table->allocate(old_bucket_size, hash_table->allocate_tag);
         if (!backup_bucket) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -554,7 +552,7 @@ _ebpf_hash_table_bucket_update(
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
 
     // Allocate new bucket.
-    local_new_bucket = hash_table->allocate(old_bucket_size);
+    local_new_bucket = hash_table->allocate(old_bucket_size, hash_table->allocate_tag);
     if (!local_new_bucket) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -611,7 +609,8 @@ _ebpf_hash_table_replace_bucket(
 
     // Make a copy of the value to insert.
     if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
-        new_data = hash_table->allocate(hash_table->value_size + hash_table->supplemental_value_size);
+        new_data = hash_table->allocate(
+            hash_table->value_size + hash_table->supplemental_value_size, hash_table->allocate_tag);
         if (!new_data) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -723,8 +722,9 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     // Select default values for the hash table.
     size_t bucket_count =
         options->minimum_bucket_count ? options->minimum_bucket_count : EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT;
-    void* (*allocate)(size_t size) = options->allocate ? options->allocate : ebpf_epoch_allocate;
-    void (*free)(void* memory) = options->free ? options->free : ebpf_epoch_free;
+    ebpf_hash_table_allocate allocate = options->allocate ? options->allocate : ebpf_epoch_allocate_with_tag;
+    ebpf_hash_table_free free = options->free ? options->free : ebpf_epoch_free;
+    uint32_t allocate_tag = options->allocate_tag ? options->allocate_tag : EBPF_POOL_TAG_EPOCH;
 
     // Increase bucket_count to next power of 2.
     unsigned long msb_index;
@@ -743,7 +743,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
         goto Done;
     }
 
-    table = allocate(table_size);
+    table = allocate(table_size, allocate_tag);
     if (table == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -753,6 +753,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->value_size = options->value_size;
     table->allocate = allocate;
     table->free = free;
+    table->allocate_tag = allocate_tag;
     table->bucket_count = bucket_count;
     table->bucket_count_mask = bucket_count - 1;
     table->entry_count = 0;

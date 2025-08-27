@@ -34,7 +34,10 @@ extern "C"
         _In_ const uint8_t* key,
         _Inout_ uint8_t* value);
 
-    typedef _Must_inspect_result_ _Ret_writes_maybenull_(size) void* (*ebpf_hash_table_allocate)(size_t size);
+    // Allocation callback for the hash table. The tag parameter allows callers to
+    // specify a pool tag for the allocation.
+    typedef _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* (*ebpf_hash_table_allocate)(size_t size, uint32_t tag);
 
     typedef void (*ebpf_hash_table_free)(_Frees_ptr_opt_ void* memory);
 
@@ -56,7 +59,8 @@ extern "C"
         size_t value_size; //< Size of value in bytes.
         // Optional fields.
         ebpf_hash_table_extract_function extract_function; //< Function to extract key from stored value.
-        ebpf_hash_table_allocate allocate; //< Function to allocate memory - defaults to ebpf_epoch_allocate.
+        ebpf_hash_table_allocate allocate; //< Function to allocate memory - defaults to ebpf_epoch_allocate_with_tag.
+        uint32_t allocate_tag;             //< Pool tag to use for allocations - defaults to EBPF_POOL_TAG_EPOCH.
         ebpf_hash_table_free free;         //< Function to free memory - defaults to ebpf_epoch_free.
         size_t minimum_bucket_count;       //< Minimum number of buckets to use - defaults to
                                            // EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.

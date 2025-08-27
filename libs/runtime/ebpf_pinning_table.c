@@ -54,7 +54,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
-    *pinning_table = ebpf_allocate(sizeof(ebpf_pinning_table_t));
+    *pinning_table = ebpf_allocate_with_tag(sizeof(ebpf_pinning_table_t), EBPF_POOL_TAG_PINNING);
     if (*pinning_table == NULL) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
@@ -68,7 +68,8 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         .key_size = sizeof(cxplat_utf8_string_t*),
         .value_size = sizeof(ebpf_pinning_entry_t*),
         .extract_function = _ebpf_pinning_table_extract,
-        .allocate = ebpf_allocate,
+        .allocate = ebpf_allocate_with_tag,
+        .allocate_tag = EBPF_POOL_TAG_PINNING,
         .free = ebpf_free,
     };
 
@@ -135,7 +136,7 @@ ebpf_pinning_table_insert(
         }
     }
 
-    new_pinning_entry = ebpf_allocate(sizeof(ebpf_pinning_entry_t));
+    new_pinning_entry = ebpf_allocate_with_tag(sizeof(ebpf_pinning_entry_t), EBPF_POOL_TAG_PINNING);
     if (!new_pinning_entry) {
         return_value = EBPF_NO_MEMORY;
         goto Done;
