@@ -3,7 +3,6 @@
 
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
-#include "../../external/usersim/src/net_platform.h"
 
 struct val
 {
@@ -23,8 +22,8 @@ SEC("sockops")
 int
 func(bpf_sock_ops_t* ctx)
 {
-    UNREFERENCED_PARAMETER(ctx);
-    struct val v;
+    const uint16_t ebpf_test_port = 0x3bbf; // Host byte order.
+    struct val v = {.current_tid = 0, .start_time = 0};
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
 
     v.start_time = bpf_get_thread_create_time();
