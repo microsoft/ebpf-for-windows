@@ -515,6 +515,17 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->parameters.layer_id = incoming_fixed_values->layerId;
     local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
+    status = FwpsFlowAssociateContext(
+        local_flow_context->parameters.flow_id,
+        local_flow_context->parameters.layer_id,
+        local_flow_context->parameters.callout_id,
+        (uint64_t)(uintptr_t)local_flow_context);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
+        goto Exit;
+    }
+
     program_result = net_ebpf_extension_hook_invoke_programs(sock_ops_context, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program is attached to this hook.
@@ -529,17 +540,6 @@ net_ebpf_extension_sock_ops_flow_established_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_sock_ops_flow_established_classify - Program invocation failed.",
             program_result);
-        goto Exit;
-    }
-
-    status = FwpsFlowAssociateContext(
-        local_flow_context->parameters.flow_id,
-        local_flow_context->parameters.layer_id,
-        local_flow_context->parameters.callout_id,
-        (uint64_t)(uintptr_t)local_flow_context);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
         goto Exit;
     }
 
