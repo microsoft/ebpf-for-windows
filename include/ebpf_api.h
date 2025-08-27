@@ -801,6 +801,15 @@ extern "C"
         _In_reads_bytes_(data_length) const void* data,
         size_t data_length) EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Wait for currently executing eBPF programs to complete.
+     *
+     * @retval EBPF_SUCCESS Successfully synchronized.
+     * @retval EBPF_OUT_OF_SPACE Unable perform the operation due to insufficient space.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_synchronize() EBPF_NO_EXCEPT;
+
 #ifdef __cplusplus
 }
 #endif
