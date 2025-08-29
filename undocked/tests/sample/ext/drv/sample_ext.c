@@ -747,7 +747,6 @@ _sample_context_create(
     ebpf_result_t result;
     sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
-    void* context_data_in = NULL;
 
     *context = NULL;
 
@@ -769,14 +768,8 @@ _sample_context_create(
 
     // Add data_in into the sample_program_context_t.
     if (data_in != NULL && data_size_in > 0) {
-        context_data_in = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, data_size_in, SAMPLE_EXT_POOL_TAG_DEFAULT);
-        if (context_data_in == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        memcpy(context_data_in, data_in, data_size_in);
-        sample_context->data_start = context_data_in;
-        sample_context->data_end = (uint8_t*)context_data_in + data_size_in;
+        sample_context->data_start = (uint8_t*)data_in;
+        sample_context->data_end = (uint8_t*)data_in + data_size_in;
     }
 
     *context = sample_context;
@@ -803,8 +796,9 @@ _sample_context_destroy(
     if (context == NULL) {
         return;
     }
-    context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
+    sample_program_context_t* sample_context = (sample_program_context_t*)context;
+    context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     if (context_out != NULL && *context_size_out >= sizeof(sample_program_context_t)) {
         memcpy(context_out, context, sizeof(sample_program_context_t));
@@ -813,11 +807,12 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    size_t data_size = context_header->context.data_end - context_header->context.data_start;
-    if (context_header->context.data_start != NULL && *data_size_out >= data_size) {
-        memcpy(data_out, context_header->context.data_start, data_size);
-        CXPLAT_FREE(context_header->context.data_start);
-        context_header->context.data_start = NULL;
+    // Copy the app_id to the data_out.
+    if (data_out != NULL && *data_size_out >= (size_t)(sample_context->data_end - sample_context->data_start)) {
+        memcpy(data_out, sample_context->data_start, sample_context->data_end- sample_context->data_start);
+        *data_size_out = sample_context->data_end - sample_context->data_start;
+    } else {
+        *data_size_out = 0;
     }
 
     CXPLAT_FREE(context_header);
