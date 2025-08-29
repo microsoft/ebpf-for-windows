@@ -809,7 +809,7 @@ _sample_context_destroy(
 
     // Copy the app_id to the data_out.
     if (data_out != NULL && *data_size_out >= (size_t)(sample_context->data_end - sample_context->data_start)) {
-        memcpy(data_out, sample_context->data_start, sample_context->data_end- sample_context->data_start);
+        memcpy(data_out, sample_context->data_start, sample_context->data_end - sample_context->data_start);
         *data_size_out = sample_context->data_end - sample_context->data_start;
     } else {
         *data_size_out = 0;
