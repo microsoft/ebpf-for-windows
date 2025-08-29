@@ -19,12 +19,12 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <processthreadsapi.h>
 #include <chrono>
 #include <io.h>
 #include <lsalookup.h>
 #include <mstcpip.h>
 #include <mutex>
+#include <processthreadsapi.h>
 #define _NTDEF_ // UNICODE_STRING is already defined
 #include <ntsecapi.h>
 #include <thread>
@@ -957,7 +957,6 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
     }
 }
 
-
 TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 {
     // Load and attach ebpf program.
@@ -1089,7 +1088,8 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     long long start_time = 0;
     FILETIME creation, exit, kernel, user;
     if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-        start_time = static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
+        start_time =
+            static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
     }
     REQUIRE(tid == value.current_tid);
     REQUIRE(start_time == value.start_time);

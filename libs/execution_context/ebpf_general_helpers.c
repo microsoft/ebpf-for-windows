@@ -224,7 +224,8 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      BPF_FUNC_get_thread_create_time,
      "bpf_get_thread_create_time",
      EBPF_RETURN_TYPE_INTEGER,
-     {0}},};
+     {0}},
+};
 
 #ifdef __cplusplus
 extern "C"

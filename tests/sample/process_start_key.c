@@ -1,3 +1,5 @@
+// Copyright (c) eBPF for Windows contributors
+// SPDX-License-Identifier: MIT
 
 #include "bpf_endian.h"
 #include "bpf_helpers.h"

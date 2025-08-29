@@ -163,7 +163,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)NULL, // bpf_get_process_start_key
     // No fault implementation of bpf_get_thread_start_time
     (void*)NULL // bpf_get_thread_start_time
-    };
+};
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
