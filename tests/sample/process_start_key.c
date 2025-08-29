@@ -22,7 +22,6 @@ SEC("sockops")
 int
 func(bpf_sock_ops_t* ctx)
 {
-    const uint16_t ebpf_test_port = 0x3bbf; // Host byte order.
     struct val v = {.current_pid = 0, .start_key = 0};
 
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
