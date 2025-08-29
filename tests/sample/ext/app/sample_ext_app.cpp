@@ -177,12 +177,14 @@ TEST_CASE("jit_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
-    _helper.initialize(
+    Sleep(2000); // adding sleep to improve relability.
+    
+    {_helper.initialize(
         "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, hook);
 
     object = _helper.get_object();
 
-    sample_ebpf_ext_test(object);
+    sample_ebpf_ext_test(object);}
 }
 #endif
 
@@ -192,6 +194,7 @@ TEST_CASE("interpret_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
+    Sleep(1000); // adding sleep to improve relability.
     _helper.initialize(
         "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
 
@@ -206,6 +209,7 @@ TEST_CASE("native_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
+    Sleep(1000); // adding sleep to improve relability.
     _helper.initialize(
         "test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
@@ -220,6 +224,7 @@ TEST_CASE("batch_test", "[sample_ext_test]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
     program_load_attach_helper_t _helper;
+    Sleep(1000); // adding sleep to improve relability.
     _helper.initialize(
         "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 

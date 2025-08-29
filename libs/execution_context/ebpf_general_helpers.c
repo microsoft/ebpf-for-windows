@@ -219,12 +219,12 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      BPF_FUNC_get_current_process_start_key,
      "bpf_get_current_process_start_key",
      EBPF_RETURN_TYPE_INTEGER,
-     {0}},
+     {EBPF_ARGUMENT_TYPE_DONTCARE}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_get_thread_create_time,
      "bpf_get_thread_create_time",
      EBPF_RETURN_TYPE_INTEGER,
-     {0}},
+     {EBPF_ARGUMENT_TYPE_DONTCARE}},
 };
 
 #ifdef __cplusplus
