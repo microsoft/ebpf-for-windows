@@ -60,7 +60,8 @@ extern "C"
         // Optional fields.
         ebpf_hash_table_extract_function extract_function; //< Function to extract key from stored value.
         ebpf_hash_table_allocate allocate; //< Function to allocate memory - defaults to ebpf_epoch_allocate_with_tag.
-        uint32_t allocate_tag;             //< Pool tag to use for allocations - defaults to EBPF_POOL_TAG_EPOCH.
+        uint32_t allocation_tag;           //< Pool tag to use for allocations - if set to 0 or unspecified, defaults to
+                                           // EBPF_POOL_TAG_EPOCH.
         ebpf_hash_table_free free;         //< Function to free memory - defaults to ebpf_epoch_free.
         size_t minimum_bucket_count;       //< Minimum number of buckets to use - defaults to
                                            // EBPF_HASH_TABLE_DEFAULT_BUCKET_COUNT.

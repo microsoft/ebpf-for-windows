@@ -1056,7 +1056,7 @@ _create_hash_map_internal(
         .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = fixed_size_map ? local_map->ebpf_map_definition.max_entries : EBPF_HASH_TABLE_NO_LIMIT,
         .extract_function = extract_function,
-        .allocate_tag = EBPF_POOL_TAG_MAP,
+        .allocation_tag = EBPF_POOL_TAG_MAP,
         .supplemental_value_size = supplemental_value_size,
         .notification_context = local_map,
         .notification_callback = notification_callback,

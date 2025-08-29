@@ -1027,7 +1027,7 @@ ebpf_native_initiate()
         .key_size = sizeof(GUID),
         .value_size = sizeof(ebpf_native_module_t*),
         .allocate = ebpf_allocate_with_tag,
-        .allocate_tag = EBPF_POOL_TAG_NATIVE,
+        .allocation_tag = EBPF_POOL_TAG_NATIVE,
         .free = ebpf_free,
     };
 
@@ -1044,7 +1044,7 @@ ebpf_native_initiate()
             .key_size = sizeof(GUID),
             .value_size = sizeof(ebpf_native_authorized_module_entry_t),
             .allocate = ebpf_allocate_with_tag,
-            .allocate_tag = EBPF_POOL_TAG_NATIVE,
+            .allocation_tag = EBPF_POOL_TAG_NATIVE,
             .free = ebpf_free,
         });
     if (return_value != EBPF_SUCCESS) {

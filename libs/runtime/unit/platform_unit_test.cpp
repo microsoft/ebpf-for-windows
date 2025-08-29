@@ -233,17 +233,26 @@ TEST_CASE("hash_table_test", "[platform]")
         v = static_cast<uint8_t>(ebpf_random_uint32());
     }
 
-    const ebpf_hash_table_creation_options_t options = {
+    ebpf_hash_table_creation_options_t options = {
         .key_size = key_1.size(),
         .value_size = data_1.size(),
         .allocate = ebpf_allocate_with_tag,
-        .allocate_tag = EBPF_POOL_TAG_DEFAULT,
         .free = ebpf_free,
         .minimum_bucket_count = 1,
     };
 
     ebpf_hash_table_t* raw_ptr = nullptr;
-    REQUIRE(ebpf_hash_table_create(&raw_ptr, &options) == EBPF_SUCCESS);
+    // Allocate using default allocation tag.
+    REQUIRE(
+        ebpf_hash_table_create(&raw_ptr, const_cast<const ebpf_hash_table_creation_options_t*>(&options)) ==
+        EBPF_SUCCESS);
+    ebpf_hash_table_destroy(raw_ptr);
+
+    // Allocate using EBPF_POOL_TAG_DEFAULT.
+    options.allocation_tag = EBPF_POOL_TAG_DEFAULT;
+    REQUIRE(
+        ebpf_hash_table_create(&raw_ptr, const_cast<const ebpf_hash_table_creation_options_t*>(&options)) ==
+        EBPF_SUCCESS);
     ebpf_hash_table_ptr table(raw_ptr);
 
     // Insert first

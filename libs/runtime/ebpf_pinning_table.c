@@ -69,7 +69,7 @@ ebpf_pinning_table_allocate(ebpf_pinning_table_t** pinning_table)
         .value_size = sizeof(ebpf_pinning_entry_t*),
         .extract_function = _ebpf_pinning_table_extract,
         .allocate = ebpf_allocate_with_tag,
-        .allocate_tag = EBPF_POOL_TAG_PINNING,
+        .allocation_tag = EBPF_POOL_TAG_PINNING,
         .free = ebpf_free,
     };
 
