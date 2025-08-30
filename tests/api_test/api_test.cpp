@@ -1012,13 +1012,12 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    Sleep(1000); // adding sleep to improve relability.
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_ANY);
+    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
         BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_ANY,
+        EBPF_EXECUTION_NATIVE,
         &ifindex,
         sizeof(ifindex),
         hook);
@@ -1057,13 +1056,12 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    Sleep(1000); // adding sleep to improve relability.
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_ANY);
+    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
         BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_ANY,
+        EBPF_EXECUTION_NATIVE,
         &ifindex,
         sizeof(ifindex),
         hook);

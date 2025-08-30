@@ -45,7 +45,15 @@ _program_load_attach_helper::initialize(
         bpf_program__set_type(program, _program_type);
     }
 
-    int error = bpf_object__load(_object);
+    int error = 0;
+    // loop over loading
+    for (int i = 0; i < 10; i++) {
+        error = bpf_object__load(_object);
+        if (error == 0) {
+            break;
+        }
+        Sleep(1000); // Sleep for 1 second
+    }
     log_buffer = bpf_program__log_buf(program, &log_buffer_size);
     if (log_buffer != nullptr) {
         printf("bpf_object__load: error: %s", log_buffer);
