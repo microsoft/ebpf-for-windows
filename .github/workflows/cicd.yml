@@ -19,9 +19,10 @@ on:
   merge_group:
   # Permit manual runs of the workflow.
   workflow_dispatch:
-  # Run on push so we can capture the baseline code coverage.
   push:
-    branches: [main]
+    branches: [main]   # Run on push to main, so we can capture the baseline code coverage.
+    tags:
+      - 'Release-v*'  # Run on release tags.
 
 concurrency:
   # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
@@ -367,8 +368,20 @@ jobs:
 
   execution_context_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: execution_context_fuzzer
+      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=1000 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: '["windows-2022"]'
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  execution_context_fuzzer_scheduled:
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -382,7 +395,6 @@ jobs:
   # Run the verifier fuzzer.
   verifier_fuzzer:
     needs: regular
-    # Always run this job.
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -411,7 +423,7 @@ jobs:
   core_helper_fuzzer:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -422,10 +434,23 @@ jobs:
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
 
-  netebpfext_fuzzer:
+  core_helper_fuzzer_scheduled:
     needs: regular
     # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: core_helper_fuzzer
+      test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: '["windows-2022"]'
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
+  netebpfext_fuzzer:
+    needs: regular
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -436,10 +461,23 @@ jobs:
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
 
+  netebpfext_fuzzer_scheduled:
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: netebpfext_fuzzer
+      test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
+      build_artifact: Build-x64
+      environment: '["windows-2022"]'
+      code_coverage: false
+      gather_dumps: true
+      configurations: '["FuzzerDebug"]'
+
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # Only run on schedule and pull request.
+    # always run this.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -453,7 +491,7 @@ jobs:
   # Run the quick stress tests in GitHub.
   stress:
     needs: regular
-    # Only run on schedule and pull request.
+    # always run this test.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
