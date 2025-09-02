@@ -1030,7 +1030,8 @@ ebpf_native_initiate()
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(GUID),
         .value_size = sizeof(ebpf_native_module_t*),
-        .allocate = ebpf_allocate,
+        .allocate = ebpf_allocate_with_tag,
+        .allocation_tag = EBPF_POOL_TAG_NATIVE,
         .free = ebpf_free,
     };
 
@@ -1046,7 +1047,8 @@ ebpf_native_initiate()
         &(const ebpf_hash_table_creation_options_t){
             .key_size = sizeof(GUID),
             .value_size = sizeof(ebpf_native_authorized_module_entry_t),
-            .allocate = ebpf_allocate,
+            .allocate = ebpf_allocate_with_tag,
+            .allocation_tag = EBPF_POOL_TAG_NATIVE,
             .free = ebpf_free,
         });
     if (return_value != EBPF_SUCCESS) {
@@ -2477,7 +2479,7 @@ _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* cont
 
     uint64_t current_time = cxplat_query_time_since_boot_approximate(false) * EBPF_NS_PER_FILETIME;
 
-    // Iterate through the authorized module table and remove entries that have not been used for more than
+    // Iterate through the authorized module table and remove entries that have not been used for
     // EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS.
     GUID previous_key = {0};
     GUID next_key = {0};
