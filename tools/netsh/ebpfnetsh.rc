@@ -82,7 +82,7 @@ BEGIN
 \n                    specified for program types other than CGROUP_SOCK_ADDR.\
 \n      pinned      - One of the following values:\
 \n                     none: Load all programs without pinning any.\
-\n                   first: Pin the first program in the file.\
+\n                     first: Pin the first program in the file.\
 \n                     all: Pin all programs in the file.\
 \n      execution   - One of the following values:\
 \n                     jit: Convert the program to machine code.\

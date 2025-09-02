@@ -28,9 +28,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
+    _Guarded_by_(lock) bool available { true };
+    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
+    _Guarded_by_(lock) bool loaded { false };
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -1142,7 +1142,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     // Choose file extension based on execution type.
     std::string file_extension = (program_type == EBPF_EXECUTION_NATIVE) ? ".sys" : ".o";
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
-    
+
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
         {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"}, {"connect4_count_map"}},
         {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"}, {"connect6_count_map"}}};

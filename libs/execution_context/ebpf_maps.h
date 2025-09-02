@@ -207,7 +207,54 @@ extern "C"
         _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
-     * @brief Issue an asynchronous query to perf event array map.
+     * @brief Map the shared data for a ring buffer map to user space.
+     *
+     * @param[in] map Map to query.
+     * @param[out] consumer Pointer to the consumer buffer.
+     * @param[out] producer Pointer to the producer buffer.
+     * @param[out] data Pointer to the data buffer.
+     * @param[out] data_size Size of the mapped data buffer.
+     * @retval EBPF_SUCCESS Successfully mapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_map_user(
+        _In_ const ebpf_map_t* map,
+        _Outptr_ void** consumer,
+        _Outptr_ void** producer,
+        _Outptr_result_buffer_(*data_size) const uint8_t** data,
+        _Out_ size_t* data_size);
+
+    /**
+     * @brief Unmap the memory of a ring buffer map.
+     *
+     * @param[in] map Map to unmap.
+     * @param[in] consumer Pointer to the consumer buffer.
+     * @param[in] producer Pointer to the producer buffer.
+     * @param[in] data Pointer to the data buffer.
+     * @retval EBPF_SUCCESS Successfully unmapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT The operation is not supported on this map.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_unmap_user(
+        _In_ const ebpf_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+
+    /**
+     * @brief Set the wait handle for a map.
+     *
+     * @param[in] map Map to set the wait handle for.
+     * @param[in] index Map index to set the wait handle for.
+     * @param[in] wait_handle Handle to notify when new data is available.
+     * @param[in] flags Flags to set for the wait handle (currently should be zero).
+     * @retval EBPF_SUCCESS Successfully set the wait handle.
+     * @retval EBPF_INVALID_ARGUMENT Unable to set the wait handle.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_set_wait_handle_internal(
+        _In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags);
+
+    /**
+     * @brief Issue asynchronous query to map.
      *
      * @param[in, out] map Map to issue async query on.
      * @param[in] index Index of buffer to query.

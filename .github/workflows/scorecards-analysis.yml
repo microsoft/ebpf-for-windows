@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49  # v2.12.2
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -43,10 +43,11 @@ jobs:
             www.bestpractices.dev:443
             github.com:443
             api.deps.dev:443
+            fulcio.sigstore.dev:443
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
-        uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+        uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         with:
           persist-credentials: false
 
@@ -77,6 +78,6 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
         if: github.ref_name == 'main'
-        uses: github/codeql-action/upload-sarif@181d5eefc20863364f96762470ba6f862bdef56b
+        uses: github/codeql-action/upload-sarif@3c3833e0f8c1c83d449a7478aa59c036a9165498
         with:
           sarif_file: results.sarif
