@@ -134,6 +134,11 @@
             "Alias": "duo4",
             "V4Address": "192.168.2.12",
             "V6Address": "fc00::2:12"
+        },
+        {
+            "Alias": "Loopback",
+            "V4Address": "127.0.0.1",
+            "V6Address": "::1"
         }
     ],
 
@@ -142,6 +147,6 @@
         "V4VipAddress": "192.168.1.100",
         "V6VipAddress": "fc00::1:100",
         "DestinationPort": 4444,
-        "ProxyPort": 4443
+        "ProxyPort": 5555
     }
 }
