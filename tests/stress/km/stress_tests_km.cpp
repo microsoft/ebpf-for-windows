@@ -1676,7 +1676,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
 
 TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
 {
-    // Test scenario 3 (compliant): Each thread loading different programs with extension restart
+    // Multi-threaded stress test where each thread loads different programs with extension restart
     // Test layout:
     // 1. Create 2 'monitor' threads, each loading a DIFFERENT native eBPF program:
     //    - Thread #1 loads a native eBPF SOCK_ADDR program (cgroup_count_connect4.sys) that attaches to
@@ -1699,7 +1699,7 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
     //    (if specified on the command line).
     //
-    // NOTE: This test fulfills scenario 3 requirements by having each thread load different programs.
+    // NOTE: Each thread loads different programs to test eBPF component resiliency with different program instances.
     // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
 
     _km_test_init();
@@ -1926,10 +1926,10 @@ _mt_load_stress_test_with_restart_timing(
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
     }
 
-    // Handle extension restart timing based on the test scenario
+    // Handle extension restart timing
     if (test_control_info.extension_restart_enabled) {
         if (start_restart_before_load) {
-            // Scenario 1: Start extension restart immediately, then start load threads
+            // Start extension restart immediately, then start load threads
             LOG_INFO("Starting extension restart BEFORE program loading threads");
             configure_extension_restart(
                 test_control_info,
@@ -1950,7 +1950,7 @@ _mt_load_stress_test_with_restart_timing(
     }
 
     if (test_control_info.extension_restart_enabled && !start_restart_before_load) {
-        // Scenario 2: Wait for programs to load, then start extension restart
+        // Wait for programs to load, then start extension restart
         LOG_INFO("Waiting for programs to load, then starting extension restart");
         std::this_thread::sleep_for(std::chrono::seconds(5)); // Give programs time to load and attach
         configure_extension_restart(
@@ -2047,8 +2047,8 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
 
 TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_test]")
 {
-    // Test scenario 1: Test resiliency during program 'open + load + attach' sequence with extension restart
-    // This test starts extension restart immediately and then begins program loading in multiple threads.
+    // Test resiliency during program 'open + load + attach' sequence with extension restart.
+    // Starts extension restart immediately and then begins program loading in multiple threads.
     // Tests JIT programs with multiple threads loading the same program.
 
     _km_test_init();
@@ -2064,8 +2064,8 @@ TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_tes
 
 TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stress_test]")
 {
-    // Test scenario 1: Test resiliency during program 'open + load + attach' sequence with extension restart
-    // This test starts extension restart immediately and then begins program loading in multiple threads.
+    // Test resiliency during program 'open + load + attach' sequence with extension restart.
+    // Starts extension restart immediately and then begins program loading in multiple threads.
     // Tests native programs with multiple threads loading copies of programs.
 
     _km_test_init();
@@ -2082,8 +2082,8 @@ TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stre
 
 TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test]")
 {
-    // Test scenario 2: Test resiliency after program 'open + load + attach' sequence with extension restart
-    // This test completes program loading first, then starts extension restart.
+    // Test resiliency after program 'open + load + attach' sequence with extension restart.
+    // Completes program loading first, then starts extension restart.
     // Ensures loaded + attached programs continue to be invoked after extension restart.
     // Tests JIT programs with multiple threads loading the same program.
 
@@ -2100,8 +2100,8 @@ TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test
 
 TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stress_test]")
 {
-    // Test scenario 2: Test resiliency after program 'open + load + attach' sequence with extension restart
-    // This test completes program loading first, then starts extension restart.
+    // Test resiliency after program 'open + load + attach' sequence with extension restart.
+    // Completes program loading first, then starts extension restart.
     // Ensures loaded + attached programs continue to be invoked after extension restart.
     // Tests native programs with multiple threads loading copies of programs.
 
@@ -2119,7 +2119,7 @@ TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stres
 
 TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stress_test]")
 {
-    // Test scenario 3: Each thread loading different programs with extension restart
+    // Multi-threaded stress test where each thread loads different programs with extension restart.
     // Tests JIT programs with different programs in each thread.
 
     _km_test_init();
@@ -2135,7 +2135,7 @@ TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stres
 
 TEST_CASE("invoke_different_programs_restart_extension_test_native", "[native_mt_stress_test]")
 {
-    // Test scenario 3: Each thread loading different programs with extension restart
+    // Multi-threaded stress test where each thread loads different programs with extension restart.
     // Tests native programs with different programs in each thread.
 
     _km_test_init();
