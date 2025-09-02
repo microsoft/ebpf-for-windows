@@ -1123,21 +1123,19 @@ sock_ops_thread_function(
         count++;
 
         if (result != expected_result) {
-            // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
-            if (fault_injection_enabled && flow_id == 0) {
+            // If fault injection is enabled, FwpsFlowAssociateContext can fail in which case the sock_ops classifyfn
+            // will return FWP_ACTION_PERMIT.
+            if (fault_injection_enabled && result == FWP_ACTION_PERMIT) {
                 continue;
             }
             (*failure_count)++;
             break;
         }
     }
+
     // Sleep for the specified flow duration before removing flow contexts.
     std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
     for (auto id : flow_ids) {
-        // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
-        if (fault_injection_enabled && id == 0) {
-            continue;
-        }
         helper->test_sock_ops_v4_remove_flow_context(id);
     }
 }
