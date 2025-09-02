@@ -29,7 +29,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -40,7 +40,7 @@ jobs:
         run: |
           sudo apt install doxygen
 
-      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+      - uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
 
       - name: Clone docs
         run: |

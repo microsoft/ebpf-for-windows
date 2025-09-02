@@ -350,10 +350,15 @@ EBPF_HELPER(int32_t, bpf_is_current_admin, (const void* ctx));
  *
  * @retval 0 The operation was successful.
  * @retval -EINVAL One or more parameters are invalid.
+ *
+ * @note If possible, use __builtin_memcpy instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory regions sizes are not known at compile time,
+ *       such as when the regions are map values.
+ *
  */
-EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memcpy_s, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
-#define bpf_memcpy ((bpf_memcpy_t)BPF_FUNC_memcpy)
+#define bpf_memcpy_s ((bpf_memcpy_s_t)BPF_FUNC_memcpy_s)
 #endif
 
 /**
@@ -366,11 +371,15 @@ EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, con
  *
  * @returns 0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the
  * contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.
+ *
+ * @note If possible, use __builtin_memcmp instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory regions sizes are not known at compile time,
+ *       such as when the memory regions are map values.
  */
 
-EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const void* memory2, uint32_t memory2_size));
+EBPF_HELPER(int, bpf_memcmp_s, (const void* memory1, size_t memory1_size, const void* memory2, size_t memory2_size));
 #ifndef __doxygen
-#define bpf_memcmp ((bpf_memcmp_t)BPF_FUNC_memcmp)
+#define bpf_memcmp_s ((bpf_memcmp_s_t)BPF_FUNC_memcmp_s)
 #endif
 
 /**
@@ -381,9 +390,13 @@ EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const 
  * @param[in] value Value to set the memory region to.
  *
  * @returns Pointer to the memory region, or a negative error in case of failure.
+ *
+ * @note If possible, use __builtin_memset instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory region size is not known at compile time,
+ *       such as when the memory region is a map value.
  */
 
-EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
+EBPF_HELPER(long, bpf_memset, (void* memory, size_t size, int value));
 #ifndef __doxygen
 #define bpf_memset ((bpf_memset_t)BPF_FUNC_memset)
 #endif
@@ -398,12 +411,15 @@ EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
  *
  * @retval 0 The operation was successful.
  * @retval -EINVAL One or more parameters are invalid.
+ *
+ * @note If possible, use __builtin_memmove instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory region sizes are not known at compile time,
+ *       such as when the memory regions are map values.
  */
 
-EBPF_HELPER(
-    long, bpf_memmove, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memmove_s, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
-#define bpf_memmove ((bpf_memmove_t)BPF_FUNC_memmove)
+#define bpf_memmove_s ((bpf_memmove_s_t)BPF_FUNC_memmove_s)
 #endif
 
 /**
@@ -466,12 +482,12 @@ EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
 #endif
 
 #if __clang__
-#define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
-#define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)
+#define memcpy(dest, src, dest_size) bpf_memcpy_s(dest, dest_size, src, dest_size)
+#define memcmp(mem1, mem2, mem1_size) bpf_memcmp_s(mem1, mem1_size, mem2, mem1_size)
 #define memset(mem, value, mem_size) bpf_memset(mem, mem_size, value)
-#define memmove(dest, src, dest_size) bpf_memmove(dest, dest_size, src, dest_size)
-#define memcpy_s bpf_memcpy
-#define memmove_s bpf_memmove
+#define memmove(dest, src, dest_size) bpf_memmove_s(dest, dest_size, src, dest_size)
+#define memcpy_s bpf_memcpy_s
+#define memmove_s bpf_memmove_s
 #endif
 
 /**

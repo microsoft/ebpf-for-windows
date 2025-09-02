@@ -14,10 +14,14 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][string] $Architecture = "x64")
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64",
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote,
+       [Parameter(Mandatory = $false)][switch] $GranularTracing
+)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
+$VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
@@ -64,7 +68,31 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
-if ($ExecuteOnVM) {
+if ($ExecuteOnVM -and $VMIsRemote) {
+    # Setup for remote machine execution.
+    $VMList = $Config.VMMap.$SelfHostedRunnerName
+
+    # Export build artifacts to the remote machine(s).
+    Export-BuildArtifactsToVMs -VMList $VMList -VMIsRemote:$VMIsRemote -ErrorAction Stop
+
+    # Configure network adapters on remote machine(s).
+    Initialize-NetworkInterfaces `
+        -ExecuteOnHost $false `
+        -ExecuteOnVM $true `
+        -VMList $VMList `
+        -TestWorkingDirectory "C:\ebpf" `
+        -VMIsRemote:$VMIsRemote `
+        -ErrorAction Stop
+
+    # Install eBPF Components on the remote machine(s).
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -VMIsRemote:$VMIsRemote -GranularTracing:$GranularTracing -ErrorAction Stop
+    }
+
+    Pop-Location
+}
+elseif ($ExecuteOnVM) {
     $Job = Start-Job -ScriptBlock {
         param (
             [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
@@ -75,7 +103,8 @@ if ($ExecuteOnVM) {
             [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
             [parameter(Mandatory = $true)] [bool] $KmTracing,
             [parameter(Mandatory = $true)] [string] $KmTraceType,
-            [parameter(Mandatory = $true)] [string] $EnableHVCI
+            [parameter(Mandatory = $true)] [string] $EnableHVCI,
+            [parameter(Mandatory = $true)] [bool] $GranularTracing
         )
         Push-Location $WorkingDirectory
 
@@ -129,7 +158,7 @@ if ($ExecuteOnVM) {
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
             $VMName = $VM.Name
-            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+            Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -GranularTracing:$GranularTracing -ErrorAction Stop
         }
 
         # Log OS build information on the test VM.
@@ -148,7 +177,8 @@ if ($ExecuteOnVM) {
         $WorkingDirectory,
         $KmTracing,
         $KmTraceType,
-        $EnableHVCI)
+        $EnableHVCI,
+        $GranularTracing)
 
     # Wait for the job to complete.
     $JobTimedOut = `
@@ -178,7 +208,7 @@ if ($ExecuteOnVM) {
     # Install eBPF components but skip anything that requires reboot.
     # Note that installing ebpf components requires psexec which does not run in a powershell job.
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
+    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations -GranularTracing:$GranularTracing
 
     Pop-Location
 }

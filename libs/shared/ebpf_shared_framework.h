@@ -51,6 +51,7 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_LINK = 'knle',
     EBPF_POOL_TAG_MAP = 'pame',
     EBPF_POOL_TAG_NATIVE = 'vtne',
+    EBPF_POOL_TAG_PINNING = 'nipe',
     EBPF_POOL_TAG_PROGRAM = 'grpe',
     EBPF_POOL_TAG_RANDOM = 'gnre',
     EBPF_POOL_TAG_RING_BUFFER = 'fbre',
