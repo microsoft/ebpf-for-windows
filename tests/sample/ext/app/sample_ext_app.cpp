@@ -150,7 +150,7 @@ sample_ebpf_ext_test_prog_test_run(_In_ const struct bpf_object* object)
     const char* expected_output = "Seattle is a sunny city";
     std::vector<char> output_buffer(256);
 
-    // Build test run opts
+    // Build test run opts.
     bpf_test_run_opts opts{};
     sample_program_context_t in_ctx{};
     sample_program_context_t out_ctx{};
@@ -175,15 +175,15 @@ sample_ebpf_ext_test_prog_test_run(_In_ const struct bpf_object* object)
         REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
     }
 
-    // Get the program fd
+    // Get the program fd.
     program = bpf_object__find_program_by_name(object, "test_program_entry");
     program_fd = bpf_program__fd(program);
     REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
 
-    // Validate data_out
+    // Validate data_out.
     REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
 
-    // NULL opts.data_in
+    // NULL opts.data_in.
     opts.data_in = nullptr;
     opts.data_size_in = 0;
     opts.data_out = reinterpret_cast<uint8_t*>(output_buffer.data());
