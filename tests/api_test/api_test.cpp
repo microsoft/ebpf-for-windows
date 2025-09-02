@@ -2184,3 +2184,186 @@ TEST_CASE("ebpf_get_next_pinned_program_path_deprecated", "[ebpf_api]")
         REQUIRE(strlen(next_path) > 0);
     }
 }
+
+// Test eBPF store APIs (these are internal/advanced APIs)
+TEST_CASE("ebpf_store_apis", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    // These APIs are typically used by system components to manage the eBPF store
+    // We'll test basic error handling with invalid inputs
+    
+    // Test store update with null data - should fail gracefully
+    ebpf_result_t result = ebpf_store_update_program_information_array(nullptr, 0);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Test store update section with null data - should fail gracefully  
+    result = ebpf_store_update_section_information(nullptr, 0);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Test store delete with null data - should fail gracefully
+    result = ebpf_store_delete_program_information(nullptr);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Test store delete section with null data - should fail gracefully
+    result = ebpf_store_delete_section_information(nullptr, 0);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Note: These APIs modify system state and require careful handling
+    // Full testing would require setting up valid program/section information
+    // which is beyond the scope of basic API coverage testing
+}
+
+// Test eBPF memory-based verification APIs
+TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    // Test memory-based verification with minimal data
+    const char* test_data = "minimal_test_data";
+    const char* report = nullptr;
+    const char* error_message = nullptr;
+    ebpf_api_verifier_stats_t stats = {};
+    
+    // Test program verification from memory with invalid data
+    uint32_t result = ebpf_api_elf_verify_program_from_memory(
+        test_data,
+        strlen(test_data),
+        nullptr,  // section_name
+        nullptr,  // program_name
+        nullptr,  // program_type
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report,
+        &error_message,
+        &stats);
+    
+    // Should fail for invalid ELF data but handle gracefully
+    REQUIRE(result != 0); // Not successful verification
+    
+    // Clean up strings
+    if (report != nullptr) {
+        ebpf_free_string(report);
+    }
+    if (error_message != nullptr) {
+        ebpf_free_string(error_message);
+    }
+    
+    // Test with null data - should fail gracefully
+    result = ebpf_api_elf_verify_program_from_memory(
+        nullptr, 0, nullptr, nullptr, nullptr,
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report, &error_message, &stats);
+    REQUIRE(result != 0);
+    
+    // Clean up strings
+    if (report != nullptr) {
+        ebpf_free_string(report);
+    }
+    if (error_message != nullptr) {
+        ebpf_free_string(error_message);
+    }
+}
+
+// Test eBPF program test run API
+TEST_CASE("ebpf_program_test_run_api", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    // Test with invalid fd - should fail gracefully
+    ebpf_test_run_options_t options = {};
+    options.repeat_count = 1;
+    
+    ebpf_result_t result = ebpf_program_test_run(-1, &options);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Test with null options - should fail gracefully
+    result = ebpf_program_test_run(-1, nullptr);
+    REQUIRE(result != EBPF_SUCCESS);
+    
+    // Note: Full testing would require loading a valid program
+    // and setting up proper test data, which is done in other test cases
+    // This test focuses on basic error handling of the API
+}
+
+// Test remaining deprecated eBPF verification APIs for completeness
+TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    const char* test_file = "test_sample_ebpf.o";
+    const char* disassembly = nullptr;
+    const char* error_message = nullptr;
+
+#pragma warning(push)
+#pragma warning(disable: 4996) // Disable deprecation warning for testing
+    // Test deprecated disassemble section API
+    uint32_t result = ebpf_api_elf_disassemble_section(
+        test_file,
+        "sample",
+        &disassembly,
+        &error_message);
+#pragma warning(pop)
+
+    if (result == 0 && disassembly != nullptr) {
+        REQUIRE(strlen(disassembly) > 0);
+    }
+
+    // Clean up strings
+    if (disassembly != nullptr) {
+        ebpf_free_string(disassembly);
+    }
+    if (error_message != nullptr) {
+        ebpf_free_string(error_message);
+    }
+
+    // Test deprecated verify section from file API
+    const char* report = nullptr;
+    ebpf_api_verifier_stats_t stats = {};
+
+#pragma warning(push)
+#pragma warning(disable: 4996) // Disable deprecation warning for testing
+    result = ebpf_api_elf_verify_section_from_file(
+        test_file,
+        "sample",
+        nullptr,  // program_type
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report,
+        &error_message,
+        &stats);
+#pragma warning(pop)
+
+    // Clean up strings
+    if (report != nullptr) {
+        ebpf_free_string(report);
+    }
+    if (error_message != nullptr) {
+        ebpf_free_string(error_message);
+    }
+
+    // Test deprecated verify section from memory API
+    const char* test_data = "minimal_test_data";
+
+#pragma warning(push)
+#pragma warning(disable: 4996) // Disable deprecation warning for testing
+    result = ebpf_api_elf_verify_section_from_memory(
+        test_data,
+        strlen(test_data),
+        "sample",
+        nullptr,  // program_type
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report,
+        &error_message,
+        &stats);
+#pragma warning(pop)
+
+    // Should fail for invalid ELF data but handle gracefully
+    REQUIRE(result != 0); // Not successful verification
+
+    // Clean up strings
+    if (report != nullptr) {
+        ebpf_free_string(report);
+    }
+    if (error_message != nullptr) {
+        ebpf_free_string(error_message);
+    }
+}
