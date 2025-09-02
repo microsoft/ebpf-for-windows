@@ -244,25 +244,25 @@ xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtim
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=2 dst=r10 src=r1 offset=-4 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=175664236
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 = IMMEDIATE(175664236);
     // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=1768648559
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 = (uint64_t)2675202385892831087;
     // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1801678707
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 = (uint64_t)7160569911484575603;
     // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r10 offset=0 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 = r10;

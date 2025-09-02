@@ -114,19 +114,19 @@ BindMonitor_Callee0(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -178,28 +178,28 @@ BindMonitor_Callee0(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -295,19 +295,19 @@ BindMonitor_Callee1(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -359,28 +359,28 @@ BindMonitor_Callee1(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -476,19 +476,19 @@ BindMonitor_Callee10(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -540,28 +540,28 @@ BindMonitor_Callee10(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -657,19 +657,19 @@ BindMonitor_Callee11(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -721,28 +721,28 @@ BindMonitor_Callee11(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -838,19 +838,19 @@ BindMonitor_Callee12(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -902,28 +902,28 @@ BindMonitor_Callee12(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1019,19 +1019,19 @@ BindMonitor_Callee13(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1083,28 +1083,28 @@ BindMonitor_Callee13(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1200,19 +1200,19 @@ BindMonitor_Callee14(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1264,28 +1264,28 @@ BindMonitor_Callee14(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1381,19 +1381,19 @@ BindMonitor_Callee15(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1445,28 +1445,28 @@ BindMonitor_Callee15(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1562,19 +1562,19 @@ BindMonitor_Callee16(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1626,28 +1626,28 @@ BindMonitor_Callee16(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1743,19 +1743,19 @@ BindMonitor_Callee17(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1807,28 +1807,28 @@ BindMonitor_Callee17(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1924,19 +1924,19 @@ BindMonitor_Callee18(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -1988,28 +1988,28 @@ BindMonitor_Callee18(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2105,19 +2105,19 @@ BindMonitor_Callee19(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2169,28 +2169,28 @@ BindMonitor_Callee19(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2286,19 +2286,19 @@ BindMonitor_Callee2(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2350,28 +2350,28 @@ BindMonitor_Callee2(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2467,19 +2467,19 @@ BindMonitor_Callee20(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2531,28 +2531,28 @@ BindMonitor_Callee20(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2648,19 +2648,19 @@ BindMonitor_Callee21(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2712,28 +2712,28 @@ BindMonitor_Callee21(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2829,19 +2829,19 @@ BindMonitor_Callee22(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -2893,28 +2893,28 @@ BindMonitor_Callee22(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3010,19 +3010,19 @@ BindMonitor_Callee23(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3074,28 +3074,28 @@ BindMonitor_Callee23(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3191,19 +3191,19 @@ BindMonitor_Callee24(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3255,28 +3255,28 @@ BindMonitor_Callee24(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3372,19 +3372,19 @@ BindMonitor_Callee25(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3436,28 +3436,28 @@ BindMonitor_Callee25(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3553,19 +3553,19 @@ BindMonitor_Callee26(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3617,28 +3617,28 @@ BindMonitor_Callee26(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3734,19 +3734,19 @@ BindMonitor_Callee27(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3798,28 +3798,28 @@ BindMonitor_Callee27(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3915,19 +3915,19 @@ BindMonitor_Callee28(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -3979,28 +3979,28 @@ BindMonitor_Callee28(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4096,19 +4096,19 @@ BindMonitor_Callee29(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4160,28 +4160,28 @@ BindMonitor_Callee29(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4277,19 +4277,19 @@ BindMonitor_Callee3(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4341,28 +4341,28 @@ BindMonitor_Callee3(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4458,19 +4458,19 @@ BindMonitor_Callee30(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4522,28 +4522,28 @@ BindMonitor_Callee30(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4639,19 +4639,19 @@ BindMonitor_Callee31(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4703,28 +4703,28 @@ BindMonitor_Callee31(void* context, const program_runtime_context_t* runtime_con
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4858,19 +4858,19 @@ BindMonitor_Callee4(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -4922,28 +4922,28 @@ BindMonitor_Callee4(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5039,19 +5039,19 @@ BindMonitor_Callee5(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5103,28 +5103,28 @@ BindMonitor_Callee5(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5220,19 +5220,19 @@ BindMonitor_Callee6(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5284,28 +5284,28 @@ BindMonitor_Callee6(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5401,19 +5401,19 @@ BindMonitor_Callee7(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5465,28 +5465,28 @@ BindMonitor_Callee7(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5582,19 +5582,19 @@ BindMonitor_Callee8(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5646,28 +5646,28 @@ BindMonitor_Callee8(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXH pc=21 dst=r10 src=r1 offset=-4 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=1680154744
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-8 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=544497952
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=26 dst=r10 src=r1 offset=-16 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=27 dst=r1 src=r0 offset=0 imm=1634082924
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=29 dst=r10 src=r1 offset=-24 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=30 dst=r10 src=r7 offset=-32 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5765,19 +5765,19 @@ BindMonitor_Callee9(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1852383340
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)2339731488442490988;
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-24 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=6 dst=r7 src=r0 offset=0 imm=1818845524
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r7 = (uint64_t)7809632219746099540;
     // EBPF_OP_STXDW pc=8 dst=r10 src=r7 offset=-32 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r10 offset=0 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5832,25 +5832,25 @@ BindMonitor_Callee9(void* context, const program_runtime_context_t* runtime_cont
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=22 dst=r10 src=r1 offset=-8 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=23 dst=r1 src=r0 offset=0 imm=544497952
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7306085893296906528;
     // EBPF_OP_STXDW pc=25 dst=r10 src=r1 offset=-16 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=26 dst=r1 src=r0 offset=0 imm=1634082924
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7234307576302018668;
     // EBPF_OP_STXDW pc=28 dst=r10 src=r1 offset=-24 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_STXDW pc=29 dst=r10 src=r7 offset=-32 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r7;
+    WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-32));
     // EBPF_OP_STXH pc=30 dst=r10 src=r8 offset=-4 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r8;
+    WRITE_ONCE_16(r10, (uint16_t)r8, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=31 dst=r1 src=r10 offset=0 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;
@@ -5944,31 +5944,31 @@ BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_conte
     r1 = (uint64_t)2924860388435300;
     // EBPF_OP_STXDW pc=3 dst=r10 src=r1 offset=-8 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=1818321696
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7955925866773570336;
     // EBPF_OP_STXDW pc=6 dst=r10 src=r1 offset=-16 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=7 dst=r1 src=r0 offset=0 imm=540701285
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7811882042596684389;
     // EBPF_OP_STXDW pc=9 dst=r10 src=r1 offset=-24 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDDW pc=10 dst=r1 src=r0 offset=0 imm=1601335156
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7812726395573006196;
     // EBPF_OP_STXDW pc=12 dst=r10 src=r1 offset=-32 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
     // EBPF_OP_LDDW pc=13 dst=r1 src=r0 offset=0 imm=1684957506
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     r1 = (uint64_t)7597131999608727874;
     // EBPF_OP_STXDW pc=15 dst=r10 src=r1 offset=-40 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
     // EBPF_OP_MOV64_REG pc=16 dst=r1 src=r10 offset=0 imm=0
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     r1 = r10;

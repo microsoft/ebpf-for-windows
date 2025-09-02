@@ -190,7 +190,7 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     r1 = (uint64_t)4294967296;
     // EBPF_OP_STXDW pc=3 dst=r10 src=r1 offset=-8 imm=0
 #line 44 "sample/undocked/test_sample_implicit_helpers.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=4 dst=r2 src=r10 offset=0 imm=0
 #line 44 "sample/undocked/test_sample_implicit_helpers.c"
     r2 = r10;
@@ -235,10 +235,10 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     r7 = r0;
     // EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    READ_ONCE_64(r1, r6, OFFSET(0));
     // EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    READ_ONCE_64(r2, r6, OFFSET(8));
     // EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
     if (r1 >= r2) {
@@ -280,10 +280,10 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     }
     // EBPF_OP_LDXDW pc=25 dst=r1 src=r6 offset=0 imm=0
 #line 58 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    READ_ONCE_64(r1, r6, OFFSET(0));
     // EBPF_OP_LDXDW pc=26 dst=r2 src=r6 offset=8 imm=0
 #line 58 "sample/undocked/test_sample_implicit_helpers.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    READ_ONCE_64(r2, r6, OFFSET(8));
     // EBPF_OP_SUB64_REG pc=27 dst=r2 src=r1 offset=0 imm=0
 #line 58 "sample/undocked/test_sample_implicit_helpers.c"
     r2 -= r1;
@@ -327,7 +327,7 @@ label_1:
     }
     // EBPF_OP_STXDW pc=35 dst=r10 src=r0 offset=-24 imm=0
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-24));
     // EBPF_OP_MOV64_IMM pc=36 dst=r1 src=r0 offset=0 imm=10
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = IMMEDIATE(10);
@@ -342,7 +342,7 @@ label_1:
     }
     // EBPF_OP_STXDW pc=38 dst=r10 src=r0 offset=-16 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=39 dst=r2 src=r10 offset=0 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r2 = r10;

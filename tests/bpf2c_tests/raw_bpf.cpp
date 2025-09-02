@@ -208,6 +208,8 @@ run_bpf_code_generator_test(const std::string& data_file)
     auto [prefix, mem, result, instructions] = parse_test_file(data_file);
 
     std::ofstream c_file(std::string(prefix) + std::string(".c"));
+    c_file << "#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers" << std::endl;
+    c_file << "#include <windows.h>" << std::endl;
     try {
         bpf_code_generator code("test", instructions);
         code.emit_c_code(c_file);

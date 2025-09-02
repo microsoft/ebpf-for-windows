@@ -219,7 +219,7 @@ tcp_mt_connect4(void* context, const program_runtime_context_t* runtime_context)
 
     // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 27 "sample/cgroup_mt_connect4.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
+    READ_ONCE_32(r2, r1, OFFSET(44));
     // EBPF_OP_MOV64_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
 #line 27 "sample/cgroup_mt_connect4.c"
     r0 = IMMEDIATE(1);
@@ -232,7 +232,7 @@ tcp_mt_connect4(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
 #line 33 "sample/cgroup_mt_connect4.c"
-    r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
+    READ_ONCE_16(r2, r1, OFFSET(40));
     // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=7459
 #line 33 "sample/cgroup_mt_connect4.c"
     r3 = IMMEDIATE(7459);
@@ -285,7 +285,7 @@ tcp_mt_connect4(void* context, const program_runtime_context_t* runtime_context)
     r2 += IMMEDIATE(-6141);
     // EBPF_OP_STXH pc=16 dst=r1 src=r2 offset=40 imm=0
 #line 54 "sample/cgroup_mt_connect4.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(40)) = (uint16_t)r2;
+    WRITE_ONCE_16(r1, (uint16_t)r2, OFFSET(40));
 label_1:
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 58 "sample/cgroup_mt_connect4.c"

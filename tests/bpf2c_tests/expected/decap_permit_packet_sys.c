@@ -227,10 +227,10 @@ decapsulate_permit_packet(void* context, const program_runtime_context_t* runtim
 
     // EBPF_OP_LDXDW pc=0 dst=r3 src=r1 offset=8 imm=0
 #line 94 "sample/decap_permit_packet.c"
-    r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
+    READ_ONCE_64(r3, r1, OFFSET(8));
     // EBPF_OP_LDXDW pc=1 dst=r2 src=r1 offset=0 imm=0
 #line 93 "sample/decap_permit_packet.c"
-    r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_64(r2, r1, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=2 dst=r4 src=r2 offset=0 imm=0
 #line 94 "sample/decap_permit_packet.c"
     r4 = r2;
@@ -249,7 +249,7 @@ decapsulate_permit_packet(void* context, const program_runtime_context_t* runtim
     }
     // EBPF_OP_LDXH pc=6 dst=r5 src=r2 offset=12 imm=0
 #line 99 "sample/decap_permit_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(12));
+    READ_ONCE_16(r5, r2, OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=7 dst=r5 src=r0 offset=56 imm=56710
 #line 99 "sample/decap_permit_packet.c"
     if (r5 == IMMEDIATE(56710)) {
@@ -279,7 +279,7 @@ decapsulate_permit_packet(void* context, const program_runtime_context_t* runtim
     }
     // EBPF_OP_LDXB pc=12 dst=r5 src=r2 offset=23 imm=0
 #line 106 "sample/decap_permit_packet.c"
-    r5 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(23));
+    READ_ONCE_8(r5, r2, OFFSET(23));
     // EBPF_OP_JNE_IMM pc=13 dst=r5 src=r0 offset=95 imm=4
 #line 106 "sample/decap_permit_packet.c"
     if (r5 != IMMEDIATE(4)) {
@@ -289,7 +289,7 @@ decapsulate_permit_packet(void* context, const program_runtime_context_t* runtim
     }
     // EBPF_OP_LDXB pc=14 dst=r5 src=r4 offset=0 imm=0
 #line 105 "sample/decap_permit_packet.c"
-    r5 = *(uint8_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_8(r5, r4, OFFSET(0));
     // EBPF_OP_LSH64_IMM pc=15 dst=r5 src=r0 offset=0 imm=2
 #line 105 "sample/decap_permit_packet.c"
     r5 <<= (IMMEDIATE(2) & 63);
@@ -340,88 +340,88 @@ decapsulate_permit_packet(void* context, const program_runtime_context_t* runtim
     }
     // EBPF_OP_LDXB pc=27 dst=r3 src=r2 offset=13 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(13));
+    READ_ONCE_8(r3, r2, OFFSET(13));
     // EBPF_OP_STXB pc=28 dst=r4 src=r3 offset=13 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(13)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(13));
     // EBPF_OP_LDXB pc=29 dst=r3 src=r2 offset=12 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(12));
+    READ_ONCE_8(r3, r2, OFFSET(12));
     // EBPF_OP_STXB pc=30 dst=r4 src=r3 offset=12 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(12)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(12));
     // EBPF_OP_LDXB pc=31 dst=r3 src=r2 offset=11 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(11));
+    READ_ONCE_8(r3, r2, OFFSET(11));
     // EBPF_OP_STXB pc=32 dst=r4 src=r3 offset=11 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(11)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(11));
     // EBPF_OP_LDXB pc=33 dst=r3 src=r2 offset=10 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(10));
+    READ_ONCE_8(r3, r2, OFFSET(10));
     // EBPF_OP_STXB pc=34 dst=r4 src=r3 offset=10 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(10)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(10));
     // EBPF_OP_LDXB pc=35 dst=r3 src=r2 offset=9 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(9));
+    READ_ONCE_8(r3, r2, OFFSET(9));
     // EBPF_OP_STXB pc=36 dst=r4 src=r3 offset=9 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(9)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(9));
     // EBPF_OP_LDXB pc=37 dst=r3 src=r2 offset=8 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(8));
+    READ_ONCE_8(r3, r2, OFFSET(8));
     // EBPF_OP_STXB pc=38 dst=r4 src=r3 offset=8 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(8)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(8));
     // EBPF_OP_LDXB pc=39 dst=r3 src=r2 offset=7 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(7));
+    READ_ONCE_8(r3, r2, OFFSET(7));
     // EBPF_OP_STXB pc=40 dst=r4 src=r3 offset=7 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(7)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(7));
     // EBPF_OP_LDXB pc=41 dst=r3 src=r2 offset=6 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(6));
+    READ_ONCE_8(r3, r2, OFFSET(6));
     // EBPF_OP_STXB pc=42 dst=r4 src=r3 offset=6 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(6)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(6));
     // EBPF_OP_LDXB pc=43 dst=r3 src=r2 offset=5 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(5));
+    READ_ONCE_8(r3, r2, OFFSET(5));
     // EBPF_OP_STXB pc=44 dst=r4 src=r3 offset=5 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(5)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(5));
     // EBPF_OP_LDXB pc=45 dst=r3 src=r2 offset=4 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(4));
+    READ_ONCE_8(r3, r2, OFFSET(4));
     // EBPF_OP_STXB pc=46 dst=r4 src=r3 offset=4 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(4)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(4));
     // EBPF_OP_LDXB pc=47 dst=r3 src=r2 offset=3 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(3));
+    READ_ONCE_8(r3, r2, OFFSET(3));
     // EBPF_OP_STXB pc=48 dst=r4 src=r3 offset=3 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(3)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(3));
     // EBPF_OP_LDXB pc=49 dst=r3 src=r2 offset=2 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(2));
+    READ_ONCE_8(r3, r2, OFFSET(2));
     // EBPF_OP_STXB pc=50 dst=r4 src=r3 offset=2 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(2)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(2));
     // EBPF_OP_LDXB pc=51 dst=r3 src=r2 offset=1 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(1));
+    READ_ONCE_8(r3, r2, OFFSET(1));
     // EBPF_OP_STXB pc=52 dst=r4 src=r3 offset=1 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(1)) = (uint8_t)r3;
+    WRITE_ONCE_8(r4, (uint8_t)r3, OFFSET(1));
     // EBPF_OP_LDXB pc=53 dst=r2 src=r2 offset=0 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    r2 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(0));
+    READ_ONCE_8(r2, r2, OFFSET(0));
     // EBPF_OP_STXB pc=54 dst=r4 src=r2 offset=0 imm=0
 #line 38 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r4 + OFFSET(0)) = (uint8_t)r2;
+    WRITE_ONCE_8(r4, (uint8_t)r2, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=55 dst=r2 src=r0 offset=0 imm=20
 #line 41 "sample/decap_permit_packet.c"
     r2 = IMMEDIATE(20);
@@ -475,7 +475,7 @@ label_1:
     }
     // EBPF_OP_LDXB pc=67 dst=r4 src=r2 offset=20 imm=0
 #line 120 "sample/decap_permit_packet.c"
-    r4 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(20));
+    READ_ONCE_8(r4, r2, OFFSET(20));
     // EBPF_OP_JNE_IMM pc=68 dst=r4 src=r0 offset=40 imm=41
 #line 120 "sample/decap_permit_packet.c"
     if (r4 != IMMEDIATE(41)) {
@@ -498,88 +498,88 @@ label_1:
     }
     // EBPF_OP_LDXB pc=72 dst=r3 src=r2 offset=13 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(13));
+    READ_ONCE_8(r3, r2, OFFSET(13));
     // EBPF_OP_STXB pc=73 dst=r2 src=r3 offset=53 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(53)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(53));
     // EBPF_OP_LDXB pc=74 dst=r3 src=r2 offset=12 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(12));
+    READ_ONCE_8(r3, r2, OFFSET(12));
     // EBPF_OP_STXB pc=75 dst=r2 src=r3 offset=52 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(52)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(52));
     // EBPF_OP_LDXB pc=76 dst=r3 src=r2 offset=11 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(11));
+    READ_ONCE_8(r3, r2, OFFSET(11));
     // EBPF_OP_STXB pc=77 dst=r2 src=r3 offset=51 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(51)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(51));
     // EBPF_OP_LDXB pc=78 dst=r3 src=r2 offset=10 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(10));
+    READ_ONCE_8(r3, r2, OFFSET(10));
     // EBPF_OP_STXB pc=79 dst=r2 src=r3 offset=50 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(50)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(50));
     // EBPF_OP_LDXB pc=80 dst=r3 src=r2 offset=9 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(9));
+    READ_ONCE_8(r3, r2, OFFSET(9));
     // EBPF_OP_STXB pc=81 dst=r2 src=r3 offset=49 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(49)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(49));
     // EBPF_OP_LDXB pc=82 dst=r3 src=r2 offset=8 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(8));
+    READ_ONCE_8(r3, r2, OFFSET(8));
     // EBPF_OP_STXB pc=83 dst=r2 src=r3 offset=48 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(48)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(48));
     // EBPF_OP_LDXB pc=84 dst=r3 src=r2 offset=7 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(7));
+    READ_ONCE_8(r3, r2, OFFSET(7));
     // EBPF_OP_STXB pc=85 dst=r2 src=r3 offset=47 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(47)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(47));
     // EBPF_OP_LDXB pc=86 dst=r3 src=r2 offset=6 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(6));
+    READ_ONCE_8(r3, r2, OFFSET(6));
     // EBPF_OP_STXB pc=87 dst=r2 src=r3 offset=46 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(46)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(46));
     // EBPF_OP_LDXB pc=88 dst=r3 src=r2 offset=5 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(5));
+    READ_ONCE_8(r3, r2, OFFSET(5));
     // EBPF_OP_STXB pc=89 dst=r2 src=r3 offset=45 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(45)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(45));
     // EBPF_OP_LDXB pc=90 dst=r3 src=r2 offset=4 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(4));
+    READ_ONCE_8(r3, r2, OFFSET(4));
     // EBPF_OP_STXB pc=91 dst=r2 src=r3 offset=44 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(44)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(44));
     // EBPF_OP_LDXB pc=92 dst=r3 src=r2 offset=3 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(3));
+    READ_ONCE_8(r3, r2, OFFSET(3));
     // EBPF_OP_STXB pc=93 dst=r2 src=r3 offset=43 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(43)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(43));
     // EBPF_OP_LDXB pc=94 dst=r3 src=r2 offset=2 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(2));
+    READ_ONCE_8(r3, r2, OFFSET(2));
     // EBPF_OP_STXB pc=95 dst=r2 src=r3 offset=42 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(42)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(42));
     // EBPF_OP_LDXB pc=96 dst=r3 src=r2 offset=1 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(1));
+    READ_ONCE_8(r3, r2, OFFSET(1));
     // EBPF_OP_STXB pc=97 dst=r2 src=r3 offset=41 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(41)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(41));
     // EBPF_OP_LDXB pc=98 dst=r3 src=r2 offset=0 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(0));
+    READ_ONCE_8(r3, r2, OFFSET(0));
     // EBPF_OP_STXB pc=99 dst=r2 src=r3 offset=40 imm=0
 #line 67 "sample/decap_permit_packet.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(40)) = (uint8_t)r3;
+    WRITE_ONCE_8(r2, (uint8_t)r3, OFFSET(40));
     // EBPF_OP_MOV64_IMM pc=100 dst=r2 src=r0 offset=0 imm=40
 #line 70 "sample/decap_permit_packet.c"
     r2 = IMMEDIATE(40);

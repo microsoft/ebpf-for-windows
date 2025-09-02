@@ -86,10 +86,10 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     r0 = IMMEDIATE(1);
     // EBPF_OP_LDXDW pc=1 dst=r2 src=r1 offset=8 imm=0
 #line 173 "sample/encap_reflect_packet.c"
-    r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
+    READ_ONCE_64(r2, r1, OFFSET(8));
     // EBPF_OP_LDXDW pc=2 dst=r3 src=r1 offset=0 imm=0
 #line 172 "sample/encap_reflect_packet.c"
-    r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_64(r3, r1, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=3 dst=r4 src=r3 offset=0 imm=0
 #line 173 "sample/encap_reflect_packet.c"
     r4 = r3;
@@ -105,7 +105,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXH pc=6 dst=r5 src=r3 offset=12 imm=0
 #line 178 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(12));
+    READ_ONCE_16(r5, r3, OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=7 dst=r5 src=r0 offset=120 imm=56710
 #line 178 "sample/encap_reflect_packet.c"
     if (r5 == IMMEDIATE(56710)) {
@@ -135,7 +135,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXB pc=12 dst=r5 src=r3 offset=23 imm=0
 #line 185 "sample/encap_reflect_packet.c"
-    r5 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(23));
+    READ_ONCE_8(r5, r3, OFFSET(23));
     // EBPF_OP_JNE_IMM pc=13 dst=r5 src=r0 offset=307 imm=17
 #line 185 "sample/encap_reflect_packet.c"
     if (r5 != IMMEDIATE(17)) {
@@ -145,7 +145,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXB pc=14 dst=r3 src=r3 offset=14 imm=0
 #line 185 "sample/encap_reflect_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(14));
+    READ_ONCE_8(r3, r3, OFFSET(14));
     // EBPF_OP_LSH64_IMM pc=15 dst=r3 src=r0 offset=0 imm=2
 #line 185 "sample/encap_reflect_packet.c"
     r3 <<= (IMMEDIATE(2) & 63);
@@ -170,7 +170,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXH pc=21 dst=r2 src=r4 offset=2 imm=0
 #line 191 "sample/encap_reflect_packet.c"
-    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r2, r4, OFFSET(2));
     // EBPF_OP_JNE_IMM pc=22 dst=r2 src=r0 offset=298 imm=7459
 #line 191 "sample/encap_reflect_packet.c"
     if (r2 != IMMEDIATE(7459)) {
@@ -220,10 +220,10 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXDW pc=34 dst=r5 src=r2 offset=8 imm=0
 #line 28 "sample/encap_reflect_packet.c"
-    r5 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(8));
+    READ_ONCE_64(r5, r2, OFFSET(8));
     // EBPF_OP_LDXDW pc=35 dst=r6 src=r2 offset=0 imm=0
 #line 27 "sample/encap_reflect_packet.c"
-    r6 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(0));
+    READ_ONCE_64(r6, r2, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=36 dst=r3 src=r6 offset=0 imm=0
 #line 28 "sample/encap_reflect_packet.c"
     r3 = r6;
@@ -278,88 +278,88 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXH pc=48 dst=r5 src=r4 offset=0 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_16(r5, r4, OFFSET(0));
     // EBPF_OP_STXH pc=49 dst=r6 src=r5 offset=0 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(0)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(0));
     // EBPF_OP_LDXH pc=50 dst=r5 src=r4 offset=2 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r5, r4, OFFSET(2));
     // EBPF_OP_STXH pc=51 dst=r6 src=r5 offset=2 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(2)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(2));
     // EBPF_OP_LDXH pc=52 dst=r5 src=r4 offset=4 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    READ_ONCE_16(r5, r4, OFFSET(4));
     // EBPF_OP_STXH pc=53 dst=r6 src=r5 offset=4 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(4)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(4));
     // EBPF_OP_LDXH pc=54 dst=r5 src=r4 offset=12 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(12));
+    READ_ONCE_16(r5, r4, OFFSET(12));
     // EBPF_OP_STXH pc=55 dst=r6 src=r5 offset=12 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(12)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(12));
     // EBPF_OP_LDXH pc=56 dst=r5 src=r4 offset=6 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(6));
+    READ_ONCE_16(r5, r4, OFFSET(6));
     // EBPF_OP_STXH pc=57 dst=r6 src=r5 offset=6 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(6)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(6));
     // EBPF_OP_LDXH pc=58 dst=r7 src=r4 offset=10 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r7 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(10));
+    READ_ONCE_16(r7, r4, OFFSET(10));
     // EBPF_OP_LDXH pc=59 dst=r8 src=r4 offset=8 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    r8 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(8));
+    READ_ONCE_16(r8, r4, OFFSET(8));
     // EBPF_OP_STXH pc=60 dst=r6 src=r5 offset=0 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(0)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(0));
     // EBPF_OP_STXH pc=61 dst=r6 src=r8 offset=8 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(8)) = (uint16_t)r8;
+    WRITE_ONCE_16(r6, (uint16_t)r8, OFFSET(8));
     // EBPF_OP_STXH pc=62 dst=r6 src=r8 offset=2 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(2)) = (uint16_t)r8;
+    WRITE_ONCE_16(r6, (uint16_t)r8, OFFSET(2));
     // EBPF_OP_STXH pc=63 dst=r6 src=r7 offset=10 imm=0
 #line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(10)) = (uint16_t)r7;
+    WRITE_ONCE_16(r6, (uint16_t)r7, OFFSET(10));
     // EBPF_OP_STXH pc=64 dst=r6 src=r7 offset=4 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(4)) = (uint16_t)r7;
+    WRITE_ONCE_16(r6, (uint16_t)r7, OFFSET(4));
     // EBPF_OP_LDXH pc=65 dst=r5 src=r4 offset=4 imm=0
 #line 18 "sample/./xdp_common.h"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    READ_ONCE_16(r5, r4, OFFSET(4));
     // EBPF_OP_STXH pc=66 dst=r6 src=r5 offset=10 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(10)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(10));
     // EBPF_OP_LDXH pc=67 dst=r5 src=r4 offset=0 imm=0
 #line 18 "sample/./xdp_common.h"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_16(r5, r4, OFFSET(0));
     // EBPF_OP_STXH pc=68 dst=r6 src=r5 offset=6 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(6)) = (uint16_t)r5;
+    WRITE_ONCE_16(r6, (uint16_t)r5, OFFSET(6));
     // EBPF_OP_LDXH pc=69 dst=r4 src=r4 offset=2 imm=0
 #line 18 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r4, r4, OFFSET(2));
     // EBPF_OP_STXH pc=70 dst=r6 src=r4 offset=8 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(8)) = (uint16_t)r4;
+    WRITE_ONCE_16(r6, (uint16_t)r4, OFFSET(8));
     // EBPF_OP_LDXW pc=71 dst=r4 src=r6 offset=50 imm=0
 #line 24 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(50));
+    READ_ONCE_32(r4, r6, OFFSET(50));
     // EBPF_OP_LDXW pc=72 dst=r5 src=r6 offset=46 imm=0
 #line 25 "sample/./xdp_common.h"
-    r5 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(46));
+    READ_ONCE_32(r5, r6, OFFSET(46));
     // EBPF_OP_STXW pc=73 dst=r6 src=r5 offset=50 imm=0
 #line 25 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r6 + OFFSET(50)) = (uint32_t)r5;
+    WRITE_ONCE_32(r6, (uint32_t)r5, OFFSET(50));
     // EBPF_OP_STXW pc=74 dst=r6 src=r4 offset=46 imm=0
 #line 26 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r6 + OFFSET(46)) = (uint32_t)r4;
+    WRITE_ONCE_32(r6, (uint32_t)r4, OFFSET(46));
     // EBPF_OP_LDXB pc=75 dst=r5 src=r6 offset=34 imm=0
 #line 63 "sample/encap_reflect_packet.c"
-    r5 = *(uint8_t*)(uintptr_t)(r6 + OFFSET(34));
+    READ_ONCE_8(r5, r6, OFFSET(34));
     // EBPF_OP_LSH64_IMM pc=76 dst=r5 src=r0 offset=0 imm=2
 #line 63 "sample/encap_reflect_packet.c"
     r5 <<= (IMMEDIATE(2) & 63);
@@ -380,7 +380,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     r5 += IMMEDIATE(8);
     // EBPF_OP_LDXDW pc=82 dst=r2 src=r2 offset=8 imm=0
 #line 64 "sample/encap_reflect_packet.c"
-    r2 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(8));
+    READ_ONCE_64(r2, r2, OFFSET(8));
     // EBPF_OP_JGT_REG pc=83 dst=r5 src=r2 offset=237 imm=0
 #line 64 "sample/encap_reflect_packet.c"
     if (r5 > r2) {
@@ -390,7 +390,7 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXH pc=84 dst=r2 src=r4 offset=2 imm=0
 #line 68 "sample/encap_reflect_packet.c"
-    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r2, r4, OFFSET(2));
     // EBPF_OP_JNE_IMM pc=85 dst=r2 src=r0 offset=4 imm=7459
 #line 68 "sample/encap_reflect_packet.c"
     if (r2 != IMMEDIATE(7459)) {
@@ -400,56 +400,56 @@ encap_reflect_packet(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_LDXH pc=86 dst=r2 src=r4 offset=0 imm=0
 #line 41 "sample/./xdp_common.h"
-    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_16(r2, r4, OFFSET(0));
     // EBPF_OP_STXH pc=87 dst=r4 src=r2 offset=2 imm=0
 #line 43 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r4 + OFFSET(2)) = (uint16_t)r2;
+    WRITE_ONCE_16(r4, (uint16_t)r2, OFFSET(2));
     // EBPF_OP_MOV64_IMM pc=88 dst=r2 src=r0 offset=0 imm=7459
 #line 43 "sample/./xdp_common.h"
     r2 = IMMEDIATE(7459);
     // EBPF_OP_STXH pc=89 dst=r4 src=r2 offset=0 imm=0
 #line 42 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r4 + OFFSET(0)) = (uint16_t)r2;
+    WRITE_ONCE_16(r4, (uint16_t)r2, OFFSET(0));
 label_1:
     // EBPF_OP_LDXW pc=90 dst=r2 src=r1 offset=16 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(16));
+    READ_ONCE_32(r2, r1, OFFSET(16));
     // EBPF_OP_STXW pc=91 dst=r3 src=r2 offset=16 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r3 + OFFSET(16)) = (uint32_t)r2;
+    WRITE_ONCE_32(r3, (uint32_t)r2, OFFSET(16));
     // EBPF_OP_LDXW pc=92 dst=r2 src=r1 offset=12 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(12));
+    READ_ONCE_32(r2, r1, OFFSET(12));
     // EBPF_OP_STXW pc=93 dst=r3 src=r2 offset=12 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r3 + OFFSET(12)) = (uint32_t)r2;
+    WRITE_ONCE_32(r3, (uint32_t)r2, OFFSET(12));
     // EBPF_OP_LDXW pc=94 dst=r2 src=r1 offset=8 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(8));
+    READ_ONCE_32(r2, r1, OFFSET(8));
     // EBPF_OP_STXW pc=95 dst=r3 src=r2 offset=8 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r3 + OFFSET(8)) = (uint32_t)r2;
+    WRITE_ONCE_32(r3, (uint32_t)r2, OFFSET(8));
     // EBPF_OP_LDXW pc=96 dst=r2 src=r1 offset=4 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(4));
+    READ_ONCE_32(r2, r1, OFFSET(4));
     // EBPF_OP_STXW pc=97 dst=r3 src=r2 offset=4 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r3 + OFFSET(4)) = (uint32_t)r2;
+    WRITE_ONCE_32(r3, (uint32_t)r2, OFFSET(4));
     // EBPF_OP_LDXW pc=98 dst=r1 src=r1 offset=0 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    r1 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_32(r1, r1, OFFSET(0));
     // EBPF_OP_STXW pc=99 dst=r3 src=r1 offset=0 imm=0
 #line 73 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r3 + OFFSET(0)) = (uint32_t)r1;
+    WRITE_ONCE_32(r3, (uint32_t)r1, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=100 dst=r1 src=r0 offset=0 imm=4
 #line 73 "sample/encap_reflect_packet.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXB pc=101 dst=r6 src=r1 offset=23 imm=0
 #line 76 "sample/encap_reflect_packet.c"
-    *(uint8_t*)(uintptr_t)(r6 + OFFSET(23)) = (uint8_t)r1;
+    WRITE_ONCE_8(r6, (uint8_t)r1, OFFSET(23));
     // EBPF_OP_LDXB pc=102 dst=r1 src=r6 offset=14 imm=0
 #line 77 "sample/encap_reflect_packet.c"
-    r1 = *(uint8_t*)(uintptr_t)(r6 + OFFSET(14));
+    READ_ONCE_8(r1, r6, OFFSET(14));
     // EBPF_OP_AND64_IMM pc=103 dst=r1 src=r0 offset=0 imm=240
 #line 77 "sample/encap_reflect_packet.c"
     r1 &= IMMEDIATE(240);
@@ -458,10 +458,10 @@ label_1:
     r1 |= IMMEDIATE(5);
     // EBPF_OP_STXB pc=105 dst=r6 src=r1 offset=14 imm=0
 #line 77 "sample/encap_reflect_packet.c"
-    *(uint8_t*)(uintptr_t)(r6 + OFFSET(14)) = (uint8_t)r1;
+    WRITE_ONCE_8(r6, (uint8_t)r1, OFFSET(14));
     // EBPF_OP_LDXH pc=106 dst=r1 src=r6 offset=36 imm=0
 #line 78 "sample/encap_reflect_packet.c"
-    r1 = *(uint16_t*)(uintptr_t)(r6 + OFFSET(36));
+    READ_ONCE_16(r1, r6, OFFSET(36));
     // EBPF_OP_BE pc=107 dst=r1 src=r0 offset=0 imm=16
 #line 78 "sample/encap_reflect_packet.c"
     r1 = htobe16((uint16_t)r1);
@@ -477,13 +477,13 @@ label_1:
     r1 &= UINT32_MAX;
     // EBPF_OP_STXH pc=110 dst=r6 src=r1 offset=16 imm=0
 #line 78 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(16)) = (uint16_t)r1;
+    WRITE_ONCE_16(r6, (uint16_t)r1, OFFSET(16));
     // EBPF_OP_MOV64_IMM pc=111 dst=r1 src=r0 offset=0 imm=0
 #line 78 "sample/encap_reflect_packet.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXH pc=112 dst=r6 src=r1 offset=24 imm=0
 #line 80 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(24)) = (uint16_t)r1;
+    WRITE_ONCE_16(r6, (uint16_t)r1, OFFSET(24));
     // EBPF_OP_MOV64_IMM pc=113 dst=r2 src=r0 offset=0 imm=0
 #line 82 "sample/encap_reflect_packet.c"
     r2 = IMMEDIATE(0);
@@ -531,7 +531,7 @@ label_1:
     r1 ^= IMMEDIATE(-1);
     // EBPF_OP_STXH pc=126 dst=r6 src=r1 offset=24 imm=0
 #line 81 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r6 + OFFSET(24)) = (uint16_t)r1;
+    WRITE_ONCE_16(r6, (uint16_t)r1, OFFSET(24));
     // EBPF_OP_JA pc=127 dst=r0 src=r0 offset=192 imm=0
 #line 81 "sample/encap_reflect_packet.c"
     goto label_4;
@@ -551,7 +551,7 @@ label_2:
     }
     // EBPF_OP_LDXB pc=131 dst=r4 src=r3 offset=20 imm=0
 #line 202 "sample/encap_reflect_packet.c"
-    r4 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(20));
+    READ_ONCE_8(r4, r3, OFFSET(20));
     // EBPF_OP_JNE_IMM pc=132 dst=r4 src=r0 offset=188 imm=17
 #line 202 "sample/encap_reflect_packet.c"
     if (r4 != IMMEDIATE(17)) {
@@ -574,7 +574,7 @@ label_2:
     }
     // EBPF_OP_LDXH pc=136 dst=r2 src=r3 offset=56 imm=0
 #line 208 "sample/encap_reflect_packet.c"
-    r2 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(56));
+    READ_ONCE_16(r2, r3, OFFSET(56));
     // EBPF_OP_JNE_IMM pc=137 dst=r2 src=r0 offset=183 imm=7459
 #line 208 "sample/encap_reflect_packet.c"
     if (r2 != IMMEDIATE(7459)) {
@@ -621,10 +621,10 @@ label_2:
     }
     // EBPF_OP_LDXDW pc=148 dst=r5 src=r6 offset=8 imm=0
 #line 102 "sample/encap_reflect_packet.c"
-    r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    READ_ONCE_64(r5, r6, OFFSET(8));
     // EBPF_OP_LDXDW pc=149 dst=r1 src=r6 offset=0 imm=0
 #line 101 "sample/encap_reflect_packet.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    READ_ONCE_64(r1, r6, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=150 dst=r2 src=r1 offset=0 imm=0
 #line 102 "sample/encap_reflect_packet.c"
     r2 = r1;
@@ -679,94 +679,94 @@ label_2:
     }
     // EBPF_OP_LDXH pc=162 dst=r5 src=r4 offset=4 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    READ_ONCE_16(r5, r4, OFFSET(4));
     // EBPF_OP_STXH pc=163 dst=r1 src=r5 offset=4 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(4)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(4));
     // EBPF_OP_LDXH pc=164 dst=r5 src=r4 offset=0 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_16(r5, r4, OFFSET(0));
     // EBPF_OP_STXH pc=165 dst=r1 src=r5 offset=0 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(0));
     // EBPF_OP_LDXH pc=166 dst=r5 src=r4 offset=2 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r5, r4, OFFSET(2));
     // EBPF_OP_STXH pc=167 dst=r1 src=r5 offset=2 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(2)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(2));
     // EBPF_OP_LDXH pc=168 dst=r5 src=r4 offset=12 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(12));
+    READ_ONCE_16(r5, r4, OFFSET(12));
     // EBPF_OP_STXH pc=169 dst=r1 src=r5 offset=12 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(12)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(12));
     // EBPF_OP_LDXH pc=170 dst=r5 src=r4 offset=10 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(10));
+    READ_ONCE_16(r5, r4, OFFSET(10));
     // EBPF_OP_STXH pc=171 dst=r1 src=r5 offset=10 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(10)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(10));
     // EBPF_OP_LDXH pc=172 dst=r7 src=r4 offset=8 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r7 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(8));
+    READ_ONCE_16(r7, r4, OFFSET(8));
     // EBPF_OP_LDXH pc=173 dst=r8 src=r4 offset=6 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    r8 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(6));
+    READ_ONCE_16(r8, r4, OFFSET(6));
     // EBPF_OP_STXH pc=174 dst=r1 src=r5 offset=4 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(4)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(4));
     // EBPF_OP_STXH pc=175 dst=r1 src=r8 offset=6 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(6)) = (uint16_t)r8;
+    WRITE_ONCE_16(r1, (uint16_t)r8, OFFSET(6));
     // EBPF_OP_STXH pc=176 dst=r1 src=r8 offset=0 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint16_t)r8;
+    WRITE_ONCE_16(r1, (uint16_t)r8, OFFSET(0));
     // EBPF_OP_STXH pc=177 dst=r1 src=r7 offset=8 imm=0
 #line 130 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(8)) = (uint16_t)r7;
+    WRITE_ONCE_16(r1, (uint16_t)r7, OFFSET(8));
     // EBPF_OP_STXH pc=178 dst=r1 src=r7 offset=2 imm=0
 #line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(2)) = (uint16_t)r7;
+    WRITE_ONCE_16(r1, (uint16_t)r7, OFFSET(2));
     // EBPF_OP_LDXH pc=179 dst=r5 src=r4 offset=4 imm=0
 #line 18 "sample/./xdp_common.h"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    READ_ONCE_16(r5, r4, OFFSET(4));
     // EBPF_OP_STXH pc=180 dst=r1 src=r5 offset=10 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(10)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(10));
     // EBPF_OP_LDXH pc=181 dst=r5 src=r4 offset=0 imm=0
 #line 18 "sample/./xdp_common.h"
-    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    READ_ONCE_16(r5, r4, OFFSET(0));
     // EBPF_OP_STXH pc=182 dst=r1 src=r5 offset=6 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(6)) = (uint16_t)r5;
+    WRITE_ONCE_16(r1, (uint16_t)r5, OFFSET(6));
     // EBPF_OP_LDXH pc=183 dst=r4 src=r4 offset=2 imm=0
 #line 18 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    READ_ONCE_16(r4, r4, OFFSET(2));
     // EBPF_OP_STXH pc=184 dst=r1 src=r4 offset=8 imm=0
 #line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(8)) = (uint16_t)r4;
+    WRITE_ONCE_16(r1, (uint16_t)r4, OFFSET(8));
     // EBPF_OP_LDXB pc=185 dst=r5 src=r1 offset=87 imm=0
 #line 33 "sample/./xdp_common.h"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(87));
+    READ_ONCE_8(r5, r1, OFFSET(87));
     // EBPF_OP_LSH64_IMM pc=186 dst=r5 src=r0 offset=0 imm=8
 #line 33 "sample/./xdp_common.h"
     r5 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=187 dst=r4 src=r1 offset=86 imm=0
 #line 33 "sample/./xdp_common.h"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(86));
+    READ_ONCE_8(r4, r1, OFFSET(86));
     // EBPF_OP_OR64_REG pc=188 dst=r5 src=r4 offset=0 imm=0
 #line 33 "sample/./xdp_common.h"
     r5 |= r4;
     // EBPF_OP_LDXB pc=189 dst=r7 src=r1 offset=88 imm=0
 #line 33 "sample/./xdp_common.h"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(88));
+    READ_ONCE_8(r7, r1, OFFSET(88));
     // EBPF_OP_LSH64_IMM pc=190 dst=r7 src=r0 offset=0 imm=16
 #line 33 "sample/./xdp_common.h"
     r7 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_LDXB pc=191 dst=r4 src=r1 offset=89 imm=0
 #line 33 "sample/./xdp_common.h"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(89));
+    READ_ONCE_8(r4, r1, OFFSET(89));
     // EBPF_OP_LSH64_IMM pc=192 dst=r4 src=r0 offset=0 imm=24
 #line 33 "sample/./xdp_common.h"
     r4 <<= (IMMEDIATE(24) & 63);
@@ -778,25 +778,25 @@ label_2:
     r4 |= r5;
     // EBPF_OP_LDXB pc=195 dst=r7 src=r1 offset=91 imm=0
 #line 33 "sample/./xdp_common.h"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(91));
+    READ_ONCE_8(r7, r1, OFFSET(91));
     // EBPF_OP_LSH64_IMM pc=196 dst=r7 src=r0 offset=0 imm=8
 #line 33 "sample/./xdp_common.h"
     r7 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=197 dst=r5 src=r1 offset=90 imm=0
 #line 33 "sample/./xdp_common.h"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(90));
+    READ_ONCE_8(r5, r1, OFFSET(90));
     // EBPF_OP_OR64_REG pc=198 dst=r7 src=r5 offset=0 imm=0
 #line 33 "sample/./xdp_common.h"
     r7 |= r5;
     // EBPF_OP_LDXB pc=199 dst=r8 src=r1 offset=92 imm=0
 #line 33 "sample/./xdp_common.h"
-    r8 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(92));
+    READ_ONCE_8(r8, r1, OFFSET(92));
     // EBPF_OP_LSH64_IMM pc=200 dst=r8 src=r0 offset=0 imm=16
 #line 33 "sample/./xdp_common.h"
     r8 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_LDXB pc=201 dst=r5 src=r1 offset=93 imm=0
 #line 33 "sample/./xdp_common.h"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(93));
+    READ_ONCE_8(r5, r1, OFFSET(93));
     // EBPF_OP_LSH64_IMM pc=202 dst=r5 src=r0 offset=0 imm=24
 #line 33 "sample/./xdp_common.h"
     r5 <<= (IMMEDIATE(24) & 63);
@@ -814,25 +814,25 @@ label_2:
     r5 |= r4;
     // EBPF_OP_LDXB pc=207 dst=r7 src=r1 offset=79 imm=0
 #line 33 "sample/./xdp_common.h"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(79));
+    READ_ONCE_8(r7, r1, OFFSET(79));
     // EBPF_OP_LSH64_IMM pc=208 dst=r7 src=r0 offset=0 imm=8
 #line 33 "sample/./xdp_common.h"
     r7 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=209 dst=r4 src=r1 offset=78 imm=0
 #line 33 "sample/./xdp_common.h"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(78));
+    READ_ONCE_8(r4, r1, OFFSET(78));
     // EBPF_OP_OR64_REG pc=210 dst=r7 src=r4 offset=0 imm=0
 #line 33 "sample/./xdp_common.h"
     r7 |= r4;
     // EBPF_OP_LDXB pc=211 dst=r8 src=r1 offset=80 imm=0
 #line 33 "sample/./xdp_common.h"
-    r8 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(80));
+    READ_ONCE_8(r8, r1, OFFSET(80));
     // EBPF_OP_LSH64_IMM pc=212 dst=r8 src=r0 offset=0 imm=16
 #line 33 "sample/./xdp_common.h"
     r8 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_LDXB pc=213 dst=r4 src=r1 offset=81 imm=0
 #line 33 "sample/./xdp_common.h"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(81));
+    READ_ONCE_8(r4, r1, OFFSET(81));
     // EBPF_OP_LSH64_IMM pc=214 dst=r4 src=r0 offset=0 imm=24
 #line 33 "sample/./xdp_common.h"
     r4 <<= (IMMEDIATE(24) & 63);
@@ -841,31 +841,31 @@ label_2:
     r4 |= r8;
     // EBPF_OP_STXDW pc=216 dst=r10 src=r5 offset=-8 imm=0
 #line 33 "sample/./xdp_common.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r5;
+    WRITE_ONCE_64(r10, (uint64_t)r5, OFFSET(-8));
     // EBPF_OP_OR64_REG pc=217 dst=r4 src=r7 offset=0 imm=0
 #line 33 "sample/./xdp_common.h"
     r4 |= r7;
     // EBPF_OP_LDXB pc=218 dst=r5 src=r1 offset=83 imm=0
 #line 33 "sample/./xdp_common.h"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(83));
+    READ_ONCE_8(r5, r1, OFFSET(83));
     // EBPF_OP_LSH64_IMM pc=219 dst=r5 src=r0 offset=0 imm=8
 #line 33 "sample/./xdp_common.h"
     r5 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=220 dst=r7 src=r1 offset=82 imm=0
 #line 33 "sample/./xdp_common.h"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(82));
+    READ_ONCE_8(r7, r1, OFFSET(82));
     // EBPF_OP_OR64_REG pc=221 dst=r5 src=r7 offset=0 imm=0
 #line 33 "sample/./xdp_common.h"
     r5 |= r7;
     // EBPF_OP_LDXB pc=222 dst=r7 src=r1 offset=84 imm=0
 #line 33 "sample/./xdp_common.h"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(84));
+    READ_ONCE_8(r7, r1, OFFSET(84));
     // EBPF_OP_LSH64_IMM pc=223 dst=r7 src=r0 offset=0 imm=16
 #line 33 "sample/./xdp_common.h"
     r7 <<= (IMMEDIATE(16) & 63);
     // EBPF_OP_LDXB pc=224 dst=r8 src=r1 offset=85 imm=0
 #line 33 "sample/./xdp_common.h"
-    r8 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(85));
+    READ_ONCE_8(r8, r1, OFFSET(85));
     // EBPF_OP_LSH64_IMM pc=225 dst=r8 src=r0 offset=0 imm=24
 #line 33 "sample/./xdp_common.h"
     r8 <<= (IMMEDIATE(24) & 63);
@@ -883,34 +883,34 @@ label_2:
     r8 |= r4;
     // EBPF_OP_STXDW pc=230 dst=r10 src=r8 offset=-16 imm=0
 #line 33 "sample/./xdp_common.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r8;
+    WRITE_ONCE_64(r10, (uint64_t)r8, OFFSET(-16));
     // EBPF_OP_LDXW pc=231 dst=r4 src=r1 offset=62 imm=0
 #line 34 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(62));
+    READ_ONCE_32(r4, r1, OFFSET(62));
     // EBPF_OP_STXW pc=232 dst=r1 src=r4 offset=78 imm=0
 #line 34 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(78)) = (uint32_t)r4;
+    WRITE_ONCE_32(r1, (uint32_t)r4, OFFSET(78));
     // EBPF_OP_LDXW pc=233 dst=r4 src=r1 offset=66 imm=0
 #line 34 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(66));
+    READ_ONCE_32(r4, r1, OFFSET(66));
     // EBPF_OP_STXW pc=234 dst=r1 src=r4 offset=82 imm=0
 #line 34 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(82)) = (uint32_t)r4;
+    WRITE_ONCE_32(r1, (uint32_t)r4, OFFSET(82));
     // EBPF_OP_LDXW pc=235 dst=r4 src=r1 offset=70 imm=0
 #line 34 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(70));
+    READ_ONCE_32(r4, r1, OFFSET(70));
     // EBPF_OP_STXW pc=236 dst=r1 src=r4 offset=86 imm=0
 #line 34 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(86)) = (uint32_t)r4;
+    WRITE_ONCE_32(r1, (uint32_t)r4, OFFSET(86));
     // EBPF_OP_LDXW pc=237 dst=r4 src=r1 offset=74 imm=0
 #line 34 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(74));
+    READ_ONCE_32(r4, r1, OFFSET(74));
     // EBPF_OP_STXW pc=238 dst=r1 src=r4 offset=90 imm=0
 #line 34 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(90)) = (uint32_t)r4;
+    WRITE_ONCE_32(r1, (uint32_t)r4, OFFSET(90));
     // EBPF_OP_LDXDW pc=239 dst=r4 src=r10 offset=-16 imm=0
 #line 35 "sample/./xdp_common.h"
-    r4 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16));
+    READ_ONCE_64(r4, r10, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=240 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -919,7 +919,7 @@ label_2:
     r5 >>= (IMMEDIATE(48) & 63);
     // EBPF_OP_STXB pc=242 dst=r1 src=r5 offset=68 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(68)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(68));
     // EBPF_OP_MOV64_REG pc=243 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -928,7 +928,7 @@ label_2:
     r5 >>= (IMMEDIATE(56) & 63);
     // EBPF_OP_STXB pc=245 dst=r1 src=r5 offset=69 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(69)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(69));
     // EBPF_OP_MOV64_REG pc=246 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -937,7 +937,7 @@ label_2:
     r5 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_STXB pc=248 dst=r1 src=r5 offset=66 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(66)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(66));
     // EBPF_OP_MOV64_REG pc=249 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -946,7 +946,7 @@ label_2:
     r5 >>= (IMMEDIATE(40) & 63);
     // EBPF_OP_STXB pc=251 dst=r1 src=r5 offset=67 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(67)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(67));
     // EBPF_OP_MOV64_REG pc=252 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -955,7 +955,7 @@ label_2:
     r5 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=254 dst=r1 src=r5 offset=64 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(64)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(64));
     // EBPF_OP_MOV64_REG pc=255 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -964,19 +964,19 @@ label_2:
     r5 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=257 dst=r1 src=r5 offset=65 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(65)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(65));
     // EBPF_OP_STXB pc=258 dst=r1 src=r4 offset=62 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(62)) = (uint8_t)r4;
+    WRITE_ONCE_8(r1, (uint8_t)r4, OFFSET(62));
     // EBPF_OP_RSH64_IMM pc=259 dst=r4 src=r0 offset=0 imm=8
 #line 35 "sample/./xdp_common.h"
     r4 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=260 dst=r1 src=r4 offset=63 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(63)) = (uint8_t)r4;
+    WRITE_ONCE_8(r1, (uint8_t)r4, OFFSET(63));
     // EBPF_OP_LDXDW pc=261 dst=r4 src=r10 offset=-8 imm=0
 #line 35 "sample/./xdp_common.h"
-    r4 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8));
+    READ_ONCE_64(r4, r10, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=262 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -985,7 +985,7 @@ label_2:
     r5 >>= (IMMEDIATE(48) & 63);
     // EBPF_OP_STXB pc=264 dst=r1 src=r5 offset=76 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(76)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(76));
     // EBPF_OP_MOV64_REG pc=265 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -994,7 +994,7 @@ label_2:
     r5 >>= (IMMEDIATE(56) & 63);
     // EBPF_OP_STXB pc=267 dst=r1 src=r5 offset=77 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(77)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(77));
     // EBPF_OP_MOV64_REG pc=268 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -1003,7 +1003,7 @@ label_2:
     r5 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_STXB pc=270 dst=r1 src=r5 offset=74 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(74)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(74));
     // EBPF_OP_MOV64_REG pc=271 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -1012,7 +1012,7 @@ label_2:
     r5 >>= (IMMEDIATE(40) & 63);
     // EBPF_OP_STXB pc=273 dst=r1 src=r5 offset=75 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(75)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(75));
     // EBPF_OP_MOV64_REG pc=274 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -1021,7 +1021,7 @@ label_2:
     r5 >>= (IMMEDIATE(16) & 63);
     // EBPF_OP_STXB pc=276 dst=r1 src=r5 offset=72 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(72)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(72));
     // EBPF_OP_MOV64_REG pc=277 dst=r5 src=r4 offset=0 imm=0
 #line 35 "sample/./xdp_common.h"
     r5 = r4;
@@ -1030,16 +1030,16 @@ label_2:
     r5 >>= (IMMEDIATE(24) & 63);
     // EBPF_OP_STXB pc=279 dst=r1 src=r5 offset=73 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(73)) = (uint8_t)r5;
+    WRITE_ONCE_8(r1, (uint8_t)r5, OFFSET(73));
     // EBPF_OP_STXB pc=280 dst=r1 src=r4 offset=70 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(70)) = (uint8_t)r4;
+    WRITE_ONCE_8(r1, (uint8_t)r4, OFFSET(70));
     // EBPF_OP_RSH64_IMM pc=281 dst=r4 src=r0 offset=0 imm=8
 #line 35 "sample/./xdp_common.h"
     r4 >>= (IMMEDIATE(8) & 63);
     // EBPF_OP_STXB pc=282 dst=r1 src=r4 offset=71 imm=0
 #line 35 "sample/./xdp_common.h"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(71)) = (uint8_t)r4;
+    WRITE_ONCE_8(r1, (uint8_t)r4, OFFSET(71));
     // EBPF_OP_MOV64_REG pc=283 dst=r4 src=r1 offset=0 imm=0
 #line 138 "sample/encap_reflect_packet.c"
     r4 = r1;
@@ -1048,7 +1048,7 @@ label_2:
     r4 += IMMEDIATE(102);
     // EBPF_OP_LDXDW pc=285 dst=r5 src=r6 offset=8 imm=0
 #line 138 "sample/encap_reflect_packet.c"
-    r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    READ_ONCE_64(r5, r6, OFFSET(8));
     // EBPF_OP_JGT_REG pc=286 dst=r4 src=r5 offset=34 imm=0
 #line 138 "sample/encap_reflect_packet.c"
     if (r4 > r5) {
@@ -1058,7 +1058,7 @@ label_2:
     }
     // EBPF_OP_LDXH pc=287 dst=r4 src=r1 offset=96 imm=0
 #line 142 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(96));
+    READ_ONCE_16(r4, r1, OFFSET(96));
     // EBPF_OP_JNE_IMM pc=288 dst=r4 src=r0 offset=4 imm=7459
 #line 142 "sample/encap_reflect_packet.c"
     if (r4 != IMMEDIATE(7459)) {
@@ -1068,86 +1068,86 @@ label_2:
     }
     // EBPF_OP_LDXH pc=289 dst=r4 src=r1 offset=94 imm=0
 #line 41 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(94));
+    READ_ONCE_16(r4, r1, OFFSET(94));
     // EBPF_OP_STXH pc=290 dst=r1 src=r4 offset=96 imm=0
 #line 43 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(96)) = (uint16_t)r4;
+    WRITE_ONCE_16(r1, (uint16_t)r4, OFFSET(96));
     // EBPF_OP_MOV64_IMM pc=291 dst=r4 src=r0 offset=0 imm=7459
 #line 43 "sample/./xdp_common.h"
     r4 = IMMEDIATE(7459);
     // EBPF_OP_STXH pc=292 dst=r1 src=r4 offset=94 imm=0
 #line 42 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(94)) = (uint16_t)r4;
+    WRITE_ONCE_16(r1, (uint16_t)r4, OFFSET(94));
 label_3:
     // EBPF_OP_LDXW pc=293 dst=r4 src=r3 offset=36 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(36));
+    READ_ONCE_32(r4, r3, OFFSET(36));
     // EBPF_OP_STXW pc=294 dst=r2 src=r4 offset=36 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(36)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(36));
     // EBPF_OP_LDXW pc=295 dst=r4 src=r3 offset=32 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(32));
+    READ_ONCE_32(r4, r3, OFFSET(32));
     // EBPF_OP_STXW pc=296 dst=r2 src=r4 offset=32 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(32)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(32));
     // EBPF_OP_LDXW pc=297 dst=r4 src=r3 offset=28 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(28));
+    READ_ONCE_32(r4, r3, OFFSET(28));
     // EBPF_OP_STXW pc=298 dst=r2 src=r4 offset=28 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(28)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(28));
     // EBPF_OP_LDXW pc=299 dst=r4 src=r3 offset=24 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(24));
+    READ_ONCE_32(r4, r3, OFFSET(24));
     // EBPF_OP_STXW pc=300 dst=r2 src=r4 offset=24 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(24)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(24));
     // EBPF_OP_LDXW pc=301 dst=r4 src=r3 offset=20 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(20));
+    READ_ONCE_32(r4, r3, OFFSET(20));
     // EBPF_OP_STXW pc=302 dst=r2 src=r4 offset=20 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(20)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(20));
     // EBPF_OP_LDXW pc=303 dst=r4 src=r3 offset=16 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(16));
+    READ_ONCE_32(r4, r3, OFFSET(16));
     // EBPF_OP_STXW pc=304 dst=r2 src=r4 offset=16 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(16)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(16));
     // EBPF_OP_LDXW pc=305 dst=r4 src=r3 offset=12 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(12));
+    READ_ONCE_32(r4, r3, OFFSET(12));
     // EBPF_OP_STXW pc=306 dst=r2 src=r4 offset=12 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(12)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(12));
     // EBPF_OP_LDXW pc=307 dst=r4 src=r3 offset=8 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(8));
+    READ_ONCE_32(r4, r3, OFFSET(8));
     // EBPF_OP_STXW pc=308 dst=r2 src=r4 offset=8 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(8)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(8));
     // EBPF_OP_LDXW pc=309 dst=r4 src=r3 offset=4 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r4 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(4));
+    READ_ONCE_32(r4, r3, OFFSET(4));
     // EBPF_OP_STXW pc=310 dst=r2 src=r4 offset=4 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(4)) = (uint32_t)r4;
+    WRITE_ONCE_32(r2, (uint32_t)r4, OFFSET(4));
     // EBPF_OP_LDXW pc=311 dst=r3 src=r3 offset=0 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    r3 = *(uint32_t*)(uintptr_t)(r3 + OFFSET(0));
+    READ_ONCE_32(r3, r3, OFFSET(0));
     // EBPF_OP_STXW pc=312 dst=r2 src=r3 offset=0 imm=0
 #line 147 "sample/encap_reflect_packet.c"
-    *(uint32_t*)(uintptr_t)(r2 + OFFSET(0)) = (uint32_t)r3;
+    WRITE_ONCE_32(r2, (uint32_t)r3, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=313 dst=r2 src=r0 offset=0 imm=41
 #line 147 "sample/encap_reflect_packet.c"
     r2 = IMMEDIATE(41);
     // EBPF_OP_STXB pc=314 dst=r1 src=r2 offset=20 imm=0
 #line 150 "sample/encap_reflect_packet.c"
-    *(uint8_t*)(uintptr_t)(r1 + OFFSET(20)) = (uint8_t)r2;
+    WRITE_ONCE_8(r1, (uint8_t)r2, OFFSET(20));
     // EBPF_OP_LDXH pc=315 dst=r2 src=r1 offset=58 imm=0
 #line 151 "sample/encap_reflect_packet.c"
-    r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(58));
+    READ_ONCE_16(r2, r1, OFFSET(58));
     // EBPF_OP_BE pc=316 dst=r2 src=r0 offset=0 imm=16
 #line 151 "sample/encap_reflect_packet.c"
     r2 = htobe16((uint16_t)r2);
@@ -1163,7 +1163,7 @@ label_3:
     r2 &= UINT32_MAX;
     // EBPF_OP_STXH pc=319 dst=r1 src=r2 offset=18 imm=0
 #line 151 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r1 + OFFSET(18)) = (uint16_t)r2;
+    WRITE_ONCE_16(r1, (uint16_t)r2, OFFSET(18));
 label_4:
     // EBPF_OP_MOV64_IMM pc=320 dst=r0 src=r0 offset=0 imm=3
 #line 151 "sample/encap_reflect_packet.c"

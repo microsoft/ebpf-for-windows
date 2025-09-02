@@ -176,7 +176,7 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
 #line 51 "sample/undocked/map_reuse.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r6;
+    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
 #line 51 "sample/undocked/map_reuse.c"
     r2 = r10;
@@ -204,7 +204,7 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_STXW pc=8 dst=r10 src=r6 offset=-8 imm=0
 #line 56 "sample/undocked/map_reuse.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r6;
+    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
 #line 56 "sample/undocked/map_reuse.c"
     r2 = r10;
@@ -236,13 +236,13 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
 label_1:
     // EBPF_OP_STXW pc=15 dst=r10 src=r6 offset=-12 imm=0
 #line 60 "sample/undocked/map_reuse.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint32_t)r6;
+    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-12));
     // EBPF_OP_LDXW pc=16 dst=r1 src=r0 offset=0 imm=0
 #line 61 "sample/undocked/map_reuse.c"
-    r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
+    READ_ONCE_32(r1, r0, OFFSET(0));
     // EBPF_OP_STXW pc=17 dst=r10 src=r1 offset=-16 imm=0
 #line 61 "sample/undocked/map_reuse.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=18 dst=r2 src=r10 offset=0 imm=0
 #line 61 "sample/undocked/map_reuse.c"
     r2 = r10;
@@ -275,7 +275,7 @@ label_1:
     }
     // EBPF_OP_LDXW pc=27 dst=r6 src=r6 offset=0 imm=0
 #line 64 "sample/undocked/map_reuse.c"
-    r6 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(0));
+    READ_ONCE_32(r6, r6, OFFSET(0));
 label_2:
     // EBPF_OP_MOV64_REG pc=28 dst=r0 src=r6 offset=0 imm=0
 #line 68 "sample/undocked/map_reuse.c"

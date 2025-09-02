@@ -316,10 +316,10 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r7 offset=-4 imm=0
 #line 54 "sample/undocked/inner_map.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r7;
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-4));
     // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-6 imm=0
 #line 55 "sample/undocked/inner_map.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-6)) = (uint16_t)r7;
+    WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-6));
     // EBPF_OP_MOV64_REG pc=3 dst=r2 src=r10 offset=0 imm=0
 #line 55 "sample/undocked/inner_map.c"
     r2 = r10;
@@ -350,7 +350,7 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_STXW pc=10 dst=r10 src=r7 offset=-12 imm=0
 #line 62 "sample/undocked/inner_map.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint32_t)r7;
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-12));
     // EBPF_OP_MOV64_REG pc=11 dst=r2 src=r10 offset=0 imm=0
 #line 62 "sample/undocked/inner_map.c"
     r2 = r10;
@@ -382,7 +382,7 @@ label_1:
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=17 dst=r0 src=r1 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
-    *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
+    WRITE_ONCE_32(r0, (uint32_t)r1, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=18 dst=r0 src=r0 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
     r0 = IMMEDIATE(0);
@@ -427,7 +427,7 @@ label_3:
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=29 dst=r10 src=r1 offset=-16 imm=0
 #line 74 "sample/undocked/inner_map.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=30 dst=r2 src=r10 offset=0 imm=0
 #line 74 "sample/undocked/inner_map.c"
     r2 = r10;
