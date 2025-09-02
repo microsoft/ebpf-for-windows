@@ -10,8 +10,14 @@
       <Buffers Value="1024" />
     </EventCollector>
 
+    <EventCollector Id="EventCollector_EbpfNetworkingProvider" Name="EbpfNetworkingProvider">
+      <BufferSize Value="512" />
+      <Buffers Value="2048" />
+    </EventCollector>
+
     <EventProvider Id="ExecutionContext" Name="394f321c-5cf4-404c-aa34-4df1428a7f9c" NonPagedMemory="true"/>
     <EventProvider Id="NetEbpfExt" Name="f2f2ca01-ad02-4a07-9e90-95a2334f3692" NonPagedMemory="true"/>
+    <EventProvider Id="MicrosoftWindowsTcpip" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true"/>
 
     <Profile
         Id="EbpfForWindowsProvider-File.Verbose.File"
@@ -23,8 +29,6 @@
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
-          </EventProviders>
-          <EventProviders>
             <EventProviderId Value="NetEbpfExt"/>
           </EventProviders>
         </EventCollectorId>
@@ -41,9 +45,41 @@
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
-          </EventProviders>
-          <EventProviders>
             <EventProviderId Value="NetEbpfExt"/>
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+
+    <Profile
+        Id="EbpfForWindows-Networking-File.Verbose.File"
+        Name="EbpfForWindows-Networking-File"
+        Description="Traces for eBPF for Windows providers with networking"
+        LoggingMode="File"
+        DetailLevel="Verbose">
+      <Collectors>
+        <EventCollectorId Value="EventCollector_EbpfNetworkingProvider">
+          <EventProviders>
+            <EventProviderId Value="ExecutionContext"/>
+            <EventProviderId Value="NetEbpfExt"/>
+            <EventProviderId Value="MicrosoftWindowsTcpip"/>
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+
+    <Profile
+        Id="EbpfForWindows-Networking-Memory.Verbose.Memory"
+        Name="EbpfForWindows-Networking-Memory"
+        Description="Traces for eBPF for Windows providers with networking"
+        LoggingMode="Memory"
+        DetailLevel="Verbose">
+      <Collectors>
+        <EventCollectorId Value="EventCollector_EbpfNetworkingProvider">
+          <EventProviders>
+            <EventProviderId Value="ExecutionContext"/>
+            <EventProviderId Value="NetEbpfExt"/>
+            <EventProviderId Value="MicrosoftWindowsTcpip"/>
           </EventProviders>
         </EventCollectorId>
       </Collectors>

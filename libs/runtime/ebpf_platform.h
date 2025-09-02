@@ -38,12 +38,6 @@ extern "C"
 #define EBPF_NS_PER_FILETIME 100
 #define EBPF_FILETIME_PER_MS 10000
 
-    typedef enum _ebpf_code_integrity_state
-    {
-        EBPF_CODE_INTEGRITY_DEFAULT = 0,
-        EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE = 1
-    } ebpf_code_integrity_state_t;
-
     typedef struct _ebpf_timer_work_item ebpf_timer_work_item_t;
     typedef struct _ebpf_helper_function_prototype ebpf_helper_function_prototype_t;
 
@@ -133,8 +127,7 @@ extern "C"
      * @brief Allocate pages from physical memory and create a mapping into the
      * system address space with the same pages mapped twice.
      *
-     * @param[in] length Size of memory to allocate (internally this gets rounded
-     * up to a page boundary).
+     * @param[in] length Size of memory to allocate, which must be a multiple of the page size.
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
@@ -161,13 +154,32 @@ extern "C"
     ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* ring);
 
     /**
-     * @brief Create a read-only mapping in the calling process of the ring buffer.
+     * @brief Create a mapping in the calling process of the ring buffer.
      *
      * @param[in] ring Ring buffer to map.
-     * @return Pointer to the base of the ring buffer.
+     * @param[out] consumer Pointer to the mapped consumer page.
+     * @param[out] producer Pointer to the mapped producer page.
+     * @param[out] data Pointer to the mapped data region.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
      */
-    _Ret_maybenull_ void*
-    ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring);
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_map_user(
+        _In_ ebpf_ring_descriptor_t* ring, _Outptr_ void** consumer, _Outptr_ void** producer, _Outptr_ uint8_t** data);
+
+    /**
+     * @brief Unmap the memory of a ring buffer.
+     *
+     * @param[in] ring Ring buffer to unmap.
+     * @param[in] consumer Address of the consumer mapping.
+     * @param[in] producer Address of the producer mapping.
+     * @param[in] data Address of the data mapping.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Unable to unmap the buffer.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_unmap_user(
+        _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
 
     /**
      * @brief Allocate and copy a UTF-8 string.
@@ -184,12 +196,15 @@ extern "C"
 
     /**
      * @brief Get the code integrity state from the platform.
-     * @param[out] state The code integrity state being enforced.
+     * @param[out] test_signing_enabled Pointer to a boolean that will be set to true if test signing is enabled, to
+     * false otherwise.
+     * @param[out] hypervisor_kernel_mode_enabled Pointer to a boolean that will be set to true if hypervisor kernel
+     * mode is enabled, to false otherwise.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state);
+    ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hypervisor_kernel_mode_enabled);
 
     /**
      * @brief Create an instance of a lock.

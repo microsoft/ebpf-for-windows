@@ -33,7 +33,6 @@ permissions:
   id-token: write  # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write  # Required by codeql task.
   issues: write  # Required to create issues.
 
 jobs:
@@ -295,14 +294,6 @@ jobs:
       leak_detection: false
       gather_dumps: true
       capture_etw: true
-
-  codeql:
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      ref: ${{ github.ref }}
-      repository: ${{ github.repository }}
-      build_artifact: Build-x64-CodeQl
-      build_codeql: true
 
   # Run the complete fault injection simulator in GitHub (this takes a long time to run).
   fault_injection_full:
