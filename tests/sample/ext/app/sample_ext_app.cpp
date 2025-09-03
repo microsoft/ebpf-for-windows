@@ -137,6 +137,61 @@ sample_ebpf_ext_test(_In_ const struct bpf_object* object)
 }
 
 void
+sample_ebpf_ext_test_prog_test_run(_In_ const struct bpf_object* object)
+{
+    struct bpf_map* map = nullptr;
+    fd_t map_fd;
+    fd_t program_fd;
+    struct bpf_program* program = nullptr;
+    const char* strings[] = {"rainy", "sunny"};
+    std::vector<std::vector<char>> map_entry_buffers(EBPF_COUNT_OF(strings), std::vector<char>(32));
+    const char* input_string = "Seattle is a rainy city";
+    std::vector<char> input_buffer(input_string, input_string + strlen(input_string));
+    const char* expected_output = "Seattle is a sunny city";
+    std::vector<char> output_buffer(256);
+
+    // Build test run opts.
+    bpf_test_run_opts opts{};
+    sample_program_context_t in_ctx{};
+    sample_program_context_t out_ctx{};
+    opts.repeat = 1;
+    opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    opts.ctx_size_in = sizeof(in_ctx);
+    opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    opts.ctx_size_out = sizeof(out_ctx);
+    opts.data_in = reinterpret_cast<const uint8_t*>(input_buffer.data());
+    opts.data_size_in = static_cast<uint32_t>(input_buffer.size());
+    opts.data_out = reinterpret_cast<uint8_t*>(output_buffer.data());
+    opts.data_size_out = static_cast<uint32_t>(output_buffer.size());
+
+    // Get map and insert data.
+    map = bpf_object__find_map_by_name(object, "test_map");
+    REQUIRE(map != nullptr);
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    for (uint32_t key = 0; key < EBPF_COUNT_OF(strings); key++) {
+        std::copy(strings[key], strings[key] + strlen(strings[key]), map_entry_buffers[key].begin());
+        REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffers[key].data(), EBPF_ANY) == EBPF_SUCCESS);
+    }
+
+    // Get the program fd.
+    program = bpf_object__find_program_by_name(object, "test_program_entry");
+    program_fd = bpf_program__fd(program);
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+
+    // Validate data_out.
+    REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
+
+    // NULL opts.data_in.
+    opts.data_in = nullptr;
+    opts.data_size_in = 0;
+    opts.data_out = reinterpret_cast<uint8_t*>(output_buffer.data());
+    opts.data_size_out = static_cast<uint32_t>(output_buffer.size());
+    REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+}
+
+void
 sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
 {
     struct bpf_map* map = nullptr;
@@ -212,6 +267,57 @@ TEST_CASE("native_test", "[sample_ext_test]")
     object = _helper.get_object();
 
     sample_ebpf_ext_test(object);
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("jit_test_data", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, hook);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test_prog_test_run(object);
+}
+#endif
+
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+TEST_CASE("interpret_test_data", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(
+        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test_prog_test_run(object);
+}
+#endif
+
+TEST_CASE("native_test_data", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t _helper;
+    native_module_helper_t _native_helper;
+    _native_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    _helper.initialize(
+       _native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        EBPF_EXECUTION_NATIVE,
+        nullptr,
+        0,
+        hook);
+
+    object = _helper.get_object();
+
+    sample_ebpf_ext_test_prog_test_run(object);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
