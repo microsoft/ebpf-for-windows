@@ -2973,6 +2973,7 @@ ebpf_core_get_protocol_handler_properties(
     switch (_ebpf_protocol_handlers[operation_id].call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         *async = true;
         break;
     default:
