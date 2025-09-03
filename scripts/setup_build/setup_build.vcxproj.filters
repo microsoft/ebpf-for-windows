@@ -72,7 +72,6 @@
     <None Include="..\pre-commit">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\deploy-ebpf.ps1.in">

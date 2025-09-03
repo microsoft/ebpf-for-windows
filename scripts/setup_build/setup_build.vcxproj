@@ -63,7 +63,6 @@ popd
       <DestinationFolders Condition="'$(Configuration)'=='FuzzerDebug'">$(SolutionDir).git\hooks</DestinationFolders>
       <DestinationFolders Condition="'$(Configuration)'=='NativeOnlyDebug'">$(SolutionDir).git\hooks</DestinationFolders>
     </None>
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="..\setup-ebpf.ps1">
