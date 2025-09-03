@@ -1880,31 +1880,36 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
 // Test eBPF object management APIs
 TEST_CASE("ebpf_object_apis", "[ebpf_api]")
 {
-    // Test object_unpin with invalid path - should fail gracefully
-    ebpf_result_t result = ebpf_object_unpin("/invalid/path/that/does/not/exist");
-    REQUIRE(result != EBPF_SUCCESS);
+    // Create a simple map object.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map_pin", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
 
-    // Test get_pinned_map_info
+    // Pin the map object.
+    const char* pin_path = "BPF:\\test_map_pin";
+    int pin_result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(pin_result == 0);
+
+    // Call ebpf_api_get_pinned_map_info to get pinned map info.
     uint16_t map_count = 0;
     ebpf_map_info_t* map_info = nullptr;
-    result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
+    ebpf_result_t result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_count > 0);
+    REQUIRE(map_info != nullptr);
 
-    // Should succeed even if no maps are pinned (count would be 0)
-    if (result == EBPF_SUCCESS) {
-        // Clean up if we got any map info
-        if (map_info != nullptr) {
-            ebpf_api_map_info_free(map_count, map_info);
-        }
-    }
+    // Clean up pinned map info returned by the API.
+    ebpf_api_map_info_free(map_count, map_info);
 
-    // Test api_close_handle with invalid handle - should fail gracefully
-    result = ebpf_api_close_handle((ebpf_handle_t)0);
+    // Unpin the map object.
+    result = ebpf_object_unpin(pin_path);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Verify that unpinning the object a second time fails.
+    result = ebpf_object_unpin(pin_path);
     REQUIRE(result != EBPF_SUCCESS);
 
-    // Test invalid handle
-    result = ebpf_api_close_handle((ebpf_handle_t)-1);
-    // -6 through -1 are NT pseudo-handles and are expected to silently fail.
-    REQUIRE(result == EBPF_SUCCESS);
+    // Close the map fd.
+    _close(map_fd);
 }
 
 // Test eBPF pinned object path APIs
@@ -1913,24 +1918,32 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
     char next_path[EBPF_MAX_PIN_PATH_LENGTH];
     ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
 
-    // Test get_next_pinned_object_path starting from empty string
+    // 1) Create and pin a map.
+    const char* pin_path = "BPF:\\test_get_next_pinned_object_path";
+    fd_t map_fd = bpf_map_create(
+        BPF_MAP_TYPE_ARRAY, "test_get_next_pinned_object_path", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    int pin_result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(pin_result == 0);
+
+    // 2) Verify the map can be found via ebpf_get_next_pinned_object_path
     ebpf_result_t result = ebpf_get_next_pinned_object_path("", next_path, sizeof(next_path), &object_type);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(object_type == EBPF_OBJECT_MAP);
+    // Ensure returned path contains our pin name.
+    REQUIRE(strstr(next_path, "test_get_next_pinned_object_path") != nullptr);
 
-    // Should succeed (even if no objects are pinned) or fail gracefully
-    REQUIRE((result == EBPF_SUCCESS || result == EBPF_NO_MORE_KEYS || result != EBPF_SUCCESS));
+    // 3) Verify that there are no more pinned objects after the current one
+    result = ebpf_get_next_pinned_object_path(
+        "test_get_next_pinned_object_path", next_path, sizeof(next_path), &object_type);
+    REQUIRE(result == EBPF_NO_MORE_KEYS);
 
-    if (result == EBPF_SUCCESS) {
-        // If we got a path, it should be valid
-        REQUIRE(strlen(next_path) > 0);
-        // Object type should be set to something valid
-        REQUIRE(object_type != EBPF_OBJECT_UNKNOWN);
-    }
+    // 4) Unpin and free the map
+    ebpf_result_t unpin_result = ebpf_object_unpin(pin_path);
+    REQUIRE(unpin_result == EBPF_SUCCESS);
 
-    // Test with a specific starting path that likely doesn't exist
-    result = ebpf_get_next_pinned_object_path("/non/existent/path", next_path, sizeof(next_path), &object_type);
-
-    // Should handle gracefully - either succeed with next path or report no more keys
-    REQUIRE((result == EBPF_SUCCESS || result == EBPF_NO_MORE_KEYS || result != EBPF_SUCCESS));
+    _close(map_fd);
 }
 
 // Test eBPF program synchronization API
@@ -1982,8 +1995,8 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
         const char test_data[] = "test perf event data";
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
-        // Should either succeed or fail gracefully (e.g., if no consumers are attached)
-        REQUIRE((result == EBPF_SUCCESS || result != EBPF_SUCCESS));
+        // Should succeed
+        REQUIRE(result == EBPF_SUCCESS);
 
         (void)ebpf_close_fd(map_fd);
     }
@@ -1996,32 +2009,31 @@ TEST_CASE("ebpf_object_info_api", "[ebpf_api]")
 
     // Create a simple map to test object info API
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
-    if (map_fd > 0) {
-        struct bpf_map_info info = {0};
-        uint32_t info_size = sizeof(info);
-        ebpf_object_type_t object_type;
+    REQUIRE(map_fd > 0);
 
-        ebpf_result_t result = ebpf_object_get_info_by_fd(map_fd, &info, &info_size, &object_type);
-        REQUIRE(result == EBPF_SUCCESS);
-        REQUIRE(object_type == EBPF_OBJECT_MAP);
-        REQUIRE(info_size > 0);
-        REQUIRE(info.type == BPF_MAP_TYPE_ARRAY);
-        REQUIRE(info.key_size == sizeof(uint32_t));
-        REQUIRE(info.value_size == sizeof(uint32_t));
-        REQUIRE(info.max_entries == 1);
-        REQUIRE(info.id != 0);
-        REQUIRE(std::string(info.name) == "test_map");
+    struct bpf_map_info info = {0};
+    uint32_t info_size = sizeof(info);
+    ebpf_object_type_t object_type;
 
-        (void)ebpf_close_fd(map_fd);
-    }
+    ebpf_result_t result = ebpf_object_get_info_by_fd(map_fd, &info, &info_size, &object_type);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(object_type == EBPF_OBJECT_MAP);
+    REQUIRE(info_size > 0);
+    REQUIRE(info.type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(info.key_size == sizeof(uint32_t));
+    REQUIRE(info.value_size == sizeof(uint32_t));
+    REQUIRE(info.max_entries == 1);
+    REQUIRE(info.id != 0);
+    REQUIRE(std::string(info.name) == "test_map");
+
+    (void)ebpf_close_fd(map_fd);
 
     // Test with invalid fd
-    uint32_t info_size = 0;
-    ebpf_object_type_t object_type;
-    ebpf_result_t result = ebpf_object_get_info_by_fd(-1, nullptr, &info_size, &object_type);
+    result = ebpf_object_get_info_by_fd(-1, nullptr, &info_size, &object_type);
     REQUIRE(result != EBPF_SUCCESS);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 // Test eBPF program attach APIs with graceful error handling
 TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
 {
@@ -2055,6 +2067,7 @@ TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
     result = ebpf_program_attach_by_fd(-1, &sample_attach_type, nullptr, 0, &link);
     REQUIRE(result != EBPF_SUCCESS);
 }
+#endif
 
 // Test eBPF native object loading API
 TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
@@ -2146,13 +2159,8 @@ TEST_CASE("ebpf_get_next_pinned_program_path_deprecated", "[ebpf_api]")
     ebpf_result_t result = ebpf_get_next_pinned_program_path("", next_path);
 #pragma warning(pop)
 
-    // Should succeed (even if no programs are pinned) or fail gracefully
-    REQUIRE((result == EBPF_SUCCESS || result == EBPF_NO_MORE_KEYS || result != EBPF_SUCCESS));
-
-    if (result == EBPF_SUCCESS) {
-        // If we got a path, it should be valid
-        REQUIRE(strlen(next_path) > 0);
-    }
+    // Should return EBPF_NO_MORE_KEYS as no objects are pinned
+    REQUIRE(result == EBPF_NO_MORE_KEYS);
 }
 
 // Test eBPF memory-based verification APIs
