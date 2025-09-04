@@ -22,6 +22,9 @@
     <ClCompile Include="..\ebpf_core.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_core_config.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ebpf_general_helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -42,6 +45,9 @@
     <ClInclude Include="..\ebpf_core.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="..\ebpf_core_config.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
     <ClInclude Include="..\ebpf_link.h">
       <Filter>Header Files</Filter>
     </ClInclude>
