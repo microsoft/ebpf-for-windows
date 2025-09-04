@@ -1647,11 +1647,11 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
 TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
 {
     _test_helper test_helper;
+    uint8_t* reserved_data = nullptr;
     LARGE_INTEGER timeout{0};
     test_helper.initialize();
 
     _wait_event event;
-    uint8_t* reserved_data = nullptr;
 
     ebpf_ring_buffer_t* ring_buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);

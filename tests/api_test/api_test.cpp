@@ -1013,42 +1013,43 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
     _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_SOCK_OPS,
-        program_name,
-        EBPF_EXECUTION_NATIVE,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
-    struct bpf_object* object = _helper.get_object();
-
-    // Bind a socket.
-    WSAData data;
-    REQUIRE(WSAStartup(2, &data) == 0);
-    connect_send_udp_ipv4_traffic();
-
-    // Read from map.
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "process_start_key_map");
-    REQUIRE(map != nullptr);
-    REQUIRE(map->map_fd != ebpf_fd_invalid);
-    uint32_t key = 0;
-    struct value
     {
-        uint32_t current_pid;
-        uint64_t start_key;
-    } value;
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+        _helper.initialize(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SOCK_OPS,
+            program_name,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = _helper.get_object();
 
-    // Verify PID/TID values.
-    unsigned long pid = GetCurrentProcessId();
-    REQUIRE(0 < value.start_key);
-    REQUIRE(pid == value.current_pid);
+        // Bind a socket.
+        WSAData data;
+        REQUIRE(WSAStartup(2, &data) == 0);
+        connect_send_udp_ipv4_traffic();
 
-    // Clean up.
-    WSACleanup();
+        // Read from map.
+        struct bpf_map* map = bpf_object__find_map_by_name(object, "process_start_key_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
 
-    _close(map->map_fd);
+        // Clean up.
+        WSACleanup();
+
+        uint32_t key = 0;
+        struct value
+        {
+            uint32_t current_pid;
+            uint64_t start_key;
+        } value;
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+        // Verify PID/TID values.
+        unsigned long pid = GetCurrentProcessId();
+        REQUIRE(0 < value.start_key);
+        REQUIRE(pid == value.current_pid);
+    }
 }
 
 TEST_CASE("bpf_get_thread_start_time", "[helpers]")
@@ -1060,48 +1061,49 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
     _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
-    _helper.initialize(
-        _native_helper.get_file_name().c_str(),
-        BPF_PROG_TYPE_SOCK_OPS,
-        program_name,
-        EBPF_EXECUTION_NATIVE,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
-    struct bpf_object* object = _helper.get_object();
-
-    // Bind a socket.
-    WSAData data;
-    REQUIRE(WSAStartup(2, &data) == 0);
-    connect_send_udp_ipv4_traffic();
-
-    // Read from map.
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "thread_start_time_map");
-    REQUIRE(map != nullptr);
-    REQUIRE(map->map_fd != ebpf_fd_invalid);
-    uint32_t key = 0;
-    struct value
     {
-        uint32_t current_tid;
-        int64_t start_time;
-    } value;
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+        _helper.initialize(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SOCK_OPS,
+            program_name,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = _helper.get_object();
 
-    // Verify PID/TID values.
-    unsigned long tid = GetCurrentThreadId();
-    long long start_time = 0;
-    FILETIME creation, exit, kernel, user;
-    if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-        start_time =
-            static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
+        // Bind a socket.
+        WSAData data;
+        REQUIRE(WSAStartup(2, &data) == 0);
+        connect_send_udp_ipv4_traffic();
+
+        // Read from map.
+        struct bpf_map* map = bpf_object__find_map_by_name(object, "thread_start_time_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
+
+        // Clean up.
+        WSACleanup();
+
+        uint32_t key = 0;
+        struct value
+        {
+            uint32_t current_tid;
+            int64_t start_time;
+        } value;
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+        // Verify PID/TID values.
+        unsigned long tid = GetCurrentThreadId();
+        long long start_time = 0;
+        FILETIME creation, exit, kernel, user;
+        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
+            start_time =
+                static_cast<long long>(creation.dwLowDateTime) | (static_cast<long long>(creation.dwHighDateTime) << 32);
+        }
+        REQUIRE(tid == value.current_tid);
+        REQUIRE(start_time == value.start_time);
     }
-    REQUIRE(tid == value.current_tid);
-    REQUIRE(start_time == value.start_time);
-
-    // Clean up.
-    WSACleanup();
-
-    _close(map->map_fd);
 }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")
