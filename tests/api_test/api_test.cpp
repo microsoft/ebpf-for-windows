@@ -1012,12 +1012,12 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_ANY);
+    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
         BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_ANY,
+        EBPF_EXECUTION_NATIVE,
         &ifindex,
         sizeof(ifindex),
         hook);
@@ -1031,6 +1031,7 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "process_start_key_map");
     REQUIRE(map != nullptr);
+    REQUIRE(map->map_fd != ebpf_fd_invalid);
     uint32_t key = 0;
     struct value
     {
@@ -1046,6 +1047,8 @@ TEST_CASE("bpf_get_process_start_key", "[helpers]")
 
     // Clean up.
     WSACleanup();
+
+    _close(map->map_fd);
 }
 
 TEST_CASE("bpf_get_thread_start_time", "[helpers]")
@@ -1056,12 +1059,12 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     const char* program_name = "func";
     program_load_attach_helper_t _helper;
     native_module_helper_t _native_helper;
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_ANY);
+    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
         _native_helper.get_file_name().c_str(),
         BPF_PROG_TYPE_SOCK_OPS,
         program_name,
-        EBPF_EXECUTION_ANY,
+        EBPF_EXECUTION_NATIVE,
         &ifindex,
         sizeof(ifindex),
         hook);
@@ -1075,6 +1078,7 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
     // Read from map.
     struct bpf_map* map = bpf_object__find_map_by_name(object, "thread_start_time_map");
     REQUIRE(map != nullptr);
+    REQUIRE(map->map_fd != ebpf_fd_invalid);
     uint32_t key = 0;
     struct value
     {
@@ -1096,6 +1100,8 @@ TEST_CASE("bpf_get_thread_start_time", "[helpers]")
 
     // Clean up.
     WSACleanup();
+
+    _close(map->map_fd);
 }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")
