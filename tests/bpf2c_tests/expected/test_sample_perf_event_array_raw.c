@@ -15,11 +15,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                             // Current Version.
+         80,                            // Struct size up to the last field.
+         80,                            // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERF_EVENT_ARRAY, // Type of map.
@@ -53,9 +54,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t test_program_entry_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        32,
-        "helper_id_32",
+     {1, 40, 40}, // Version header.
+     32,
+     "helper_id_32",
     },
 };
 
@@ -178,8 +179,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 21;
+    version->major = 1;
+    version->minor = 0;
     version->revision = 0;
 }
 
