@@ -187,7 +187,17 @@ elseif ($ExecuteOnVM) {
         -SelfHostedRunnerName $SelfHostedRunnerName `
         -TestJobTimeout $TestJobTimeout `
         -CheckpointPrefix "Setup" `
-        -ExecuteOnVM $true
+        -ExecuteOnHost $ExecuteOnHost `
+        -ExecuteOnVM $ExecuteOnVM `
+        -AdminTestVMCredential $TestVMCredential `
+        -StandardUserTestVMCredential $TestVMCredential `
+        -VMIsRemote $VMIsRemote `
+        -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
+        -LogFileName $LogFileName `
+        -TestMode $TestMode `
+        -Options @("None") `
+        -TestHangTimeout (10*60) `
+        -UserModeDumpFolder "C:\Dumps"
 
     # Clean up.
     Remove-Job -Job $Job -Force
