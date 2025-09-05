@@ -42,16 +42,8 @@ typedef struct _ebpf_ring_buffer_kernel_page
 static_assert(
     sizeof(ebpf_ring_buffer_kernel_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_kernel_page_t is larger than PAGE_SIZE");
 
-// ebpf_ring_buffer_t should be made opaque instead of being in ebpf_ring_buffer.h (#4144).
-typedef struct _ebpf_ring_buffer
-{
-    size_t length;
-    ebpf_ring_buffer_kernel_page_t* kernel_page;
-    ebpf_ring_buffer_consumer_page_t* consumer_page;
-    ebpf_ring_buffer_producer_page_t* producer_page;
-    uint8_t* data;                           ///< Double mapped buffer containing data.
-    ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
-} ebpf_ring_buffer_t;
+// Forward declaration of opaque ring buffer structure
+typedef struct _ebpf_ring_buffer ebpf_ring_buffer_t;
 
 static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
 
@@ -73,31 +65,6 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring_buffer, size_t capaci
  */
 void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
-
-/**
- * @brief Initialize a pre-allocated ring buffer struct by allocating the ring.
- *
- * @note This is used by perf event array to initialize the ring buffer in the perf ring.
- * Use ebpf_ring_buffer_create to create a new ring buffer.
- *
- * @param[out] ring Ring buffer to initialize.
- * @param[in] capacity Size in bytes of ring buffer.
- * @retval EBPF_SUCCESS Successfully initialized ring buffer.
- * @retval EBPF_NO_MEMORY Unable to allocate ring buffer.
- */
-_Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_allocate_ring(
-    _Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) ebpf_ring_buffer_t* ring, size_t capacity);
-
-/**
- * @brief Free the ring buffer memory.
- *
- * @note This is used by perf event array to free the ring buffer in the perf ring.
- *
- * @param[in] ring Ring buffer to free.
- */
-void
-ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring);
 
 /**
  * @brief Set the wait handle for the ring buffer.

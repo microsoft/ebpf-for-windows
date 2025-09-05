@@ -7,6 +7,17 @@
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_tracelog.h"
 
+// Definition of the opaque ring buffer structure
+typedef struct _ebpf_ring_buffer
+{
+    size_t length;
+    ebpf_ring_buffer_kernel_page_t* kernel_page;
+    ebpf_ring_buffer_consumer_page_t* consumer_page;
+    ebpf_ring_buffer_producer_page_t* producer_page;
+    uint8_t* data;                           ///< Double mapped buffer containing data.
+    ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
+} ebpf_ring_buffer_t;
+
 inline static uint8_t*
 _ring_record_get_buffer(_In_ const ebpf_ring_buffer_record_t* record)
 {

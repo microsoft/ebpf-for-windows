@@ -247,7 +247,7 @@ typedef struct _ebpf_core_ring_buffer_map
 
 __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_core_perf_ring
 {
-    ebpf_ring_buffer_t ring;
+    ebpf_ring_buffer_t* ring;
     volatile size_t lost_records;
     ebpf_core_map_async_contexts_t async;
 } ebpf_core_perf_ring_t;
@@ -2277,7 +2277,7 @@ _query_perf_event_array_map(
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[(uint32_t)index];
-    ebpf_ring_buffer_query(&ring->ring, &async_query_result->consumer, &async_query_result->producer);
+    ebpf_ring_buffer_query(ring->ring, &async_query_result->consumer, &async_query_result->producer);
     async_query_result->lost_count = ring->lost_records;
 }
 
@@ -2440,11 +2440,11 @@ _query_buffer_perf_event_array_map(
     void* producer = NULL;
     uint8_t* data = NULL;
     size_t data_size = 0;
-    ebpf_result_t result = ebpf_ring_buffer_map_user(&ring->ring, &consumer, &producer, &data, &data_size);
+    ebpf_result_t result = ebpf_ring_buffer_map_user(ring->ring, &consumer, &producer, &data, &data_size);
     if (result == EBPF_SUCCESS) {
         *buffer = data;
         size_t producer_offset;
-        ebpf_ring_buffer_query(&ring->ring, consumer_offset, &producer_offset);
+        ebpf_ring_buffer_query(ring->ring, consumer_offset, &producer_offset);
     }
     return result;
 }
@@ -2480,7 +2480,7 @@ _return_buffer_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t in
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
-    ebpf_result_t result = ebpf_ring_buffer_return_buffer(&ring->ring, consumer_offset);
+    ebpf_result_t result = ebpf_ring_buffer_return_buffer(ring->ring, consumer_offset);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2734,7 +2734,8 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
                 EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
         }
-        ebpf_ring_buffer_free_ring_memory(&ring->ring);
+        ebpf_ring_buffer_destroy(ring->ring);
+        ring->ring = NULL;
     }
 
     ebpf_epoch_free(perf_event_array_map);
@@ -2775,7 +2776,7 @@ _create_perf_event_array_map(
     uint32_t cpu_i;
     for (cpu_i = 0; cpu_i < perf_event_array_map->ring_count; cpu_i++) {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_i];
-        result = ebpf_ring_buffer_allocate_ring(&ring->ring, map_definition->max_entries);
+        result = ebpf_ring_buffer_create(&ring->ring, map_definition->max_entries);
         if (result != EBPF_SUCCESS) {
             // Failed to allocate ring, only free the rings we created.
             perf_event_array_map->ring_count = cpu_i;
@@ -2794,7 +2795,7 @@ Exit:
     if (perf_event_array_map != NULL) {
         for (cpu_i = 0; cpu_i < perf_event_array_map->ring_count; cpu_i++) {
             ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_i];
-            ebpf_ring_buffer_free_ring_memory(&ring->ring);
+            ebpf_ring_buffer_destroy(ring->ring);
         }
         ebpf_epoch_free(perf_event_array_map);
     }
@@ -2815,7 +2816,7 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
     uint8_t* record_data;
-    ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(&ring->ring, &record_data, length);
+    ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length);
     if (result != EBPF_SUCCESS) {
         ring->lost_records++;
         goto Exit;
@@ -2899,7 +2900,7 @@ ebpf_perf_event_array_map_output_with_capture(
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
     uint8_t* record_data;
-    result = ebpf_ring_buffer_reserve_exclusive(&ring->ring, &record_data, length + extra_length);
+    result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
     if (result != EBPF_SUCCESS) {
         ring->lost_records++;
         goto Exit;
