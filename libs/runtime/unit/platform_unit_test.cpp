@@ -1647,7 +1647,6 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
 TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
 {
     _test_helper test_helper;
-    uint8_t* reserved_data = nullptr;
     LARGE_INTEGER timeout{0};
     test_helper.initialize();
 
@@ -1707,6 +1706,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     }
 
     // Test 1: EBPF_RINGBUF_FLAG_NO_WAKEUP - should not signal event.
+    uint8_t* reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
 

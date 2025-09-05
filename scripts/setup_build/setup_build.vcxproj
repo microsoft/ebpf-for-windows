@@ -4,9 +4,6 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\..\packages\Microsoft.Windows.WDK.x86.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x86.props" Condition="Exists('..\..\packages\Microsoft.Windows.WDK.x86.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x86.props')" />
-  <Import Project="..\..\packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props" Condition="Exists('..\..\packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props')" />
-  <Import Project="..\..\packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.arm64.props" Condition="Exists('..\..\packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.arm64.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -191,6 +188,7 @@ popd
       <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
+
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
@@ -367,13 +365,6 @@ copy "$(VC_CppRuntimeFilesPath_ARM64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\..\packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.arm64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Windows.WDK.ARM64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.arm64.props'))" />
-    <Error Condition="!Exists('..\..\packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Windows.WDK.x64.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x64.props'))" />
-    <Error Condition="!Exists('..\..\packages\Microsoft.Windows.WDK.x86.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x86.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Windows.WDK.x86.10.0.26100.4204\build\native\Microsoft.Windows.WDK.x86.props'))" />
-  </Target>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>
