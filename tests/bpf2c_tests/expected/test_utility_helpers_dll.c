@@ -436,8 +436,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 0;
     version->revision = 0;
 }
 
