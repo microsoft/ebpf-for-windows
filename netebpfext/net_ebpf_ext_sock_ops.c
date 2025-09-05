@@ -66,7 +66,7 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
 
 //
-// SOCK_OPS Global helper function implementation.
+// SOCK_OPS Global helper function implementations.
 //
 static uint64_t
 _ebpf_sock_ops_get_current_pid_tgid(
@@ -86,11 +86,50 @@ _ebpf_sock_ops_get_current_pid_tgid(
     return (sock_ops_ctx->process_id << 32 | (uint32_t)(uintptr_t)PsGetCurrentThreadId());
 }
 
+static uint64_t
+_ebpf_sock_ops_get_current_process_start_key(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_ops_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return PsGetProcessStartKey(IoGetCurrentProcess());
+}
+
+static int64_t
+_ebpf_sock_ops_get_thread_create_time(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_ops_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return PsGetThreadCreateTime(KeGetCurrentThread());
+}
+
 //
 // SOCK_OPS Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
+static const void* _ebpf_sock_ops_global_helper_functions[] = {
+    (void*)_ebpf_sock_ops_get_current_pid_tgid,
+    (void*)_ebpf_sock_ops_get_current_process_start_key,
+    (void*)_ebpf_sock_ops_get_thread_create_time};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
