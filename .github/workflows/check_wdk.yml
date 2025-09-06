@@ -41,7 +41,7 @@ jobs:
           $wdkVersion = (Get-Content -Path .\wdk.props | Select-String -Pattern "<WDKVersion>" | ForEach-Object { $_ -replace "<WDKVersion>", "" -replace "</WDKVersion>", "" }).trim()
           "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         if: steps.check_wdk.outputs.wdk_version != steps.check_repo_wdk.outputs.wdk_version
         env:
           TITLE: 'Update the Windows Driver Kit'
