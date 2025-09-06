@@ -36,7 +36,7 @@ CATCH_REGISTER_LISTENER(_watchdog)
 thread_local bool _is_main_thread = false;
 
 void
-_test_egress_connection_policy_blocked(
+_change_egress_policy_test_ingress_block(
     bpf_map* egress_connection_policy_map,
     connection_tuple_t& tuple,
     client_socket_t& sender_socket,
@@ -139,11 +139,11 @@ connection_test(
     // Update egress policy to allow packet.
     // Test both hard and soft permit.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-    _test_egress_connection_policy_blocked(
+    _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    _test_egress_connection_policy_blocked(
+    _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
     // Update ingress policy to allow packet.
