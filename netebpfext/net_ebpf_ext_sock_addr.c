@@ -137,55 +137,55 @@
         TraceLoggingUInt64((verdict), "verdict"),                     \
         TraceLoggingUInt32((compartment_id), "compartment_id"));
 
-#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                                 \
-    __declspec(noinline) static void _net_ebpf_ext_log_sock_addr_classify_v##family##( \
-        _In_z_ const char* message,                                                    \
-        uint64_t transport_endpoint_handle,                                            \
-        _In_ const bpf_sock_addr_t* original_context,                                  \
-        _In_opt_ const bpf_sock_addr_t* redirected_context,                            \
-        uint32_t verdict,                                                              \
-        uint32_t compartment_id)                                                       \
-    {                                                                                  \
-        if (redirected_context != NULL) {                                              \
-            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##(                \
-                message,                                                               \
-                transport_endpoint_handle,                                             \
-                original_context->protocol,                                            \
-                original_context->msg_src_ip##family##,                                \
-                ntohs(original_context->msg_src_port),                                 \
-                original_context->user_ip##family##,                                   \
-                ntohs(original_context->user_port),                                    \
-                redirected_context->user_ip##family##,                                 \
-                ntohs(redirected_context->user_port),                                  \
-                verdict,                                                               \
-                compartment_id);                                                       \
-        } else {                                                                       \
-            if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {                             \
-                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                                  \
-                    message,                                                           \
-                    transport_endpoint_handle,                                         \
-                    original_context->protocol,                                        \
-                    original_context->msg_src_ip##family##,                            \
-                    ntohs(original_context->msg_src_port),                             \
-                    original_context->user_ip##family##,                               \
-                    ntohs(original_context->user_port),                                \
-                    verdict,                                                           \
-                    compartment_id);                                                   \
-            } else {                                                                   \
-                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                               \
-                    message,                                                           \
-                    transport_endpoint_handle,                                         \
-                    original_context->protocol,                                        \
-                    original_context->msg_src_ip##family##,                            \
-                    ntohs(original_context->msg_src_port),                             \
-                    original_context->user_ip##family##,                               \
-                    ntohs(original_context->user_port),                                \
-                    verdict,                                                           \
-                    compartment_id);                                                   \
-            }                                                                          \
-        }                                                                              \
+#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                                                      \
+    __declspec(noinline) static void _net_ebpf_ext_log_sock_addr_classify_v##family##(                      \
+        _In_z_ const char* message,                                                                         \
+        uint64_t transport_endpoint_handle,                                                                 \
+        _In_ const bpf_sock_addr_t* original_context,                                                       \
+        _In_opt_ const bpf_sock_addr_t* redirected_context,                                                 \
+        uint32_t verdict,                                                                                   \
+        uint32_t compartment_id)                                                                            \
+    {                                                                                                       \
+        if (redirected_context != NULL) {                                                                   \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##(                                     \
+                message,                                                                                    \
+                transport_endpoint_handle,                                                                  \
+                original_context->protocol,                                                                 \
+                original_context->msg_src_ip##family##,                                                     \
+                ntohs(original_context->msg_src_port),                                                      \
+                original_context->user_ip##family##,                                                        \
+                ntohs(original_context->user_port),                                                         \
+                redirected_context->user_ip##family##,                                                      \
+                ntohs(redirected_context->user_port),                                                       \
+                verdict,                                                                                    \
+                compartment_id);                                                                            \
+        } else {                                                                                            \
+            if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT || verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) { \
+                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                                          \
+                    NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                                                       \
+                    message,                                                                                \
+                    transport_endpoint_handle,                                                              \
+                    original_context->protocol,                                                             \
+                    original_context->msg_src_ip##family##,                                                 \
+                    ntohs(original_context->msg_src_port),                                                  \
+                    original_context->user_ip##family##,                                                    \
+                    ntohs(original_context->user_port),                                                     \
+                    verdict,                                                                                \
+                    compartment_id);                                                                        \
+            } else {                                                                                        \
+                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                                          \
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                                    \
+                    message,                                                                                \
+                    transport_endpoint_handle,                                                              \
+                    original_context->protocol,                                                             \
+                    original_context->msg_src_ip##family##,                                                 \
+                    ntohs(original_context->msg_src_port),                                                  \
+                    original_context->user_ip##family##,                                                    \
+                    ntohs(original_context->user_port),                                                     \
+                    verdict,                                                                                \
+                    compartment_id);                                                                        \
+            }                                                                                               \
+        }                                                                                                   \
     }
 
 DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
@@ -1538,13 +1538,6 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     bool redirected = FALSE;
     bool address_changed = FALSE;
 
-    if (context->v4_mapped) {
-        // If it is a v4-mapped address, convert it to v6 before comparing.
-        local_context.family = AF_INET6;
-        IN_ADDR v4_address = *((IN_ADDR*)&local_context.user_ip4);
-        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&local_context.user_ip6, (IN_ADDR*)&v4_address);
-    }
-
     _net_ebpf_ext_sock_addr_redirected(original_context, &local_context, &redirected, &address_changed);
     context->redirected = redirected;
     context->address_changed = address_changed;
@@ -1705,6 +1698,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         // This is a re-authorization of a connection that was previously authorized by the
         // eBPF program. Permit it.
+        // NOTE: Reauthorization is currently not supported for hard permit.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
@@ -1900,6 +1894,47 @@ Exit:
     NET_EBPF_EXT_RETURN_BOOL(process_classify);
 }
 
+void
+_handle_auth_connect_edge_cases(
+    _In_ bpf_sock_addr_t* sock_addr_ctx,
+    _In_ bpf_sock_addr_t* sock_addr_ctx_original,
+    bool redirected,
+    bool v4_mapped,
+    uint32_t verdict,
+    uint64_t handle)
+{
+    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
+        if (redirected) {
+            // From testing, if the protocol is TCP and the final destination IP is not a loopback address,
+            // WFP invokes the AUTH_CONNECT callout for redirected connections twice,
+            // once for the original destination and once for the redirected destination.
+            // Both callouts need to decide on a hard permit verdict for the overall verdict to be
+            // hard permit. We cache the verdict for both the original and redirected destination
+            // regardless of protocol and destination address in case any edge cases were missed.
+            // The cleanup logic will ensure that stale entries are removed.
+            if (v4_mapped) {
+                // For IPv4-mapped IPv6 connections, the AUTH_CONNECT callout for the original destination returns
+                // 0.0.0.0 as the IP, so cache the verdict under 0.0.0.0.
+                uint32_t ip4 = sock_addr_ctx_original->user_ip4;
+                sock_addr_ctx_original->user_ip4 = 0;
+
+                _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx_original, verdict);
+
+                sock_addr_ctx_original->user_ip4 = ip4;
+            } else {
+                _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx_original, verdict);
+            }
+        }
+
+        if (v4_mapped) {
+            // For IPv4-mapped IPv6 connections with PROCEED_HARD verdict, cache in IPv4 format
+            // This is a workaround for WFP processing these connections in
+            // FWPS_LAYER_ALE_CONNECT_REDIRECT_V6 and FWPS_LAYER_ALE_AUTH_CONNECT_V4 layers
+            _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
+        }
+    }
+}
+
 /*
  * For every eBPF sock_addr program attached to INET_CONNECT attach point (for a given compartment), a WFP filter
  * is added to the WFP CONNECT_REDIRECT (with the compartment Id as filter condition). So, this classify callback
@@ -1983,6 +2018,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // In case of re-authorization, the eBPF programs have already inspected the connection.
     // Skip invoking the program(s) again. In this case the verdict is always to proceed (terminating).
+    // NOTE: this check may not be needed. ALE reauthorization only occurs at FWPM_LAYER_ALE_AUTH_CONNECT_V{4|6}
+    // layers unless FWPS_CLASSIFY_FLAG_REAUTHORIZE_IF_MODIFIED_BY_OTHERS is set.
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         reauthorization = TRUE;
@@ -1994,9 +2031,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             (uint64_t)sock_addr_ctx->compartment_id);
         goto Exit;
     }
-
-    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
-    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
@@ -2068,6 +2102,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
+    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
+
     // This parameter is not used. Verdict in net_ebpf_sock_addr_ctx is used instead as long as it's valid.
     uint32_t ignored_verdict;
     result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
@@ -2097,13 +2134,27 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     redirected = net_ebpf_sock_addr_ctx.redirected;
 
-    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED || verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
+    if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
+        _handle_auth_connect_edge_cases(
+            sock_addr_ctx,
+            &sock_addr_ctx_original,
+            redirected,
+            v4_mapped,
+            verdict,
+            incoming_metadata_values->transportEndpointHandle);
+
         if (v4_mapped) {
+            // Change original sock addr context back for logging.
+            sock_addr_ctx_original.family = AF_INET6;
+            IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx_original.user_ip4);
+            IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx_original.user_ip6, (IN_ADDR*)&v4_address);
+
             // Revert back the sock_addr_ctx to v4-mapped v6 address for connection-redirection processing.
             sock_addr_ctx->family = AF_INET6;
-            IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx->user_ip4);
+            v4_address = *((IN_ADDR*)&sock_addr_ctx->user_ip4);
             IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6, (IN_ADDR*)&v4_address);
         }
+
         status = _net_ebpf_ext_process_redirect_verdict(
             &sock_addr_ctx_original, sock_addr_ctx, filter, classify_handle, redirect_handle, classify_output);
         NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
@@ -2121,7 +2172,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         compartment_id);
 
 Exit:
-    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED) {
+    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED && !(v4_mapped && verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD)) {
         // Create a connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
         // verdict of the program.
         _net_ebpf_ext_insert_connection_context_to_list(
