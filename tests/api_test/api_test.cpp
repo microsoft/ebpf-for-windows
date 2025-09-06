@@ -1708,117 +1708,117 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
-// Test eBPF string and type conversion APIs
+// Test eBPF string and type conversion APIs.
 TEST_CASE("ebpf_string_apis", "[ebpf_api]")
 {
-    // Test ebpf_free_string - can be called with NULL safely
+    // Test ebpf_free_string - can be called with NULL safely.
     ebpf_free_string(nullptr);
 
-    // Test program type name lookup
+    // Test program type name lookup.
     ebpf_program_type_t sample_program_type = EBPF_PROGRAM_TYPE_BIND_GUID;
     const char* type_name = ebpf_get_program_type_name(&sample_program_type);
     REQUIRE(type_name != nullptr);
     REQUIRE(strlen(type_name) > 0);
 
-    // Test attach type name lookup
+    // Test attach type name lookup.
     ebpf_attach_type_t bind_attach_type = EBPF_ATTACH_TYPE_BIND_GUID;
     const char* attach_name = ebpf_get_attach_type_name(&bind_attach_type);
     REQUIRE(attach_name != nullptr);
     REQUIRE(strlen(attach_name) > 0);
 }
 
-// Test eBPF program and attach type conversion APIs
+// Test eBPF program and attach type conversion APIs.
 TEST_CASE("ebpf_type_conversion_apis", "[ebpf_api]")
 {
-    // Test BPF to eBPF program type conversion
+    // Test BPF to eBPF program type conversion.
     const ebpf_program_type_t* ebpf_type = ebpf_get_ebpf_program_type(BPF_PROG_TYPE_SAMPLE);
     REQUIRE(ebpf_type != nullptr);
 
-    // Test reverse conversion
+    // Test reverse conversion.
     bpf_prog_type_t bpf_type = ebpf_get_bpf_program_type(ebpf_type);
     REQUIRE(bpf_type == BPF_PROG_TYPE_SAMPLE);
 
-    // Test BPF to eBPF attach type conversion
+    // Test BPF to eBPF attach type conversion.
     ebpf_attach_type_t ebpf_attach_type;
     ebpf_result_t result = ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND, &ebpf_attach_type);
     REQUIRE(result == EBPF_SUCCESS);
 
-    // Test reverse conversion
+    // Test reverse conversion.
     bpf_attach_type_t bpf_attach_type = ebpf_get_bpf_attach_type(&ebpf_attach_type);
     REQUIRE(bpf_attach_type == BPF_ATTACH_TYPE_BIND);
 
-    // Test program type lookup by name
+    // Test program type lookup by name.
     ebpf_program_type_t program_type;
     ebpf_attach_type_t expected_attach_type;
     result = ebpf_get_program_type_by_name("bind", &program_type, &expected_attach_type);
     REQUIRE(result == EBPF_SUCCESS);
 
-    // Verify the lookup worked by converting back to name
+    // Verify the lookup worked by converting back to name.
     const char* retrieved_name = ebpf_get_program_type_name(&program_type);
     REQUIRE(retrieved_name != nullptr);
     REQUIRE(strlen(retrieved_name) > 0);
 }
 
-// Test path canonicalization API
+// Test path canonicalization API.
 TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
 {
     char output[MAX_PATH];
 
-    // Test with a simple path
+    // Test with a simple path.
     ebpf_result_t result = ebpf_canonicalize_pin_path(output, sizeof(output), "/some/test/path");
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(std::string(output) == "BPF:\\some\\test\\path");
 
-    // Test with empty path
+    // Test with empty path.
     result = ebpf_canonicalize_pin_path(output, sizeof(output), "");
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(std::string(output) == "BPF:\\");
 }
 
-// Test enumerate programs API
+// Test enumerate programs API.
 TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
 {
-    // Test with a known test file path - using sample programs from the project
+    // Test with a known test file path - using sample programs from the project.
     const char* test_files[] = {"test_sample_ebpf.o", "bindmonitor.o"};
 
     for (const char* file : test_files) {
         ebpf_api_program_info_t* program_infos = nullptr;
         const char* error_message = nullptr;
 
-        // Try to enumerate programs from test file
+        // Try to enumerate programs from test file.
         ebpf_result_t result = ebpf_enumerate_programs(file, false, &program_infos, &error_message);
 
         if (result == EBPF_SUCCESS && program_infos != nullptr) {
-            // Verify we got some program info
+            // Verify we got some program info.
             REQUIRE(program_infos->section_name != nullptr);
             REQUIRE(strlen(program_infos->section_name) > 0);
 
-            // Clean up
+            // Clean up.
             ebpf_free_programs(program_infos);
         }
 
-        // Clean up error message if any
+        // Clean up error message if any.
         if (error_message != nullptr) {
             ebpf_free_string(error_message);
         }
     }
 
-    // Test with non-existent file - should fail gracefully
+    // Test with non-existent file - should fail gracefully.
     ebpf_api_program_info_t* program_infos = nullptr;
     const char* error_message = nullptr;
     ebpf_result_t result = ebpf_enumerate_programs("non_existent_file.o", false, &program_infos, &error_message);
     REQUIRE(result != EBPF_SUCCESS);
 
-    // Clean up error message if any
+    // Clean up error message if any.
     if (error_message != nullptr) {
         ebpf_free_string(error_message);
     }
 }
 
-// Test eBPF verification APIs
+// Test eBPF verification APIs.
 TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
 {
-    // Test file verification APIs with known test files
+    // Test file verification APIs with known test files.
     const char* test_files[] = {"test_sample_ebpf.o", "bindmonitor.o"};
 
     for (const char* file : test_files) {
@@ -1826,7 +1826,7 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         const char* error_message = nullptr;
         ebpf_api_verifier_stats_t stats = {};
 
-        // Test program verification from file
+        // Test program verification from file.
         uint32_t result = ebpf_api_elf_verify_program_from_file(
             file,
             nullptr, // section_name - use first section
@@ -1837,10 +1837,10 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
             &error_message,
             &stats);
 
-        // Result should be 0 (success)
+        // Result should be 0 (success).
         REQUIRE(result == 0);
 
-        // Clean up strings
+        // Clean up strings.
         if (report != nullptr) {
             ebpf_free_string(report);
         }
@@ -1849,12 +1849,12 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         }
     }
 
-    // Test disassembly APIs
+    // Test disassembly APIs.
     for (const char* file : test_files) {
         const char* disassembly = nullptr;
         const char* error_message = nullptr;
 
-        // Test program disassembly from file
+        // Test program disassembly from file.
         uint32_t result = ebpf_api_elf_disassemble_program(
             file,
             nullptr, // section_name - use first section
@@ -1863,11 +1863,11 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
             &error_message);
 
         if (result == 0 && disassembly != nullptr) {
-            // Verify we got some disassembly output
+            // Verify we got some disassembly output.
             REQUIRE(strlen(disassembly) > 0);
         }
 
-        // Clean up strings
+        // Clean up strings.
         if (disassembly != nullptr) {
             ebpf_free_string(disassembly);
         }
@@ -1877,7 +1877,7 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
     }
 }
 
-// Test eBPF object management APIs
+// Test eBPF object management APIs.
 TEST_CASE("ebpf_object_apis", "[ebpf_api]")
 {
     // Create a simple map object.
@@ -1912,7 +1912,7 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     _close(map_fd);
 }
 
-// Test eBPF pinned object path APIs
+// Test eBPF pinned object path APIs.
 TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
 {
     char next_path[EBPF_MAX_PIN_PATH_LENGTH];
@@ -1927,54 +1927,54 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
     int pin_result = bpf_obj_pin(map_fd, pin_path);
     REQUIRE(pin_result == 0);
 
-    // 2) Verify the map can be found via ebpf_get_next_pinned_object_path
+    // 2) Verify the map can be found via ebpf_get_next_pinned_object_path.
     ebpf_result_t result = ebpf_get_next_pinned_object_path("", next_path, sizeof(next_path), &object_type);
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(object_type == EBPF_OBJECT_MAP);
     // Ensure returned path contains our pin name.
     REQUIRE(strstr(next_path, "test_get_next_pinned_object_path") != nullptr);
 
-    // 3) Verify that there are no more pinned objects after the current one
+    // 3) Verify that there are no more pinned objects after the current one.
     result = ebpf_get_next_pinned_object_path(
         "test_get_next_pinned_object_path", next_path, sizeof(next_path), &object_type);
     REQUIRE(result == EBPF_NO_MORE_KEYS);
 
-    // 4) Unpin and free the map
+    // 4) Unpin and free the map.
     ebpf_result_t unpin_result = ebpf_object_unpin(pin_path);
     REQUIRE(unpin_result == EBPF_SUCCESS);
 
     _close(map_fd);
 }
 
-// Test eBPF program synchronization API
+// Test eBPF program synchronization API.
 TEST_CASE("ebpf_program_synchronize", "[ebpf_api]")
 {
-    // Test program synchronization - should succeed even if no programs are running
+    // Test program synchronization - should succeed even if no programs are running.
     ebpf_result_t result = ebpf_program_synchronize();
     REQUIRE(result == EBPF_SUCCESS);
 }
 
-// Test eBPF object execution type APIs
+// Test eBPF object execution type APIs.
 TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
 {
-    // Load a test object to test execution type APIs
+    // Load a test object to test execution type APIs.
     struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
     if (object != nullptr) {
-        // Test getting the default execution type
+        // Test getting the default execution type.
         ebpf_execution_type_t exec_type = ebpf_object_get_execution_type(object);
         REQUIRE(
             (exec_type == EBPF_EXECUTION_ANY || exec_type == EBPF_EXECUTION_JIT ||
              exec_type == EBPF_EXECUTION_INTERPRET || exec_type == EBPF_EXECUTION_NATIVE));
 
-        // Test setting execution type
+        // Test setting execution type.
         ebpf_result_t result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
         if (result == EBPF_SUCCESS) {
-            // Verify the execution type was set
+            // Verify the execution type was set.
             exec_type = ebpf_object_get_execution_type(object);
             REQUIRE(exec_type == EBPF_EXECUTION_INTERPRET);
         }
 
-        // Test setting to JIT
+        // Test setting to JIT.
         result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_JIT);
         if (result == EBPF_SUCCESS) {
             exec_type = ebpf_object_get_execution_type(object);
@@ -1985,29 +1985,29 @@ TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
     }
 }
 
-// Test eBPF perf event array API
+// Test eBPF perf event array API.
 TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
 {
-    // Create a perf event array map for testing
+    // Create a perf event array map for testing.
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "test_perf", 0, 0, 4, nullptr);
     if (map_fd > 0) {
-        // Test writing to perf event array
+        // Test writing to perf event array.
         const char test_data[] = "test perf event data";
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
-        // Should succeed
+        // Should succeed.
         REQUIRE(result == EBPF_SUCCESS);
 
         (void)ebpf_close_fd(map_fd);
     }
 }
 
-// Test eBPF object info API
+// Test eBPF object info API.
 TEST_CASE("ebpf_object_info_api", "[ebpf_api]")
 {
     _disable_crt_report_hook disable_hook;
 
-    // Create a simple map to test object info API
+    // Create a simple map to test object info API.
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(map_fd > 0);
 
@@ -2028,24 +2028,24 @@ TEST_CASE("ebpf_object_info_api", "[ebpf_api]")
 
     (void)ebpf_close_fd(map_fd);
 
-    // Test with invalid fd
+    // Test with invalid fd.
     result = ebpf_object_get_info_by_fd(-1, nullptr, &info_size, &object_type);
     REQUIRE(result != EBPF_SUCCESS);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-// Test eBPF program attach APIs with graceful error handling
+// Test eBPF program attach APIs with graceful error handling.
 TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
 {
     _disable_crt_report_hook disable_hook;
 
-    // Load test_sample_ebpf.o to get a valid program fd
+    // Load test_sample_ebpf.o to get a valid program fd.
     bpf_object* object = bpf_object__open_file("test_sample_ebpf.o", nullptr);
     REQUIRE(object != nullptr);
 
     REQUIRE(bpf_object__load(object) == 0);
 
-    // Load the first program in the object
+    // Load the first program in the object.
     bpf_program* program = bpf_object__next_program(object, nullptr);
     REQUIRE(program != nullptr);
 
@@ -2063,16 +2063,16 @@ TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
 
     bpf_object__close(object);
 
-    // Test with invalid fd
+    // Test with invalid fd.
     result = ebpf_program_attach_by_fd(-1, &sample_attach_type, nullptr, 0, &link);
     REQUIRE(result != EBPF_SUCCESS);
 }
 #endif
 
-// Test eBPF native object loading API
+// Test eBPF native object loading API.
 TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
 {
-    // Test loading native object with invalid file
+    // Test loading native object with invalid file.
     size_t map_count = 1;
     size_t program_count = 1;
     std::vector<fd_t> map_fds(1);
@@ -2090,7 +2090,7 @@ TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
     _close(program_fds[0]);
 }
 
-// Test eBPF program info from verifier API
+// Test eBPF program info from verifier API.
 TEST_CASE("ebpf_program_info_from_verifier_api", "[ebpf_api]")
 {
     const ebpf_program_info_t* program_info = nullptr;
@@ -2118,61 +2118,61 @@ TEST_CASE("ebpf_program_info_from_verifier_api", "[ebpf_api]")
     REQUIRE(program_info != nullptr);
 }
 
-// Test deprecated eBPF section enumeration API for backward compatibility
+// Test deprecated eBPF section enumeration API for backward compatibility.
 TEST_CASE("ebpf_enumerate_sections_deprecated", "[ebpf_api]")
 {
-    // Test the deprecated ebpf_enumerate_sections API
+    // Test the deprecated ebpf_enumerate_sections API.
     const char* test_file = "test_sample_ebpf.o";
     ebpf_section_info_t* section_infos = nullptr;
     const char* error_message = nullptr;
 
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
     ebpf_result_t result = ebpf_enumerate_sections(test_file, false, &section_infos, &error_message);
 #pragma warning(pop)
 
     if (result == EBPF_SUCCESS && section_infos != nullptr) {
-        // Verify we got some section info
+        // Verify we got some section info.
         REQUIRE(section_infos->section_name != nullptr);
         REQUIRE(strlen(section_infos->section_name) > 0);
 
-        // Clean up using deprecated API
+        // Clean up using deprecated API.
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
         ebpf_free_sections(section_infos);
 #pragma warning(pop)
     }
 
-    // Clean up error message if any
+    // Clean up error message if any.
     if (error_message != nullptr) {
         ebpf_free_string(error_message);
     }
 }
 
-// Test deprecated ebpf_get_next_pinned_program_path API
+// Test deprecated ebpf_get_next_pinned_program_path API.
 TEST_CASE("ebpf_get_next_pinned_program_path_deprecated", "[ebpf_api]")
 {
     char next_path[EBPF_MAX_PIN_PATH_LENGTH];
 
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
     ebpf_result_t result = ebpf_get_next_pinned_program_path("", next_path);
 #pragma warning(pop)
 
-    // Should return EBPF_NO_MORE_KEYS as no objects are pinned
+    // Should return EBPF_NO_MORE_KEYS as no objects are pinned.
     REQUIRE(result == EBPF_NO_MORE_KEYS);
 }
 
-// Test eBPF memory-based verification APIs
+// Test eBPF memory-based verification APIs.
 TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
 {
-    // Test memory-based verification with minimal data
+    // Test memory-based verification with minimal data.
     const char* test_data = "minimal_test_data";
     const char* report = nullptr;
     const char* error_message = nullptr;
     ebpf_api_verifier_stats_t stats = {};
 
-    // Test program verification from memory with invalid data
+    // Test program verification from memory with invalid data.
     uint32_t result = ebpf_api_elf_verify_program_from_memory(
         test_data,
         strlen(test_data),
@@ -2184,10 +2184,10 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
         &error_message,
         &stats);
 
-    // Should fail for invalid ELF data but handle gracefully
-    REQUIRE(result != 0); // Not successful verification
+    // Should fail for invalid ELF data but handle gracefully.
+    REQUIRE(result != 0); // Not successful verification.
 
-    // Clean up strings
+    // Clean up strings.
     if (report != nullptr) {
         ebpf_free_string(report);
     }
@@ -2195,12 +2195,12 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
         ebpf_free_string(error_message);
     }
 
-    // Test with null data - should fail gracefully
+    // Test with null data - should fail gracefully.
     result = ebpf_api_elf_verify_program_from_memory(
         nullptr, 0, nullptr, nullptr, nullptr, EBPF_VERIFICATION_VERBOSITY_NORMAL, &report, &error_message, &stats);
     REQUIRE(result != 0);
 
-    // Clean up strings
+    // Clean up strings.
     if (report != nullptr) {
         ebpf_free_string(report);
     }
@@ -2209,7 +2209,7 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     }
 }
 
-// Test remaining deprecated eBPF verification APIs for completeness
+// Test remaining deprecated eBPF verification APIs for completeness.
 TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
 {
     const char* test_file = "test_sample_ebpf.o";
@@ -2217,8 +2217,8 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
     const char* error_message = nullptr;
 
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
-    // Test deprecated disassemble section API
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
+    // Test deprecated disassemble section API.
     uint32_t result = ebpf_api_elf_disassemble_section(test_file, "sample", &disassembly, &error_message);
 #pragma warning(pop)
 
@@ -2226,7 +2226,7 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
         REQUIRE(strlen(disassembly) > 0);
     }
 
-    // Clean up strings
+    // Clean up strings.
     if (disassembly != nullptr) {
         ebpf_free_string(disassembly);
     }
@@ -2234,12 +2234,12 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
         ebpf_free_string(error_message);
     }
 
-    // Test deprecated verify section from file API
+    // Test deprecated verify section from file API.
     const char* report = nullptr;
     ebpf_api_verifier_stats_t stats = {};
 
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
     result = ebpf_api_elf_verify_section_from_file(
         test_file,
         "sample",
@@ -2250,7 +2250,7 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
         &stats);
 #pragma warning(pop)
 
-    // Clean up strings
+    // Clean up strings.
     if (report != nullptr) {
         ebpf_free_string(report);
     }
@@ -2258,11 +2258,11 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
         ebpf_free_string(error_message);
     }
 
-    // Test deprecated verify section from memory API
+    // Test deprecated verify section from memory API.
     const char* test_data = "minimal_test_data";
 
 #pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing
+#pragma warning(disable : 4996) // Disable deprecation warning for testing.
     result = ebpf_api_elf_verify_section_from_memory(
         test_data,
         strlen(test_data),
@@ -2274,10 +2274,10 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
         &stats);
 #pragma warning(pop)
 
-    // Should fail for invalid ELF data but handle gracefully
-    REQUIRE(result != 0); // Not successful verification
+    // Should fail for invalid ELF data but handle gracefully.
+    REQUIRE(result != 0); // Not successful verification.
 
-    // Clean up strings
+    // Clean up strings.
     if (report != nullptr) {
         ebpf_free_string(report);
     }
