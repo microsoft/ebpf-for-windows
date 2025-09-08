@@ -31,9 +31,25 @@ extern "C"
 
 #define UBPF_STACK_SIZE 512
 
-#define IMMEDIATE(X) (int32_t) X
-#define OFFSET(X) (int16_t) X
+#define IMMEDIATE(X) (int32_t)X
+#define OFFSET(X) (int16_t)X
 #define POINTER(X) (uint64_t)(X)
+
+#define READ_ONCE_64(destination, source, offset) \
+    destination = (uint64_t)ReadNoFence64((volatile const long long*)(source + offset))
+#define READ_ONCE_32(destination, source, offset) \
+    destination = (uint32_t)ReadNoFence((volatile const long*)(source + offset))
+#define READ_ONCE_16(destination, source, offset) \
+    destination = (uint16_t)ReadNoFence16((volatile const short*)(source + offset))
+#define READ_ONCE_8(destination, source, offset) \
+    destination = (uint8_t)ReadNoFence8((volatile const char*)(source + offset))
+
+#define WRITE_ONCE_64(destination, source, offset) \
+    WriteNoFence64((volatile long long*)(destination + offset), (long long)source)
+#define WRITE_ONCE_32(destination, source, offset) WriteNoFence((volatile long*)(destination + offset), (long)source)
+#define WRITE_ONCE_16(destination, source, offset) \
+    WriteNoFence16((volatile short*)(destination + offset), (short)source)
+#define WRITE_ONCE_8(destination, source, offset) WriteNoFence8((volatile char*)(destination + offset), (char)source)
 
 #if !defined(htobe16)
 #define htobe16(X) swap16(X)

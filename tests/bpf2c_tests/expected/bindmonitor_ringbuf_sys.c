@@ -254,7 +254,7 @@ bind_monitor(void* context, const program_runtime_context_t* runtime_context)
 
     // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 26 "sample/bindmonitor_ringbuf.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
+    READ_ONCE_32(r2, r1, OFFSET(44));
     // EBPF_OP_JNE_IMM pc=1 dst=r2 src=r0 offset=8 imm=0
 #line 26 "sample/bindmonitor_ringbuf.c"
     if (r2 != IMMEDIATE(0)) {
@@ -264,10 +264,10 @@ bind_monitor(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
-    r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_64(r2, r1, OFFSET(0));
     // EBPF_OP_LDXDW pc=3 dst=r3 src=r1 offset=8 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
-    r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
+    READ_ONCE_64(r3, r1, OFFSET(8));
     // EBPF_OP_JGE_REG pc=4 dst=r2 src=r3 offset=5 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
     if (r2 >= r3) {
