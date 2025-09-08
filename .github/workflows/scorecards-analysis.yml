@@ -45,6 +45,7 @@ jobs:
             api.deps.dev:443
             fulcio.sigstore.dev:443
             tuf-repo-cdn.sigstore.dev:443
+            rekor.sigstore.dev:443
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
