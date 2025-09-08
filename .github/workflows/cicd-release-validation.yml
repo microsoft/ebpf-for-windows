@@ -109,8 +109,8 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Job to read BPF conformance version from central file
-  get_bpf_version:
+  # Job to read BPF conformance version from central file.
+  get_bpf_conformance_version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.read_version.outputs.version }}
@@ -123,11 +123,11 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    needs: [regular, get_bpf_version]
+    needs: [regular, get_bpf_conformance_version]
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/${{ needs.get_bpf_version.outputs.version }}/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
+      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/${{ needs.get_bpf_conformance_version.outputs.version }}/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
       test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
