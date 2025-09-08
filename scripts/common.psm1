@@ -404,10 +404,8 @@ function Wait-TestJobToComplete
                         # Generate kernel dump on the VM
                         Generate-KernelDumpOnVM -VerboseLogs $false
                     } catch {
-                        Write-Log "Failed to generate kernel dump on VM: $_" -ForegroundColor Red
+                        # Do nothing - this is expected as the VM will crash.
                     }
-                } else {
-                    Write-Log "Test job timed out on host: $($Env:COMPUTERNAME) (no dump creation possible on host)" -ForegroundColor Yellow
                 }
                 $JobTimedOut = $true
                 break

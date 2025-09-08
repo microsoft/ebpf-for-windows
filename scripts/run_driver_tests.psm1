@@ -70,8 +70,8 @@ function Generate-KernelDump
 
     # This will/should not return (test system will/should bluescreen and reboot).
     $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
-    # wait for 10 minutes to generate the kernel dump.
-    $NotMyFaultProc.WaitForExit(10*60*1000)
+    # wait for 30 minutes to generate the kernel dump.
+    $NotMyFaultProc.WaitForExit(30*60*1000)
 
     # If we get here, notmyfault64.exe failed for some reason. Kill the hung process, throw error.
     ThrowWithErrorMessage `
@@ -264,40 +264,6 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
           [Parameter(Mandatory = $False)][switch] $SkipTracing)
-
-    while ($true) {
-        Start-Sleep 2147483
-    }
-
-    try {
-        # Create a simple test process for process dump testing
-        Write-Log "Creating simple test process for process dump testing..."
-        $SimpleTestProcess = Start-Process -FilePath "ping.exe" -ArgumentList "127.0.0.1", "-t" -PassThru -NoNewWindow
-        if ($SimpleTestProcess) {
-            Write-Log "Started simple test process: ping.exe with PID: $($SimpleTestProcess.Id)"
-
-            # Wait a moment for the process to be fully initialized
-            Start-Sleep -Seconds 2
-
-            # Generate a process dump for testing purposes
-            try {
-                Generate-ProcessDump -TestProcessId $SimpleTestProcess.Id -TestCommand "ping_test_process" -UserModeDumpFolder $UserModeDumpFolder
-                Write-Log "Successfully generated process dump for test process PID: $($SimpleTestProcess.Id)"
-            } catch {
-                Write-Log "Failed to generate process dump for test process: $_" -ForegroundColor Yellow
-            }
-
-            # Clean up the test process
-            Write-Log "Stopping simple test process PID: $($SimpleTestProcess.Id)"
-            Stop-Process -Id $SimpleTestProcess.Id -Force -ErrorAction SilentlyContinue
-        } else {
-            Write-Log "Failed to create simple test process for process dump testing" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Log "Failed to capture test process dump"
-    }
-
-    Generate-KernelDump
 
     try {
         # Initialize arguments.
