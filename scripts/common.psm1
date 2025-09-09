@@ -402,7 +402,7 @@ function Wait-TestJobToComplete
                         ) -Force -WarningAction SilentlyContinue
 
                         # Generate kernel dump on the VM
-                        Generate-KernelDumpOnVM -VerboseLogs $false
+                        Generate-KernelDumpOnVM
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
