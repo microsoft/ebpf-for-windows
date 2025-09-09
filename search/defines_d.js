@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['sec_0',['SEC',['../bpf__helpers_8h.html#af29983ea99e6131f7ec39892d6b20239',1,'bpf_helpers.h']]],
-  ['sock_5faddr_5fext_5fhelper_5ffn_5fbase_1',['SOCK_ADDR_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e',1,'ebpf_nethooks.h']]],
-  ['sys_5fbpf_5fobj_5fname_5flen_2',['SYS_BPF_OBJ_NAME_LEN',['../linux_2bpf_8h.html#aab92caa51df011305523b2e902fbb6bb',1,'bpf.h']]]
+  ['read_5fonce_5f16_0',['READ_ONCE_16',['../bpf2c_8h.html#ac727074b28d2e81b3d898a4cc9794951',1,'bpf2c.h']]],
+  ['read_5fonce_5f32_1',['READ_ONCE_32',['../bpf2c_8h.html#a77a9342354895fbfc947a85d456f3ddb',1,'bpf2c.h']]],
+  ['read_5fonce_5f64_2',['READ_ONCE_64',['../bpf2c_8h.html#a6276e6ecad80673e58fcbcebddd01b8b',1,'bpf2c.h']]],
+  ['read_5fonce_5f8_3',['READ_ONCE_8',['../bpf2c_8h.html#ae96f62e9656ce0e6b42cb928acd1d3b4',1,'bpf2c.h']]]
 ];

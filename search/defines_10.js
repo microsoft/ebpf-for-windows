@@ -1,4 +1,8 @@
 var searchData=
 [
-  ['xdp_5fflags_5freplace_0',['XDP_FLAGS_REPLACE',['../ebpf__structs_8h.html#a6895b7ffe1198b667b8d71b08b82b4a2',1,'ebpf_structs.h']]]
+  ['win32_5flean_5fand_5fmean_0',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]],
+  ['write_5fonce_5f16_1',['WRITE_ONCE_16',['../bpf2c_8h.html#a87a6d927e911f50ec59ded82fd4f1062',1,'bpf2c.h']]],
+  ['write_5fonce_5f32_2',['WRITE_ONCE_32',['../bpf2c_8h.html#a9dc9c7938adb704b0fecddf023e276ea',1,'bpf2c.h']]],
+  ['write_5fonce_5f64_3',['WRITE_ONCE_64',['../bpf2c_8h.html#ad43752b32fae4e7ad8f4b08ea74f35f9',1,'bpf2c.h']]],
+  ['write_5fonce_5f8_4',['WRITE_ONCE_8',['../bpf2c_8h.html#afef6d69fd7e40a0082d21cf3c8577d99',1,'bpf2c.h']]]
 ];

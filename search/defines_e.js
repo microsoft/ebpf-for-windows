@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['ubpf_5fstack_5fsize_0',['UBPF_STACK_SIZE',['../bpf2c_8h.html#ab41a6986b0045cc2e5c84a75d08c7a12',1,'bpf2c.h']]],
-  ['unreferenced_5fparameter_1',['UNREFERENCED_PARAMETER',['../bpf2c_8h.html#ac830dd94a45984c0ad47afc38882bdbf',1,'bpf2c.h']]]
+  ['sec_0',['SEC',['../bpf__helpers_8h.html#af29983ea99e6131f7ec39892d6b20239',1,'bpf_helpers.h']]],
+  ['sock_5faddr_5fext_5fhelper_5ffn_5fbase_1',['SOCK_ADDR_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e',1,'ebpf_nethooks.h']]],
+  ['sys_5fbpf_5fobj_5fname_5flen_2',['SYS_BPF_OBJ_NAME_LEN',['../linux_2bpf_8h.html#aab92caa51df011305523b2e902fbb6bb',1,'bpf.h']]]
 ];
