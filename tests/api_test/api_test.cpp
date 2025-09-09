@@ -1756,6 +1756,7 @@ TEST_CASE("ebpf_type_conversion_apis", "[ebpf_api]")
     // Verify the lookup worked by converting back to name.
     const char* retrieved_name = ebpf_get_program_type_name(&program_type);
     REQUIRE(retrieved_name != nullptr);
+    REQUIRE(std::string(retrieved_name) == "bind");
     REQUIRE(strlen(retrieved_name) > 0);
 }
 
@@ -1792,6 +1793,17 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
             // Verify we got some program info.
             REQUIRE(program_infos->section_name != nullptr);
             REQUIRE(strlen(program_infos->section_name) > 0);
+            if (std::string(file) == "test_sample_ebpf.o") {
+                REQUIRE(std::string(program_infos->section_name) == "sample_ext");
+                REQUIRE(std::string(program_infos->program_name) == "test_program_entry");
+                REQUIRE(program_infos->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
+                REQUIRE(program_infos->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
+            } else if (std::string(file) == "bindmonitor.o") {
+                REQUIRE(std::string(program_infos->section_name) == "bind");
+                REQUIRE(std::string(program_infos->program_name) == "BindMonitor");
+                REQUIRE(program_infos->program_type == EBPF_PROGRAM_TYPE_BIND);
+                REQUIRE(program_infos->expected_attach_type == EBPF_ATTACH_TYPE_BIND);
+            }
 
             // Clean up.
             ebpf_free_programs(program_infos);
@@ -1894,8 +1906,14 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     ebpf_map_info_t* map_info = nullptr;
     ebpf_result_t result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
     REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(map_count > 0);
+    REQUIRE(map_count == 1);
     REQUIRE(map_info != nullptr);
+    REQUIRE(map_info[0].definition.type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(std::string(map_info[0].pin_path) == "BPF:\\test_map_pin");
+    REQUIRE(map_info[0].definition.key_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].definition.value_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].definition.max_entries == 1);
+    REQUIRE(map_info[0].definition.inner_map_id == 0);
 
     // Clean up pinned map info returned by the API.
     ebpf_api_map_info_free(map_count, map_info);
@@ -1907,6 +1925,12 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     // Verify that unpinning the object a second time fails.
     result = ebpf_object_unpin(pin_path);
     REQUIRE(result != EBPF_SUCCESS);
+
+    // Verify that the map can no longer be found via ebpf_api_get_pinned_map_info.
+    result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_count == 0);
+    REQUIRE(map_info == nullptr);
 
     // Close the map fd.
     _close(map_fd);
@@ -1962,9 +1986,7 @@ TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
     if (object != nullptr) {
         // Test getting the default execution type.
         ebpf_execution_type_t exec_type = ebpf_object_get_execution_type(object);
-        REQUIRE(
-            (exec_type == EBPF_EXECUTION_ANY || exec_type == EBPF_EXECUTION_JIT ||
-             exec_type == EBPF_EXECUTION_INTERPRET || exec_type == EBPF_EXECUTION_NATIVE));
+        REQUIRE(exec_type == EBPF_EXECUTION_ANY);
 
         // Test setting execution type.
         ebpf_result_t result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
