@@ -130,13 +130,13 @@ func(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
 #line 27 "sample/undocked/bpf_call.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
     // EBPF_OP_MOV64_IMM pc=2 dst=r1 src=r0 offset=0 imm=42
 #line 27 "sample/undocked/bpf_call.c"
     r1 = IMMEDIATE(42);
     // EBPF_OP_STXW pc=3 dst=r10 src=r1 offset=-8 imm=0
 #line 28 "sample/undocked/bpf_call.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=4 dst=r2 src=r10 offset=0 imm=0
 #line 28 "sample/undocked/bpf_call.c"
     r2 = r10;
