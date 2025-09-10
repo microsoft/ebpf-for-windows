@@ -2323,6 +2323,42 @@ _ebpf_core_protocol_get_code_integrity_state(
     EBPF_RETURN_RESULT(result);
 }
 
+static void
+_ebpf_core_epoch_synchronize_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ void* work_item_context)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(work_item);
+    ebpf_epoch_synchronize();
+    if (work_item_context != NULL) {
+        ebpf_async_complete(work_item_context, 0, EBPF_SUCCESS);
+    }
+
+    cxplat_free_preemptible_work_item(work_item);
+    return;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_epoch_synchronize(
+    _In_ const ebpf_operation_epoch_synchronize_request_t* request, _Inout_ void* async_context)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(request);
+    cxplat_preemptible_work_item_t* work_item = NULL;
+
+    // Allocate a pre-emptible work item to synchronize the epoch.
+    ebpf_result_t result =
+        ebpf_allocate_preemptible_work_item(&work_item, _ebpf_core_epoch_synchronize_work_item, async_context);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    // Submit the work item to the pre-emptible work queue so that it executes outside of the current epoch.
+    cxplat_queue_preemptible_work_item(work_item);
+    result = EBPF_PENDING;
+
+    EBPF_RETURN_RESULT(result);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -2753,6 +2789,7 @@ typedef enum _ebpf_protocol_call_type
     EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,
     EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC,
     EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC,
+    EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC,
 } ebpf_protocol_call_type_t;
 
 typedef struct _ebpf_protocol_handler
@@ -2774,6 +2811,8 @@ typedef struct _ebpf_protocol_handler
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length,
             _Inout_ void* async_context);
+        ebpf_result_t(__cdecl* async_protocol_handler_no_reply)(
+            _In_ const ebpf_operation_header_t* request, _Inout_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
@@ -2868,6 +2907,12 @@ typedef struct _ebpf_protocol_handler
      EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),     \
      .flags.value = FLAGS}
 
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                    \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                            \
+     .flags.value = FLAGS}
+
 #define DECLARE_PROTOCOL_HANDLER_INVALID(type) {type, NULL, 0, 0, .flags.value = 0}
 
 #define ALIAS_TYPES(X, Y)                                                  \
@@ -2953,6 +2998,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_map_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -3082,6 +3128,7 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         if (input_buffer_length < handler->minimum_request_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
@@ -3096,6 +3143,7 @@ ebpf_core_invoke_protocol_handler(
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         if (output_buffer || output_buffer_length) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
@@ -3144,6 +3192,22 @@ ebpf_core_invoke_protocol_handler(
         retval = handler->dispatch.protocol_handler_with_fixed_reply(request, reply);
         reply->id = operation_id;
         reply->length = (uint16_t)handler->minimum_reply_size;
+        break;
+
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
+        // Validated above.
+        if (!async_context || !on_complete) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        retval = ebpf_async_set_completion_callback(async_context, on_complete);
+        if (retval != EBPF_SUCCESS) {
+            goto Done;
+        }
+        retval = handler->dispatch.async_protocol_handler_no_reply(request, async_context);
+        if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
+            ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
+        }
         break;
 
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:

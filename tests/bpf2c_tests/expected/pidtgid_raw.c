@@ -135,7 +135,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 
     // EBPF_OP_LDXB pc=0 dst=r2 src=r1 offset=40 imm=0
 #line 46 "sample/pidtgid.c"
-    r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
+    READ_ONCE_8(r2, r1, OFFSET(40));
     // EBPF_OP_MOV64_IMM pc=1 dst=r3 src=r0 offset=0 imm=16
 #line 46 "sample/pidtgid.c"
     r3 = IMMEDIATE(16);
@@ -148,7 +148,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=26 imm=0
 #line 46 "sample/pidtgid.c"
-    r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(26));
+    READ_ONCE_16(r2, r1, OFFSET(26));
     // EBPF_OP_JNE_IMM pc=4 dst=r2 src=r0 offset=17 imm=15295
 #line 46 "sample/pidtgid.c"
     if (r2 != IMMEDIATE(15295)) {
@@ -170,25 +170,25 @@ func(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
 #line 49 "sample/pidtgid.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
+    READ_ONCE_64(r1, r6, OFFSET(16));
     // EBPF_OP_STXW pc=8 dst=r10 src=r0 offset=-4 imm=0
 #line 48 "sample/pidtgid.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r0;
+    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-4));
     // EBPF_OP_RSH64_IMM pc=9 dst=r0 src=r0 offset=0 imm=32
 #line 49 "sample/pidtgid.c"
     r0 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_STXW pc=10 dst=r10 src=r0 offset=-8 imm=0
 #line 48 "sample/pidtgid.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r0;
+    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-8));
     // EBPF_OP_STXW pc=11 dst=r10 src=r1 offset=-12 imm=0
 #line 48 "sample/pidtgid.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-12));
     // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=0
 #line 48 "sample/pidtgid.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=13 dst=r10 src=r1 offset=-16 imm=0
 #line 50 "sample/pidtgid.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=14 dst=r2 src=r10 offset=0 imm=0
 #line 50 "sample/pidtgid.c"
     r2 = r10;

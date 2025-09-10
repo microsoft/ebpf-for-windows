@@ -43,10 +43,12 @@ jobs:
             www.bestpractices.dev:443
             github.com:443
             api.deps.dev:443
+            fulcio.sigstore.dev:443
+            tuf-repo-cdn.sigstore.dev:443
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
-        uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
+        uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493
         with:
           persist-credentials: false
 
@@ -77,6 +79,6 @@ jobs:
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
         if: github.ref_name == 'main'
-        uses: github/codeql-action/upload-sarif@4e828ff8d448a8a6e532957b1811f387a63867e8
+        uses: github/codeql-action/upload-sarif@f1f6e5f6af878fb37288ce1c627459e94dbf7d01
         with:
           sarif_file: results.sarif

@@ -245,49 +245,49 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-8 imm=0
 #line 27 "sample/strings.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-16 imm=0
 #line 27 "sample/strings.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_STXDW pc=3 dst=r10 src=r1 offset=-24 imm=0
 #line 27 "sample/strings.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_MOV64_IMM pc=4 dst=r2 src=r0 offset=0 imm=97
 #line 27 "sample/strings.c"
     r2 = IMMEDIATE(97);
     // EBPF_OP_STXH pc=5 dst=r10 src=r2 offset=-28 imm=0
 #line 28 "sample/strings.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-28)) = (uint16_t)r2;
+    WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-28));
     // EBPF_OP_MOV64_IMM pc=6 dst=r2 src=r0 offset=0 imm=1752198241
 #line 28 "sample/strings.c"
     r2 = IMMEDIATE(1752198241);
     // EBPF_OP_STXW pc=7 dst=r10 src=r2 offset=-32 imm=0
 #line 28 "sample/strings.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-32));
     // EBPF_OP_MOV64_IMM pc=8 dst=r2 src=r0 offset=0 imm=1634102369
 #line 28 "sample/strings.c"
     r2 = IMMEDIATE(1634102369);
     // EBPF_OP_STXW pc=9 dst=r10 src=r2 offset=-40 imm=0
 #line 29 "sample/strings.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-40));
     // EBPF_OP_STXB pc=10 dst=r10 src=r1 offset=-36 imm=0
 #line 29 "sample/strings.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-36)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-36));
     // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=7304801
 #line 29 "sample/strings.c"
     r2 = IMMEDIATE(7304801);
     // EBPF_OP_STXW pc=12 dst=r10 src=r2 offset=-48 imm=0
 #line 30 "sample/strings.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-48));
     // EBPF_OP_LDDW pc=13 dst=r2 src=r0 offset=0 imm=1752198241
 #line 30 "sample/strings.c"
     r2 = (uint64_t)8242150686405454945;
     // EBPF_OP_STXDW pc=15 dst=r10 src=r2 offset=-56 imm=0
 #line 30 "sample/strings.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r2;
+    WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-56));
     // EBPF_OP_STXB pc=16 dst=r10 src=r1 offset=-57 imm=0
 #line 31 "sample/strings.c"
-    *(uint8_t*)(uintptr_t)(r10 + OFFSET(-57)) = (uint8_t)r1;
+    WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-57));
     // EBPF_OP_MOV64_REG pc=17 dst=r1 src=r10 offset=0 imm=0
 #line 31 "sample/strings.c"
     r1 = r10;
@@ -555,13 +555,13 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(97);
     // EBPF_OP_STXH pc=82 dst=r10 src=r1 offset=-64 imm=0
 #line 64 "sample/strings.c"
-    *(uint16_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint16_t)r1;
+    WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-64));
     // EBPF_OP_LDDW pc=83 dst=r1 src=r0 offset=0 imm=1752198241
 #line 64 "sample/strings.c"
     r1 = (uint64_t)7380380960345320545;
     // EBPF_OP_STXDW pc=85 dst=r10 src=r1 offset=-72 imm=0
 #line 64 "sample/strings.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-72));
     // EBPF_OP_MOV64_REG pc=86 dst=r1 src=r10 offset=0 imm=0
 #line 64 "sample/strings.c"
     r1 = r10;
