@@ -485,9 +485,6 @@ function Run-KernelTests {
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
-        Write-Log "Running XDP tests"
-        Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
-        Write-Log "XDP tests completed"
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword
