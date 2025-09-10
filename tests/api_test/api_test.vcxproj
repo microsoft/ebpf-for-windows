@@ -150,6 +150,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="api_test.cpp" />
+    <ClCompile Include="api_test_jit.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
@@ -172,6 +173,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="api_test_jit.h" /> 
     <ClInclude Include="header.h" />
     <ClInclude Include="rpc_client.h" />
   </ItemGroup>
