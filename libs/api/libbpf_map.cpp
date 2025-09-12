@@ -364,6 +364,20 @@ typedef struct ring_buffer
 struct ring_buffer*
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
 {
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(sample_cb);
+    UNREFERENCED_PARAMETER(ctx);
+
+    // Linux-compatible ring_buffer__new is not implemented in ebpf-for-windows.
+    // Use ebpf_ring_buffer__new for Windows-specific asynchronous ring buffer semantics.
+    errno = libbpf_result_err(EBPF_OPERATION_NOT_SUPPORTED);
+    EBPF_LOG_FUNCTION_ERROR(EBPF_OPERATION_NOT_SUPPORTED);
+    return nullptr;
+}
+
+struct ring_buffer*
+ebpf_ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
+{
     ebpf_result result = EBPF_SUCCESS;
     ring_buffer_t* local_ring_buffer = nullptr;
 

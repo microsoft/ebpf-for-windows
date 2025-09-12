@@ -953,7 +953,7 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd > 0);
 
     // Calls to ring buffer APIs on this map (array_map) must fail.
-    REQUIRE(ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
+    REQUIRE(ebpf_ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);

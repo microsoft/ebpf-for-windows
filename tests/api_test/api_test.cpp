@@ -1216,7 +1216,7 @@ TEST_CASE("ioctl_stress", "[stress]")
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
     // Subscribe to the ring buffer with empty callback
-    auto ring = ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
+    auto ring = ebpf_ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
 
     // Run 4 threads per cpu
     // Get cpu count
@@ -1391,7 +1391,7 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     context.expected_event_count = max_iterations;
     auto ring_buffer_event_callback = context.promise.get_future();
     // Subscribe to the ring buffer.
-    auto ring = ring_buffer__new(
+    auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void*, size_t) {
             ring_buffer_test_context_t* context = reinterpret_cast<ring_buffer_test_context_t*>(ctx);
