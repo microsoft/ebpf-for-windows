@@ -477,7 +477,7 @@ jobs:
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # always run this.
+    # Always run this.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
