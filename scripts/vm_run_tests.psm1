@@ -32,14 +32,19 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 function Invoke-OnHostOrVM {
     param(
         [Parameter(Mandatory = $true, Position = 0)][ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @()
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
+        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session
     )
     if ($script:ExecuteOnHost) {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
         if ($script:VMIsRemote) {
-            Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+            if ($null -ne $Session) {
+                Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+            } else {
+                Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+            }
         } else {
             Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
         }
@@ -120,7 +125,8 @@ function Remove-eBPFProgram {
 function Start-ProcessHelper {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName,
-        [string] $Parameters
+        [string] $Parameters,
+        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session
     )
     $scriptBlock = {
         param($ProgramName, $Parameters, $WorkingDirectory)
@@ -129,7 +135,7 @@ function Start-ProcessHelper {
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
     Write-Log "Starting process $ProgramName with arguments $Parameters"
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -Session $Session
 }
 
 function Stop-ProcessHelper {
@@ -354,6 +360,11 @@ function Invoke-ConnectRedirectTestHelper
     $ProgramName = "tcp_udp_listener.exe"
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
+    if ($script:VMIsRemote) {
+        $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
+    }
+
     if ($script:TestMode -eq "Regression") {
         # Previous versions of tcp_udp_listener did not suport the local_address parameter, use old parameter sets.
         $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
@@ -364,7 +375,7 @@ function Invoke-ConnectRedirectTestHelper
         $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
         foreach ($parameter in $ParameterArray)
         {
-            Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter
+            Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter -Session $Session
         }
     } else {
         # Build array of all IP addresses from all interfaces
@@ -381,7 +392,7 @@ function Invoke-ConnectRedirectTestHelper
         foreach ($IPAddress in $IPAddresses) {
             foreach ($Protocol in $Protocols) {
                 foreach ($Port in $Ports) {
-                    Start-ProcessHelper -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
+                    Start-ProcessHelper -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress" -Session $Session
                 }
             }
         }
@@ -416,6 +427,11 @@ function Invoke-ConnectRedirectTestHelper
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
     Stop-ProcessHelper -ProgramName $ProgramName
+
+    if ($null -ne $Session)
+    {
+        Remove-PSSession -Session $Session -ErrorAction SilentlyContinue
+    }
 }
 
 function Stop-eBPFComponents {

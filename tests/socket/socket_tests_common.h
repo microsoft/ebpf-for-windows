@@ -56,6 +56,7 @@ typedef struct _destination_entry_value
     ip_address_t destination_ip;
     uint16_t destination_port;
     uint32_t connection_type;
+    uint32_t verdict;
 } destination_entry_value_t;
 
 typedef struct _sock_addr_audit_entry

@@ -15,7 +15,7 @@ function Write-Log
 
     process
     {
-        if (($null -ne $TraceMessage) -and ![System.String]::IsNullOrEmpty($TraceMessage)) {
+        if (![System.String]::IsNullOrEmpty($TraceMessage)) {
             $timestamp = (Get-Date).ToString('HH:mm:ss')
             Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
             Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
