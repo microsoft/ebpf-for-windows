@@ -53,12 +53,12 @@ function Start-WPRTrace {
         if ($TraceType -eq "file") {
             $profileName = "$TracingProfileName-File"
             Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`" -filemode"
-            wpr.exe -start "$wprpProfilePath!$profileName" -filemode
+            $null = wpr.exe -start "$wprpProfilePath!$profileName" -filemode 2>&1
             $exitCode = $LASTEXITCODE
         } else {
             $profileName = "$TracingProfileName-Memory"
             Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`""
-            wpr.exe -start "$wprpProfilePath!$profileName"
+            $null = wpr.exe -start "$wprpProfilePath!$profileName" 2>&1
             $exitCode = $LASTEXITCODE
         }
 

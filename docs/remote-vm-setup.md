@@ -1,10 +1,10 @@
-# Running Scripts on a Remote VM
+# Running CI/CD Scripts on a Remote VM
 
-This guide explains how to set up and run eBPF for Windows CI/CD scripts on a remote VM.
+This guide explains how to set up and run eBPF for Windows CI/CD scripts on a remote VM using [WinRM](https://learn.microsoft.com/en-us/windows/win32/winrm/portal).
 
 ---
 
-## 1. Prepare the Remote VM
+## Prepare the Remote VM
 
 Set the execution policy and run the setup script as Administrator:
 
@@ -12,10 +12,16 @@ Set the execution policy and run the setup script as Administrator:
 Set-ExecutionPolicy Unrestricted -Force
 .\setup_remote_vm.ps1
 ```
+Post reboot run `winrm quickconfig` and take a snapshot of the VM.
 
 ---
 
-## 2. Ensure Remote VM is Reachable
+## Start WinRM service on the local host
+```cmd
+sc.exe start winrm
+```
+
+## Ensure Remote VM is Reachable
 
 On your host machine, verify that the remote VM is reachable and that WinRM is running by executing:
 
@@ -23,11 +29,11 @@ On your host machine, verify that the remote VM is reachable and that WinRM is r
 Test-WSMan <remote-vm-ip>
 ```
 
-If this command fails, ensure the VM is powered on, network connectivity is working, and WinRM is enabled. Running `winrm quickconfig` on the remote VM can help identify and fix common WinRM setup issues.
+If this command fails, ensure the VM is powered on, network connectivity is working, and WinRM is enabled.
 
 ---
 
-## 2.1. Add Remote VM to Trusted Hosts
+## Add Remote VM to Trusted Hosts
 
 On your host machine, allow connections to the remote VM by adding its IP address to the list of trusted hosts:
 
@@ -36,7 +42,7 @@ Set-Item WSMan:\localhost\Client\TrustedHosts -Value "<remote-vm-ip>"
 ```
 ---
 
-## 3. Store VM Credentials on the Host
+## Store VM Credentials on the Host
 
 On your host machine, save the VM administrator and standard user credentials using the `CredentialManager` module:
 
@@ -52,7 +58,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 
 ---
 
-## 4. Prepare the Build Artifacts
+## Prepare the Build Artifacts
 
 1. **Navigate to the Build Directory**
 
@@ -62,7 +68,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
    cd .\x64\Release
    ```
 
-2. **Edit `test_execution.json`**
+1. **Edit `test_execution.json`**
 
    Update the `VMMap` section to specify your test VM.
    Example:
@@ -86,7 +92,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 
 ---
 
-## 5. Run the CI/CD Setup Script
+## Run the CI/CD Setup Script
 
 1. **Run the Setup Script**
 
@@ -94,7 +100,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
    .\setup_ebpf_cicd_tests.ps1 -VMIsRemote
    ```
 
-3. **Run the Test Execution Script**
+1. **Run the Test Execution Script**
 
    ```powershell
    .\execute_ebpf_cicd_tests.ps1 -VMIsRemote
