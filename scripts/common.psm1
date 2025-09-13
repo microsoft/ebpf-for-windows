@@ -381,7 +381,7 @@ function Wait-TestJobToComplete
                     $TestVMName = $VMList[0].Name
 
                     try {
-                        Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                        Write-Host "Running kernel test job on $TestVMName has timed out after $TestJobTimeout minutes." -ForegroundColor Yellow
                         Write-Log "Generating kernel dump due to test timeout on $TestVMName"
 
                         Import-Module "$PSScriptRoot\vm_run_tests.psm1" -ArgumentList @(
