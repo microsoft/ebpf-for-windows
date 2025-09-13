@@ -13,8 +13,10 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $GranularTracing = $false,
+       # Boolean parameter indicating if XDP tests should be run.
+       [Parameter(Mandatory = $false)][bool] $RunXdpTests = $false,
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-        # This parameter is only used when ExecuteOnHost is false.
+       # This parameter is only used when ExecuteOnHost is false.
        [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
@@ -58,7 +60,8 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string[]] $Options,
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
         [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-        [Parameter(Mandatory = $True)] [bool] $GranularTracing
+        [Parameter(Mandatory = $True)] [bool] $GranularTracing,
+        [Parameter(Mandatory = $True)] [bool] $RunXdpTests
     )
     Push-Location $WorkingDirectory
     # Load other utility modules.
@@ -91,14 +94,15 @@ $Job = Start-Job -ScriptBlock {
             $Options,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $GranularTracing) `
+            $GranularTracing,
+            $RunXdpTests) `
         -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
         Write-Log "Running kernel tests completed"
 
-        Stop-eBPFComponents -GranularTracing $GranularTracing -LogFileName $script:LogFileName
+        Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
@@ -122,7 +126,8 @@ $Job = Start-Job -ScriptBlock {
     $Options,
     $TestHangTimeout,
     $UserModeDumpFolder,
-    $GranularTracing)
+    $GranularTracing,
+    $RunXdpTests)
 
 # Keep track of the last received output count
 $JobTimedOut = `
