@@ -909,6 +909,23 @@ struct ring_buffer*
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts);
 
 /**
+ * @brief Creates a new ring buffer manager with Windows-specific semantics.
+ *
+ * This function provides the Windows-specific asynchronous ring buffer implementation
+ * that automatically invokes callbacks. Use this instead of ring_buffer__new for
+ * Windows-specific behavior.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] ctx Pointer to sample_cb callback function.
+ * @param[in] opts Ring buffer options.
+ *
+ * @returns Pointer to ring buffer manager.
+ */
+struct ring_buffer*
+ebpf_ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts);
+
+/**
  * @brief Frees a new ring buffer manager.
  *
  * @param[in] rb Pointer to ring buffer to be freed.

@@ -161,3 +161,4 @@ EXPORTS
     perf_buffer__new
     ring_buffer__free
     ring_buffer__new
+    ebpf_ring_buffer__new

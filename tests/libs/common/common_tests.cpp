@@ -225,7 +225,7 @@ ring_buffer_api_test_helper(
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
-    context->ring_buffer = ring_buffer__new(
+    context->ring_buffer = ebpf_ring_buffer__new(
         ring_buffer_map, (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
     REQUIRE(context->ring_buffer != nullptr);
 
