@@ -194,14 +194,8 @@ enum _sock_ops_global_helper_functions
     SOCK_OPS_GLOBAL_HELPER_GET_THREAD_CREATE_TIME
 };
 
-// SOCK_OPS global helper function prototypes.
-static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
-    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     .helper_id = BPF_FUNC_get_current_pid_tgid,
-     .name = "bpf_get_current_pid_tgid",
-     .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {},
-     .implicit_context = true},
+// SOCK_OPS extension specific helper function prototypes.
+static const ebpf_helper_function_prototype_t _sock_ops_ebpf_extension_helper_function_prototype[] = {
     {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      .helper_id = BPF_FUNC_get_current_process_start_key,
      .name = "bpf_get_current_process_start_key",
@@ -214,11 +208,21 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
      .return_type = EBPF_RETURN_TYPE_INTEGER,
      .arguments = {EBPF_ARGUMENT_TYPE_DONTCARE},
      .implicit_context = true}};
+
+// SOCK_OPS global helper function prototypes.
+static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_pid_tgid,
+     .name = "bpf_get_current_pid_tgid",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true}};
+
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_ebpf_sock_ops_program_type_descriptor,
-    0,
-    NULL,
+    EBPF_COUNT_OF(_sock_ops_ebpf_extension_helper_function_prototype),
+    _sock_ops_ebpf_extension_helper_function_prototype,
     EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_function_prototype),
     _ebpf_sock_ops_global_helper_function_prototype};
 

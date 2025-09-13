@@ -530,25 +530,3 @@ EBPF_HELPER(int, bpf_perf_event_output, (void* ctx, void* perf_event_array, uint
 #ifndef __doxygen
 #define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)
 #endif
-
-/**
- * @brief Get the current process start key.
- *
- * @returns A 64-bit integer containing the current process
- * start key.
- */
-EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
-#ifndef __doxygen
-#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)
-#endif
-
-/**
- * @brief Get the current thread create time.
- *
- * @returns A 64-bit integer containing the current thread's
- * create time.
- */
-EBPF_HELPER(int64_t, bpf_get_thread_create_time, ());
-#ifndef __doxygen
-#define bpf_get_thread_create_time ((bpf_get_thread_create_time_t)BPF_FUNC_get_thread_create_time)
-#endif

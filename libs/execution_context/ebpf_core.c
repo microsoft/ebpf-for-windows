@@ -158,12 +158,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_since_boot_ms,
     (void*)&_ebpf_core_get_time_ms,
     // Perf event array (perf buffer) output.
-    (void*)&_ebpf_core_perf_event_output,
-    // No fault implementation of bpf_get_process_start_key
-    (void*)NULL, // bpf_get_process_start_key
-    // No fault implementation of bpf_get_thread_start_time
-    (void*)NULL // bpf_get_thread_start_time
-};
+    (void*)&_ebpf_core_perf_event_output};
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
