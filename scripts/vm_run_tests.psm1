@@ -20,6 +20,8 @@ param (
     [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
     # Granular tracing parameters (passed through to run_driver_tests.psm1)
     [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
+    # Boolean parameter indicating if XDP tests should be run.
+    [Parameter(Mandatory = $false)][bool] $RunXdpTests = $false,
     [Parameter(Mandatory = $false)][string] $TraceDir = "",
     [Parameter(Mandatory = $false)][string] $KmTraceType = "file"
 )
@@ -482,6 +484,11 @@ function Run-KernelTests {
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
+        if ($script:RunXdpTests -eq $true) {
+            Write-Log "Running XDP tests"
+            Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+            Write-Log "XDP tests completed"
+        }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword

@@ -245,13 +245,14 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     strategy:
+      fail-fast: false
       matrix:
         image:
           - 'server2022'
           - 'server23h2'
           - 'server2025'
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -EnableHVCI "On" -GranularTracing
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
