@@ -18,6 +18,7 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Community 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17) (free)
    - [Download Visual Studio Professional 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=17)
    - [Download Visual Studio Enterprise 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=17)
+   
 Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
 first time.
 1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**). The latest version of clang that ships with the Visual Studio installer does not support `bpf` as a target.
