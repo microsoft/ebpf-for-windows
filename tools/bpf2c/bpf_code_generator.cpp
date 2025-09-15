@@ -1364,33 +1364,38 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
         } break;
         case INST_CLS_LDX: {
             std::string size_type;
+            std::string size_num;
             std::string destination = get_register_name(inst.dst);
             std::string source = get_register_name(inst.src);
             std::string offset = "OFFSET(" + std::to_string(inst.offset) + ")";
             switch (inst.opcode & INST_SIZE_DW) {
             case INST_SIZE_B:
                 size_type = "uint8_t";
+                size_num = "8";
                 break;
             case INST_SIZE_H:
                 size_type = "uint16_t";
+                size_num = "16";
                 break;
             case INST_SIZE_W:
                 size_type = "uint32_t";
+                size_num = "32";
                 break;
             case INST_SIZE_DW:
                 size_type = "uint64_t";
+                size_num = "64";
                 break;
             default:
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
-            output.lines.push_back(
-                std::format("{} = *({}*)(uintptr_t)({} + {});", destination, size_type, source, offset));
+            output.lines.push_back(std::format("READ_ONCE_{}({}, {}, {});", size_num, destination, source, offset));
         } break;
         case INST_CLS_ST:
         case INST_CLS_STX: {
             std::string size_type;
             std::string lock_type;
             std::string size_num;
+            std::string size_64_or_blank;
             std::string destination = get_register_name(inst.dst);
             std::string source;
             std::string raw_source;
@@ -1403,17 +1408,21 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
             std::string offset = "OFFSET(" + std::to_string(inst.offset) + ")";
             switch (inst.opcode & INST_SIZE_DW) {
             case INST_SIZE_B:
+                size_num = "8";
                 size_type = "uint8_t";
                 break;
             case INST_SIZE_H:
+                size_num = "16";
                 size_type = "uint16_t";
                 break;
             case INST_SIZE_W:
+                size_num = "32";
                 size_type = "uint32_t";
                 lock_type = "volatile long";
                 break;
             case INST_SIZE_DW:
                 size_num = "64";
+                size_64_or_blank = "64";
                 size_type = "uint64_t";
                 lock_type = "volatile int64_t";
                 break;
@@ -1429,7 +1438,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 case EBPF_ATOMIC_ADD_FETCH:
                     line = std::format(
                         "InterlockedExchangeAdd{}(({}*)(uintptr_t)({} + {}), {});",
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1439,7 +1448,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 case EBPF_ATOMIC_OR_FETCH:
                     line = std::format(
                         "InterlockedOr{}(({}*)(uintptr_t)({} + {}), {});",
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1449,7 +1458,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 case EBPF_ATOMIC_AND_FETCH:
                     line = std::format(
                         "InterlockedAnd{}(({}*)(uintptr_t)({} + {}), {});",
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1459,7 +1468,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 case EBPF_ATOMIC_XOR_FETCH:
                     line = std::format(
                         "InterlockedXor{}(({}*)(uintptr_t)({} + {}), {});",
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1470,7 +1479,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                     line = std::format(
                         "{} = InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
                         raw_source,
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1481,7 +1490,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                     line = std::format(
                         "r0 = ({})InterlockedCompareExchange{}(({}*)(uintptr_t)({} + {}), {}, r0);",
                         size_type,
-                        size_num,
+                        size_64_or_blank,
                         lock_type,
                         destination,
                         offset,
@@ -1497,7 +1506,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 }
             } else if ((inst.opcode & INST_MODE_MASK) == EBPF_MODE_MEM) {
                 output.lines.push_back(
-                    std::format("*({}*)(uintptr_t)({} + {}) = {};", size_type, destination, offset, source));
+                    std::format("WRITE_ONCE_{}({}, {}, {});", size_num, destination, source, offset));
             } else {
                 throw bpf_code_generator_exception("invalid atomic mode", inst.opcode & INST_MODE_MASK);
             }

@@ -131,7 +131,17 @@ $JobTimedOut = `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
     -CheckpointPrefix "Execute" `
-    -ExecuteOnVM $ExecuteOnVM
+    -ExecuteOnHost $ExecuteOnHost `
+    -ExecuteOnVM $ExecuteOnVM `
+    -AdminTestVMCredential $AdminTestVMCredential `
+    -StandardUserTestVMCredential $StandardUserTestVMCredential `
+    -VMIsRemote $VMIsRemote `
+    -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
+    -LogFileName $LogFileName `
+    -TestMode $TestMode `
+    -Options $Options `
+    -TestHangTimeout $TestHangTimeout `
+    -UserModeDumpFolder $UserModeDumpFolder
 
 # Clean up
 Remove-Job -Job $Job -Force

@@ -227,7 +227,8 @@ function CopyCompressedOrUncompressed-FileFromSession
         [Parameter(Mandatory=$True)] $VMSession,
         [Parameter(Mandatory=$True)][string] $CompressedSourcePath,
         [Parameter(Mandatory=$True)][string] $UncompressedSourcePath,
-        [Parameter(Mandatory=$True)][string] $DestinationDirectory
+        [Parameter(Mandatory=$True)][string] $DestinationDirectory,
+        [Parameter(Mandatory=$False)][int] $MaxRetries = 3
     )
 
     # Ensure destination directory exists.
@@ -239,19 +240,36 @@ function CopyCompressedOrUncompressed-FileFromSession
     $uncompressedFileName = Split-Path $UncompressedSourcePath -Leaf
     $compressedDestPath = Join-Path $DestinationDirectory $compressedFileName
 
-    # Try to copy compressed file first.
+    # Try to copy compressed file first with retry logic.
     Write-Log "Copy $CompressedSourcePath to $DestinationDirectory"
-    Copy-Item `
-        -FromSession $VMSession `
-        -Path $CompressedSourcePath `
-        -Destination $DestinationDirectory `
-        -Recurse `
-        -Force `
-        -ErrorAction Ignore 2>&1 | Write-Log
+    $compressedCopySucceeded = $false
 
-    # Check if compressed copy succeeded.
-    if (Test-Path $compressedDestPath) {
-        Write-Log "Successfully copied compressed file: $compressedFileName"
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            Write-Log "Attempting compressed file copy (attempt $attempt of $MaxRetries)"
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path $CompressedSourcePath `
+                -Destination $DestinationDirectory `
+                -Recurse `
+                -Force `
+                -ErrorAction Stop
+
+            # Check if compressed copy succeeded.
+            if (Test-Path $compressedDestPath) {
+                Write-Log "Successfully copied compressed file: $compressedFileName"
+                $compressedCopySucceeded = $true
+                break
+            }
+        } catch {
+            Write-Log "Compressed file copy attempt $attempt failed: $($_.Exception.Message)"
+            if ($attempt -lt $MaxRetries) {
+                Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+            }
+        }
+    }
+
+    if ($compressedCopySucceeded) {
         return @{
             Success = $true
             CompressedPath = $compressedDestPath
@@ -259,21 +277,64 @@ function CopyCompressedOrUncompressed-FileFromSession
             FinalPath = $compressedDestPath
         }
     } else {
-        # Compressed copy failed, try uncompressed.
-        Write-Log "Compressed file not found, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path $UncompressedSourcePath `
-            -Destination $DestinationDirectory `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
-
+        # Compressed copy failed, try uncompressed with retry logic.
+        Write-Log "Compressed file not found or copy failed, trying uncompressed: Copy $UncompressedSourcePath to $DestinationDirectory"
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
-        if (Test-Path $uncompressedDestPath) {
-            Write-Log "Successfully copied uncompressed file: $uncompressedFileName"
+        $uncompressedCopySucceeded = $false
+
+        # Handle wildcard paths by expanding them on the remote session first
+        $sourceFiles = @()
+        if ($UncompressedSourcePath -like "*\*.*") {
+            try {
+                $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
+                    param($Path)
+                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+                } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
+
+                if ($sourceFiles.Count -eq 0) {
+                    Write-Log "No files found matching pattern: $UncompressedSourcePath"
+                }
+            } catch {
+                Write-Log "Failed to expand wildcard path $UncompressedSourcePath : $($_.Exception.Message)"
+            }
         } else {
-            Write-Log "*** WARNING *** Failed to copy both compressed and uncompressed files"
+            $sourceFiles = @($UncompressedSourcePath)
+        }
+
+        # Copy each file individually with retry logic
+        $anyCopySucceeded = $false
+        foreach ($sourceFile in $sourceFiles) {
+            $fileName = Split-Path $sourceFile -Leaf
+            $destPath = Join-Path $DestinationDirectory $fileName
+
+            for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+                try {
+                    Write-Log "Attempting to copy $sourceFile (attempt $attempt of $MaxRetries)"
+                    Copy-Item `
+                        -FromSession $VMSession `
+                        -Path $sourceFile `
+                        -Destination $DestinationDirectory `
+                        -Force `
+                        -ErrorAction Stop
+
+                    # Check if copy succeeded.
+                    if (Test-Path $destPath) {
+                        Write-Log "Successfully copied uncompressed file: $fileName"
+                        $anyCopySucceeded = $true
+                        $uncompressedDestPath = $destPath  # Update to last successful file
+                        break
+                    }
+                } catch {
+                    Write-Log "Failed to copy $sourceFile (attempt $attempt): $($_.Exception.Message)"
+                    if ($attempt -lt $MaxRetries) {
+                        Start-Sleep -Seconds (2 * $attempt)  # Progressive delay
+                    }
+                }
+            }
+        }
+
+        if (-not $anyCopySucceeded) {
+            Write-Log "*** WARNING *** Failed to copy any files from $UncompressedSourcePath after $MaxRetries attempts each"
         }
 
         return @{
@@ -292,7 +353,17 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $true)] [int] $TestJobTimeout,
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
-           [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true)
+           [Parameter(Mandatory = $false)] [bool] $ExecuteOnHost=$false,
+           [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true,
+           [Parameter(Mandatory = $false)] [PSCredential] $AdminTestVMCredential,
+           [Parameter(Mandatory = $false)] [PSCredential] $StandardUserTestVMCredential,
+           [Parameter(Mandatory = $false)] [bool] $VMIsRemote=$false,
+           [Parameter(Mandatory = $false)] [string] $TestWorkingDirectory="C:\ebpf",
+           [Parameter(Mandatory = $false)] [string] $LogFileName="timeout_kernel_dump.log",
+           [Parameter(Mandatory = $false)] [string] $TestMode="CI/CD",
+           [Parameter(Mandatory = $false)] [string[]] $Options=@("None"),
+           [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
+           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
@@ -308,11 +379,33 @@ function Wait-TestJobToComplete
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
-                    Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-                    $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-                    $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
-                    Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-                    Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+
+                    try {
+                        Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                        Write-Log "Generating kernel dump due to test timeout on $TestVMName"
+
+                        Import-Module "$PSScriptRoot\vm_run_tests.psm1" -ArgumentList @(
+                            $false,                                      # ExecuteOnHost
+                            $true,                                      # ExecuteOnVM
+                            $VMIsRemote,                                # VMIsRemote
+                            $TestVMName,                                # VMName
+                            $AdminTestVMCredential.UserName,           # Admin
+                            $AdminTestVMCredential.Password,           # AdminPassword
+                            $StandardUserTestVMCredential.UserName,    # StandardUser
+                            $StandardUserTestVMCredential.Password,    # StandardUserPassword
+                            $TestWorkingDirectory,                     # WorkingDirectory
+                            $LogFileName,                              # LogFileName
+                            $TestMode,                                 # TestMode
+                            $Options,                                  # Options
+                            $TestHangTimeout,                          # TestHangTimeout
+                            $UserModeDumpFolder                        # UserModeDumpFolder
+                        ) -Force -WarningAction SilentlyContinue
+
+                        # Generate kernel dump on the VM
+                        Generate-KernelDumpOnVM
+                    } catch {
+                        # Do nothing - this is expected as the VM will crash.
+                    }
                 }
                 $JobTimedOut = $true
                 break

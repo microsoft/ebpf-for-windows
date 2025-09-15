@@ -281,7 +281,7 @@ DropPacket(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 48 "sample/droppacket.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_REG pc=3 dst=r2 src=r10 offset=0 imm=0
 #line 48 "sample/droppacket.c"
     r2 = r10;
@@ -315,10 +315,10 @@ DropPacket(void* context, const program_runtime_context_t* runtime_context)
     r0 = IMMEDIATE(1);
     // EBPF_OP_LDXW pc=11 dst=r1 src=r1 offset=0 imm=0
 #line 59 "sample/droppacket.c"
-    r1 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_32(r1, r1, OFFSET(0));
     // EBPF_OP_LDXW pc=12 dst=r2 src=r6 offset=24 imm=0
 #line 59 "sample/droppacket.c"
-    r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(24));
+    READ_ONCE_32(r2, r6, OFFSET(24));
     // EBPF_OP_JNE_REG pc=13 dst=r2 src=r1 offset=32 imm=0
 #line 59 "sample/droppacket.c"
     if (r2 != r1) {
@@ -332,10 +332,10 @@ label_1:
     r0 = IMMEDIATE(1);
     // EBPF_OP_LDXDW pc=15 dst=r1 src=r6 offset=0 imm=0
 #line 65 "sample/droppacket.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    READ_ONCE_64(r1, r6, OFFSET(0));
     // EBPF_OP_LDXDW pc=16 dst=r2 src=r6 offset=8 imm=0
 #line 65 "sample/droppacket.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    READ_ONCE_64(r2, r6, OFFSET(8));
     // EBPF_OP_MOV64_REG pc=17 dst=r3 src=r1 offset=0 imm=0
 #line 65 "sample/droppacket.c"
     r3 = r1;
@@ -351,7 +351,7 @@ label_1:
     }
     // EBPF_OP_LDXH pc=20 dst=r3 src=r1 offset=12 imm=0
 #line 70 "sample/droppacket.c"
-    r3 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
+    READ_ONCE_16(r3, r1, OFFSET(12));
     // EBPF_OP_JNE_IMM pc=21 dst=r3 src=r0 offset=24 imm=8
 #line 70 "sample/droppacket.c"
     if (r3 != IMMEDIATE(8)) {
@@ -361,7 +361,7 @@ label_1:
     }
     // EBPF_OP_LDXB pc=22 dst=r3 src=r1 offset=23 imm=0
 #line 73 "sample/droppacket.c"
-    r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
+    READ_ONCE_8(r3, r1, OFFSET(23));
     // EBPF_OP_JNE_IMM pc=23 dst=r3 src=r0 offset=22 imm=17
 #line 73 "sample/droppacket.c"
     if (r3 != IMMEDIATE(17)) {
@@ -374,7 +374,7 @@ label_1:
     r1 += IMMEDIATE(14);
     // EBPF_OP_LDXB pc=25 dst=r3 src=r1 offset=0 imm=0
 #line 75 "sample/droppacket.c"
-    r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_8(r3, r1, OFFSET(0));
     // EBPF_OP_LSH64_IMM pc=26 dst=r3 src=r0 offset=0 imm=2
 #line 75 "sample/droppacket.c"
     r3 <<= (IMMEDIATE(2) & 63);
@@ -399,7 +399,7 @@ label_1:
     }
     // EBPF_OP_LDXH pc=32 dst=r1 src=r1 offset=4 imm=0
 #line 80 "sample/droppacket.c"
-    r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(4));
+    READ_ONCE_16(r1, r1, OFFSET(4));
     // EBPF_OP_BE pc=33 dst=r1 src=r0 offset=0 imm=16
 #line 80 "sample/droppacket.c"
     r1 = htobe16((uint16_t)r1);
@@ -445,13 +445,13 @@ label_1:
     }
     // EBPF_OP_LDXDW pc=43 dst=r2 src=r1 offset=0 imm=0
 #line 83 "sample/droppacket.c"
-    r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_64(r2, r1, OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=44 dst=r2 src=r0 offset=0 imm=1
 #line 83 "sample/droppacket.c"
     r2 += IMMEDIATE(1);
     // EBPF_OP_STXDW pc=45 dst=r1 src=r2 offset=0 imm=0
 #line 83 "sample/droppacket.c"
-    *(uint64_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint64_t)r2;
+    WRITE_ONCE_64(r1, (uint64_t)r2, OFFSET(0));
 label_2:
     // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/droppacket.c"
