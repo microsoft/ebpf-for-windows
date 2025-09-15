@@ -1524,7 +1524,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
 
         if (native_map->entry.definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Serialize the "check and create" map logic for LIBBPF_PIN_BY_NAME maps
-            // to prevent race conditions when multiple threads load programs in parallel
+            // to prevent race conditions when multiple threads load programs in parallel.
             pinning_lock_state = ebpf_lock_lock(&_ebpf_native_map_pinning_lock);
             map_pinning_lock_acquired = true;
 
