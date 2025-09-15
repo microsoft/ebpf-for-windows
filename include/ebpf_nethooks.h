@@ -97,12 +97,12 @@ typedef struct bpf_sock_addr
     uint64_t interface_luid; ///< Interface LUID.
 } bpf_sock_addr_t;
 
-#define SOCK_ADDR_EXT_HELPER_FN_BASE 0xFFFF
+#define NET_EXT_HELPER_FN_BASE 0xFFFF
 
 typedef enum
 {
-    BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
-    BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
+    BPF_FUNC_sock_addr_get_current_pid_tgid = NET_EXT_HELPER_FN_BASE + 1,
+    BPF_FUNC_sock_addr_set_redirect_context = NET_EXT_HELPER_FN_BASE + 2,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -196,8 +196,8 @@ sock_ops_hook_t(bpf_sock_ops_t* context);
 
 typedef enum
 {
-    BPF_FUNC_get_current_process_start_key = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
-    BPF_FUNC_get_thread_create_time = SOCK_ADDR_EXT_HELPER_FN_BASE + 4,
+    BPF_FUNC_get_current_process_start_key = NET_EXT_HELPER_FN_BASE + 3,
+    BPF_FUNC_get_thread_create_time = NET_EXT_HELPER_FN_BASE + 4,
 } ebpf_sock_ops_helper_id_t;
 
 /**
