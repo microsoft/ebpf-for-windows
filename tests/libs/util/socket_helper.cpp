@@ -229,7 +229,7 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
                 FAIL("Receiver socket did not receive any message in 1 second.");
             }
         } else {
-            FAIL("Waiting on receiver socket failed with " << error);
+            FAIL("Waiting on receiver socket failed with " << WSAGetLastError());
         }
     }
 }
@@ -459,7 +459,7 @@ _server_socket::complete_async_receive(int timeout_in_ms, receiver_mode mode)
                 FAIL("Receiver socket did not receive any message in 1 second.");
             }
         } else {
-            FAIL("Waiting on receiver socket failed with " << error);
+            FAIL("Waiting on receiver socket failed with " << WSAGetLastError());
         }
     }
 }
@@ -774,7 +774,7 @@ _stream_server_socket::complete_async_send(int timeout_in_ms)
         WSACloseEvent(overlapped.hEvent);
         overlapped.hEvent = INVALID_HANDLE_VALUE;
     } else {
-        FAIL("Waiting on receiver socket failed with " << error);
+        FAIL("Waiting on receiver socket failed with " << WSAGetLastError());
     }
 }
 

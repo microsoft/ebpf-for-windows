@@ -79,7 +79,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
         ctx->user_ip4 = policy->destination_ip.ipv4;
         ctx->user_port = policy->destination_port;
 
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = policy->verdict;
     }
 
     update_audit_map_entry(ctx);
@@ -117,7 +117,7 @@ redirect_v6(bpf_sock_addr_t* ctx)
         __builtin_memcpy(ctx->user_ip6, policy->destination_ip.ipv6, sizeof(ctx->user_ip6));
         ctx->user_port = policy->destination_port;
 
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = policy->verdict;
     }
 
     update_audit_map_entry(ctx);

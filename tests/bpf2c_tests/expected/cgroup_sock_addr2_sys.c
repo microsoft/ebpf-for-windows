@@ -180,7 +180,7 @@ static map_entry_t _maps[] = {
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          24,                // Size in bytes of a map key.
-         24,                // Size in bytes of a map value.
+         28,                // Size in bytes of a map value.
          100,               // Maximum number of entries allowed in the map.
          0,                 // Inner map index.
          LIBBPF_PIN_NONE,   // Pinning type for the map.
@@ -546,9 +546,9 @@ label_1:
     // EBPF_OP_STXH pc=72 dst=r6 src=r1 offset=40 imm=0
 #line 80 "sample/cgroup_sock_addr2.c"
     WRITE_ONCE_16(r6, (uint16_t)r1, OFFSET(40));
-    // EBPF_OP_MOV64_IMM pc=73 dst=r1 src=r0 offset=0 imm=1
-#line 80 "sample/cgroup_sock_addr2.c"
-    r1 = IMMEDIATE(1);
+    // EBPF_OP_LDXW pc=73 dst=r1 src=r7 offset=24 imm=0
+#line 82 "sample/cgroup_sock_addr2.c"
+    READ_ONCE_32(r1, r7, OFFSET(24));
 label_2:
     // EBPF_OP_STXDW pc=74 dst=r10 src=r8 offset=-88 imm=0
 #line 43 "sample/cgroup_sock_addr2.c"
@@ -1012,9 +1012,9 @@ label_1:
     // EBPF_OP_STXH pc=80 dst=r6 src=r1 offset=40 imm=0
 #line 118 "sample/cgroup_sock_addr2.c"
     WRITE_ONCE_16(r6, (uint16_t)r1, OFFSET(40));
-    // EBPF_OP_MOV64_IMM pc=81 dst=r1 src=r0 offset=0 imm=1
-#line 118 "sample/cgroup_sock_addr2.c"
-    r1 = IMMEDIATE(1);
+    // EBPF_OP_LDXW pc=81 dst=r1 src=r7 offset=24 imm=0
+#line 120 "sample/cgroup_sock_addr2.c"
+    READ_ONCE_32(r1, r7, OFFSET(24));
 label_2:
     // EBPF_OP_STXDW pc=82 dst=r10 src=r8 offset=-24 imm=0
 #line 43 "sample/cgroup_sock_addr2.c"
