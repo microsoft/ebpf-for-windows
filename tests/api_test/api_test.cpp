@@ -1119,6 +1119,9 @@ TEST_CASE("bpf_get_process_start_key_udp", "[helpers]")
             REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
 
             // Verify PID/Start Key values.
+            // We only validate that the start_key is not zero because
+            // other wise this test case would need to take a dependency on ntQueryInformationProcess
+            // which per documentation can change at any time.
             unsigned long pid = GetCurrentProcessId();
             REQUIRE(0 < value.start_key);
             REQUIRE(pid == value.current_pid);
@@ -1253,6 +1256,9 @@ TEST_CASE("bpf_get_process_start_key_tcp", "[helpers]")
             REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
 
             // Verify PID/Start Key values.
+            // We only validate that the start_key is not zero because
+            // other wise this test case would need to take a dependency on ntQueryInformationProcess
+            // which per documentation can change at any time.
             unsigned long pid = GetCurrentProcessId();
             REQUIRE(0 < value.start_key);
             REQUIRE(pid == value.current_pid);
