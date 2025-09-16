@@ -331,7 +331,8 @@ function Compress-KernelModeDumpOnVM
     )
 
     Invoke-Command -Session $Session -ScriptBlock {
-        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$True)] [string] $LogFileName)
 
         Import-Module $env:SystemDrive\$WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
@@ -341,14 +342,21 @@ function Compress-KernelModeDumpOnVM
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
             Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
-            New-Item -ItemType Directory -Path $KernelModeDumpFileDestinationPath | Out-Null
+            Write-Log "Current user: $($env:USERNAME), SystemDrive: $($env:SystemDrive)"
+            Write-Log "Working directory: $(Get-Location)"
 
-            # Make sure it was created
-            if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
-                $ErrorMessage = `
-                    "*** ERROR *** Create compressed dump file directory failed: $KernelModeDumpFileDestinationPath`n"
+            try {
+                New-Item -ItemType Directory -Path $KernelModeDumpFileDestinationPath -Force -ErrorAction Stop | Out-Null
+                Write-Log "Successfully created directory: $KernelModeDumpFileDestinationPath"
+            } catch {
+                $ErrorMessage = "*** ERROR *** Create compressed dump file directory failed: $KernelModeDumpFileDestinationPath. Error: $($_.Exception.Message)"
                 Write-Log $ErrorMessage
-                Throw $ErrorMessage
+
+                # Verify if directory creation failed and directory still doesn't exist
+                if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
+                    Write-Log "*** ERROR *** Directory creation failed and directory does not exist. Treating as non-fatal and returning."
+                    return
+                }
             }
         }
 
@@ -371,7 +379,7 @@ function Compress-KernelModeDumpOnVM
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
         }
-    } -ArgumentList ("eBPF") -ErrorAction Ignore
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 }
 
 #
@@ -486,8 +494,12 @@ function Import-ResultsFromVM
 
         # First, compress the ETL files on the VM
         Invoke-Command -Session $VMSession -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                  [Parameter(Mandatory=$True)] [string] $LogFileName)
             $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+
+            # Ensure common module is loaded in the remote session so Write-Log and Compress-File are available.
+            Import-Module "$WorkingDirectory\common.psm1" -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
             if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
                 Write-Log "Found ETL files in $WorkingDirectory\TestLogs"
