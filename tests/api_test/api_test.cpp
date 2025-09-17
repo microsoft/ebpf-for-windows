@@ -1115,8 +1115,11 @@ TEST_CASE("bpf_get_process_start_key_udp", "[helpers]")
                 uint32_t current_pid;
                 uint64_t start_key;
             } value;
-            std::cout << "bpf_map_lookup_and_delete_elem(process_start_key_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+            std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
+            REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
 
             // Verify PID/Start Key values.
             // We only validate that the start_key is not zero because
@@ -1128,7 +1131,9 @@ TEST_CASE("bpf_get_process_start_key_udp", "[helpers]")
 
             // IPv6 test.
             connect_send_udp_ipv6_traffic();
-
+            
+            std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
             // Verify PID/Start Key values.
             pid = GetCurrentProcessId();
             REQUIRE(0 < value.start_key);
@@ -1179,9 +1184,11 @@ TEST_CASE("bpf_get_thread_start_time_udp", "[helpers]")
                 uint32_t current_tid;
                 int64_t start_time;
             } value;
-            std::cout << "bpf_map_lookup_and_delete_elem(thread_start_time_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
+            std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
+            REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
             // Verify PID/start time values.
             unsigned long tid = GetCurrentThreadId();
             long long start_time = 0;
@@ -1196,8 +1203,8 @@ TEST_CASE("bpf_get_thread_start_time_udp", "[helpers]")
             // IPv6 test.
             connect_send_udp_ipv6_traffic();
 
-            std::cout << "bpf_map_lookup_and_delete_elem(thread_start_time_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
             // Verify PID/start time values.
             if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
@@ -1252,9 +1259,11 @@ TEST_CASE("bpf_get_process_start_key_tcp", "[helpers]")
                 uint32_t current_pid;
                 uint64_t start_key;
             } value;
-            std::cout << "bpf_map_lookup_and_delete_elem(process_start_key_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
+            std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
+            REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
             // Verify PID/Start Key values.
             // We only validate that the start_key is not zero because
             // other wise this test case would need to take a dependency on ntQueryInformationProcess
@@ -1270,7 +1279,7 @@ TEST_CASE("bpf_get_process_start_key_tcp", "[helpers]")
             WSACleanup();
 
             std::cout << "bpf_map_lookup_and_delete_elem(process_start_key_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
             // Verify PID/Start Key values.
             pid = GetCurrentProcessId();
@@ -1304,7 +1313,7 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
         struct bpf_object* object = _helper.get_object();
 
         // Bind a socket.
-        WSAData data;
+        WSADATA data;
         REQUIRE(WSAStartup(WINSOCK_VERSION, &data) == 0);
         {
             connect_send_tcp_ipv4_traffic();
@@ -1321,9 +1330,11 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
                 uint32_t current_tid;
                 int64_t start_time;
             } value;
-            std::cout << "bpf_map_lookup_and_delete_elem(thread_start_time_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
+            std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
+            REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
             // Verify PID/start time values.
             unsigned long tid = GetCurrentThreadId();
             long long start_time = 0;
@@ -1340,10 +1351,9 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
 
             // Clean up.
             WSACleanup();
-            
 
-            std::cout << "bpf_map_lookup_and_delete_elem(thread_start_time_map) key: " << key << "\n";
-            REQUIRE(bpf_map_lookup_and_delete_elem(bpf_map__fd(map), &key, &value) == 0);
+            std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+            REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
             if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
                 start_time = static_cast<long long>(creation.dwLowDateTime) |
                             (static_cast<long long>(creation.dwHighDateTime) << 32);
