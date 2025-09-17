@@ -359,10 +359,35 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 typedef struct ring_buffer
 {
     std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    bool is_async_mode = false; // True for async callbacks, false for sync processing.
 } ring_buffer_t;
 
+// Helper function to convert ring_buffer_opts to ebpf_ring_buffer_opts.
+static inline struct ebpf_ring_buffer_opts
+_convert_to_ebpf_opts(const struct ring_buffer_opts* linux_opts)
+{
+    // Linux ring buffer opts are currently empty (only sz field), so we use defaults (synchronous mode).
+    struct ebpf_ring_buffer_opts ebpf_opts
+    {
+        .sz = sizeof(ebpf_opts), .flags = 0
+    };
+    UNREFERENCED_PARAMETER(linux_opts);
+    return ebpf_opts;
+}
+
 struct ring_buffer*
-ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts)
+{
+    // Convert Linux opts to Windows opts with default synchronous behavior
+    auto ebpf_opts = _convert_to_ebpf_opts(opts);
+    return ebpf_ring_buffer__new(map_fd, sample_cb, ctx, &ebpf_opts);
+}
+
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT
 {
     ebpf_result result = EBPF_SUCCESS;
     ring_buffer_t* local_ring_buffer = nullptr;
@@ -374,20 +399,35 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
 
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
-        ebpf_map_subscription_t* subscription = nullptr;
-        uint32_t cpu_id = 0;
 
-        result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
-
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
+        // Determine callback type based on flags
+        bool use_async_callbacks = false;
+        if (opts && opts->sz >= sizeof(*opts)) {
+            use_async_callbacks = (opts->flags & EBPF_RINGBUF_FLAG_AUTO_CALLBACK) != 0;
         }
 
-        try {
-            ring_buffer->subscriptions.push_back(subscription);
-        } catch (const std::bad_alloc&) {
-            ebpf_map_unsubscribe(subscription);
-            result = EBPF_NO_MEMORY;
+        ring_buffer->is_async_mode = use_async_callbacks;
+
+        if (use_async_callbacks) {
+            // Use the existing async callback mechanism
+            ebpf_map_subscription_t* subscription = nullptr;
+            uint32_t cpu_id = 0;
+
+            result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
+
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            try {
+                ring_buffer->subscriptions.push_back(subscription);
+            } catch (const std::bad_alloc&) {
+                ebpf_map_unsubscribe(subscription);
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        } else {
+            result = EBPF_OPERATION_NOT_SUPPORTED;
             goto Exit;
         }
 
