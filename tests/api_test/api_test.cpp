@@ -1207,6 +1207,7 @@ TEST_CASE("bpf_get_thread_start_time_udp", "[helpers]")
             REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
 
             // Verify PID/start time values.
+            tid = GetCurrentThreadId();
             if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
                 start_time = static_cast<long long>(creation.dwLowDateTime) |
                             (static_cast<long long>(creation.dwHighDateTime) << 32);
@@ -1351,8 +1352,9 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
 
             // Clean up.
             WSACleanup();
-
+            
             std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+            tid = GetCurrentThreadId();
             REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
             if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
                 start_time = static_cast<long long>(creation.dwLowDateTime) |
