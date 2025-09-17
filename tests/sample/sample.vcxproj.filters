@@ -108,6 +108,9 @@
     <CustomBuild Include="cgroup_sock_addr2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="dual_stack_redirect_test.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="printk_legacy.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
