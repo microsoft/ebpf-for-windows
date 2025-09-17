@@ -135,6 +135,7 @@ EXPORTS
     ebpf_object_load_native_by_fds
     ebpf_object_set_execution_type
     ebpf_object_unpin
+    ebpf_perf_buffer__new
     ebpf_perf_event_array_map_write
     ebpf_program_attach
     ebpf_program_attach_by_fd

@@ -811,7 +811,9 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_synchronize() EBPF_NO_EXCEPT;
 
-    /* Windows-specific ring buffer APIs */
+    //
+    // Windows-specific Ring Buffer APIs
+    //
 
     // Forward declarations and types needed for ring buffer APIs.
     struct ring_buffer;
@@ -843,8 +845,6 @@ extern "C"
         EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
     };
 
-#define ebpf_ring_buffer_opts__last_field flags
-
     /**
      * @brief Creates a new ring buffer manager (Windows-specific with flags support).
      *
@@ -861,6 +861,50 @@ extern "C"
         ring_buffer_sample_fn sample_cb,
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_ring_buffer_opts* opts) EBPF_NO_EXCEPT;
+
+    //
+    // Windows-specific Perf Buffer APIs
+    //
+
+    /**
+     * @brief Windows-specific perf buffer options structure.
+     */
+    struct ebpf_perf_buffer_opts
+    {
+        size_t sz;      /* size of this struct, for forward/backward compatibility */
+        uint64_t flags; /* perf buffer option flags */
+    };
+
+    /**
+     * @brief Perf buffer option flags (Windows-specific).
+     */
+    enum ebpf_perf_buffer_flags
+    {
+        EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+    };
+    typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+    typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+    /**
+     * @brief Create a new perf buffer manager with Windows-specific options.
+     *
+     * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
+     * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
+     * @param[in] sample_cb Function called on each received data record.
+     * @param[in] lost_cb Function called when record loss has occurred.
+     * @param[in] ctx User-provided context passed into sample_cb and lost_cb.
+     * @param[in] opts Windows-specific perf buffer manager options.
+     *
+     * @returns Pointer to perf buffer manager on success, null on error.
+     */
+    _Ret_maybenull_ struct perf_buffer*
+    ebpf_perf_buffer__new(
+        int map_fd,
+        size_t page_cnt,
+        perf_buffer_sample_fn sample_cb,
+        perf_buffer_lost_fn lost_cb,
+        _In_opt_ void* ctx,
+        _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }

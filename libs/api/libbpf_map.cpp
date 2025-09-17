@@ -368,10 +368,17 @@ static inline struct ebpf_ring_buffer_opts
 _convert_to_ebpf_opts(const struct ring_buffer_opts* linux_opts)
 {
     // Linux ring buffer opts are currently empty (only sz field), so we use defaults (synchronous mode).
-    struct ebpf_ring_buffer_opts ebpf_opts
-    {
-        .sz = sizeof(ebpf_opts), .flags = 0
-    };
+    ebpf_ring_buffer_opts ebpf_opts{.sz = sizeof(ebpf_opts), .flags = 0};
+    UNREFERENCED_PARAMETER(linux_opts);
+    return ebpf_opts;
+}
+
+// Helper function to convert perf_buffer_opts to ebpf_perf_buffer_opts.
+static inline struct ebpf_perf_buffer_opts
+_convert_to_ebpf_perf_opts(const struct perf_buffer_opts* linux_opts)
+{
+    // Linux perf buffer opts are currently empty (only sz field), so we use defaults (synchronous mode).
+    ebpf_perf_buffer_opts ebpf_opts{.sz = sizeof(ebpf_opts), .flags = 0};
     UNREFERENCED_PARAMETER(linux_opts);
     return ebpf_opts;
 }
@@ -401,10 +408,7 @@ ebpf_ring_buffer__new(
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
 
         // Determine callback type based on flags
-        bool use_async_callbacks = false;
-        if (opts && opts->sz >= sizeof(*opts)) {
-            use_async_callbacks = (opts->flags & EBPF_RINGBUF_FLAG_AUTO_CALLBACK) != 0;
-        }
+        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_RINGBUF_FLAG_AUTO_CALLBACK) != 0;
 
         ring_buffer->is_async_mode = use_async_callbacks;
 
@@ -479,6 +483,20 @@ perf_buffer__new(
     void* ctx,
     const struct perf_buffer_opts* opts)
 {
+    // Convert Linux opts to Windows opts with default synchronous behavior
+    auto ebpf_opts = _convert_to_ebpf_perf_opts(opts);
+    return ebpf_perf_buffer__new(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
+}
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
+{
     ebpf_result result = EBPF_SUCCESS;
     perf_buffer_t* local_perf_buffer = nullptr;
     std::vector<uint32_t> cpu_ids;
@@ -488,12 +506,18 @@ perf_buffer__new(
         goto Exit;
     }
 
-    if ((opts != NULL) || (page_cnt != 0)) {
+    if (page_cnt != 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     try {
+        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_PERFBUF_FLAG_AUTO_CALLBACK) != 0;
+        if (!use_async_callbacks) {
+            result = EBPF_OPERATION_NOT_SUPPORTED;
+            goto Exit;
+        }
+
         std::unique_ptr<perf_buffer_t> perf_buffer = std::make_unique<perf_buffer_t>();
         uint32_t ring_count = libbpf_num_possible_cpus();
         ebpf_map_subscription_t* subscription = nullptr;

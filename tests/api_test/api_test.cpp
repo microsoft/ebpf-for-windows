@@ -1497,7 +1497,8 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     context.expected_event_count = max_iterations;
     auto perf_buffer_event_callback = context.promise.get_future();
     // Subscribe to the perf buffer.
-    auto perfbuffer = perf_buffer__new(
+    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+    auto perfbuffer = ebpf_perf_buffer__new(
         process_map_fd,
         0,
         [](void* ctx, int, void* data, uint32_t length) {
@@ -1524,7 +1525,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
             return;
         },
         &context,
-        nullptr);
+        &perf_opts);
 
     // Trigger perf buffer events from multiple threads across all CPUs.
     trigger_ring_buffer_events(

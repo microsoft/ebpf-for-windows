@@ -388,13 +388,14 @@ perf_buffer_api_test_helper(
 
     // Create a new perf buffer manager and subscribe to perf buffer events.
     // The notifications for the events that were generated before should occur after the subscribe call.
-    context->perf_buffer = perf_buffer__new(
+    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+    context->perf_buffer = ebpf_perf_buffer__new(
         perf_buffer_map,
         0,
         (perf_buffer_sample_fn)perf_buffer_test_event_handler,
         (perf_buffer_lost_fn)perf_buffer_test_lost_event_handler,
         context.get(),
-        nullptr);
+        &perf_opts);
     REQUIRE(context->perf_buffer != nullptr);
 
     // Generate more events, post-subscription.
