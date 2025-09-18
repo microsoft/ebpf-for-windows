@@ -118,10 +118,16 @@ static const std::string _predicate_format_string[] = {
     "{}{} <= {}{}", // JSLE
 };
 
-#define ADD_OPCODE(X) {static_cast<uint8_t>(X), std::string(#X)}
+#define ADD_OPCODE(X)                            \
+    {                                            \
+        static_cast<uint8_t>(X), std::string(#X) \
+    }
 
 // remove EBPF_ATOMIC_ prefix
-#define ADD_ATOMIC_OPCODE(X) {static_cast<int32_t>(X), std::string(#X).substr(12)}
+#define ADD_ATOMIC_OPCODE(X)                                \
+    {                                                       \
+        static_cast<int32_t>(X), std::string(#X).substr(12) \
+    }
 
 static std::map<int32_t, std::string> _atomic_opcode_name_strings = {
     ADD_ATOMIC_OPCODE(EBPF_ATOMIC_ADD),
@@ -2054,8 +2060,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << "0," << std::endl;
             output_stream << INDENT INDENT "{" << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION << ", "
                           << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE << ", "
-                          << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
-                          << " // Version header." << std::endl;
+                          << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "}," << " // Version header."
+                          << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
             output_stream << INDENT INDENT << program.pe_section_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << program.elf_section_name.quoted() << "," << std::endl;
@@ -2077,8 +2083,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     hash_string = EBPF_HASH_ALGORITHM;
                     program.program_info_hash_type = hash_string;
                 }
-                output_stream << INDENT INDENT << "\"" << hash_string << "\""
-                              << "," << std::endl;
+                output_stream << INDENT INDENT << "\"" << hash_string << "\"" << "," << std::endl;
             }
             output_stream << INDENT "}," << std::endl;
         }
@@ -2140,8 +2145,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                           << EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE << "}," << std::endl;
             output_stream << INDENT INDENT << ".name = " << name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << ".count = " << values.size() << "," << std::endl;
-            output_stream << INDENT INDENT << ".values = "
-                          << "_" << name.c_identifier() << "_initial_string_table"
+            output_stream << INDENT INDENT << ".values = " << "_" << name.c_identifier() << "_initial_string_table"
                           << "," << std::endl;
             output_stream << INDENT "}," << std::endl;
         }

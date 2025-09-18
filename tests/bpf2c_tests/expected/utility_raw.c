@@ -31,24 +31,24 @@ _get_global_variable_sections(
 
 static helper_function_entry_t UtilityTest_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     23,
-     "helper_id_23",
+        {1, 40, 40}, // Version header.
+        23,
+        "helper_id_23",
     },
     {
-     {1, 40, 40}, // Version header.
-     22,
-     "helper_id_22",
+        {1, 40, 40}, // Version header.
+        22,
+        "helper_id_22",
     },
     {
-     {1, 40, 40}, // Version header.
-     24,
-     "helper_id_24",
+        {1, 40, 40}, // Version header.
+        24,
+        "helper_id_24",
     },
     {
-     {1, 40, 40}, // Version header.
-     25,
-     "helper_id_25",
+        {1, 40, 40}, // Version header.
+        25,
+        "helper_id_25",
     },
 };
 

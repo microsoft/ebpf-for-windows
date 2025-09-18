@@ -186,24 +186,24 @@ _get_global_variable_sections(
 
 static helper_function_entry_t func_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     15,
-     "helper_id_15",
+        {1, 40, 40}, // Version header.
+        15,
+        "helper_id_15",
     },
 };
 

@@ -39,7 +39,8 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
 
 _netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
     : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
-{}
+{
+}
 
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,

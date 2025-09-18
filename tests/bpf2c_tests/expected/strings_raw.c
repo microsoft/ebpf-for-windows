@@ -31,24 +31,24 @@ _get_global_variable_sections(
 
 static helper_function_entry_t StringOpsTest_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     29,
-     "helper_id_29",
+        {1, 40, 40}, // Version header.
+        29,
+        "helper_id_29",
     },
     {
-     {1, 40, 40}, // Version header.
-     27,
-     "helper_id_27",
+        {1, 40, 40}, // Version header.
+        27,
+        "helper_id_27",
     },
     {
-     {1, 40, 40}, // Version header.
-     23,
-     "helper_id_23",
+        {1, 40, 40}, // Version header.
+        23,
+        "helper_id_23",
     },
     {
-     {1, 40, 40}, // Version header.
-     28,
-     "helper_id_28",
+        {1, 40, 40}, // Version header.
+        28,
+        "helper_id_28",
     },
 };
 

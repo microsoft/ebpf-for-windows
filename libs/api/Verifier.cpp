@@ -518,7 +518,8 @@ ebpf_api_elf_enumerate_programs(
                     return 1;
                 }
                 auto& instruction_sequence = std::get<prevail::InstructionSeq>(instruction_sequence_or_error);
-                auto program = prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
+                auto program =
+                    prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
                 std::map<std::string, int> stats = collect_stats(program);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);

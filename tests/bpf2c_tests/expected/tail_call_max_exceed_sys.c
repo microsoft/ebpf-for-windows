@@ -170,12 +170,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -209,19 +208,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t bind_test_callee0_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -422,19 +421,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee1_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -635,19 +634,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee10_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -848,19 +847,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee11_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1061,19 +1060,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee12_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1274,19 +1273,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee13_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1487,19 +1486,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee14_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1700,19 +1699,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee15_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1913,19 +1912,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee16_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2126,19 +2125,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee17_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2339,19 +2338,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee18_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2552,19 +2551,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee19_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2765,19 +2764,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee2_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2978,19 +2977,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee20_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3191,19 +3190,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee21_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3404,19 +3403,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee22_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3617,19 +3616,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee23_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3830,19 +3829,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee24_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4043,19 +4042,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee25_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4256,19 +4255,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee26_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4469,19 +4468,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee27_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4682,19 +4681,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee28_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4895,19 +4894,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee29_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5108,19 +5107,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee3_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5321,19 +5320,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee30_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5534,19 +5533,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee31_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5747,19 +5746,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee32_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5960,19 +5959,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee33_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6173,9 +6172,9 @@ label_1:
 
 static helper_function_entry_t bind_test_callee34_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
 };
 
@@ -6279,19 +6278,19 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
 
 static helper_function_entry_t bind_test_callee4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6492,19 +6491,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee5_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6705,19 +6704,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6918,19 +6917,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee7_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7131,19 +7130,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee8_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7344,19 +7343,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee9_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7557,19 +7556,19 @@ label_1:
 
 static helper_function_entry_t bind_test_caller_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 

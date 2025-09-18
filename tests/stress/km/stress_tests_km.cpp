@@ -28,9 +28,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available { true };
-    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
-    _Guarded_by_(lock) bool loaded { false };
+    _Guarded_by_(lock) bool available{true};
+    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
+    _Guarded_by_(lock) bool loaded{false};
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -1144,8 +1144,10 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
 
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"}, {"connect4_count_map"}},
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"}, {"connect6_count_map"}}};
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"},
+         {"connect4_count_map"}},
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"},
+         {"connect6_count_map"}}};
     ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
@@ -1532,7 +1534,8 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
 }
 
 static void
-_mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
+_mt_bindmonitor_tail_call_invoke_program_test(
+    ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
@@ -1540,7 +1543,8 @@ _mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type
 
     // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
-    std::string file_name = is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
+    std::string file_name =
+        is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
 
     // Load the program.
     std::vector<object_table_entry> dummy_table(1);
@@ -1676,7 +1680,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
 
 TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
 {
-    // Multi-threaded stress test where each thread loads different programs with extension restart
+    // Multi-threaded stress test where each thread loads different programs with extension restart.
     // Test layout:
     // 1. Create 2 'monitor' threads, each loading a DIFFERENT native eBPF program:
     //    - Thread #1 loads a native eBPF SOCK_ADDR program (cgroup_count_connect4.sys) that attaches to
@@ -1881,7 +1885,7 @@ _mt_load_stress_test_with_restart_timing(
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
 
-    // Extension restart thread setup
+    // Extension restart thread setup.
     std::vector<std::string> extension_names;
     std::vector<std::thread> extension_restart_thread_table;
     std::vector<thread_context> extension_restart_thread_context_table;
@@ -1889,13 +1893,13 @@ _mt_load_stress_test_with_restart_timing(
     // An incrementing 'compartment Id' to ensure that _each_ 'Attacher' thread gets a unique compartment id.
     uint32_t compartment_id{1};
 
-    // Get the single program info - we only have one program in km tests
+    // Get the single program info - we only have one program in km tests.
     const auto& program_info = _test_program_info.begin();
     const auto& program_name = program_info->first;
     const auto& program_attribs = program_info->second;
     extension_names.push_back(program_attribs.extension_name);
 
-    // Configure context for each thread
+    // Configure context for each thread.
     for (size_t i = 0; i < total_threads; i++) {
         // First, prepare the context for this thread.
         auto& context_entry = thread_context_table[i];
@@ -1926,10 +1930,10 @@ _mt_load_stress_test_with_restart_timing(
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
     }
 
-    // Handle extension restart timing
+    // Handle extension restart timing.
     if (test_control_info.extension_restart_enabled) {
         if (start_restart_before_load) {
-            // Start extension restart immediately, then start load threads
+            // Start extension restart immediately, then start load threads.
             LOG_INFO("Starting extension restart BEFORE program loading threads");
             configure_extension_restart(
                 test_control_info,
@@ -1937,12 +1941,12 @@ _mt_load_stress_test_with_restart_timing(
                 extension_restart_thread_table,
                 extension_restart_thread_context_table,
                 object_table);
-            // Small delay to ensure restart thread is running before we start load threads
+            // Small delay to ensure restart thread is running before we start load threads.
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
 
-    // Now create the program loading threads
+    // Now create the program loading threads.
     for (size_t i = 0; i < total_threads; i++) {
         auto& context_entry = thread_context_table[i];
         auto& thread_entry = test_thread_table[i];
@@ -1950,7 +1954,7 @@ _mt_load_stress_test_with_restart_timing(
     }
 
     if (test_control_info.extension_restart_enabled && !start_restart_before_load) {
-        // Wait for programs to load, then start extension restart
+        // Wait for programs to load, then start extension restart.
         LOG_INFO("Waiting for programs to load, then starting extension restart");
         std::this_thread::sleep_for(std::chrono::seconds(5)); // Give programs time to load and attach
         configure_extension_restart(
@@ -1976,7 +1980,7 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    // For testing different programs per thread, create multiple copies of programs
+    // For testing different programs per thread, create multiple copies of programs.
     constexpr uint32_t MAX_PROGRAM_COPIES = 4;
 
     size_t actual_threads = std::min((size_t)test_control_info.threads_count, (size_t)MAX_PROGRAM_COPIES);
@@ -2000,11 +2004,11 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
         auto& context_entry = thread_context_table[i];
 
         if (program_type == EBPF_EXECUTION_NATIVE) {
-            // For native programs, create unique file copies so each thread has a different program
+            // For native programs, create unique file copies so each thread has a different program.
             context_entry.file_name = _make_unique_file_copy("cgroup_sock_addr.sys");
             context_entry.is_native_program = true;
         } else {
-            // For JIT programs, all threads can load the same file (but get different instances)
+            // For JIT programs, all threads can load the same file (but get different instances).
             context_entry.file_name = "cgroup_sock_addr.o";
             context_entry.is_native_program = false;
         }
@@ -2017,7 +2021,7 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
     }
 
-    // Now create all the threads after context setup is complete
+    // Now create all the threads after context setup is complete.
     for (uint32_t i = 0; i < actual_threads; i++) {
         auto& context_entry = thread_context_table[i];
         auto& thread_entry = test_thread_table[i];
@@ -2055,7 +2059,7 @@ TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_tes
     LOG_INFO("\nStarting test *** load_attach_stress_test_restart_during_load_jit ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // Enable extension restart if not already enabled
+    // Enable extension restart if not already enabled.
     local_test_control_info.extension_restart_enabled = true;
 
     _print_test_control_info(local_test_control_info);
@@ -2072,7 +2076,7 @@ TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stre
     LOG_INFO("\nStarting test *** load_attach_stress_test_restart_during_load_native ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // Enable extension restart and unique native programs for this test
+    // Enable extension restart and unique native programs for this test.
     local_test_control_info.extension_restart_enabled = true;
     local_test_control_info.use_unique_native_programs = true;
 
@@ -2091,7 +2095,7 @@ TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test
     LOG_INFO("\nStarting test *** load_attach_stress_test_restart_after_load_jit ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // Enable extension restart if not already enabled
+    // Enable extension restart if not already enabled.
     local_test_control_info.extension_restart_enabled = true;
 
     _print_test_control_info(local_test_control_info);
@@ -2109,7 +2113,7 @@ TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stres
     LOG_INFO("\nStarting test *** load_attach_stress_test_restart_after_load_native ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // Enable extension restart and unique native programs for this test
+    // Enable extension restart and unique native programs for this test.
     local_test_control_info.extension_restart_enabled = true;
     local_test_control_info.use_unique_native_programs = true;
 
@@ -2126,7 +2130,7 @@ TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stres
     LOG_INFO("\nStarting test *** invoke_different_programs_restart_extension_test_jit ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // This test needs multiple threads for different programs
+    // This test needs multiple threads for different programs.
     local_test_control_info.threads_count = std::max(local_test_control_info.threads_count, 4u);
 
     _print_test_control_info(local_test_control_info);
@@ -2142,7 +2146,7 @@ TEST_CASE("invoke_different_programs_restart_extension_test_native", "[native_mt
     LOG_INFO("\nStarting test *** invoke_different_programs_restart_extension_test_native ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
-    // This test needs multiple threads for different programs
+    // This test needs multiple threads for different programs.
     local_test_control_info.threads_count = std::max(local_test_control_info.threads_count, 4u);
 
     _print_test_control_info(local_test_control_info);

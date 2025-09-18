@@ -170,12 +170,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -188,12 +187,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "egress_connection_policy_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -206,12 +204,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "ingress_connection_policy_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -245,19 +242,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t authorize_connect4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -427,19 +424,19 @@ label_1:
 
 static helper_function_entry_t authorize_connect6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -627,19 +624,19 @@ label_1:
 
 static helper_function_entry_t authorize_recv_accept4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -809,19 +806,19 @@ label_1:
 
 static helper_function_entry_t authorize_recv_accept6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 

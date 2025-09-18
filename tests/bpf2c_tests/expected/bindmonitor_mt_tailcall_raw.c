@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -54,14 +53,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t BindMonitor_Callee0_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -235,14 +234,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee1_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -416,14 +415,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee10_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -597,14 +596,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee11_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -778,14 +777,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee12_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -959,14 +958,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee13_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -1140,14 +1139,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee14_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -1321,14 +1320,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee15_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -1502,14 +1501,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee16_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -1683,14 +1682,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee17_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -1864,14 +1863,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee18_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2045,14 +2044,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee19_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2226,14 +2225,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee2_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2407,14 +2406,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee20_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2588,14 +2587,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee21_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2769,14 +2768,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee22_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -2950,14 +2949,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee23_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -3131,14 +3130,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee24_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -3312,14 +3311,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee25_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -3493,14 +3492,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee26_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -3674,14 +3673,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee27_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -3855,14 +3854,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee28_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4036,14 +4035,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee29_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4217,14 +4216,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee3_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4398,14 +4397,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee30_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4579,14 +4578,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee31_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4798,14 +4797,14 @@ BindMonitor_Callee32(void* context, const program_runtime_context_t* runtime_con
 
 static helper_function_entry_t BindMonitor_Callee4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -4979,14 +4978,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee5_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -5160,14 +5159,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -5341,14 +5340,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee7_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -5522,14 +5521,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee8_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -5703,14 +5702,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Callee9_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
@@ -5886,14 +5885,14 @@ label_1:
 
 static helper_function_entry_t BindMonitor_Caller_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
 };
 
