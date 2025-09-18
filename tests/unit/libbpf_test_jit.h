@@ -9,8 +9,6 @@ extern "C" {
 
 const int nonexistent_fd = 12345678;
 
-#define TEST_IFINDEX 17
-
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
     TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }
