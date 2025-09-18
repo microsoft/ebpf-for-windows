@@ -1351,8 +1351,9 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
             connect_send_tcp_ipv6_traffic();
 
             std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-            tid = GetCurrentThreadId();
             REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+            tid = GetCurrentThreadId();
             if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
                 start_time = static_cast<long long>(creation.dwLowDateTime) |
                             (static_cast<long long>(creation.dwHighDateTime) << 32);
