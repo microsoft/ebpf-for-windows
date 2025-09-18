@@ -70,6 +70,16 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Mark the link object as disconnected (but not detached).
+     *
+     * @param[in] link The link object to disconnect.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The link is NULL or already disconnected.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_link_disconnect(_Inout_ ebpf_link_t* link);
 #ifdef __cplusplus
 }
 #endif

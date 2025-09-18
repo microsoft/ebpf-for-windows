@@ -402,8 +402,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 #endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd) \
-    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
+#define BPF_LD_MAP_FD(reg, fd) {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, {0}
 #define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
 #define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
 #define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
@@ -2178,7 +2177,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.pathname = (uintptr_t)"MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -2251,6 +2250,7 @@ TEST_CASE("bpf_prog_attach", "[libbpf]")
     REQUIRE(link_fd >= 0);
     REQUIRE(bpf_link_detach(link_fd) == 0);
     REQUIRE(bpf_prog_attach(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+    REQUIRE(bpf_prog_detach2(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT) == 0);
 
     bpf_object__close(object);
 }

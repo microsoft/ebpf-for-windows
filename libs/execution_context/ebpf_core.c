@@ -2359,6 +2359,25 @@ _ebpf_core_protocol_epoch_synchronize(
     EBPF_RETURN_RESULT(result);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_link_disconnect(_In_ const ebpf_operation_link_disconnect_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    ebpf_link_t* link = NULL;
+
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->link_handle, EBPF_OBJECT_LINK, (ebpf_core_object_t**)&link);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_link_disconnect(link);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
+    EBPF_RETURN_RESULT(result);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -2999,6 +3018,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_map_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_disconnect, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t

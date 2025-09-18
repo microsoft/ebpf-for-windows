@@ -52,7 +52,7 @@ bpf_link__unpin(struct bpf_link* link)
 void
 bpf_link__disconnect(struct bpf_link* link)
 {
-    link->disconnected = true;
+    ebpf_disconnect_link(link->fd);
 }
 
 int
@@ -63,9 +63,7 @@ bpf_link__destroy(struct bpf_link* link)
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
-    if (!link->disconnected) {
-        result = ebpf_link_detach(link);
-    }
+
     ebpf_link_close(link);
 
     return libbpf_result_err(result);

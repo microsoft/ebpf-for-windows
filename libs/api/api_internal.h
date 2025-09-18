@@ -68,7 +68,6 @@ typedef struct bpf_link
     char* pin_path;
     ebpf_handle_t handle;
     fd_t fd;
-    bool disconnected;
 } ebpf_link_t;
 
 typedef struct bpf_object
@@ -733,3 +732,11 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
+
+/**
+ * @brief Disconnect a link.
+ *
+ * @param[in] link File descriptor for the link.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_disconnect_link(_In_ fd_t link) noexcept;
