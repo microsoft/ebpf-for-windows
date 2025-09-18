@@ -52,7 +52,7 @@ bpf_link__unpin(struct bpf_link* link)
 void
 bpf_link__disconnect(struct bpf_link* link)
 {
-    ebpf_disconnect_link(link->fd);
+    (void)ebpf_disconnect_link(link->fd);
 }
 
 int
