@@ -1108,15 +1108,14 @@ TEST_CASE("show processes", "[netsh][processes]")
     }
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-
-TEST_CASE("pin/unpin program", "[netsh][pin]")
+static void
+_test_pin_unpin_program(ebpf_execution_type_t execution_type)
 {
     _test_helper_netsh test_helper;
     test_helper.initialize();
     int result = 0;
-    auto output =
-        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", nullptr, L"pinpath=bindmonitor", &result);
+    const wchar_t* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? L"bindmonitor_um.dll" : L"bindmonitor.o");
+    auto output = _run_netsh_command(handle_ebpf_add_program, file_name, nullptr, L"pinpath=bindmonitor", &result);
     REQUIRE(result == EBPF_SUCCESS);
     const char prefix[] = "Loaded with ID";
     REQUIRE(output.substr(0, sizeof(prefix) - 1) == prefix);
@@ -1155,6 +1154,9 @@ TEST_CASE("pin/unpin program", "[netsh][pin]")
     _run_netsh_command(handle_ebpf_delete_program, sid.c_str(), nullptr, nullptr, &result);
 }
 
+DECLARE_ALL_TEST_CASES("pin/unpin program", "[netsh][pin]", _test_pin_unpin_program);
+
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("pin/unpin map", "[netsh][pin]")
 {
     _test_helper_netsh test_helper;
