@@ -86,53 +86,9 @@ _ebpf_sock_ops_get_current_pid_tgid(
     return (sock_ops_ctx->process_id << 32 | (uint32_t)(uintptr_t)PsGetCurrentThreadId());
 }
 
-static uint64_t
-_ebpf_sock_ops_get_current_process_start_key(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    return PsGetProcessStartKey(IoGetCurrentProcess());
-}
-
-static int64_t
-_ebpf_sock_ops_get_thread_create_time(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    return PsGetThreadCreateTime(KeGetCurrentThread());
-}
-
 //
 // SOCK_OPS Program Information NPI Provider.
 //
-
-static const void* _ebpf_sock_ops_specific_helper_functions[] = {
-    (void*)_ebpf_sock_ops_get_current_process_start_key, (void*)_ebpf_sock_ops_get_thread_create_time};
-
-static ebpf_helper_function_addresses_t _ebpf_sock_ops_specific_helper_function_address_table = {
-    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
-    EBPF_COUNT_OF(_ebpf_sock_ops_specific_helper_functions),
-    (uint64_t*)_ebpf_sock_ops_specific_helper_functions};
 
 static const void* _ebpf_sock_ops_global_helper_functions[] = {
     (void*)_ebpf_sock_ops_get_current_pid_tgid};
@@ -161,8 +117,6 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
-    .program_type_specific_helper_function_addresses = &_ebpf_sock_ops_specific_helper_function_address_table,
-    .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,

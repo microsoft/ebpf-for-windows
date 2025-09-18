@@ -80,6 +80,8 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 enum _sock_addr_helper_functions
 {
     SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
+    SOCK_ADDR_HELPER_GET_CURRENT_PROCESS_START_KEY,
+    SOCK_ADDR_GLOBAL_HELPER_GET_THREAD_CREATE_TIME,
 };
 
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
@@ -88,7 +90,17 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
      BPF_FUNC_sock_addr_set_redirect_context,
      "bpf_sock_addr_set_redirect_context",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_get_current_process_start_key,
+     "bpf_get_current_process_start_key",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_DONTCARE}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_get_thread_create_time,
+     "bpf_get_thread_create_time",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_DONTCARE}}};
 
 enum _sock_addr_global_helper_functions
 {
@@ -190,24 +202,7 @@ static const ebpf_program_type_descriptor_t _ebpf_sock_ops_program_type_descript
 enum _sock_ops_global_helper_functions
 {
     SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
-    SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PROCESS_START_KEY,
-    SOCK_OPS_GLOBAL_HELPER_GET_THREAD_CREATE_TIME
 };
-
-// SOCK_OPS extension specific helper function prototypes.
-static const ebpf_helper_function_prototype_t _sock_ops_ebpf_extension_helper_function_prototype[] = {
-    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     .helper_id = BPF_FUNC_get_current_process_start_key,
-     .name = "bpf_get_current_process_start_key",
-     .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {EBPF_ARGUMENT_TYPE_DONTCARE},
-     .implicit_context = true},
-    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     .helper_id = BPF_FUNC_get_thread_create_time,
-     .name = "bpf_get_thread_create_time",
-     .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {EBPF_ARGUMENT_TYPE_DONTCARE},
-     .implicit_context = true}};
 
 // SOCK_OPS global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
@@ -221,8 +216,8 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_ebpf_sock_ops_program_type_descriptor,
-    EBPF_COUNT_OF(_sock_ops_ebpf_extension_helper_function_prototype),
-    _sock_ops_ebpf_extension_helper_function_prototype,
+    0,
+    NULL,
     EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_function_prototype),
     _ebpf_sock_ops_global_helper_function_prototype};
 

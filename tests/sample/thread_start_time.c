@@ -8,7 +8,7 @@ struct val
 {
     uint32_t current_tid;
     int64_t start_time;
-} val;
+} val_t;
 
 struct
 {
@@ -18,9 +18,8 @@ struct
     __uint(max_entries, 1);
 } thread_start_time_map SEC(".maps");
 
-SEC("sockops")
 int
-func(bpf_sock_ops_t* ctx)
+get_thread_create_time(bpf_sock_addr_t* ctx)
 {
     struct val v = {.current_tid = 0, .start_time = 0};
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
@@ -30,5 +29,19 @@ func(bpf_sock_ops_t* ctx)
     uint32_t key = 0;
     bpf_map_update_elem(&thread_start_time_map, &key, &v, 0);
 
-    return 0;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+
+SEC("cgroup/connect4")
+int
+func_v4(bpf_sock_addr_t* ctx)
+{
+    return get_thread_create_time(ctx);
+}
+
+SEC("cgroup/connect6")
+int
+func_v6(bpf_sock_addr_t* ctx)
+{
+    return get_thread_create_time(ctx);
 }

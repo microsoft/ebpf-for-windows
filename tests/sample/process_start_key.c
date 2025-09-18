@@ -8,7 +8,7 @@ struct val
 {
     uint32_t current_pid;
     uint64_t start_key;
-} val;
+} val_t;
 
 struct
 {
@@ -18,9 +18,8 @@ struct
     __uint(max_entries, 1);
 } process_start_key_map SEC(".maps");
 
-SEC("sockops")
 int
-func(bpf_sock_ops_t* ctx)
+get_start_key(bpf_sock_addr_t* ctx)
 {
     struct val v = {.current_pid = 0, .start_key = 0};
 
@@ -30,5 +29,19 @@ func(bpf_sock_ops_t* ctx)
     uint32_t key = 0;
     bpf_map_update_elem(&process_start_key_map, &key, &v, 0);
 
-    return 0;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+
+SEC("cgroup/connect4")
+int
+func_v4(bpf_sock_addr_t* ctx)
+{
+    return get_start_key(ctx);
+}
+
+SEC("cgroup/connect6")
+int
+func_v6(bpf_sock_addr_t* ctx)
+{
+    return get_start_key(ctx);
 }
