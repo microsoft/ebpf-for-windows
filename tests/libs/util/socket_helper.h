@@ -273,6 +273,6 @@ typedef class _wsa_helper
     initialize();
 
   private:
-    WSADATA data;
+    WSADATA data{};
     int startup_result;
 } wsa_helper_t;
