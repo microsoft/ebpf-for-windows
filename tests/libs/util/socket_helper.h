@@ -259,3 +259,20 @@ typedef class _stream_server_socket : public _server_socket
     SOCKET accept_socket;
     size_t message_length;
 } stream_server_socket_t;
+
+/**
+ * @class A helper class for managing WSAStartup and WSACleanup
+ */
+typedef class _wsa_helper
+{
+  public:
+    _wsa_helper();
+    ~_wsa_helper();
+
+    int
+    initialize();
+
+  private:
+    WSADATA data;
+    int startup_result;
+} wsa_helper_t;

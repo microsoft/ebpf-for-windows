@@ -806,3 +806,28 @@ _stream_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buf
         nullptr,
         nullptr);
 }
+
+_wsa_helper::_wsa_helper()
+{
+    // Initialize the result value to a failure. 
+    startup_result = -1;
+}
+
+_wsa_helper::~_wsa_helper()
+{
+    if (startup_result != -1)
+    {
+        WSACleanup();
+    }
+}
+
+int
+_wsa_helper::initialize()
+{
+    startup_result = WSAStartup(WINSOCK_VERSION, &data);
+    if (startup_result != 0)
+    {
+        FAIL("WSAStartup failed with error: " << WSAGetLastError());
+    }
+    return startup_result;
+}
