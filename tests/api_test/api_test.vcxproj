@@ -173,7 +173,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="api_test_jit.h" /> 
+    <ClInclude Include="api_test_jit.h" />
     <ClInclude Include="header.h" />
     <ClInclude Include="rpc_client.h" />
   </ItemGroup>

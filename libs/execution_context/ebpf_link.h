@@ -70,6 +70,17 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Mark the link as operating in legacy mode, which means that it doesn't
+     * detach when the last user mode reference to the link is closed.
+     *
+     * @param[in] link The link object to mark as legacy mode.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The link is NULL or already disconnected.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_link_legacy_mode(_Inout_ ebpf_link_t* link);
 #ifdef __cplusplus
 }
 #endif
