@@ -1350,9 +1350,6 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
             // IPv6 Test.
             connect_send_tcp_ipv6_traffic();
 
-            // Clean up.
-            WSACleanup();
-            
             std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
             tid = GetCurrentThreadId();
             REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
@@ -1362,6 +1359,9 @@ TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
             }
             REQUIRE(tid == value.current_tid);
             REQUIRE(start_time == value.start_time);
+
+            // Clean up.
+            WSACleanup();
         }
     }
 }
