@@ -31,6 +31,7 @@ class _test_helper_netsh
     initialize();
 
   private:
+    bool initialized = false;
     _test_helper_libbpf test_helper_libbpf;
 };
 
@@ -38,7 +39,7 @@ _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 
 _test_helper_netsh::~_test_helper_netsh()
 {
-    if (cxplat_fault_injection_is_enabled()) {
+    if (cxplat_fault_injection_is_enabled() && initialized) {
         for (auto& object : _ebpf_netsh_objects) {
             bpf_object__close(object);
         }
@@ -64,6 +65,7 @@ void
 _test_helper_netsh::initialize()
 {
     test_helper_libbpf.initialize();
+    initialized = true;
 }
 
 std::string
