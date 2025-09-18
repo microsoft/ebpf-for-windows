@@ -739,4 +739,4 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
  * @param[in] link File descriptor for the link.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_disconnect_link(_In_ fd_t link) noexcept;
+ebpf_disconnect_link(fd_t link) noexcept;
