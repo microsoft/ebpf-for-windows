@@ -25,7 +25,6 @@ namespace ebpf {
 }; // namespace ebpf
 #include "cxplat_passed_test_log.h"
 #include "platform.h"
-#include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
 #include "usersim/ke.h"
