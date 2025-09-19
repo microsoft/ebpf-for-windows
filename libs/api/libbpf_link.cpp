@@ -7,6 +7,39 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
+struct bpf_link*
+bpf_link__open(const char* path)
+{
+    struct bpf_link* link = nullptr;
+    fd_t link_fd;
+    ebpf_result_t result;
+
+    result = ebpf_object_get(path, &link_fd);
+    if (result != EBPF_SUCCESS) {
+        libbpf_result_err(result); // Set errno.
+        return nullptr;
+    }
+
+    link = (struct bpf_link*)ebpf_allocate(sizeof(struct bpf_link));
+    if (!link) {
+        ebpf_close_fd(link_fd);
+        libbpf_err(-ENOMEM);
+        return nullptr;
+    }
+
+    link->fd = link_fd;
+    link->pin_path = cxplat_duplicate_string(path);
+    if (!link->pin_path) {
+        ebpf_close_fd(link_fd);
+        ebpf_free(link);
+        libbpf_err(-ENOMEM);
+        return nullptr;
+    }
+    link->disconnected = false;
+
+    return link;
+}
+
 int
 bpf_link__pin(struct bpf_link* link, const char* path)
 {
@@ -52,7 +85,7 @@ bpf_link__unpin(struct bpf_link* link)
 void
 bpf_link__disconnect(struct bpf_link* link)
 {
-    (void)ebpf_disconnect_link(link->fd);
+    link->disconnected = true;
 }
 
 int
@@ -63,7 +96,9 @@ bpf_link__destroy(struct bpf_link* link)
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
-
+    if (!link->disconnected) {
+        result = ebpf_link_detach(link);
+    }
     ebpf_link_close(link);
 
     return libbpf_result_err(result);

@@ -5224,7 +5224,7 @@ ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_E
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_disconnect_link(fd_t link_fd) NO_EXCEPT_TRY
+ebpf_link_mark_as_legacy_mode(fd_t link_fd) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -5233,8 +5233,8 @@ ebpf_disconnect_link(fd_t link_fd) NO_EXCEPT_TRY
         result = EBPF_INVALID_FD;
         EBPF_RETURN_RESULT(result);
     }
-    ebpf_operation_link_disconnect_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_DISCONNECT, link_handle};
+    ebpf_operation_link_legacy_mode_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_LEGACY_MODE, link_handle};
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
     EBPF_RETURN_RESULT(result);
 }

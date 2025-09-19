@@ -1908,30 +1908,6 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     bpf_object__close(unique_object.release());
 }
 
-struct link_detacher
-{
-    int link_id;
-    link_detacher(struct bpf_link* link)
-    {
-        bpf_link_info info = {};
-        uint32_t info_size = sizeof(info);
-        int result = bpf_obj_get_info_by_fd(bpf_link__fd(link), &info, &info_size);
-        REQUIRE(result == 0);
-        link_id = info.id;
-        REQUIRE(link_id != 0);
-    }
-    ~link_detacher() { detach(); }
-    void
-    detach()
-    {
-        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
-        if (link_fd > 0) {
-            bpf_link_detach(link_fd);
-            Platform::_close(link_fd);
-        }
-    }
-};
-
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // This test uses ebpf_link_close() to test implicit detach.
 TEST_CASE("implicit_detach", "[end_to_end]")
@@ -2033,18 +2009,25 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
-    link_detacher detacher(link);
-
     // Close link handle (without detaching). This should delete the link
     // object.
     bpf_link__disconnect(link);
 
+    REQUIRE(bpf_link__pin(link, "test_link") == 0);
+
     REQUIRE(bpf_link__destroy(link) == 0);
 
+    // Now the program should still be loaded because the link was pinned.
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
-    // Now detach the link using the link id saved in detacher.
-    detacher.detach();
+    struct bpf_link* link2 = bpf_link__open("test_link");
+    REQUIRE(link2 != nullptr);
+
+    // Unpin and close the link. This should delete the link object and
+    // the program object.
+    REQUIRE(bpf_link__unpin(link2) == 0);
+
+    bpf_link__destroy(link2);
 
     // Now the program should be unloaded.
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);

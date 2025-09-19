@@ -6,6 +6,9 @@
 #include "misc_helper.h"
 #include "native_helper.hpp"
 
+#include <bpf/bpf.h>
+#include <bpf/libbpf.h>
+#include <io.h>
 #include <rpc.h>
 
 // We cannot use REQUIRE from a constructor.  Anything that can fail should be here in initialize().
@@ -50,5 +53,18 @@ _native_module_helper::~_native_module_helper()
 {
     if (_delete_file_on_destruction) {
         DeleteFileA(_file_name.c_str());
+    }
+
+    // Detach all bpf links
+    uint32_t link_id;
+    while (bpf_link_get_next_id(0, &link_id) == 0) {
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd < 0) {
+            break;
+        }
+        bpf_link_detach(link_fd);
+        if (link_fd >= 0) {
+            _close(link_fd);
+        }
     }
 }

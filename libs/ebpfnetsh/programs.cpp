@@ -274,8 +274,12 @@ handle_ebpf_add_program(
     // object is closed when the function returns.
     struct _link_deleter link_deleter = {link};
 
-    // Mark link as disconnected to prevent detaching from hook point when the link is closed.
-    bpf_link__disconnect(link);
+    // Prevent the link from detaching the link when the fd is closed.
+    result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
+    if (result != EBPF_SUCCESS) {
+        std::cerr << "error " << result << ": could not mark link as legacy" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
 
     if (pinned_type == PT_FIRST) {
         // The pinpath specified is like a "file" under which to pin programs.
@@ -476,6 +480,7 @@ _ebpf_program_attach_by_id(
         ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
         if (local_result == EBPF_SUCCESS) {
+            result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
             // Mark the link as disconnected to prevent detaching from hook point when the link is closed.
             bpf_link__disconnect(link);
             ebpf_link_close(link);

@@ -12,6 +12,7 @@ EXPORTS
     bpf_link__destroy
     bpf_link__disconnect
     bpf_link__fd
+    bpf_link__open
     bpf_link__pin
     bpf_link__unpin
     bpf_link_detach
@@ -128,6 +129,7 @@ EXPORTS
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name
     ebpf_link_close
+    ebpf_link_mark_as_legacy_mode
     ebpf_map_set_wait_handle
     ebpf_object_get
     ebpf_object_get_execution_type
