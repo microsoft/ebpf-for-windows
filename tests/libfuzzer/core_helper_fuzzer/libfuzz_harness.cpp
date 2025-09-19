@@ -26,10 +26,10 @@ typedef fuzz_helper_function<bpf_sock_ops_t> fuzz_helper_function_sock_ops_t;
 std::unique_ptr<fuzz_helper_function_sock_ops_t> _fuzz_helper_function_sock_ops;
 
 int selected_program_type = 0;
-FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int* argc, char*** argv)
+FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     for (int i = 1; i < *argc; i++) {
-        if (strcmp((*argv)[i], "-helper") == 0 && i + 1 < *argc) {
+        if (strcmp((*argv)[i], "-helper") == 0  && i + 1 < *argc) {
             const char* helper_arg = (*argv)[i + 1];
             if (strcmp(helper_arg, "xdp") == 0) {
                 selected_program_type = 1;
@@ -48,27 +48,21 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int* argc, char*** argv)
     }
 
     if (selected_program_type == 1) {
-        _fuzz_helper_function_xdp =
-            std::make_unique<fuzz_helper_function_xdp_t>(ebpf_general_helper_function_module_id.Guid);
+        _fuzz_helper_function_xdp = std::make_unique<fuzz_helper_function_xdp_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_xdp.reset(); });
     } else if (selected_program_type == 2) {
-        _fuzz_helper_function_sock_addr =
-            std::make_unique<fuzz_helper_function_sock_addr_t>(ebpf_general_helper_function_module_id.Guid);
+        _fuzz_helper_function_sock_addr = std::make_unique<fuzz_helper_function_sock_addr_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_sock_addr.reset(); });
     } else if (selected_program_type == 3) {
-        _fuzz_helper_function_sock_ops =
-            std::make_unique<fuzz_helper_function_sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
+        _fuzz_helper_function_sock_ops = std::make_unique<fuzz_helper_function_sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_sock_ops.reset(); });
     } else {
-        // default
-        _fuzz_helper_function_xdp =
-            std::make_unique<fuzz_helper_function_xdp_t>(ebpf_general_helper_function_module_id.Guid);
+        //default
+        _fuzz_helper_function_xdp = std::make_unique<fuzz_helper_function_xdp_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_xdp.reset(); });
-        _fuzz_helper_function_sock_addr =
-            std::make_unique<fuzz_helper_function_sock_addr_t>(ebpf_general_helper_function_module_id.Guid);
+        _fuzz_helper_function_sock_addr = std::make_unique<fuzz_helper_function_sock_addr_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_sock_addr.reset(); });
-        _fuzz_helper_function_sock_ops =
-            std::make_unique<fuzz_helper_function_sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
+        _fuzz_helper_function_sock_ops = std::make_unique<fuzz_helper_function_sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
         atexit([]() { _fuzz_helper_function_sock_ops.reset(); });
     }
     return 0;
@@ -85,7 +79,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     } else if (selected_program_type == 3) {
         return _fuzz_helper_function_sock_ops->fuzz(data, size);
     } else {
-        // default
+        //default
         int ret = 0;
         ret = _fuzz_helper_function_xdp->fuzz(data, size);
         if (ret != 0) {

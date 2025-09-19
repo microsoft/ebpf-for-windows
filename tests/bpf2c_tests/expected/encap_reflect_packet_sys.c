@@ -186,14 +186,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t encap_reflect_packet_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65536,
-        "helper_id_65536",
+     {1, 40, 40}, // Version header.
+     65536,
+     "helper_id_65536",
     },
     {
-        {1, 40, 40}, // Version header.
-        10,
-        "helper_id_10",
+     {1, 40, 40}, // Version header.
+     10,
+     "helper_id_10",
     },
 };
 

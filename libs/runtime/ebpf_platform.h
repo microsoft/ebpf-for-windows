@@ -33,10 +33,7 @@ extern "C"
 #define AFFINITY_MASK(n) ((ULONG_PTR)(1) << (n))
 #endif
 
-#define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
-    {                                         \
-        ((uint8_t*)(x)), sizeof((x)) - 1      \
-    }
+#define EBPF_UTF8_STRING_FROM_CONST_STRING(x) {((uint8_t*)(x)), sizeof((x)) - 1}
 
 #define EBPF_NS_PER_FILETIME 100
 #define EBPF_FILETIME_PER_MS 10000

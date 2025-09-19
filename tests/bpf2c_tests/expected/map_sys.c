@@ -170,11 +170,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -187,11 +188,12 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "HASH_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                        // Current Version.
+         80,                       // Struct size up to the last field.
+         80,                       // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERCPU_HASH, // Type of map.
@@ -204,11 +206,12 @@ static map_entry_t _maps[] = {
          0,                        // The id of the inner map template.
      },
      "PERCPU_HASH_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -221,11 +224,12 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "ARRAY_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                         // Current Version.
+         80,                        // Struct size up to the last field.
+         80,                        // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERCPU_ARRAY, // Type of map.
@@ -238,11 +242,12 @@ static map_entry_t _maps[] = {
          0,                         // The id of the inner map template.
      },
      "PERCPU_ARRAY_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                     // Current Version.
+         80,                    // Struct size up to the last field.
+         80,                    // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_LRU_HASH, // Type of map.
@@ -255,11 +260,12 @@ static map_entry_t _maps[] = {
          0,                     // The id of the inner map template.
      },
      "LRU_HASH_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                            // Current Version.
+         80,                           // Struct size up to the last field.
+         80,                           // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_LRU_PERCPU_HASH, // Type of map.
@@ -272,11 +278,12 @@ static map_entry_t _maps[] = {
          0,                            // The id of the inner map template.
      },
      "LRU_PERCPU_HASH_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_QUEUE, // Type of map.
@@ -289,11 +296,12 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "QUEUE_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_STACK, // Type of map.
@@ -327,59 +335,59 @@ _get_global_variable_sections(
 
 static helper_function_entry_t test_maps_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        12,
-        "helper_id_12",
+     {1, 40, 40}, // Version header.
+     12,
+     "helper_id_12",
     },
     {
-        {1, 40, 40}, // Version header.
-        3,
-        "helper_id_3",
+     {1, 40, 40}, // Version header.
+     3,
+     "helper_id_3",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        4,
-        "helper_id_4",
+     {1, 40, 40}, // Version header.
+     4,
+     "helper_id_4",
     },
     {
-        {1, 40, 40}, // Version header.
-        18,
-        "helper_id_18",
+     {1, 40, 40}, // Version header.
+     18,
+     "helper_id_18",
     },
     {
-        {1, 40, 40}, // Version header.
-        14,
-        "helper_id_14",
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
     },
     {
-        {1, 40, 40}, // Version header.
-        17,
-        "helper_id_17",
+     {1, 40, 40}, // Version header.
+     17,
+     "helper_id_17",
     },
     {
-        {1, 40, 40}, // Version header.
-        16,
-        "helper_id_16",
+     {1, 40, 40}, // Version header.
+     16,
+     "helper_id_16",
     },
     {
-        {1, 40, 40}, // Version header.
-        15,
-        "helper_id_15",
+     {1, 40, 40}, // Version header.
+     15,
+     "helper_id_15",
     },
 };
 

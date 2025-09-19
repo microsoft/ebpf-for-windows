@@ -170,11 +170,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                         // Current Version.
+         80,                        // Struct size up to the last field.
+         80,                        // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
@@ -187,11 +188,12 @@ static map_entry_t _maps[] = {
          11,                        // The id of the inner map template.
      },
      "outer_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -204,11 +206,12 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "port_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -242,14 +245,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t lookup_update_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
 };
 

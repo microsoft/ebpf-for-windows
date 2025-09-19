@@ -170,11 +170,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -187,11 +188,12 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -225,19 +227,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t sequential0_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -415,19 +417,19 @@ label_1:
 
 static helper_function_entry_t sequential1_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -605,19 +607,19 @@ label_1:
 
 static helper_function_entry_t sequential10_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -800,19 +802,19 @@ label_1:
 
 static helper_function_entry_t sequential11_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -995,19 +997,19 @@ label_1:
 
 static helper_function_entry_t sequential12_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -1190,19 +1192,19 @@ label_1:
 
 static helper_function_entry_t sequential13_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -1385,19 +1387,19 @@ label_1:
 
 static helper_function_entry_t sequential14_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -1580,19 +1582,19 @@ label_1:
 
 static helper_function_entry_t sequential15_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -1775,19 +1777,19 @@ label_1:
 
 static helper_function_entry_t sequential16_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -1970,19 +1972,19 @@ label_1:
 
 static helper_function_entry_t sequential17_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -2165,19 +2167,19 @@ label_1:
 
 static helper_function_entry_t sequential18_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -2360,19 +2362,19 @@ label_1:
 
 static helper_function_entry_t sequential19_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -2555,19 +2557,19 @@ label_1:
 
 static helper_function_entry_t sequential2_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -2745,19 +2747,19 @@ label_1:
 
 static helper_function_entry_t sequential20_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -2940,19 +2942,19 @@ label_1:
 
 static helper_function_entry_t sequential21_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -3135,19 +3137,19 @@ label_1:
 
 static helper_function_entry_t sequential22_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -3330,19 +3332,19 @@ label_1:
 
 static helper_function_entry_t sequential23_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -3525,19 +3527,19 @@ label_1:
 
 static helper_function_entry_t sequential24_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -3720,19 +3722,19 @@ label_1:
 
 static helper_function_entry_t sequential25_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -3915,19 +3917,19 @@ label_1:
 
 static helper_function_entry_t sequential26_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -4110,19 +4112,19 @@ label_1:
 
 static helper_function_entry_t sequential27_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -4305,19 +4307,19 @@ label_1:
 
 static helper_function_entry_t sequential28_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -4500,19 +4502,19 @@ label_1:
 
 static helper_function_entry_t sequential29_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -4695,19 +4697,19 @@ label_1:
 
 static helper_function_entry_t sequential3_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -4885,19 +4887,19 @@ label_1:
 
 static helper_function_entry_t sequential30_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -5080,19 +5082,19 @@ label_1:
 
 static helper_function_entry_t sequential31_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -5275,19 +5277,19 @@ label_1:
 
 static helper_function_entry_t sequential32_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -5470,19 +5472,19 @@ label_1:
 
 static helper_function_entry_t sequential33_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -5665,19 +5667,19 @@ label_1:
 
 static helper_function_entry_t sequential34_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -5860,19 +5862,19 @@ label_1:
 
 static helper_function_entry_t sequential4_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -6050,19 +6052,19 @@ label_1:
 
 static helper_function_entry_t sequential5_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -6240,19 +6242,19 @@ label_1:
 
 static helper_function_entry_t sequential6_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -6430,19 +6432,19 @@ label_1:
 
 static helper_function_entry_t sequential7_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -6620,19 +6622,19 @@ label_1:
 
 static helper_function_entry_t sequential8_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 
@@ -6810,19 +6812,19 @@ label_1:
 
 static helper_function_entry_t sequential9_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
     {
-        {1, 40, 40}, // Version header.
-        5,
-        "helper_id_5",
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
     },
 };
 

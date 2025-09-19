@@ -31,9 +31,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t decapsulate_permit_packet_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65536,
-        "helper_id_65536",
+     {1, 40, 40}, // Version header.
+     65536,
+     "helper_id_65536",
     },
 };
 

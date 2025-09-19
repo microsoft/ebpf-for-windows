@@ -31,14 +31,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t xdp_invalid_socket_cookie_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        26,
-        "helper_id_26",
+     {1, 40, 40}, // Version header.
+     26,
+     "helper_id_26",
     },
     {
-        {1, 40, 40}, // Version header.
-        13,
-        "helper_id_13",
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
     },
 };
 
