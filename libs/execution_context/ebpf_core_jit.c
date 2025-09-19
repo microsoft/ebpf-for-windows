@@ -8,11 +8,6 @@
 #include "ebpf_serialize.h"
 #include "ebpf_tracelog.h"
 
-// Forward declarations for external functions.
-extern _Must_inspect_result_ ebpf_result_t
-ebpf_program_create_and_initialize(
-    _In_ const ebpf_program_parameters_t* parameters, _Out_ ebpf_handle_t* program_handle);
-
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
@@ -39,7 +34,7 @@ ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* requ
     }
 
     if (request->code_type == EBPF_CODE_JIT) {
-        if (_ebpf_platform_hypervisor_code_integrity_enabled) {
+        if (ebpf_platform_hypervisor_code_integrity_enabled) {
             retval = EBPF_BLOCKED_BY_POLICY;
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
