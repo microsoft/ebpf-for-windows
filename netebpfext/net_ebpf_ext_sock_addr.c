@@ -390,6 +390,7 @@ Exit:
     return return_value;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 static uint64_t
 _ebpf_sock_addr_get_current_process_start_key(
     uint64_t dummy_param1,
@@ -405,6 +406,10 @@ _ebpf_sock_addr_get_current_process_start_key(
     UNREFERENCED_PARAMETER(dummy_param4);
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
+    if (KeGetCurrentIrql() > DISPATCH_LEVEL)
+    {
+        return 0;
+    }
     return PsGetProcessStartKey(IoGetCurrentProcess());
 }
 
@@ -423,6 +428,7 @@ _ebpf_sock_addr_get_thread_create_time(
     UNREFERENCED_PARAMETER(dummy_param4);
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
+
     return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 
@@ -586,8 +592,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 
 static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
-    (void*)_ebpf_sock_addr_get_current_process_start_key,
-    (void*)_ebpf_sock_addr_get_thread_create_time};
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -598,7 +603,9 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
-    (void*)_ebpf_sock_addr_get_socket_cookie};
+    (void*)_ebpf_sock_addr_get_socket_cookie,
+    (void*)_ebpf_sock_addr_get_current_process_start_key,
+    (void*)_ebpf_sock_addr_get_thread_create_time};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

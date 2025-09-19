@@ -97,14 +97,12 @@ typedef struct bpf_sock_addr
     uint64_t interface_luid; ///< Interface LUID.
 } bpf_sock_addr_t;
 
-#define NET_EXT_HELPER_FN_BASE 0xFFFF
+#define SOCK_ADDR_EXT_HELPER_FN_BASE 0xFFFF
 
 typedef enum
 {
-    BPF_FUNC_sock_addr_get_current_pid_tgid = NET_EXT_HELPER_FN_BASE + 1,
-    BPF_FUNC_sock_addr_set_redirect_context = NET_EXT_HELPER_FN_BASE + 2,
-    BPF_FUNC_get_current_process_start_key = NET_EXT_HELPER_FN_BASE + 3,
-    BPF_FUNC_get_thread_create_time = NET_EXT_HELPER_FN_BASE + 4,
+    BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
+    BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -122,28 +120,6 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 #ifndef __doxygen
 #define bpf_sock_addr_set_redirect_context \
     ((bpf_sock_addr_set_redirect_context_t)BPF_FUNC_sock_addr_set_redirect_context)
-#endif
-
-/**
- * @brief Get the current process start key.
- *
- * @returns A 64-bit integer containing the current process
- * start key.
- */
-EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
-#ifndef __doxygen
-#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)
-#endif
-
-/**
- * @brief Get the current thread create time.
- *
- * @returns A 64-bit integer containing the current thread's
- * create time.
- */
-EBPF_HELPER(int64_t, bpf_get_thread_create_time, ());
-#ifndef __doxygen
-#define bpf_get_thread_create_time ((bpf_get_thread_create_time_t)BPF_FUNC_get_thread_create_time)
 #endif
 
 /**

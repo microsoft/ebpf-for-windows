@@ -171,6 +171,8 @@ typedef enum
     BPF_FUNC_ktime_get_boot_ms = 30,         ///< \ref bpf_ktime_get_boot_ms
     BPF_FUNC_ktime_get_ms = 31,              ///< \ref bpf_ktime_get_ms
     BPF_FUNC_perf_event_output = 32,         ///< \ref bpf_perf_event_output
+    BPF_FUNC_get_current_process_start_key = 33, ///< \ref bpf_get_current_process_start_key
+    BPF_FUNC_get_thread_create_time = 34,    ///< \ref bpf_get_thread_create_time
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
