@@ -985,6 +985,136 @@ connect_send_tcp_ipv6_traffic()
     stream_client_socket.cancel_send_message();
 }
 
+void
+run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
+{
+    // Load and attach ebpf program.
+    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    uint32_t ifindex = 0;
+    const char* program_name_ipv4 = "func_v4";
+    const char* program_name_ipv6 = "func_v6";
+    program_load_attach_helper_t _helper;
+    native_module_helper_t _native_helper;
+    struct bpf_map* map = nullptr;
+    wsa_helper_t _wsa_helper;
+    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
+    {
+        _helper.initialize(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = _helper.get_object();
+
+        // Initialize WSA so we can send traffic.
+        _wsa_helper.initialize();
+
+        if (protocol == IPPROTO_TCP)
+        {
+            is_ipv6 ?connect_send_tcp_ipv6_traffic() : connect_send_tcp_ipv4_traffic();
+        }
+        else
+        {
+            is_ipv6 ?connect_send_udp_ipv6_traffic() : connect_send_udp_ipv4_traffic();
+        }
+
+        // Read from map.
+        std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
+        map = bpf_object__find_map_by_name(object, "process_start_key_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
+
+        uint32_t key = 0;
+        struct val
+        {
+            uint32_t current_pid;
+            uint64_t start_key;
+        } value;
+        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+        std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
+        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
+
+        // Verify PID/Start Key values.
+        // We only validate that the start_key is not zero because
+        // otherwise this test case would need to take a dependency on ntQueryInformationProcess
+        // which per documentation can change at any time.
+        unsigned long pid = GetCurrentProcessId();
+        REQUIRE(0 < value.start_key);
+        REQUIRE(pid == value.current_pid);
+    }
+}
+
+void
+run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
+{
+    // Load and attach ebpf program.
+    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    uint32_t ifindex = 0;
+    const char* program_name_ipv4 = "func_v4";
+    const char* program_name_ipv6 = "func_v6";
+    program_load_attach_helper_t _helper;
+    native_module_helper_t _native_helper;
+    struct bpf_map* map = nullptr;
+    wsa_helper_t _wsa_helper;
+    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
+    {
+        _helper.initialize(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = _helper.get_object();
+
+        // Initialize WSA so we can send traffic.
+        _wsa_helper.initialize();
+
+        if (protocol == IPPROTO_TCP)
+        {
+            is_ipv6 ? connect_send_tcp_ipv6_traffic() : connect_send_tcp_ipv4_traffic();
+        }
+        else
+        {
+            is_ipv6 ? connect_send_udp_ipv6_traffic() : connect_send_udp_ipv4_traffic();
+        }
+
+        // Read from map.
+        std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
+        map = bpf_object__find_map_by_name(object, "thread_start_time_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
+
+        uint32_t key = 0;
+        struct val
+        {
+            uint32_t current_tid;
+            int64_t start_time;
+        } value;
+        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+
+        std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
+        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
+        // Verify PID/start time values.
+        unsigned long tid = GetCurrentThreadId();
+        long long start_time = 0;
+        FILETIME creation, exit, kernel, user;
+        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
+            start_time = static_cast<long long>(creation.dwLowDateTime) |
+                        (static_cast<long long>(creation.dwHighDateTime) << 32);
+        }
+        REQUIRE(tid == value.current_tid);
+        REQUIRE(start_time == value.start_time);
+    }
+}
+
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
 TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
@@ -1076,276 +1206,43 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     WSACleanup();
 }
 
-TEST_CASE("bpf_get_process_start_key_udp", "[helpers]")
+TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]")
 {
-    // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    uint32_t ifindex = 0;
-    const char* program_name = "func";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    struct bpf_map* map = nullptr;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
-    {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SOCK_OPS,
-            program_name,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = _helper.get_object();
-
-        // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
-
-        connect_send_udp_ipv4_traffic();
-
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
-        map = bpf_object__find_map_by_name(object, "process_start_key_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        struct value
-        {
-            uint32_t current_pid;
-            uint64_t start_key;
-        } value;
-        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-
-        // Verify PID/Start Key values.
-        // We only validate that the start_key is not zero because
-        // otherwise this test case would need to take a dependency on ntQueryInformationProcess
-        // which per documentation can change at any time.
-        unsigned long pid = GetCurrentProcessId();
-        REQUIRE(0 < value.start_key);
-        REQUIRE(pid == value.current_pid);
-
-        // IPv6 test.
-        connect_send_udp_ipv6_traffic();
-        
-        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-        // Verify PID/Start Key values.
-        pid = GetCurrentProcessId();
-        REQUIRE(0 < value.start_key);
-        REQUIRE(pid == value.current_pid);
-    }
+    run_process_start_key_test(IPPROTO_UDP, false);
 }
 
-TEST_CASE("bpf_get_thread_start_time_udp", "[helpers]")
+TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]")
 {
-    // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    uint32_t ifindex = 0;
-    const char* program_name = "func";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    struct bpf_map* map = nullptr;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
-    {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SOCK_OPS,
-            program_name,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = _helper.get_object();
-
-        // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
-
-        connect_send_udp_ipv4_traffic();
-
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
-        map = bpf_object__find_map_by_name(object, "thread_start_time_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        struct value
-        {
-            uint32_t current_tid;
-            int64_t start_time;
-        } value;
-        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-        // Verify PID/start time values.
-        unsigned long tid = GetCurrentThreadId();
-        long long start_time = 0;
-        FILETIME creation, exit, kernel, user;
-        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-            start_time = static_cast<long long>(creation.dwLowDateTime) |
-                        (static_cast<long long>(creation.dwHighDateTime) << 32);
-        }
-        REQUIRE(tid == value.current_tid);
-        REQUIRE(start_time == value.start_time);
-
-        // IPv6 test.
-        connect_send_udp_ipv6_traffic();
-
-        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        // Verify PID/start time values.
-        tid = GetCurrentThreadId();
-        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-            start_time = static_cast<long long>(creation.dwLowDateTime) |
-                        (static_cast<long long>(creation.dwHighDateTime) << 32);
-        }
-        REQUIRE(tid == value.current_tid);
-        REQUIRE(start_time == value.start_time);
-    }
+    run_process_start_key_test(IPPROTO_UDP, true);
 }
 
-TEST_CASE("bpf_get_process_start_key_tcp", "[helpers]")
+TEST_CASE("bpf_get_process_start_key_tcp_ipv4", "[helpers]")
 {
-    // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    uint32_t ifindex = 0;
-    const char* program_name = "func";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    struct bpf_map* map = nullptr;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
-    {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SOCK_OPS,
-            program_name,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = _helper.get_object();
-
-        // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
-
-        connect_send_tcp_ipv4_traffic();
-
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
-        map = bpf_object__find_map_by_name(object, "process_start_key_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        struct value
-        {
-            uint32_t current_pid;
-            uint64_t start_key;
-        } value;
-        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-        // Verify PID/Start Key values.
-        // We only validate that the start_key is not zero because
-        // otherwise this test case would need to take a dependency on ntQueryInformationProcess
-        // which per documentation can change at any time.
-        unsigned long pid = GetCurrentProcessId();
-        REQUIRE(0 < value.start_key);
-        REQUIRE(pid == value.current_pid);
-
-        // IPv6 Test.
-        connect_send_tcp_ipv6_traffic();
-
-        std::cout << "bpf_map_lookup_and_delete_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        // Verify PID/Start Key values.
-        pid = GetCurrentProcessId();
-        REQUIRE(0 < value.start_key);
-        REQUIRE(pid == value.current_pid);
-    }
+    run_process_start_key_test(IPPROTO_TCP, false);
 }
 
-TEST_CASE("bpf_get_thread_start_time_tcp", "[helpers]")
+TEST_CASE("bpf_get_process_start_key_tcp_ipv6", "[helpers]")
 {
-    // Load and attach ebpf program.
-    hook_helper_t hook(EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS);
-    uint32_t ifindex = 0;
-    const char* program_name = "func";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
-    {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SOCK_OPS,
-            program_name,
-            EBPF_EXECUTION_NATIVE,
-            &ifindex,
-            sizeof(ifindex),
-            hook);
-        struct bpf_object* object = _helper.get_object();
+    run_process_start_key_test(IPPROTO_TCP, true);
+}
 
-        // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
+TEST_CASE("bpf_get_thread_start_time_udp_ipv4", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_UDP, false);
+}
 
-        connect_send_tcp_ipv4_traffic();
+TEST_CASE("bpf_get_thread_start_time_udp_ipv6", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_UDP, true);
+}
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv4", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_TCP, false);
+}
 
-        // Read from map.
-        std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
-        struct bpf_map* map = bpf_object__find_map_by_name(object, "thread_start_time_map");
-        REQUIRE(map != nullptr);
-        REQUIRE(map->map_fd != ebpf_fd_invalid);
-
-        uint32_t key = 0;
-        struct value
-        {
-            uint32_t current_tid;
-            int64_t start_time;
-        } value;
-        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
-        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-        // Verify PID/start time values.
-        unsigned long tid = GetCurrentThreadId();
-        long long start_time = 0;
-        FILETIME creation, exit, kernel, user;
-        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-            start_time = static_cast<long long>(creation.dwLowDateTime) |
-                        (static_cast<long long>(creation.dwHighDateTime) << 32);
-        }
-        REQUIRE(tid == value.current_tid);
-        REQUIRE(start_time == value.start_time);
-
-        // IPv6 Test.
-        connect_send_tcp_ipv6_traffic();
-
-        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
-
-        tid = GetCurrentThreadId();
-        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-            start_time = static_cast<long long>(creation.dwLowDateTime) |
-                        (static_cast<long long>(creation.dwHighDateTime) << 32);
-        }
-        REQUIRE(tid == value.current_tid);
-        REQUIRE(start_time == value.start_time);
-    }
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_TCP, true);
 }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")

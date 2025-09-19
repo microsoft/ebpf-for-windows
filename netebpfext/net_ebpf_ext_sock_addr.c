@@ -391,7 +391,7 @@ Exit:
 }
 
 static uint64_t
-_ebpf_sock_ops_get_current_process_start_key(
+_ebpf_sock_addr_get_current_process_start_key(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
@@ -409,7 +409,7 @@ _ebpf_sock_ops_get_current_process_start_key(
 }
 
 static int64_t
-_ebpf_sock_ops_get_thread_create_time(
+_ebpf_sock_addr_get_thread_create_time(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
@@ -586,8 +586,8 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 
 static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
-    (void*)_ebpf_sock_ops_get_current_process_start_key,
-    (void*)_ebpf_sock_ops_get_thread_create_time};
+    (void*)_ebpf_sock_addr_get_current_process_start_key,
+    (void*)_ebpf_sock_addr_get_thread_create_time};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
