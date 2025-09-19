@@ -69,7 +69,7 @@ typedef struct _ebpf_free_memory
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
 int
-bpf_link__destroy(_In_opt_ _Post_invalid_ bpf_link* link);
+bpf_link__destroy(bpf_link* link);
 
 typedef struct _close_bpf_link
 {
