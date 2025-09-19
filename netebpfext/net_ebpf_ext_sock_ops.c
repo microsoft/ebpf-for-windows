@@ -66,7 +66,7 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
 
 //
-// SOCK_OPS Global helper function implementations.
+// SOCK_OPS Global helper function implementation.
 //
 static uint64_t
 _ebpf_sock_ops_get_current_pid_tgid(
