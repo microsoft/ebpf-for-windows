@@ -862,42 +862,6 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
 }
 
 static uint64_t
-_ebpf_sock_addr_get_current_process_start_key(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    return 0;
-}
-
-static int64_t
-_ebpf_sock_addr_get_thread_create_time(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    return -ENOTSUP;
-}
-
-static uint64_t
 _ebpf_sock_addr_get_current_pid_tgid_implicit(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
@@ -1007,8 +971,8 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {
-    (void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] =
+{(void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -1019,9 +983,7 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
-    (void*)_ebpf_sock_addr_get_socket_cookie,
-    (void*)_ebpf_sock_addr_get_current_process_start_key,
-    (void*)_ebpf_sock_addr_get_thread_create_time};
+    (void*)_ebpf_sock_addr_get_socket_cookie};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

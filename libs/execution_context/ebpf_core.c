@@ -120,16 +120,16 @@ _ebpf_core_get_current_process_start_key(
     uint64_t dummy_param3,
     uint64_t dummy_param4,
     uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx);
+    _In_ const void* ctx);
 
 static int64_t
-_ebpf_core_get_thread_create_time(
+_ebpf_core_get_current_thread_create_time(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
     uint64_t dummy_param4,
     uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx);
+    _In_ const void* ctx);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -179,7 +179,7 @@ static const void* _ebpf_general_helpers[] = {
     // Perf event array (perf buffer) output.
     (void*)&_ebpf_core_perf_event_output,
     (void*)&_ebpf_core_get_current_process_start_key,
-    (void*)&_ebpf_core_get_thread_create_time,
+    (void*)&_ebpf_core_get_current_thread_create_time,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2801,7 +2801,6 @@ _ebpf_core_memmove_s(
 }
 
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 static uint64_t
 _ebpf_core_get_current_process_start_key(
     uint64_t dummy_param1,
@@ -2809,7 +2808,7 @@ _ebpf_core_get_current_process_start_key(
     uint64_t dummy_param3,
     uint64_t dummy_param4,
     uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
+    _In_ const void* ctx)
 {
     UNREFERENCED_PARAMETER(dummy_param1);
     UNREFERENCED_PARAMETER(dummy_param2);
@@ -2817,21 +2816,24 @@ _ebpf_core_get_current_process_start_key(
     UNREFERENCED_PARAMETER(dummy_param4);
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
-    if (KeGetCurrentIrql() > DISPATCH_LEVEL)
-    {
+
+    if (!ebpf_is_preemptible()) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_process_start_key: Called at DISPATCH.");
+
         return 0;
     }
     return PsGetProcessStartKey(IoGetCurrentProcess());
 }
 
 static int64_t
-_ebpf_core_get_thread_create_time(
+_ebpf_core_get_current_thread_create_time(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
     uint64_t dummy_param4,
     uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
+    _In_ const void* ctx)
 {
     UNREFERENCED_PARAMETER(dummy_param1);
     UNREFERENCED_PARAMETER(dummy_param2);
@@ -2840,6 +2842,12 @@ _ebpf_core_get_thread_create_time(
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
 
+    if (!ebpf_is_preemptible()) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_thread_create_time: Called at DISPATCH.");
+
+        return -1;
+    }
     return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 

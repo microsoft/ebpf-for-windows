@@ -390,48 +390,6 @@ Exit:
     return return_value;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-static uint64_t
-_ebpf_sock_addr_get_current_process_start_key(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-    if (KeGetCurrentIrql() > DISPATCH_LEVEL)
-    {
-        return 0;
-    }
-    return PsGetProcessStartKey(IoGetCurrentProcess());
-}
-
-static int64_t
-_ebpf_sock_addr_get_thread_create_time(
-    uint64_t dummy_param1,
-    uint64_t dummy_param2,
-    uint64_t dummy_param3,
-    uint64_t dummy_param4,
-    uint64_t dummy_param5,
-    _In_ const bpf_sock_ops_t* ctx)
-{
-    UNREFERENCED_PARAMETER(dummy_param1);
-    UNREFERENCED_PARAMETER(dummy_param2);
-    UNREFERENCED_PARAMETER(dummy_param3);
-    UNREFERENCED_PARAMETER(dummy_param4);
-    UNREFERENCED_PARAMETER(dummy_param5);
-    UNREFERENCED_PARAMETER(ctx);
-
-    return PsGetThreadCreateTime(KeGetCurrentThread());
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL) static NTSTATUS _perform_access_check(
     _In_ SECURITY_DESCRIPTOR* security_descriptor,
     _In_ TOKEN_ACCESS_INFORMATION* access_information,
@@ -604,8 +562,7 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie,
-    (void*)_ebpf_sock_addr_get_current_process_start_key,
-    (void*)_ebpf_sock_addr_get_thread_create_time};
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

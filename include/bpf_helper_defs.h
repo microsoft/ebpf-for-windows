@@ -548,7 +548,7 @@ EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
  * @returns A 64-bit integer containing the current thread's
  * create time.
  */
-EBPF_HELPER(int64_t, bpf_get_thread_create_time, ());
+EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
 #ifndef __doxygen
-#define bpf_get_thread_create_time ((bpf_get_thread_create_time_t)BPF_FUNC_get_thread_create_time)
+#define bpf_get_current_thread_create_time ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
 #endif
