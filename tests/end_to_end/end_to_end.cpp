@@ -1979,7 +1979,7 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     bpf_object_ptr unique_object;
     fd_t program_fd;
     const char* error_message = nullptr;
-    bpf_link* link = nullptr;
+    bpf_link_ptr link = nullptr;
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
@@ -2009,25 +2009,24 @@ TEST_CASE("implicit_detach_2", "[end_to_end]")
     uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
+    REQUIRE(bpf_link__pin(link.get(), "test_link") == 0);
+
     // Close link handle (without detaching). This should delete the link
     // object.
-    bpf_link__disconnect(link);
-
-    REQUIRE(bpf_link__pin(link, "test_link") == 0);
-
-    REQUIRE(bpf_link__destroy(link) == 0);
+    bpf_link__disconnect(link.get());
+    link.reset();
 
     // Now the program should still be loaded because the link was pinned.
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
-    struct bpf_link* link2 = bpf_link__open("test_link");
-    REQUIRE(link2 != nullptr);
+    link.reset(bpf_link__open("test_link"));
+    REQUIRE(link != nullptr);
 
     // Unpin and close the link. This should delete the link object and
     // the program object.
-    REQUIRE(bpf_link__unpin(link2) == 0);
+    REQUIRE(bpf_link__unpin(link.get()) == 0);
 
-    bpf_link__destroy(link2);
+    link.reset();
 
     // Now the program should be unloaded.
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);

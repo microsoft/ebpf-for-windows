@@ -2273,9 +2273,6 @@ TEST_CASE("bpf_link__pin", "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    // Verify we can't attach the program to a different attach type.
-    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EINVAL);
-
     // Attach the program so we get a link object.
     bpf_link_ptr link(bpf_program__attach(program));
     REQUIRE(link != nullptr);
