@@ -272,6 +272,10 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
     }
 
     ebpf_assert(link != nullptr);
+    // Mark the link as legacy mode to avoid it being deleted when the program is closed.
+    // The caller is responsible for managing the link's lifetime.
+    (void)ebpf_link_mark_as_legacy_mode(link->fd);
+
     bpf_link__disconnect(link);
     bpf_link__destroy(link);
 
@@ -637,6 +641,10 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
         struct bpf_link* link = nullptr;
         result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
         if (result == EBPF_SUCCESS) {
+            // Mark the link as legacy mode to avoid it being deleted when the program is closed.
+            // The caller is responsible for managing the link's lifetime.
+            (void)ebpf_link_mark_as_legacy_mode(link->fd);
+
             // Disconnect and destroy the link object.
             bpf_link__disconnect(link);
             bpf_link__destroy(link);

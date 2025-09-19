@@ -31,6 +31,7 @@ class _test_helper_netsh
     initialize();
 
   private:
+    bool initialized = false;
     _test_helper_libbpf test_helper_libbpf;
 };
 
@@ -39,10 +40,25 @@ _test_helper_netsh::_test_helper_netsh() { _ebpf_netsh_objects.clear(); }
 _test_helper_netsh::~_test_helper_netsh()
 {
     if (cxplat_fault_injection_is_enabled()) {
-        for (auto& object : _ebpf_netsh_objects) {
-            bpf_object__close(object);
+        if (initialized) {
+            for (auto& object : _ebpf_netsh_objects) {
+                bpf_object__close(object);
+            }
+            _ebpf_netsh_objects.clear();
+
+            // Detach all bpf links
+            uint32_t link_id;
+            while (bpf_link_get_next_id(0, &link_id) == 0) {
+                fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+                if (link_fd < 0) {
+                    break;
+                }
+                bpf_link_detach(link_fd);
+                if (link_fd >= 0) {
+                    Platform::_close(link_fd);
+                }
+            }
         }
-        _ebpf_netsh_objects.clear();
     }
     REQUIRE(_ebpf_netsh_objects.size() == 0);
 }
@@ -51,6 +67,7 @@ void
 _test_helper_netsh::initialize()
 {
     test_helper_libbpf.initialize();
+    initialized = true;
 }
 
 std::string
