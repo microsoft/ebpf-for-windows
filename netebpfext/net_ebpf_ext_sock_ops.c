@@ -90,8 +90,7 @@ _ebpf_sock_ops_get_current_pid_tgid(
 // SOCK_OPS Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_ops_global_helper_functions[] =
-{(void*)_ebpf_sock_ops_get_current_pid_tgid};
+static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
