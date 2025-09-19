@@ -22,7 +22,7 @@ bpf_link__open(const char* path)
 
     link = (struct bpf_link*)ebpf_allocate(sizeof(struct bpf_link));
     if (!link) {
-        ebpf_close_fd(link_fd);
+        (void)ebpf_close_fd(link_fd);
         libbpf_err(-ENOMEM);
         return nullptr;
     }
@@ -30,7 +30,7 @@ bpf_link__open(const char* path)
     link->fd = link_fd;
     link->pin_path = cxplat_duplicate_string(path);
     if (!link->pin_path) {
-        ebpf_close_fd(link_fd);
+        (void)ebpf_close_fd(link_fd);
         ebpf_free(link);
         libbpf_err(-ENOMEM);
         return nullptr;
