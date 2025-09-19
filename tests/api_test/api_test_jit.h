@@ -39,8 +39,5 @@ typedef struct _audit_entry
 int32_t
 get_expected_jit_result(int32_t expected_result);
 
-int32_t
-get_expected_jit_result(int32_t expected_result);
-
 void
 perform_socket_bind(const uint16_t test_port, bool expect_success);
