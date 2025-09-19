@@ -55,6 +55,11 @@ get_total_map_count()
     }
 
     return map_count;
+};
+
+struct _ipv4_address_pair
+{
+    const in_addr& source;
     const in_addr& destination;
 };
 
