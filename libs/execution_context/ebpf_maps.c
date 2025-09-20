@@ -18,6 +18,7 @@ typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
     cxplat_utf8_string_t name;
+    volatile int64_t user_reference_count;
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
@@ -177,7 +178,7 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map; //< Core map structure.
     size_t partition_count;   //< Number of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
-    uint8_t padding[24];      //< Required to ensure partitions are cache aligned.
+    uint8_t padding[16];      //< Required to ensure partitions are cache aligned.
     ebpf_lru_partition_t
         partitions[1]; //< Array of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
 } ebpf_core_lru_map_t;
@@ -460,6 +461,9 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
 static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
 ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
 
+static void
+_clean_up_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type);
+
 const ebpf_map_definition_in_memory_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
@@ -470,6 +474,53 @@ uint32_t
 ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map)
 {
     return map->original_value_size;
+}
+
+static void
+_ebpf_map_prog_array_acquire_reference(
+    _Inout_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
+{
+    ebpf_core_map_t* core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, object);
+
+    ebpf_assert(object->type == EBPF_OBJECT_MAP);
+    ebpf_assert(core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY);
+
+    ebpf_object_acquire_reference(object, user_reference, file_id, line);
+    if (user_reference) {
+        int64_t new_ref_count = ebpf_interlocked_increment_int64(&core_map->user_reference_count);
+        if (new_ref_count == 0) {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        }
+    }
+}
+
+static void
+_ebpf_map_prog_array_release_reference(
+    _Inout_opt_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
+{
+    int64_t new_ref_count;
+    ebpf_core_map_t* core_map = NULL;
+    if (!object) {
+        return;
+    }
+
+    core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, object);
+    ebpf_assert(object->type == EBPF_OBJECT_MAP);
+    ebpf_assert(core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY);
+
+    if (user_reference) {
+        new_ref_count = ebpf_interlocked_decrement_int64(&core_map->user_reference_count);
+        if (new_ref_count < 0) {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        }
+
+        if (new_ref_count == 0) {
+            // ANUSA TODO: Clean up the map entries here.
+            _clean_up_object_array_map(core_map, EBPF_OBJECT_PROGRAM);
+        }
+    }
+
+    ebpf_object_release_reference(object, user_reference, file_id, line);
 }
 
 static ebpf_result_t
@@ -697,16 +748,29 @@ Exit:
 }
 
 static void
-_delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
+_clean_up_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
-        ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
+        uint8_t* entry = &map->data[i * map->ebpf_map_definition.value_size];
+        ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
+            if (value_type == EBPF_OBJECT_PROGRAM) {
+                ebpf_core_object_t* value_object = NULL;
+                ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
+                EBPF_OBJECT_RELEASE_REFERENCE(value_object);
+            }
             EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
+            id = 0;
+            memcpy(entry, &id, map->ebpf_map_definition.value_size);
         }
     }
+}
 
+static void
+_delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
+{
+    _clean_up_object_array_map(map, value_type);
     _delete_array_map(map);
 }
 
@@ -732,6 +796,11 @@ _create_object_array_map(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+
+    // // For PROG_ARRAY map, assign custom acquire and release functions.
+    // if (map_definition->type == BPF_MAP_TYPE_PROG_ARRAY) {
+    //     local_map->object.base.acquire_reference =
+    // }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
     result = _associate_inner_map(object_map, inner_map_handle);
@@ -914,12 +983,26 @@ _update_array_map_entry_with_handle(
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
         EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
+        if (value_type == EBPF_OBJECT_PROGRAM) {
+            // In case of program object, there is also a reference on the program object. Release that reference.
+            // This lookup should not fail. We have a reference on the old object, hence the id table should have the
+            // object.
+            ebpf_core_object_t* old_object = NULL;
+            ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type, (ebpf_core_object_t**)&old_object));
+            EBPF_OBJECT_RELEASE_REFERENCE(old_object);
+        }
+        // ebpf_core_object_t* old_object = NULL;
+        // // This lookup should not fail. We have a reference on the old object, hence the id table should have the
+        // object. ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type,
+        // (ebpf_core_object_t**)&old_object)); EBPF_OBJECT_RELEASE_REFERENCE(old_object);
+        // // ebpf_assert_success(ebpf_object_dereference_by_id(old_id, value_type));
+        // // EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
     }
 
     if (value_object) {
 
         // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we
-        // already have a valid pointer to the object.  A failure here is indicative of a fatal internal error.
+        // already have a valid pointer to the object. A failure here is indicative of a fatal internal error.
         ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
     }
 
@@ -929,14 +1012,17 @@ _update_array_map_entry_with_handle(
     memcpy(entry, &id, map->ebpf_map_definition.value_size);
     result = EBPF_SUCCESS;
 
-Done:
-
-    if (value_object != NULL) {
-
+    // In case of PROG_ARRAY map, we keep a reference on the program object.
+    if (value_type != EBPF_OBJECT_PROGRAM && value_object != NULL) {
         // We have stored the id of the object, so let go of our reference on the object itself.  Going forward, we'll
         // use the id to get to the object, as and when required.  Note that this is with the explicit understanding
         // that the object may well have been since destroyed by the time we actually need to use this id. This is
         // perfectly valid and something we need to be prepared for.
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)value_object);
+    }
+
+Done:
+    if (result != EBPF_SUCCESS && value_object != NULL) {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)value_object);
     }
 
@@ -974,7 +1060,12 @@ _delete_array_map_entry_with_reference(
     result = _find_array_map_entry(map, key, false, &entry);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
+        ebpf_core_object_t* value_object = NULL;
         if (id) {
+            if (value_type == EBPF_OBJECT_PROGRAM) {
+                ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
+                EBPF_OBJECT_RELEASE_REFERENCE(value_object);
+            }
             EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
         }
         _delete_array_map_entry(map, key);
@@ -3169,9 +3260,16 @@ ebpf_map_create(
     }
 
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type);
+    result = EBPF_OBJECT_INITIALIZE(
+        &local_map->object, EBPF_OBJECT_MAP, NULL, NULL, _ebpf_map_delete, NULL, get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
+    }
+
+    // For BPF_MAP_TYPE_PROG_ARRAY, assign custom acquire and relese functions.
+    if (local_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
+        local_map->object.base.acquire_reference = _ebpf_map_prog_array_acquire_reference;
+        local_map->object.base.release_reference = _ebpf_map_prog_array_release_reference;
     }
 
     *ebpf_map = local_map;

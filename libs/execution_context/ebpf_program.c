@@ -214,7 +214,7 @@ _Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_
         ebpf_list_entry_t* entry = program->links.Flink;
         ebpf_core_object_t* object = CONTAINING_RECORD(entry, ebpf_core_object_t, object_list_entry);
         // Acquire a reference on the object to prevent it from going away.
-        EBPF_OBJECT_ACQUIRE_REFERENCE(object);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(object, false);
 
         // Release the lock before calling detach.
         ebpf_lock_unlock(&program->lock, state);
@@ -928,6 +928,8 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     retval = EBPF_OBJECT_INITIALIZE(
         &local_program->object,
         EBPF_OBJECT_PROGRAM,
+        NULL,
+        NULL,
         _ebpf_program_free,
         _ebpf_program_notify_reference_count_zeroed,
         _ebpf_program_get_program_type);
@@ -1005,7 +1007,7 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
         goto Done;
     }
 
-    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map, false);
     program_maps[map_count - 1] = map;
     program->maps = program_maps;
     program->count_of_maps = map_count;
@@ -1054,7 +1056,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index], false);
     }
     ebpf_lock_unlock(&program->lock, state);
 
@@ -2063,7 +2065,7 @@ ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 {
     EBPF_LOG_ENTRY();
     // Acquire "attach" reference on the link object.
-    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)link);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)link, false);
 
     // Insert the link in the attach list.
     ebpf_lock_state_t state;

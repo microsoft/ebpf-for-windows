@@ -192,6 +192,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
     _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
+    _In_opt_ ebpf_base_acquire_reference_t acquire_reference,
+    _In_opt_ ebpf_base_release_reference_t release_reference,
     _In_ ebpf_free_object_t free_object,
     _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
     ebpf_object_get_program_type_t get_program_type,
@@ -204,8 +206,8 @@ ebpf_object_initialize(
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object initialized", object, object_type);
     object->base.marker = _ebpf_object_marker;
     object->base.reference_count = 1;
-    object->base.acquire_reference = ebpf_object_acquire_reference;
-    object->base.release_reference = ebpf_object_release_reference;
+    object->base.acquire_reference = acquire_reference ? acquire_reference : ebpf_object_acquire_reference;
+    object->base.release_reference = release_reference ? release_reference : ebpf_object_release_reference;
     object->type = object_type;
     object->free_object = free_object;
     object->notify_reference_count_zeroed = notify_reference_count_zeroed;
@@ -261,8 +263,9 @@ Done:
 }
 
 void
-ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
+ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, bool user_reference, uint32_t file_id, uint32_t line)
 {
+    UNREFERENCED_PARAMETER(user_reference);
     _update_reference_history(object, EBPF_OBJECT_ACQUIRE, file_id, line);
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
@@ -307,12 +310,15 @@ _ebpf_object_try_acquire_reference(_Inout_ ebpf_base_object_t* object, uint32_t 
 }
 
 void
-ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
+ebpf_object_release_reference(
+    _Inout_opt_ ebpf_core_object_t* object, bool user_reference, uint32_t file_id, uint32_t line)
 {
     int64_t new_ref_count;
     if (!object) {
         return;
     }
+
+    UNREFERENCED_PARAMETER(user_reference);
 
     _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
 

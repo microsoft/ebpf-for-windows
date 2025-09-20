@@ -1489,7 +1489,6 @@ _ebpf_core_protocol_get_pinned_object(
     _Inout_ struct _ebpf_operation_get_pinned_object_reply* reply)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_object_t* object = NULL;
     size_t path_length;
     ebpf_result_t retval = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path), &path_length);
@@ -1506,7 +1505,6 @@ _ebpf_core_protocol_get_pinned_object(
     retval = ebpf_core_get_pinned_object(&path, &reply->handle);
 
 Done:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
     EBPF_RETURN_RESULT(retval);
 }
 
@@ -3285,7 +3283,7 @@ ebpf_core_close_context(_In_opt_ void* context)
     ebpf_epoch_enter(&epoch_state);
 
     ebpf_core_object_t* object = (ebpf_core_object_t*)context;
-    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base));
+    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base), false);
 
     ebpf_epoch_exit(&epoch_state);
 }

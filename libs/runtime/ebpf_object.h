@@ -34,12 +34,18 @@ extern "C"
 /**
  * @brief Macro to acquire a reference on an object and record the file and line number of the reference.
  */
-#define EBPF_OBJECT_ACQUIRE_REFERENCE(object) ebpf_object_acquire_reference(object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_ACQUIRE_REFERENCE(object, user_reference) \
+    ebpf_object_acquire_reference(object, user_reference, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to release a reference on an object and record the file and line number of the reference.
  */
-#define EBPF_OBJECT_RELEASE_REFERENCE(object) ebpf_object_release_reference(object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_RELEASE_REFERENCE(object) ebpf_object_release_reference(object, false, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to release a user reference on an object and record the file and line number of the reference.
+ */
+#define EBPF_OBJECT_RELEASE_REFERENCE_USER(object) ebpf_object_release_reference(object, true, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to locate the next object in the object list and acquire a reference on it and record the file and
@@ -80,33 +86,38 @@ extern "C"
  * @brief Macro to acquire a reference on an object via it's function pointers and record the file and line number
  * of the reference.
  */
-#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(base_object) \
-    base_object->acquire_reference(base_object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(base_object, user_reference) \
+    base_object->acquire_reference(base_object, user_reference, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to release a reference on an object via it's function pointers and record the file and line number
  * of the reference.
  */
-#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object) \
-    base_object->release_reference(base_object, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object, user_reference) \
+    base_object->release_reference(base_object, user_reference, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(object, object_type, free_object, zero_ref_function, get_program_type) \
-    ebpf_object_initialize(                                                                           \
-        (ebpf_core_object_t*)(object),                                                                \
-        (object_type),                                                                                \
-        (free_object),                                                                                \
-        (zero_ref_function),                                                                          \
-        (get_program_type),                                                                           \
-        EBPF_FILE_ID,                                                                                 \
+#define EBPF_OBJECT_INITIALIZE(                                                                                  \
+    object, object_type, acquire_reference, release_reference, free_object, zero_ref_function, get_program_type) \
+    ebpf_object_initialize(                                                                                      \
+        (ebpf_core_object_t*)(object),                                                                           \
+        (object_type),                                                                                           \
+        (acquire_reference),                                                                                     \
+        (release_reference),                                                                                     \
+        (free_object),                                                                                           \
+        (zero_ref_function),                                                                                     \
+        (get_program_type),                                                                                      \
+        EBPF_FILE_ID,                                                                                            \
         __LINE__)
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
-    typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
-    typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
+    typedef void (*ebpf_base_release_reference_t)(
+        _Inout_ void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line);
+    typedef void (*ebpf_base_acquire_reference_t)(
+        _Inout_ void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_notify_reference_count_zeroed_t)(ebpf_core_object_t* object);
@@ -125,8 +136,9 @@ extern "C"
     {
         uint32_t marker; ///< Contains the 32bit value 'eobj' when the object is valid and is inverted when the object
                          ///< is freed.
-        uint32_t zero_fill;                              ///< Zero fill to make the reference count is 8-byte aligned.
-        volatile int64_t reference_count;                ///< Reference count for the object.
+        uint32_t zero_fill;               ///< Zero fill to make the reference count is 8-byte aligned.
+        volatile int64_t reference_count; ///< Reference count for the object.
+        // volatile int64_t user_reference_count;           ///<
         ebpf_base_acquire_reference_t acquire_reference; ///< Function to acquire a reference on this object.
         ebpf_base_release_reference_t release_reference; ///< Function to release a reference on this object.
     } ebpf_base_object_t;
@@ -179,6 +191,8 @@ extern "C"
     ebpf_object_initialize(
         _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
+        _In_opt_ ebpf_base_acquire_reference_t acquire_reference,
+        _In_opt_ ebpf_base_release_reference_t release_reference,
         _In_ ebpf_free_object_t free_object,
         _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
         ebpf_object_get_program_type_t get_program_type,
@@ -189,22 +203,26 @@ extern "C"
      * @brief Acquire a reference to this object.
      *
      * @param[in,out] object Object on which to acquire a reference.
+     * @param[in] user_reference True if the reference is a user reference.
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
      */
     void
-    ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
+    ebpf_object_acquire_reference(
+        _Inout_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line);
 
     /**
      * @brief Release a reference on this object. If the reference count reaches
      *  zero, the free_function is invoked on the object.
      *
      * @param[in,out] object Object on which to release a reference.
+     * @param[in] user_reference True if the reference is a user reference.
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
      */
     void
-    ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, ebpf_file_id_t file_id, uint32_t line);
+    ebpf_object_release_reference(
+        _Inout_opt_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line);
 
     /**
      * @brief Query the stored type of the object.
