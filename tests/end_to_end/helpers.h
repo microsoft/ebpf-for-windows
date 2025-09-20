@@ -971,8 +971,7 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] =
-{(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

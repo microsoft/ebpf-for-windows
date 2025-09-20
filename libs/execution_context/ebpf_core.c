@@ -112,7 +112,6 @@ static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 static uint64_t
 _ebpf_core_get_current_process_start_key(
     uint64_t dummy_param1,
@@ -2800,7 +2799,6 @@ _ebpf_core_memmove_s(
     return memmove_s(destination, destination_length, source, source_length);
 }
 
-
 static uint64_t
 _ebpf_core_get_current_process_start_key(
     uint64_t dummy_param1,
@@ -2817,12 +2815,6 @@ _ebpf_core_get_current_process_start_key(
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
 
-    if (!ebpf_is_preemptible()) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_process_start_key: Called at DISPATCH.");
-
-        return 0;
-    }
     return PsGetProcessStartKey(IoGetCurrentProcess());
 }
 
@@ -2842,12 +2834,6 @@ _ebpf_core_get_current_thread_create_time(
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
 
-    if (!ebpf_is_preemptible()) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE, "get_current_thread_create_time: Called at DISPATCH.");
-
-        return -1;
-    }
     return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 

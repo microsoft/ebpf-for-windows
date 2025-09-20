@@ -548,9 +548,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {
-    (void*)_ebpf_sock_addr_set_redirect_context,
-};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -561,8 +559,7 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
-    (void*)_ebpf_sock_addr_get_socket_cookie,
-};
+    (void*)_ebpf_sock_addr_get_socket_cookie};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
