@@ -381,14 +381,14 @@ function Wait-TestJobToComplete
                     $TestVMName = $VMList[0].Name
 
                     try {
-                        Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                        Write-Host "Running kernel test job on $TestVMName has timed out after $($TestJobTimeout / 60) minutes." -ForegroundColor Yellow
                         Write-Log "Generating kernel dump due to test timeout on $TestVMName"
 
                         Import-Module "$PSScriptRoot\vm_run_tests.psm1" -ArgumentList @(
-                            $false,                                      # ExecuteOnHost
-                            $true,                                      # ExecuteOnVM
-                            $VMIsRemote,                                # VMIsRemote
-                            $TestVMName,                                # VMName
+                            $false,                                    # ExecuteOnHost
+                            $true,                                     # ExecuteOnVM
+                            $VMIsRemote,                               # VMIsRemote
+                            $TestVMName,                               # VMName
                             $AdminTestVMCredential.UserName,           # Admin
                             $AdminTestVMCredential.Password,           # AdminPassword
                             $StandardUserTestVMCredential.UserName,    # StandardUser
@@ -742,51 +742,6 @@ function Get-ZipFileFromUrl {
     }
 }
 
-function Get-LegacyRegressionTestArtifacts
-{
-    $ArifactVersionList = @("0.11.0")
-    $RegressionTestArtifactsPath = "$pwd\regression"
-    if (Test-Path -Path $RegressionTestArtifactsPath) {
-        Remove-Item -Path $RegressionTestArtifactsPath -Recurse -Force
-    }
-    mkdir $RegressionTestArtifactsPath
-
-    # verify Artifacts' folder presense
-    if (-not (Test-Path -Path $RegressionTestArtifactsPath)) {
-        $ErrorMessage = "*** ERROR *** Regression test artifacts folder not found: $RegressionTestArtifactsPath)"
-        Write-Log $ErrorMessage
-        throw $ErrorMessage
-    }
-
-    # Download regression test artifacts for each version.
-    foreach ($ArtifactVersion in $ArifactVersionList)
-    {
-        Write-Log "Downloading legacy regression test artifacts for version $ArtifactVersion"
-        $DownloadPath = "$RegressionTestArtifactsPath\$ArtifactVersion"
-        mkdir $DownloadPath
-        $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
-        $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
-
-        for ($i = 0; $i -lt 5; $i++) {
-            try {
-                # Download and extract the artifact.
-                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputDir $DownloadPath
-
-                # Extract the inner zip file.
-                Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
-                break
-            } catch {
-                Write-Log -TraceMessage "Iteration $i failed to download $ArtifactUrl. Removing $DownloadPath" -ForegroundColor Red
-                Remove-Item -Path $DownloadPath -Force -ErrorAction Ignore
-                Start-Sleep -Seconds 5
-            }
-        }
-
-        Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
-        Remove-Item -Path $DownloadPath -Force -Recurse
-    }
-}
-
 function Get-RegressionTestArtifacts
 {
     param([Parameter(Mandatory=$True)][string] $Configuration,
@@ -874,4 +829,77 @@ function Get-PSExec {
     Move-Item -Path "$DownloadPath\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse -ErrorAction Ignore
     return $psExecPath
+}
+
+<#
+.SYNOPSIS
+    Invokes a command on a remote or local VM.
+
+.PARAMETER VMName
+    The name of the VM.
+
+.PARAMETER VMIsRemote
+    Indicates if the VM is remote.
+
+.PARAMETER Credential
+    The credential to use for the VM.
+
+.DESCRIPTION
+    This function invokes a command on a remote or local VM using the specified credentials.
+
+.PARAMETER ScriptBlock
+    The script block to execute on the VM.
+
+.PARAMETER ArgumentList
+    The arguments to pass to the script block.
+
+.EXAMPLE
+    Invoke-CommandOnVM -VMName "MyVM" -VMIsRemote $true -Credential $credential -ScriptBlock { Get-Process }
+#>
+function Invoke-CommandOnVM {
+    param(
+        [Parameter(Mandatory = $true)][string] $VMName,
+        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory = $true)][PSCredential] $Credential,
+        [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @()
+    )
+    Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
+    if ($VMIsRemote) {
+        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+    } else {
+        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+    }
+}
+
+<#
+.SYNOPSIS
+    Creates a new PowerShell session on a remote or local VM.
+.PARAMETER VMName
+    The name of the VM.
+.PARAMETER VMIsRemote
+    Indicates if the VM is remote.
+.PARAMETER Credential
+    The credential to use for the VM.
+.RETURNS
+    A new PowerShell session object.
+.DESCRIPTION
+    This function creates a new PowerShell session on a remote or local VM using the specified credentials
+.EXAMPLE
+    $session = New-SessionOnVM -VMName "MyVM" -VMIsRemote $true -Credential $credential
+#>
+function New-SessionOnVM {
+    param(
+        [Parameter(Mandatory = $true)][string] $VMName,
+        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
+        [Parameter(Mandatory = $true)][PSCredential] $Credential
+    )
+    $session = $null
+    Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote)"
+    if ($VMIsRemote) {
+        $session = New-PSSession -ComputerName $VMName -Credential $Credential -ErrorAction Stop
+    } else {
+        $session = New-PSSession -VMName $VMName -Credential $Credential -ErrorAction Stop
+    }
+    return $session
 }
