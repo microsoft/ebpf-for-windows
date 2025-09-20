@@ -546,7 +546,8 @@ EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
  * @brief Get the current thread create time.
  *
  * @returns A 64-bit integer containing the current thread's
- * create time.
+ * create time. It represents the thread's creation time in 100-nanosecond
+ * intervals since January 1, 1601.
  */
 EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
 #ifndef __doxygen

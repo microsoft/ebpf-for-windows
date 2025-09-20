@@ -261,7 +261,7 @@ typedef class _stream_server_socket : public _server_socket
 } stream_server_socket_t;
 
 /**
- * @class A helper class for managing WSAStartup and WSACleanup
+ * @class A helper class for managing WSAStartup and WSACleanup.
  */
 typedef class _wsa_helper
 {

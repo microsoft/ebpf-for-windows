@@ -991,26 +991,26 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
     // Load and attach ebpf program.
     hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
     uint32_t ifindex = 0;
-    const char* program_name_ipv4 = "func_v4";
-    const char* program_name_ipv6 = "func_v6";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
+    const char* program_name_ipv4 = "function_v4";
+    const char* program_name_ipv6 = "function_v6";
+    program_load_attach_helper_t helper;
+    native_module_helper_t native_helper;
     struct bpf_map* map = nullptr;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
+    wsa_helper_t wsa_helper;
+    native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
     {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
+        helper.initialize(
+            native_helper.get_file_name().c_str(),
             BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
             is_ipv6 ? program_name_ipv6: program_name_ipv4,
             EBPF_EXECUTION_NATIVE,
             &ifindex,
             sizeof(ifindex),
             hook);
-        struct bpf_object* object = _helper.get_object();
+        struct bpf_object* object = helper.get_object();
 
         // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
+        wsa_helper.initialize();
 
         if (protocol == IPPROTO_TCP)
         {
@@ -1041,7 +1041,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
 
         // Verify PID/Start Key values.
         // We only validate that the start_key is not zero because
-        // otherwise this test case would need to take a dependency on ntQueryInformationProcess
+        // otherwise this test case would need to take a dependency on NtQueryInformationProcess
         // which per documentation can change at any time.
         unsigned long pid = GetCurrentProcessId();
         REQUIRE(0 < value.start_key);
@@ -1055,26 +1055,26 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
     // Load and attach ebpf program.
     hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
     uint32_t ifindex = 0;
-    const char* program_name_ipv4 = "func_v4";
-    const char* program_name_ipv6 = "func_v6";
-    program_load_attach_helper_t _helper;
-    native_module_helper_t _native_helper;
+    const char* program_name_ipv4 = "function_v4";
+    const char* program_name_ipv6 = "function_v6";
+    program_load_attach_helper_t helper;
+    native_module_helper_t native_helper;
     struct bpf_map* map = nullptr;
-    wsa_helper_t _wsa_helper;
-    _native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
+    wsa_helper_t wsa_helper;
+    native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
     {
-        _helper.initialize(
-            _native_helper.get_file_name().c_str(),
+        helper.initialize(
+            native_helper.get_file_name().c_str(),
             BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
             is_ipv6 ? program_name_ipv6: program_name_ipv4,
             EBPF_EXECUTION_NATIVE,
             &ifindex,
             sizeof(ifindex),
             hook);
-        struct bpf_object* object = _helper.get_object();
+        struct bpf_object* object = helper.get_object();
 
         // Initialize WSA so we can send traffic.
-        _wsa_helper.initialize();
+        wsa_helper.initialize();
 
         if (protocol == IPPROTO_TCP)
         {
