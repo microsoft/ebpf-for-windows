@@ -1028,13 +1028,14 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        struct val
+        typedef struct _value
         {
             uint32_t current_pid;
             uint64_t start_key;
-        } value;
+        } value_t;
+        value_t found_value{};
         std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
         std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
@@ -1044,8 +1045,8 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         // otherwise this test case would need to take a dependency on NtQueryInformationProcess
         // which per documentation can change at any time.
         unsigned long pid = GetCurrentProcessId();
-        REQUIRE(0 < value.start_key);
-        REQUIRE(pid == value.current_pid);
+        REQUIRE(0 < found_value.start_key);
+        REQUIRE(pid == found_value.current_pid);
     }
 }
 
@@ -1092,13 +1093,14 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         REQUIRE(map->map_fd != ebpf_fd_invalid);
 
         uint32_t key = 0;
-        struct val
+        typedef struct _value
         {
             uint32_t current_tid;
             int64_t start_time;
-        } value;
+        } value_t;
+        value_t found_value{};
         std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
-        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &value) == 0);
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
 
         std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
@@ -1110,8 +1112,8 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
             start_time = static_cast<long long>(creation.dwLowDateTime) |
                         (static_cast<long long>(creation.dwHighDateTime) << 32);
         }
-        REQUIRE(tid == value.current_tid);
-        REQUIRE(start_time == value.start_time);
+        REQUIRE(tid == found_value.current_tid);
+        REQUIRE(start_time == found_value.start_time);
     }
 }
 
