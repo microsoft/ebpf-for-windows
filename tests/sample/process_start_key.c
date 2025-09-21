@@ -4,24 +4,24 @@
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
 
-struct value_t
+typedef struct _value
 {
     uint32_t current_pid;
     uint64_t start_key;
-} value;
+} value_t;
 
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, uint32_t);
-    __type(value, struct value_t);
+    __type(value, value_t);
     __uint(max_entries, 1);
 } process_start_key_map SEC(".maps");
 
 int
 get_start_key(bpf_sock_addr_t* ctx)
 {
-    struct value_t v = {.current_pid = 0, .start_key = 0};
+    value_t v = {.current_pid = 0, .start_key = 0};
 
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
     v.start_key = bpf_get_current_process_start_key();

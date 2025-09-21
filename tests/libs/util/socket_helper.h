@@ -268,27 +268,27 @@ typedef class _wsa_helper
   public:
     _wsa_helper()
     {
-      // Initialize the result value to a failure. 
-      startup_result = -1;
+        // Initialize the result value to a failure.
+        startup_result = -1;
     }
     ~_wsa_helper()
     {
-      if (startup_result != -1)
-      {
-          WSACleanup();
-      }
+        if (startup_result != -1)
+        {
+            WSACleanup();
+        }
     }
 
     int
     initialize()
     {
-      WSADATA data{};
-      startup_result = WSAStartup(WINSOCK_VERSION, &data);
-      if (startup_result != 0)
-      {
-        FAIL("WSAStartup failed with error: " << WSAGetLastError());
-      }
-      return startup_result;
+        WSADATA data{};
+        startup_result = WSAStartup(WINSOCK_VERSION, &data);
+        if (startup_result != 0)
+        {
+          FAIL("WSAStartup failed with error: " << WSAGetLastError());
+        }
+        return startup_result;
     }
 
   private:
