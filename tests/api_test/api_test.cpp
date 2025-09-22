@@ -889,100 +889,62 @@ bind_tailcall_test(_In_ struct bpf_object* object)
 
 #define SOCKET_TEST_PORT 0x3bbf
 
-void
-connect_send_udp_ipv4_traffic()
+void send_traffic(IPPROTO protocol, bool is_ipv6)
 {
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-    // Send some traffic to initiate a connect.
-    PSOCKADDR local_address = nullptr;
-    int local_address_length = 0;
-    datagram_client_socket.get_local_address(local_address, local_address_length);
-    // Post an asynchronous receive on the receiver socket.
-    datagram_server_socket.post_async_receive();
-
-    // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
-    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-
-    datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-
-    datagram_server_socket.complete_async_receive(false);
-    // Cancel send operation.
-    datagram_client_socket.cancel_send_message();
-}
-
-void
-connect_send_tcp_ipv4_traffic()
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-    // Send some traffic to initiate a connect.
     PSOCKADDR local_address = nullptr;
     int local_address_length = 0;
-    stream_client_socket.get_local_address(local_address, local_address_length);
-    // Post an asynchronous receive on the receiver socket.
-    stream_server_socket.post_async_receive();
 
-    // Send loopback message to test port.
-    const char* message = CLIENT_MESSAGE;
-    sockaddr_storage destination_address{};
-    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    if (protocol == IPPROTO_UDP)
+    {
+        datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+        datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+        // Send some traffic to initiate a connect.
+        datagram_client_socket.get_local_address(local_address, local_address_length);
+        // Post an asynchronous receive on the receiver socket.
+        datagram_server_socket.post_async_receive();
 
-    stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        // Send loopback message to test port.
+        if (is_ipv6)
+        {
+            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+        }
+        else
+        {
+            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+        }
 
-    stream_server_socket.complete_async_receive(false);
-    // Cancel send operation.
-    stream_client_socket.cancel_send_message();
-}
+        datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-void
-connect_send_udp_ipv6_traffic()
-{
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-    // Send some traffic to initiate a connect.
-    PSOCKADDR local_address = nullptr;
-    int local_address_length = 0;
-    datagram_client_socket.get_local_address(local_address, local_address_length);
-    // Post an asynchronous receive on the receiver socket.
-    datagram_server_socket.post_async_receive();
+        datagram_server_socket.complete_async_receive(false);
+        // Cancel send operation.
+        datagram_client_socket.cancel_send_message();
+    }
+    else // TCP traffic.
+    {
+        stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+        stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+        stream_client_socket.get_local_address(local_address, local_address_length);
+        // Post an asynchronous receive on the receiver socket.
+        stream_server_socket.post_async_receive();
 
-    // Send loopback message to test port.
-    const char* message = CLIENT_MESSAGE;
-    sockaddr_storage destination_address{};
-    IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+        // Send loopback message to test port.
+        if (is_ipv6)
+        {
+            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+        }
+        else
+        {
+            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+        }
 
-    datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-    datagram_server_socket.complete_async_receive(false);
-    // Cancel send operation.
-    datagram_client_socket.cancel_send_message();
-}
-
-void
-connect_send_tcp_ipv6_traffic()
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-    // Send some traffic to initiate a connect.
-    PSOCKADDR local_address = nullptr;
-    int local_address_length = 0;
-    stream_client_socket.get_local_address(local_address, local_address_length);
-    // Post an asynchronous receive on the receiver socket.
-    stream_server_socket.post_async_receive();
-
-    // Send loopback message to test port.
-    const char* message = CLIENT_MESSAGE;
-    sockaddr_storage destination_address{};
-    IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-
-    stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-
-    stream_server_socket.complete_async_receive(false);
-    // Cancel send operation.
-    stream_client_socket.cancel_send_message();
+        stream_server_socket.complete_async_receive(false);
+        // Cancel send operation.
+        stream_client_socket.cancel_send_message();
+    }
 }
 
 void
@@ -1012,14 +974,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         // Initialize WSA so we can send traffic.
         wsa_helper.initialize();
 
-        if (protocol == IPPROTO_TCP)
-        {
-            is_ipv6 ?connect_send_tcp_ipv6_traffic() : connect_send_tcp_ipv4_traffic();
-        }
-        else
-        {
-            is_ipv6 ?connect_send_udp_ipv6_traffic() : connect_send_udp_ipv4_traffic();
-        }
+        send_traffic(protocol, is_ipv6);
 
         // Read from map.
         std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
@@ -1077,14 +1032,7 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         // Initialize WSA so we can send traffic.
         wsa_helper.initialize();
 
-        if (protocol == IPPROTO_TCP)
-        {
-            is_ipv6 ? connect_send_tcp_ipv6_traffic() : connect_send_tcp_ipv4_traffic();
-        }
-        else
-        {
-            is_ipv6 ? connect_send_udp_ipv6_traffic() : connect_send_udp_ipv4_traffic();
-        }
+        send_traffic(protocol, is_ipv6);
 
         // Read from map.
         std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
