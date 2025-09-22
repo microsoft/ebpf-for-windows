@@ -185,6 +185,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a9126ed3f0aa44adaee692818077ef9ba" id="r_a9126ed3f0aa44adaee692818077ef9ba"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a9126ed3f0aa44adaee692818077ef9ba">bpf_perf_event_output</a> (void *ctx, void *perf_event_array, uint64_t flags, void *data, uint64_t size)</td></tr>
 <tr class="memdesc:a9126ed3f0aa44adaee692818077ef9ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy data into perf event array map.  <br /></td></tr>
 <tr class="separator:a9126ed3f0aa44adaee692818077ef9ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adc5a82dd257e2d8b884a3b2b21b8129c" id="r_adc5a82dd257e2d8b884a3b2b21b8129c"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#adc5a82dd257e2d8b884a3b2b21b8129c">bpf_get_current_process_start_key</a> ()</td></tr>
+<tr class="memdesc:adc5a82dd257e2d8b884a3b2b21b8129c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current process start key.  <br /></td></tr>
+<tr class="separator:adc5a82dd257e2d8b884a3b2b21b8129c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a48e196df5a0bd4b4b4c2eece6ca2469e" id="r_a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">bpf_get_current_thread_create_time</a> ()</td></tr>
+<tr class="memdesc:a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current thread create time.  <br /></td></tr>
+<tr class="separator:a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515" name="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -290,6 +296,46 @@ Functions</h2></td></tr>
 
 <p>Get the current thread ID (PID) and process ID (TGID). </p>
 <dl class="section return"><dt>Returns</dt><dd>A 64-bit integer containing the current process ID and thread ID, and created as such: (process ID &lt;&lt; 32) | (thread ID). </dd></dl>
+
+</div>
+</div>
+<a id="adc5a82dd257e2d8b884a3b2b21b8129c" name="adc5a82dd257e2d8b884a3b2b21b8129c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adc5a82dd257e2d8b884a3b2b21b8129c">&#9670;&#160;</a></span>bpf_get_current_process_start_key()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_get_current_process_start_key </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the current process start key. </p>
+<dl class="section return"><dt>Returns</dt><dd>A 64-bit integer containing the current process start key. </dd></dl>
+
+</div>
+</div>
+<a id="a48e196df5a0bd4b4b4c2eece6ca2469e" name="a48e196df5a0bd4b4b4c2eece6ca2469e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a48e196df5a0bd4b4b4c2eece6ca2469e">&#9670;&#160;</a></span>bpf_get_current_thread_create_time()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int64_t bpf_get_current_thread_create_time </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the current thread create time. </p>
+<dl class="section return"><dt>Returns</dt><dd>A 64-bit integer containing the current thread's create time. It represents the thread's creation time in 100-nanosecond intervals since January 1, 1601. </dd></dl>
 
 </div>
 </div>
