@@ -404,20 +404,21 @@ function Import-ResultsFromVM
         Compress-KernelModeDumpOnVM -Session $VMSession
 
         $LocalKernelArchiveLocation = ".\TestLogs\$VMName\KernelDumps"
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\KernelDumps" `
-            -Destination $LocalKernelArchiveLocation `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
+        if (!(Test-Path $LocalKernelArchiveLocation)) {
+            New-Item -ItemType Directory -Path $LocalKernelArchiveLocation | Out-Null
+        }
 
-        if (Test-Path $LocalKernelArchiveLocation\km_dumps.zip -PathType Leaf) {
-            $LocalFile = get-childitem -Path $LocalKernelArchiveLocation\km_dumps.zip
-            Write-Log "Local copy of kernel mode dump archive in $($LocalKernelArchiveLocation) for VM $($VMName):"
-            Write-Log "`tName:$($LocalFile.Name), Size:$((($LocalFile.Length) / 1MB).ToString("F2")) MB"
+        # Copy kernel dumps from Test VM - try compressed first, then uncompressed from Windows folder
+        $result = CopyCompressedOrUncompressed-FileFromSession `
+            -VMSession $VMSession `
+            -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
+            -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
+            -DestinationDirectory $LocalKernelArchiveLocation
+
+        if ($result.Success) {
+            Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
         } else {
-            Write-Log "No local copy of kernel mode dump archive in $($LocalKernelArchiveLocation) for VM $VMName."
+            Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
         }
 
         # Copy user mode crash dumps if any.

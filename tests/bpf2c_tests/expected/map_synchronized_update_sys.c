@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from map_in_map_legacy_id.o
+// This file was generated from map_synchronized_update.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table map_in_map_legacy_id##_metadata_table
+#define metadata_table map_synchronized_update##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -173,21 +173,39 @@ static map_entry_t _maps[] = {
     {
      {0, 0},
      {
-         1,                          // Current Version.
-         80,                         // Struct size up to the last field.
-         80,                         // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
-         4,                          // Size in bytes of a map key.
-         4,                          // Size in bytes of a map value.
-         1,                          // Maximum number of entries allowed in the map.
-         0,                          // Inner map index.
-         LIBBPF_PIN_NONE,            // Pinning type for the map.
-         0,                          // Identifier for a map template.
-         10,                         // The id of the inner map template.
+         BPF_MAP_TYPE_HASH, // Type of map.
+         4,                 // Size in bytes of a map key.
+         4,                 // Size in bytes of a map value.
+         1,                 // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         LIBBPF_PIN_NONE,   // Pinning type for the map.
+         8,                 // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
-     "outer_map"},
+     "map_1"},
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         12,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "failure_stats"},
     {
      {0, 0},
      {
@@ -202,10 +220,10 @@ static map_entry_t _maps[] = {
          1,                 // Maximum number of entries allowed in the map.
          0,                 // Inner map index.
          LIBBPF_PIN_NONE,   // Pinning type for the map.
-         10,                // Identifier for a map template.
+         14,                // Identifier for a map template.
          0,                 // The id of the inner map template.
      },
-     "inner_map"},
+     "map_2"},
 };
 #pragma data_seg(pop)
 
@@ -213,7 +231,7 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = _maps;
-    *count = 2;
+    *count = 3;
 }
 
 static void
@@ -237,113 +255,179 @@ static GUID lookup_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf,
 static GUID lookup_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t lookup_maps[] = {
     0,
+    1,
+    2,
 };
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
 lookup(void* context, const program_runtime_context_t* runtime_context)
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
 {
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     // Prologue.
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r0 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r1 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r2 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r3 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r4 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r5 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r6 = 0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     register uint64_t r10 = 0;
 
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     r1 = (uintptr_t)context;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
-#line 38 "sample/undocked/map_in_map_legacy_id.c"
+#line 44 "sample/undocked/map_synchronized_update.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
-#line 38 "sample/undocked/map_in_map_legacy_id.c"
+#line 44 "sample/undocked/map_synchronized_update.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
-#line 38 "sample/undocked/map_in_map_legacy_id.c"
+#line 44 "sample/undocked/map_synchronized_update.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
-#line 39 "sample/undocked/map_in_map_legacy_id.c"
+#line 49 "sample/undocked/map_synchronized_update.c"
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
-#line 39 "sample/undocked/map_in_map_legacy_id.c"
+#line 49 "sample/undocked/map_synchronized_update.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 39 "sample/undocked/map_in_map_legacy_id.c"
+#line 49 "sample/undocked/map_synchronized_update.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 39 "sample/undocked/map_in_map_legacy_id.c"
+#line 49 "sample/undocked/map_synchronized_update.c"
         return 0;
-#line 39 "sample/undocked/map_in_map_legacy_id.c"
+#line 49 "sample/undocked/map_synchronized_update.c"
     }
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=8 imm=0
-#line 40 "sample/undocked/map_in_map_legacy_id.c"
-    if (r0 == IMMEDIATE(0)) {
-#line 40 "sample/undocked/map_in_map_legacy_id.c"
-        goto label_2;
-#line 40 "sample/undocked/map_in_map_legacy_id.c"
-    }
-    // EBPF_OP_STXW pc=8 dst=r10 src=r6 offset=-8 imm=0
-#line 41 "sample/undocked/map_in_map_legacy_id.c"
-    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
-#line 41 "sample/undocked/map_in_map_legacy_id.c"
-    r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-8
-#line 41 "sample/undocked/map_in_map_legacy_id.c"
-    r2 += IMMEDIATE(-8);
-    // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r0 offset=0 imm=0
-#line 42 "sample/undocked/map_in_map_legacy_id.c"
-    r1 = r0;
-    // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=1
-#line 42 "sample/undocked/map_in_map_legacy_id.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 42 "sample/undocked/map_in_map_legacy_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 42 "sample/undocked/map_in_map_legacy_id.c"
-        return 0;
-#line 42 "sample/undocked/map_in_map_legacy_id.c"
-    }
-    // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
-#line 43 "sample/undocked/map_in_map_legacy_id.c"
+    // EBPF_OP_JNE_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
+#line 50 "sample/undocked/map_synchronized_update.c"
     if (r0 != IMMEDIATE(0)) {
-#line 43 "sample/undocked/map_in_map_legacy_id.c"
+#line 50 "sample/undocked/map_synchronized_update.c"
         goto label_1;
-#line 43 "sample/undocked/map_in_map_legacy_id.c"
+#line 50 "sample/undocked/map_synchronized_update.c"
     }
-    // EBPF_OP_JA pc=14 dst=r0 src=r0 offset=1 imm=0
-#line 43 "sample/undocked/map_in_map_legacy_id.c"
+    // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=0
+#line 50 "sample/undocked/map_synchronized_update.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=9 dst=r10 src=r1 offset=-8 imm=0
+#line 52 "sample/undocked/map_synchronized_update.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
+    // EBPF_OP_MOV64_REG pc=10 dst=r2 src=r10 offset=0 imm=0
+#line 52 "sample/undocked/map_synchronized_update.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=11 dst=r2 src=r0 offset=0 imm=-8
+#line 52 "sample/undocked/map_synchronized_update.c"
+    r2 += IMMEDIATE(-8);
+    // EBPF_OP_LDDW pc=12 dst=r1 src=r1 offset=0 imm=2
+#line 53 "sample/undocked/map_synchronized_update.c"
+    r1 = POINTER(runtime_context->map_data[1].address);
+    // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
+#line 53 "sample/undocked/map_synchronized_update.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+#line 53 "sample/undocked/map_synchronized_update.c"
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+#line 53 "sample/undocked/map_synchronized_update.c"
+        return 0;
+#line 53 "sample/undocked/map_synchronized_update.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=16 imm=0
+#line 54 "sample/undocked/map_synchronized_update.c"
+    if (r0 == IMMEDIATE(0)) {
+#line 54 "sample/undocked/map_synchronized_update.c"
+        goto label_3;
+#line 54 "sample/undocked/map_synchronized_update.c"
+    }
+    // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=13 imm=0
+#line 54 "sample/undocked/map_synchronized_update.c"
     goto label_2;
 label_1:
-    // EBPF_OP_LDXW pc=15 dst=r6 src=r0 offset=0 imm=0
-#line 44 "sample/undocked/map_in_map_legacy_id.c"
-    READ_ONCE_32(r6, r0, OFFSET(0));
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=3
+#line 61 "sample/undocked/map_synchronized_update.c"
+    r1 = POINTER(runtime_context->map_data[2].address);
+    // EBPF_OP_MOV64_REG pc=19 dst=r2 src=r0 offset=0 imm=0
+#line 61 "sample/undocked/map_synchronized_update.c"
+    r2 = r0;
+    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=1
+#line 61 "sample/undocked/map_synchronized_update.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+#line 61 "sample/undocked/map_synchronized_update.c"
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+#line 61 "sample/undocked/map_synchronized_update.c"
+        return 0;
+#line 61 "sample/undocked/map_synchronized_update.c"
+    }
+    // EBPF_OP_JNE_IMM pc=21 dst=r0 src=r0 offset=11 imm=0
+#line 62 "sample/undocked/map_synchronized_update.c"
+    if (r0 != IMMEDIATE(0)) {
+#line 62 "sample/undocked/map_synchronized_update.c"
+        goto label_4;
+#line 62 "sample/undocked/map_synchronized_update.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=22 dst=r1 src=r0 offset=0 imm=0
+#line 62 "sample/undocked/map_synchronized_update.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=23 dst=r10 src=r1 offset=-12 imm=0
+#line 64 "sample/undocked/map_synchronized_update.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-12));
+    // EBPF_OP_MOV64_REG pc=24 dst=r2 src=r10 offset=0 imm=0
+#line 64 "sample/undocked/map_synchronized_update.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=25 dst=r2 src=r0 offset=0 imm=-12
+#line 64 "sample/undocked/map_synchronized_update.c"
+    r2 += IMMEDIATE(-12);
+    // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=2
+#line 65 "sample/undocked/map_synchronized_update.c"
+    r1 = POINTER(runtime_context->map_data[1].address);
+    // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
+#line 65 "sample/undocked/map_synchronized_update.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+#line 65 "sample/undocked/map_synchronized_update.c"
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+#line 65 "sample/undocked/map_synchronized_update.c"
+        return 0;
+#line 65 "sample/undocked/map_synchronized_update.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=2 imm=0
+#line 66 "sample/undocked/map_synchronized_update.c"
+    if (r0 == IMMEDIATE(0)) {
+#line 66 "sample/undocked/map_synchronized_update.c"
+        goto label_3;
+#line 66 "sample/undocked/map_synchronized_update.c"
+    }
 label_2:
-    // EBPF_OP_MOV64_REG pc=16 dst=r0 src=r6 offset=0 imm=0
-#line 48 "sample/undocked/map_in_map_legacy_id.c"
+    // EBPF_OP_MOV64_IMM pc=30 dst=r1 src=r0 offset=0 imm=1
+#line 66 "sample/undocked/map_synchronized_update.c"
+    r1 = IMMEDIATE(1);
+    // EBPF_OP_ATOMIC_ADD pc=31 dst=r0 src=r1 offset=0 imm=0
+#line 66 "sample/undocked/map_synchronized_update.c"
+    InterlockedExchangeAdd((volatile long*)(uintptr_t)(r0 + OFFSET(0)), (uint32_t)r1);
+label_3:
+    // EBPF_OP_MOV64_IMM pc=32 dst=r6 src=r0 offset=0 imm=1
+#line 66 "sample/undocked/map_synchronized_update.c"
+    r6 = IMMEDIATE(1);
+label_4:
+    // EBPF_OP_MOV64_REG pc=33 dst=r0 src=r6 offset=0 imm=0
+#line 73 "sample/undocked/map_synchronized_update.c"
     r0 = r6;
-    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
-#line 48 "sample/undocked/map_in_map_legacy_id.c"
+    // EBPF_OP_EXIT pc=34 dst=r0 src=r0 offset=0 imm=0
+#line 73 "sample/undocked/map_synchronized_update.c"
     return r0;
-#line 36 "sample/undocked/map_in_map_legacy_id.c"
+#line 42 "sample/undocked/map_synchronized_update.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -358,10 +442,10 @@ static program_entry_t _programs[] = {
         "sample_ext",
         "lookup",
         lookup_maps,
-        1,
+        3,
         lookup_helpers,
         1,
-        18,
+        35,
         &lookup_program_type_guid,
         &lookup_attach_type_guid,
     },
@@ -390,7 +474,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t map_in_map_legacy_id_metadata_table = {
+metadata_table_t map_synchronized_update_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,
