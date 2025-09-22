@@ -112,6 +112,24 @@ static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
+static uint64_t
+_ebpf_core_get_current_process_start_key(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx);
+
+static int64_t
+_ebpf_core_get_current_thread_create_time(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx);
+
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
@@ -159,6 +177,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ms,
     // Perf event array (perf buffer) output.
     (void*)&_ebpf_core_perf_event_output,
+    (void*)&_ebpf_core_get_current_process_start_key,
+    (void*)&_ebpf_core_get_current_thread_create_time,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2777,6 +2797,44 @@ _ebpf_core_memmove_s(
         return -EINVAL;
     }
     return memmove_s(destination, destination_length, source, source_length);
+}
+
+static uint64_t
+_ebpf_core_get_current_process_start_key(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+
+    return PsGetProcessStartKey(IoGetCurrentProcess());
+}
+
+static int64_t
+_ebpf_core_get_current_thread_create_time(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+
+    return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 
 typedef enum _ebpf_protocol_call_type
