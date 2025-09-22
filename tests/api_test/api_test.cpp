@@ -1756,7 +1756,6 @@ TEST_CASE("ebpf_type_conversion_apis", "[ebpf_api]")
     const char* retrieved_name = ebpf_get_program_type_name(&program_type);
     REQUIRE(retrieved_name != nullptr);
     REQUIRE(std::string(retrieved_name) == "bind");
-    REQUIRE(strlen(retrieved_name) > 0);
 }
 
 // Test path canonicalization API.
@@ -1809,9 +1808,7 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
         }
 
         // Clean up error message if any.
-        if (error_message != nullptr) {
-            ebpf_free_string(error_message);
-        }
+        ebpf_free_string(error_message);
     }
 
     // Test with non-existent file - should fail gracefully.
@@ -1821,9 +1818,7 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
     REQUIRE(result != EBPF_SUCCESS);
 
     // Clean up error message if any.
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(error_message);
 }
 
 // Test eBPF verification APIs.
@@ -1852,12 +1847,8 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         REQUIRE(result == 0);
 
         // Clean up strings.
-        if (report != nullptr) {
-            ebpf_free_string(report);
-        }
-        if (error_message != nullptr) {
-            ebpf_free_string(error_message);
-        }
+        ebpf_free_string(report);
+        ebpf_free_string(error_message);
     }
 
     // Test disassembly APIs.
@@ -1879,12 +1870,8 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         }
 
         // Clean up strings.
-        if (disassembly != nullptr) {
-            ebpf_free_string(disassembly);
-        }
-        if (error_message != nullptr) {
-            ebpf_free_string(error_message);
-        }
+        ebpf_free_string(disassembly);
+        ebpf_free_string(error_message);
     }
 }
 
@@ -2165,9 +2152,7 @@ TEST_CASE("ebpf_enumerate_sections_deprecated", "[ebpf_api]")
     }
 
     // Clean up error message if any.
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(error_message);
 }
 
 // Test deprecated ebpf_get_next_pinned_program_path API.
@@ -2209,12 +2194,8 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     REQUIRE(result != 0); // Not successful verification.
 
     // Clean up strings.
-    if (report != nullptr) {
-        ebpf_free_string(report);
-    }
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
 
     // Test with null data - should fail gracefully.
     result = ebpf_api_elf_verify_program_from_memory(
@@ -2222,12 +2203,8 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     REQUIRE(result != 0);
 
     // Clean up strings.
-    if (report != nullptr) {
-        ebpf_free_string(report);
-    }
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
 }
 
 // Test remaining deprecated eBPF verification APIs for completeness.
@@ -2248,12 +2225,8 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
     }
 
     // Clean up strings.
-    if (disassembly != nullptr) {
-        ebpf_free_string(disassembly);
-    }
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(disassembly);
+    ebpf_free_string(error_message);
 
     // Test deprecated verify section from file API.
     const char* report = nullptr;
@@ -2272,12 +2245,8 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
 #pragma warning(pop)
 
     // Clean up strings.
-    if (report != nullptr) {
-        ebpf_free_string(report);
-    }
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
 
     // Test deprecated verify section from memory API.
     const char* test_data = "minimal_test_data";
@@ -2299,10 +2268,6 @@ TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
     REQUIRE(result != 0); // Not successful verification.
 
     // Clean up strings.
-    if (report != nullptr) {
-        ebpf_free_string(report);
-    }
-    if (error_message != nullptr) {
-        ebpf_free_string(error_message);
-    }
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
 }
