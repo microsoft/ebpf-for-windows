@@ -18,14 +18,15 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Community 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17) (free)
    - [Download Visual Studio Professional 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=17)
    - [Download Visual Studio Enterprise 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=17)
-
+   
 Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
 first time.
+1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**). The latest version of clang that ships with the Visual Studio installer does not support `bpf` as a target.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
 
-Alternative install steps (for *basic* Visual Studio Community edition):
+**Alternative install steps to install Visual Studio and the required dependencies (for *basic* Visual Studio Community edition):**
 
 1. Launch an administrative PowerShell session.
 1. Install [Chocolatey Package Manager for Windows](https://chocolatey.org/install) by running the following commands in the PowerShell session:
@@ -38,7 +39,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '36C16D8455E8867E64EFA1D1AF5223CEF9CDB4394C3B76B6AA09B46F3F26E7A8') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'B12416D3C84660BE33C88772B3E7D3571A10899A57BC9DDFE218DB751483FD71') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
 
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),

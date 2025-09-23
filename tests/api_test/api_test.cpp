@@ -26,6 +26,7 @@
 #include <mutex>
 #define _NTDEF_ // UNICODE_STRING is already defined
 #include <ntsecapi.h>
+#include <processthreadsapi.h>
 #include <thread>
 #include <vector>
 using namespace std::chrono_literals;
@@ -886,6 +887,184 @@ bind_tailcall_test(_In_ struct bpf_object* object)
     WSACleanup();
 }
 
+#define SOCKET_TEST_PORT 0x3bbf
+
+void send_traffic(IPPROTO protocol, bool is_ipv6)
+{
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+
+    if (protocol == IPPROTO_UDP)
+    {
+        datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+        datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+        // Send some traffic to initiate a connect.
+        datagram_client_socket.get_local_address(local_address, local_address_length);
+        // Post an asynchronous receive on the receiver socket.
+        datagram_server_socket.post_async_receive();
+
+        // Send loopback message to test port.
+        if (is_ipv6)
+        {
+            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+        }
+        else
+        {
+            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+        }
+
+        datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+        datagram_server_socket.complete_async_receive(false);
+        // Cancel send operation.
+        datagram_client_socket.cancel_send_message();
+    }
+    else // TCP traffic.
+    {
+        stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+        stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+        stream_client_socket.get_local_address(local_address, local_address_length);
+        // Post an asynchronous receive on the receiver socket.
+        stream_server_socket.post_async_receive();
+
+        // Send loopback message to test port.
+        if (is_ipv6)
+        {
+            IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+        }
+        else
+        {
+            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+        }
+
+        stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+        stream_server_socket.complete_async_receive(false);
+        // Cancel send operation.
+        stream_client_socket.cancel_send_message();
+    }
+}
+
+void
+run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
+{
+    // Load and attach ebpf program.
+    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    uint32_t ifindex = 0;
+    const char* program_name_ipv4 = "function_v4";
+    const char* program_name_ipv6 = "function_v6";
+    program_load_attach_helper_t helper;
+    native_module_helper_t native_helper;
+    struct bpf_map* map = nullptr;
+    wsa_helper_t wsa_helper;
+    native_helper.initialize("process_start_key", EBPF_EXECUTION_NATIVE);
+    {
+        helper.initialize(
+            native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = helper.get_object();
+
+        // Initialize WSA so we can send traffic.
+        wsa_helper.initialize();
+
+        send_traffic(protocol, is_ipv6);
+
+        // Read from map.
+        std::cout << "bpf_object__find_map_by_name(process_start_key_map)\n";
+        map = bpf_object__find_map_by_name(object, "process_start_key_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
+
+        uint32_t key = 0;
+        typedef struct _value
+        {
+            uint32_t current_pid;
+            uint64_t start_key;
+        } value_t;
+        value_t found_value{};
+        std::cout << "bpf_map_lookup_elem(process_start_key_map) key: " << key << "\n";
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
+
+        std::cout << "bpf_map_delete_elem(process_start_key_map)\n";
+        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
+
+        // Verify PID/Start Key values.
+        // We only validate that the start_key is not zero because
+        // otherwise this test case would need to take a dependency on NtQueryInformationProcess
+        // which per documentation can change at any time.
+        unsigned long pid = GetCurrentProcessId();
+        REQUIRE(0 < found_value.start_key);
+        REQUIRE(pid == found_value.current_pid);
+    }
+}
+
+void
+run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
+{
+    // Load and attach ebpf program.
+    hook_helper_t hook(is_ipv6 ? EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT : EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    uint32_t ifindex = 0;
+    const char* program_name_ipv4 = "function_v4";
+    const char* program_name_ipv6 = "function_v6";
+    program_load_attach_helper_t helper;
+    native_module_helper_t native_helper;
+    struct bpf_map* map = nullptr;
+    wsa_helper_t wsa_helper;
+    native_helper.initialize("thread_start_time", EBPF_EXECUTION_NATIVE);
+    {
+        helper.initialize(
+            native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            EBPF_EXECUTION_NATIVE,
+            &ifindex,
+            sizeof(ifindex),
+            hook);
+        struct bpf_object* object = helper.get_object();
+
+        // Initialize WSA so we can send traffic.
+        wsa_helper.initialize();
+
+        send_traffic(protocol, is_ipv6);
+
+        // Read from map.
+        std::cout << "bpf_object__find_map_by_name(thread_start_time_map)\n";
+        map = bpf_object__find_map_by_name(object, "thread_start_time_map");
+        REQUIRE(map != nullptr);
+        REQUIRE(map->map_fd != ebpf_fd_invalid);
+
+        uint32_t key = 0;
+        typedef struct _value
+        {
+            uint32_t current_tid;
+            int64_t start_time;
+        } value_t;
+        value_t found_value{};
+        std::cout << "bpf_map_lookup_elem(thread_start_time_map) key: " << key << "\n";
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map), &key, &found_value) == 0);
+
+        std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
+        REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
+        // Verify PID/start time values.
+        unsigned long tid = GetCurrentThreadId();
+        long long start_time = 0;
+        FILETIME creation, exit, kernel, user;
+        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
+            start_time = static_cast<long long>(creation.dwLowDateTime) |
+                        (static_cast<long long>(creation.dwHighDateTime) << 32);
+        }
+        REQUIRE(tid == found_value.current_tid);
+        REQUIRE(start_time == found_value.start_time);
+    }
+}
+
 #define MAX_TAIL_CALL_PROGS MAX_TAIL_CALL_CNT + 2
 
 TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
@@ -929,8 +1108,6 @@ TEST_CASE("bind_tailcall_max_native_test", "[native_tests]")
         REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
     }
 }
-
-#define SOCKET_TEST_PORT 0x3bbf
 
 TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 {
@@ -977,6 +1154,45 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
 
     // Clean up.
     WSACleanup();
+}
+
+TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]")
+{
+    run_process_start_key_test(IPPROTO_UDP, false);
+}
+
+TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]")
+{
+    run_process_start_key_test(IPPROTO_UDP, true);
+}
+
+TEST_CASE("bpf_get_process_start_key_tcp_ipv4", "[helpers]")
+{
+    run_process_start_key_test(IPPROTO_TCP, false);
+}
+
+TEST_CASE("bpf_get_process_start_key_tcp_ipv6", "[helpers]")
+{
+    run_process_start_key_test(IPPROTO_TCP, true);
+}
+
+TEST_CASE("bpf_get_thread_start_time_udp_ipv4", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_UDP, false);
+}
+
+TEST_CASE("bpf_get_thread_start_time_udp_ipv6", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_UDP, true);
+}
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv4", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_TCP, false);
+}
+
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]")
+{
+    run_thread_start_time_test(IPPROTO_TCP, true);
 }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")
