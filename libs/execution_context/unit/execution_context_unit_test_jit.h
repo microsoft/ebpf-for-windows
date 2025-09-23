@@ -21,7 +21,8 @@ template <typename T> class ebpf_object_deleter
     void
     operator()(T* object)
     {
-        ebpf_object_release_reference(reinterpret_cast<ebpf_core_object_t*>(object), EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS, __LINE__);
+        ebpf_object_release_reference(
+            reinterpret_cast<ebpf_core_object_t*>(object), false, EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS, __LINE__);
     }
 };
 
@@ -65,7 +66,7 @@ typedef class _ebpf_async_wrapper
   private:
     static void
     completion_callback(_In_ void* context, size_t reply_size, ebpf_result_t result);
-    
+
     ebpf_result_t _result = EBPF_SUCCESS;
     size_t _reply_size = 0;
     bool _completed = false;
@@ -169,8 +170,8 @@ extern "C"
 #define TOTAL_HELPER_COUNT 3
 
 #if defined(CONFIG_BPF_JIT_DISABLED) || defined(CONFIG_BPF_INTERPRETER_DISABLED)
-void
-test_blocked_by_policy(ebpf_operation_id_t operation);
+    void
+    test_blocked_by_policy(ebpf_operation_id_t operation);
 #endif
 
 #ifdef __cplusplus
