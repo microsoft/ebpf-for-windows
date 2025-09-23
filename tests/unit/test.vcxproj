@@ -214,19 +214,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp" />
+    <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test_jit.cpp" />
     <ClCompile Include="..\..\libs\runtime\unit\platform_unit_test.cpp" />
     <ClCompile Include="..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\end_to_end\end_to_end.cpp" />
+    <ClCompile Include="..\end_to_end\end_to_end_jit.cpp" />
     <ClCompile Include="..\end_to_end\netsh_test.cpp" />
     <ClCompile Include="..\end_to_end\test_helper.cpp" />
     <ClCompile Include="ebpfcore_test.cpp" />
     <ClCompile Include="export_program_info_test.cpp" />
     <ClCompile Include="libbpf_test.cpp" />
+    <ClCompile Include="libbpf_test_jit.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\libs\execution_context\unit\execution_context_unit_test_jit.h" />
     <ClInclude Include="..\..\libs\thunk\mock\mock.h" />
+    <ClInclude Include="..\end_to_end\end_to_end_jit.h" />
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
+    <ClInclude Include="libbpf_test_jit.h" />
     <ClCompile Include="wer_report_test_wrapper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
