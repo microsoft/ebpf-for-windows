@@ -266,17 +266,17 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 312;
-    const int old_code_size = 311;
+    const int code_size = 318;
+    const int old_code_size = 318;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1152;
-    const int old_code_size = 1114;
+    const int code_size = 1198;
+    const int old_code_size = 1198;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 312;
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 1116;
-    const int old_code_size = 1124;
+    const int code_size = 1164;
+    const int old_code_size = 1164;
 #else
 #error "Unsupported architecture"
 #endif
@@ -376,17 +376,17 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     // Code size is for MSVC 2022 version 17.14.0 and later.
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int old_code_size[] = {333, 350, 333, 350};
-    const int code_size[] = {333, 353, 333, 353};
+    const int old_code_size[] = {339, 363, 339, 363};
+    const int code_size[] = {339, 363, 339, 363};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int old_code_size[] = {961, 1036, 961, 1036};
-    const int code_size[] = {961, 1036, 961, 1036};
+    const int code_size[] = {1089, 1224, 1089, 1224};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int old_code_size[] = {328, 344, 328, 344};
-    const int code_size[] = {328, 344, 328, 344};
+    const int code_size[] = {328, 352, 328, 352};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int old_code_size[] = {1100, 1232, 1100, 1232};
-    const int code_size[] = {1100, 1232, 1100, 1232};
+    const int old_code_size[] = {1132, 1288, 1132, 1288};
+    const int code_size[] = {1132, 1288, 1132, 1288};
 #else
 #error "Unsupported architecture"
 #endif
