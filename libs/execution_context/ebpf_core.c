@@ -3341,7 +3341,7 @@ ebpf_core_close_context(_In_opt_ void* context)
     ebpf_epoch_enter(&epoch_state);
 
     ebpf_core_object_t* object = (ebpf_core_object_t*)context;
-    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base), false);
+    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base), true);
 
     ebpf_epoch_exit(&epoch_state);
 }
