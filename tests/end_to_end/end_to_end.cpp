@@ -1296,14 +1296,13 @@ _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const ch
     REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
 
     // Look up id for the fd.
-    bpf_prog_info info = {};
+    bpf_map_info info = {};
     uint32_t info_size = sizeof(info);
     int result = bpf_obj_get_info_by_fd(fd, &info, &info_size);
     REQUIRE(result == 0);
     ebpf_id_t id = info.id;
 
-    // TODO(#4273): Verify it has exactly one path pinned.
-    // REQUIRE(info.pinned_path_count == 1);
+    REQUIRE(info.pinned_path_count == 1);
 
     // Look up the actual path pinned.
     ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
