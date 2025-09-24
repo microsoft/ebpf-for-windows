@@ -26,7 +26,7 @@ typedef enum _sock_addr_test_type
 
 typedef enum _sock_addr_test_action
 {
-    SOCK_ADDR_TEST_ACTION_PERMIT,
+    SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
     SOCK_ADDR_TEST_ACTION_PERMIT_HARD,
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
@@ -443,7 +443,7 @@ static inline FWP_ACTION_TYPE
 _get_fwp_sock_addr_action(uint16_t destination_port)
 {
     sock_addr_test_action_t action = _get_sock_addr_action(destination_port);
-    if (action == SOCK_ADDR_TEST_ACTION_PERMIT || action == SOCK_ADDR_TEST_ACTION_PERMIT_HARD ||
+    if (action == SOCK_ADDR_TEST_ACTION_PERMIT_SOFT || action == SOCK_ADDR_TEST_ACTION_PERMIT_HARD ||
         action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
         return FWP_ACTION_PERMIT;
     }
@@ -501,7 +501,7 @@ netebpfext_unit_invoke_sock_addr_program(
     }
 
     switch (action) {
-    case SOCK_ADDR_TEST_ACTION_PERMIT:
+    case SOCK_ADDR_TEST_ACTION_PERMIT_SOFT:
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
         break;
     case SOCK_ADDR_TEST_ACTION_PERMIT_HARD:
@@ -547,7 +547,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
@@ -612,7 +612,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     // Test reauthorization flag.
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
     parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
@@ -715,7 +715,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     client_context->validate_sock_addr_entries = false;
 
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     for (uint32_t i = 0; i < thread_count; i++) {

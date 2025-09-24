@@ -8,6 +8,9 @@ DEVICE_OBJECT* _net_ebpf_ext_driver_device_object;
 
 constexpr uint32_t _test_destination_ipv4_address = 0x01020304;
 static FWP_BYTE_ARRAY16 _test_destination_ipv6_address = {1, 2, 3, 4};
+// _get_sock_addr_action() uses destination_port % SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
+// to get the expected verdict in sock_addr_thread_function().
+// If sock_addr_test_action_t is changed, _test_destination_port may need to be updated as well.
 constexpr uint16_t _test_destination_port = 1235;
 constexpr uint32_t _test_source_ipv4_address = 0x05060708;
 static FWP_BYTE_ARRAY16 _test_source_ipv6_address = {5, 6, 7, 8};
