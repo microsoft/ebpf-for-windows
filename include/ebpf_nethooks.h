@@ -135,7 +135,7 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
  *
  * @param[in] context \ref bpf_sock_addr_t
- * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation. Maps to a hard block in WFP.
  * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Allow the socket operation. Maps to a soft permit in WFP.
  * @retval BPF_SOCK_ADDR_VERDICT_PROCEED_HARD Allow the socket operation. Maps to a hard permit in WFP.
  *

@@ -223,10 +223,10 @@ typedef struct _net_ebpf_bpf_sock_addr
     uint32_t redirect_context_size;
     uint64_t transport_endpoint_handle;
     bpf_sock_addr_t* original_context;
+    int32_t verdict;
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    int32_t verdict;
 } net_ebpf_sock_addr_t;
 
 /**
@@ -1927,9 +1927,10 @@ _handle_auth_connect_edge_cases(
         }
 
         if (v4_mapped) {
-            // For IPv4-mapped IPv6 connections with PROCEED_HARD verdict, cache in IPv4 format
+            // For IPv4-mapped IPv6 connections with PROCEED_HARD verdict, cache in IPv4 format.
             // This is a workaround for WFP processing these connections in
-            // FWPS_LAYER_ALE_CONNECT_REDIRECT_V6 and FWPS_LAYER_ALE_AUTH_CONNECT_V4 layers
+            // FWPS_LAYER_ALE_CONNECT_REDIRECT_V6 and FWPS_LAYER_ALE_AUTH_CONNECT_V4 layers, which
+            // breaks the assumption that connections are processed exclusively within V4 or V6 layers.
             _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
         }
     }
