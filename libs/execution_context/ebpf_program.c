@@ -928,8 +928,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     retval = EBPF_OBJECT_INITIALIZE(
         &local_program->object,
         EBPF_OBJECT_PROGRAM,
-        NULL,
-        NULL,
         _ebpf_program_free,
         _ebpf_program_notify_reference_count_zeroed,
         _ebpf_program_get_program_type);

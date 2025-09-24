@@ -466,8 +466,6 @@ TEST_CASE("pinning_test", "[platform]")
             ebpf_result_t return_value = EBPF_OBJECT_INITIALIZE(
                 &object,
                 EBPF_OBJECT_MAP,
-                NULL,
-                NULL,
                 [](ebpf_core_object_t* object) {
                     auto some_object = reinterpret_cast<_some_object*>(object);
                     some_object->signal.signal();

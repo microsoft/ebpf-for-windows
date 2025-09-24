@@ -779,7 +779,7 @@ _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t valu
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
+            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
             id = 0;
             memcpy(entry, &id, map->ebpf_map_definition.value_size);
         }
@@ -1002,7 +1002,7 @@ _update_array_map_entry_with_handle(
     uint8_t* entry = &map->data[*(uint32_t*)key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
-        EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
+        // EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
         // if (value_type == EBPF_OBJECT_PROGRAM) {
         //     // In case of program object, there is also a reference on the program object. Release that reference.
         //     // This lookup should not fail. We have a reference on the old object, hence the id table should have the
@@ -1020,7 +1020,7 @@ _update_array_map_entry_with_handle(
 
         // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we
         // already have a valid pointer to the object. A failure here is indicative of a fatal internal error.
-        ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
+        // ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
     }
 
     // Note that this could be an 'update to erase' operation where we don't have a valid (incoming) object.  In this
@@ -1086,7 +1086,7 @@ _delete_array_map_entry_with_reference(
             //     ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
             //     EBPF_OBJECT_RELEASE_REFERENCE(value_object);
             // }
-            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
+            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
         }
         _delete_array_map_entry(map, key);
     }
@@ -1233,7 +1233,7 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
+            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
             *(ebpf_id_t*)value = 0;
         }
     }
@@ -1871,7 +1871,7 @@ _update_hash_map_entry_with_handle(
 
     // Release the reference on the old ID stored here, if any.
     if (old_id) {
-        EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
+        // EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
         ebpf_core_object_t* old_object = NULL;
         ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type, (ebpf_core_object_t**)&old_object));
         EBPF_OBJECT_RELEASE_REFERENCE(old_object);
@@ -1879,7 +1879,7 @@ _update_hash_map_entry_with_handle(
 
     // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we already
     // have a valid pointer to the object.  A failure here is indicative of a fatal internal error.
-    ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
+    // ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
 
 Done:
     if (result != EBPF_SUCCESS && value_object != NULL) {
@@ -1914,7 +1914,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
+            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
         }
     }
 
@@ -3295,8 +3295,7 @@ ebpf_map_create(
     }
 
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result = EBPF_OBJECT_INITIALIZE(
-        &local_map->object, EBPF_OBJECT_MAP, NULL, NULL, _ebpf_map_delete, NULL, get_program_type);
+    result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
