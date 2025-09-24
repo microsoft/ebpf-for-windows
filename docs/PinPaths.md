@@ -122,13 +122,14 @@ When a map has the field __uint(pinning, LIBBPF_PIN_BY_NAME), eBPF will create
 the specified map with the name given to the map (the variable name).
 
 e.g.
-```C
+```bpf
 typedef struct _my_map {
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, int);
     __type(value, int);
     __uint(pinning, LIBBPF_PIN_BY_NAME); // Pin the map by name
 } my_map SEC(".maps");
+```
 
 When a program is loaded referencing this map, eBPF will create a map automatically.
 The eBPF will create the pinned map following the naming, "/ebpf/global/<map_name>".
