@@ -115,3 +115,20 @@ In addition, for portability, the Linux form ("/sys/fs/bpf/my/pin/path")
 will be accepted as valid, as will the older eBPF for Windows
 path ("/ebpf/global/my/pin/path").  These will be canonicalized
 to "BPF:\my\pin\path" internally.
+
+## LIBBPF_PIN_BY_NAME
+
+When a map has the field __uint(pinning, LIBBPF_PIN_BY_NAME), eBPF will create
+the specified map with the name given to the map (the variable name).
+
+e.g.
+struct {
+__uint(type, BPF_MAP_TYPE_HASH);
+__type(key, int);
+__type(value, int);
+__uint(pinning, LIBBPF_PIN_BY_NAME); // Pin the map by name
+} my_map SEC(".maps");
+
+When a program is loaded referencing this map, eBPF will create a map automatically.
+The eBPF will create the pinned map following the naming, "/ebpf/global/<map_name>".
+For the above example, the string referencing the map is "/ebpf/global/my_map".
