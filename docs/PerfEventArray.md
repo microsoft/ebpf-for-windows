@@ -2,6 +2,10 @@
 
 This document describes the in-progress support for the bpf map type BPF_MAP_TYPE_PERF_EVENT_ARRAY ([#658](https://github.com/microsoft/ebpf-for-windows/issues/658)).
 
+NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The default behavior has been changed to be linux-compatible.
+- Code expecting asynchonous callbacks should switch to `ebpf_perf_buffer__new` with `EBPF_PERFBUF_FLAG_AUTO_CALLBACK` set in the opts flags.
+- The synchronous API has not been implemented yet, so `perf_buffer__new` will return a not implemented error.
+
 ## Background
 
 On Linux there are two map types for sending large amounts of data from BPF programs to user space.
@@ -93,11 +97,13 @@ typedef void (*perf_buffer_lost_fn)(void *ctx, int cpu, __u64 cnt);
 struct perf_buffer_opts {
 	size_t sz;
 };
-#define perf_buffer_opts__last_field sz
 
 /**
  * @brief **perf_buffer__new()** creates BPF perfbuffer manager for a specified
  * BPF_PERF_EVENT_ARRAY map
+ *
+ * @note This currently returns NULL because the synchronous API is not implemented yet.
+ *
  * @param map_fd FD of BPF_PERF_EVENT_ARRAY BPF map that will be used by BPF
  * code to send data over to user-space
  * @param page_cnt number of memory pages allocated for each per-CPU buffer. Should be set to 0.
@@ -118,4 +124,49 @@ perf_buffer__new(int map_fd, size_t page_cnt,
  * @param[in] rb Pointer to perf buffer manager to be freed.
  */
 void perf_buffer__free(struct perf_buffer *pb);
+
+
+//
+// Windows-specific Perf Buffer APIs
+//
+
+/**
+ * @brief Windows-specific perf buffer options structure.
+ */
+struct ebpf_perf_buffer_opts
+{
+    size_t sz;      /* size of this struct, for forward/backward compatibility */
+    uint64_t flags; /* perf buffer option flags */
+};
+
+/**
+ * @brief Perf buffer option flags (Windows-specific).
+ */
+enum ebpf_perf_buffer_flags
+{
+    EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+};
+typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+/**
+ * @brief Create a new perf buffer manager with Windows-specific options.
+ *
+ * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
+ * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
+ * @param[in] sample_cb Function called on each received data record.
+ * @param[in] lost_cb Function called when record loss has occurred.
+ * @param[in] ctx User-provided context passed into sample_cb and lost_cb.
+ * @param[in] opts Windows-specific perf buffer manager options.
+ *
+ * @returns Pointer to perf buffer manager on success, null on error.
+ */
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 ```

@@ -10,6 +10,7 @@
 
 #include <specstrings.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -809,6 +810,101 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_synchronize() EBPF_NO_EXCEPT;
+
+    //
+    // Windows-specific Ring Buffer APIs
+    //
+
+    // Forward declarations and types needed for ring buffer APIs.
+    struct ring_buffer;
+
+    /**
+     * @brief Ring buffer sample callback function type.
+     * @param[in] ctx User-provided context.
+     * @param[in] data Pointer to sample data.
+     * @param[in] size Size of sample data.
+     * @returns 0 on success, negative value on error.
+     */
+    typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
+
+    /**
+     * @brief Windows-specific ring buffer options structure.
+     *
+     * This structure extends ring_buffer_opts with Windows-specific fields.
+     * The first field(s) must match ring_buffer_opts exactly for compatibility.
+     */
+    struct ebpf_ring_buffer_opts
+    {
+        size_t sz;      /* Size of this struct, for forward/backward compatibility (must match ring_buffer_opts). */
+        uint64_t flags; /* Windows-specific ring buffer option flags. */
+    };
+
+    /* Ring buffer option flags. */
+    enum ebpf_ring_buffer_flags
+    {
+        EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
+    };
+
+    /**
+     * @brief Creates a new ring buffer manager (Windows-specific with flags support).
+     *
+     * @param[in] map_fd File descriptor to ring buffer map.
+     * @param[in] sample_cb Pointer to ring buffer notification callback function.
+     * @param[in] ctx Pointer to sample_cb callback function context.
+     * @param[in] opts Ring buffer options with flags support.
+     *
+     * @returns Pointer to ring buffer manager, or NULL on error.
+     */
+    _Ret_maybenull_ struct ring_buffer*
+    ebpf_ring_buffer__new(
+        int map_fd,
+        ring_buffer_sample_fn sample_cb,
+        _In_opt_ void* ctx,
+        _In_opt_ const struct ebpf_ring_buffer_opts* opts) EBPF_NO_EXCEPT;
+
+    //
+    // Windows-specific Perf Buffer APIs
+    //
+
+    /**
+     * @brief Windows-specific perf buffer options structure.
+     */
+    struct ebpf_perf_buffer_opts
+    {
+        size_t sz;      /* size of this struct, for forward/backward compatibility */
+        uint64_t flags; /* perf buffer option flags */
+    };
+
+    /**
+     * @brief Perf buffer option flags (Windows-specific).
+     */
+    enum ebpf_perf_buffer_flags
+    {
+        EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+    };
+    typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+    typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+    /**
+     * @brief Create a new perf buffer manager with Windows-specific options.
+     *
+     * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
+     * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
+     * @param[in] sample_cb Function called on each received data record.
+     * @param[in] lost_cb Function called when record loss has occurred.
+     * @param[in] ctx User-provided context passed into sample_cb and lost_cb.
+     * @param[in] opts Windows-specific perf buffer manager options.
+     *
+     * @returns Pointer to perf buffer manager on success, null on error.
+     */
+    _Ret_maybenull_ struct perf_buffer*
+    ebpf_perf_buffer__new(
+        int map_fd,
+        size_t page_cnt,
+        perf_buffer_sample_fn sample_cb,
+        perf_buffer_lost_fn lost_cb,
+        _In_opt_ void* ctx,
+        _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }
