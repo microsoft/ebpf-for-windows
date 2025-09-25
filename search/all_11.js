@@ -22,5 +22,6 @@ var searchData=
   ['revision_19',['revision',['../struct__bpf2c__version.html#a8ae84369bccb3346eb2aa3ce84e60758',1,'_bpf2c_version']]],
   ['ring_5fbuffer_5f_5ffree_20',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
   ['ring_5fbuffer_5f_5fnew_21',['ring_buffer__new',['../libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a',1,'libbpf.h']]],
-  ['rst_22',['rst',['../structtcphdr.html#a51d32749a117f110f44de2d3aded7ef8',1,'tcphdr']]]
+  ['ring_5fbuffer_5fsample_5ffn_22',['ring_buffer_sample_fn',['../ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c',1,'ebpf_api.h']]],
+  ['rst_23',['rst',['../structtcphdr.html#a51d32749a117f110f44de2d3aded7ef8',1,'tcphdr']]]
 ];

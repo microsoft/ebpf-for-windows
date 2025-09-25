@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['xdp_5faction_5ft_1580',['xdp_action_t',['../ebpf__nethooks_8h.html#a8e725c81ff0e90836d9dfcec34fb5aa3',1,'ebpf_nethooks.h']]],
-  ['xdp_5fhook_5ft_1581',['xdp_hook_t',['../ebpf__nethooks_8h.html#a8d57424dbe0e0cab6cb166f25557d6d6',1,'ebpf_nethooks.h']]],
-  ['xdp_5fmd_5ft_1582',['xdp_md_t',['../ebpf__nethooks_8h.html#a952620b5302d8c52bd083d1b632539dc',1,'ebpf_nethooks.h']]]
+  ['u32_0',['u32',['../linux_2bpf_8h.html#afaa62991928fb9fb18ff0db62a040aba',1,'bpf.h']]],
+  ['u64_1',['u64',['../linux_2bpf_8h.html#a3f7e2bcbb0b4c338f3c4f6c937cd4234',1,'bpf.h']]],
+  ['u8_2',['u8',['../linux_2bpf_8h.html#a92c50087ca0e64fa93fc59402c55f8ca',1,'bpf.h']]],
+  ['udp_5fheader_3',['UDP_HEADER',['../udp_8h.html#a17ac0d25aba27db7ba6896b8c21026d8',1,'udp.h']]]
 ];

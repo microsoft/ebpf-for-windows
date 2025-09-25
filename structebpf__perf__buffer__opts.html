@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: Globals</title>
+<title>eBPF for Windows: ebpf_perf_buffer_opts Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -46,7 +46,6 @@ $(function() {
 /* @license-end */
 </script>
 <div id="main-nav"></div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,17 +67,59 @@ $(function() {
 </div>
 </div>
 
+</div><!-- top -->
+<div class="header">
+  <div class="summary">
+<a href="#pub-attribs">Data Fields</a>  </div>
+  <div class="headertitle"><div class="title">ebpf_perf_buffer_opts Struct Reference</div></div>
+</div><!--header-->
 <div class="contents">
-<div class="textblock">Here is a list of all functions, variables, defines, enums, and typedefs with links to the files they belong to:</div>
 
-<h3><a id="index_r" name="index_r"></a>- r -</h3><ul>
-<li>READ_ONCE_16&#160;:&#160;<a class="el" href="bpf2c_8h.html#ac727074b28d2e81b3d898a4cc9794951">bpf2c.h</a></li>
-<li>READ_ONCE_32&#160;:&#160;<a class="el" href="bpf2c_8h.html#a77a9342354895fbfc947a85d456f3ddb">bpf2c.h</a></li>
-<li>READ_ONCE_64&#160;:&#160;<a class="el" href="bpf2c_8h.html#a6276e6ecad80673e58fcbcebddd01b8b">bpf2c.h</a></li>
-<li>READ_ONCE_8&#160;:&#160;<a class="el" href="bpf2c_8h.html#ae96f62e9656ce0e6b42cb928acd1d3b4">bpf2c.h</a></li>
-<li>ring_buffer__free()&#160;:&#160;<a class="el" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">libbpf.h</a></li>
-<li>ring_buffer__new()&#160;:&#160;<a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">libbpf.h</a></li>
-<li>ring_buffer_sample_fn&#160;:&#160;<a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ebpf_api.h</a></li>
+<p>Windows-specific perf buffer options structure.  
+ <a href="structebpf__perf__buffer__opts.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="ebpf__api_8h_source.html">ebpf_api.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
+Data Fields</h2></td></tr>
+<tr class="memitem:a6de1b82c00be9bef60a45f0b35b92ddf" id="r_a6de1b82c00be9bef60a45f0b35b92ddf"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__perf__buffer__opts.html#a6de1b82c00be9bef60a45f0b35b92ddf">sz</a></td></tr>
+<tr class="separator:a6de1b82c00be9bef60a45f0b35b92ddf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5198b9410e149c784234b2cc86810b7" id="r_af5198b9410e149c784234b2cc86810b7"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__perf__buffer__opts.html#af5198b9410e149c784234b2cc86810b7">flags</a></td></tr>
+<tr class="separator:af5198b9410e149c784234b2cc86810b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Windows-specific perf buffer options structure. </p>
+</div><h2 class="groupheader">Field Documentation</h2>
+<a id="af5198b9410e149c784234b2cc86810b7" name="af5198b9410e149c784234b2cc86810b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af5198b9410e149c784234b2cc86810b7">&#9670;&#160;</a></span>flags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t ebpf_perf_buffer_opts::flags</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6de1b82c00be9bef60a45f0b35b92ddf" name="a6de1b82c00be9bef60a45f0b35b92ddf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6de1b82c00be9bef60a45f0b35b92ddf">&#9670;&#160;</a></span>sz</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t ebpf_perf_buffer_opts::sz</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li>include/<a class="el" href="ebpf__api_8h_source.html">ebpf_api.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

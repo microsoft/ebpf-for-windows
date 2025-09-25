@@ -89,6 +89,7 @@ $(function() {
 <code>#include &quot;<a class="el" href="ebpf__result_8h_source.html">ebpf_result.h</a>&quot;</code><br />
 <code>#include &lt;specstrings.h&gt;</code><br />
 <code>#include &lt;stdbool.h&gt;</code><br />
+<code>#include &lt;<a class="el" href="stddef_8h_source.html">stddef.h</a>&gt;</code><br />
 <code>#include &lt;stdint.h&gt;</code><br />
 </div>
 <p><a href="ebpf__api_8h_source.html">Go to the source code of this file.</a></p>
@@ -102,6 +103,12 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__ring__buffer__opts.html">ebpf_ring_buffer_opts</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Windows-specific ring buffer options structure.  <a href="structebpf__ring__buffer__opts.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__perf__buffer__opts.html">ebpf_perf_buffer_opts</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Windows-specific perf buffer options structure.  <a href="structebpf__perf__buffer__opts.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
@@ -127,6 +134,13 @@ Typedefs</h2></td></tr>
 <tr class="separator:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19411f9f52f8091cc292b69f1eabe341" id="r_a19411f9f52f8091cc292b69f1eabe341"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a></td></tr>
 <tr class="separator:a19411f9f52f8091cc292b69f1eabe341"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee4c7ee017c3df69d037bc6b78980e0c" id="r_aee4c7ee017c3df69d037bc6b78980e0c"><td class="memItemLeft" align="right" valign="top">typedef int(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>) (void *ctx, void *data, size_t size)</td></tr>
+<tr class="memdesc:aee4c7ee017c3df69d037bc6b78980e0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ring buffer sample callback function type.  <br /></td></tr>
+<tr class="separator:aee4c7ee017c3df69d037bc6b78980e0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a20bae15d88fe53c33cf2a47d7ffcc1a0" id="r_a20bae15d88fe53c33cf2a47d7ffcc1a0"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a>) (void *ctx, int cpu, void *data, uint32_t size)</td></tr>
+<tr class="separator:a20bae15d88fe53c33cf2a47d7ffcc1a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a89a05e267e5f843138cb35b7d9964a96" id="r_a89a05e267e5f843138cb35b7d9964a96"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a>) (void *ctx, int cpu, uint64_t cnt)</td></tr>
+<tr class="separator:a89a05e267e5f843138cb35b7d9964a96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -135,6 +149,13 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0a4578cc38b7cd84b5c3ce85bc5ac5c1ce">EBPF_VERIFICATION_VERBOSITY_VERBOSE</a> = 2
  }</td></tr>
 <tr class="separator:a2b26aaf28a9886a3df24b9e6568347e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a22c8510f176e45d5a47fdc32b4af0407" id="r_a22c8510f176e45d5a47fdc32b4af0407"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a22c8510f176e45d5a47fdc32b4af0407">ebpf_ring_buffer_flags</a> { <a class="el" href="ebpf__api_8h.html#a22c8510f176e45d5a47fdc32b4af0407a75aa9d4bd49acf9fc1cf79bd4846d5d0">EBPF_RINGBUF_FLAG_AUTO_CALLBACK</a> = (uint64_t)1 &lt;&lt; 0
+ }</td></tr>
+<tr class="separator:a22c8510f176e45d5a47fdc32b4af0407"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af262088d3fe851336797c964a46465e2" id="r_af262088d3fe851336797c964a46465e2"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af262088d3fe851336797c964a46465e2">ebpf_perf_buffer_flags</a> { <a class="el" href="ebpf__api_8h.html#af262088d3fe851336797c964a46465e2a40c61cd0cd368340082cf350e95b634d">EBPF_PERFBUF_FLAG_AUTO_CALLBACK</a> = (uint64_t)1 &lt;&lt; 0
+ }</td></tr>
+<tr class="memdesc:af262088d3fe851336797c964a46465e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perf buffer option flags (Windows-specific).  <a href="ebpf__api_8h.html#af262088d3fe851336797c964a46465e2">More...</a><br /></td></tr>
+<tr class="separator:af262088d3fe851336797c964a46465e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -281,6 +302,12 @@ Functions</h2></td></tr>
 <tr class="memitem:ada486478edf1b7ce57d26175fdcc2df3" id="r_ada486478edf1b7ce57d26175fdcc2df3"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ada486478edf1b7ce57d26175fdcc2df3">ebpf_program_synchronize</a> () <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:ada486478edf1b7ce57d26175fdcc2df3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Wait for currently executing eBPF programs to complete.  <br /></td></tr>
 <tr class="separator:ada486478edf1b7ce57d26175fdcc2df3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa992c96d30c64eeefa0bdfb30d7d12f" id="r_afa992c96d30c64eeefa0bdfb30d7d12f"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#afa992c96d30c64eeefa0bdfb30d7d12f">ebpf_ring_buffer__new</a> (int map_fd, <a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a> sample_cb, void *ctx, const struct <a class="el" href="structebpf__ring__buffer__opts.html">ebpf_ring_buffer_opts</a> *opts) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:afa992c96d30c64eeefa0bdfb30d7d12f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new ring buffer manager (Windows-specific with flags support).  <br /></td></tr>
+<tr class="separator:afa992c96d30c64eeefa0bdfb30d7d12f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4be29a278b8a744646b573cbba5dd318" id="r_a4be29a278b8a744646b573cbba5dd318"><td class="memItemLeft" align="right" valign="top">struct perf_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4be29a278b8a744646b573cbba5dd318">ebpf_perf_buffer__new</a> (int map_fd, size_t page_cnt, <a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a> sample_cb, <a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a> lost_cb, void *ctx, const struct <a class="el" href="structebpf__perf__buffer__opts.html">ebpf_perf_buffer_opts</a> *opts) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a4be29a278b8a744646b573cbba5dd318"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new perf buffer manager with Windows-specific options.  <br /></td></tr>
+<tr class="separator:a4be29a278b8a744646b573cbba5dd318"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -415,6 +442,59 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a89a05e267e5f843138cb35b7d9964a96" name="a89a05e267e5f843138cb35b7d9964a96"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a89a05e267e5f843138cb35b7d9964a96">&#9670;&#160;</a></span>perf_buffer_lost_fn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* perf_buffer_lost_fn) (void *ctx, int cpu, uint64_t cnt)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a20bae15d88fe53c33cf2a47d7ffcc1a0" name="a20bae15d88fe53c33cf2a47d7ffcc1a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a20bae15d88fe53c33cf2a47d7ffcc1a0">&#9670;&#160;</a></span>perf_buffer_sample_fn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* perf_buffer_sample_fn) (void *ctx, int cpu, void *data, uint32_t size)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aee4c7ee017c3df69d037bc6b78980e0c" name="aee4c7ee017c3df69d037bc6b78980e0c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee4c7ee017c3df69d037bc6b78980e0c">&#9670;&#160;</a></span>ring_buffer_sample_fn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef int(* ring_buffer_sample_fn) (void *ctx, void *data, size_t size)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Ring buffer sample callback function type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>User-provided context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Pointer to sample data. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size of sample data. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 on success, negative value on error. </dd></dl>
+
+</div>
+</div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
 <a id="a2b26aaf28a9886a3df24b9e6568347e0" name="a2b26aaf28a9886a3df24b9e6568347e0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2b26aaf28a9886a3df24b9e6568347e0">&#9670;&#160;</a></span>_ebpf_verification_verbosity</h2>
@@ -431,6 +511,42 @@ Variables</h2></td></tr>
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0a4956939946a0178e2c93ba718f837f8b" name="a2b26aaf28a9886a3df24b9e6568347e0a4956939946a0178e2c93ba718f837f8b"></a>EBPF_VERIFICATION_VERBOSITY_NORMAL&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0af1b136b342f4d1b114f4d7eb22fed03e" name="a2b26aaf28a9886a3df24b9e6568347e0af1b136b342f4d1b114f4d7eb22fed03e"></a>EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL&#160;</td><td class="fielddoc"></td></tr>
 <tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0a4578cc38b7cd84b5c3ce85bc5ac5c1ce" name="a2b26aaf28a9886a3df24b9e6568347e0a4578cc38b7cd84b5c3ce85bc5ac5c1ce"></a>EBPF_VERIFICATION_VERBOSITY_VERBOSE&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="af262088d3fe851336797c964a46465e2" name="af262088d3fe851336797c964a46465e2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af262088d3fe851336797c964a46465e2">&#9670;&#160;</a></span>ebpf_perf_buffer_flags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__api_8h.html#af262088d3fe851336797c964a46465e2">ebpf_perf_buffer_flags</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Perf buffer option flags (Windows-specific). </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af262088d3fe851336797c964a46465e2a40c61cd0cd368340082cf350e95b634d" name="af262088d3fe851336797c964a46465e2a40c61cd0cd368340082cf350e95b634d"></a>EBPF_PERFBUF_FLAG_AUTO_CALLBACK&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
+<a id="a22c8510f176e45d5a47fdc32b4af0407" name="a22c8510f176e45d5a47fdc32b4af0407"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a22c8510f176e45d5a47fdc32b4af0407">&#9670;&#160;</a></span>ebpf_ring_buffer_flags</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__api_8h.html#a22c8510f176e45d5a47fdc32b4af0407">ebpf_ring_buffer_flags</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a22c8510f176e45d5a47fdc32b4af0407a75aa9d4bd49acf9fc1cf79bd4846d5d0" name="a22c8510f176e45d5a47fdc32b4af0407a75aa9d4bd49acf9fc1cf79bd4846d5d0"></a>EBPF_RINGBUF_FLAG_AUTO_CALLBACK&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
@@ -2110,6 +2226,72 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a4be29a278b8a744646b573cbba5dd318" name="a4be29a278b8a744646b573cbba5dd318"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4be29a278b8a744646b573cbba5dd318">&#9670;&#160;</a></span>ebpf_perf_buffer__new()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct perf_buffer * ebpf_perf_buffer__new </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>page_cnt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a>&#160;</td>
+          <td class="paramname"><em>sample_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a>&#160;</td>
+          <td class="paramname"><em>lost_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct <a class="el" href="structebpf__perf__buffer__opts.html">ebpf_perf_buffer_opts</a> *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a new perf buffer manager with Windows-specific options. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">page_cnt</td><td>Number of memory pages allocated for each per-CPU buffer. Should be set to 0. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Function called on each received data record. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">lost_cb</td><td>Function called when record loss has occurred. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>User-provided context passed into sample_cb and lost_cb. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Windows-specific perf buffer manager options.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to perf buffer manager on success, null on error. </dd></dl>
+
+</div>
+</div>
 <a id="acf5b67fca8b31ea9478e7193fdc4c802" name="acf5b67fca8b31ea9478e7193fdc4c802"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf5b67fca8b31ea9478e7193fdc4c802">&#9670;&#160;</a></span>ebpf_perf_event_array_map_write()</h2>
 
@@ -2527,6 +2709,58 @@ Variables</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="afa992c96d30c64eeefa0bdfb30d7d12f" name="afa992c96d30c64eeefa0bdfb30d7d12f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afa992c96d30c64eeefa0bdfb30d7d12f">&#9670;&#160;</a></span>ebpf_ring_buffer__new()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">struct ring_buffer * ebpf_ring_buffer__new </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>&#160;</td>
+          <td class="paramname"><em>sample_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct <a class="el" href="structebpf__ring__buffer__opts.html">ebpf_ring_buffer_opts</a> *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates a new ring buffer manager (Windows-specific with flags support). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Pointer to ring buffer notification callback function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to sample_cb callback function context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Ring buffer options with flags support.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to ring buffer manager, or NULL on error. </dd></dl>
 
 </div>
 </div>

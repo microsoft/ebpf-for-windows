@@ -90,7 +90,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a35a0549ff99084e337eb764142d0c43a" id="r_a35a0549ff99084e337eb764142d0c43a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a35a0549ff99084e337eb764142d0c43a">bpf_program__set_flags</a> (struct bpf_program *prog, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags)</td></tr>
 <tr class="memdesc:a35a0549ff99084e337eb764142d0c43a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the BPF program flags. The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only the extension that handles this program type will interpret them. See the documentation for the program type for what flags are defined for that program type.  <br /></td></tr>
 <tr class="separator:a35a0549ff99084e337eb764142d0c43a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28adc4c0f27a820dbeec22396a904be2" id="r_a28adc4c0f27a820dbeec22396a904be2"><td class="memItemLeft" align="right" valign="top">LIBBPF_API struct perf_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a28adc4c0f27a820dbeec22396a904be2">perf_buffer__new</a> (int map_fd, size_t page_cnt, perf_buffer_sample_fn sample_cb, perf_buffer_lost_fn lost_cb, void *ctx, const struct perf_buffer_opts *opts)</td></tr>
+<tr class="memitem:a28adc4c0f27a820dbeec22396a904be2" id="r_a28adc4c0f27a820dbeec22396a904be2"><td class="memItemLeft" align="right" valign="top">LIBBPF_API struct perf_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a28adc4c0f27a820dbeec22396a904be2">perf_buffer__new</a> (int map_fd, size_t page_cnt, <a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a> sample_cb, <a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a> lost_cb, void *ctx, const struct perf_buffer_opts *opts)</td></tr>
 <tr class="memdesc:a28adc4c0f27a820dbeec22396a904be2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create BPF perfbuf manager.  <br /></td></tr>
 <tr class="separator:a28adc4c0f27a820dbeec22396a904be2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad1899d7a953470aa528413666595c6e6" id="r_ad1899d7a953470aa528413666595c6e6"><td class="memItemLeft" align="right" valign="top">LIBBPF_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ad1899d7a953470aa528413666595c6e6">perf_buffer__free</a> (struct perf_buffer *pb)</td></tr>
@@ -287,7 +287,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a952441cb1b1f252e10b100c2657e6242" id="r_a952441cb1b1f252e10b100c2657e6242"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a> (void)</td></tr>
 <tr class="memdesc:a952441cb1b1f252e10b100c2657e6242"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of processors on the current system.  <br /></td></tr>
 <tr class="separator:a952441cb1b1f252e10b100c2657e6242"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23c29b5bb71c56a972c7583ee3171e5a" id="r_a23c29b5bb71c56a972c7583ee3171e5a"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">ring_buffer__new</a> (int map_fd, ring_buffer_sample_fn sample_cb, void *ctx, const struct ring_buffer_opts *opts)</td></tr>
+<tr class="memitem:a23c29b5bb71c56a972c7583ee3171e5a" id="r_a23c29b5bb71c56a972c7583ee3171e5a"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">ring_buffer__new</a> (int map_fd, <a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a> sample_cb, void *ctx, const struct ring_buffer_opts *opts)</td></tr>
 <tr class="memdesc:a23c29b5bb71c56a972c7583ee3171e5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new ring buffer manager.  <br /></td></tr>
 <tr class="separator:a23c29b5bb71c56a972c7583ee3171e5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5ede3a39d4e4a364fac4155aca3303cc" id="r_a5ede3a39d4e4a364fac4155aca3303cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">ring_buffer__free</a> (struct ring_buffer *rb)</td></tr>
@@ -2762,13 +2762,13 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">perf_buffer_sample_fn&#160;</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a>&#160;</td>
           <td class="paramname"><em>sample_cb</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">perf_buffer_lost_fn&#160;</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a>&#160;</td>
           <td class="paramname"><em>lost_cb</em>, </td>
         </tr>
         <tr>
@@ -2848,7 +2848,7 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">ring_buffer_sample_fn&#160;</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>&#160;</td>
           <td class="paramname"><em>sample_cb</em>, </td>
         </tr>
         <tr>
