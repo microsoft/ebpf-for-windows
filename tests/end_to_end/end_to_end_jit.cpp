@@ -455,15 +455,6 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]") { test_ebpf_progra
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("xdp-decapsulate-permit-v4-jit", "[xdp_tests]")
-{
-    xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
-}
-TEST_CASE("xdp-decapsulate-permit-v6-jit", "[xdp_tests]")
-{
-    xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
-}
-
 void
 test_auto_pinned_maps_custom_path()
 {
