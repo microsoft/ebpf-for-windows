@@ -10,4 +10,3 @@
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "net_ebpf_ext_sock_ops.h"
-#include "net_ebpf_ext_xdp.h"

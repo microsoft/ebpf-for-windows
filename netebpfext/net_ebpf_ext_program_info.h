@@ -34,27 +34,6 @@ static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
     EBPF_OFFSET_OF(xdp_md_t, data_end),
     EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
-static const ebpf_program_type_descriptor_t _ebpf_xdp_test_program_type_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
-    "xdp_test",
-    &_ebpf_xdp_test_context_descriptor,
-    EBPF_PROGRAM_TYPE_XDP_TEST_GUID,
-    BPF_PROG_TYPE_XDP_TEST,
-    0};
-static const ebpf_program_info_t _ebpf_xdp_test_program_info = {
-    EBPF_PROGRAM_INFORMATION_HEADER,
-    &_ebpf_xdp_test_program_type_descriptor,
-    EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
-    _xdp_test_ebpf_extension_helper_function_prototype};
-
-static const ebpf_program_section_info_t _ebpf_xdp_test_section_info[] = {
-    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
-     L"xdp_test",
-     &EBPF_PROGRAM_TYPE_XDP_TEST,
-     &EBPF_ATTACH_TYPE_XDP_TEST,
-     BPF_PROG_TYPE_XDP_TEST,
-     BPF_XDP_TEST}};
-
 // Bind program information.
 static const ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {
     sizeof(bind_md_t), EBPF_OFFSET_OF(bind_md_t, app_id_start), EBPF_OFFSET_OF(bind_md_t, app_id_end), -1};

@@ -43,7 +43,6 @@ static const std::set<bpf_attach_type> ebpf_core_attach_types = {
     BPF_CGROUP_INET6_RECV_ACCEPT,
     BPF_CGROUP_SOCK_OPS,
     BPF_ATTACH_TYPE_SAMPLE,
-    BPF_XDP_TEST,
 };
 
 std::vector<uint8_t>
