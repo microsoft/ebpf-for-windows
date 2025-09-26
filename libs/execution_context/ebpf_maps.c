@@ -766,24 +766,22 @@ Exit:
 static void
 _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
+    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
+
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
         uint8_t* entry = &map->data[i * map->ebpf_map_definition.value_size];
         ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
-            // if (value_type == EBPF_OBJECT_PROGRAM) {
-            //     ebpf_core_object_t* value_object = NULL;
-            //     ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
-            //     EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            // }
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
-            id = 0;
-            memcpy(entry, &id, map->ebpf_map_definition.value_size);
+            *(ebpf_id_t*)entry = 0;
         }
     }
+
+    ebpf_lock_unlock(&object_map->lock, lock_state);
 }
 
 static void
@@ -1220,8 +1218,12 @@ static void
 _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
 {
     // Release all entry references.
+    ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
+    uint8_t* previous_key = NULL;
+
     uint8_t* next_key;
-    for (uint8_t* previous_key = NULL;; previous_key = next_key) {
+    for (previous_key = NULL;; previous_key = next_key) {
         uint8_t* value;
         ebpf_result_t result =
             ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
@@ -1236,7 +1238,16 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
             // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
             *(ebpf_id_t*)value = 0;
         }
+        if (previous_key != NULL) {
+            ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key);
+        }
     }
+    if (previous_key != NULL) {
+        ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key);
+    }
+    ebpf_assert(ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data) == 0);
+
+    ebpf_lock_unlock(&object_map->lock, lock_state);
 }
 
 static void

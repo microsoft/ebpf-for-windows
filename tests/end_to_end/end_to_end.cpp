@@ -3666,3 +3666,189 @@ test_map_synchronized_update(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("test_map_synchronized_update", "[end_to_end]", test_map_synchronized_update);
+
+/**
+ * @brief This function tests that reference from outer map to inner map is maintained
+ * even when the inner map FD is closed. Also, when the outer map FD id closed, the inner
+ * map reference is released.
+ *
+ * @param map_type The type of the outer map.
+ */
+void
+_test_nested_maps_user_reference(bpf_map_type map_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    const int num_inner_maps = 5;
+    fd_t inner_map_fds[num_inner_maps];
+    uint32_t map_id = 0;
+
+    for (int i = 0; i < num_inner_maps; ++i) {
+        std::string name = "inner_map" + std::to_string(i + 1);
+        inner_map_fds[i] =
+            bpf_map_create(BPF_MAP_TYPE_ARRAY, name.c_str(), sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(inner_map_fds[i] > 0);
+    }
+
+    // Create outer map with the inner map handle in options.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    fd_t outer_map_fd =
+        bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Close outer map FD so that it is deleted. Validates that empty outer map is deleted.
+    Platform::_close(outer_map_fd);
+
+    // Create outer map again with the inner map handle in options.
+    opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Insert all inner maps in outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fds[i], 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // For each inner map, add a value to it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = 0;
+        uint32_t value = 100 + i;
+        uint32_t result = bpf_map_update_elem(inner_map_fds[i], &key, &value, 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // Close FDs for the inner maps. The maps should still exist and can be queried from the outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        Platform::_close(inner_map_fds[i]);
+    }
+
+    // For each inner map, get the inner map ID from outer map and query the value from it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t inner_map_id = 0;
+        uint32_t result = bpf_map_lookup_elem(outer_map_fd, &key, &inner_map_id);
+        REQUIRE(result == 0);
+        REQUIRE(inner_map_id > 0);
+        fd_t inner_map_fd = bpf_map_get_fd_by_id(inner_map_id);
+        REQUIRE(inner_map_fd > 0);
+        // Query value from inner_map
+        key = 0;
+        uint32_t value = 0;
+        result = bpf_map_lookup_elem(inner_map_fd, &key, &value);
+        REQUIRE(result == ERROR_SUCCESS);
+        REQUIRE(value == static_cast<uint32_t>(100 + i));
+        Platform::_close(inner_map_fd);
+    }
+
+    Platform::_close(outer_map_fd);
+
+    // Now all the maps should be closed.
+    REQUIRE(bpf_map_get_next_id(0, &map_id) < 0);
+}
+
+TEST_CASE("array_map_of_maps_user_reference", "[libbpf]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_ARRAY_OF_MAPS);
+}
+TEST_CASE("hash_map_of_maps_user_reference", "[libbpf]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_HASH_OF_MAPS);
+}
+
+/**
+ * @brief This function tests that reference from prog array map to programs is maintained
+ * even when the program FD is closed. Also, when the outer map FD is closed, the program
+ * references are also released.
+ *
+ * @param map_type The type of the outer map.
+ */
+void
+_test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    // uint64_t fake_pid = 12345;
+    int result;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+
+    // Create a new prog_array_map with 3 entries.
+    fd_t prog_array_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "prog_array_map", sizeof(uint32_t), sizeof(fd_t), 3, nullptr);
+    REQUIRE(prog_array_map_fd > 0);
+
+    // Get FDs for the three programs.
+    fd_t program0_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor"));
+    REQUIRE(program0_fd > 0);
+
+    fd_t program1_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0"));
+    REQUIRE(program1_fd > 0);
+
+    fd_t program2_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1"));
+    REQUIRE(program2_fd > 0);
+
+    // Insert the program FDs into the prog_array_map.
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program1_fd, 0) == 0);
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program2_fd, 0) == 0);
+
+    // Close the program FDs. The programs should still exist and can be queried from the prog_array_map.
+    bpf_object__close(unique_object.release());
+
+    // Create an array of program FDs and get the program FDs from the prog_array_map in a loop.
+    fd_t program_fds[3];
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t program_id = 0;
+        result = bpf_map_lookup_elem(prog_array_map_fd, &i, &program_id);
+
+        REQUIRE(result == 0);
+        REQUIRE(program_id > 0);
+        program_fds[i] = bpf_prog_get_fd_by_id(program_id);
+        REQUIRE(program_fds[i] > 0);
+    }
+
+    // Query object info for each program.
+    for (uint32_t i = 0; i < 3; i++) {
+        bpf_prog_info program_info = {};
+        uint32_t program_info_size = sizeof(program_info);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fds[i], &program_info, &program_info_size) == 0);
+    }
+
+    // Close the program FDs, followed by the prog_array_map FD.
+    for (uint32_t i = 0; i < 3; i++) {
+        Platform::_close(program_fds[i]);
+    }
+    Platform::_close(prog_array_map_fd);
+
+    // All programs and maps should be closed now.
+    uint32_t start_id = 0;
+    REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
+    REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
+}
+
+TEST_CASE("prog_array_map_user_reference-jit", "[libbpf]") { _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT); }
+TEST_CASE("prog_array_map_user_reference-native", "[libbpf]")
+{
+    _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
+}
