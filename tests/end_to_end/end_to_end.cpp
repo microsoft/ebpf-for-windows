@@ -3763,7 +3763,7 @@ TEST_CASE("hash_map_of_maps_user_reference", "[libbpf]")
  * even when the program FD is closed. Also, when the outer map FD is closed, the program
  * references are also released.
  *
- * @param map_type The type of the outer map.
+ * @param execution_type The type of execution for the eBPF programs.
  */
 void
 _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)

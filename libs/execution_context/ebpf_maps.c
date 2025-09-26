@@ -18,7 +18,6 @@ typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
     cxplat_utf8_string_t name;
-    // volatile int64_t user_reference_count;
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
@@ -499,66 +498,6 @@ _ebpf_map_object_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
     }
 }
 
-// static void
-// _ebpf_map_object_map_acquire_reference(
-//     _Inout_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
-// {
-//     ebpf_core_map_t* core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, object);
-
-//     ebpf_assert(object->type == EBPF_OBJECT_MAP);
-//     ebpf_assert(
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY ||
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
-
-//     ebpf_object_acquire_reference(object, user_reference, file_id, line);
-//     if (user_reference) {
-//         int64_t new_ref_count = ebpf_interlocked_increment_int64(&core_map->user_reference_count);
-//         if (new_ref_count == 0) {
-//             __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
-//         }
-//     }
-// }
-
-// static void
-// _ebpf_map_object_map_release_reference(
-//     _Inout_opt_ ebpf_core_object_t* object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
-// {
-//     int64_t new_ref_count;
-//     ebpf_core_map_t* core_map = NULL;
-//     if (!object) {
-//         return;
-//     }
-
-//     core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, object);
-//     ebpf_assert(object->type == EBPF_OBJECT_MAP);
-//     ebpf_assert(
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY ||
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-//         core_map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
-
-//     if (user_reference) {
-//         new_ref_count = ebpf_interlocked_decrement_int64(&core_map->user_reference_count);
-//         if (new_ref_count < 0) {
-//             __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
-//         }
-
-//         if (new_ref_count == 0) {
-//             if (core_map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-//                 core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
-//                 ebpf_object_type_t type = core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY
-//                                               ? EBPF_OBJECT_PROGRAM
-//                                               : EBPF_OBJECT_MAP;
-//                 _clean_up_object_array_map(core_map, type);
-//             } else {
-//                 _clean_up_object_hash_map(core_map);
-//             }
-//         }
-//     }
-
-//     ebpf_object_release_reference(object, user_reference, file_id, line);
-// }
-
 static ebpf_result_t
 _create_array_map_with_map_struct_size(
     size_t map_struct_size, _In_ const ebpf_map_definition_in_memory_t* map_definition, _Outptr_ ebpf_core_map_t** map)
@@ -833,11 +772,6 @@ _create_object_array_map(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-
-    // // For PROG_ARRAY map, assign custom acquire and release functions.
-    // if (map_definition->type == BPF_MAP_TYPE_PROG_ARRAY) {
-    //     local_map->object.base.acquire_reference =
-    // }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
     result = _associate_inner_map(object_map, inner_map_handle);
@@ -1869,17 +1803,12 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    // Release the reference on the old ID stored here, if any.
+    // Release the reference on the old object stored here, if any.
     if (old_id) {
-        // EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
         ebpf_core_object_t* old_object = NULL;
         ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type, (ebpf_core_object_t**)&old_object));
         EBPF_OBJECT_RELEASE_REFERENCE(old_object);
     }
-
-    // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we already
-    // have a valid pointer to the object.  A failure here is indicative of a fatal internal error.
-    // ebpf_assert_success(EBPF_OBJECT_ACQUIRE_ID_REFERENCE(value_object->id, value_type));
 
 Done:
     if (result != EBPF_SUCCESS && value_object != NULL) {
@@ -1914,7 +1843,6 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
         }
     }
 
@@ -3305,14 +3233,6 @@ ebpf_map_create(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-
-    // // For BPF_MAP_TYPE_PROG_ARRAY, assign custom acquire and relese functions.
-    // if (local_map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY ||
-    //     local_map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-    //     local_map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-    //     local_map->object.base.acquire_reference = _ebpf_map_object_map_acquire_reference;
-    //     local_map->object.base.release_reference = _ebpf_map_object_map_release_reference;
-    // }
 
     *ebpf_map = local_map;
 

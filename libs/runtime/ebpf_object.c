@@ -261,7 +261,6 @@ Done:
 void
 ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, bool user_reference, uint32_t file_id, uint32_t line)
 {
-    // UNREFERENCED_PARAMETER(user_reference);
     _update_reference_history(object, EBPF_OBJECT_ACQUIRE, file_id, line);
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
