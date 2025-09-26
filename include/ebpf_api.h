@@ -906,6 +906,18 @@ extern "C"
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Mark a link as operating in legacy mode, which means it doesn't detach
+     * automatically when last user mode reference is closed.
+     * This is used by bpf_prog_attach and related APIs to implement legacy behavior.
+     *
+     * @param[in] link File descriptor for the link.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_link_mark_as_legacy_mode(fd_t link) EBPF_NO_EXCEPT;
 #ifdef __cplusplus
 }
 #endif

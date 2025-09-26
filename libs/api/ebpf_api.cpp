@@ -5222,3 +5222,20 @@ ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_E
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_link_mark_as_legacy_mode(fd_t link_fd) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t link_handle = _get_handle_from_file_descriptor(link_fd);
+    if (link_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+    ebpf_operation_link_set_legacy_mode_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_SET_LEGACY_MODE, link_handle};
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT

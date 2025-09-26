@@ -1533,9 +1533,12 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     // exits checks if all the objects in EC have been deleted.
     hook.detach_and_close_link(&link);
 
+    // Program should still be loaded.
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
     // Close program handle.
     bpf_object__close(unique_object.release());
-    uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
@@ -1576,17 +1579,21 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
-    // Close program handle. That should detach the program from the hook
-    // and unload the program.
+    // Close program handle. That should not detach the program from the hook
+    // and should not unload the program.
     bpf_object__close(unique_object.release());
     uint32_t program_id;
-    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
     hook.detach_and_close_link(&link);
+
+    // Program should be unloaded.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
+
 #endif
 
 TEST_CASE("create_map", "[end_to_end]")
@@ -2804,6 +2811,7 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
+    bpf_link_ptr link;
     int program_fd = -1;
     const char* error_message = nullptr;
     int result;
@@ -2841,11 +2849,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         }
         REQUIRE(result == 0);
 
-        bpf_link* link = nullptr;
+        bpf_link* raw_link = nullptr;
         // Attach only to the single interface being tested.
-        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-        bpf_link__disconnect(link);
-        bpf_link__destroy(link);
+        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &raw_link) == EBPF_SUCCESS);
+        link.reset(raw_link);
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
@@ -3290,6 +3297,7 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
+    bpf_link_ptr link;
     int program_fd = -1;
     const char* error_message = nullptr;
     int result;
@@ -3303,11 +3311,8 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    bpf_link* link = nullptr;
     // Attach only to the single interface being tested.
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-    bpf_link__disconnect(link);
-    bpf_link__destroy(link);
 
     // Program should run.
     uint32_t hook_result = MAXUINT32;
