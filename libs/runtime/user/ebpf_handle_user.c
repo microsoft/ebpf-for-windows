@@ -38,7 +38,7 @@ ebpf_handle_table_terminate()
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
         if (_ebpf_handle_table[handle] != NULL) {
-            EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle]);
+            EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle], true);
             _ebpf_handle_table[handle] = NULL;
         }
     }
@@ -67,7 +67,7 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
 
     *handle = new_handle;
     _ebpf_handle_table[new_handle] = object;
-    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(object);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(object, true);
 
     return_value = EBPF_SUCCESS;
 
@@ -86,7 +86,7 @@ ebpf_handle_close(ebpf_handle_t handle)
 
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if (((size_t)handle < EBPF_COUNT_OF(_ebpf_handle_table)) && _ebpf_handle_table[handle] != NULL) {
-        EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle]);
+        EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle], true);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
     } else {
@@ -115,7 +115,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if (_ebpf_handle_table[handle] != NULL &&
         (compare_function == NULL || compare_function(_ebpf_handle_table[handle], context))) {
-        _ebpf_handle_table[handle]->acquire_reference(_ebpf_handle_table[handle], file_id, line);
+        _ebpf_handle_table[handle]->acquire_reference(_ebpf_handle_table[handle], false, file_id, line);
         *object = _ebpf_handle_table[handle];
         return_value = EBPF_SUCCESS;
     } else {
