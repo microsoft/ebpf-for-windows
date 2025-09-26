@@ -3788,6 +3788,7 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
+    REQUIRE(result == 0);
 
     // Create a new prog_array_map with 3 entries.
     fd_t prog_array_map_fd =
