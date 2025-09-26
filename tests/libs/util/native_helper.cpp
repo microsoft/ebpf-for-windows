@@ -23,7 +23,7 @@ _native_module_helper::initialize(
 #else
     ebpf_execution_type_t system_default = ebpf_execution_type_t::EBPF_EXECUTION_ANY;
 #endif
-    // Cleanup any previous state.
+    // Clean up any previous state.
     // Detach all bpf links
     uint32_t link_id;
     while (bpf_link_get_next_id(0, &link_id) == 0) {

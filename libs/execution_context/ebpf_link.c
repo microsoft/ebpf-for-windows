@@ -642,7 +642,7 @@ _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_link_legacy_mode(_Inout_ ebpf_link_t* link)
+ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_lock_state_t state;

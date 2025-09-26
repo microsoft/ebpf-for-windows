@@ -5233,8 +5233,8 @@ ebpf_link_mark_as_legacy_mode(fd_t link_fd) NO_EXCEPT_TRY
         result = EBPF_INVALID_FD;
         EBPF_RETURN_RESULT(result);
     }
-    ebpf_operation_link_legacy_mode_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_LEGACY_MODE, link_handle};
+    ebpf_operation_link_set_legacy_mode_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_SET_LEGACY_MODE, link_handle};
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
     EBPF_RETURN_RESULT(result);
 }

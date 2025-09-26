@@ -2185,7 +2185,7 @@ _ebpf_core_protocol_epoch_synchronize(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_link_legacy_mode(_In_ const ebpf_operation_link_legacy_mode_request_t* request)
+_ebpf_core_protocol_link_set_legacy_mode(_In_ const ebpf_operation_link_set_legacy_mode_request_t* request)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
@@ -2196,7 +2196,7 @@ _ebpf_core_protocol_link_legacy_mode(_In_ const ebpf_operation_link_legacy_mode_
         goto Done;
     }
 
-    result = ebpf_link_legacy_mode(link);
+    result = ebpf_link_set_legacy_mode(link);
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
@@ -2900,7 +2900,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_map_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_legacy_mode, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
