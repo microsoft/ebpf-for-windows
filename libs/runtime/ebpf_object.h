@@ -68,20 +68,6 @@ extern "C"
 #define EBPF_OBJECT_REFERENCE_BY_HANDLE(object_handle, type, object) \
     ebpf_object_reference_by_handle(object_handle, type, object, EBPF_FILE_ID, __LINE__)
 
-// /**
-//  * @brief Macro to acquire a reference on an object ID and record the file and line number of the reference.
-//  *
-//  */
-// #define EBPF_OBJECT_ACQUIRE_ID_REFERENCE(object_id, type) \
-//     ebpf_object_acquire_id_reference(object_id, type, EBPF_FILE_ID, __LINE__)
-
-// /**
-//  * @brief Macro to release a reference on an object ID and record the file and line number of the reference.
-//  *
-//  */
-// #define EBPF_OBJECT_RELEASE_ID_REFERENCE(object_id, type) \
-//     ebpf_object_release_id_reference(object_id, type, EBPF_FILE_ID, __LINE__)
-
 /**
  * @brief Macro to acquire a reference on an object via it's function pointers and record the file and line number
  * of the reference.
@@ -133,9 +119,8 @@ extern "C"
     {
         uint32_t marker; ///< Contains the 32bit value 'eobj' when the object is valid and is inverted when the object
                          ///< is freed.
-        uint32_t zero_fill;               ///< Zero fill to make the reference count is 8-byte aligned.
-        volatile int64_t reference_count; ///< Reference count for the object.
-        // volatile int64_t user_reference_count;           ///< Reference count for the user references.
+        uint32_t zero_fill;                              ///< Zero fill to make the reference count is 8-byte aligned.
+        volatile int64_t reference_count;                ///< Reference count for the object.
         ebpf_base_acquire_reference_t acquire_reference; ///< Function to acquire a reference on this object.
         ebpf_base_release_reference_t release_reference; ///< Function to release a reference on this object.
     } ebpf_base_object_t;
@@ -312,36 +297,6 @@ extern "C"
         _Outptr_ struct _ebpf_core_object** object,
         ebpf_file_id_t file_id,
         uint32_t line);
-
-    // /**
-    //  * @brief Find an ID in the ID table, verify the type matches,
-    //  *  and acquire a reference on the id table entry for this
-    //  *  id
-    //  *
-    //  * @param[in] id ID to find in table.
-    //  * @param[in] object_type Object type to match.
-    //  * @param[in] file_id The file ID of the caller.
-    //  * @param[in] line The line number of the caller.
-    //  * @retval EBPF_SUCCESS The operation was successful.
-    //  * @retval EBPF_KEY_NOT_FOUND The provided ID is not valid.
-    //  */
-    // _Must_inspect_result_ ebpf_result_t
-    // ebpf_object_acquire_id_reference(
-    //     ebpf_id_t start_id, ebpf_object_type_t object_type, ebpf_file_id_t file_id, uint32_t line);
-
-    // /**
-    //  * @brief Find an ID in the ID table, verify the type matches,
-    //  *  and release the id table entry reference previously acquired
-    //  *  via ebpf_object_reference_by_id.
-    //  *
-    //  * @param[in] id ID to find in table.
-    //  * @param[in] object_type Object type to match.
-    //  * @param[in] file_id The file ID of the caller.
-    //  * @param[in] line The line number of the caller.
-    //  */
-    // void
-    // ebpf_object_release_id_reference(
-    //     ebpf_id_t start_id, ebpf_object_type_t object_type, ebpf_file_id_t file_id, uint32_t line);
 
 #ifdef __cplusplus
 }

@@ -1239,11 +1239,11 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
             *(ebpf_id_t*)value = 0;
         }
         if (previous_key != NULL) {
-            ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key);
+            ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
         }
     }
     if (previous_key != NULL) {
-        ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key);
+        ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
     }
     ebpf_assert(ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data) == 0);
 

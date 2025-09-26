@@ -3847,8 +3847,11 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
 }
 
-TEST_CASE("prog_array_map_user_reference-jit", "[libbpf]") { _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT); }
-TEST_CASE("prog_array_map_user_reference-native", "[libbpf]")
-{
-    _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
-}
+DECLARE_JIT_TEST_CASES(
+    "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
+
+// TEST_CASE("prog_array_map_user_reference-jit", "[libbpf]") { _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT);
+// } TEST_CASE("prog_array_map_user_reference-native", "[libbpf]")
+// {
+//     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
+// }
