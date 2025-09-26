@@ -332,16 +332,6 @@ _test_libbpf_program_pinning(ebpf_execution_type_t execution_type)
     struct bpf_object* object = bpf_object__open(file_name);
     REQUIRE(object != nullptr);
 
-    // Scope exit to ensure cleanup during fault injection
-    // auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
-    //     reinterpret_cast<void*>(1),
-    //     [object](void*) {
-    //         // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
-    //         if (object != nullptr) {
-    //             bpf_object__close(object);
-    //         }
-    //     });
-
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -400,7 +390,7 @@ _test_libbpf_program_pinning(ebpf_execution_type_t execution_type)
     result = bpf_object__unpin_maps(object, pin_path);
     REQUIRE(result == 0);
 
-    // cleanup will automatically be called when going out of scope
+    bpf_object__close(object);
 }
 
 DECLARE_ALL_TEST_CASES("libbpf program pinning", "[libbpf]", _test_libbpf_program_pinning);
