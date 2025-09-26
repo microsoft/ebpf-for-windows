@@ -163,7 +163,7 @@ test_libbpf_load_program()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf load program", "[libbpf][deprecated]") { test_libbpf_load_program(); }
+TEST_CASE("libbpf load program-jit", "[libbpf][deprecated]") { test_libbpf_load_program(); }
 
 static void
 test_libbpf_prog_test_run()
@@ -249,7 +249,7 @@ test_libbpf_prog_test_run()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf prog test run", "[libbpf][deprecated]") { test_libbpf_prog_test_run(); }
+TEST_CASE("libbpf prog test run-jit", "[libbpf][deprecated]") { test_libbpf_prog_test_run(); }
 
 static void
 _test_valid_bpf_load_program()
@@ -282,7 +282,7 @@ _test_valid_bpf_load_program()
     Platform::_close(program_fd);
 }
 
-TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]") { _test_valid_bpf_load_program(); }
+TEST_CASE("valid bpf_load_program-jit", "[libbpf][deprecated]") { _test_valid_bpf_load_program(); }
 
 static void
 _test_valid_bpf_prog_load()
@@ -315,7 +315,7 @@ _test_valid_bpf_prog_load()
     Platform::_close(program_fd);
 }
 
-TEST_CASE("valid bpf_prog_load", "[libbpf]") { _test_valid_bpf_prog_load(); }
+TEST_CASE("valid bpf_prog_load-jit", "[libbpf]") { _test_valid_bpf_prog_load(); }
 
 static void
 _test_valid_bpf_load_program_xattr()
@@ -353,7 +353,7 @@ _test_valid_bpf_load_program_xattr()
     Platform::_close(program_fd);
 }
 
-TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]") { _test_valid_bpf_load_program_xattr(); }
+TEST_CASE("valid bpf_load_program_xattr-jit", "[libbpf][deprecated]") { _test_valid_bpf_load_program_xattr(); }
 #endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
@@ -418,7 +418,7 @@ test_valid_bpf_load_program_with_map()
     Platform::_close(map_fd);
 }
 
-TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]") { test_valid_bpf_load_program_with_map(); }
+TEST_CASE("valid bpf_load_program with map-jit", "[libbpf][deprecated]") { test_valid_bpf_load_program_with_map(); }
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -485,7 +485,7 @@ _test_bpf_object_load_with_o()
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .o", "[libbpf]") { _test_bpf_object_load_with_o(); }
+TEST_CASE("bpf_object__load with .o-jit", "[libbpf]") { _test_bpf_object_load_with_o(); }
 
 static void
 _test_bpf_object_load_with_o_from_memory()
@@ -561,7 +561,7 @@ _test_bpf_object_load_with_o_from_memory()
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .o from memory", "[libbpf]") { _test_bpf_object_load_with_o_from_memory(); }
+TEST_CASE("bpf_object__load with .o from memory-jit", "[libbpf]") { _test_bpf_object_load_with_o_from_memory(); }
 
 static void
 _test_bpf_backwards_compatibility()
@@ -599,7 +599,7 @@ _test_bpf_backwards_compatibility()
 }
 
 // Test that bpf() accepts a smaller and a larger bpf_attr.
-TEST_CASE("bpf() backwards compatibility", "[libbpf][bpf]") { _test_bpf_backwards_compatibility(); }
+TEST_CASE("bpf() backwards compatibility-jit", "[libbpf][bpf]") { _test_bpf_backwards_compatibility(); }
 
 static void
 _test_bpf_prog_bind_map_etc()
@@ -751,7 +751,7 @@ _test_bpf_prog_bind_map_etc()
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
 // BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
-TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf][bpf]") { _test_bpf_prog_bind_map_etc(); }
+TEST_CASE("BPF_PROG_BIND_MAP etc.-jit", "[libbpf][bpf]") { _test_bpf_prog_bind_map_etc(); }
 
 void
 test_bpf_prog_attach_macro()
@@ -804,10 +804,10 @@ test_bpf_prog_attach_macro()
 
 // Test bpf() with the following command ids:
 //  BPF_PROG_ATTACH, BPF_PROG_DETACH
-TEST_CASE("BPF_PROG_ATTACH", "[libbpf][bpf]") { test_bpf_prog_attach_macro(); }
+TEST_CASE("BPF_PROG_ATTACH-jit", "[libbpf][bpf]") { test_bpf_prog_attach_macro(); }
 #endif
 
-TEST_CASE("BPF_PROG_LOAD logging", "[libbpf][bpf]")
+TEST_CASE("BPF_PROG_LOAD logging-jit", "[libbpf][bpf]")
 {
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     _test_helper_libbpf test_helper;
