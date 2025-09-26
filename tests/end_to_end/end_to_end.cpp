@@ -3771,7 +3771,6 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     test_helper.initialize();
 
     const char* error_message = nullptr;
-    // uint64_t fake_pid = 12345;
     int result;
     bpf_object_ptr unique_object;
     bpf_link_ptr link;
@@ -3849,9 +3848,3 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES(
     "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
-
-// TEST_CASE("prog_array_map_user_reference-jit", "[libbpf]") { _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT);
-// } TEST_CASE("prog_array_map_user_reference-native", "[libbpf]")
-// {
-//     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
-// }

@@ -1627,10 +1627,12 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_get_fd_by_id(info.id) < 0);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("prog_array_map_user_reference-jit", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT);
 }
+#endif
 TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
