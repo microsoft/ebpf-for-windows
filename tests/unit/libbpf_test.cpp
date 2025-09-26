@@ -164,6 +164,289 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
     REQUIRE(errno == EINVAL);
 }
 
+static void
+_test_libbpf_program(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    const char* name = bpf_object__name(object);
+    REQUIRE(strcmp(name, file_name) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
+    REQUIRE(program != nullptr);
+
+    errno = 0;
+    REQUIRE(bpf_object__find_program_by_name(object, "not_a_valid_name") == NULL);
+    REQUIRE(errno == ENOENT);
+
+    // Testing invalid map name.
+    errno = 0;
+    REQUIRE(bpf_object__find_map_by_name(object, "not_a_valid_map") == NULL);
+    REQUIRE(errno == ENOENT);
+
+    name = bpf_program__section_name(program);
+    REQUIRE(strcmp(name, "sample_ext") == 0);
+
+    name = bpf_program__name(program);
+    REQUIRE(strcmp(name, "test_program_entry") == 0);
+
+    int fd2 = bpf_program__fd(program);
+    REQUIRE(fd2 != ebpf_fd_invalid);
+
+    size_t size = bpf_program__insn_cnt(program);
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        // Native modules don't contain eBPF bytecode.
+        REQUIRE(size == 0);
+    } else {
+        REQUIRE(size == 40);
+    }
+
+#pragma warning(suppress : 4996) // deprecated
+    size = bpf_program__size(program);
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        // Native modules don't contain eBPF bytecode.
+        REQUIRE(size == 0);
+    } else {
+        REQUIRE(size == 320);
+    }
+
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
+    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program", "[libbpf]", _test_libbpf_program);
+
+static void
+_test_libbpf_subprogram(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_um.dll" : "bindmonitor_bpf2bpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Test bpf_object__find_program_by_name().
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor_Callee");
+    REQUIRE(program == nullptr);
+    program = bpf_object__find_program_by_name(object, "BindMonitor_Caller");
+    REQUIRE(program != nullptr);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
+    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf subprogram", "[libbpf]", _test_libbpf_subprogram);
+
+static void
+_test_program_autoload(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_same_section_um.dll" : "tail_call_same_section.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+    int caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
+    REQUIRE(callee != nullptr);
+    int callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd == ebpf_fd_invalid);
+
+    // Check initial autoload values.
+    REQUIRE(bpf_program__autoload(caller) == true);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Update an autoload value.
+    REQUIRE(bpf_program__set_autoload(caller, false) == 0);
+    REQUIRE(bpf_program__autoload(caller) == false);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Verify what programs were loaded.
+    caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd > 0);
+
+    // Verify we cannot change autoload values after loading.
+    int error = bpf_program__set_autoload(caller, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(caller, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program autoload", "[libbpf]", _test_program_autoload);
+
+static void
+_test_libbpf_program_pinning(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    const char* pin_path = "\\temp\\test";
+    const char* bad_pin_path = "\\bad\\path";
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
+    REQUIRE(program != nullptr);
+
+    // Try to pin the program.
+    int result = bpf_program__pin(program, pin_path);
+    REQUIRE(result == 0);
+
+    // Make sure a duplicate pin fails.
+    result = bpf_program__pin(program, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
+
+    // Test bpf_obj_get() to return the fd and correctly set 'errno'.
+    fd_t obj_fd = bpf_obj_get(pin_path);
+    REQUIRE(obj_fd != ebpf_fd_invalid);
+    REQUIRE(errno == EEXIST);
+    obj_fd = bpf_obj_get(bad_pin_path);
+    REQUIRE(obj_fd == -ENOENT);
+    REQUIRE(errno == ENOENT);
+
+    result = bpf_program__unpin(program, pin_path);
+    REQUIRE(result == 0);
+
+    // Make sure a duplicate unpin fails.
+    result = bpf_program__unpin(program, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Try to pin all (1) programs in the object.
+    result = bpf_object__pin_programs(object, pin_path);
+    REQUIRE(result == 0);
+
+    // Make sure a duplicate pin fails.
+    REQUIRE(bpf_object__pin_programs(object, pin_path) < 0);
+    REQUIRE(errno == EEXIST);
+
+    result = bpf_object__unpin_programs(object, pin_path);
+    REQUIRE(result == 0);
+
+    // Try to pin all programs and maps in the object.
+    result = bpf_object__pin(object, pin_path);
+    REQUIRE(result == 0);
+
+    // Make sure a duplicate pin fails.
+    REQUIRE(bpf_object__pin_programs(object, pin_path) < 0);
+    REQUIRE(errno == EEXIST);
+
+    // There is no bpf_object__unpin API, so
+    // we have to unpin programs and maps separately.
+    result = bpf_object__unpin_programs(object, pin_path);
+    REQUIRE(result == 0);
+
+    result = bpf_object__unpin_maps(object, pin_path);
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program pinning", "[libbpf]", _test_libbpf_program_pinning);
+
+static void
+_test_libbpf_program_attach(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
+    REQUIRE(program != nullptr);
+
+    // Based on the program type, verify that the/ default attach type is set correctly.
+    enum bpf_attach_type type = bpf_program__get_expected_attach_type(program);
+    REQUIRE(type == BPF_ATTACH_TYPE_SAMPLE);
+
+    REQUIRE(bpf_program__set_expected_attach_type(program, BPF_ATTACH_TYPE_SAMPLE) == 0);
+
+    type = bpf_program__get_expected_attach_type(program);
+    REQUIRE(type == BPF_ATTACH_TYPE_SAMPLE);
+
+    int result = bpf_object__load(object);
+    REQUIRE(result == 0);
+
+    bpf_link_ptr link(bpf_program__attach(program));
+    REQUIRE(link != nullptr);
+
+    int link_fd = bpf_link__fd(link.get());
+    REQUIRE(link_fd >= 0);
+
+    result = bpf_link_detach(link_fd);
+    REQUIRE(result == 0);
+
+    // Second detach is idempotent.
+    result = bpf_link_detach(link_fd);
+    REQUIRE(result == 0);
+
+    result = bpf_link_detach(ebpf_handle_invalid);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_link__destroy(link.release());
+    REQUIRE(result == 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program attach", "[libbpf]", _test_libbpf_program_attach);
+
+#define TEST_IFINDEX 17
 // This is a set of tests which utilize the libbpf XDP APIs.
 // The XDP extension is built outside of the ebpf-for-windows repo
 // and therefore these APIs are expected to gracefully fail.
@@ -185,6 +468,315 @@ TEST_CASE("libbpf xdp negative", "[libbpf]")
 #pragma warning(suppress : 4996) // deprecated
     REQUIRE(bpf_program__attach_xdp(nullptr, TEST_IFINDEX) == nullptr);
 }
+
+void
+test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info[2])
+{
+    // Verify there's no program attached to the specified ifindex.
+    uint32_t program_id;
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Attach the first program to the specified ifindex.
+    REQUIRE(bpf_xdp_attach(ifindex, program_fd[0], 0, nullptr) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[0].id);
+
+    // Replace it with the second program.
+    REQUIRE(bpf_xdp_attach(ifindex, program_fd[1], XDP_FLAGS_REPLACE, nullptr) == 0);
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) == 0);
+    REQUIRE(program_id == program_info[1].id);
+
+    // Detach the second program.
+    REQUIRE(bpf_xdp_detach(ifindex, XDP_FLAGS_REPLACE, nullptr) == 0);
+
+    // Verify there's no program attached to this ifindex.
+    REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
+    REQUIRE(errno == ENOENT);
+}
+
+static void
+_test_bpf_set_link_xdp_fd(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct bpf_object* object[2];
+    struct bpf_program* program[2];
+    int program_fd[2];
+    bpf_prog_info program_info[2] = {};
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
+    for (int i = 0; i < 2; i++) {
+        object[i] = bpf_object__open(file_name);
+        REQUIRE(object[i] != nullptr);
+        // Load the program(s).
+        REQUIRE(bpf_object__load(object[i]) == 0);
+
+        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+        REQUIRE(program[i] != nullptr);
+        program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
+
+        uint32_t program_info_size = sizeof(program_info[i]);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
+    }
+
+    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
+    test_xdp_ifindex(0, program_fd, program_info);
+
+    bpf_object__close(object[0]);
+    bpf_object__close(object[1]);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_set_link_xdp_fd", "[libbpf]", _test_bpf_set_link_xdp_fd);
+
+static void
+_test_libbpf_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    std::vector<std::string> expected_map_names = {
+        "HASH_map",
+        "PERCPU_HASH_map",
+        "ARRAY_map",
+        "PERCPU_ARRAY_map",
+        "LRU_HASH_map",
+        "LRU_PERCPU_HASH_map",
+        "QUEUE_map",
+        "STACK_map"};
+    std::vector<bpf_map_type> expected_map_types = {
+        BPF_MAP_TYPE_HASH,
+        BPF_MAP_TYPE_PERCPU_HASH,
+        BPF_MAP_TYPE_ARRAY,
+        BPF_MAP_TYPE_PERCPU_ARRAY,
+        BPF_MAP_TYPE_LRU_HASH,
+        BPF_MAP_TYPE_LRU_PERCPU_HASH,
+        BPF_MAP_TYPE_QUEUE,
+        BPF_MAP_TYPE_STACK};
+    std::vector<struct bpf_map*> maps;
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_um.dll" : "map.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
+    REQUIRE(program != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Find all maps.
+    struct bpf_map* map = nullptr;
+    bpf_object__for_each_map(map, object) { maps.push_back(map); };
+
+    REQUIRE(maps.size() == expected_map_names.size());
+
+    // Get the first map.
+    map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+
+    // Verify that there are no maps before this.
+    REQUIRE(bpf_object__prev_map(object, map) == nullptr);
+
+    // Get the next map.
+    struct bpf_map* map2 = bpf_object__next_map(object, map);
+    REQUIRE(map2 != nullptr);
+    REQUIRE(bpf_object__prev_map(object, map2) == map);
+
+    // Verify that there are no other maps after the last map.
+    REQUIRE(bpf_object__next_map(object, maps.back()) == nullptr);
+
+    // Verify the map names, types, key size, value size, max entries, and flags.
+    for (size_t i = 0; i < maps.size(); i++) {
+        REQUIRE(bpf_map__name(maps[i]) == expected_map_names[i]);
+        REQUIRE(bpf_map__type(maps[i]) == expected_map_types[i]);
+
+        if (expected_map_types[i] == BPF_MAP_TYPE_QUEUE || expected_map_types[i] == BPF_MAP_TYPE_STACK) {
+            REQUIRE(bpf_map__key_size(maps[i]) == 0);
+        } else {
+            REQUIRE(bpf_map__key_size(maps[i]) == 4);
+        }
+
+        REQUIRE(bpf_map__value_size(maps[i]) == 4);
+        REQUIRE(bpf_map__max_entries(maps[i]) == 10);
+    }
+
+    int map_fd = bpf_map__fd(maps[2]);
+    REQUIRE(map_fd > 0);
+
+    uint64_t value = 0;
+    uint32_t index = bpf_map__max_entries(maps[2]) + 10; // Past end of array.
+
+    int result = bpf_map_lookup_elem(map_fd, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Wrong fd type.
+    int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
+    result = bpf_map_lookup_elem(program_fd, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid fd.
+    result = bpf_map_lookup_elem(nonexistent_fd, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_map_lookup_elem(-1, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    // NULL key.
+    result = bpf_map_lookup_elem(map_fd, NULL, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid key.
+    result = bpf_map_delete_elem(map_fd, &index);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Wrong fd type.
+    result = bpf_map_delete_elem(program_fd, &index);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid fd.
+    result = bpf_map_delete_elem(nonexistent_fd, &index);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    // NULL key.
+    result = bpf_map_update_elem(map_fd, NULL, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid key.
+    result = bpf_map_update_elem(map_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    index = 0;
+    // Invalid fd.
+    result = bpf_map_update_elem(nonexistent_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_map_update_elem(-1, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    // Wrong fd type.
+    result = bpf_map_update_elem(program_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
+    REQUIRE(value == 0);
+
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == 0);
+
+    value = 12345;
+    REQUIRE(bpf_map_update_elem(map_fd, &index, &value, 0) == 0);
+
+    // Wrong flags.
+    result = bpf_map_update_elem(map_fd, &index, &value, UINT64_MAX);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
+    REQUIRE(value == 12345);
+
+    REQUIRE(bpf_map_delete_elem(map_fd, &index) == 0);
+
+    REQUIRE(bpf_map_lookup_elem(map_fd, &index, &value) == 0);
+    REQUIRE(value == 0);
+
+    // Query value from per-CPUs maps.
+    for (size_t i = 0; i < expected_map_names.size(); i++) {
+        if (expected_map_names[i].find("PERCPU") == std::string::npos) {
+            continue;
+        };
+        std::vector<uint8_t> per_cpu_value(
+            EBPF_PAD_8(bpf_map__value_size(maps[i])) * static_cast<size_t>(libbpf_num_possible_cpus()));
+        REQUIRE(bpf_map_update_elem(bpf_map__fd(maps[i]), &index, per_cpu_value.data(), 0) == 0);
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(maps[i]), &index, per_cpu_value.data()) == 0);
+    }
+
+    // Invalid map type.
+    result = bpf_map_create(BPF_MAP_TYPE_UNSPEC, "BPF_MAP_TYPE_UNSPEC", 1, 1, 1, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOTSUP);
+
+    // Invalid key size.
+    result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_key", 0, 1, 1, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid value size.
+    result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_value", 1, 0, 1, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid entry count.
+    result = bpf_map_create(BPF_MAP_TYPE_HASH, "no_entries", 1, 1, 0, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid options - bad inner_map_fd.
+    bpf_map_create_opts opts{
+        sizeof(opts),         // sz
+        0,                    // btf_fd
+        0,                    // btf_key_type_id
+        0,                    // btf_value_type_id
+        0,                    // btf_vmlinux_value_type_id
+        (uint32_t)program_fd, // inner_map_fd
+        0,                    // map_flags
+        0,                    // map_extra
+        0,                    // numa_node
+        0,                    // map_ifindex
+    };
+    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &opts);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid options - bad flags.
+    opts = {
+        sizeof(opts), // sz
+        0,            // btf_fd
+        0,            // btf_key_type_id
+        0,            // btf_value_type_id
+        0,            // btf_vmlinux_value_type_id
+        0,            // inner_map_fd
+        UINT32_MAX,   // map_flags
+        0,            // map_extra
+        0,            // numa_node
+        0,            // map_ifindex
+    };
+    result = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, "bad_opts", 1, 1, 1, &opts);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Invalid fd.
+    result = bpf_map_get_next_key(nonexistent_fd, NULL, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    // FD not a map.
+    result = bpf_map_get_next_key(program_fd, NULL, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // next_key is NULL.
+    result = bpf_map_get_next_key(map_fd, NULL, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf map", "[libbpf]", _test_libbpf_map);
 
 TEST_CASE("libbpf create queue", "[libbpf]")
 {
@@ -291,6 +883,217 @@ TEST_CASE("libbpf create ringbuf", "[libbpf]")
 
     Platform::_close(map_fd);
 }
+
+static void
+_test_libbpf_map_binding(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+    int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
+
+    // Create a map.
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
+    REQUIRE(map_fd > 0);
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0);
+    ebpf_id_t map_id = info.id;
+
+    // Try some invalid FDs.
+    int error = bpf_prog_bind_map(ebpf_fd_invalid, map_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    error = bpf_prog_bind_map(map_fd, map_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    error = bpf_prog_bind_map(program_fd, ebpf_fd_invalid, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    error = bpf_prog_bind_map(program_fd, program_fd, nullptr);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Bind it to the program.
+    error = bpf_prog_bind_map(program_fd, map_fd, nullptr);
+    REQUIRE(error == 0);
+
+    // Release our own reference on the map.
+    Platform::_close(map_fd);
+
+    // Verify that the map still exists.
+    map_fd = bpf_map_get_fd_by_id(map_id);
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Close the object, which should cause the map to be deleted.
+    bpf_object__close(object);
+    REQUIRE(bpf_map_get_fd_by_id(map_id) < 0);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf map binding", "[libbpf]", _test_libbpf_map_binding);
+
+static void
+_test_libbpf_map_pinning(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    const char* pin_path = "\\temp\\test";
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+
+    REQUIRE(bpf_map__is_pinned(map) == false);
+
+    // Try to pin the map.
+    int result = bpf_map__pin(map, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == true);
+
+    // Make sure a duplicate pin fails.
+    result = bpf_map__pin(map, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
+
+    result = bpf_map__unpin(map, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == false);
+
+    // Make sure pinning with a different name fails.
+    result = bpf_map__pin(map, "second_pin_path");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Make sure an invalid path fails.
+    result = bpf_map__unpin(map, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Make sure a duplicate unpin fails.
+    result = bpf_map__unpin(map, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Clear pin path for the map.
+    result = bpf_map__set_pin_path(map, nullptr);
+    REQUIRE(result == 0);
+
+    // Set pin path for the map.
+    result = bpf_map__set_pin_path(map, pin_path);
+    REQUIRE(result == 0);
+
+    // Clear pin path for the map.
+    result = bpf_map__set_pin_path(map, nullptr);
+    REQUIRE(result == 0);
+
+    // Try to pin all (1) maps in the object.
+    result = bpf_object__pin_maps(object, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == true);
+
+    // Make sure a duplicate pin fails.
+    result = bpf_object__pin_maps(object, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
+
+    result = bpf_object__unpin_maps(object, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == false);
+
+    // Try to pin all programs and maps in the object.
+    result = bpf_object__pin(object, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == true);
+
+    // Make sure a duplicate pin fails.
+    result = bpf_object__pin_maps(object, pin_path);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EEXIST);
+
+    // There is no bpf_object__unpin API, so
+    // we have to unpin programs and maps separately.
+    result = bpf_object__unpin_programs(object, pin_path);
+    REQUIRE(result == 0);
+
+    result = bpf_object__unpin_maps(object, pin_path);
+    REQUIRE(result == 0);
+
+    REQUIRE(bpf_map__is_pinned(map) == false);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf map pinning", "[libbpf]", _test_libbpf_map_pinning);
+
+static void
+_test_libbpf_obj_pinning(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+    const char* pin_path = "\\temp\\test";
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    int result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(result == 0);
+
+    // Linux lacks a bpf_object_unpin, so call the ebpf_ variety.
+    REQUIRE(ebpf_object_unpin(pin_path) == EBPF_SUCCESS);
+
+    result = bpf_obj_pin(-1, "invalid_fd");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    result = bpf_obj_pin(map_fd, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
+    result = bpf_obj_pin(nonexistent_fd, "not_a_real_fd");
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf obj pinning", "[libbpf]", _test_libbpf_obj_pinning);
 
 TEST_CASE("good_tail_call-native", "[libbpf]")
 {
@@ -487,6 +1290,57 @@ _load_inner_map(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("Test loading BPF program with anonymous inner map", "[libbpf]", _load_inner_map);
+
+static void
+_test_disallow_prog_array_mixed_program_type_values(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* sample_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* sample_object = bpf_object__open(sample_object_file_name);
+    REQUIRE(sample_object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(sample_object) == 0);
+    struct bpf_program* sample_program = bpf_object__find_program_by_name(sample_object, "test_program_entry");
+    int sample_program_fd = bpf_program__fd(const_cast<const bpf_program*>(sample_program));
+
+    const char* bind_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    struct bpf_object* bind_object = bpf_object__open(bind_object_file_name);
+    REQUIRE(bind_object != nullptr);
+    // Load the program(s).
+    REQUIRE(bpf_object__load(bind_object) == 0);
+    struct bpf_program* bind_program = bpf_object__find_program_by_name(bind_object, "BindMonitor");
+    int bind_program_fd = bpf_program__fd(const_cast<const bpf_program*>(bind_program));
+
+    // Create a map.
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Since the map is not yet associated with a program, the first program fd
+    // we add will become the PROG_ARRAY's program type.
+    int index = 0;
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&sample_program_fd, 0);
+    REQUIRE(error == 0);
+
+    // Adding an entry with a different program type should fail.
+    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&bind_program_fd, 0);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    Platform::_close(map_fd);
+    bpf_object__close(bind_object);
+    bpf_object__close(sample_object);
+}
+
+DECLARE_ALL_TEST_CASES(
+    "disallow prog_array mixed program type values", "[libbpf]", _test_disallow_prog_array_mixed_program_type_values);
 
 static void
 _enumerate_program_ids_test(ebpf_execution_type_t execution_type)
@@ -850,6 +1704,526 @@ TEST_CASE("enumerate map IDs", "[libbpf]")
     Platform::_close(fd1);
     Platform::_close(fd2);
 }
+
+static void
+_test_enumerate_link_IDs(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
+
+    // Verify the enumeration is empty.
+    uint32_t id1;
+    REQUIRE(bpf_link_get_next_id(0, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    REQUIRE(bpf_link_get_next_id(EBPF_ID_NONE, &id1) < 0);
+    REQUIRE(errno == ENOENT);
+
+    // Load and attach some programs.
+    program_load_attach_helper_t sample_helper;
+    const char* sample_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    sample_helper.initialize(
+        sample_object_file_name, BPF_PROG_TYPE_SAMPLE, "test_program_entry", execution_type, nullptr, 0, sample_hook);
+    program_load_attach_helper_t bind_helper;
+    const char* bind_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    bind_helper.initialize(
+        bind_object_file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, bind_hook);
+
+    // Now enumerate the IDs.
+    REQUIRE(bpf_link_get_next_id(0, &id1) == 0);
+    fd_t fd1 = bpf_link_get_fd_by_id(id1);
+    REQUIRE(fd1 >= 0);
+    Platform::_close(fd1);
+
+    uint32_t id2;
+    REQUIRE(bpf_link_get_next_id(id1, &id2) == 0);
+    fd_t fd2 = bpf_link_get_fd_by_id(id2);
+    REQUIRE(fd2 >= 0);
+    Platform::_close(fd2);
+
+    uint32_t id3;
+    REQUIRE(bpf_link_get_next_id(id2, &id3) < 0);
+    REQUIRE(errno == ENOENT);
+}
+
+DECLARE_ALL_TEST_CASES("enumerate link IDs", "[libbpf]", _test_enumerate_link_IDs);
+
+static void
+_test_enumerate_link_IDs_with_bpf(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_LINK_TYPE_PLAIN);
+    REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
+
+    // Verify the enumeration is empty.
+    union bpf_attr attr;
+    memset(&attr, 0, sizeof(attr));
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = EBPF_ID_NONE;
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
+
+    // Load and attach some programs.
+    program_load_attach_helper_t sample_helper;
+    const char* sample_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    sample_helper.initialize(
+        sample_object_file_name, BPF_PROG_TYPE_SAMPLE, "test_program_entry", execution_type, nullptr, 0, sample_hook);
+    program_load_attach_helper_t bind_helper;
+    const char* bind_object_file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+    bind_helper.initialize(
+        bind_object_file_name, BPF_PROG_TYPE_BIND, "BindMonitor", execution_type, nullptr, 0, bind_hook);
+
+    // Now enumerate the IDs.
+    memset(&attr, 0, sizeof(attr));
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
+    uint32_t id1 = attr.link_get_next_id.next_id;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = id1;
+    fd_t fd1 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(fd1 >= 0);
+
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
+    uint32_t id2 = attr.link_get_next_id.next_id;
+
+    memset(&attr, 0, sizeof(attr));
+    attr.link_id = id2;
+    fd_t fd2 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
+    REQUIRE(fd2 >= 0);
+
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
+
+    // Get info on the first link.
+    memset(&attr, 0, sizeof(attr));
+    sys_bpf_link_info_t info = {};
+    attr.info.bpf_fd = fd1;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.id == id1);
+    REQUIRE(info.prog_id != 0);
+
+    // Detach the first link.
+    memset(&attr, 0, sizeof(attr));
+    attr.link_detach.link_fd = fd1;
+    REQUIRE(bpf(BPF_LINK_DETACH, &attr, sizeof(attr)) == 0);
+
+    // Get info on the detached link.
+    memset(&attr, 0, sizeof(attr));
+    attr.info.bpf_fd = fd1;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.id == id1);
+    REQUIRE(info.prog_id == 0);
+
+    // Pin the detached link.
+    memset(&attr, 0, sizeof(attr));
+    attr.obj_pin.bpf_fd = fd1;
+    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
+
+    // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
+    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) == -EINVAL);
+
+    // Retrieve a new fd from the pin path.
+    attr.obj_pin.bpf_fd = 0;
+    fd_t fd3 = bpf(BPF_OBJ_GET, &attr, sizeof(attr));
+    REQUIRE(fd3 > 0);
+
+    // Get info on the new fd.
+    memset(&attr, 0, sizeof(attr));
+    attr.info.bpf_fd = fd3;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.id == id1);
+
+    // Get info on the second link.
+    memset(&attr, 0, sizeof(attr));
+    info = {};
+    attr.info.bpf_fd = fd2;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN);
+    REQUIRE(info.id == id2);
+    REQUIRE(info.prog_id != 0);
+
+    // And for completeness, try an invalid bpf() call.
+    REQUIRE(bpf(-1, &attr, sizeof(attr)) == -EINVAL);
+
+    // Unpin the link.
+    REQUIRE(ebpf_object_unpin("MyPath") == EBPF_SUCCESS);
+
+    Platform::_close(fd1);
+    Platform::_close(fd2);
+    Platform::_close(fd3);
+}
+
+DECLARE_ALL_TEST_CASES("enumerate link IDs with bpf", "[libbpf][bpf]", _test_enumerate_link_IDs_with_bpf);
+
+static void
+_test_bpf_prog_attach(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "cgroup_sock_addr_um.dll" : "cgroup_sock_addr.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program to an attach type that doesn't work with this API.
+    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_ATTACH_TYPE_SAMPLE, 0) == -ENOTSUP);
+
+    // Verify we can't use an illegal program fd.
+    REQUIRE(bpf_prog_attach(ebpf_fd_invalid, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EBADF);
+
+    // TODO (issue #1028): Currently one can pass an invalid attachable fd and bpf_prog_attach
+    // will succeed because it's temporarily just treated as a compartment id. The following
+    // should instead return errors.
+    REQUIRE(bpf_prog_attach(program_fd, ebpf_fd_invalid, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+    REQUIRE(bpf_prog_attach(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_prog_attach", "[libbpf]", _test_bpf_prog_attach);
+
+static void
+_test_bpf_link_pin(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
+    REQUIRE(program != nullptr);
+
+    // Load and pin the program.
+    REQUIRE(bpf_object__load(object) == 0);
+    const char* program_pin_name = "ProgramPinName";
+    REQUIRE(bpf_program__pin(program, program_pin_name) == 0);
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Verify we can't attach the program to a different attach type.
+    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EINVAL);
+
+    // Attach the program so we get a link object.
+    bpf_link_ptr link(bpf_program__attach(program));
+    REQUIRE(link != nullptr);
+
+    // Verify that unpinning an unpinned link fails.
+    REQUIRE(bpf_link__unpin(link.get()) == -ENOENT);
+
+    // Verify that pinning a link to an already-in-use path fails.
+    REQUIRE(bpf_link__pin(link.get(), program_pin_name) == -EEXIST);
+
+    // Verify that pinning a link to a new path works.
+    REQUIRE(bpf_link__pin(link.get(), "MyPath") == 0);
+
+    // Verify that pinning an already-pinned link fails.
+    REQUIRE(bpf_link__pin(link.get(), "MyPath2") == -EBUSY);
+
+    REQUIRE(bpf_link__unpin(link.get()) == 0);
+
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
+    REQUIRE(bpf_program__unpin(program, program_pin_name) == 0);
+
+    bpf_program__unload(program);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_link__pin", "[libbpf]", _test_bpf_link_pin);
+
+static void
+_test_bpf_obj_get_info_by_fd(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
+    program_load_attach_helper_t sample_helper;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "map_reuse_um.dll" : "map_reuse.o");
+    sample_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", execution_type, nullptr, 0, sample_hook);
+
+    struct bpf_object* object = sample_helper.get_object();
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+
+    const char* program_name = bpf_program__name(program);
+    REQUIRE(program_name != nullptr);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Fetch info about the maps and verify it matches what we'd expect.
+    bpf_map_info map_info[3];
+    uint32_t map_info_size = sizeof(bpf_map_info);
+
+    // Find the inner map.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "inner_map");
+    REQUIRE(map != nullptr);
+
+    int map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    bpf_map_info inner_map_info;
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &inner_map_info, &map_info_size) == 0);
+
+    // Find the outer map.
+    map = bpf_object__find_map_by_name(object, "outer_map");
+    REQUIRE(map != nullptr);
+
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    const char* map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
+
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[0], &map_info_size) == 0);
+
+    bpf_map_info expected_map_info = {
+        .type = BPF_MAP_TYPE_HASH_OF_MAPS,
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint32_t),
+        .max_entries = 1,
+        .name = {0},
+        .pinned_path_count = 1};
+    expected_map_info.id = map_info[0].id;
+    expected_map_info.inner_map_id = inner_map_info.id;
+    strcpy_s(expected_map_info.name, sizeof(expected_map_info.name), map_name);
+    if (strlen(map_name) < sizeof(expected_map_info.name)) {
+        memset(expected_map_info.name + strlen(map_name), 0, sizeof(expected_map_info.name) - strlen(map_name));
+    }
+
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[0], &expected_map_info, sizeof(expected_map_info)) == 0);
+
+    // Find the second map.
+    map = bpf_object__find_map_by_name(object, "port_map");
+    REQUIRE(map != nullptr);
+
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
+
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[1], &map_info_size) == 0);
+
+    expected_map_info.type = BPF_MAP_TYPE_ARRAY;
+    expected_map_info.id = map_info[1].id;
+    expected_map_info.inner_map_id = 0;
+    strcpy_s(expected_map_info.name, sizeof(expected_map_info.name), map_name);
+    if (strlen(map_name) < sizeof(expected_map_info.name)) {
+        memset(expected_map_info.name + strlen(map_name), 0, sizeof(expected_map_info.name) - strlen(map_name));
+    }
+
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[1], &expected_map_info, sizeof(expected_map_info)) == 0);
+
+    // Get info but pass in a buffer that is too small.
+    uint32_t reduced_map_info_size = sizeof(bpf_map_info) / 2;
+    memset(&map_info[2], 0xa, sizeof(map_info[2]));
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[2], &reduced_map_info_size) == 0);
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[2], &expected_map_info, reduced_map_info_size) == 0);
+    const std::vector<std::byte> buf(sizeof(bpf_map_info) - reduced_map_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&map_info[2]) + reduced_map_info_size,
+            buf.data(),
+            sizeof(bpf_map_info) - reduced_map_info_size) == 0);
+
+    // Fetch info about the program and verify it matches what we'd expect.
+    bpf_prog_info program_info = {};
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(strcmp(program_info.name, program_name) == 0);
+    REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.map_ids == 0);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_SAMPLE);
+
+    // Get info but pass in a buffer that smaller than the minimum required input size.
+    bpf_prog_info reduced_program_info = {};
+    uint32_t reduced_prog_info_size = EBPF_OFFSET_OF(bpf_prog_info, name) - 1;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &reduced_program_info, &reduced_prog_info_size) == -EINVAL);
+
+    // Get info but pass in a output buffer that is smaller than the full size of bpf_prog_info.
+    reduced_prog_info_size = sizeof(bpf_prog_info) / 2;
+    memset(&reduced_program_info, 0xa, sizeof(reduced_program_info));
+    reduced_program_info.nr_map_ids = 0;
+    reduced_program_info.map_ids = 0;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &reduced_program_info, &reduced_prog_info_size) == 0);
+    // Verify the program info matches what we expect.
+    REQUIRE(memcmp(&reduced_program_info, &program_info, reduced_prog_info_size) == 0);
+    const std::vector<std::byte> buf2(sizeof(bpf_prog_info) - reduced_prog_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&reduced_program_info) + reduced_prog_info_size,
+            buf2.data(),
+            sizeof(bpf_prog_info) - reduced_prog_info_size) == 0);
+
+    // Fetch info about the maps and verify it matches what we'd expect.
+    ebpf_id_t map_ids[2] = {0};
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(map_ids[0] == map_info[0].id);
+    REQUIRE(map_ids[1] == map_info[1].id);
+
+    // Try again with nr_map_ids set to get only partial.
+    map_ids[0] = map_ids[1] = 0;
+    program_info.nr_map_ids = 1;
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
+    REQUIRE(map_ids[0] == map_info[0].id);
+
+    // Try again with an invalid pointer.
+    program_info.map_ids++;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
+
+    // Fetch info about the attachment and verify it matches what we'd expect.
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+
+    bpf_link_info link_info;
+    uint32_t link_info_size = sizeof(link_info);
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &link_info, &link_info_size) == 0);
+    REQUIRE(link_info_size == sizeof(link_info));
+
+    REQUIRE(link_info.prog_id == program_info.id);
+    REQUIRE(link_info.attach_type == BPF_ATTACH_TYPE_SAMPLE);
+
+    // Get info but pass in a buffer that is too small.
+    bpf_link_info reduced_link_info = {};
+    uint32_t reduced_link_info_size = sizeof(bpf_link_info) / 2;
+    memset(&reduced_link_info, 0xa, sizeof(reduced_link_info));
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &reduced_link_info, &reduced_link_info_size) == 0);
+    // Verify the link info matches what we expect.
+    REQUIRE(memcmp(&reduced_link_info, &link_info, reduced_link_info_size) == 0);
+    const std::vector<std::byte> buf3(sizeof(bpf_link_info) - reduced_link_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&reduced_link_info) + reduced_link_info_size,
+            buf3.data(),
+            sizeof(bpf_link_info) - reduced_link_info_size) == 0);
+
+    // Verify we can detach using this link fd.
+    // This is the flow used by bpftool to detach a link.
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+
+    Platform::_close(link_fd);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_obj_get_info_by_fd", "[libbpf]", _test_bpf_obj_get_info_by_fd);
+
+static void
+_test_bpf_obj_get_info_by_fd_2(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sock_addr_program_info;
+    REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
+    single_instance_hook_t v4_connect_hook(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT);
+    REQUIRE(v4_connect_hook.initialize() == EBPF_SUCCESS);
+
+    program_load_attach_helper_t sock_addr_helper;
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "cgroup_sock_addr_um.dll" : "cgroup_sock_addr.o");
+    sock_addr_helper.initialize(
+        file_name, BPF_PROG_TYPE_CGROUP_SOCK_ADDR, "authorize_connect4", execution_type, nullptr, 0, v4_connect_hook);
+
+    struct bpf_object* object = sock_addr_helper.get_object();
+    REQUIRE(object != nullptr);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
+    REQUIRE(program != nullptr);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Fetch info about the program and verify it matches what we'd expect.
+    bpf_prog_info program_info = {};
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(strcmp(program_info.name, "authorize_connect4") == 0);
+    REQUIRE(program_info.nr_map_ids == 2);
+    REQUIRE(program_info.map_ids == 0);
+    REQUIRE(program_info.type == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
+
+    // Fetch info about the attachment and verify it matches what we'd expect.
+    uint32_t link_id;
+    REQUIRE(bpf_link_get_next_id(0, &link_id) == 0);
+    fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+    REQUIRE(link_fd >= 0);
+
+    bpf_link_info link_info;
+    uint32_t link_info_size = sizeof(link_info);
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &link_info, &link_info_size) == 0);
+    REQUIRE(link_info_size == sizeof(link_info));
+
+    REQUIRE(link_info.prog_id == program_info.id);
+    REQUIRE(link_info.attach_type == BPF_CGROUP_INET4_CONNECT);
+
+    // Verify we can detach using this link fd.
+    // This is the flow used by bpftool to detach a link.
+    REQUIRE(bpf_link_detach(link_fd) == 0);
+
+    Platform::_close(link_fd);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_obj_get_info_by_fd_2", "[libbpf]", _test_bpf_obj_get_info_by_fd_2);
 
 TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
 {
