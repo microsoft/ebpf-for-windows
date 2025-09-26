@@ -10,6 +10,7 @@ To try out this tutorial yourself, you will need:
   - Follow the [VM install instructions](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/vm-setup.md) to get started quickly.
 - [eBPF installed](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md) on the VM. Using the MSI installer from a release is the fastest way to get started.
 - ebpf-for-windows nuget package: `nuget install eBPF-for-Windows`
+- install the eBPF netsh provider: `netsh add helper <path>\ebpfnetsh.dll`. Provide the absolute <path> for ebpfnetsh.dll.
 
 We'll start by understanding the basic structure of eBPF programs and then walk through how to
 apply them in a real use case.

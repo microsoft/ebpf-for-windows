@@ -1065,14 +1065,15 @@ TEST_CASE("ioctl_stress", "[stress]")
     // Create a test array map to provide target for the ioctl stress test.
     fd_t test_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
 
-    // Get fd of process_map map
+    // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
-    // Subscribe to the ring buffer with empty callback
-    auto ring = ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
+    // Subscribe to the ring buffer with empty callback (using async mode for automatic callbacks).
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+    auto ring = ebpf_ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts);
 
-    // Run 4 threads per cpu
-    // Get cpu count
+    // Run 4 threads per cpu.
+    // Get cpu count.
     SYSTEM_INFO sysinfo;
     GetSystemInfo(&sysinfo);
 
@@ -1244,8 +1245,9 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     context.event_count = 0;
     context.expected_event_count = max_iterations;
     auto ring_buffer_event_callback = context.promise.get_future();
-    // Subscribe to the ring buffer.
-    auto ring = ring_buffer__new(
+    // Subscribe to the ring buffer (using async mode for automatic callbacks).
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+    auto ring = ebpf_ring_buffer__new(
         process_map_fd,
         [](void* ctx, void*, size_t) {
             ring_buffer_test_context_t* context = reinterpret_cast<ring_buffer_test_context_t*>(ctx);
@@ -1255,7 +1257,7 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
             return 0;
         },
         &context,
-        nullptr);
+        &ring_opts);
 
     // trigger ring buffer events from multiple threads across all CPUs.
     trigger_ring_buffer_events(
@@ -1349,7 +1351,8 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     context.expected_event_count = max_iterations;
     auto perf_buffer_event_callback = context.promise.get_future();
     // Subscribe to the perf buffer.
-    auto perfbuffer = perf_buffer__new(
+    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+    auto perfbuffer = ebpf_perf_buffer__new(
         process_map_fd,
         0,
         [](void* ctx, int, void* data, uint32_t length) {
@@ -1376,7 +1379,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
             return;
         },
         &context,
-        nullptr);
+        &perf_opts);
 
     // Trigger perf buffer events from multiple threads across all CPUs.
     trigger_ring_buffer_events(

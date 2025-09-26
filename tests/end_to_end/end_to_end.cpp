@@ -698,7 +698,8 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd > 0);
 
     // Calls to ring buffer APIs on this map (array_map) must fail.
-    REQUIRE(ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+    REQUIRE(ebpf_ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
@@ -1295,14 +1296,13 @@ _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const ch
     REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
 
     // Look up id for the fd.
-    bpf_prog_info info = {};
+    bpf_map_info info = {};
     uint32_t info_size = sizeof(info);
     int result = bpf_obj_get_info_by_fd(fd, &info, &info_size);
     REQUIRE(result == 0);
     ebpf_id_t id = info.id;
 
-    // TODO(#4273): Verify it has exactly one path pinned.
-    // REQUIRE(info.pinned_path_count == 1);
+    REQUIRE(info.pinned_path_count == 1);
 
     // Look up the actual path pinned.
     ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
@@ -3356,14 +3356,15 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd > 0);
 
     // Calls to perf buffer APIs on this map (array_map) must fail.
+    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
     REQUIRE(
-        perf_buffer__new(
+        ebpf_perf_buffer__new(
             map_fd,
             0,
             [](void*, int, void*, uint32_t) { return; },
             [](void*, int, uint64_t) { return; },
             nullptr,
-            nullptr) == nullptr);
+            &perf_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_perf_event_array_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
