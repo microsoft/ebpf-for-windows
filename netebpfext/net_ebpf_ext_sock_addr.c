@@ -10,8 +10,6 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_sock_addr.h"
 
-#include <stdio.h>
-
 #define TARGET_PROCESS_ID 1234
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
@@ -1950,8 +1948,8 @@ _cache_connection_context_verdict(
             }
         }
 
-        // If the connection is redirected, only one callout needs to decide on reject for the overall verdict to be
-        // reject Thus, we only need to cache one connection context.
+        // If the connection is redirected and rejected, only one invocation of auth-connect needs to decide on
+        // reject for the overall verdict to be reject.
         _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
 
     } else if (!reauthorization) {
