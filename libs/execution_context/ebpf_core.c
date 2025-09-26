@@ -343,6 +343,8 @@ ebpf_core_terminate()
         _ebpf_global_helper_function_nmr_binding_handle = NULL;
     }
 
+    ebpf_link_terminate();
+
     ebpf_program_terminate();
 
     ebpf_handle_table_terminate();

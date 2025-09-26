@@ -81,6 +81,12 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_link_legacy_mode(_Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Clean up the link module.
+     */
+    void
+    ebpf_link_terminate();
 #ifdef __cplusplus
 }
 #endif

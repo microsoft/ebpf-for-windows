@@ -20,21 +20,16 @@
  * 1. EBPF_LINK_STATE_INITIAL -> EBPF_LINK_STATE_ATTACHING - Program is being attached to a provider.
  * 2. EBPF_LINK_STATE_ATTACHING -> EBPF_LINK_STATE_ATTACHED - NmrRegisterClient returns success.
  * 3. EBPF_LINK_STATE_ATTACHING -> EBPF_LINK_STATE_DETACHING - Provider failed to attach.
- * 4. EBPF_LINK_STATE_ATTACHED -> EBPF_LINK_STATE_LEGACY_MODE - Link is operating in legacy mode which prevents the link
- * from detaching after the last user mode reference is released.
- * 5. EBPF_LINK_STATE_LEGACY_MODE -> EBPF_LINK_STATE_DETACHING - Program is being detached from a provider.
- * 6. EBPF_LINK_STATE_ATTACHED -> EBPF_LINK_STATE_DETACHING - Program is being detached from a provider.
- * 7. EBPF_LINK_STATE_DETACHING -> EBPF_LINK_STATE_DETACHED - NmrDeregisterClient returns success.
+ * 4. EBPF_LINK_STATE_ATTACHED -> EBPF_LINK_STATE_DETACHING - Program is being detached from a provider.
+ * 5. EBPF_LINK_STATE_DETACHING -> EBPF_LINK_STATE_DETACHED - NmrDeregisterClient returns success.
  */
 typedef enum _ebpf_link_state
 {
-    EBPF_LINK_STATE_INITIAL,     ///< Program is not attached to any provider.
-    EBPF_LINK_STATE_ATTACHING,   ///< Program is being attached to a provider.
-    EBPF_LINK_STATE_ATTACHED,    ///< Program is attached to a provider.
-    EBPF_LINK_STATE_LEGACY_MODE, ///< Link is operating in legacy mode. This prevents the link from detaching after the
-                                 ///< last user mode reference is released.
-    EBPF_LINK_STATE_DETACHING,   ///< Program is being detached from a provider.
-    EBPF_LINK_STATE_DETACHED,    ///< Program is detached from a provider.
+    EBPF_LINK_STATE_INITIAL,   ///< Program is not attached to any provider.
+    EBPF_LINK_STATE_ATTACHING, ///< Program is being attached to a provider.
+    EBPF_LINK_STATE_ATTACHED,  ///< Program is attached to a provider.
+    EBPF_LINK_STATE_DETACHING, ///< Program is being detached from a provider.
+    EBPF_LINK_STATE_DETACHED,  ///< Program is detached from a provider.
 } ebpf_link_state_t;
 
 typedef struct _ebpf_link
@@ -52,6 +47,7 @@ typedef struct _ebpf_link
     _Guarded_by_(lock) HANDLE nmr_client_handle;
     _Guarded_by_(lock) bool provider_attached;
     _Guarded_by_(lock) ebpf_link_state_t state;
+    _Guarded_by_(lock) bool in_legacy_mode;
 } ebpf_link_t;
 
 static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_link_client_attach_provider;
@@ -237,7 +233,7 @@ _ebpf_link_notify_reference_count_zeroed(_In_opt_ _Post_invalid_ ebpf_core_objec
 
     bool detach_required = false;
     ebpf_lock_state_t state = ebpf_lock_lock(&link->lock);
-    ebpf_assert(link->state != EBPF_LINK_STATE_LEGACY_MODE);
+    ebpf_assert(link->in_legacy_mode == false);
     detach_required = (link->state == EBPF_LINK_STATE_ATTACHED);
     ebpf_lock_unlock(&link->lock, state);
     if (detach_required) {
@@ -443,13 +439,14 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     state = ebpf_lock_lock(&link->lock);
     lock_held = true;
 
-    if (link->state != EBPF_LINK_STATE_ATTACHED && link->state != EBPF_LINK_STATE_LEGACY_MODE) {
+    if (link->state != EBPF_LINK_STATE_ATTACHED) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Link is not attached to a program.");
         goto Done;
     }
 
-    if (link->state == EBPF_LINK_STATE_LEGACY_MODE) {
+    if (link->in_legacy_mode) {
         link_disconnected = true;
+        link->in_legacy_mode = false;
     }
 
     _ebpf_link_set_state(link, EBPF_LINK_STATE_DETACHING);
@@ -630,17 +627,11 @@ _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
         ebpf_assert(old_state == EBPF_LINK_STATE_ATTACHING);
         break;
     case EBPF_LINK_STATE_DETACHING:
-        ebpf_assert(
-            old_state == EBPF_LINK_STATE_ATTACHED || old_state == EBPF_LINK_STATE_ATTACHING ||
-            old_state == EBPF_LINK_STATE_LEGACY_MODE);
+        ebpf_assert(old_state == EBPF_LINK_STATE_ATTACHED || old_state == EBPF_LINK_STATE_ATTACHING);
         break;
     case EBPF_LINK_STATE_DETACHED:
         // Program is unlinked from a provider.
         ebpf_assert(old_state == EBPF_LINK_STATE_DETACHING);
-        break;
-    case EBPF_LINK_STATE_LEGACY_MODE:
-        // User disconnected the link.
-        ebpf_assert(old_state == EBPF_LINK_STATE_ATTACHED);
         break;
     default:
         ebpf_assert(!"Invalid link state");
@@ -660,10 +651,35 @@ ebpf_link_legacy_mode(_Inout_ ebpf_link_t* link)
     if (link->state != EBPF_LINK_STATE_ATTACHED) {
         return_value = EBPF_INVALID_ARGUMENT;
     } else {
-        _ebpf_link_set_state(link, EBPF_LINK_STATE_LEGACY_MODE);
+        link->in_legacy_mode = true;
         return_value = EBPF_SUCCESS;
+        // Add a reference to the link to account for legacy mode.
         EBPF_OBJECT_ACQUIRE_REFERENCE(&link->object);
     }
     ebpf_lock_unlock(&link->lock, state);
     EBPF_RETURN_RESULT(return_value);
+}
+
+void
+ebpf_link_terminate()
+{
+    EBPF_LOG_ENTRY();
+
+    // Enumerate all links and issue a detach on them.
+
+    ebpf_core_object_t* object = NULL;
+
+    for (;;) {
+        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(object, EBPF_OBJECT_LINK, &object);
+
+        if (object == NULL) {
+            break;
+        }
+
+        ebpf_link_t* link = (ebpf_link_t*)object;
+        ebpf_link_detach_program(link);
+        EBPF_OBJECT_RELEASE_REFERENCE(object);
+    }
+
+    EBPF_LOG_EXIT();
 }
