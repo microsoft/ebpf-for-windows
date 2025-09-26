@@ -10,6 +10,8 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_sock_addr.h"
 
+#include <stdio.h>
+
 #define TARGET_PROCESS_ID 1234
 #define EXPIRY_TIME 60000 // 60 seconds in ms.
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
@@ -1134,7 +1136,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static ebp
         verdict,
         connection_context);
 
-    // Insert into the blocked context list.
+    // Insert into the connection context list.
     InsertHeadList(&_net_ebpf_ext_sock_addr_contexts.low_memory_context_list, &connection_context->list_entry);
     _net_ebpf_ext_sock_addr_contexts.low_memory_context_count++;
     InterlockedIncrement(&_net_ebpf_ext_statistics.low_memory_context_count);
@@ -1895,44 +1897,74 @@ Exit:
 }
 
 void
-_handle_auth_connect_edge_cases(
-    _In_ bpf_sock_addr_t* sock_addr_ctx,
-    _In_ bpf_sock_addr_t* sock_addr_ctx_original,
+_convert_ipv4_mapped_to_ipv4(_Inout_ bpf_sock_addr_t* sock_addr_ctx)
+{
+    sock_addr_ctx->family = AF_INET;
+    const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6);
+    uint32_t local_v4_ip = *((uint32_t*)v4_ip);
+    memset(sock_addr_ctx->user_ip6, 0, 16);
+    sock_addr_ctx->user_ip4 = local_v4_ip;
+}
+
+void
+_cache_connection_context_verdict(
+    _Inout_ bpf_sock_addr_t* sock_addr_ctx,
+    _Inout_ bpf_sock_addr_t* sock_addr_ctx_original,
     bool redirected,
     bool v4_mapped,
+    bool reauthorization,
     uint32_t verdict,
     uint64_t handle)
 {
-    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
-        if (redirected) {
-            // From testing, if the protocol is TCP and the final destination IP is not a loopback address,
-            // WFP invokes the AUTH_CONNECT callout for redirected connections twice,
-            // once for the original destination and once for the redirected destination.
-            // Both callouts need to decide on a hard permit verdict for the overall verdict to be
-            // hard permit. We cache the verdict for both the original and redirected destination
-            // regardless of protocol and destination address in case any edge cases were missed.
-            // The cleanup logic will ensure that stale entries are removed.
+    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED) {
+        // Create a connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
+        // verdict of the program.
+        if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
             if (v4_mapped) {
-                // For IPv4-mapped IPv6 connections, the AUTH_CONNECT callout for the original destination returns
-                // 0.0.0.0 as the IP, so cache the verdict under 0.0.0.0.
-                uint32_t ip4 = sock_addr_ctx_original->user_ip4;
-                sock_addr_ctx_original->user_ip4 = 0;
+                // For IPv4-mapped IPv6 connections with PROCEED_HARD verdict, cache/remove entries in IPv4 format.
+                // This is a workaround for WFP processing these connections in
+                // FWPS_LAYER_ALE_CONNECT_REDIRECT_V6 and FWPS_LAYER_ALE_AUTH_CONNECT_V4 layers, which
+                // breaks the assumption that connections are processed exclusively within V4 or V6 layers.
+                // If verdict is reject, the sock_addr_ctx is already in IPv4 format because we didn't need to
+                // convert it to IPv6 for redirection processing.
+                if (redirected) {
+                    // For IPv4-mapped IPv6 connections, the AUTH_CONNECT callout for the original destination returns
+                    // 0.0.0.0 as the IP, so cache the verdict under 0.0.0.0.
+                    _convert_ipv4_mapped_to_ipv4(sock_addr_ctx_original);
 
-                _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx_original, verdict);
+                    sock_addr_ctx_original->user_ip4 = 0;
+                }
 
-                sock_addr_ctx_original->user_ip4 = ip4;
-            } else {
+                _convert_ipv4_mapped_to_ipv4(sock_addr_ctx);
+            }
+
+            if (redirected) {
+                // From testing, if the protocol is TCP and the final destination IP is not a loopback address,
+                // WFP invokes the AUTH_CONNECT callout for redirected connections twice,
+                // once for the original destination and once for the redirected destination.
+                // Both callouts need to decide on a hard permit verdict for the overall verdict to be
+                // hard permit. We cache the verdict for both the original and redirected destination
+                // regardless of protocol and destination address in case any edge cases were missed.
+                // The prune logic will ensure that stale entries are removed.
                 _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx_original, verdict);
             }
         }
 
-        if (v4_mapped) {
-            // For IPv4-mapped IPv6 connections with PROCEED_HARD verdict, cache in IPv4 format.
-            // This is a workaround for WFP processing these connections in
-            // FWPS_LAYER_ALE_CONNECT_REDIRECT_V6 and FWPS_LAYER_ALE_AUTH_CONNECT_V4 layers, which
-            // breaks the assumption that connections are processed exclusively within V4 or V6 layers.
-            _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
+        // If the connection is redirected, only one callout needs to decide on reject for the overall verdict to be
+        // reject Thus, we only need to cache one connection context.
+        _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
+
+    } else if (!reauthorization) {
+        // Remove any 'stale' connection context if found.
+        // A stale context is expected in the case of connected UDP, where the connect()
+        // call results in WFP invoking the callout at the connect_redirect layer, and the
+        // send() call results in WFP invoking the callout at the connect_redirect layer (again),
+        // followed by the connect layer.
+        if (redirected) {
+            _net_ebpf_ext_find_and_remove_connection_context(handle, sock_addr_ctx_original);
         }
+
+        _net_ebpf_ext_find_and_remove_connection_context(handle, sock_addr_ctx);
     }
 }
 
@@ -1976,6 +2008,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     bool classify_handle_acquired = FALSE;
     bool redirected = FALSE;
     bool reauthorization = FALSE;
+    bool cache_verdict = TRUE;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -2019,8 +2052,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // In case of re-authorization, the eBPF programs have already inspected the connection.
     // Skip invoking the program(s) again. In this case the verdict is always to proceed (terminating).
-    // NOTE: this check may not be needed. ALE reauthorization only occurs at FWPM_LAYER_ALE_AUTH_CONNECT_V{4|6}
-    // layers unless FWPS_CLASSIFY_FLAG_REAUTHORIZE_IF_MODIFIED_BY_OTHERS is set.
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         reauthorization = TRUE;
@@ -2095,12 +2126,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     classify_handle_acquired = TRUE;
 
     if (v4_mapped) {
-        // Change sock_addr_ctx to using IPv4 address for the eBPF program.
-        sock_addr_ctx->family = AF_INET;
-        const uint8_t* v4_ip = IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6);
-        uint32_t local_v4_ip = *((uint32_t*)v4_ip);
-        memset(sock_addr_ctx->user_ip6, 0, 16);
-        sock_addr_ctx->user_ip4 = local_v4_ip;
+        _convert_ipv4_mapped_to_ipv4(sock_addr_ctx);
     }
 
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
@@ -2136,14 +2162,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     redirected = net_ebpf_sock_addr_ctx.redirected;
 
     if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
-        _handle_auth_connect_edge_cases(
-            sock_addr_ctx,
-            &sock_addr_ctx_original,
-            redirected,
-            v4_mapped,
-            verdict,
-            incoming_metadata_values->transportEndpointHandle);
-
         if (v4_mapped) {
             // Change original sock addr context back for logging.
             sock_addr_ctx_original.family = AF_INET6;
@@ -2158,7 +2176,15 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
         status = _net_ebpf_ext_process_redirect_verdict(
             &sock_addr_ctx_original, sock_addr_ctx, filter, classify_handle, redirect_handle, classify_output);
-        NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
+
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+
+            // If _net_ebpf_ext_process_redirect_verdict fails, skip caching the verdict
+            // to avoid cache bloat if auth-connect layer is never evaluated for some reason.
+            cache_verdict = FALSE;
+            goto Exit;
+        }
 
         (redirected) ? InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count)
                      : InterlockedIncrement(&_net_ebpf_ext_statistics.permit_connection_count);
@@ -2171,21 +2197,16 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         redirected ? sock_addr_ctx : NULL,
         verdict,
         compartment_id);
-
 Exit:
-    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED && !(v4_mapped && verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD)) {
-        // Create a connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
-        // verdict of the program.
-        _net_ebpf_ext_insert_connection_context_to_list(
-            incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, verdict);
-    } else if (!reauthorization) {
-        // Remove any 'stale' connection context if found.
-        // A stale context is expected in the case of connected UDP, where the connect()
-        // call results in WFP invoking the callout at the connect_redirect layer, and the
-        // send() call results in WFP invoking the callout at the connect_redirect layer (again),
-        // followed by the connect layer.
-        _net_ebpf_ext_find_and_remove_connection_context(
-            incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+    if (cache_verdict) {
+        _cache_connection_context_verdict(
+            sock_addr_ctx,
+            &sock_addr_ctx_original,
+            redirected,
+            v4_mapped,
+            reauthorization,
+            verdict,
+            incoming_metadata_values->transportEndpointHandle);
     }
 
     // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT / CONTINUE.

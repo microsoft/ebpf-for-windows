@@ -37,17 +37,17 @@ thread_local bool _is_main_thread = false;
 
 void
 _change_egress_policy_test_ingress_block(
-    bpf_map* egress_connection_policy_map,
-    connection_tuple_t& tuple,
-    client_socket_t& sender_socket,
-    receiver_socket_t& receiver_socket,
-    const char* message,
-    sockaddr_storage& destination_address,
+    _In_ bpf_map* egress_connection_policy_map,
+    _In_ connection_tuple_t& tuple,
+    _In_ client_socket_t& sender_socket,
+    _In_ receiver_socket_t& receiver_socket,
+    _In_ const char* message,
+    _In_ sockaddr_storage& destination_address,
     uint32_t verdict)
 {
     SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
-    // Resend the packet. This time, it should be dropped by the receive/accept program.
+    // Send the packet. It should be dropped by the receive/accept program.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive(true);
     // Cancel send operation.

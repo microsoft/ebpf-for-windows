@@ -674,8 +674,8 @@ sock_addr_thread_function(
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
 
-        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive
-        // Workaround for now - map to block
+        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive.
+        // Workaround for now - map to block.
         if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
             _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
             expected_result = FWP_ACTION_BLOCK;
