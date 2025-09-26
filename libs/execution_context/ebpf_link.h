@@ -77,7 +77,7 @@ extern "C"
      * @param[in] link The link object to mark as legacy mode.
      *
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT The link is NULL or already disconnected.
+     * @retval EBPF_INVALID_STATE The link is not in the attached state.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link);

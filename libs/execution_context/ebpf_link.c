@@ -649,7 +649,7 @@ ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link)
     state = ebpf_lock_lock(&link->lock);
 
     if (link->state != EBPF_LINK_STATE_ATTACHED) {
-        return_value = EBPF_INVALID_ARGUMENT;
+        return_value = EBPF_INVALID_STATE;
     } else {
         link->in_legacy_mode = true;
         return_value = EBPF_SUCCESS;
