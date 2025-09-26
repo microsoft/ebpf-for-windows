@@ -86,14 +86,16 @@ extern "C"
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(object, object_type, free_object, zero_ref_function, get_program_type) \
-    ebpf_object_initialize(                                                                           \
-        (ebpf_core_object_t*)(object),                                                                \
-        (object_type),                                                                                \
-        (free_object),                                                                                \
-        (zero_ref_function),                                                                          \
-        (get_program_type),                                                                           \
-        EBPF_FILE_ID,                                                                                 \
+#define EBPF_OBJECT_INITIALIZE(                                                                    \
+    object, object_type, free_object, zero_ref_function, zero_user_ref_function, get_program_type) \
+    ebpf_object_initialize(                                                                        \
+        (ebpf_core_object_t*)(object),                                                             \
+        (object_type),                                                                             \
+        (free_object),                                                                             \
+        (zero_ref_function),                                                                       \
+        (zero_user_ref_function),                                                                  \
+        (get_program_type),                                                                        \
+        EBPF_FILE_ID,                                                                              \
         __LINE__)
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
@@ -104,6 +106,7 @@ extern "C"
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
     typedef void (*ebpf_notify_reference_count_zeroed_t)(ebpf_core_object_t* object);
+    typedef void (*ebpf_notify_user_reference_count_zeroed_t)(ebpf_core_object_t* object);
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
@@ -121,6 +124,7 @@ extern "C"
                          ///< is freed.
         uint32_t zero_fill;                              ///< Zero fill to make the reference count is 8-byte aligned.
         volatile int64_t reference_count;                ///< Reference count for the object.
+        volatile int64_t user_reference_count;           ///< User reference count for the object.
         ebpf_base_acquire_reference_t acquire_reference; ///< Function to acquire a reference on this object.
         ebpf_base_release_reference_t release_reference; ///< Function to release a reference on this object.
     } ebpf_base_object_t;
@@ -132,6 +136,9 @@ extern "C"
         ebpf_free_object_t free_object; ///< Function to free this object.
         ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed; ///< Function to notify the object that the
                                                                             ///< reference count has reached zero.
+        ebpf_notify_user_reference_count_zeroed_t notify_user_reference_count_zeroed; ///< Function to notify the object
+                                                                                      ///< that the user reference count
+                                                                                      ///< has reached zero.
         ebpf_object_get_program_type_t get_program_type;     ///< Function to get the program type of this object.
         ebpf_id_t id;                                        ///< ID of this object.
         ebpf_list_entry_t object_list_entry;                 ///< Entry in the object list.
@@ -176,6 +183,7 @@ extern "C"
         ebpf_object_type_t object_type,
         _In_ ebpf_free_object_t free_object,
         _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
+        _In_opt_ ebpf_notify_user_reference_count_zeroed_t notify_user_reference_count_zeroed,
         ebpf_object_get_program_type_t get_program_type,
         ebpf_file_id_t file_id,
         uint32_t line);

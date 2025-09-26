@@ -193,6 +193,7 @@ ebpf_object_initialize(
     ebpf_object_type_t object_type,
     _In_ ebpf_free_object_t free_object,
     _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
+    _In_opt_ ebpf_notify_user_reference_count_zeroed_t notify_user_reference_count_zeroed,
     ebpf_object_get_program_type_t get_program_type,
     ebpf_file_id_t file_id,
     uint32_t line)
@@ -208,6 +209,7 @@ ebpf_object_initialize(
     object->type = object_type;
     object->free_object = free_object;
     object->notify_reference_count_zeroed = notify_reference_count_zeroed;
+    object->notify_user_reference_count_zeroed = notify_user_reference_count_zeroed;
     object->get_program_type = get_program_type;
     object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
 
@@ -259,7 +261,7 @@ Done:
 void
 ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, bool user_reference, uint32_t file_id, uint32_t line)
 {
-    UNREFERENCED_PARAMETER(user_reference);
+    // UNREFERENCED_PARAMETER(user_reference);
     _update_reference_history(object, EBPF_OBJECT_ACQUIRE, file_id, line);
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
@@ -267,6 +269,13 @@ ebpf_object_acquire_reference(_Inout_ ebpf_core_object_t* object, bool user_refe
     int64_t new_ref_count = ebpf_interlocked_increment_int64(&object->base.reference_count);
     if (new_ref_count == 1) {
         __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+    }
+
+    if (user_reference) {
+        new_ref_count = ebpf_interlocked_increment_int64(&object->base.user_reference_count);
+        if (new_ref_count == 0) {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        }
     }
 }
 
@@ -312,8 +321,6 @@ ebpf_object_release_reference(
         return;
     }
 
-    UNREFERENCED_PARAMETER(user_reference);
-
     _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
 
     if (object->base.marker != _ebpf_object_marker) {
@@ -321,6 +328,18 @@ ebpf_object_release_reference(
     }
 
     ebpf_assert(object->base.marker == _ebpf_object_marker);
+
+    if (user_reference) {
+        // First decrement the user reference count.
+        new_ref_count = ebpf_interlocked_decrement_int64(&object->base.user_reference_count);
+        if (new_ref_count < 0) {
+            __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
+        } else if (new_ref_count == 0) {
+            if (object->notify_user_reference_count_zeroed) {
+                object->notify_user_reference_count_zeroed(object);
+            }
+        }
+    }
 
     new_ref_count = ebpf_interlocked_decrement_int64(&object->base.reference_count);
     if (new_ref_count < 0) {
