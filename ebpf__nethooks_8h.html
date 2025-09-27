@@ -102,6 +102,8 @@ Macros</h2></td></tr>
 <tr class="separator:a4dde38732b580707375ceaf3b7b83f37"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba240a25be818fb3c8014aa295e6727a" id="r_aba240a25be818fb3c8014aa295e6727a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aba240a25be818fb3c8014aa295e6727a">BPF_SOCK_ADDR_VERDICT_PROCEED</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:aba240a25be818fb3c8014aa295e6727a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ade84ad88c16450a631cc33b297126a2e" id="r_ade84ad88c16450a631cc33b297126a2e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ade84ad88c16450a631cc33b297126a2e">BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</a>&#160;&#160;&#160;2</td></tr>
+<tr class="separator:ade84ad88c16450a631cc33b297126a2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09d58648eadda063c89974b05c5b5d6e" id="r_a09d58648eadda063c89974b05c5b5d6e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e">SOCK_ADDR_EXT_HELPER_FN_BASE</a>&#160;&#160;&#160;0xFFFF</td></tr>
 <tr class="separator:a09d58648eadda063c89974b05c5b5d6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -167,6 +169,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define BPF_SOCK_ADDR_VERDICT_PROCEED&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ade84ad88c16450a631cc33b297126a2e" name="ade84ad88c16450a631cc33b297126a2e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade84ad88c16450a631cc33b297126a2e">&#9670;&#160;</a></span>BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define BPF_SOCK_ADDR_VERDICT_PROCEED_HARD&#160;&#160;&#160;2</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -342,12 +358,13 @@ Functions</h2></td></tr>
 </dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
-    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED</td><td>Block the socket operation. </td></tr>
-    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_REJECT</td><td>Allow the socket operation.</td></tr>
+    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_REJECT</td><td>Block the socket operation. Maps to a hard block in WFP. </td></tr>
+    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED</td><td>Allow the socket operation. Maps to a soft permit in WFP. </td></tr>
+    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</td><td>Allow the socket operation. Maps to a hard permit in WFP.</td></tr>
   </table>
   </dd>
 </dl>
-<p>Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT. </p>
+<p>Any return value other than the ones mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT. </p>
 
 </div>
 </div>
