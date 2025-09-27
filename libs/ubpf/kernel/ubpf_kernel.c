@@ -61,8 +61,6 @@ place_holder_errno()
     return -1;
 }
 
-#define UBPF_STACK_SIZE 512
-
 static enum Registers
 map_register(int r)
 {
