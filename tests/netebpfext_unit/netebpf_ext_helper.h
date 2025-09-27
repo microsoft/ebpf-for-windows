@@ -48,12 +48,6 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    classify_test_packet(_In_ const GUID* layer_guid, NET_IFINDEX if_index)
-    {
-        return usersim_fwp_classify_packet(layer_guid, if_index);
-    }
-
-    FWP_ACTION_TYPE
     test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
 
     FWP_ACTION_TYPE
