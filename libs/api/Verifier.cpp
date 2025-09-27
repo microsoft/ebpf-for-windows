@@ -468,7 +468,7 @@ Exit:
 static void
 _ebpf_add_stat(_Inout_ ebpf_api_program_info_t* info, std::string key, int value) noexcept(false)
 {
-    ebpf_stat_t* stat = (ebpf_stat_t*)ebpf_allocate_with_tag(sizeof(*stat, EBPF_POOL_TAG_DEFAULT));
+    ebpf_stat_t* stat = (ebpf_stat_t*)ebpf_allocate_with_tag(sizeof(*stat), EBPF_POOL_TAG_DEFAULT);
     if (stat == nullptr) {
         throw std::runtime_error("Out of memory");
     }
@@ -503,7 +503,7 @@ ebpf_api_elf_enumerate_programs(
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
-            info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info, EBPF_POOL_TAG_DEFAULT));
+            info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
             if (info == nullptr) {
                 throw std::runtime_error("Out of memory");
             }

@@ -130,7 +130,7 @@ ebpf_read_registry_value_string(
         return result;
     }
 
-    string_value = (wchar_t*)ebpf_allocate_with_tag((value_size + sizeof(wchar_t, EBPF_POOL_TAG_DEFAULT)));
+    string_value = (wchar_t*)ebpf_allocate_with_tag((value_size + sizeof(wchar_t)), EBPF_POOL_TAG_DEFAULT);
     if (string_value == nullptr) {
         return EBPF_NO_MEMORY;
     }

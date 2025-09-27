@@ -2759,7 +2759,7 @@ _ebpf_pe_add_section(
     std::string elf_section_name = pe_context->section_names[pe_section_name];
     std::string program_name = pe_context->program_names[pe_section_name];
 
-    ebpf_api_program_info_t* info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info, EBPF_POOL_TAG_DEFAULT));
+    ebpf_api_program_info_t* info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
     if (info == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
