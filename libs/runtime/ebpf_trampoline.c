@@ -32,7 +32,7 @@ ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_tabl
     ebpf_result_t return_value;
     ebpf_trampoline_table_t* local_trampoline_table = NULL;
 
-    local_trampoline_table = ebpf_allocate(sizeof(ebpf_trampoline_table_t));
+    local_trampoline_table = ebpf_allocate_with_tag(sizeof(ebpf_trampoline_table_t, EBPF_POOL_TAG_DEFAULT));
     if (!local_trampoline_table) {
         return_value = EBPF_NO_MEMORY;
         goto Exit;

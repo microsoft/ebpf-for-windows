@@ -1950,8 +1950,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 
         ebpf_native_helper_address_changed_context_t* context = NULL;
 
-        context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate(
-            sizeof(ebpf_native_helper_address_changed_context_t));
+        context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_native_helper_address_changed_context_t), EBPF_POOL_TAG_DEFAULT);
 
         if (context == NULL) {
             result = EBPF_NO_MEMORY;
