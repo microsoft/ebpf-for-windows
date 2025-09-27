@@ -58,18 +58,6 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_STATE = 'atse',
 } ebpf_pool_tag_t;
 
-/**
- * @brief Allocate memory.
- * @deprecated Use ebpf_allocate_with_tag() instead.
- * @param[in] size Size of memory to allocate.
- * @param[in] tag Pool tag to use.
- * @returns Pointer to zero-initialized memory block allocated, or null on failure.
- */
-__forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_allocate(size_t size)
-{
-    return cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, size, EBPF_POOL_TAG_DEFAULT);
-}
 
 __forceinline void
 ebpf_free(_Frees_ptr_opt_ void* pointer)

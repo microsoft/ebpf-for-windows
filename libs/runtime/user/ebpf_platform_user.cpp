@@ -100,7 +100,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     size_t total_mapped_size = header_length + length * 2;
 
-    ebpf_ring_descriptor_t* descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
+    ebpf_ring_descriptor_t* descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t, EBPF_POOL_TAG_DEFAULT));
     if (!descriptor) {
         goto Exit;
     }

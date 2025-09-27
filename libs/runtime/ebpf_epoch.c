@@ -478,7 +478,7 @@ ebpf_epoch_free_cache_aligned(_Frees_ptr_opt_ void* memory)
 ebpf_epoch_work_item_t*
 ebpf_epoch_allocate_work_item(_In_ void* callback_context, _In_ const void (*callback)(_Inout_ void* context))
 {
-    ebpf_epoch_work_item_t* work_item = ebpf_allocate(sizeof(ebpf_epoch_work_item_t));
+    ebpf_epoch_work_item_t* work_item = ebpf_allocate_with_tag(sizeof(ebpf_epoch_work_item_t, EBPF_POOL_TAG_DEFAULT));
     if (!work_item) {
         return NULL;
     }

@@ -20,8 +20,8 @@
 
 #include <stdlib.h>
 
-#define malloc(X) ebpf_allocate((X))
-#define calloc(X, Y) ebpf_allocate((X) * (Y))
+#define malloc(X) ebpf_allocate_with_tag((X, EBPF_POOL_TAG_DEFAULT))
+#define calloc(X, Y) ebpf_allocate_with_tag((X, EBPF_POOL_TAG_DEFAULT) * (Y))
 #define free(X) ebpf_free(X)
 
 #pragma warning(push)
