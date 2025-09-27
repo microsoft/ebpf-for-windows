@@ -773,18 +773,6 @@ static ebpf_program_data_t _mock_xdp_program_data = {
     {0},
 };
 
-// XDP_TEST.
-static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    EBPF_PROGRAM_DATA_HEADER,
-    &_ebpf_xdp_test_program_info,
-    &_mock_xdp_helper_function_address_table,
-    nullptr,
-    _xdp_context_create,
-    _xdp_context_destroy,
-    0,
-    {0},
-};
-
 // Bind.
 static ebpf_result_t
 _ebpf_bind_context_create(
@@ -1173,8 +1161,6 @@ typedef class _program_info_provider
             program_data = custom_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             program_data = &_mock_xdp_program_data;
-        } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            program_data = &_ebpf_xdp_test_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             program_data = &_ebpf_bind_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

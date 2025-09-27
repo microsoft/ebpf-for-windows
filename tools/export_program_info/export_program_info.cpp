@@ -35,11 +35,7 @@ typedef struct _ebpf_program_section_info_with_count
 } ebpf_program_section_info_with_count_t;
 
 static const ebpf_program_info_t* _program_information_array[] = {
-    &_ebpf_bind_program_info,
-    &_ebpf_sock_addr_program_info,
-    &_ebpf_sock_ops_program_info,
-    &_mock_xdp_program_info,
-    &_ebpf_xdp_test_program_info};
+    &_ebpf_bind_program_info, &_ebpf_sock_addr_program_info, &_ebpf_sock_ops_program_info, &_mock_xdp_program_info};
 
 ebpf_program_section_info_t _mock_xdp_section_info[] = {
     {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
@@ -54,7 +50,6 @@ static std::vector<ebpf_program_section_info_with_count_t> _section_information 
     {&_mock_xdp_section_info[0], _countof(_mock_xdp_section_info)},
     {&_ebpf_sock_addr_section_info[0], _countof(_ebpf_sock_addr_section_info)},
     {&_ebpf_sock_ops_section_info[0], _countof(_ebpf_sock_ops_section_info)},
-    {&_ebpf_xdp_test_section_info[0], _countof(_ebpf_xdp_test_section_info)},
 };
 
 uint32_t

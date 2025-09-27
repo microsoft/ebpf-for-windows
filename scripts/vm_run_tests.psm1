@@ -197,30 +197,6 @@ function Remove-StandardUser {
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
-function Invoke-XDPTestHelper {
-    param (
-        [Parameter(Mandatory = $True)] [string] $XDPTestName,
-        [Parameter(Mandatory = $True)] [string] $RemoteIPV4Address,
-        [Parameter(Mandatory = $True)] [string] $RemoteIPV6Address,
-        [Parameter(Mandatory = $True)] [string] $LogFileName,
-        [Parameter(Mandatory = $True)] [string] $TraceFileName
-    )
-    $scriptBlock = {
-        param($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $TestHangTimeout, $UserModeDumpFolder, $WorkingDirectory, $LogFileName, $TracefileName)
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
-        Write-Log "Invoking $XDPTestName"
-        Invoke-XDPTest `
-            -RemoteIPV4Address $RemoteIPV4Address `
-            -RemoteIPV6Address $RemoteIPV6Address `
-            -XDPTestName $XDPTestName `
-            -WorkingDirectory $WorkingDirectory `
-            -TraceFileName $TraceFileName
-    }
-    $argList = @($XDPTestName, $RemoteIPV4Address, $RemoteIPV6Address, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:WorkingDirectory, $LogFileName, $TraceFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
-}
-
 function Add-FirewallRule {
     param (
         [Parameter(Mandatory = $True)] [string] $ProgramName,
@@ -235,105 +211,6 @@ function Add-FirewallRule {
     }
     $argList = @($ProgramName, $RuleName, $script:WorkingDirectory, $LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
-}
-
-function Invoke-XDPTest1 {
-    param(
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
-    )
-    Write-Log "Running XDP Test1 ..."
-    $ProgId = Add-eBPFProgram -Program "reflect_packet.sys" -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest1_1"
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest1_2"
-    Remove-eBPFProgram $ProgId $LogFileName
-    Write-Log "XDP Test1 succeeded." -ForegroundColor Green
-}
-
-function Invoke-XDPTest2 {
-    param(
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1Alias,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2Alias,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
-    )
-    Write-Log "Running XDP Test2 ..."
-    $ProgId = Add-eBPFProgram -Program "reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
-    Write-Log "Invoking Set-eBPFProgram for $ProgId interface $VM1Interface2Alias"
-    Set-eBPFProgram -ProgId $ProgId -Interface $VM1Interface2Alias -LogFileName $LogFileName
-    Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface1V4Address and $VM1Interface1V6Address"
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest2_1"
-    Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface2V4Address and $VM1Interface2V6Address"
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest2_2"
-    Remove-eBPFProgram $ProgId $LogFileName
-    Write-Log "XDP Test2 succeeded." -ForegroundColor Green
-}
-
-function Invoke-XDPTest3 {
-    param(
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1Alias,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2Alias,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
-    )
-    Write-Log "Running XDP Test3 ..."
-    $ProgId1 = Add-eBPFProgram -Program "reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
-    $ProgId2 = Add-eBPFProgram -Program "encap_reflect_packet.sys" -Interface $VM1Interface2Alias -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest3_1"
-    Invoke-XDPTestHelper -XDPTestName "xdp_encap_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName -TraceFileName "XDPTest3_2"
-    Remove-eBPFProgram $ProgId1 $LogFileName
-    Remove-eBPFProgram $ProgId2 $LogFileName
-    Write-Log "XDP Test3 succeeded." -ForegroundColor Green
-}
-
-function Invoke-XDPTest4 {
-    param(
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V4Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
-        [Parameter(Mandatory = $True)] [string] $VM1Interface1Alias,
-        [Parameter(Mandatory = $True)] [string] $VM2Interface1Alias,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
-    )
-    Write-Log "Running XDP Test4 ..."
-    $ProgId1 = Add-eBPFProgram -Program "encap_reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
-    $ProgId2 = Add-eBPFProgram -Program "decap_permit_packet.sys" -Interface $VM2Interface1Alias -LogFileName $LogFileName
-    Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName -TraceFileName "XDPTest4"
-    Remove-eBPFProgram $ProgId1 $LogFileName
-    Remove-eBPFProgram $ProgId2 $LogFileName
-    Write-Log "XDP Test4 succeeded." -ForegroundColor Green
-}
-
-function Invoke-XDPTests {
-    param(
-        [Parameter(Mandatory = $True)] $Interfaces,
-        [Parameter(Mandatory = $True)] [string] $LogFileName
-    )
-    Write-Log "Starting XDP tests"
-    Write-Log "`n`n"
-    $VM1Interface1 = $Interfaces[0]
-    $VM1Interface1Alias = $VM1Interface1.Alias
-    $VM1Interface1V4Address = $VM1Interface1.V4Address
-    $VM1Interface1V6Address = $VM1Interface1.V6Address
-    $VM2Interface1 = $Interfaces[1]
-    $VM2Interface1Alias = $VM2Interface1.Alias
-    $VM1Interface2 = $Interfaces[2]
-    $VM1Interface2Alias = $VM1Interface2.Alias
-    $VM1Interface2V4Address = $VM1Interface2.V4Address
-    $VM1Interface2V6Address = $VM1Interface2.V6Address
-    Add-FirewallRule -RuleName "XDP_Test" -ProgramName "xdp_tests.exe" -LogFileName $LogFileName
-    Invoke-XDPTest1 -VM1Interface1V4Address $VM1Interface1V4Address -VM1Interface1V6Address $VM1Interface1V6Address -VM1Interface2V4Address $VM1Interface2V4Address -VM1Interface2V6Address $VM1Interface2V6Address -LogFileName $LogFileName
-    Invoke-XDPTest2 -VM1Interface1Alias $VM1Interface1Alias -VM1Interface2Alias $VM1Interface2Alias -VM1Interface1V4Address $VM1Interface1V4Address -VM1Interface1V6Address $VM1Interface1V6Address -VM1Interface2V4Address $VM1Interface2V4Address -VM1Interface2V6Address $VM1Interface2V6Address -LogFileName $LogFileName
-    Invoke-XDPTest3 -VM1Interface1Alias $VM1Interface1Alias -VM1Interface2Alias $VM1Interface2Alias -VM1Interface1V4Address $VM1Interface1V4Address -VM1Interface1V6Address $VM1Interface1V6Address -VM1Interface2V4Address $VM1Interface2V4Address -VM1Interface2V6Address $VM1Interface2V6Address -LogFileName $LogFileName
-    Invoke-XDPTest4 -VM1Interface1V4Address $VM1Interface1V4Address -VM1Interface1V6Address $VM1Interface1V6Address -VM1Interface1Alias $VM1Interface1Alias -VM2Interface1Alias $VM2Interface1Alias -LogFileName $LogFileName
 }
 
 function Invoke-ConnectRedirectTestHelper
