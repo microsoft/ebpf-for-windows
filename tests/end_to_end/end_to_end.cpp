@@ -29,7 +29,6 @@ namespace ebpf {
 #include "test_helper.hpp"
 #include "usersim/ke.h"
 #include "watchdog.h"
-#include "xdp_tests_common.h"
 
 #include <WinSock2.h>
 #include <in6addr.h>

@@ -305,12 +305,6 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
     net_ebpf_extension_hook_id_t hook_id = (net_ebpf_extension_hook_id_t)0;
 
     switch (wfp_layer_id) {
-    case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
-        hook_id = EBPF_HOOK_OUTBOUND_L2;
-        break;
-    case FWPS_LAYER_INBOUND_MAC_FRAME_NATIVE:
-        hook_id = EBPF_HOOK_INBOUND_L2;
-        break;
     case FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4:
         hook_id = EBPF_HOOK_ALE_RESOURCE_ALLOC_V4;
         break;

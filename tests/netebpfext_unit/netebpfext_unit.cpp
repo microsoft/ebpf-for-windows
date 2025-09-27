@@ -34,14 +34,6 @@ typedef enum _sock_addr_test_action
     SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
 } sock_addr_test_action_t;
 
-typedef enum _xdp_test_action
-{
-    XDP_TEST_ACTION_PASS,   ///< Allow the packet to pass.
-    XDP_TEST_ACTION_DROP,   ///< Drop the packet.
-    XDP_TEST_ACTION_TX,     ///< Bounce the received packet back out the same NIC it arrived on.
-    XDP_TEST_ACTION_FAILURE ///< Failed to invoke the eBPF program.
-} xdp_test_action_t;
-
 TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
@@ -72,53 +64,6 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
-#pragma region xdp
-
-typedef struct _test_xdp_client_context
-{
-    netebpfext_helper_base_client_context_t base;
-    void* provider_binding_context;
-    xdp_test_action_t xdp_action;
-} test_xdp_client_context_t;
-
-typedef struct _test_xdp_client_context_header
-{
-    EBPF_CONTEXT_HEADER;
-    test_xdp_client_context_t context;
-} test_xdp_client_context_header_t;
-
-// This callback occurs when netebpfext gets a packet and submits it to our dummy
-// eBPF program to handle.
-_Must_inspect_result_ ebpf_result_t
-netebpfext_unit_invoke_xdp_program(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
-{
-    ebpf_result_t return_result = EBPF_SUCCESS;
-    auto client_context = (test_xdp_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(context);
-
-    switch (client_context->xdp_action) {
-    case XDP_TEST_ACTION_PASS:
-        *result = XDP_PASS;
-        break;
-    case XDP_TEST_ACTION_DROP:
-        *result = XDP_DROP;
-        break;
-    case XDP_TEST_ACTION_TX:
-        *result = XDP_TX;
-        break;
-    case XDP_TEST_ACTION_FAILURE:
-        return_result = EBPF_FAILED;
-        break;
-    default:
-        *result = XDP_DROP;
-        break;
-    }
-
-    return return_result;
-}
-
-#pragma endregion xdp
 #pragma region bind
 
 typedef struct test_bind_client_context_t

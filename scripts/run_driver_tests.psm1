@@ -372,32 +372,6 @@ function Invoke-CICDTests
     Pop-Location
 }
 
-function Invoke-XDPTest
-{
-    param([parameter(Mandatory = $true)][string] $RemoteIPV4Address,
-          [parameter(Mandatory = $true)][string] $RemoteIPV6Address,
-          [parameter(Mandatory = $true)][string] $XDPTestName,
-          [parameter(Mandatory = $true)][string] $WorkingDirectory,
-          [parameter(Mandatory = $true)][string] $TraceFileName)
-
-    Push-Location $WorkingDirectory
-
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V4"
-
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V6"
-
-    Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
-    Write-Log "`n`n"
-
-    Pop-Location
-}
-
 function Invoke-ConnectRedirectTest
 {
     param([parameter(Mandatory = $true)][string] $LocalIPv4Address,
