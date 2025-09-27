@@ -36,6 +36,25 @@ CATCH_REGISTER_LISTENER(_watchdog)
 thread_local bool _is_main_thread = false;
 
 void
+_change_egress_policy_test_ingress_block(
+    _In_ bpf_map* egress_connection_policy_map,
+    _In_ connection_tuple_t& tuple,
+    _In_ client_socket_t& sender_socket,
+    _In_ receiver_socket_t& receiver_socket,
+    _In_ const char* message,
+    _In_ sockaddr_storage& destination_address,
+    uint32_t verdict)
+{
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Send the packet. It should be dropped by the receive/accept program.
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+    receiver_socket.complete_async_receive(true);
+    // Cancel send operation.
+    sender_socket.cancel_send_message();
+}
+
+void
 connection_test(
     ADDRESS_FAMILY address_family,
     _Inout_ client_socket_t& sender_socket,
@@ -110,10 +129,6 @@ connection_test(
     // Cancel send operation.
     sender_socket.cancel_send_message();
 
-    // Update egress policy to allow packet.
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-
     // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
     bpf_attach_type recv_accept_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT;
@@ -121,11 +136,15 @@ connection_test(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
     SAFE_REQUIRE(result == 0);
 
-    // Resend the packet. This time, it should be dropped by the receive/accept program.
-    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-    receiver_socket.complete_async_receive(true);
-    // Cancel send operation.
-    sender_socket.cancel_send_message();
+    // Update egress policy to allow packet.
+    // Test both hard and soft permit.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
     // Update ingress policy to allow packet.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
@@ -482,7 +501,7 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     SAFE_REQUIRE(result == 0);
 }
 
-// This function populates map polcies for multi-attach tests.
+// This function populates map policies for multi-attach tests.
 // It assumes that the destination and proxy are loopback addresses.
 static void
 _update_map_entry_multi_attach(
@@ -491,6 +510,7 @@ _update_map_entry_multi_attach(
     uint16_t destination_port,
     uint16_t proxy_port,
     uint16_t protocol,
+    uint32_t verdict,
     bool add)
 {
     destination_entry_key_t key = {0};
@@ -506,12 +526,38 @@ _update_map_entry_multi_attach(
     key.destination_port = destination_port;
     key.protocol = protocol;
     value.destination_port = proxy_port;
+    value.verdict = verdict;
 
     if (add) {
         SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
         bpf_map_delete_elem(map_fd, &key);
     }
+}
+
+static void
+_update_map_entry_multi_attach(
+    fd_t map_fd,
+    ADDRESS_FAMILY address_family,
+    uint16_t destination_port,
+    uint16_t proxy_port,
+    uint16_t protocol,
+    bool add)
+{
+    _update_map_entry_multi_attach(
+        map_fd, address_family, destination_port, proxy_port, protocol, BPF_SOCK_ADDR_VERDICT_PROCEED, add);
+}
+
+static void
+_update_map_entry_multi_attach(
+    fd_t map_fd,
+    ADDRESS_FAMILY address_family,
+    uint16_t destination_port,
+    uint16_t proxy_port,
+    uint16_t protocol,
+    uint32_t verdict)
+{
+    _update_map_entry_multi_attach(map_fd, address_family, destination_port, proxy_port, protocol, verdict, true);
 }
 
 typedef enum _connection_result
@@ -625,6 +671,9 @@ multi_attach_test_common(
     SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+                                                                    : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+
     // Deleting the map entry will result in the program blocking the connection.
     _update_map_entry_multi_attach(
         map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, false);
@@ -634,7 +683,7 @@ multi_attach_test_common(
 
     // Revert the policy to "allow" the connection.
     _update_map_entry_multi_attach(
-        map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, true);
+        map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, verdict);
 
     // The packet should be allowed.
     validate_connection_multi_attach(
@@ -668,7 +717,7 @@ multi_attach_test_common(
 
         // Update the policy to "allow" the connection.
         _update_map_entry_multi_attach(
-            map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, true);
+            map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, verdict);
 
         // The packet should now be allowed.
         validate_connection_multi_attach(
@@ -690,6 +739,9 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     struct bpf_object* objects[MULTIPLE_ATTACH_PROGRAM_COUNT] = {nullptr};
     bpf_object_ptr object_ptrs[MULTIPLE_ATTACH_PROGRAM_COUNT];
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
+
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+                                                                    : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
 
     // Load the programs.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
@@ -718,7 +770,7 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
         fd_t map_fd = bpf_map__fd(policy_map);
         SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
         _update_map_entry_multi_attach(
-            map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, true);
+            map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, verdict);
     }
 
     // Validate that the connection is allowed.
@@ -768,6 +820,9 @@ void
 multi_attach_test_redirection(
     socket_family_t family, ADDRESS_FAMILY address_family, uint32_t compartment_id, uint16_t protocol)
 {
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+                                                                    : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+
     // This test validates combination of redirection and other program verdicts.
     native_module_helper_t helpers[MULTIPLE_ATTACH_PROGRAM_COUNT];
     struct bpf_object* objects[MULTIPLE_ATTACH_PROGRAM_COUNT] = {nullptr};
@@ -806,13 +861,13 @@ multi_attach_test_redirection(
 
             if (i != program_index) {
                 _update_map_entry_multi_attach(
-                    map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
+                    map_fd, address_family, htons(destination_port), htons(destination_port), protocol, verdict);
 
                 _update_map_entry_multi_attach(
-                    map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, true);
+                    map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, verdict);
             } else {
                 _update_map_entry_multi_attach(
-                    map_fd, address_family, htons(destination_port), htons(proxy_port), protocol, true);
+                    map_fd, address_family, htons(destination_port), htons(proxy_port), protocol, verdict);
             }
         }
 
@@ -852,10 +907,10 @@ multi_attach_test_redirection(
 
             // Revert the policy to allow the connection.
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, verdict);
 
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, true);
+                map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, verdict);
         }
 
         // Reset the whole state by detaching and re-attaching all the programs in-order.
@@ -900,10 +955,10 @@ multi_attach_test_redirection(
 
             // Next configure the last program to redirect the connection to proxy_port + 1.
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(proxy_port), htons(proxy_port + 1), protocol, true);
+                map_fd, address_family, htons(proxy_port), htons(proxy_port + 1), protocol, verdict);
 
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(destination_port), htons(proxy_port + 1), protocol, true);
+                map_fd, address_family, htons(destination_port), htons(proxy_port + 1), protocol, verdict);
 
             // Validate that the connection is not redirected to proxy_port + 1. This is because the connection is
             // already redirected by the previous program.
@@ -912,10 +967,10 @@ multi_attach_test_redirection(
 
             // Revert the policy to allow the connection.
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, true);
+                map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, verdict);
 
             _update_map_entry_multi_attach(
-                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, verdict);
 
             // Validate that the connection is allowed.
             validate_connection_multi_attach(
@@ -1288,9 +1343,22 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
+    // Configure the program with wildcard compartment id to use hard permit.
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    _update_map_entry_multi_attach(
+        map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
+
+    // The connection should still be blocked.
+    validate_connection_multi_attach(
+        family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
+
     // Revert the policy to allow the connection.
     _update_map_entry_multi_attach(
         map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    _update_map_entry_multi_attach(
+        map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
 
     // The connection should be allowed.
     validate_connection_multi_attach(
@@ -1304,9 +1372,22 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     validate_connection_multi_attach(
         family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
+    // Configure the program with specific compartment id to use hard permit.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    _update_map_entry_multi_attach(
+        map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
+
+    // The connection should still be blocked.
+    validate_connection_multi_attach(
+        family, address_family, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
+
     // Revert the policy to allow the connection.
     _update_map_entry_multi_attach(
         map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    _update_map_entry_multi_attach(
+        map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
 
     // The connection should be allowed.
     validate_connection_multi_attach(
