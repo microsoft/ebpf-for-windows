@@ -654,7 +654,7 @@ ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link)
         link->in_legacy_mode = true;
         return_value = EBPF_SUCCESS;
         // Add a reference to the link to account for legacy mode.
-        EBPF_OBJECT_ACQUIRE_REFERENCE(&link->object);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(&link->object, false);
     }
     ebpf_lock_unlock(&link->lock, state);
     EBPF_RETURN_RESULT(return_value);
