@@ -481,7 +481,7 @@ ebpf_deserialize_program_info(
     ebpf_helper_function_prototype_t* local_helper_prototype_array;
 
     // Allocate output program info.
-    local_program_info = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t, EBPF_POOL_TAG_DEFAULT));
+    local_program_info = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -492,7 +492,7 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize program type descriptor.
     local_program_type_descriptor =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t, EBPF_POOL_TAG_DEFAULT));
+        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -514,7 +514,7 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize context_descriptor, if present.
     if (serialized_program_type_descriptor->context_descriptor.size != 0) {
-        local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t, EBPF_POOL_TAG_DEFAULT));
+        local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
         if (local_context_descriptor == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;

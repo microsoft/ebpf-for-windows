@@ -22,7 +22,7 @@ ebpf_cryptographic_hash_create(_In_ const cxplat_utf8_string_t* algorithm, _Outp
     NTSTATUS nt_status;
     wchar_t* algorithm_unicode_string = NULL;
     ebpf_cryptographic_hash_t* local_hash =
-        (ebpf_cryptographic_hash_t*)ebpf_allocate_with_tag(sizeof(ebpf_cryptographic_hash_t, EBPF_POOL_TAG_DEFAULT));
+        (ebpf_cryptographic_hash_t*)ebpf_allocate_with_tag(sizeof(ebpf_cryptographic_hash_t), EBPF_POOL_TAG_DEFAULT);
     if (local_hash == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;

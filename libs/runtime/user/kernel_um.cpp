@@ -381,7 +381,7 @@ IoAllocateMdl(
     UNREFERENCED_PARAMETER(charge_quota);
     UNREFERENCED_PARAMETER(irp);
 
-    mdl = reinterpret_cast<MDL*>(ebpf_allocate_with_tag(sizeof(MDL, EBPF_POOL_TAG_DEFAULT)));
+    mdl = reinterpret_cast<MDL*>(ebpf_allocate_with_tag(sizeof(MDL), EBPF_POOL_TAG_DEFAULT));
     if (mdl == NULL) {
         return mdl;
     }
@@ -408,7 +408,7 @@ PIO_WORKITEM
 IoAllocateWorkItem(_In_ DEVICE_OBJECT* device_object)
 {
     // Skip Fault Injection as it is already added in ebpf_allocate.
-    auto work_item = reinterpret_cast<IO_WORKITEM*>(ebpf_allocate_with_tag(sizeof(IO_WORKITEM, EBPF_POOL_TAG_DEFAULT)));
+    auto work_item = reinterpret_cast<IO_WORKITEM*>(ebpf_allocate_with_tag(sizeof(IO_WORKITEM), EBPF_POOL_TAG_DEFAULT));
     if (!work_item) {
         return nullptr;
     }

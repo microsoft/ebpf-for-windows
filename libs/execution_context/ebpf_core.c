@@ -1161,7 +1161,7 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t, EBPF_POOL_TAG_DEFAULT));
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;

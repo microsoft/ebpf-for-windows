@@ -158,7 +158,7 @@ _get_program_descriptor_from_info(
             goto Exit;
         }
         type->name = std::string(name);
-        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t, EBPF_POOL_TAG_DEFAULT));
+        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
         if (type->context_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -167,7 +167,7 @@ _get_program_descriptor_from_info(
             (void*)type->context_descriptor,
             info->program_type_descriptor->context_descriptor,
             sizeof(ebpf_context_descriptor_t));
-        ebpf_program_type_t* program_type = (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t, EBPF_POOL_TAG_DEFAULT));
+        ebpf_program_type_t* program_type = (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
         if (program_type == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;

@@ -1236,14 +1236,14 @@ _ebpf_program_update_jit_helpers(
         }
 
         total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t, EBPF_POOL_TAG_DEFAULT));
+            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
         }
         total_helper_function_addresses->helper_function_count = (uint32_t)total_helper_count;
         total_helper_function_addresses->helper_function_address =
-            (uint64_t*)ebpf_allocate_with_tag(sizeof(uint64_t, EBPF_POOL_TAG_DEFAULT) * total_helper_count);
+            (uint64_t*)ebpf_allocate_with_tag(sizeof(uint64_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses->helper_function_address == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1258,7 +1258,7 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t, EBPF_POOL_TAG_DEFAULT) * total_helper_count);
+        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;

@@ -1656,7 +1656,7 @@ ebpf_program_attach(
 
     ebpf_assert(program);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t, EBPF_POOL_TAG_DEFAULT));
+    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
     if (new_link == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -1712,7 +1712,7 @@ ebpf_program_attach_by_fd(
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t, EBPF_POOL_TAG_DEFAULT));
+    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
     if (new_link == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -2286,7 +2286,7 @@ _initialize_ebpf_object_from_native_file(
     object.execution_type = EBPF_EXECUTION_NATIVE;
 
     for (ebpf_api_program_info_t* info = infos; info; info = info->next) {
-        program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t, EBPF_POOL_TAG_DEFAULT));
+        program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_DEFAULT);
         if (program == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -2580,7 +2580,7 @@ _ebpf_pe_get_map_definitions(
                     break;
                 }
 
-                map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t, EBPF_POOL_TAG_DEFAULT));
+                map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
                 if (map == nullptr) {
                     goto Error;
                 }

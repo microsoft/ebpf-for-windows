@@ -24,7 +24,7 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
-    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(length * sizeof(wchar_t, EBPF_POOL_TAG_DEFAULT));
+    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(length * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
     if (wide == nullptr) {
         return nullptr;
     }

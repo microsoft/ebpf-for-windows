@@ -326,7 +326,7 @@ load_byte_code(
         }
 
         for (auto& raw_program : raw_programs) {
-            program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t, EBPF_POOL_TAG_DEFAULT));
+            program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_DEFAULT);
             if (program == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -405,7 +405,7 @@ load_byte_code(
                 goto Exit;
             }
 
-            map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t, EBPF_POOL_TAG_DEFAULT));
+            map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
             if (map == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;

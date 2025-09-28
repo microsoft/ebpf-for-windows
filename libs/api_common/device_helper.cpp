@@ -210,7 +210,7 @@ initialize_async_ioctl_operation(
     *async_ioctl_completion = nullptr;
 
     async_ioctl_completion_context_t* local_async_ioctl_completion =
-        (async_ioctl_completion_context_t*)ebpf_allocate_with_tag(sizeof(async_ioctl_completion_context_t, EBPF_POOL_TAG_DEFAULT));
+        (async_ioctl_completion_context_t*)ebpf_allocate_with_tag(sizeof(async_ioctl_completion_context_t), EBPF_POOL_TAG_DEFAULT);
     if (local_async_ioctl_completion == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
