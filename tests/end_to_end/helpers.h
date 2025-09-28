@@ -86,17 +86,16 @@ typedef struct _ebpf_free_memory
 
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
+// Prototype added as the libbpf headers cause conflicts with the execution context headers.
+int
+bpf_link__destroy(bpf_link* link);
+
 typedef struct _close_bpf_link
 {
     void
     operator()(_In_opt_ _Post_invalid_ bpf_link* link)
     {
-        if (link != nullptr) {
-            if (ebpf_link_detach(link) != EBPF_SUCCESS) {
-                throw std::runtime_error("ebpf_link_detach failed");
-            }
-            ebpf_link_close(link);
-        }
+        bpf_link__destroy(link);
     }
 } close_bpf_link_t;
 

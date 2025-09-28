@@ -117,7 +117,8 @@ ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-void test_libbpf_load_program()
+void
+test_libbpf_load_program()
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -133,10 +134,7 @@ void test_libbpf_load_program()
 }
 
 // Only run the test if JIT is enabled.
-TEST_CASE("libbpf load program", "[libbpf][deprecated]")
-{
-    test_libbpf_load_program();
-}
+TEST_CASE("libbpf load program", "[libbpf][deprecated]") { test_libbpf_load_program(); }
 
 void
 test_libbpf_prog_test_run()
@@ -222,10 +220,7 @@ test_libbpf_prog_test_run()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf prog test run", "[libbpf][deprecated]")
-{
-    test_libbpf_prog_test_run();   
-}
+TEST_CASE("libbpf prog test run", "[libbpf][deprecated]") { test_libbpf_prog_test_run(); }
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -277,7 +272,7 @@ test_valid_bpf_load_program()
 }
 
 void
-test_valid_bpf_prog_load() 
+test_valid_bpf_prog_load()
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -343,25 +338,15 @@ test_valid_bpf_load_program_xattr()
     Platform::_close(program_fd);
 }
 
-TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
-{
-    test_valid_bpf_load_program();
-}
+TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]") { test_valid_bpf_load_program(); }
 
-TEST_CASE("valid bpf_prog_load", "[libbpf]")
-{
-    test_valid_bpf_load_program();
-}
+TEST_CASE("valid bpf_prog_load", "[libbpf]") { test_valid_bpf_load_program(); }
 
-TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
-{
-    test_valid_bpf_load_program_xattr();
-}
+TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]") { test_valid_bpf_load_program_xattr(); }
 #endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd) \
-    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
+#define BPF_LD_MAP_FD(reg, fd) {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, {0}
 #define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
 #define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
 #define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
@@ -422,10 +407,7 @@ test_valid_bpf_load_program_with_map()
     Platform::_close(map_fd);
 }
 
-TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
-{
-    test_valid_bpf_load_program_with_map();
-}
+TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]") { test_valid_bpf_load_program_with_map(); }
 
 void
 test_libbpf_program()
@@ -477,10 +459,7 @@ test_libbpf_program()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf program", "[libbpf]")
-{
-    test_libbpf_program();
-}
+TEST_CASE("libbpf program", "[libbpf]") { test_libbpf_program(); }
 
 void
 test_libbpf_subprogram()
@@ -511,10 +490,7 @@ test_libbpf_subprogram()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf subprogram", "[libbpf]")
-{
-    test_libbpf_subprogram();
-}
+TEST_CASE("libbpf subprogram", "[libbpf]") { test_libbpf_subprogram(); }
 
 static void
 _test_program_autoload(ebpf_execution_type_t execution_type)
@@ -645,10 +621,7 @@ test_libbpf_program_pinning()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf program pinning", "[libbpf]")
-{
-    test_libbpf_program_pinning();
-}
+TEST_CASE("libbpf program pinning", "[libbpf]") { test_libbpf_program_pinning(); }
 
 void
 test_libbpf_program_attach()
@@ -697,10 +670,7 @@ test_libbpf_program_attach()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf program attach", "[libbpf]")
-{
-    test_libbpf_program_attach();
-}
+TEST_CASE("libbpf program attach", "[libbpf]") { test_libbpf_program_attach(); }
 #endif
 
 void
@@ -762,10 +732,7 @@ test_bpf_set_link_xdp_fd()
     bpf_object__close(object[1]);
 }
 
-TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]")
-{
-   test_bpf_set_link_xdp_fd();
-}
+TEST_CASE("bpf_set_link_xdp_fd", "[libbpf]") { test_bpf_set_link_xdp_fd(); }
 
 void
 test_libbpf_map()
@@ -1012,10 +979,7 @@ test_libbpf_map()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf map", "[libbpf]")
-{
-    test_libbpf_map();
-}
+TEST_CASE("libbpf map", "[libbpf]") { test_libbpf_map(); }
 
 void
 test_libbpf_map_binding()
@@ -1075,10 +1039,7 @@ test_libbpf_map_binding()
     REQUIRE(bpf_map_get_fd_by_id(map_id) < 0);
 }
 
-TEST_CASE("libbpf map binding", "[libbpf]")
-{
-    test_libbpf_map_binding();
-}
+TEST_CASE("libbpf map binding", "[libbpf]") { test_libbpf_map_binding(); }
 
 void
 test_libbpf_map_pinning()
@@ -1181,10 +1142,7 @@ test_libbpf_map_pinning()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf map pinning", "[libbpf]")
-{
-    test_libbpf_map_pinning();
-}
+TEST_CASE("libbpf map pinning", "[libbpf]") { test_libbpf_map_pinning(); }
 
 void
 test_libbpf_obj_pinning()
@@ -1226,10 +1184,7 @@ test_libbpf_obj_pinning()
     bpf_object__close(object);
 }
 
-TEST_CASE("libbpf obj pinning", "[libbpf]")
-{
-   test_libbpf_obj_pinning();
-}
+TEST_CASE("libbpf obj pinning", "[libbpf]") { test_libbpf_obj_pinning(); }
 
 TEST_CASE("good_tail_call-jit", "[libbpf]")
 {
@@ -1338,10 +1293,7 @@ test_enumerate_link_IDs()
     REQUIRE(errno == ENOENT);
 }
 
-TEST_CASE("enumerate link IDs", "[libbpf]")
-{
-    test_enumerate_link_IDs();
-}
+TEST_CASE("enumerate link IDs", "[libbpf]") { test_enumerate_link_IDs(); }
 
 void
 test_enumerate_link_IDs_with_bpf()
@@ -1423,7 +1375,7 @@ test_enumerate_link_IDs_with_bpf()
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.pathname = (uintptr_t)"MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -1464,10 +1416,7 @@ test_enumerate_link_IDs_with_bpf()
     Platform::_close(fd3);
 }
 
-TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
-{
-    test_enumerate_link_IDs_with_bpf();   
-}
+TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]") { test_enumerate_link_IDs_with_bpf(); }
 
 void
 test_bpf_prog_attach()
@@ -1502,14 +1451,12 @@ test_bpf_prog_attach()
     REQUIRE(link_fd >= 0);
     REQUIRE(bpf_link_detach(link_fd) == 0);
     REQUIRE(bpf_prog_attach(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT, 0) == 0);
+    REQUIRE(bpf_prog_detach2(program_fd, program_fd, BPF_CGROUP_INET4_CONNECT) == 0);
 
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_prog_attach", "[libbpf]")
-{
-   test_bpf_prog_attach();
-}
+TEST_CASE("bpf_prog_attach", "[libbpf]") { test_bpf_prog_attach(); }
 
 void
 test_bpf_link_pin()
@@ -1529,9 +1476,6 @@ test_bpf_link_pin()
     REQUIRE(bpf_program__pin(program, program_pin_name) == 0);
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
-
-    // Verify we can't attach the program to a different attach type.
-    REQUIRE(bpf_prog_attach(program_fd, 0, BPF_CGROUP_INET4_CONNECT, 0) == -EINVAL);
 
     // Attach the program so we get a link object.
     bpf_link_ptr link(bpf_program__attach(program));
@@ -1559,10 +1503,7 @@ test_bpf_link_pin()
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_link__pin", "[libbpf]")
-{
-    test_bpf_link_pin();
-}
+TEST_CASE("bpf_link__pin", "[libbpf]") { test_bpf_link_pin(); }
 
 void
 test_bpf_obj_get_info_by_fd()
@@ -1751,10 +1692,7 @@ test_bpf_obj_get_info_by_fd()
     Platform::_close(link_fd);
 }
 
-TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
-{
-    test_bpf_obj_get_info_by_fd();
-}
+TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]") { test_bpf_obj_get_info_by_fd(); }
 
 void
 test_bpf_obj_get_info_by_fd_2()
@@ -1816,10 +1754,7 @@ test_bpf_obj_get_info_by_fd_2()
     Platform::_close(link_fd);
 }
 
-TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]")
-{
-    test_bpf_obj_get_info_by_fd_2();
-}
+TEST_CASE("bpf_obj_get_info_by_fd_2", "[libbpf]") { test_bpf_obj_get_info_by_fd_2(); }
 
 void
 test_bpf_object_load_with_o()
@@ -1884,12 +1819,9 @@ test_bpf_object_load_with_o()
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .o", "[libbpf]")
-{
-    test_bpf_object_load_with_o();
-}
+TEST_CASE("bpf_object__load with .o", "[libbpf]") { test_bpf_object_load_with_o(); }
 
-void 
+void
 test_bpf_object_load_with_o_from_memory()
 {
     _test_helper_libbpf test_helper;
@@ -1963,10 +1895,7 @@ test_bpf_object_load_with_o_from_memory()
     bpf_object__close(object);
 }
 
-TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
-{
-    test_bpf_object_load_with_o_from_memory();
-}
+TEST_CASE("bpf_object__load with .o from memory", "[libbpf]") { test_bpf_object_load_with_o_from_memory(); }
 
 void
 test_bpf_backwards_compatibility()
@@ -2004,10 +1933,7 @@ test_bpf_backwards_compatibility()
 }
 
 // Test that bpf() accepts a smaller and a larger bpf_attr.
-TEST_CASE("bpf() backwards compatibility", "[libbpf][bpf]")
-{
-    test_bpf_backwards_compatibility();
-}
+TEST_CASE("bpf() backwards compatibility", "[libbpf][bpf]") { test_bpf_backwards_compatibility(); }
 
 void
 test_bpf_prog_bind_map_etc()
@@ -2159,10 +2085,7 @@ test_bpf_prog_bind_map_etc()
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
 // BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
-TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf][bpf]")
-{
-    test_bpf_prog_bind_map_etc();
-}
+TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf][bpf]") { test_bpf_prog_bind_map_etc(); }
 
 void
 test_bpf_prog_attach_macro()
@@ -2215,10 +2138,7 @@ test_bpf_prog_attach_macro()
 
 // Test bpf() with the following command ids:
 //  BPF_PROG_ATTACH, BPF_PROG_DETACH
-TEST_CASE("BPF_PROG_ATTACH", "[libbpf][bpf]")
-{
-    test_bpf_prog_attach_macro();
-}
+TEST_CASE("BPF_PROG_ATTACH", "[libbpf][bpf]") { test_bpf_prog_attach_macro(); }
 #endif
 
 TEST_CASE("BPF_PROG_LOAD logging", "[libbpf][bpf]")

@@ -47,6 +47,7 @@ typedef struct _ebpf_link
     _Guarded_by_(lock) HANDLE nmr_client_handle;
     _Guarded_by_(lock) bool provider_attached;
     _Guarded_by_(lock) ebpf_link_state_t state;
+    _Guarded_by_(lock) bool in_legacy_mode;
 } ebpf_link_t;
 
 static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_link_client_attach_provider;
@@ -222,6 +223,25 @@ _ebpf_link_client_detach_provider(void* client_binding_context)
 }
 
 static void
+_ebpf_link_notify_reference_count_zeroed(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
+{
+    ebpf_link_t* link = (ebpf_link_t*)object;
+
+    if (!link) {
+        return;
+    }
+
+    bool detach_required = false;
+    ebpf_lock_state_t state = ebpf_lock_lock(&link->lock);
+    ebpf_assert(link->in_legacy_mode == false);
+    detach_required = (link->state == EBPF_LINK_STATE_ATTACHED);
+    ebpf_lock_unlock(&link->lock, state);
+    if (detach_required) {
+        ebpf_link_detach_program(link);
+    }
+}
+
+static void
 _ebpf_link_free(_In_ _Frees_ptr_ ebpf_core_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
@@ -287,8 +307,8 @@ ebpf_link_create(
 
     // Note: This must be the last thing done in this function as it inserts the object into the global list.
     // After this point, the object can be accessed by other threads.
-    ebpf_result_t result =
-        EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL, NULL, NULL);
+    ebpf_result_t result = EBPF_OBJECT_INITIALIZE(
+        &local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, _ebpf_link_notify_reference_count_zeroed, NULL, NULL);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "ebpf_object_initialize failed for link", result);
@@ -339,7 +359,7 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     link->client_data.prog_attach_flags = ebpf_program_get_flags(link->program);
 
     // Attach the program to the link.
-    ebpf_program_attach_link(program, link);
+    ebpf_program_attach_link(program);
     link_attached_to_program = true;
 
     ebpf_lock_unlock(&link->lock, state);
@@ -395,7 +415,7 @@ Done:
         }
 
         if (link_attached_to_program) {
-            ebpf_program_detach_link(program, link);
+            ebpf_program_detach_link(program);
             link_attached_to_program = false;
             link->program = NULL;
         }
@@ -414,8 +434,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state;
     bool lock_held = false;
-
-    EBPF_OBJECT_ACQUIRE_REFERENCE(&link->object, false);
+    bool link_disconnected = false;
 
     state = ebpf_lock_lock(&link->lock);
     lock_held = true;
@@ -423,6 +442,11 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     if (link->state != EBPF_LINK_STATE_ATTACHED) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Link is not attached to a program.");
         goto Done;
+    }
+
+    if (link->in_legacy_mode) {
+        link_disconnected = true;
+        link->in_legacy_mode = false;
     }
 
     _ebpf_link_set_state(link, EBPF_LINK_STATE_DETACHING);
@@ -446,7 +470,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
     link->nmr_client_handle = NULL;
 
-    ebpf_program_detach_link(link->program, link);
+    ebpf_program_detach_link(link->program);
 
     ebpf_free((void*)link->client_data.data);
 
@@ -454,12 +478,14 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     link->client_data.data_size = 0;
     link->program = NULL;
 
+    if (link_disconnected) {
+        EBPF_OBJECT_RELEASE_REFERENCE(&link->object);
+    }
+
 Done:
     if (lock_held) {
         ebpf_lock_unlock(&link->lock, state);
     }
-
-    EBPF_OBJECT_RELEASE_REFERENCE(&link->object);
 
     EBPF_RETURN_VOID();
 }
@@ -613,4 +639,47 @@ _Requires_lock_held_(link->lock) static void _ebpf_link_set_state(
     }
     UNREFERENCED_PARAMETER(old_state);
     link->state = new_state;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link)
+{
+    ebpf_result_t return_value = EBPF_SUCCESS;
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&link->lock);
+
+    if (link->state != EBPF_LINK_STATE_ATTACHED) {
+        return_value = EBPF_INVALID_STATE;
+    } else {
+        link->in_legacy_mode = true;
+        return_value = EBPF_SUCCESS;
+        // Add a reference to the link to account for legacy mode.
+        EBPF_OBJECT_ACQUIRE_REFERENCE(&link->object);
+    }
+    ebpf_lock_unlock(&link->lock, state);
+    EBPF_RETURN_RESULT(return_value);
+}
+
+void
+ebpf_link_terminate()
+{
+    EBPF_LOG_ENTRY();
+
+    // Enumerate all links and issue a detach on them.
+
+    ebpf_core_object_t* object = NULL;
+
+    for (;;) {
+        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(object, EBPF_OBJECT_LINK, &object);
+
+        if (object == NULL) {
+            break;
+        }
+
+        ebpf_link_t* link = (ebpf_link_t*)object;
+        ebpf_link_detach_program(link);
+        EBPF_OBJECT_RELEASE_REFERENCE(object);
+    }
+
+    EBPF_LOG_EXIT();
 }

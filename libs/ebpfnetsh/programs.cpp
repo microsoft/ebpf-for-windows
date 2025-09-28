@@ -50,6 +50,9 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
 
 std::vector<struct bpf_object*> _ebpf_netsh_objects;
 
+int // errno value
+_ebpf_program_detach_by_id(ebpf_id_t program_id);
+
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
 {
@@ -271,6 +274,13 @@ handle_ebpf_add_program(
     // object is closed when the function returns.
     struct _link_deleter link_deleter = {link};
 
+    // Prevent the link from detaching the link when the fd is closed.
+    result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
+    if (result != EBPF_SUCCESS) {
+        std::cerr << "error " << result << ": could not mark link as legacy" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
     if (pinned_type == PT_FIRST) {
         // The pinpath specified is like a "file" under which to pin programs.
         // This matches the "bpftool prog load" behavior.
@@ -343,6 +353,13 @@ _unpin_program_by_id(ebpf_id_t id)
         }
         Platform::_close(fd);
     }
+
+    status = _ebpf_program_detach_by_id(id);
+    if (status == ERROR_NOT_FOUND) {
+        // If there was no link to detach, that's OK.
+        status = NO_ERROR;
+    }
+
     return status;
 }
 
@@ -463,6 +480,9 @@ _ebpf_program_attach_by_id(
         ebpf_result_t local_result =
             ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
         if (local_result == EBPF_SUCCESS) {
+            result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
+            // Mark the link as disconnected to prevent detaching from hook point when the link is closed.
+            bpf_link__disconnect(link);
             ebpf_link_close(link);
         }
     }
