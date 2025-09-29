@@ -14,8 +14,6 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
-#define IS_NESTED_MAP(x) \
-    ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_HASH_OF_MAP || (x) == BPF_MAP_TYPE_PROG_ARRAY)
 #define IS_NESTED_ARRAY_MAP(x) ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_PROG_ARRAY)
 
 typedef struct _ebpf_core_map
@@ -35,13 +33,6 @@ typedef struct _ebpf_core_object_map
     bool is_program_type_set;
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
-
-// typedef struct _ebpf_object_map_entry
-// {
-//     ebpf_id_t id;
-//     uint8_t padding[4]; // Align to 8 bytes.
-//     ebpf_core_object_t* object;
-// } ebpf_object_map_entry_t;
 
 // Generations:
 // 0: Uninitialized.
@@ -597,8 +588,6 @@ _find_array_map_entry(
         return EBPF_OBJECT_NOT_FOUND;
     }
 
-    // size_t supplemental_value_size = sizeof(uint8_t*);
-    // size_t supplemental_value_size = sizeof(uint8_t*);
     size_t supplemental_value_size = 0;
     size_t actual_value_size = map->ebpf_map_definition.value_size;
     if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
@@ -783,7 +772,6 @@ _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t valu
         ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
             ebpf_core_object_t* value_object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
-            // ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
             ebpf_assert(value_object != NULL);
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
             *(ebpf_id_t*)entry = 0;
@@ -836,7 +824,6 @@ _create_object_array_map(
     }
 
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, local_map);
-    // object_map->supplemental_value_size = supplemental_value_size;
     result = _associate_inner_map(object_map, inner_map_handle);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -1028,7 +1015,6 @@ _update_array_map_entry_with_handle(
     ebpf_id_t id = value_object ? value_object->id : 0;
     memcpy(entry, &id, map->ebpf_map_definition.value_size);
     if (id != 0) {
-        // ebpf_core_object_t* object = (ebpf_core_object_t*)_get_supplemental_value(map, entry);
         uint8_t* object = (uint8_t*)_get_supplemental_value(map, entry);
         memcpy(object, &value_object, supplemental_value_size);
     }
@@ -1112,19 +1098,12 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
     uint32_t index = *(uint32_t*)key;
 
     ebpf_core_object_t* object = NULL;
-    // uintptr_t object = 0;
     uint8_t* value = NULL;
     if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
-        // ebpf_id_t id = *(ebpf_id_t*)&map->data[index * map->ebpf_map_definition.value_size];
         ebpf_id_t id = *(ebpf_id_t*)value;
-        // ebpf_object_type_t value_type =
-        //     (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
         if (id != 0) {
             object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
             ebpf_assert(object != NULL);
-            // // Find the object by id.
-            // // Ignore the returned status as the object may have been deleted.
-            // (void)ebpf_object_pointer_by_id(id, value_type, &object);
         }
     }
 
@@ -1231,7 +1210,6 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
             ebpf_core_object_t* value_object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
             ebpf_assert(value_object != NULL);
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
             *(ebpf_core_object_t**)_get_supplemental_value(map, value) = NULL;
             *(ebpf_id_t*)value = 0;
         }
