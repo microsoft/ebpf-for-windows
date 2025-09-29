@@ -977,7 +977,7 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
         goto Done;
     }
 
-    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map, false);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)map);
     program_maps[map_count - 1] = map;
     program->maps = program_maps;
     program->count_of_maps = map_count;
@@ -1026,7 +1026,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index], false);
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
     }
     ebpf_lock_unlock(&program->lock, state);
 
@@ -2034,7 +2034,7 @@ void
 ebpf_program_attach_link(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
-    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program, false);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program);
 
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->lock);

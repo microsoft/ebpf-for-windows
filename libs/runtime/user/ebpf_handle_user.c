@@ -38,7 +38,7 @@ ebpf_handle_table_terminate()
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
         if (_ebpf_handle_table[handle] != NULL) {
-            EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle], true);
+            EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT_USER(_ebpf_handle_table[handle]);
             _ebpf_handle_table[handle] = NULL;
         }
     }
@@ -67,7 +67,7 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
 
     *handle = new_handle;
     _ebpf_handle_table[new_handle] = object;
-    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(object, true);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT_USER(object);
 
     return_value = EBPF_SUCCESS;
 
@@ -86,7 +86,7 @@ ebpf_handle_close(ebpf_handle_t handle)
 
     state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     if (((size_t)handle < EBPF_COUNT_OF(_ebpf_handle_table)) && _ebpf_handle_table[handle] != NULL) {
-        EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle], true);
+        EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT_USER(_ebpf_handle_table[handle]);
         _ebpf_handle_table[handle] = NULL;
         return_value = EBPF_SUCCESS;
     } else {
