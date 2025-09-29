@@ -36,12 +36,12 @@ typedef struct _ebpf_core_object_map
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
 
-typedef struct _ebpf_object_map_entry
-{
-    ebpf_id_t id;
-    uint8_t padding[4]; // Align to 8 bytes.
-    ebpf_core_object_t* object;
-} ebpf_object_map_entry_t;
+// typedef struct _ebpf_object_map_entry
+// {
+//     ebpf_id_t id;
+//     uint8_t padding[4]; // Align to 8 bytes.
+//     ebpf_core_object_t* object;
+// } ebpf_object_map_entry_t;
 
 // Generations:
 // 0: Uninitialized.
@@ -1220,20 +1220,20 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
 
     uint8_t* next_key;
     for (previous_key = NULL;; previous_key = next_key) {
-        ebpf_object_map_entry_t* value;
-        ebpf_result_t result = ebpf_hash_table_next_key_pointer_and_value(
-            (ebpf_hash_table_t*)map->data, previous_key, &next_key, (uint8_t**)&value);
+        uint8_t* value;
+        ebpf_result_t result =
+            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
         if (result != EBPF_SUCCESS) {
             break;
         }
-        ebpf_id_t id = value->id;
+        ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-            ebpf_core_object_t* value_object = value->object;
+            ebpf_core_object_t* value_object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
             ebpf_assert(value_object != NULL);
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
             // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
-            value->object = NULL;
-            value->id = 0;
+            *(ebpf_core_object_t**)_get_supplemental_value(map, value) = NULL;
+            *(ebpf_id_t*)value = 0;
         }
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
@@ -1754,11 +1754,11 @@ static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_t* object = NULL;
-    ebpf_object_map_entry_t* value = NULL;
-    if (_find_hash_map_entry(map, key, false, (uint8_t**)&value) == EBPF_SUCCESS) {
-        ebpf_id_t id = value->id;
+    uint8_t* entry = NULL;
+    if (_find_hash_map_entry(map, key, false, &entry) == EBPF_SUCCESS) {
+        ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
-            object = value->object;
+            object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
             ebpf_assert(object != NULL);
         }
     }
@@ -1862,8 +1862,8 @@ _update_hash_map_entry_with_handle(
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_object_map_entry_t* old_value = NULL;
-    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, (uint8_t**)&old_value);
+    uint8_t* old_value = NULL;
+    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
     if ((found_result != EBPF_SUCCESS) && (found_result != EBPF_KEY_NOT_FOUND)) {
         // The hash table is already full.
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to query existing entry");
@@ -1879,12 +1879,12 @@ _update_hash_map_entry_with_handle(
     }
 
     // Store the content of old object ID.
-    ebpf_id_t old_id = (old_value) ? old_value->id : 0;
+    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
+    ebpf_core_object_t* old_object = (old_id) ? *(ebpf_core_object_t**)_get_supplemental_value(map, old_value) : NULL;
+
     // Store the new entry.
-    ebpf_object_map_entry_t value = {0};
-    value.id = value_object->id;
-    value.object = value_object;
-    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value, hash_table_operation);
+    result =
+        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_NTSTATUS(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
@@ -1894,15 +1894,14 @@ _update_hash_map_entry_with_handle(
     // Workaround: ebpf_hash_table_update does not copy the supplemental value. Query the newly added
     // value to populate the supplemental value. This adds an extra hash map lookup, but it is still
     // fine as this is not in the program invocation path, and only invoked from user mode.
-    ebpf_object_map_entry_t* new_value = NULL;
-    result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, (uint8_t**)&new_value);
+    uint8_t* new_value = NULL;
+    result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &new_value);
     ebpf_assert(result == EBPF_SUCCESS);
-    new_value->object = value_object;
+    *(ebpf_core_object_t**)_get_supplemental_value(map, new_value) = value_object;
 
     // Release the reference on the old object stored here, if any.
-    if (old_id) {
-        ebpf_assert(old_value->object != NULL);
-        EBPF_OBJECT_RELEASE_REFERENCE(old_value->object);
+    if (old_object) {
+        EBPF_OBJECT_RELEASE_REFERENCE(old_object);
     }
 
 Done:
@@ -1930,13 +1929,14 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    ebpf_object_map_entry_t* value = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, (uint8_t**)&value);
+    uint8_t* value = NULL;
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, &value);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = value->id;
+        ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-            ebpf_assert(value->object != NULL);
-            EBPF_OBJECT_RELEASE_REFERENCE(value->object);
+            ebpf_core_object_t* object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
+            ebpf_assert(object != NULL);
+            EBPF_OBJECT_RELEASE_REFERENCE(object);
         }
     }
 
