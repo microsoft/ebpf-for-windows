@@ -1869,9 +1869,9 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    // Workaround: ebpf_hash_table_update does not copy the supplemental value. Query the newly added
-    // value to populate the supplemental value. This adds an extra hash map lookup, but it is still
-    // fine as this is not in the program invocation path, and only invoked from user mode.
+    // Lookup the newly added entry. This is needed to populate the supplemental value.
+    // This adds an extra hash map lookup, but it is still fine as this is not in the
+    // BPF program invocation path, and only invoked from user mode.
     uint8_t* new_value = NULL;
     result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &new_value);
     ebpf_assert(result == EBPF_SUCCESS);
