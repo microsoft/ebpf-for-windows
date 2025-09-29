@@ -63,7 +63,7 @@ ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* obje
         goto Done;
     }
 
-    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(object, true);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT_USER(object);
     file_object->FsContext2 = object;
 
     *handle = (ebpf_handle_t)file_handle;

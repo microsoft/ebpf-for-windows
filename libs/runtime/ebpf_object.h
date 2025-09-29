@@ -34,8 +34,12 @@ extern "C"
 /**
  * @brief Macro to acquire a reference on an object and record the file and line number of the reference.
  */
-#define EBPF_OBJECT_ACQUIRE_REFERENCE(object, user_reference) \
-    ebpf_object_acquire_reference(object, user_reference, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_ACQUIRE_REFERENCE(object) ebpf_object_acquire_reference(object, false, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to acquire a user reference on an object and record the file and line number of the reference.
+ */
+#define EBPF_OBJECT_ACQUIRE_REFERENCE_USER(object) ebpf_object_acquire_reference(object, true, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to release a reference on an object and record the file and line number of the reference.
@@ -72,15 +76,29 @@ extern "C"
  * @brief Macro to acquire a reference on an object via it's function pointers and record the file and line number
  * of the reference.
  */
-#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(base_object, user_reference) \
-    base_object->acquire_reference(base_object, user_reference, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT(base_object) \
+    base_object->acquire_reference(base_object, false, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to acquire a user reference on an object via it's function pointers and record the file and line number
+ * of the reference.
+ */
+#define EBPF_OBJECT_ACQUIRE_REFERENCE_INDIRECT_USER(base_object) \
+    base_object->acquire_reference(base_object, true, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to release a reference on an object via it's function pointers and record the file and line number
  * of the reference.
  */
-#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object, user_reference) \
-    base_object->release_reference(base_object, user_reference, EBPF_FILE_ID, __LINE__)
+#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(base_object) \
+    base_object->release_reference(base_object, false, EBPF_FILE_ID, __LINE__)
+
+/**
+ * @brief Macro to release a user reference on an object via it's function pointers and record the file and line number
+ * of the reference.
+ */
+#define EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT_USER(base_object) \
+    base_object->release_reference(base_object, true, EBPF_FILE_ID, __LINE__)
 
 /**
  * @brief Macro to initialize an object and record the file and line number of the reference.

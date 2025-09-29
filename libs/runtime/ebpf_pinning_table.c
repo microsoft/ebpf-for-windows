@@ -148,7 +148,7 @@ ebpf_pinning_table_insert(
     }
 
     new_pinning_entry->object = object;
-    EBPF_OBJECT_ACQUIRE_REFERENCE(object, true);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_USER(object);
     new_key = &new_pinning_entry->path;
 
     state = ebpf_lock_lock(&pinning_table->lock);
@@ -192,7 +192,7 @@ ebpf_pinning_table_find(
 
     if (return_value == EBPF_SUCCESS) {
         *object = (*existing_pinning_entry)->object;
-        EBPF_OBJECT_ACQUIRE_REFERENCE(*object, false);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(*object);
     }
 
     ebpf_lock_unlock(&pinning_table->lock, state);
@@ -309,7 +309,7 @@ ebpf_pinning_table_enumerate_entries(
         new_entry->object = (*next_pinning_entry)->object;
 
         // Take reference on underlying ebpf_object.
-        EBPF_OBJECT_ACQUIRE_REFERENCE(new_entry->object, false);
+        EBPF_OBJECT_ACQUIRE_REFERENCE(new_entry->object);
 
         // Duplicate pinning object path.
         result = ebpf_duplicate_utf8_string(&new_entry->path, &(*next_pinning_entry)->path);
