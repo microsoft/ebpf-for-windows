@@ -3850,7 +3850,7 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     // All programs and maps should be closed now.
     uint32_t start_id = 0;
     REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
-    REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
+    REQUIRE(bpf_prog_get_next_id(0, &start_id) < 0);
 }
 
 DECLARE_JIT_TEST_CASES(
