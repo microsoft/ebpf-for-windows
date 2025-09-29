@@ -33,9 +33,15 @@ typedef struct _ebpf_core_object_map
     ebpf_lock_t lock;
     ebpf_map_definition_in_memory_t inner_template_map_definition;
     bool is_program_type_set;
-    // size_t supplemental_value_size;
     ebpf_program_type_t program_type;
 } ebpf_core_object_map_t;
+
+typedef struct _ebpf_object_map_entry
+{
+    ebpf_id_t id;
+    uint8_t padding[4]; // Align to 8 bytes.
+    ebpf_core_object_t* object;
+} ebpf_object_map_entry_t;
 
 // Generations:
 // 0: Uninitialized.
@@ -1014,7 +1020,6 @@ _update_array_map_entry_with_handle(
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
         ebpf_core_object_t* old_object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
-        // ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type, (ebpf_core_object_t**)&old_object));
         EBPF_OBJECT_RELEASE_REFERENCE(old_object);
     }
 
@@ -1026,8 +1031,6 @@ _update_array_map_entry_with_handle(
         // ebpf_core_object_t* object = (ebpf_core_object_t*)_get_supplemental_value(map, entry);
         uint8_t* object = (uint8_t*)_get_supplemental_value(map, entry);
         memcpy(object, &value_object, supplemental_value_size);
-        // *(ebpf_core_object_t**)object = value_object;
-        // *object = value_object;
     }
     result = EBPF_SUCCESS;
 
@@ -1217,19 +1220,20 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
 
     uint8_t* next_key;
     for (previous_key = NULL;; previous_key = next_key) {
-        uint8_t* value;
-        ebpf_result_t result =
-            ebpf_hash_table_next_key_pointer_and_value((ebpf_hash_table_t*)map->data, previous_key, &next_key, &value);
+        ebpf_object_map_entry_t* value;
+        ebpf_result_t result = ebpf_hash_table_next_key_pointer_and_value(
+            (ebpf_hash_table_t*)map->data, previous_key, &next_key, (uint8_t**)&value);
         if (result != EBPF_SUCCESS) {
             break;
         }
-        ebpf_id_t id = *(ebpf_id_t*)value;
+        ebpf_id_t id = value->id;
         if (id) {
-            ebpf_core_object_t* value_object = NULL;
-            ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
+            ebpf_core_object_t* value_object = value->object;
+            ebpf_assert(value_object != NULL);
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
             // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
-            *(ebpf_id_t*)value = 0;
+            value->object = NULL;
+            value->id = 0;
         }
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
@@ -1258,6 +1262,7 @@ _create_object_hash_map(
 {
     ebpf_core_map_t* local_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
+    size_t supplemental_value_size = sizeof(uint8_t*);
 
     EBPF_LOG_ENTRY();
 
@@ -1268,8 +1273,18 @@ _create_object_hash_map(
 
     *map = NULL;
 
-    result =
-        _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, false, NULL, NULL, &local_map);
+    // Align the supplemental value to 8 byte boundary.
+    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
+    result = ebpf_safe_size_t_add(
+        supplemental_value_size,
+        EBPF_PAD_8(map_definition->value_size) - map_definition->value_size,
+        &supplemental_value_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = _create_hash_map_internal(
+        sizeof(ebpf_core_object_map_t), map_definition, supplemental_value_size, false, NULL, NULL, &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1739,11 +1754,12 @@ static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_t* object = NULL;
-    uint8_t* value = NULL;
-    if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, &object) != EBPF_SUCCESS) {
-            object = NULL;
+    ebpf_object_map_entry_t* value = NULL;
+    if (_find_hash_map_entry(map, key, false, (uint8_t**)&value) == EBPF_SUCCESS) {
+        ebpf_id_t id = value->id;
+        if (id) {
+            object = value->object;
+            ebpf_assert(object != NULL);
         }
     }
 
@@ -1846,8 +1862,8 @@ _update_hash_map_entry_with_handle(
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    uint8_t* old_value = NULL;
-    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
+    ebpf_object_map_entry_t* old_value = NULL;
+    ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, (uint8_t**)&old_value);
     if ((found_result != EBPF_SUCCESS) && (found_result != EBPF_KEY_NOT_FOUND)) {
         // The hash table is already full.
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to query existing entry");
@@ -1863,21 +1879,30 @@ _update_hash_map_entry_with_handle(
     }
 
     // Store the content of old object ID.
-    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-    // Store the new object ID as the value.
-    result =
-        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
+    ebpf_id_t old_id = (old_value) ? old_value->id : 0;
+    // Store the new entry.
+    ebpf_object_map_entry_t value = {0};
+    value.id = value_object->id;
+    value.object = value_object;
+    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value, hash_table_operation);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_NTSTATUS(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
         goto Done;
     }
 
+    // Workaround: ebpf_hash_table_update does not copy the supplemental value. Query the newly added
+    // value to populate the supplemental value. This adds an extra hash map lookup, but it is still
+    // fine as this is not in the program invocation path, and only invoked from user mode.
+    ebpf_object_map_entry_t* new_value = NULL;
+    result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, (uint8_t**)&new_value);
+    ebpf_assert(result == EBPF_SUCCESS);
+    new_value->object = value_object;
+
     // Release the reference on the old object stored here, if any.
     if (old_id) {
-        ebpf_core_object_t* old_object = NULL;
-        ebpf_assert_success(ebpf_object_pointer_by_id(old_id, value_type, (ebpf_core_object_t**)&old_object));
-        EBPF_OBJECT_RELEASE_REFERENCE(old_object);
+        ebpf_assert(old_value->object != NULL);
+        EBPF_OBJECT_RELEASE_REFERENCE(old_value->object);
     }
 
 Done:
@@ -1905,14 +1930,13 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    uint8_t* value = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, &value);
+    ebpf_object_map_entry_t* value = NULL;
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, (uint8_t**)&value);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)value;
+        ebpf_id_t id = value->id;
         if (id) {
-            ebpf_core_object_t* value_object = NULL;
-            ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
-            EBPF_OBJECT_RELEASE_REFERENCE(value_object);
+            ebpf_assert(value->object != NULL);
+            EBPF_OBJECT_RELEASE_REFERENCE(value->object);
         }
     }
 
