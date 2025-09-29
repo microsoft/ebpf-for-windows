@@ -13,6 +13,8 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
+#include <io.h>
+
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
@@ -135,6 +137,18 @@ _km_test_init()
             _global_test_control_info.programs.push_back({"cgroup_sock_addr"});
         }
     });
+
+    // Detach all programs
+    // Enumerate all link objects and detach them.
+    uint32_t link_id = 0;
+    while (bpf_link_get_next_id(link_id, &link_id) == 0) {
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd < 0) {
+            continue;
+        }
+        bpf_link_detach(link_fd);
+        _close(link_fd);
+    }
 }
 
 enum class service_state_type : uint32_t
