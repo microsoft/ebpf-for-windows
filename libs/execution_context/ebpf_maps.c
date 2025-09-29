@@ -1158,7 +1158,6 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
             ebpf_core_object_t* value_object = NULL;
             ebpf_assert_success(ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&value_object));
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            // EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
             *(ebpf_id_t*)value = 0;
         }
         if (previous_key != NULL) {

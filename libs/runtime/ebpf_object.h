@@ -168,7 +168,7 @@ extern "C"
      * @param[in, out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.
      * @param[in] free_object The function used to free the object.
-     * @param[in] get_program_type The function used to get a program type, or NULL.  Each program
+     * @param[in] get_program_type The function used to get a program type, or NULL. Each program
      * has a program type, and hence so do maps that can contain programs, whether directly (like
      * BPF_MAP_TYPE_PROG_ARRAY) or indirectly (like BPF_MAP_TYPE_ARRAY_OF_MAPS containing a BPF_MAP_TYPE_PROG_ARRAY).
      * @param[in] file_id The file ID of the caller.
