@@ -138,7 +138,7 @@ _km_test_init()
         }
     });
 
-    // Detach all programs
+    // Detach all programs.
     // Enumerate all link objects and detach them.
     uint32_t link_id = 0;
     while (bpf_link_get_next_id(link_id, &link_id) == 0) {
