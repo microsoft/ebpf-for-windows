@@ -1156,14 +1156,14 @@ _test_pin_unpin_program(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("pin/unpin program", "[netsh][pin]", _test_pin_unpin_program);
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("pin/unpin map", "[netsh][pin]")
+static void
+_test_pin_unpin_map(ebpf_execution_type_t execution_type)
 {
     _test_helper_netsh test_helper;
     test_helper.initialize();
     int result = 0;
-    auto output =
-        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"pinpath=bindmonitor", &result);
+    const wchar_t* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? L"bindmonitor_um.dll" : L"bindmonitor.o");
+    auto output = _run_netsh_command(handle_ebpf_add_program, file_name, L"bind", L"pinpath=bindmonitor", &result);
     REQUIRE(result == EBPF_SUCCESS);
     const char prefix[] = "Loaded with ID";
     REQUIRE(output.substr(0, sizeof(prefix) - 1) == prefix);
@@ -1178,7 +1178,8 @@ TEST_CASE("pin/unpin map", "[netsh][pin]")
     REQUIRE(id > 0);
     auto sid = std::to_wstring(id);
 
-    auto offset = output.find("audit_map", digit + 1);
+    const char* map_name = (execution_type == EBPF_EXECUTION_NATIVE ? "limits_map" : "audit_map");
+    auto offset = output.find(map_name, digit + 1);
     REQUIRE(offset != std::string::npos);
     auto pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
     REQUIRE(pins == 0);
@@ -1212,4 +1213,5 @@ TEST_CASE("pin/unpin map", "[netsh][pin]")
 
     _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(pid).c_str(), nullptr, nullptr, &result);
 }
-#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+
+DECLARE_ALL_TEST_CASES("pin/unpin map", "[netsh][pin]", _test_pin_unpin_map);
