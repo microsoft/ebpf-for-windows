@@ -1483,8 +1483,8 @@ ebpf_program_query_info(
 
     size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
     size_t section_name_length = reply->header.length - reply->section_name_offset;
-    char* local_file_name = reinterpret_cast<char*>(ebpf_allocate(file_name_length + 1));
-    char* local_section_name = reinterpret_cast<char*>(ebpf_allocate(section_name_length + 1));
+    char* local_file_name = reinterpret_cast<char*>(ebpf_allocate_with_tag(file_name_length + 1, EBPF_POOL_TAG_DEFAULT));
+    char* local_section_name = reinterpret_cast<char*>(ebpf_allocate_with_tag(section_name_length + 1, EBPF_POOL_TAG_DEFAULT));
 
     if (!local_file_name || !local_section_name) {
         ebpf_free(local_file_name);
@@ -1656,7 +1656,7 @@ ebpf_program_attach(
 
     ebpf_assert(program);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate(sizeof(ebpf_link_t));
+    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
     if (new_link == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -1712,7 +1712,7 @@ ebpf_program_attach_by_fd(
     EBPF_LOG_ENTRY();
     ebpf_assert(link);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate(sizeof(ebpf_link_t));
+    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
     if (new_link == nullptr) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -2286,7 +2286,7 @@ _initialize_ebpf_object_from_native_file(
     object.execution_type = EBPF_EXECUTION_NATIVE;
 
     for (ebpf_api_program_info_t* info = infos; info; info = info->next) {
-        program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
+        program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_DEFAULT);
         if (program == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -2580,7 +2580,7 @@ _ebpf_pe_get_map_definitions(
                     break;
                 }
 
-                map = (ebpf_map_t*)ebpf_allocate(sizeof(ebpf_map_t));
+                map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
                 if (map == nullptr) {
                     goto Error;
                 }
@@ -2759,7 +2759,7 @@ _ebpf_pe_add_section(
     std::string elf_section_name = pe_context->section_names[pe_section_name];
     std::string program_name = pe_context->program_names[pe_section_name];
 
-    ebpf_api_program_info_t* info = (ebpf_api_program_info_t*)ebpf_allocate(sizeof(*info));
+    ebpf_api_program_info_t* info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
     if (info == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
@@ -2785,7 +2785,7 @@ _ebpf_pe_add_section(
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
     info->raw_data_size = section_header.Misc.VirtualSize;
-    info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
+    info->raw_data = (char*)ebpf_allocate_with_tag(section_header.Misc.VirtualSize, EBPF_POOL_TAG_DEFAULT);
     if (info->raw_data == nullptr || info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
@@ -3633,7 +3633,7 @@ _load_native_programs(
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
 
     if (count_of_maps > 0) {
-        *map_handles = (ebpf_handle_t*)ebpf_allocate(map_handles_size);
+        *map_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(map_handles_size, EBPF_POOL_TAG_DEFAULT);
         if (*map_handles == nullptr) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3645,7 +3645,7 @@ _load_native_programs(
     }
 
     if (count_of_programs > 0) {
-        *program_handles = (ebpf_handle_t*)ebpf_allocate(program_handles_size);
+        *program_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(program_handles_size, EBPF_POOL_TAG_DEFAULT);
         if (*program_handles == nullptr) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,

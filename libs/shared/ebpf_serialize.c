@@ -170,7 +170,7 @@ ebpf_deserialize_map_info_array(
         goto Exit;
     }
 
-    out_map_info = (ebpf_map_info_t*)ebpf_allocate(out_map_size);
+    out_map_info = (ebpf_map_info_t*)ebpf_allocate_with_tag(out_map_size, EBPF_POOL_TAG_DEFAULT);
     if (out_map_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -226,7 +226,7 @@ ebpf_deserialize_map_info_array(
         if (source->pin_path_length > 0) {
             // Allocate the buffer to hold the pin path in destination map info structure.
             destination_pin_path_length = ((size_t)source->pin_path_length) + 1;
-            destination->pin_path = ebpf_allocate(destination_pin_path_length);
+            destination->pin_path = ebpf_allocate_with_tag(destination_pin_path_length, EBPF_POOL_TAG_DEFAULT);
             if (destination->pin_path == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -481,7 +481,7 @@ ebpf_deserialize_program_info(
     ebpf_helper_function_prototype_t* local_helper_prototype_array;
 
     // Allocate output program info.
-    local_program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    local_program_info = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -492,7 +492,7 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize program type descriptor.
     local_program_type_descriptor =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -514,7 +514,7 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize context_descriptor, if present.
     if (serialized_program_type_descriptor->context_descriptor.size != 0) {
-        local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
+        local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
         if (local_context_descriptor == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -543,7 +543,7 @@ ebpf_deserialize_program_info(
     }
 
     // Allocate and deserialize program type descriptor name.
-    local_program_type_descriptor_name = (char*)ebpf_allocate(serialized_program_type_descriptor->name_length + 1);
+    local_program_type_descriptor_name = (char*)ebpf_allocate_with_tag(serialized_program_type_descriptor->name_length + 1, EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor_name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -601,7 +601,7 @@ ebpf_deserialize_program_info(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate(helper_prototype_array_size);
+    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_prototype_array_size, EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -643,7 +643,7 @@ ebpf_deserialize_program_info(
         }
 
         // Allocate buffer and serialize helper function name.
-        local_helper_function_name = (char*)ebpf_allocate(serialized_helper_prototype->name_length + 1);
+        local_helper_function_name = (char*)ebpf_allocate_with_tag(serialized_helper_prototype->name_length + 1, EBPF_POOL_TAG_DEFAULT);
         if (local_helper_function_name == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;

@@ -20,7 +20,7 @@ bpf_link__open(const char* path)
         return nullptr;
     }
 
-    link = (struct bpf_link*)ebpf_allocate(sizeof(struct bpf_link));
+    link = (struct bpf_link*)ebpf_allocate_with_tag(sizeof(struct bpf_link), EBPF_POOL_TAG_DEFAULT);
     if (!link) {
         (void)ebpf_close_fd(link_fd);
         libbpf_err(-ENOMEM);

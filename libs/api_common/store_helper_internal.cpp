@@ -164,7 +164,7 @@ _ebpf_store_load_program_type_descriptor(
 
     // Allocate the program type descriptor.
     local_program_type_descriptor =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -197,7 +197,7 @@ _ebpf_store_load_program_type_descriptor(
     }
 
     // Allocate and read context descriptor.
-    context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
+    context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -276,7 +276,7 @@ _ebpf_store_load_program_information(
     }
 
     // Allocate the program information struct.
-    program_information = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    program_information = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
     if (program_information == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -289,7 +289,7 @@ _ebpf_store_load_program_information(
     }
 
     // Allocate and read the program type GUID.
-    program_type = (ebpf_program_type_t*)ebpf_allocate(sizeof(ebpf_program_type_t));
+    program_type = (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
     if (program_type == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -353,7 +353,7 @@ _ebpf_store_load_program_information(
         }
 
         ebpf_helper_function_prototype_t* helper_prototype =
-            (ebpf_helper_function_prototype_t*)ebpf_allocate(helper_count * sizeof(ebpf_helper_function_prototype_t));
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
         if (helper_prototype == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -363,7 +363,7 @@ _ebpf_store_load_program_information(
         // Add space for null terminator.
         max_helper_name_size += 1;
 
-        helper_name = (wchar_t*)ebpf_allocate(max_helper_name_size * sizeof(wchar_t));
+        helper_name = (wchar_t*)ebpf_allocate_with_tag(max_helper_name_size * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
         if (helper_name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -486,7 +486,7 @@ ebpf_store_load_program_data(
         if (program_info_array.size() > 0) {
             // Copy the vector data to a new array.
             auto size = program_info_array.size() * sizeof(ebpf_program_info_t*);
-            *program_info = (ebpf_program_info_t**)ebpf_allocate(size);
+            *program_info = (ebpf_program_info_t**)ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
             if (*program_info == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -544,13 +544,13 @@ _load_section_data_information(
             goto Exit;
         }
 
-        program_type = (ebpf_program_type_t*)ebpf_allocate(sizeof(ebpf_program_type_t));
+        program_type = (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
         if (program_type == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
 
-        attach_type = (ebpf_attach_type_t*)ebpf_allocate(sizeof(ebpf_attach_type_t));
+        attach_type = (ebpf_attach_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_attach_type_t), EBPF_POOL_TAG_DEFAULT);
         if (attach_type == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -594,7 +594,7 @@ _load_section_data_information(
             goto Exit;
         }
 
-        section_information = (ebpf_section_definition_t*)ebpf_allocate(sizeof(ebpf_section_definition_t));
+        section_information = (ebpf_section_definition_t*)ebpf_allocate_with_tag(sizeof(ebpf_section_definition_t), EBPF_POOL_TAG_DEFAULT);
         if (section_information == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -691,7 +691,7 @@ ebpf_store_load_section_information(
         if (section_info_array.size() > 0) {
             // Copy the vector data to a new array.
             auto size = section_info_array.size() * sizeof(ebpf_section_definition_t*);
-            *section_info = (ebpf_section_definition_t**)ebpf_allocate(size);
+            *section_info = (ebpf_section_definition_t**)ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
             if (*section_info == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -794,14 +794,14 @@ ebpf_store_load_global_helper_information(
     // Add space for null terminator.
     max_helper_name_size += 1;
 
-    helper_name = (wchar_t*)ebpf_allocate(max_helper_name_size * sizeof(wchar_t));
+    helper_name = (wchar_t*)ebpf_allocate_with_tag(max_helper_name_size * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
     helper_prototype =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate(max_helpers_count * sizeof(ebpf_helper_function_prototype_t));
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(max_helpers_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_prototype == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
