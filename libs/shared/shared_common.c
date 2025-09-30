@@ -348,7 +348,7 @@ _duplicate_program_descriptor(
     ebpf_context_descriptor_t* context_descriptor_copy = NULL;
 
     program_type_descriptor_copy =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (program_type_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -368,7 +368,7 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
-    context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
+    context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -407,7 +407,7 @@ _duplicate_helper_function_prototype_array(
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
     local_helper_prototype_array =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate(count * sizeof(ebpf_helper_function_prototype_t));
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -481,7 +481,7 @@ ebpf_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_
 
     EBPF_LOG_ENTRY();
 
-    program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    program_info = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
     if (program_info == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -547,7 +547,7 @@ _duplicate_helper_function_addresses(
     *new_helper_function_addresses = NULL;
 
     helper_function_addresses_copy =
-        (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
+        (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -559,7 +559,7 @@ _duplicate_helper_function_addresses(
     helper_function_addresses_copy->header.total_size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE;
 
     helper_function_addresses_copy->helper_function_address =
-        (uint64_t*)ebpf_allocate(helper_function_addresses->helper_function_count * sizeof(uint64_t));
+        (uint64_t*)ebpf_allocate_with_tag(helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy->helper_function_address == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -603,7 +603,7 @@ ebpf_duplicate_program_data(
 
     EBPF_LOG_ENTRY();
 
-    program_data_copy = (ebpf_program_data_t*)ebpf_allocate(sizeof(ebpf_program_data_t));
+    program_data_copy = (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
     if (program_data_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;

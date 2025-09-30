@@ -27,7 +27,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     EBPF_LOG_ENTRY();
     NTSTATUS status;
 
-    ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
+    ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     MDL* source_mdl = NULL;
     MDL* kernel_mdl = NULL;
 
