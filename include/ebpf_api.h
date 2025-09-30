@@ -433,7 +433,8 @@ extern "C"
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
      *  by the extension provider.
-     * @param[out] link Pointer to ebpf_link structure.
+     * @param[out] link Pointer to ebpf_link structure or NULL if the caller is not
+     * interested in the link.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
@@ -443,7 +444,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
         size_t attach_params_size,
-        _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
+        _Outptr_opt_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program by program file descriptor.
@@ -457,7 +458,8 @@ extern "C"
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
      *  by the extension provider.
-     * @param[out] link Pointer to ebpf_link structure.
+     * @param[out] link Pointer to ebpf_link structure or NULL if the caller is not
+     * interested in the link.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
@@ -467,7 +469,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         size_t attach_parameters_size,
-        _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
+        _Outptr_opt_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program by program file descriptor and return
@@ -483,7 +485,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         size_t attach_parameters_size,
-        _Out_ fd_t* link) EBPF_NO_EXCEPT;
+        _Out_opt_ fd_t* link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Detach an eBPF program from an attach point represented by
@@ -906,18 +908,6 @@ extern "C"
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
-    /**
-     * @brief Mark a link as operating in legacy mode, which means it doesn't detach
-     * automatically when last user mode reference is closed.
-     * This is used by bpf_prog_attach and related APIs to implement legacy behavior.
-     *
-     * @param[in] link File descriptor for the link.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_link_mark_as_legacy_mode(fd_t link) EBPF_NO_EXCEPT;
 #ifdef __cplusplus
 }
 #endif
