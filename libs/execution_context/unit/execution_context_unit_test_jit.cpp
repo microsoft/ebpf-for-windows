@@ -69,10 +69,7 @@ _ebpf_core_initializer::initialize()
     REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
 }
 
-_ebpf_core_initializer::~_ebpf_core_initializer()
-{
-    ebpf_core_terminate();
-}
+_ebpf_core_initializer::~_ebpf_core_initializer() { ebpf_core_terminate(); }
 
 void
 create_various_objects(std::vector<ebpf_handle_t>& program_handles, std::map<std::string, ebpf_handle_t>& map_handles)
@@ -420,10 +417,7 @@ test_program_context()
 }
 
 // Only run the test if JIT is enabled.
-TEST_CASE("program", "[execution_context]")
-{
-    test_program_context();
-}
+TEST_CASE("program", "[execution_context]") { test_program_context(); }
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)

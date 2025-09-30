@@ -74,11 +74,10 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_ATTACH_CLIENT_DATA_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_extension_data_t, prog_attach_flags)
 #define EBPF_ATTACH_CLIENT_DATA_VERSION_TOTAL_SIZE sizeof(ebpf_extension_data_t)
-#define EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION                                         \
-    {                                                                                  \
-        EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION, EBPF_ATTACH_CLIENT_DATA_VERSION_SIZE, \
-            EBPF_ATTACH_CLIENT_DATA_VERSION_TOTAL_SIZE                                 \
-    }
+#define EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION \
+    {EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION,  \
+     EBPF_ATTACH_CLIENT_DATA_VERSION_SIZE,     \
+     EBPF_ATTACH_CLIENT_DATA_VERSION_TOTAL_SIZE}
 
 // Version 1 of the eBPF extension data structures and their lengths.
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1

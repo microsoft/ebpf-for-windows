@@ -9,7 +9,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 #include "net_ebpf_ext_program_info.h"
-#include "net_ebpf_ext_xdp_hooks.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
 
@@ -392,179 +391,6 @@ typedef class _single_instance_hook : public _hook_helper
     bpf_link* link_object = nullptr;
 } single_instance_hook_t;
 
-typedef struct _xdp_md_header
-{
-    EBPF_CONTEXT_HEADER;
-    xdp_md_t context;
-} xdp_md_header_t;
-
-typedef class xdp_md_helper : public xdp_md_header_t
-{
-  public:
-    xdp_md_helper(std::vector<uint8_t>& packet)
-        : xdp_md_header_t{{0}, {packet.data(), packet.data() + packet.size()}}, _packet(&packet), _begin(0),
-          _end(packet.size()), cloned_nbl(nullptr)
-    {
-        original_nbl = &_original_nbl_storage;
-        _original_nbl_storage.FirstNetBuffer = &_original_nb;
-        _original_nb.DataLength = (unsigned long)packet.size();
-        _original_nb.MdlChain = &_original_mdl;
-        _original_mdl.byte_count = (unsigned long)packet.size();
-        _original_mdl.start_va = packet.data();
-    }
-
-    static inline xdp_md_helper*
-    from_ctx(xdp_md_t* ctx)
-    {
-        return (xdp_md_helper*)CONTAINING_RECORD(ctx, xdp_md_header_t, context);
-    }
-
-    static inline const xdp_md_helper*
-    from_ctx(const xdp_md_t* ctx)
-    {
-        return (xdp_md_helper*)CONTAINING_RECORD(ctx, xdp_md_header_t, context);
-    }
-
-    xdp_md_t*
-    get_ctx()
-    {
-        return &context;
-    }
-
-    int
-    adjust_head(int delta)
-    {
-        int return_value = 0;
-        if (delta == 0)
-            // Nothing changes.
-            goto Done;
-
-        if (delta > 0) {
-            if (_begin + delta > _end) {
-                return_value = -1;
-                goto Done;
-            }
-            _begin += delta;
-        } else {
-            int abs_delta = -delta;
-            if (_begin >= abs_delta)
-                _begin -= abs_delta;
-            else {
-                size_t additional_space_needed = abs_delta - _begin;
-                const size_t MAX_ADDITIONAL_BYTES = 65536;
-                if (additional_space_needed > MAX_ADDITIONAL_BYTES) {
-                    return_value = -1;
-                    goto Done;
-                }
-                // Prepend _packet with additional_space_needed count of 0.
-                _packet->insert(_packet->begin(), additional_space_needed, 0);
-                _begin = 0;
-                _end += additional_space_needed;
-            }
-        }
-        // Adjust xdp_md data pointers.
-        context.data = _packet->data() + _begin;
-        context.data_end = _packet->data() + _end;
-    Done:
-        return return_value;
-    }
-    NET_BUFFER_LIST* original_nbl;
-    NET_BUFFER_LIST* cloned_nbl;
-
-  private:
-    NET_BUFFER_LIST _original_nbl_storage;
-    NET_BUFFER _original_nb;
-    MDL _original_mdl;
-    std::vector<uint8_t>* _packet;
-    size_t _begin;
-    size_t _end;
-} xdp_md_helper_t;
-
-typedef class _test_xdp_helper
-{
-  public:
-    static int
-    adjust_head(_In_ xdp_md_t* ctx, int delta)
-    {
-        return xdp_md_helper_t::from_ctx(ctx)->adjust_head(delta);
-    }
-} test_xdp_helper_t;
-
-// These are test xdp context creation functions.
-static ebpf_result_t
-_xdp_context_create(
-    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
-    _In_ size_t data_size_in,
-    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
-    _In_ size_t context_size_in,
-    _Outptr_ void** context)
-{
-    ebpf_result_t retval = EBPF_FAILED;
-    *context = nullptr;
-    xdp_md_t* xdp_context = nullptr;
-
-    xdp_md_header_t* xdp_context_header = reinterpret_cast<xdp_md_header_t*>(malloc(sizeof(xdp_md_header_t)));
-    if (xdp_context_header == nullptr) {
-        goto Done;
-    }
-    xdp_context = &xdp_context_header->context;
-
-    if (context_in) {
-        if (context_size_in < sizeof(xdp_md_t)) {
-            goto Done;
-        }
-        xdp_md_t* provided_context = (xdp_md_t*)context_in;
-        xdp_context->ingress_ifindex = provided_context->ingress_ifindex;
-        xdp_context->data_meta = provided_context->data_meta;
-    }
-
-    xdp_context->data = (void*)data_in;
-    xdp_context->data_end = (void*)(data_in + data_size_in);
-
-    *context = xdp_context;
-    xdp_context = nullptr;
-    xdp_context_header = nullptr;
-    retval = EBPF_SUCCESS;
-Done:
-    free(xdp_context_header);
-    xdp_context_header = nullptr;
-    return retval;
-}
-
-static void
-_xdp_context_destroy(
-    _In_opt_ void* context,
-    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
-    _Inout_ size_t* data_size_out,
-    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* context_out,
-    _Inout_ size_t* context_size_out)
-{
-    if (!context) {
-        return;
-    }
-
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(context);
-    xdp_md_header_t* xdp_context_header = CONTAINING_RECORD(xdp_context, xdp_md_header_t, context);
-    uint8_t* data = reinterpret_cast<uint8_t*>(xdp_context->data);
-    uint8_t* data_end = reinterpret_cast<uint8_t*>(xdp_context->data_end);
-    size_t data_length = data_end - data;
-    if (data_length <= *data_size_out) {
-        memmove(data_out, data, data_length);
-        *data_size_out = data_length;
-    } else {
-        *data_size_out = 0;
-    }
-
-    if (context_out && *context_size_out >= sizeof(xdp_md_t)) {
-        xdp_md_t* provided_context = (xdp_md_t*)context_out;
-        provided_context->ingress_ifindex = xdp_context->ingress_ifindex;
-        provided_context->data_meta = xdp_context->data_meta;
-        *context_size_out = sizeof(xdp_md_t);
-    }
-
-    free(xdp_context_header);
-}
-
 typedef class _test_global_helper
 {
   public:
@@ -740,38 +566,6 @@ _sample_test_context_destroy(
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
 // program info provider data for various program types.
-
-// Mock implementation of XDP.
-static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
-
-static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
-    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
-    EBPF_COUNT_OF(_mock_xdp_helper_functions),
-    (uint64_t*)_mock_xdp_helper_functions};
-
-static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
-    "xdp",
-    &_ebpf_xdp_test_context_descriptor,
-    EBPF_PROGRAM_TYPE_XDP_GUID,
-    BPF_PROG_TYPE_XDP,
-    0};
-static const ebpf_program_info_t _mock_xdp_program_info = {
-    EBPF_PROGRAM_INFORMATION_HEADER,
-    &_mock_xdp_program_type_descriptor,
-    EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
-    _xdp_test_ebpf_extension_helper_function_prototype};
-
-static ebpf_program_data_t _mock_xdp_program_data = {
-    EBPF_PROGRAM_DATA_HEADER,
-    &_mock_xdp_program_info,
-    &_mock_xdp_helper_function_address_table,
-    nullptr,
-    _xdp_context_create,
-    _xdp_context_destroy,
-    0,
-    {0},
-};
 
 // Bind.
 static ebpf_result_t
@@ -1159,8 +953,6 @@ typedef class _program_info_provider
 
         if (custom_program_data != nullptr) {
             program_data = custom_program_data;
-        } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
-            program_data = &_mock_xdp_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             program_data = &_ebpf_bind_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

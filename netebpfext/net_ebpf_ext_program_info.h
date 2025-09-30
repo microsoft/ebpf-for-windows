@@ -6,33 +6,6 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
-#include "net_ebpf_ext_xdp_hooks.h"
-
-#define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
-
-#define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
-
-enum _xdp_test_helper_functions
-{
-    XDP_TEST_HELPER_ADJUST_HEAD,
-};
-
-// XDP_TEST helper function prototype descriptors.
-static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     XDP_EXT_HELPER_FUNCTION_START + 1,
-     "bpf_xdp_adjust_head",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
-     // Flags.
-     {HELPER_FUNCTION_REALLOCATE_PACKET}}};
-
-// XDP_TEST program information.
-static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 // Bind program information.
 static const ebpf_context_descriptor_t _ebpf_bind_context_descriptor = {

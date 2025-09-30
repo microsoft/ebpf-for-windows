@@ -29,8 +29,6 @@ class _test_helper_libbpf
 
   private:
     _test_helper_end_to_end test_helper_end_to_end;
-    _program_info_provider* xdp_program_info;
-    _single_instance_hook* xdp_hook;
     _program_info_provider* bind_program_info;
     _single_instance_hook* bind_hook;
     _program_info_provider* cgroup_sock_addr_program_info;

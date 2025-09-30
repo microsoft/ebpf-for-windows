@@ -1158,8 +1158,10 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
 
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"}, {"connect4_count_map"}},
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"}, {"connect6_count_map"}}};
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"},
+         {"connect4_count_map"}},
+        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"},
+         {"connect6_count_map"}}};
     ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
@@ -1546,7 +1548,8 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
 }
 
 static void
-_mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
+_mt_bindmonitor_tail_call_invoke_program_test(
+    ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     WSAData data{};
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
@@ -1554,7 +1557,8 @@ _mt_bindmonitor_tail_call_invoke_program_test(ebpf_execution_type_t program_type
 
     // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
-    std::string file_name = is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
+    std::string file_name =
+        is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
 
     // Load the program.
     std::vector<object_table_entry> dummy_table(1);

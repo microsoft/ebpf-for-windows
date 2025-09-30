@@ -273,8 +273,7 @@ typedef class _wsa_helper
     }
     ~_wsa_helper()
     {
-        if (startup_result != -1)
-        {
+        if (startup_result != -1) {
             WSACleanup();
         }
     }
@@ -284,9 +283,8 @@ typedef class _wsa_helper
     {
         WSADATA data{};
         startup_result = WSAStartup(WINSOCK_VERSION, &data);
-        if (startup_result != 0)
-        {
-          FAIL("WSAStartup failed with error: " << WSAGetLastError());
+        if (startup_result != 0) {
+            FAIL("WSAStartup failed with error: " << WSAGetLastError());
         }
         return startup_result;
     }
