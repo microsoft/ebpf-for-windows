@@ -68,17 +68,21 @@ function Test-IsReleaseBuild {
 
 .DESCRIPTION
     This function constructs the version string from the Directory.Build.props file.
-    For non-release branches, it appends the git commit hash to the version.
+    For non-release branches, it appends the git commit hash to the version only for nuspec.in files.
 
 .PARAMETER GitCommitId
     The git commit ID to append for non-release branches
 
+.PARAMETER InputFilePath
+    The path to the input file being processed to determine if prerelease versioning should be applied
+
 .RETURNS
-    The version string, potentially with git hash appended
+    The version string, potentially with git hash appended for nuspec.in files
 #>
 function Get-EbpfVersionString {
     param(
-        [Parameter(Mandatory=$true)][string]$GitCommitId
+        [Parameter(Mandatory=$true)][string]$GitCommitId,
+        [Parameter(Mandatory=$true)][string]$InputFilePath
     )
 
     # Read and parse the Directory.Build.props file
@@ -97,15 +101,23 @@ function Get-EbpfVersionString {
     $isReleaseBuild = Test-IsReleaseBuild
     $buildBranch = Get-BuildBranch
 
+    # Check if we're processing a nuspec.in file
+    $isNuspecFile = $InputFilePath -match '\.nuspec\.in$'
+
     if ($isReleaseBuild) {
         Write-Host "Release build detected (branch: $buildBranch). Using base version: $baseVersion"
         return $baseVersion
     } else {
-        # For non-release builds, append git hash
-        $shortHash = $GitCommitId.Substring(0, [Math]::Min(8, $GitCommitId.Length))
-        $versionWithHash = "$($baseVersion)-prerelease-$($shortHash)"
-        Write-Host "Non-release build detected (branch: $buildBranch). Using version with git hash: $versionWithHash"
-        return $versionWithHash
+        # For non-release builds, only append git hash for nuspec.in files
+        if ($isNuspecFile) {
+            $shortHash = $GitCommitId.Substring(0, [Math]::Min(8, $GitCommitId.Length))
+            $versionWithHash = "$($baseVersion)-prerelease-$($shortHash)"
+            Write-Host "Non-release build detected (branch: $buildBranch) for nuspec.in file. Using version with git hash: $versionWithHash"
+            return $versionWithHash
+        } else {
+            Write-Host "Non-release build detected (branch: $buildBranch) for non-nuspec file. Using base version: $baseVersion"
+            return $baseVersion
+        }
     }
 }
 
@@ -114,8 +126,8 @@ function Get-EbpfVersionString {
 $git_commit_id = Get-Content -Path "$PSScriptRoot\..\include\git_commit_id.h" -Raw -Encoding UTF8
 $git_commit_id = $git_commit_id.Split('"')[1]
 
-# Get the final version string (with git hash if not a release branch)
-$version = Get-EbpfVersionString -GitCommitId $git_commit_id
+# Get the final version string (with git hash if not a release branch and processing nuspec.in file)
+$version = Get-EbpfVersionString -GitCommitId $git_commit_id -InputFilePath $InputFile
 
 $content = Get-Content $InputFile
 $content = $content.Replace("{version}", $version)
