@@ -461,6 +461,10 @@ function Run-KernelTests {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+
+        # TODO - remove this
+        verifier /querysettings
+
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
