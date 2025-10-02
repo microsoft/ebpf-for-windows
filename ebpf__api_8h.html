@@ -225,15 +225,15 @@ Functions</h2></td></tr>
 <tr class="memitem:ac8fd822ec45ca84cf9c39d7ff52913be" id="r_ac8fd822ec45ca84cf9c39d7ff52913be"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac8fd822ec45ca84cf9c39d7ff52913be">ebpf_object_load_native_by_fds</a> (const char *file_name, _Inout_ size_t *count_of_maps, _Out_writes_opt_(*count_of_maps) <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *map_fds, _Inout_ size_t *count_of_programs, _Out_writes_opt_(*count_of_programs) <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fds) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:ac8fd822ec45ca84cf9c39d7ff52913be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load a native image from a file and return map and program file descriptors.  <br /></td></tr>
 <tr class="separator:ac8fd822ec45ca84cf9c39d7ff52913be"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa82dd9cfb2ba844f7557d1eef6e4c831" id="r_aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa82dd9cfb2ba844f7557d1eef6e4c831">ebpf_program_attach</a> (const struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <br /></td></tr>
-<tr class="separator:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a489c1bd82890d76793bffd687fd302ef" id="r_a489c1bd82890d76793bffd687fd302ef"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a489c1bd82890d76793bffd687fd302ef">ebpf_program_attach_by_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:a489c1bd82890d76793bffd687fd302ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor.  <br /></td></tr>
-<tr class="separator:a489c1bd82890d76793bffd687fd302ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9a6829b43c8afb90233bd929fd6a3734" id="r_a9a6829b43c8afb90233bd929fd6a3734"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a9a6829b43c8afb90233bd929fd6a3734">ebpf_program_attach_by_fds</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:a9a6829b43c8afb90233bd929fd6a3734"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor and return the link as a file descriptor.  <br /></td></tr>
-<tr class="separator:a9a6829b43c8afb90233bd929fd6a3734"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea57ad25cb0c8859658f5c77e246b3ee" id="r_aea57ad25cb0c8859658f5c77e246b3ee"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aea57ad25cb0c8859658f5c77e246b3ee">ebpf_program_attach</a> (const struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, _Outptr_opt_ struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aea57ad25cb0c8859658f5c77e246b3ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <br /></td></tr>
+<tr class="separator:aea57ad25cb0c8859658f5c77e246b3ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a00a71feb5b0458476742616f393f2831" id="r_a00a71feb5b0458476742616f393f2831"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a00a71feb5b0458476742616f393f2831">ebpf_program_attach_by_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, _Outptr_opt_ struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a00a71feb5b0458476742616f393f2831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor.  <br /></td></tr>
+<tr class="separator:a00a71feb5b0458476742616f393f2831"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4082abd524356252ac01330f84eff94b" id="r_a4082abd524356252ac01330f84eff94b"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4082abd524356252ac01330f84eff94b">ebpf_program_attach_by_fds</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> program_fd, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_parameters_size) void *attach_parameters, size_t attach_parameters_size, _Out_opt_ <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a4082abd524356252ac01330f84eff94b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program by program file descriptor and return the link as a file descriptor.  <br /></td></tr>
+<tr class="separator:a4082abd524356252ac01330f84eff94b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa8da98ec98f5a4b99fc7c2758f69efd4" id="r_aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa8da98ec98f5a4b99fc7c2758f69efd4">ebpf_link_detach</a> (_Inout_ struct bpf_link *link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach an eBPF program from an attach point represented by the bpf_link structure.  <br /></td></tr>
 <tr class="separator:aa8da98ec98f5a4b99fc7c2758f69efd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -308,9 +308,6 @@ Functions</h2></td></tr>
 <tr class="memitem:a4be29a278b8a744646b573cbba5dd318" id="r_a4be29a278b8a744646b573cbba5dd318"><td class="memItemLeft" align="right" valign="top">struct perf_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4be29a278b8a744646b573cbba5dd318">ebpf_perf_buffer__new</a> (int map_fd, size_t page_cnt, <a class="el" href="ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0">perf_buffer_sample_fn</a> sample_cb, <a class="el" href="ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96">perf_buffer_lost_fn</a> lost_cb, void *ctx, const struct <a class="el" href="structebpf__perf__buffer__opts.html">ebpf_perf_buffer_opts</a> *opts) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a4be29a278b8a744646b573cbba5dd318"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new perf buffer manager with Windows-specific options.  <br /></td></tr>
 <tr class="separator:a4be29a278b8a744646b573cbba5dd318"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2a4191a7f1ef7e045768e7b5176e7ae" id="r_ac2a4191a7f1ef7e045768e7b5176e7ae"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac2a4191a7f1ef7e045768e7b5176e7ae">ebpf_link_mark_as_legacy_mode</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:ac2a4191a7f1ef7e045768e7b5176e7ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mark a link as operating in legacy mode, which means it doesn't detach automatically when last user mode reference is closed. This is used by bpf_prog_attach and related APIs to implement legacy behavior.  <br /></td></tr>
-<tr class="separator:ac2a4191a7f1ef7e045768e7b5176e7ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -1951,39 +1948,6 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="ac2a4191a7f1ef7e045768e7b5176e7ae" name="ac2a4191a7f1ef7e045768e7b5176e7ae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac2a4191a7f1ef7e045768e7b5176e7ae">&#9670;&#160;</a></span>ebpf_link_mark_as_legacy_mode()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_link_mark_as_legacy_mode </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
-          <td class="paramname"><em>link</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Mark a link as operating in legacy mode, which means it doesn't detach automatically when last user mode reference is closed. This is used by bpf_prog_attach and related APIs to implement legacy behavior. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">link</td><td>File descriptor for the link.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are wrong. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="a22929de36c9df83a110440b2caa39d99" name="a22929de36c9df83a110440b2caa39d99"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a22929de36c9df83a110440b2caa39d99">&#9670;&#160;</a></span>ebpf_map_set_wait_handle()</h2>
 
@@ -2380,8 +2344,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="aa82dd9cfb2ba844f7557d1eef6e4c831" name="aa82dd9cfb2ba844f7557d1eef6e4c831"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa82dd9cfb2ba844f7557d1eef6e4c831">&#9670;&#160;</a></span>ebpf_program_attach()</h2>
+<a id="aea57ad25cb0c8859658f5c77e246b3ee" name="aea57ad25cb0c8859658f5c77e246b3ee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea57ad25cb0c8859658f5c77e246b3ee">&#9670;&#160;</a></span>ebpf_program_attach()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2413,7 +2377,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">struct bpf_link **&#160;</td>
+          <td class="paramtype">_Outptr_opt_ struct bpf_link **&#160;</td>
           <td class="paramname"><em>link</em>&#160;</td>
         </tr>
         <tr>
@@ -2431,7 +2395,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type for attaching the program. If attach type is not specified, then the earlier provided attach type or attach type derived from section prefix will be used to attach the program. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_params_size</td><td>Size of the attach parameters. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_parameters</td><td>Optionally, attach parameters. This is an opaque flat buffer containing the attach parameters which is interpreted by the extension provider. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">link</td><td>Pointer to ebpf_link structure.</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">link</td><td>Pointer to ebpf_link structure or NULL if the caller is not interested in the link.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2444,8 +2408,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a489c1bd82890d76793bffd687fd302ef" name="a489c1bd82890d76793bffd687fd302ef"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a489c1bd82890d76793bffd687fd302ef">&#9670;&#160;</a></span>ebpf_program_attach_by_fd()</h2>
+<a id="a00a71feb5b0458476742616f393f2831" name="a00a71feb5b0458476742616f393f2831"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a00a71feb5b0458476742616f393f2831">&#9670;&#160;</a></span>ebpf_program_attach_by_fd()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2477,7 +2441,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">struct bpf_link **&#160;</td>
+          <td class="paramtype">_Outptr_opt_ struct bpf_link **&#160;</td>
           <td class="paramname"><em>link</em>&#160;</td>
         </tr>
         <tr>
@@ -2495,7 +2459,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_type</td><td>Optionally, the attach type for attaching the program. If attach type is not specified, then the earlier provided attach type or attach type derived from section prefix will be used to attach the program. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_parameters_size</td><td>Size of the attach parameters. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">attach_parameters</td><td>Optionally, attach parameters. This is an opaque flat buffer containing the attach parameters which is interpreted by the extension provider. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">link</td><td>Pointer to ebpf_link structure.</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">link</td><td>Pointer to ebpf_link structure or NULL if the caller is not interested in the link.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2508,8 +2472,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a9a6829b43c8afb90233bd929fd6a3734" name="a9a6829b43c8afb90233bd929fd6a3734"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9a6829b43c8afb90233bd929fd6a3734">&#9670;&#160;</a></span>ebpf_program_attach_by_fds()</h2>
+<a id="a4082abd524356252ac01330f84eff94b" name="a4082abd524356252ac01330f84eff94b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4082abd524356252ac01330f84eff94b">&#9670;&#160;</a></span>ebpf_program_attach_by_fds()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -2541,7 +2505,7 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
+          <td class="paramtype">_Out_opt_ <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
           <td class="paramname"><em>link</em>&#160;</td>
         </tr>
         <tr>
@@ -2553,7 +2517,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Attach an eBPF program by program file descriptor and return the link as a file descriptor. </p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="ebpf__api_8h.html#a489c1bd82890d76793bffd687fd302ef" title="Attach an eBPF program by program file descriptor.">ebpf_program_attach_by_fd</a></dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="ebpf__api_8h.html#a00a71feb5b0458476742616f393f2831" title="Attach an eBPF program by program file descriptor.">ebpf_program_attach_by_fd</a></dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
