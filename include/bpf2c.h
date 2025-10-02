@@ -31,8 +31,8 @@ extern "C"
 
 #define UBPF_STACK_SIZE 512
 
-#define IMMEDIATE(X) (int32_t) X
-#define OFFSET(X) (int16_t) X
+#define IMMEDIATE(X) (int32_t)X
+#define OFFSET(X) (int16_t)X
 #define POINTER(X) (uint64_t)(X)
 
 #define READ_ONCE_64(destination, source, offset) \
