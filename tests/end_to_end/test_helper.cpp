@@ -771,9 +771,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
 
-        // Detach all the native module clients.
-        _unload_all_native_modules();
-
         clear_program_info_cache();
 
         {
@@ -787,6 +784,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         if (ec_initialized) {
             ebpf_core_terminate();
         }
+
+        // Detach all the native module clients.
+        _unload_all_native_modules();
 
         device_io_control_handler = nullptr;
         cancel_io_ex_handler = nullptr;
