@@ -597,15 +597,15 @@ bind_tailcall_test(_In_ struct bpf_object* object)
 
 #define SOCKET_TEST_PORT 0x3bbf
 
-void send_traffic(IPPROTO protocol, bool is_ipv6)
+void
+send_traffic(IPPROTO protocol, bool is_ipv6)
 {
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     PSOCKADDR local_address = nullptr;
     int local_address_length = 0;
 
-    if (protocol == IPPROTO_UDP)
-    {
+    if (protocol == IPPROTO_UDP) {
         datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
         datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
         // Send some traffic to initiate a connect.
@@ -614,12 +614,9 @@ void send_traffic(IPPROTO protocol, bool is_ipv6)
         datagram_server_socket.post_async_receive();
 
         // Send loopback message to test port.
-        if (is_ipv6)
-        {
+        if (is_ipv6) {
             IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-        }
-        else
-        {
+        } else {
             IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
         }
 
@@ -628,8 +625,7 @@ void send_traffic(IPPROTO protocol, bool is_ipv6)
         datagram_server_socket.complete_async_receive(false);
         // Cancel send operation.
         datagram_client_socket.cancel_send_message();
-    }
-    else // TCP traffic.
+    } else // TCP traffic.
     {
         stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
         stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -638,12 +634,9 @@ void send_traffic(IPPROTO protocol, bool is_ipv6)
         stream_server_socket.post_async_receive();
 
         // Send loopback message to test port.
-        if (is_ipv6)
-        {
+        if (is_ipv6) {
             IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-        }
-        else
-        {
+        } else {
             IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
         }
 
@@ -672,7 +665,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         helper.initialize(
             native_helper.get_file_name().c_str(),
             BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            is_ipv6 ? program_name_ipv6 : program_name_ipv4,
             EBPF_EXECUTION_NATIVE,
             &ifindex,
             sizeof(ifindex),
@@ -730,7 +723,7 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         helper.initialize(
             native_helper.get_file_name().c_str(),
             BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-            is_ipv6 ? program_name_ipv6: program_name_ipv4,
+            is_ipv6 ? program_name_ipv6 : program_name_ipv4,
             EBPF_EXECUTION_NATIVE,
             &ifindex,
             sizeof(ifindex),
@@ -766,7 +759,7 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
         FILETIME creation, exit, kernel, user;
         if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
             start_time = static_cast<long long>(creation.dwLowDateTime) |
-                        (static_cast<long long>(creation.dwHighDateTime) << 32);
+                         (static_cast<long long>(creation.dwHighDateTime) << 32);
         }
         REQUIRE(tid == found_value.current_tid);
         REQUIRE(start_time == found_value.start_time);
@@ -864,44 +857,20 @@ TEST_CASE("bpf_get_current_pid_tgid", "[helpers]")
     WSACleanup();
 }
 
-TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]")
-{
-    run_process_start_key_test(IPPROTO_UDP, false);
-}
+TEST_CASE("bpf_get_process_start_key_udp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, false); }
 
-TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]")
-{
-    run_process_start_key_test(IPPROTO_UDP, true);
-}
+TEST_CASE("bpf_get_process_start_key_udp_ipv6", "[helpers]") { run_process_start_key_test(IPPROTO_UDP, true); }
 
-TEST_CASE("bpf_get_process_start_key_tcp_ipv4", "[helpers]")
-{
-    run_process_start_key_test(IPPROTO_TCP, false);
-}
+TEST_CASE("bpf_get_process_start_key_tcp_ipv4", "[helpers]") { run_process_start_key_test(IPPROTO_TCP, false); }
 
-TEST_CASE("bpf_get_process_start_key_tcp_ipv6", "[helpers]")
-{
-    run_process_start_key_test(IPPROTO_TCP, true);
-}
+TEST_CASE("bpf_get_process_start_key_tcp_ipv6", "[helpers]") { run_process_start_key_test(IPPROTO_TCP, true); }
 
-TEST_CASE("bpf_get_thread_start_time_udp_ipv4", "[helpers]")
-{
-    run_thread_start_time_test(IPPROTO_UDP, false);
-}
+TEST_CASE("bpf_get_thread_start_time_udp_ipv4", "[helpers]") { run_thread_start_time_test(IPPROTO_UDP, false); }
 
-TEST_CASE("bpf_get_thread_start_time_udp_ipv6", "[helpers]")
-{
-    run_thread_start_time_test(IPPROTO_UDP, true);
-}
-TEST_CASE("bpf_get_thread_start_time_tcp_ipv4", "[helpers]")
-{
-    run_thread_start_time_test(IPPROTO_TCP, false);
-}
+TEST_CASE("bpf_get_thread_start_time_udp_ipv6", "[helpers]") { run_thread_start_time_test(IPPROTO_UDP, true); }
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv4", "[helpers]") { run_thread_start_time_test(IPPROTO_TCP, false); }
 
-TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]")
-{
-    run_thread_start_time_test(IPPROTO_TCP, true);
-}
+TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]") { run_thread_start_time_test(IPPROTO_TCP, true); }
 
 TEST_CASE("native_module_handle_test", "[native_tests]")
 {
@@ -1191,6 +1160,7 @@ TEST_CASE("ioctl_stress", "[stress]")
 
     // Clean up
     bpf_object__close(object);
+    _close(test_map_fd);
 }
 
 typedef struct _ring_buffer_test_context
@@ -1479,4 +1449,194 @@ TEST_CASE("Test program order", "[native_tests]")
 
     // Clean up.
     bpf_object__close(object);
+}
+
+/**
+ * @brief This function tests that reference from outer map to inner map is maintained
+ * even when the inner map FD is closed. Also, when the outer map FD id closed, the inner
+ * map reference is released.
+ *
+ * @param map_type The type of the outer map.
+ */
+void
+_test_nested_maps_user_reference(bpf_map_type map_type)
+{
+    const int num_inner_maps = 5;
+    fd_t inner_map_fds[num_inner_maps];
+    uint32_t inner_map_ids[num_inner_maps];
+    fd_t outer_map_fd = 0;
+    uint32_t outer_map_id = 0;
+
+    for (int i = 0; i < num_inner_maps; ++i) {
+        std::string name = "inner_map" + std::to_string(i + 1);
+        inner_map_fds[i] =
+            bpf_map_create(BPF_MAP_TYPE_ARRAY, name.c_str(), sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(inner_map_fds[i] > 0);
+    }
+
+    // Create outer map with the inner map handle in options.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Close outer map FD so that it is deleted. Validates that empty outer map is deleted.
+    _close(outer_map_fd);
+
+    // Create outer map again with the inner map handle in options.
+    opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Query outer map ID.
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(outer_map_fd, &info, &info_size) == 0);
+    REQUIRE(info.id > 0);
+    REQUIRE(info.type == map_type);
+
+    // Insert all inner maps in outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fds[i], 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // For each inner map, add a value to it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = 0;
+        uint32_t value = 100 + i;
+        uint32_t result = bpf_map_update_elem(inner_map_fds[i], &key, &value, 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // Close FDs for the inner maps. The maps should still exist and can be queried from the outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        _close(inner_map_fds[i]);
+    }
+
+    // For each inner map, get the inner map ID from outer map and query the value from it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t result = bpf_map_lookup_elem(outer_map_fd, &key, &inner_map_ids[i]);
+        REQUIRE(result == 0);
+        REQUIRE(inner_map_ids[i] > 0);
+        fd_t inner_map_fd = bpf_map_get_fd_by_id(inner_map_ids[i]);
+        REQUIRE(inner_map_fd > 0);
+        // Query value from inner_map
+        key = 0;
+        uint32_t value = 0;
+        result = bpf_map_lookup_elem(inner_map_fd, &key, &value);
+        REQUIRE(result == ERROR_SUCCESS);
+        REQUIRE(value == static_cast<uint32_t>(100 + i));
+        _close(inner_map_fd);
+    }
+
+    _close(outer_map_fd);
+
+    // Now all the maps should be closed.
+    REQUIRE(bpf_map_get_next_id(0, &outer_map_id) < 0);
+    for (int i = 0; i < num_inner_maps; ++i) {
+        REQUIRE(bpf_map_get_next_id(0, &inner_map_ids[i]) < 0);
+    }
+}
+
+TEST_CASE("array_map_of_maps_user_reference", "[user_reference]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_ARRAY_OF_MAPS);
+}
+TEST_CASE("hash_map_of_maps_user_reference", "[user_reference]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_HASH_OF_MAPS);
+}
+
+/**
+ * @brief This function tests that reference from prog array map to programs is maintained
+ * even when the program FD is closed. Also, when the outer map FD is closed, the program
+ * references are also released.
+ *
+ * @param execution_type The type of execution for the eBPF programs.
+ */
+void
+_test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
+{
+    int result;
+    struct bpf_object* object = nullptr;
+    const int program_count = 3;
+    fd_t program_fd;
+    fd_t program_fds[program_count] = {0};
+    uint32_t program_ids[program_count] = {0};
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall.sys" : "bindmonitor_tailcall.o");
+
+    result = program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd);
+    REQUIRE(result == 0);
+
+    const char* program_names[program_count] = {"BindMonitor", "BindMonitor_Callee0", "BindMonitor_Callee1"};
+
+    // Create a new prog_array_map with 3 entries.
+    fd_t prog_array_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "prog_array_map", sizeof(uint32_t), sizeof(fd_t), 3, nullptr);
+    REQUIRE(prog_array_map_fd > 0);
+
+    // Get FDs for the three programs in a loop.
+    for (uint32_t i = 0; i < program_count; i++) {
+        struct bpf_program* program = bpf_object__find_program_by_name(object, program_names[i]);
+        REQUIRE(program != nullptr);
+        program_fds[i] = bpf_program__fd(program);
+        REQUIRE(program_fds[i] > 0);
+    }
+
+    // Insert the program FDs into the prog_array_map in a loop.
+    for (uint32_t i = 0; i < program_count; i++) {
+        uint32_t index = i;
+        REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program_fds[i], 0) == 0);
+    }
+    // Close the program FDs. The programs should still exist and can be queried from the prog_array_map.
+    bpf_object__close(object);
+
+    // Create an array of program FDs and get the program FDs from the prog_array_map in a loop.
+    for (uint32_t i = 0; i < program_count; i++) {
+        REQUIRE(bpf_map_lookup_elem(prog_array_map_fd, &i, &program_ids[i]) == 0);
+        REQUIRE(program_ids[i] > 0);
+        program_fds[i] = bpf_prog_get_fd_by_id(program_ids[i]);
+        REQUIRE(program_fds[i] > 0);
+    }
+
+    // Query object info for each program.
+    for (uint32_t i = 0; i < program_count; i++) {
+        bpf_prog_info program_info = {};
+        uint32_t program_info_size = sizeof(program_info);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fds[i], &program_info, &program_info_size) == 0);
+    }
+
+    // Query map ID.
+    bpf_map_info info;
+    uint32_t info_size = sizeof(info);
+    REQUIRE(bpf_obj_get_info_by_fd(prog_array_map_fd, &info, &info_size) == 0);
+    REQUIRE(info.id > 0);
+    REQUIRE(info.type == BPF_MAP_TYPE_PROG_ARRAY);
+
+    // Close the program FDs, followed by the prog_array_map FD.
+    for (uint32_t i = 0; i < program_count; i++) {
+        _close(program_fds[i]);
+    }
+    _close(prog_array_map_fd);
+
+    // The programs and maps should be closed now. Query FDs for each program and map and ensure they are invalid.
+    for (uint32_t i = 0; i < program_count; i++) {
+        REQUIRE(bpf_prog_get_fd_by_id(program_ids[i]) < 0);
+    }
+    REQUIRE(bpf_map_get_fd_by_id(info.id) < 0);
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("prog_array_map_user_reference-jit", "[user_reference]")
+{
+    _test_prog_array_map_user_reference(EBPF_EXECUTION_JIT);
+}
+#endif
+TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
+{
+    _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }

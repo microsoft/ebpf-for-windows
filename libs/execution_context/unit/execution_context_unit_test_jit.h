@@ -22,7 +22,7 @@ template <typename T> class ebpf_object_deleter
     operator()(T* object)
     {
         ebpf_object_release_reference(
-            reinterpret_cast<ebpf_core_object_t*>(object), EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS, __LINE__);
+            reinterpret_cast<ebpf_core_object_t*>(object), false, EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS, __LINE__);
     }
 };
 

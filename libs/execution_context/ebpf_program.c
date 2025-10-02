@@ -901,6 +901,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         EBPF_OBJECT_PROGRAM,
         _ebpf_program_free,
         _ebpf_program_notify_reference_count_zeroed,
+        NULL,
         _ebpf_program_get_program_type);
 
     if (retval != EBPF_SUCCESS) {

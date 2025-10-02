@@ -673,15 +673,17 @@ void
 ebpf_object_update_reference_history(void* object, bool acquire, uint32_t file_id, uint32_t line);
 
 static void
-_ebpf_native_acquire_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+_ebpf_native_acquire_reference_internal(void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
 {
+    UNREFERENCED_PARAMETER(user_reference);
     ebpf_object_update_reference_history(base_object, true, file_id, line);
     _ebpf_native_acquire_reference(base_object);
 }
 
 static void
-_ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+_ebpf_native_release_reference_internal(void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
 {
+    UNREFERENCED_PARAMETER(user_reference);
     ebpf_object_update_reference_history(base_object, false, file_id, line);
     _ebpf_native_release_reference(base_object);
 }

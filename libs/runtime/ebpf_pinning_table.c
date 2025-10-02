@@ -44,7 +44,7 @@ _ebpf_pinning_entry_free(_Frees_ptr_opt_ ebpf_pinning_entry_t* pinning_entry)
     if (!pinning_entry) {
         return;
     }
-    EBPF_OBJECT_RELEASE_REFERENCE(pinning_entry->object);
+    EBPF_OBJECT_RELEASE_REFERENCE_USER(pinning_entry->object);
     ebpf_free(pinning_entry->path.value);
     ebpf_free(pinning_entry);
 }
@@ -148,7 +148,7 @@ ebpf_pinning_table_insert(
     }
 
     new_pinning_entry->object = object;
-    EBPF_OBJECT_ACQUIRE_REFERENCE(object);
+    EBPF_OBJECT_ACQUIRE_REFERENCE_USER(object);
     new_key = &new_pinning_entry->path;
 
     state = ebpf_lock_lock(&pinning_table->lock);
