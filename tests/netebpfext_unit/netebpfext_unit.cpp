@@ -502,7 +502,7 @@ netebpfext_unit_invoke_sock_addr_program(
 
     switch (action) {
     case SOCK_ADDR_TEST_ACTION_PERMIT_SOFT:
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         break;
     case SOCK_ADDR_TEST_ACTION_PERMIT_HARD:
         *result = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
@@ -518,7 +518,7 @@ netebpfext_unit_invoke_sock_addr_program(
             auto first_octet = &sock_addr_context->user_ip6[0];
             (*first_octet)++;
         }
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;

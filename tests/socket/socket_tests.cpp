@@ -142,12 +142,12 @@ connection_test(
     _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
     // Update ingress policy to allow packet.
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
     // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
@@ -545,7 +545,7 @@ _update_map_entry_multi_attach(
     bool add)
 {
     _update_map_entry_multi_attach(
-        map_fd, address_family, destination_port, proxy_port, protocol, BPF_SOCK_ADDR_VERDICT_PROCEED, add);
+        map_fd, address_family, destination_port, proxy_port, protocol, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, add);
 }
 
 static void
@@ -671,7 +671,7 @@ multi_attach_test_common(
     SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
-    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT
                                                                     : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
 
     // Deleting the map entry will result in the program blocking the connection.
@@ -740,7 +740,7 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     bpf_object_ptr object_ptrs[MULTIPLE_ATTACH_PROGRAM_COUNT];
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
-    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT
                                                                     : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
 
     // Load the programs.
@@ -820,7 +820,7 @@ void
 multi_attach_test_redirection(
     socket_family_t family, ADDRESS_FAMILY address_family, uint32_t compartment_id, uint16_t protocol)
 {
-    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED
+    uint32_t verdict = compartment_id == UNSPECIFIED_COMPARTMENT_ID ? BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT
                                                                     : BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
 
     // This test validates combination of redirection and other program verdicts.
@@ -1356,7 +1356,7 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     _update_map_entry_multi_attach(
         map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
 
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     _update_map_entry_multi_attach(
         map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
 
@@ -1385,7 +1385,7 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     _update_map_entry_multi_attach(
         map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
 
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     _update_map_entry_multi_attach(
         map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, verdict);
 
