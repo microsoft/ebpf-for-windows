@@ -109,17 +109,6 @@ struct _program_unloader
     ~_program_unloader() { bpf_object__close(object); }
 };
 
-struct _link_deleter
-{
-    struct bpf_link* link;
-    ~_link_deleter()
-    {
-        if (link != nullptr) {
-            ebpf_link_close(link);
-        }
-    }
-};
-
 // The following function uses windows specific input type to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
@@ -263,21 +252,9 @@ handle_ebpf_add_program(
         }
     }
 
-    struct bpf_link* link;
-    result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, &link);
+    result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, nullptr);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
-        return ERROR_SUPPRESS_OUTPUT;
-    }
-
-    // Link attached. Populate the deleter with link pointer, such that link
-    // object is closed when the function returns.
-    struct _link_deleter link_deleter = {link};
-
-    // Prevent the link from detaching the link when the fd is closed.
-    result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
-    if (result != EBPF_SUCCESS) {
-        std::cerr << "error " << result << ": could not mark link as legacy" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -475,16 +452,9 @@ _ebpf_program_attach_by_id(
         }
     }
 
-    struct bpf_link* link;
     if (result == EBPF_SUCCESS) {
-        ebpf_result_t local_result =
-            ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (local_result == EBPF_SUCCESS) {
-            result = ebpf_link_mark_as_legacy_mode(bpf_link__fd(link));
-            // Mark the link as disconnected to prevent detaching from hook point when the link is closed.
-            bpf_link__disconnect(link);
-            ebpf_link_close(link);
-        }
+        result =
+            ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, nullptr);
     }
 
     Platform::_close(program_fd);

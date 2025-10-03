@@ -668,17 +668,26 @@ ebpf_link_terminate()
     // Enumerate all links and issue a detach on them.
 
     ebpf_core_object_t* object = NULL;
+    ebpf_core_object_t* previous_object = NULL;
 
     for (;;) {
-        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(object, EBPF_OBJECT_LINK, &object);
+        EBPF_OBJECT_REFERENCE_NEXT_OBJECT(previous_object, EBPF_OBJECT_LINK, &object);
 
+        // Release the previous object reference after acquiring the next reference to avoid accessing a freed object.
+        if (previous_object) {
+            EBPF_OBJECT_RELEASE_REFERENCE(previous_object);
+            previous_object = NULL;
+        }
+
+        // If there are no more objects, we're done.
         if (object == NULL) {
             break;
         }
 
+        // Detach the link from the program.
         ebpf_link_t* link = (ebpf_link_t*)object;
         ebpf_link_detach_program(link);
-        EBPF_OBJECT_RELEASE_REFERENCE(object);
+        previous_object = object;
     }
 
     EBPF_LOG_EXIT();

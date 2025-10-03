@@ -24,7 +24,7 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
-    wchar_t* wide = (wchar_t*)ebpf_allocate(length * sizeof(wchar_t));
+    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(length * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
     if (wide == nullptr) {
         return nullptr;
     }
@@ -130,7 +130,7 @@ ebpf_read_registry_value_string(
         return result;
     }
 
-    string_value = (wchar_t*)ebpf_allocate((value_size + sizeof(wchar_t)));
+    string_value = (wchar_t*)ebpf_allocate_with_tag((value_size + sizeof(wchar_t)), EBPF_POOL_TAG_DEFAULT);
     if (string_value == nullptr) {
         return EBPF_NO_MEMORY;
     }

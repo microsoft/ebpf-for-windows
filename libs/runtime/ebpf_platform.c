@@ -165,7 +165,7 @@ ebpf_get_execution_context_state(_Out_ ebpf_execution_context_state_t* state)
 _Must_inspect_result_ ebpf_result_t
 ebpf_semaphore_create(_Outptr_ KSEMAPHORE** semaphore, int initial_count, int maximum_count)
 {
-    *semaphore = (KSEMAPHORE*)ebpf_allocate(sizeof(KSEMAPHORE));
+    *semaphore = (KSEMAPHORE*)ebpf_allocate_with_tag(sizeof(KSEMAPHORE), EBPF_POOL_TAG_DEFAULT);
     if (*semaphore == NULL) {
         return EBPF_NO_MEMORY;
     }
@@ -235,8 +235,8 @@ ebpf_platform_detach_process(_In_ ebpf_process_state_t* state)
 _Ret_maybenull_ ebpf_process_state_t*
 ebpf_allocate_process_state()
 {
-    // Skipping fault injection as call to ebpf_allocate() covers it.
-    ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate(sizeof(ebpf_process_state_t));
+    // Skipping fault injection as call to ebpf_allocate_with_tag(, EBPF_POOL_TAG_DEFAULT) covers it.
+    ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate_with_tag(sizeof(ebpf_process_state_t), EBPF_POOL_TAG_DEFAULT);
     return state;
 }
 
@@ -336,7 +336,7 @@ ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wch
         return EBPF_INVALID_ARGUMENT;
     }
 
-    unicode_string = (wchar_t*)ebpf_allocate(unicode_byte_count + sizeof(wchar_t));
+    unicode_string = (wchar_t*)ebpf_allocate_with_tag(unicode_byte_count + sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
     if (unicode_string == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -371,7 +371,7 @@ Done:
 long
 ebpf_platform_printk(_In_z_ const char* format, va_list arg_list)
 {
-    char* output = (char*)ebpf_allocate(MAX_PRINTK_STRING_SIZE);
+    char* output = (char*)ebpf_allocate_with_tag(MAX_PRINTK_STRING_SIZE, EBPF_POOL_TAG_DEFAULT);
     if (output == NULL) {
         return -1;
     }
@@ -464,7 +464,7 @@ ebpf_allocate_timer_work_item(
     _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
     _Inout_opt_ void* work_item_context)
 {
-    *timer_work_item = (ebpf_timer_work_item_t*)ebpf_allocate(sizeof(ebpf_timer_work_item_t));
+    *timer_work_item = (ebpf_timer_work_item_t*)ebpf_allocate_with_tag(sizeof(ebpf_timer_work_item_t), EBPF_POOL_TAG_DEFAULT);
     if (*timer_work_item == NULL) {
         return EBPF_NO_MEMORY;
     }
