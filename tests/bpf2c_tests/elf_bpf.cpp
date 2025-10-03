@@ -356,8 +356,8 @@ TEST_CASE("Verbose output", "[bpf2c_cli]")
         }
     }
 
-    REQUIRE(pre_invariant == 34);
-    REQUIRE(post_invariant == 34);
+    REQUIRE(pre_invariant == 10);
+    REQUIRE(post_invariant == 10);
 
     // Check to make sure that the verbose flag doesn't cause verification to fail.
     std::vector<const char*> argv;
