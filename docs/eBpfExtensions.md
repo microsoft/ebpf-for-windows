@@ -125,6 +125,8 @@ typedef struct _sample_program_context
     uint8_t* data_end;
     uint32_t uint32_data;
     uint16_t uint16_data;
+    uint32_t helper_data_1;
+    uint32_t helper_data_2;
 } sample_program_context_t;
 
 // Program context including the context header.
@@ -240,25 +242,25 @@ invoking an eBPF program. The various fields of this struct are as follows.
 * `end`: Offset (in bytes) to the field in the context structure that is pointing to the end of context data.
 * `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
-For example, for the BPF_PROG_TYPE_XDP program types, the context data structure is as follows:
+For example, for the BPF_PROG_TYPE_SAMPLE program types, the context data structure is as follows:
 ```c
-//We use "struct xdp_md" for cross-platform compatibility.
-typedef struct xdp_md
+// Sample extension program context.
+typedef struct _sample_program_context
 {
-    void* data;         ///< Pointer to start of packet data.
-    void* data_end;     ///< Pointer to end of packet data.
-    uint64_t data_meta; ///< Packet metadata.
-
-    /* size: 12, cachelines: 1, members: 3 */
-    /* last cacheline: 12 bytes */
-} xdp_md_t;
+    uint8_t* data_start;
+    uint8_t* data_end;
+    uint32_t uint32_data;
+    uint16_t uint16_data;
+    uint32_t helper_data_1;
+    uint32_t helper_data_2;
+} sample_program_context_t;
 ```
 The corresponding context descriptor looks like:
 ```c
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+const ebpf_context_descriptor_t g_sample_program_context_descriptor = {sizeof(sample_program_context_t),
+                                                            EBPF_OFFSET_OF(sample_program_context_t, data_start),
+                                                            EBPF_OFFSET_OF(sample_program_context_t, data_end),
+                                                            -1};
 ```
 If any of the data or metadata pointer fields are not present on the context structure, the offset value is set to -1
 in the context descriptor.

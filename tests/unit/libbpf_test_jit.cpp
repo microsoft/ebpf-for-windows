@@ -503,7 +503,7 @@ _test_bpf_object_load_with_o_from_memory()
     struct bpf_object_open_opts opts = {0};
     opts.object_name = my_object_name;
 
-    // Read droppacket.o into a std::vector.
+    // Read cgroup_sock_addr.o into a std::vector.
     std::vector<uint8_t> object_data;
     std::fstream file("cgroup_sock_addr.o", std::ios::in | std::ios::binary);
     REQUIRE(file.is_open());
