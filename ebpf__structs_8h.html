@@ -253,9 +253,7 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420">BPF_PROG_TYPE_SOCK_OPS</a>
 , <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0ade4e693ed99c7e2dc79ee3b9016bad9c">BPF_PROG_TYPE_NETEVENT</a>
 , <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a04b28e58b818684b87047b0a90f8d506">BPF_PROG_TYPE_PROCESS</a>
-, <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a98bde7db33b92cc4d6384fde24a03b3e">BPF_PROG_TYPE_XDP_TEST</a> = 998
-, <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
+, <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> = 999
 <br />
  }</td></tr>
 <tr class="separator:a0f8242763b15ec665eaa47c6add861a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -281,11 +279,9 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aad1e53bd093b70f07e0e67df7bbeb6c1e">BPF_CGROUP_SOCK_OPS</a>
 , <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c">BPF_ATTACH_TYPE_SAMPLE</a>
-, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa74fe75852db8c95475ae683b4a3e9c1">BPF_XDP_TEST</a>
-, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaffc0af7b4e6a18a0cdf3187e77ddedc9">BPF_ATTACH_TYPE_NETEVENT</a>
-, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7">BPF_ATTACH_TYPE_PROCESS</a>
-, <br />
-&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaffc0af7b4e6a18a0cdf3187e77ddedc9">BPF_ATTACH_TYPE_NETEVENT</a> = 10
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7">BPF_ATTACH_TYPE_PROCESS</a> = 11
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
 <br />
  }</td></tr>
 <tr class="separator:aac6b4c09fa267f53c1d213551e0ccd5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -691,9 +687,6 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c" name="aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c"></a>BPF_ATTACH_TYPE_SAMPLE&#160;</td><td class="fielddoc"><p>Attach type implemented by eBPF Sample Extension driver, used for testing. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c">BPF_PROG_TYPE_SAMPLE</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaa74fe75852db8c95475ae683b4a3e9c1" name="aac6b4c09fa267f53c1d213551e0ccd5aaa74fe75852db8c95475ae683b4a3e9c1"></a>BPF_XDP_TEST&#160;</td><td class="fielddoc"><p>Attach type for handling incoming packets as early as possible. </p>
-<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a98bde7db33b92cc4d6384fde24a03b3e">BPF_PROG_TYPE_XDP_TEST</a> </p>
-</td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaffc0af7b4e6a18a0cdf3187e77ddedc9" name="aac6b4c09fa267f53c1d213551e0ccd5aaffc0af7b4e6a18a0cdf3187e77ddedc9"></a>BPF_ATTACH_TYPE_NETEVENT&#160;</td><td class="fielddoc"><p>Attach type for handling netevents. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0ade4e693ed99c7e2dc79ee3b9016bad9c">BPF_PROG_TYPE_NETEVENT</a> </p>
 </td></tr>
@@ -818,11 +811,6 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a04b28e58b818684b87047b0a90f8d506" name="a0f8242763b15ec665eaa47c6add861a0a04b28e58b818684b87047b0a90f8d506"></a>BPF_PROG_TYPE_PROCESS&#160;</td><td class="fielddoc"><p>Program type for handling process creation/deletion events. The github microsoft/ntosebpfext repo has the implementation for this program type. </p>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44">sock_ops_hook_t</a></p>
 <p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7">BPF_ATTACH_TYPE_PROCESS</a></p>
-<p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
-</td></tr>
-<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a98bde7db33b92cc4d6384fde24a03b3e" name="a0f8242763b15ec665eaa47c6add861a0a98bde7db33b92cc4d6384fde24a03b3e"></a>BPF_PROG_TYPE_XDP_TEST&#160;</td><td class="fielddoc"><p>Program type for handling incoming packets as early as possible. </p>
-<p><b>eBPF program prototype:</b> xdp_hook_t</p>
-<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa74fe75852db8c95475ae683b4a3e9c1">BPF_XDP_TEST</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c" name="a0f8242763b15ec665eaa47c6add861a0af7ae714d5dd03e2489ec472fd252165c"></a>BPF_PROG_TYPE_SAMPLE&#160;</td><td class="fielddoc"><p>Program type for handling calls from the eBPF sample extension. Used for testing. </p>
