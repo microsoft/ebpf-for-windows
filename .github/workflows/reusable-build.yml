@@ -187,6 +187,7 @@ jobs:
 
       - name: Cache nuget packages
         if: steps.skip_check.outputs.should_skip != 'true'
+        continue-on-error: true
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
         env:
           cache-name: cache-nuget-modules

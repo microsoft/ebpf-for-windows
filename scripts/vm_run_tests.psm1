@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: MIT
 
 param (
-    [Parameter(Mandatory = $True)][bool] $ExecuteOnHost = $false,
+    [Parameter(Mandatory = $false)][bool] $ExecuteOnHost = $false,
+    [Parameter(Mandatory = $false)][bool] $ExecuteOnVM = $false,
     # The following parameters are only used when ExecuteOnVM is true
-    [Parameter(Mandatory = $True)][bool] $ExecuteOnVM = $false,
     [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
     [Parameter(Mandatory = $True)] [string] $VMName,
     [Parameter(Mandatory = $True)] [string] $Admin,
@@ -20,6 +20,8 @@ param (
     [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
     # Granular tracing parameters (passed through to run_driver_tests.psm1)
     [Parameter(Mandatory = $false)][bool] $GranularTracing = $false,
+    # Boolean parameter indicating if XDP tests should be run.
+    [Parameter(Mandatory = $false)][bool] $RunXdpTests = $false,
     [Parameter(Mandatory = $false)][string] $TraceDir = "",
     [Parameter(Mandatory = $false)][string] $KmTraceType = "file"
 )
@@ -39,15 +41,7 @@ function Invoke-OnHostOrVM {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
-        if ($script:VMIsRemote) {
-            if ($null -ne $Session) {
-                Invoke-Command -Session $Session -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-            } else {
-                Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-            }
-        } else {
-            Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-        }
+        Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }
@@ -122,23 +116,29 @@ function Remove-eBPFProgram {
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
-function Start-ProcessHelper {
+function Start-BackgroundProcess{
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName,
-        [string] $Parameters,
-        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session
+        [Parameter(Mandatory = $true)] [string] $Parameters
     )
+    $session = $null
+    if ($script:ExecuteOnVM){
+        $VmCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $VmCredential
+    } else {
+        $session = New-PSSession -ErrorAction Stop
+    }
     $scriptBlock = {
         param($ProgramName, $Parameters, $WorkingDirectory)
         $ProgramName = "$WorkingDirectory\$ProgramName"
-        Start-Process -FilePath $ProgramName -ArgumentList $Parameters
+        Start-Process -FilePath $ProgramName -ArgumentList $Parameters -PassThru -ErrorAction Stop
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
-    Write-Log "Starting process $ProgramName with arguments $Parameters"
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -Session $Session
+    Write-Log "Starting $ProgramName with arguments $Parameters in a background session."
+    Invoke-Command -Session $Session -ScriptBlock $scriptBlock -ArgumentList $argList -ErrorAction Stop
 }
 
-function Stop-ProcessHelper {
+function Stop-BackgroundProcess {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName
     )
@@ -375,7 +375,7 @@ function Invoke-ConnectRedirectTestHelper
         $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
         foreach ($parameter in $ParameterArray)
         {
-            Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter -Session $Session
+            Start-BackgroundProcess -ProgramName $ProgramName -Parameters $parameter
         }
     } else {
         # Build array of all IP addresses from all interfaces
@@ -392,7 +392,7 @@ function Invoke-ConnectRedirectTestHelper
         foreach ($IPAddress in $IPAddresses) {
             foreach ($Protocol in $Protocols) {
                 foreach ($Port in $Ports) {
-                    Start-ProcessHelper -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress" -Session $Session
+                    Start-BackgroundProcess -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
                 }
             }
         }
@@ -426,18 +426,12 @@ function Invoke-ConnectRedirectTestHelper
     $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $script:StandardUser, $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
-    Stop-ProcessHelper -ProgramName $ProgramName
-
-    if ($null -ne $Session)
-    {
-        Remove-PSSession -Session $Session -ErrorAction SilentlyContinue
-    }
+    Stop-BackgroundProcess -ProgramName $ProgramName
 }
 
 function Stop-eBPFComponents {
     param(
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false,
-        [Parameter(Mandatory = $true)] [string] $LogFileName,
         [Parameter(Mandatory = $false)] [bool] $GranularTracing = $false
     )
     Write-Log "Stopping eBPF components"
@@ -445,9 +439,9 @@ function Stop-eBPFComponents {
         param($WorkingDirectory, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-        Stop-eBPFComponents -GranularTracing $GranularTracing
+        Stop-eBPFServiceAndDrivers -GranularTracing $GranularTracing
     }
-    $argList = @($script:WorkingDirectory, $LogFileName, $GranularTracing)
+    $argList = @($script:WorkingDirectory, $script:LogFileName, $GranularTracing)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
@@ -457,6 +451,7 @@ function Run-KernelTests {
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
     Write-Log "Execute Run-KernelTests"
+
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -498,6 +493,11 @@ function Run-KernelTests {
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
+        if ($script:RunXdpTests -eq $true) {
+            Write-Log "Running XDP tests"
+            Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+            Write-Log "XDP tests completed"
+        }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword
