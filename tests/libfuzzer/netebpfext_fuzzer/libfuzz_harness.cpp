@@ -113,9 +113,6 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     client_context.metadata = *metadata;
     switch (prog_type) {
-    case BPF_PROG_TYPE_XDP:
-        (void)helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-        break;
     case BPF_PROG_TYPE_BIND:
         (void)helper.test_bind_ipv4(&parameters);
         break;
