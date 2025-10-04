@@ -29,7 +29,7 @@ get_start_key(bpf_sock_addr_t* ctx)
     uint32_t key = 0;
     bpf_map_update_elem(&process_start_key_map, &key, &v, 0);
 
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 
 SEC("cgroup/connect4")

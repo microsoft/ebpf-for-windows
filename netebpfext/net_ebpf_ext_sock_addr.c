@@ -989,7 +989,7 @@ _net_ebpf_extension_connection_context_initialize(
 _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static uint32_t
     _net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t* context)
 {
-    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     // Check the hash table for the entry.
     net_ebpf_extension_connection_context_t* found_context =
         (net_ebpf_extension_connection_context_t*)RtlLookupElementGenericTableAvl(
@@ -1518,7 +1518,7 @@ _get_verdict_priority(uint32_t verdict)
         return 3; // Highest priority
     case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
         return 2;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         return 1;
     default:
         return 0;
@@ -1631,7 +1631,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
+    classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
     if (classify_output->actionType == FWP_ACTION_BLOCK) {
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
     }
@@ -1699,7 +1699,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         // This is a re-authorization of a connection that was previously authorized by the
         // eBPF program. Permit it.
         // NOTE: Reauthorization is currently not supported for hard permit.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -1713,7 +1713,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx->compartment_id);
 
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -1724,7 +1724,7 @@ Exit:
     // Set action type based on verdict
     // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
     switch (verdict) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         classify_output->actionType = FWP_ACTION_PERMIT;
         break;
     case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
@@ -1914,7 +1914,7 @@ _cache_connection_context_verdict(
     uint32_t verdict,
     uint64_t handle)
 {
-    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED) {
+    if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
         // Create a connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
         // verdict of the program.
         if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
@@ -2017,7 +2017,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "No \"write\" right; exiting.");
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2040,7 +2040,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2051,7 +2051,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // In case of re-authorization, the eBPF programs have already inspected the connection.
     // Skip invoking the program(s) again. In this case the verdict is always to proceed (terminating).
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         reauthorization = TRUE;
         NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -2071,7 +2071,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID.",
             sock_addr_ctx->compartment_id);
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2091,7 +2091,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             (uint64_t)sock_addr_ctx->compartment_id);
 
         // This connection was previously redirected.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
 
@@ -2099,7 +2099,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // Check if the eBPF program should be invoked based on the IP address family and the hook attach type.
     if (!_net_ebpf_extension_sock_addr_should_invoke_ebpf_program(filter_context, sock_addr_ctx, v4_mapped)) {
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
     net_ebpf_sock_addr_ctx.v4_mapped = v4_mapped;
@@ -2141,7 +2141,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     } else if (result != EBPF_SUCCESS) {
         // We failed to invoke at least one program in the chain, block the request.
         verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
