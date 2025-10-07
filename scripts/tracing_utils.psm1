@@ -38,13 +38,17 @@ function Start-WPRTrace {
         try {
             Write-Log "Attempting to cancel any existing WPR sessions..."
             $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru
+            $handle = $cancelProcess.Handle # Important: this ensures we can access the process info later
+
             if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
                 $exitCode = $cancelProcess.ExitCode
                 Write-Log "WPR cancel completed (exit code: $exitCode)"
             } else {
                 Write-Log "WPR cancel timed out after $TimeoutSeconds seconds, terminating process"
-                $cancelProcess.Kill()
-                $cancelProcess.WaitForExit(5000)
+                if (-not $cancelProcess.HasExited) {
+                    $cancelProcess.Kill()
+                    $cancelProcess.WaitForExit(5000)
+                }
                 Write-Log "WPR cancel process terminated"
             }
         } catch {
@@ -68,13 +72,13 @@ function Start-WPRTrace {
         }
 
         Write-Log "Executing: wpr.exe $($arguments -join ' ')"
+
         $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru
+        $handle = $startProcess.Handle # Important: this ensures we can access the process info later
         Write-Log "Process started with ID: $($startProcess.Id)"
 
         Write-Log "Waiting for WPR start process to complete (timeout: $TimeoutSeconds seconds)..."
         if ($startProcess.WaitForExit($TimeoutSeconds * 1000)) {
-            # Ensure the process has fully exited before reading exit code
-            $startProcess.WaitForExit()
             $exitCode = $startProcess.ExitCode
             Write-Log "WPR start command completed with exit code: $exitCode"
 
@@ -85,8 +89,10 @@ function Start-WPRTrace {
             }
         } else {
             Write-Log "WPR start command timed out after $TimeoutSeconds seconds, terminating process"
-            $startProcess.Kill()
-            $startProcess.WaitForExit(5000)
+            if (-not $startProcess.HasExited) {
+                $startProcess.Kill()
+                $startProcess.WaitForExit(5000)
+            }
             Write-Log "WPR start process terminated due to timeout"
         }
     } catch {
@@ -121,10 +127,9 @@ function Stop-WPRTrace {
 
         Write-Log "Stopping WPR trace" -ForegroundColor Cyan
         $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru
+        $handle = $stopProcess.Handle # Important: this ensures we can access the process info later
 
         if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
-            # Ensure the process has fully exited before reading exit code
-            $stopProcess.WaitForExit()
             $exitCode = $stopProcess.ExitCode
 
             if ($exitCode -eq 0) {
@@ -134,8 +139,10 @@ function Stop-WPRTrace {
             }
         } else {
             Write-Log "WPR stop command timed out after $TimeoutSeconds seconds, terminating process"
-            $stopProcess.Kill()
-            $stopProcess.WaitForExit(5000)
+            if (-not $stopProcess.HasExited) {
+                $stopProcess.Kill()
+                $stopProcess.WaitForExit(5000)
+            }
             Write-Log "WPR stop process terminated due to timeout"
         }
     } catch {
