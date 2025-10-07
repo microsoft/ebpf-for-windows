@@ -39,11 +39,13 @@ function Start-WPRTrace {
             Write-Log "Attempting to cancel any existing WPR sessions..."
             $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru
             if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
-                Write-Log "WPR cancel completed (exit code: $($cancelProcess.ExitCode))"
+                $exitCode = $cancelProcess.ExitCode
+                Write-Log "WPR cancel completed (exit code: $exitCode)"
             } else {
                 Write-Log "WPR cancel timed out after $TimeoutSeconds seconds, terminating process"
                 $cancelProcess.Kill()
                 $cancelProcess.WaitForExit(5000)
+                Write-Log "WPR cancel process terminated"
             }
         } catch {
             Write-Log "WPR cancel failed. This may be expected if no WPR session was in progress. Error: $_"
@@ -67,8 +69,12 @@ function Start-WPRTrace {
 
         Write-Log "Executing: wpr.exe $($arguments -join ' ')"
         $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru
+        Write-Log "Process started with ID: $($startProcess.Id)"
 
+        Write-Log "Waiting for WPR start process to complete (timeout: $TimeoutSeconds seconds)..."
         if ($startProcess.WaitForExit($TimeoutSeconds * 1000)) {
+            # Ensure the process has fully exited before reading exit code
+            $startProcess.WaitForExit()
             $exitCode = $startProcess.ExitCode
             Write-Log "WPR start command completed with exit code: $exitCode"
 
@@ -117,6 +123,8 @@ function Stop-WPRTrace {
         $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru
 
         if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
+            # Ensure the process has fully exited before reading exit code
+            $stopProcess.WaitForExit()
             $exitCode = $stopProcess.ExitCode
 
             if ($exitCode -eq 0) {
