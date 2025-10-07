@@ -471,6 +471,7 @@ TEST_CASE("pinning_test", "[platform]")
                     some_object->signal.signal();
                 },
                 NULL,
+                NULL,
                 NULL);
             if (return_value == EBPF_SUCCESS) {
                 finalized = false;
@@ -789,7 +790,7 @@ TEST_CASE("serialize_map_test", "[platform]")
         EBPF_INSUFFICIENT_BUFFER);
 
     {
-        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate_with_tag(required_length, EBPF_POOL_TAG_DEFAULT));
         if (buffer == nullptr) {
             REQUIRE(false);
         }
@@ -862,7 +863,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         ebpf_serialize_program_info(&in_program_info, nullptr, buffer_length, &serialized_length, &required_length));
 
     {
-        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate(required_length));
+        uint8_t* buffer = static_cast<uint8_t*>(ebpf_allocate_with_tag(required_length, EBPF_POOL_TAG_DEFAULT));
         if (buffer == nullptr) {
             REQUIRE(false);
         }

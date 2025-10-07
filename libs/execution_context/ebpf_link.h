@@ -70,6 +70,23 @@ extern "C"
         _Out_writes_to_(*info_size, *info_size) uint8_t* buffer,
         _Inout_ uint16_t* info_size);
 
+    /**
+     * @brief Mark the link as operating in legacy mode, which means that it doesn't
+     * detach when the last user mode reference to the link is closed.
+     *
+     * @param[in] link The link object to mark as legacy mode.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_STATE The link is not in the attached state.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_link_set_legacy_mode(_Inout_ ebpf_link_t* link);
+
+    /**
+     * @brief Clean up the link module.
+     */
+    void
+    ebpf_link_terminate();
 #ifdef __cplusplus
 }
 #endif

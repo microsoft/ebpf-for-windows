@@ -125,6 +125,8 @@ typedef struct _sample_program_context
     uint8_t* data_end;
     uint32_t uint32_data;
     uint16_t uint16_data;
+    uint32_t helper_data_1;
+    uint32_t helper_data_2;
 } sample_program_context_t;
 
 // Program context including the context header.
@@ -240,25 +242,25 @@ invoking an eBPF program. The various fields of this struct are as follows.
 * `end`: Offset (in bytes) to the field in the context structure that is pointing to the end of context data.
 * `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
-For example, for the XDP_TEST program types, the context data structure is as follows:
+For example, for the BPF_PROG_TYPE_SAMPLE program types, the context data structure is as follows:
 ```c
-// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
-typedef struct xdp_md
+// Sample extension program context.
+typedef struct _sample_program_context
 {
-    void* data;         ///< Pointer to start of packet data.
-    void* data_end;     ///< Pointer to end of packet data.
-    uint64_t data_meta; ///< Packet metadata.
-
-    /* size: 12, cachelines: 1, members: 3 */
-    /* last cacheline: 12 bytes */
-} xdp_md_t;
+    uint8_t* data_start;
+    uint8_t* data_end;
+    uint32_t uint32_data;
+    uint16_t uint16_data;
+    uint32_t helper_data_1;
+    uint32_t helper_data_2;
+} sample_program_context_t;
 ```
 The corresponding context descriptor looks like:
 ```c
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
-                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+const ebpf_context_descriptor_t g_sample_program_context_descriptor = {sizeof(sample_program_context_t),
+                                                            EBPF_OFFSET_OF(sample_program_context_t, data_start),
+                                                            EBPF_OFFSET_OF(sample_program_context_t, data_end),
+                                                            -1};
 ```
 If any of the data or metadata pointer fields are not present on the context structure, the offset value is set to -1
 in the context descriptor.
@@ -467,7 +469,7 @@ structure from the passed in parameters:
 * `ClientDispatch`: Client dispatch table (see section 2.5 below).
 * `NpiSpecificCharacteristics`: Obtained from `ClientRegistrationInstance` parameter. This contains attach-type
 specific data that may be used by an extension for attaching an eBPF program. For example, when an eBPF program is
-being attached to an XDP_TEST hook, the network interface index can be passed via this parameter. This tells the extension
+being attached to an BPF_XDP hook, the network interface index can be passed via this parameter. This tells the extension
 to invoke the eBPF program whenever there are any inbound packets on that network interface. The attach parameter can
 be obtained as follows:
 ```c
@@ -597,8 +599,8 @@ The parameter and return types for these helper functions must adhere to the `eb
 
 ### 2.8 Registering Program Types and Attach Types - eBPF Store
 The eBPF execution context loads an eBPF program from an ELF file that has program section(s) with section names. The
-prefix to these names determines the program type. For example, the section name `"xdp_test"` implies that the corresponding
-program type is `EBPF_PROGRAM_TYPE_XDP_TEST`.
+prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding
+program type is `BPF_PROG_TYPE_XDP`.
 
 The *execution context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry. An extension developer must author a user mode application which will use eBPF store APIs to update the program types it implements along with the associated section prefixes. eBPF store APIs are exported from ebpfapi.dll.
 

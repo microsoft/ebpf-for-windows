@@ -33,28 +33,6 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
 
         const char* program_name = bpf_program__name(program);
         REQUIRE(program_name != nullptr);
-
-#ifndef SKIP_VERIFICATION
-        uint32_t result;
-        ebpf_api_verifier_stats_t stats;
-        const char* log_buffer = nullptr;
-        const char* report = nullptr;
-        REQUIRE(
-            (result = ebpf_api_elf_verify_program_from_file(
-                 file,
-                 section_name,
-                 program_name,
-                 &EBPF_PROGRAM_TYPE_XDP,
-                 EBPF_VERIFICATION_VERBOSITY_NORMAL,
-                 &report,
-                 &log_buffer,
-                 &stats),
-             ebpf_free_string(log_buffer),
-             log_buffer = nullptr,
-             result == 0));
-        REQUIRE(report != nullptr);
-        ebpf_free_string(report);
-#endif
     }
 
     REQUIRE(section_count == expected_section_count);

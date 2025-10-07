@@ -326,7 +326,7 @@ _update_policy_map(
 
     // Insert / delete redirect policy entry in the map.
     destination_entry_key_t key = {0};
-    destination_entry_value_t value = {0};
+    destination_entry_value_t value = {.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT};
 
     if (_globals.family == AF_INET && dual_stack) {
         struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;

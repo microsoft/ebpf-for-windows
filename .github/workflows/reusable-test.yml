@@ -148,7 +148,7 @@ jobs:
         # Add cache entry for any choco packages that are installed.
         # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         env:
           cache-name: cache-choco-packages
         with:

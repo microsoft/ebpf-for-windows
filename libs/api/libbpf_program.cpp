@@ -257,12 +257,11 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
 int
 bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsigned int flags)
 {
-    bpf_link* link = nullptr;
     ebpf_result_t result = EBPF_SUCCESS;
 
     if (_does_attach_type_support_attachable_fd(type) && (flags == 0)) {
         result = ebpf_program_attach_by_fd(
-            prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), &link);
+            prog_fd, get_ebpf_attach_type(type), &attachable_fd, sizeof(attachable_fd), nullptr);
     } else {
         result = EBPF_OPERATION_NOT_SUPPORTED;
     }
@@ -270,10 +269,6 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
-
-    ebpf_assert(link != nullptr);
-    bpf_link__disconnect(link);
-    bpf_link__destroy(link);
 
     return 0;
 }
@@ -634,13 +629,7 @@ __bpf_set_link_xdp_fd_replace(int ifindex, int fd, int old_fd, __u32 flags)
 
     if (fd != ebpf_fd_invalid) {
         // Link the new program fd to the specified ifindex.
-        struct bpf_link* link = nullptr;
-        result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), &link);
-        if (result == EBPF_SUCCESS) {
-            // Disconnect and destroy the link object.
-            bpf_link__disconnect(link);
-            bpf_link__destroy(link);
-        }
+        result = ebpf_program_attach_by_fd(fd, &EBPF_ATTACH_TYPE_XDP, &ifindex, sizeof(ifindex), nullptr);
     }
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);

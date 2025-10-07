@@ -725,6 +725,7 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
     std::vector<prevail::EbpfMapDescriptor> map_descriptors;
 
     auto map_data = libbtf::parse_btf_map_section(btf_data.value());
+    uint32_t global_variable_map_value_size = 0;
 
     bool section_has_map = false;
 
@@ -739,6 +740,7 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
         map_definition.value_size = map.value_size;
         map_definition.max_entries = map.max_entries;
         map_definition.id = map.type_id;
+        global_variable_map_value_size = map.value_size;
 
         map_definitions[_get_btf_global_var_map_name(c_name, name)] = {map_definition, map_definitions.size()};
     }
@@ -754,6 +756,14 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
     if (section_size > MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE) {
         throw bpf_code_generator_exception("global variable section is too large");
     }
+
+    // If the section_size (from the ELF file) and the map value size (from BTF) don't match,
+    // then something is wrong. Prevent this from proceeding as it will likely result in
+    // generating invalid code that corrupts memory.
+    if (section_size != global_variable_map_value_size) {
+        throw bpf_code_generator_exception("The global variable section size does not match the map value size");
+    }
+
     data.resize(section_size);
     if (section->get_data()) {
         memcpy(data.data(), section->get_data(), section->get_size());

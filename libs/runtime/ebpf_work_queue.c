@@ -33,7 +33,7 @@ ebpf_timed_work_queue_create(
     ebpf_timed_work_queue_t* local_work_queue = NULL;
     ebpf_result_t return_value;
 
-    local_work_queue = ebpf_allocate(sizeof(ebpf_timed_work_queue_t));
+    local_work_queue = ebpf_allocate_with_tag(sizeof(ebpf_timed_work_queue_t), EBPF_POOL_TAG_DEFAULT);
     if (!local_work_queue) {
         return_value = EBPF_NO_MEMORY;
         goto Done;

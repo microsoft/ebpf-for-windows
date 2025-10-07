@@ -12,6 +12,9 @@ on your machine, you're ready for the debugging tutorial.
 Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
 is compiled as part of building eBPF for Windows, as it is used in the unit tests.
 
+If not already configured, install the eBPF netsh provider: `netsh add helper <path>\ebpfnetsh.dll`.
+Provide the absolute <path> for ebpfnetsh.dll.
+
 **Step 1)** Let's first look at what sections are in the file:
 
 ```

@@ -307,7 +307,7 @@ TEST_CASE("native_test_data", "[sample_ext_test]")
     native_module_helper_t _native_helper;
     _native_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
     _helper.initialize(
-       _native_helper.get_file_name().c_str(),
+        _native_helper.get_file_name().c_str(),
         BPF_PROG_TYPE_SAMPLE,
         "test_program_entry",
         EBPF_EXECUTION_NATIVE,

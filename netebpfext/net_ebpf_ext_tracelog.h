@@ -378,15 +378,6 @@ net_ebpf_ext_log_message_uint64_uint64_uint64(
         }                                                  \
     } while (false);
 
-#define NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status)          \
-    do {                                                   \
-        NTSTATUS local_status = (status);                  \
-        if (!NT_SUCCESS(local_status)) {                   \
-            NET_EBPF_EXT_LOG_FUNCTION_ERROR(local_status); \
-            goto Exit;                                     \
-        }                                                  \
-    } while (false);
-
 #define NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(keyword, ptr, ptr_name, result)                                     \
     do {                                                                                                              \
         if ((ptr) == NULL) {                                                                                          \

@@ -44,7 +44,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Cache nuget packages
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         env:
           cache-name: cache-nuget-modules
         with:
