@@ -27,7 +27,8 @@ function Start-WPRTrace {
     param(
         [Parameter(Mandatory=$false)] [string] $TraceType = "file",
         [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
-        [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
+        [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking",
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
     )
 
     try {
@@ -36,8 +37,14 @@ function Start-WPRTrace {
         # Quick cleanup of any orphaned sessions
         try {
             Write-Log "Attempting to cancel any existing WPR sessions..."
-            $null = wpr.exe -cancel 2>&1
-            Write-Log "WPR cancel completed (exit code: $LASTEXITCODE)"
+            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
+            if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
+                Write-Log "WPR cancel completed (exit code: $($cancelProcess.ExitCode))"
+            } else {
+                Write-Log "WPR cancel timed out after $TimeoutSeconds seconds, terminating process"
+                $cancelProcess.Kill()
+                $cancelProcess.WaitForExit(5000)
+            }
         } catch {
             Write-Log "WPR cancel failed. This may be expected if no WPR session was in progress. Error: $_"
         }
@@ -50,26 +57,32 @@ function Start-WPRTrace {
         }
 
         Write-Log "Starting WPR trace with TraceType: $TraceType WprpFileName: $WprpFileName TracingProfileName: $TracingProfileName"
+
+        # Prepare arguments
+        $profileName = if ($TraceType -eq "file") { "$TracingProfileName-File" } else { "$TracingProfileName-Memory" }
+        $arguments = @("-start", "$wprpProfilePath!$profileName")
         if ($TraceType -eq "file") {
-            $profileName = "$TracingProfileName-File"
-            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`" -filemode"
-            $null = wpr.exe -start "$wprpProfilePath!$profileName" -filemode 2>&1
-            $exitCode = $LASTEXITCODE
-        } else {
-            $profileName = "$TracingProfileName-Memory"
-            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`""
-            $null = wpr.exe -start "$wprpProfilePath!$profileName" 2>&1
-            $exitCode = $LASTEXITCODE
+            $arguments += "-filemode"
         }
 
-        Write-Log "WPR command completed with exit code: $exitCode"
+        Write-Log "Executing: wpr.exe $($arguments -join ' ')"
+        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
 
-        if ($exitCode -eq 0) {
-            Write-Log "Successfully started trace"
+        if ($startProcess.WaitForExit($TimeoutSeconds * 1000)) {
+            $exitCode = $startProcess.ExitCode
+            Write-Log "WPR start command completed with exit code: $exitCode"
+
+            if ($exitCode -eq 0) {
+                Write-Log "Successfully started trace"
+            } else {
+                Write-Log "Failed to start trace with exit code $exitCode"
+            }
         } else {
-            Write-Log "Failed to start trace with exit code $exitCode"
+            Write-Log "WPR start command timed out after $TimeoutSeconds seconds, terminating process"
+            $startProcess.Kill()
+            $startProcess.WaitForExit(5000)
+            Write-Log "WPR start process terminated due to timeout"
         }
-
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
     }
@@ -84,7 +97,8 @@ function Start-WPRTrace {
 #>
 function Stop-WPRTrace {
     param(
-        [Parameter(Mandatory=$true)] [string] $FileName
+        [Parameter(Mandatory=$true)] [string] $FileName,
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
     )
 
     try {
@@ -100,16 +114,22 @@ function Stop-WPRTrace {
         $traceFile = Join-Path $outputDir $etlFileName
 
         Write-Log "Stopping WPR trace" -ForegroundColor Cyan
+        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
 
-        $null = wpr.exe -stop "$traceFile" 2>&1
-        $exitCode = $LASTEXITCODE
+        if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
+            $exitCode = $stopProcess.ExitCode
 
-        if ($exitCode -eq 0) {
-            Write-Log "Successfully stopped WPR trace: $traceFile"
+            if ($exitCode -eq 0) {
+                Write-Log "Successfully stopped WPR trace: $traceFile"
+            } else {
+                Write-Log "Failed to stop WPR trace with exit code $exitCode"
+            }
         } else {
-            Write-Log "Failed to stop WPR trace with exit code $exitCode"
+            Write-Log "WPR stop command timed out after $TimeoutSeconds seconds, terminating process"
+            $stopProcess.Kill()
+            $stopProcess.WaitForExit(5000)
+            Write-Log "WPR stop process terminated due to timeout"
         }
-
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
     }
