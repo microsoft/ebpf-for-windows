@@ -282,7 +282,7 @@ function Invoke-Test
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
         if (-not $SkipTracing) {
-            $null = Start-WPRTrace -TracingProfileName $TracingProfileName 2>&1
+            Start-WPRTrace -TracingProfileName $TracingProfileName
         }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
@@ -310,7 +310,7 @@ function Invoke-Test
             } else {
                 $traceName = $testName
             }
-            $null = Stop-WPRTrace -FileName $traceName 2>&1
+            Stop-WPRTrace -FileName $traceName
         }
     }
 }

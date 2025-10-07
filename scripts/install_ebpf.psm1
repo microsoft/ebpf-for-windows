@@ -149,7 +149,7 @@ function Stop-eBPFServiceAndDrivers {
     param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
     if ($GranularTracing) {
-        $null = Start-WPRTrace 2>&1
+        Start-WPRTrace
     }
 
     # First, stop user mode service, so that EbpfCore does not hang on stop.
@@ -171,7 +171,7 @@ function Stop-eBPFServiceAndDrivers {
     }
 
     if ($GranularTracing) {
-        $null = Stop-WPRTrace -FileName "stop_ebpf" 2>&1
+        Stop-WPRTrace -FileName "stop_ebpf"
     }
 }
 
@@ -199,7 +199,7 @@ function Install-eBPFComponents
 
     # Start granular tracing before installation if enabled.
     if ($GranularTracing) {
-        $null = Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType 2>&1
+        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
     }
 
     # Start the Windows Installer service.
@@ -369,10 +369,10 @@ function Install-eBPFComponents
     }
 
     if ($GranularTracing) {
-        $null = Stop-WPRTrace -FileName "install_ebpf" 2>&1
+        Stop-WPRTrace -FileName "install_ebpf"
     } else {
         # Start regular KM tracing if not using granular tracing
-        $null = Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType 2>&1
+        Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
     }
 }
 
