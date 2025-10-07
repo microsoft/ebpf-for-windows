@@ -825,8 +825,8 @@ function Get-CoreNetTools {
         Start-Sleep -seconds 5
 
         # This will/should not return (test system will/should bluescreen and reboot).
-        Write-Log "Executing NotMyFault with /crash argument..."
-        $NotMyFaultProc = Start-Process -NoNewWindow -PassThru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+        Write-Log "Executing NotMyFault with /accepteula /crash arguments..."
+        $NotMyFaultProc = Start-Process -NoNewWindow -PassThru -FilePath $NotMyFaultBinaryPath -ArgumentList "/accepteula", "/crash"
         # wait for 30 minutes to generate the kernel dump.
         $NotMyFaultProc.WaitForExit(30*60*1000)
 
