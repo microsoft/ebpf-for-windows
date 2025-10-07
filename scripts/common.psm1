@@ -813,6 +813,29 @@ function Get-CoreNetTools {
     # NotMyFault.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
+
+    # Test NotMyFault functionality
+    Write-Log "Invoking NotMyFault64.exe with /crash to generate kernel dump..."
+    $NotMyFaultBinary = "notmyfault64.exe"
+    $NotMyFaultBinaryPath = Join-Path $pwd $NotMyFaultBinary
+    if (Test-Path $NotMyFaultBinaryPath) {
+        Write-Log "NotMyFault64.exe found at: $NotMyFaultBinaryPath"
+        Write-Log "Creating kernel dump... System will crash and reboot!"
+        # Wait a bit for the above message to show up in the log.
+        Start-Sleep -seconds 5
+
+        # This will/should not return (test system will/should bluescreen and reboot).
+        Write-Log "Executing NotMyFault with /crash argument..."
+        $NotMyFaultProc = Start-Process -NoNewWindow -PassThru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+        # wait for 30 minutes to generate the kernel dump.
+        $NotMyFaultProc.WaitForExit(30*60*1000)
+
+        # If we get here, notmyfault64.exe failed for some reason. Kill the hung process.
+        Write-Log "*** WARNING *** NotMyFault did not crash the system as expected. Killing process."
+        $NotMyFaultProc.Kill()
+    } else {
+        Write-Log "*** ERROR *** NotMyFault64.exe not found at expected location: $NotMyFaultBinaryPath"
+    }
 }
 
 # Download and extract PSExec to run tests as SYSTEM.
