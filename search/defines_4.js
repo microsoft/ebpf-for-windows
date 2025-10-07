@@ -125,12 +125,11 @@ var searchData=
   ['ebpf_5froot_5frelative_5fpath_122',['EBPF_ROOT_RELATIVE_PATH',['../ebpf__windows_8h.html#a6e61d3215c4dcae5f897bea35c83eda4',1,'ebpf_windows.h']]],
   ['ebpf_5fsection_5fdata_5fattach_5ftype_123',['EBPF_SECTION_DATA_ATTACH_TYPE',['../ebpf__windows_8h.html#a04f77b055b151169359547571bcb70a3',1,'ebpf_windows.h']]],
   ['ebpf_5fsection_5fdata_5fprogram_5ftype_124',['EBPF_SECTION_DATA_PROGRAM_TYPE',['../ebpf__windows_8h.html#a6fcdef43f3292afd9853cbb8cd8765ab',1,'ebpf_windows.h']]],
-  ['ebpf_5fsection_5finfo_5ft_125',['ebpf_section_info_t',['../ebpf__api_8h.html#a37f2267d89a1f94cb061fcead09996ca',1,'ebpf_api.h']]],
-  ['ebpf_5fsections_5fregistry_5fkey_126',['EBPF_SECTIONS_REGISTRY_KEY',['../ebpf__windows_8h.html#a6d8d2db8a3422fc86aa533cda1bbc442',1,'ebpf_windows.h']]],
-  ['ebpf_5fsize_5fincluding_5ffield_127',['EBPF_SIZE_INCLUDING_FIELD',['../ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1',1,'ebpf_windows.h']]],
-  ['ebpf_5fstore_5fregistry_5fpath_128',['EBPF_STORE_REGISTRY_PATH',['../ebpf__windows_8h.html#a2dec541ebcd26576f178eaee1e5e4fe5',1,'ebpf_windows.h']]],
-  ['eth_5fp_5fip_129',['ETH_P_IP',['../net_2if__ether_8h.html#ae69e06f5a06069aa0d783064c6f85a2b',1,'if_ether.h']]],
-  ['ethernet_5ftype_5fipv4_130',['ETHERNET_TYPE_IPV4',['../net_2if__ether_8h.html#a70a0def48ee0a3cb7717425a27eddec2',1,'if_ether.h']]],
-  ['ethernet_5ftype_5fipv6_131',['ETHERNET_TYPE_IPV6',['../net_2if__ether_8h.html#aa875742ef8f9160fd0ce0cccbcc5905a',1,'if_ether.h']]],
-  ['ethhdr_132',['ethhdr',['../net_2if__ether_8h.html#a4282cf4a78f4312984092cb422fa453f',1,'if_ether.h']]]
+  ['ebpf_5fsections_5fregistry_5fkey_125',['EBPF_SECTIONS_REGISTRY_KEY',['../ebpf__windows_8h.html#a6d8d2db8a3422fc86aa533cda1bbc442',1,'ebpf_windows.h']]],
+  ['ebpf_5fsize_5fincluding_5ffield_126',['EBPF_SIZE_INCLUDING_FIELD',['../ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1',1,'ebpf_windows.h']]],
+  ['ebpf_5fstore_5fregistry_5fpath_127',['EBPF_STORE_REGISTRY_PATH',['../ebpf__windows_8h.html#a2dec541ebcd26576f178eaee1e5e4fe5',1,'ebpf_windows.h']]],
+  ['eth_5fp_5fip_128',['ETH_P_IP',['../net_2if__ether_8h.html#ae69e06f5a06069aa0d783064c6f85a2b',1,'if_ether.h']]],
+  ['ethernet_5ftype_5fipv4_129',['ETHERNET_TYPE_IPV4',['../net_2if__ether_8h.html#a70a0def48ee0a3cb7717425a27eddec2',1,'if_ether.h']]],
+  ['ethernet_5ftype_5fipv6_130',['ETHERNET_TYPE_IPV6',['../net_2if__ether_8h.html#aa875742ef8f9160fd0ce0cccbcc5905a',1,'if_ether.h']]],
+  ['ethhdr_131',['ethhdr',['../net_2if__ether_8h.html#a4282cf4a78f4312984092cb422fa453f',1,'if_ether.h']]]
 ];
