@@ -37,7 +37,7 @@ function Start-WPRTrace {
         # Quick cleanup of any orphaned sessions
         try {
             Write-Log "Attempting to cancel any existing WPR sessions..."
-            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
+            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru
             if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
                 Write-Log "WPR cancel completed (exit code: $($cancelProcess.ExitCode))"
             } else {
@@ -66,7 +66,7 @@ function Start-WPRTrace {
         }
 
         Write-Log "Executing: wpr.exe $($arguments -join ' ')"
-        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
+        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru
 
         if ($startProcess.WaitForExit($TimeoutSeconds * 1000)) {
             $exitCode = $startProcess.ExitCode
@@ -114,7 +114,7 @@ function Stop-WPRTrace {
         $traceFile = Join-Path $outputDir $etlFileName
 
         Write-Log "Stopping WPR trace" -ForegroundColor Cyan
-        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru -RedirectStandardOutput "nul" -RedirectStandardError "nul"
+        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru
 
         if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
             $exitCode = $stopProcess.ExitCode
