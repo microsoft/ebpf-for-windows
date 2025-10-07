@@ -64,11 +64,12 @@ function Start-WPRTrace {
 
         Write-Log "WPR command completed with exit code: $exitCode"
 
-        if ($exitCode -ne 0) {
-            throw "Failed to start trace with exit code $exitCode"
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully started trace"
+        } else {
+            Write-Log "Failed to start trace with exit code $exitCode"
         }
 
-        Write-Log "Successfully started trace"
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
     }
@@ -103,11 +104,12 @@ function Stop-WPRTrace {
         $null = wpr.exe -stop "$traceFile" 2>&1
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -ne 0) {
-            throw "Failed to stop WPR trace with exit code $exitCode"
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully stopped WPR trace: $traceFile"
+        } else {
+            Write-Log "Failed to stop WPR trace with exit code $exitCode"
         }
 
-        Write-Log "Successfully stopped WPR trace: $traceFile"
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
     }

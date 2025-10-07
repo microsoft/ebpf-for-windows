@@ -500,7 +500,7 @@ function Import-ResultsFromVM
                     -WarningAction SilentlyContinue
 
                 $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
-                Stop-WPRTrace -FileName $baseFileName
+                $null = Stop-WPRTrace -FileName $baseFileName 2>&1
 
                 # Stop-WPRTrace puts the file in TestLogs and will therefore be collected in the subsequent block.
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
@@ -584,7 +584,7 @@ function Import-ResultsFromHost {
     if ($KmTracing) {
         $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
         $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
-        Stop-WPRTrace -FileName $baseFileName
+        $null = Stop-WPRTrace -FileName $baseFileName 2>&1
     }
     Write-Log "Completed Importing results from host..."
 }
