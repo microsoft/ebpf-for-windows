@@ -263,7 +263,8 @@ function Invoke-Test
           [Parameter(Mandatory = $False)][string] $TraceFileName = "",
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
-          [Parameter(Mandatory = $False)][switch] $SkipTracing)
+          [Parameter(Mandatory = $False)][switch] $SkipTracing,
+          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking")
 
     try {
         # Initialize arguments.
@@ -281,7 +282,7 @@ function Invoke-Test
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
         if (-not $SkipTracing) {
-            $null = Start-WPRTrace 2>&1
+            $null = Start-WPRTrace -TracingProfileName $TracingProfileName 2>&1
         }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
@@ -466,7 +467,7 @@ function Invoke-CICDStressTests
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
 
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     Pop-Location
 }
