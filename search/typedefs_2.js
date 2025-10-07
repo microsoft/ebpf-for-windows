@@ -31,15 +31,16 @@ var searchData=
   ['ebpf_5fprogram_5fcontext_5fcreate_5ft_28',['ebpf_program_context_create_t',['../ebpf__program__types_8h.html#a28b3cc0ae54948736df5ee837df7b5ad',1,'ebpf_program_types.h']]],
   ['ebpf_5fprogram_5fcontext_5fdestroy_5ft_29',['ebpf_program_context_destroy_t',['../ebpf__program__types_8h.html#a622122ac2d7dc24ae608e44a1a61d8b8',1,'ebpf_program_types.h']]],
   ['ebpf_5fprogram_5fdata_5ft_30',['ebpf_program_data_t',['../ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5',1,'ebpf_program_types.h']]],
-  ['ebpf_5fprogram_5finfo_5ft_31',['ebpf_program_info_t',['../ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_program_types.h'],['../ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_api.h']]],
+  ['ebpf_5fprogram_5finfo_5ft_31',['ebpf_program_info_t',['../ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_api.h'],['../ebpf__program__types_8h.html#af4c03ef813e8625b8c4c869eea6e7a43',1,'ebpf_program_info_t:&#160;ebpf_program_types.h']]],
   ['ebpf_5fprogram_5finvoke_5ffunction_5ft_32',['ebpf_program_invoke_function_t',['../ebpf__extension_8h.html#ae80fa727147e54667fe9876c9caa45ef',1,'ebpf_extension.h']]],
   ['ebpf_5fprogram_5fsection_5finfo_5ft_33',['ebpf_program_section_info_t',['../ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0',1,'ebpf_program_types.h']]],
   ['ebpf_5fprogram_5ftype_5fdescriptor_5ft_34',['ebpf_program_type_descriptor_t',['../ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89',1,'ebpf_program_types.h']]],
   ['ebpf_5fprogram_5ftype_5ft_35',['ebpf_program_type_t',['../ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251',1,'ebpf_windows.h']]],
   ['ebpf_5fresult_5ft_36',['ebpf_result_t',['../ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333',1,'ebpf_result.h']]],
-  ['ebpf_5fstat_5ft_37',['ebpf_stat_t',['../ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1',1,'ebpf_api.h']]],
-  ['ebpf_5fstore_5fkey_5ft_38',['ebpf_store_key_t',['../ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7',1,'ebpf_store_helper.h']]],
-  ['ebpf_5ftest_5frun_5foptions_5ft_39',['ebpf_test_run_options_t',['../ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341',1,'ebpf_api.h']]],
-  ['ebpf_5fverification_5fverbosity_5ft_40',['ebpf_verification_verbosity_t',['../ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f',1,'ebpf_api.h']]],
-  ['ethernet_5fheader_41',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]]
+  ['ebpf_5fsock_5faddr_5fverdict_5ft_37',['ebpf_sock_addr_verdict_t',['../ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2',1,'ebpf_nethooks.h']]],
+  ['ebpf_5fstat_5ft_38',['ebpf_stat_t',['../ebpf__api_8h.html#a03e330e1ab6b5c901410d1ffbe0196a1',1,'ebpf_api.h']]],
+  ['ebpf_5fstore_5fkey_5ft_39',['ebpf_store_key_t',['../ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7',1,'ebpf_store_helper.h']]],
+  ['ebpf_5ftest_5frun_5foptions_5ft_40',['ebpf_test_run_options_t',['../ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341',1,'ebpf_api.h']]],
+  ['ebpf_5fverification_5fverbosity_5ft_41',['ebpf_verification_verbosity_t',['../ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f',1,'ebpf_api.h']]],
+  ['ethernet_5fheader_42',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]]
 ];

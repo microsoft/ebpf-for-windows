@@ -7,5 +7,6 @@ var searchData=
   ['_5febpf_5fhelper_5ffunction_4',['_ebpf_helper_function',['../ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd',1,'ebpf_windows.h']]],
   ['_5febpf_5flink_5fdispatch_5ftable_5fversion_5',['_ebpf_link_dispatch_table_version',['../ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76ac',1,'ebpf_extension.h']]],
   ['_5febpf_5fobject_5ftype_6',['_ebpf_object_type',['../ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa',1,'ebpf_core_structs.h']]],
-  ['_5febpf_5fverification_5fverbosity_7',['_ebpf_verification_verbosity',['../ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0',1,'ebpf_api.h']]]
+  ['_5febpf_5fsock_5faddr_5fverdict_7',['_ebpf_sock_addr_verdict',['../ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164',1,'ebpf_nethooks.h']]],
+  ['_5febpf_5fverification_5fverbosity_8',['_ebpf_verification_verbosity',['../ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0',1,'ebpf_api.h']]]
 ];

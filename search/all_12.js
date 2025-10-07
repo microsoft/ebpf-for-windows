@@ -7,7 +7,7 @@ var searchData=
   ['seq_4',['seq',['../structtcphdr.html#a9ed1a8f8d1c3495c53fa4be93e60f8d8',1,'tcphdr']]],
   ['size_5',['size',['../struct__metadata__table.html#a21806446a045e439a9a7feef5b7f2aeb',1,'_metadata_table::size'],['../struct__global__variable__section__info.html#a1b37f7ef12e32c1d5408b9a494725bab',1,'_global_variable_section_info::size'],['../struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282',1,'_ebpf_extension_header::size']]],
   ['sock_5faddr_5fext_5fhelper_5ffn_5fbase_6',['SOCK_ADDR_EXT_HELPER_FN_BASE',['../ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e',1,'ebpf_nethooks.h']]],
-  ['sock_5faddr_5fhook_5ft_7',['sock_addr_hook_t',['../ebpf__nethooks_8h.html#a464b2acd358e923d2bbcf7b0edffd267',1,'ebpf_nethooks.h']]],
+  ['sock_5faddr_5fhook_5ft_7',['sock_addr_hook_t',['../ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0',1,'ebpf_nethooks.h']]],
   ['sock_5fops_5fhook_5ft_8',['sock_ops_hook_t',['../ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44',1,'ebpf_nethooks.h']]],
   ['socket_5faddress_9',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
   ['socket_5faddress_5flength_10',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]],

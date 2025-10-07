@@ -98,12 +98,6 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a4dde38732b580707375ceaf3b7b83f37" id="r_a4dde38732b580707375ceaf3b7b83f37"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a4dde38732b580707375ceaf3b7b83f37">BPF_SOCK_ADDR_VERDICT_REJECT</a>&#160;&#160;&#160;0</td></tr>
-<tr class="separator:a4dde38732b580707375ceaf3b7b83f37"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aba240a25be818fb3c8014aa295e6727a" id="r_aba240a25be818fb3c8014aa295e6727a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aba240a25be818fb3c8014aa295e6727a">BPF_SOCK_ADDR_VERDICT_PROCEED</a>&#160;&#160;&#160;1</td></tr>
-<tr class="separator:aba240a25be818fb3c8014aa295e6727a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ade84ad88c16450a631cc33b297126a2e" id="r_ade84ad88c16450a631cc33b297126a2e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ade84ad88c16450a631cc33b297126a2e">BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</a>&#160;&#160;&#160;2</td></tr>
-<tr class="separator:ade84ad88c16450a631cc33b297126a2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09d58648eadda063c89974b05c5b5d6e" id="r_a09d58648eadda063c89974b05c5b5d6e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e">SOCK_ADDR_EXT_HELPER_FN_BASE</a>&#160;&#160;&#160;0xFFFF</td></tr>
 <tr class="separator:a09d58648eadda063c89974b05c5b5d6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -118,12 +112,14 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ab2020fd040b86a3b9b29a31303dabc5b" id="r_ab2020fd040b86a3b9b29a31303dabc5b"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a> *context)</td></tr>
 <tr class="memdesc:ab2020fd040b86a3b9b29a31303dabc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle an AF_INET socket bind() request.  <br /></td></tr>
 <tr class="separator:ab2020fd040b86a3b9b29a31303dabc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2d05c64df48bba1476f7e3f500826ac2" id="r_a2d05c64df48bba1476f7e3f500826ac2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a></td></tr>
+<tr class="separator:a2d05c64df48bba1476f7e3f500826ac2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2c7c42768b8ecf6dd6ee52c302a10a0" id="r_ab2c7c42768b8ecf6dd6ee52c302a10a0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="structbpf__sock__addr.html">bpf_sock_addr</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a></td></tr>
 <tr class="memdesc:ab2c7c42768b8ecf6dd6ee52c302a10a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.  <br /></td></tr>
 <tr class="separator:ab2c7c42768b8ecf6dd6ee52c302a10a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a464b2acd358e923d2bbcf7b0edffd267" id="r_a464b2acd358e923d2bbcf7b0edffd267"><td class="memItemLeft" align="right" valign="top">typedef int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a464b2acd358e923d2bbcf7b0edffd267">sock_addr_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td></tr>
-<tr class="memdesc:a464b2acd358e923d2bbcf7b0edffd267"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle socket operation. Currently supports ingress/egress connection initialization.  <br /></td></tr>
-<tr class="separator:a464b2acd358e923d2bbcf7b0edffd267"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a255443f32dea7f8cd68ffc2be666dfc0" id="r_a255443f32dea7f8cd68ffc2be666dfc0"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0">sock_addr_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td></tr>
+<tr class="memdesc:a255443f32dea7f8cd68ffc2be666dfc0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle socket operation. Currently supports ingress/egress connection initialization.  <br /></td></tr>
+<tr class="separator:a255443f32dea7f8cd68ffc2be666dfc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3fe3512916a92a4073c475cbae9299d9" id="r_a3fe3512916a92a4073c475cbae9299d9"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6">_bpf_sock_op_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9">bpf_sock_op_type_t</a></td></tr>
 <tr class="separator:a3fe3512916a92a4073c475cbae9299d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aebf60907274448aa9047f1716c2aef00" id="r_aebf60907274448aa9047f1716c2aef00"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bpf__sock__ops.html">_bpf_sock_ops</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a></td></tr>
@@ -144,6 +140,11 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a">BIND_REDIRECT</a>
  }</td></tr>
 <tr class="separator:a9e5d69be705b1f7503ab2fd752c41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca35b18b041302a7387d62fbacaca164" id="r_aca35b18b041302a7387d62fbacaca164"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a> { <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164a4b6a1f5d4c2b3e75bd0bcd0998046786">BPF_SOCK_ADDR_VERDICT_REJECT</a>
+, <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164a83913efda7e57397cff735b7d18cd751">BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT</a>
+, <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164ab82bb40939d939211ac53ee100fb59e4">BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</a>
+ }</td></tr>
+<tr class="separator:aca35b18b041302a7387d62fbacaca164"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3a163a4fff0e95e1a572099e4478620e" id="r_a3a163a4fff0e95e1a572099e4478620e"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620e">ebpf_sock_addr_helper_id_t</a> { <a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620ea4b649ab500451e49d56e8b49b14f6edc">BPF_FUNC_sock_addr_get_current_pid_tgid</a> = SOCK_ADDR_EXT_HELPER_FN_BASE + 1
 , <a class="el" href="ebpf__nethooks_8h.html#a3a163a4fff0e95e1a572099e4478620ea17a2b2e39b5d83904a653ad0a40e9edf">BPF_FUNC_sock_addr_set_redirect_context</a> = SOCK_ADDR_EXT_HELPER_FN_BASE + 2
  }</td></tr>
@@ -161,48 +162,6 @@ Functions</h2></td></tr>
 <tr class="separator:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="aba240a25be818fb3c8014aa295e6727a" name="aba240a25be818fb3c8014aa295e6727a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aba240a25be818fb3c8014aa295e6727a">&#9670;&#160;</a></span>BPF_SOCK_ADDR_VERDICT_PROCEED</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define BPF_SOCK_ADDR_VERDICT_PROCEED&#160;&#160;&#160;1</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="ade84ad88c16450a631cc33b297126a2e" name="ade84ad88c16450a631cc33b297126a2e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ade84ad88c16450a631cc33b297126a2e">&#9670;&#160;</a></span>BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define BPF_SOCK_ADDR_VERDICT_PROCEED_HARD&#160;&#160;&#160;2</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a4dde38732b580707375ceaf3b7b83f37" name="a4dde38732b580707375ceaf3b7b83f37"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4dde38732b580707375ceaf3b7b83f37">&#9670;&#160;</a></span>BPF_SOCK_ADDR_VERDICT_REJECT</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define BPF_SOCK_ADDR_VERDICT_REJECT&#160;&#160;&#160;0</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a09d58648eadda063c89974b05c5b5d6e" name="a09d58648eadda063c89974b05c5b5d6e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a09d58648eadda063c89974b05c5b5d6e">&#9670;&#160;</a></span>SOCK_ADDR_EXT_HELPER_FN_BASE</h2>
 
@@ -335,14 +294,28 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a464b2acd358e923d2bbcf7b0edffd267" name="a464b2acd358e923d2bbcf7b0edffd267"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a464b2acd358e923d2bbcf7b0edffd267">&#9670;&#160;</a></span>sock_addr_hook_t</h2>
+<a id="a2d05c64df48bba1476f7e3f500826ac2" name="a2d05c64df48bba1476f7e3f500826ac2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2d05c64df48bba1476f7e3f500826ac2">&#9670;&#160;</a></span>ebpf_sock_addr_verdict_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef int sock_addr_hook_t(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td>
+          <td class="memname">typedef enum <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a> <a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a255443f32dea7f8cd68ffc2be666dfc0" name="a255443f32dea7f8cd68ffc2be666dfc0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a255443f32dea7f8cd68ffc2be666dfc0">&#9670;&#160;</a></span>sock_addr_hook_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a> sock_addr_hook_t(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -359,7 +332,7 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_REJECT</td><td>Block the socket operation. Maps to a hard block in WFP. </td></tr>
-    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED</td><td>Allow the socket operation. Maps to a soft permit in WFP. </td></tr>
+    <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT</td><td>Allow the socket operation. Maps to a soft permit in WFP. </td></tr>
     <tr><td class="paramname">BPF_SOCK_ADDR_VERDICT_PROCEED_HARD</td><td>Allow the socket operation. Maps to a hard permit in WFP.</td></tr>
   </table>
   </dd>
@@ -456,6 +429,25 @@ Functions</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="ab1d2513464cb18a40a430026238606f6afc3c038227fcdb37c94d67b653cbc123" name="ab1d2513464cb18a40a430026238606f6afc3c038227fcdb37c94d67b653cbc123"></a>BPF_SOCK_OPS_CONNECTION_DELETED_CB&#160;</td><td class="fielddoc"><p>Indicates when a connection is deleted. </p>
 </td></tr>
+</table>
+
+</div>
+</div>
+<a id="aca35b18b041302a7387d62fbacaca164" name="aca35b18b041302a7387d62fbacaca164"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca35b18b041302a7387d62fbacaca164">&#9670;&#160;</a></span>_ebpf_sock_addr_verdict</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="aca35b18b041302a7387d62fbacaca164a4b6a1f5d4c2b3e75bd0bcd0998046786" name="aca35b18b041302a7387d62fbacaca164a4b6a1f5d4c2b3e75bd0bcd0998046786"></a>BPF_SOCK_ADDR_VERDICT_REJECT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aca35b18b041302a7387d62fbacaca164a83913efda7e57397cff735b7d18cd751" name="aca35b18b041302a7387d62fbacaca164a83913efda7e57397cff735b7d18cd751"></a>BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="aca35b18b041302a7387d62fbacaca164ab82bb40939d939211ac53ee100fb59e4" name="aca35b18b041302a7387d62fbacaca164ab82bb40939d939211ac53ee100fb59e4"></a>BPF_SOCK_ADDR_VERDICT_PROCEED_HARD&#160;</td><td class="fielddoc"></td></tr>
 </table>
 
 </div>
