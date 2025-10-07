@@ -59,7 +59,7 @@ authorize_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
-    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 
 __inline int
@@ -75,7 +75,7 @@ authorize_v6(bpf_sock_addr_t* ctx, void* connection_policy_map)
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
-    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return (verdict != NULL) ? *verdict : BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 
 SEC("cgroup/connect4")

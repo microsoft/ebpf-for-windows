@@ -29,7 +29,7 @@ get_thread_create_time(bpf_sock_addr_t* ctx)
     uint32_t key = 0;
     bpf_map_update_elem(&thread_start_time_map, &key, &v, 0);
 
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 
 SEC("cgroup/connect4")
