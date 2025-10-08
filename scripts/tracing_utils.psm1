@@ -31,13 +31,17 @@ function Start-WPRTrace {
         [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
     )
 
+    # Create temp files for output redirection at function level
+    $tempOut = [System.IO.Path]::GetTempFileName()
+    $tempErr = [System.IO.Path]::GetTempFileName()
+
     try {
         Write-Log "Start-WPRTrace called with TraceType: $TraceType, WorkingDirectory: $WorkingDirectory"
 
         # Quick cleanup of any orphaned sessions
         try {
             Write-Log "Attempting to cancel any existing WPR sessions..."
-            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru
+            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
             $handle = $cancelProcess.Handle # Important: this ensures we can access the process info later
 
             if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
@@ -73,7 +77,7 @@ function Start-WPRTrace {
 
         Write-Log "Executing: wpr.exe $($arguments -join ' ')"
 
-        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru
+        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
         $handle = $startProcess.Handle # Important: this ensures we can access the process info later
         Write-Log "Process started with ID: $($startProcess.Id)"
 
@@ -97,6 +101,10 @@ function Start-WPRTrace {
         }
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
+    } finally {
+        # Clean up temp files
+        if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
+        if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
 }
 
@@ -113,6 +121,10 @@ function Stop-WPRTrace {
         [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 600
     )
 
+    # Create temp files for output redirection at function level
+    $tempOut = [System.IO.Path]::GetTempFileName()
+    $tempErr = [System.IO.Path]::GetTempFileName()
+
     try {
         # Create output directory if needed
         $outputDir = Join-Path $WorkingDirectory "TestLogs"
@@ -126,7 +138,8 @@ function Stop-WPRTrace {
         $traceFile = Join-Path $outputDir $etlFileName
 
         Write-Log "Stopping WPR trace" -ForegroundColor Cyan
-        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru
+
+        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
         $handle = $stopProcess.Handle # Important: this ensures we can access the process info later
 
         if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
@@ -147,5 +160,9 @@ function Stop-WPRTrace {
         }
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
+    } finally {
+        # Clean up temp files
+        if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
+        if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
 }
