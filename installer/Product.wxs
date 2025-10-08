@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="$(var.EbpfVersion)" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="$(var.EbpfVersionNoModifier)" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<!-- Platform should be $(var.Platform) but the current installer doesn't support ARM64. Fortunately ARM64 can emulate x64, so setting it to x64 works. -->
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64"/>
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
