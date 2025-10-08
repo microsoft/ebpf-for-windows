@@ -282,7 +282,7 @@ function Invoke-Test
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
         if (-not $SkipTracing) {
-            Start-WPRTrace -TracingProfileName $TracingProfileName
+            Start-WPRTrace -TracingProfileName $TracingProfileName -TraceType "Memory"
         }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
