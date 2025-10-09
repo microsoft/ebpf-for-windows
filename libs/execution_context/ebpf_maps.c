@@ -1191,7 +1191,7 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
         ebpf_core_object_t* value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
         if (value_object) {
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            WriteULong64NoFence((volatile uint64_t*)&value, 0);
+            WriteULong64NoFence((volatile uint64_t*)value, 0);
         }
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
