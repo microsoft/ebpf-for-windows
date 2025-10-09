@@ -58,7 +58,6 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_STATE = 'atse',
 } ebpf_pool_tag_t;
 
-
 __forceinline void
 ebpf_free(_Frees_ptr_opt_ void* pointer)
 {
@@ -221,5 +220,25 @@ ebpf_duplicate_program_data(
  */
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input);
+
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS; // Is this needed?
+
+/**
+ * @brief Map an ebpf_result_t to a generic NTSTATUS code.
+ *
+ * @param[in] result ebpf_result_t to map.
+ * @return The generic NTSTATUS code.
+ */
+NTSTATUS
+ebpf_result_to_ntstatus(ebpf_result_t result);
+
+/**
+ * @brief Map an ebpf_result_t to a generic Win32 error code.
+ *
+ * @param[in] result ebpf_result_t to map.
+ * @return The generic Win32 error code.
+ */
+uint32_t
+ebpf_result_to_win32_error_code(ebpf_result_t result);
 
 CXPLAT_EXTERN_C_END
