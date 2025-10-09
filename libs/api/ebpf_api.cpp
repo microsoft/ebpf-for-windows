@@ -4247,15 +4247,6 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_next_pinned_program_path(
-    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) NO_EXCEPT_TRY
-{
-    ebpf_object_type_t type = EBPF_OBJECT_PROGRAM;
-    return ebpf_get_next_pinned_object_path(start_path, next_path, EBPF_MAX_PIN_PATH_LENGTH, &type);
-}
-CATCH_NO_MEMORY_EBPF_RESULT
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_object_path(
     _In_z_ const char* start_path,
     _Out_writes_z_(next_path_len) char* next_path,

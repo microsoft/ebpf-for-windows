@@ -56,7 +56,7 @@ _ebpf_program_detach_by_id(ebpf_id_t program_id);
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
 {
-    return (prog_type == BPF_PROG_TYPE_XDP) || (prog_type == BPF_PROG_TYPE_XDP_TEST);
+    return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
 bool

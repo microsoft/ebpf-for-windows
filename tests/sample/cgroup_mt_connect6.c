@@ -25,7 +25,7 @@ tcp_mt_connect6(bpf_sock_addr_t* ctx)
 {
     int retval = 0;
     if (ctx->protocol != IPPROTO_TCP) {
-        retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 
@@ -33,7 +33,7 @@ tcp_mt_connect6(bpf_sock_addr_t* ctx)
     if (ctx->user_port < htons(remote_port)) {
 
         // Not one of ours, allow.
-        retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 
@@ -44,7 +44,7 @@ tcp_mt_connect6(bpf_sock_addr_t* ctx)
     }
 
     if (!(ntohs(ctx->user_port) % 2)) {
-        retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 
@@ -52,7 +52,7 @@ tcp_mt_connect6(bpf_sock_addr_t* ctx)
     // REDIRECT uses the same return value as PROCEED except it also updates the IP address and/or port as required.
     // (We only update the port here.)
     ctx->user_port += htons(redirect_offset);
-    retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
 exit:
     return retval;

@@ -32,13 +32,13 @@ count_tcp_connect6(bpf_sock_addr_t* ctx)
 {
     int retval = 0;
     if (ctx->protocol != IPPROTO_TCP) {
-        retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 
     // IP address, port #s in the context are in network byte order.
     if (ctx->user_port != ntohs(remote_port)) {
-        retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 

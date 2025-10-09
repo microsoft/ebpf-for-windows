@@ -1005,11 +1005,7 @@ TEST_CASE("map_crud_operations_stack", "[execution_context]")
 }
 
 std::vector<GUID> _program_types = {
-    EBPF_PROGRAM_TYPE_XDP,
-    EBPF_PROGRAM_TYPE_BIND,
-    EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-    EBPF_PROGRAM_TYPE_SOCK_OPS,
-    EBPF_PROGRAM_TYPE_SAMPLE};
+    EBPF_PROGRAM_TYPE_BIND, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_PROGRAM_TYPE_SAMPLE};
 
 std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
     {

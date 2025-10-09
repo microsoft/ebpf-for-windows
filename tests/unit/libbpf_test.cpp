@@ -43,7 +43,6 @@ static const std::set<bpf_attach_type> ebpf_core_attach_types = {
     BPF_CGROUP_INET6_RECV_ACCEPT,
     BPF_CGROUP_SOCK_OPS,
     BPF_ATTACH_TYPE_SAMPLE,
-    BPF_XDP_TEST,
 };
 
 std::vector<uint8_t>
@@ -494,41 +493,6 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
     REQUIRE(errno == ENOENT);
 }
-
-static void
-_test_bpf_set_link_xdp_fd(ebpf_execution_type_t execution_type)
-{
-    _test_helper_libbpf test_helper;
-    test_helper.initialize();
-
-    struct bpf_object* object[2];
-    struct bpf_program* program[2];
-    int program_fd[2];
-    bpf_prog_info program_info[2] = {};
-
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
-    for (int i = 0; i < 2; i++) {
-        object[i] = bpf_object__open(file_name);
-        REQUIRE(object[i] != nullptr);
-        // Load the program(s).
-        REQUIRE(bpf_object__load(object[i]) == 0);
-
-        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
-        REQUIRE(program[i] != nullptr);
-        program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
-
-        uint32_t program_info_size = sizeof(program_info[i]);
-        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
-    }
-
-    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
-    test_xdp_ifindex(0, program_fd, program_info);
-
-    bpf_object__close(object[0]);
-    bpf_object__close(object[1]);
-}
-
-DECLARE_ALL_TEST_CASES("bpf_set_link_xdp_fd", "[libbpf]", _test_bpf_set_link_xdp_fd);
 
 static void
 _test_libbpf_map(ebpf_execution_type_t execution_type)
@@ -2232,10 +2196,10 @@ TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
     bpf_prog_type prog_type;
     bpf_attach_type expected_attach_type;
 
-    // Try a cross-platform type.
-    REQUIRE(libbpf_prog_type_by_name("xdp", &prog_type, &expected_attach_type) == 0);
-    REQUIRE(prog_type == BPF_PROG_TYPE_XDP);
-    REQUIRE(expected_attach_type == BPF_XDP);
+     // Try a cross-platform type.
+    REQUIRE(libbpf_prog_type_by_name("sockops", &prog_type, &expected_attach_type) == 0);
+    REQUIRE(prog_type == BPF_PROG_TYPE_SOCK_OPS);
+    REQUIRE(expected_attach_type == BPF_CGROUP_SOCK_OPS);
 
     // Try a Windows-specific type.
     REQUIRE(libbpf_prog_type_by_name("bind", &prog_type, &expected_attach_type) == 0);
@@ -2416,31 +2380,26 @@ TEST_CASE("bpf_object__load with .dll", "[libbpf]")
     const char* my_object_name = "my_object_name";
     struct bpf_object_open_opts opts = {0};
     opts.object_name = my_object_name;
-    struct bpf_object* object = bpf_object__open_file("droppacket_um.dll", &opts);
+    struct bpf_object* object = bpf_object__open_file("test_sample_ebpf_um.dll", &opts);
     REQUIRE(object != nullptr);
 
     REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
     REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
-    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_SAMPLE);
 
     // Make sure we cannot override the program type, since this is a native program.
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_BIND) < 0);
     REQUIRE(errno == EINVAL);
-    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_SAMPLE);
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "test_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
-    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(map == nullptr);
 
     // Trying to attach the program should fail since it's not loaded yet.
     bpf_link_ptr link(bpf_program__attach(program));
@@ -2457,14 +2416,8 @@ TEST_CASE("bpf_object__load with .dll", "[libbpf]")
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "test_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
-    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
-    map = bpf_object__next_map(object, map);
-    REQUIRE(map == nullptr);
-
     REQUIRE(bpf_link__destroy(link.release()) == 0);
     bpf_object__close(object);
 }

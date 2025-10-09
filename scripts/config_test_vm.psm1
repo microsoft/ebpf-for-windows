@@ -17,11 +17,48 @@ Import-Module .\tracing_utils.psm1 -Force -ArgumentList ($LogFileName, $WorkingD
 # VM Initialization functions
 #
 
+function Wait-AllVMsReadyForCommands
+{
+    param([Parameter(Mandatory=$True)]$VMList,
+          [Parameter(Mandatory=$True)][PSCredential] $TestCredential,
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
+
+    $totalSleepTime = 0
+    $ReadyList = @{}
+    do {
+        foreach($VM in $VMList) {
+            $VMName = $VM.Name
+            if ($ReadyList[$VMName] -ne $True) {
+                Write-Log "Poking $VMName to see if it is ready to accept commands"
+                $ret = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
+                if ($ret -eq $True) {
+                    $ReadyList += @{$VMName = $True}
+                } else {
+                    continue
+                }
+                Write-Log "VM $VMName is ready" -ForegroundColor Green
+            }
+        }
+        if ($ReadyList.Count -ne $VMList.Count) {
+            Write-Log "Waiting $sleepSeconds seconds for $VMName to be responsive."
+            # Sleep for sleepSeconds seconds.
+            Start-Sleep -seconds $sleepSeconds
+            $totalSleepTime += $sleepSeconds
+        }
+    }
+    until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
+
+    if ($ReadyList.Count -ne $VMList.Count) {
+        throw ("One or more VMs not ready after 5 minutes.")
+    }
+}
+
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
           [Parameter(Mandatory=$True)][string] $UserName,
-          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
+          [Parameter(Mandatory=$True)][SecureString] $AdminPassword,
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $totalSleepTime = 0
     $ReadyList = @{}
@@ -52,35 +89,7 @@ function Wait-AllVMsToInitialize
     }
 
     $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
-    $ReadyList.Clear()
-    $totalSleepTime = 0
-
-    do {
-        foreach($VM in $VMList) {
-            $VMName = $VM.Name
-            if ($ReadyList[$VMName] -ne $True) {
-                Write-Log "Poking $VMName to see if it is ready to accept commands"
-                $ret = Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {$True} -ErrorAction SilentlyContinue
-                if ($ret -eq $True) {
-                    $ReadyList += @{$VMName = $True}
-                } else {
-                    continue
-                }
-                Write-Log "VM $VMName is ready" -ForegroundColor Green
-            }
-        }
-        if ($ReadyList.Count -ne $VMList.Count) {
-            Write-Log "Waiting $sleepSeconds seconds for $VMName to be responsive."
-            # Sleep for sleepSeconds seconds.
-            Start-Sleep -seconds $sleepSeconds
-            $totalSleepTime += $sleepSeconds
-        }
-    }
-    until (($ReadyList.Count -eq $VMList.Count) -or ($totalSleepTime -gt 5*60))
-
-    if ($ReadyList.Count -ne $VMList.Count) {
-        throw ("One or more VMs not ready 5 minutes after initial heartbeat")
-    }
+    Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
 
     # Enable guest-services on each VM.
     $ReadyList.Clear()
@@ -146,9 +155,14 @@ function Initialize-AllVMs
     # Start the VMs.
     Start-AllVMs -VMList $VMList
 
-    # Wait for VMs to be ready.
-    Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
-    Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+    if (-not $VMIsRemote) {
+        # Wait for VMs to be ready.
+        Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
+        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+    } else {
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential
+    }
 }
 
 #
@@ -186,16 +200,17 @@ function Export-BuildArtifactsToVMs
     # Copy artifacts to the given VM list.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
+        Write-Log "Exporting build artifacts to $VMName"
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        if ($VMIsRemote) {
-            $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential
-        }
-        else {
-            $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+       if ($VMIsRemote) {
+            $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
+        } else {
+            $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
         }
         if (!$VMSession) {
-            throw "Failed to create PowerShell session on $VMName."
+            ThrowWithErrorMessage -ErrorMessage "Failed to create PowerShell session on $VMName."
         } else {
+            Write-Log "Created PowerShell session on $VMName"
             Invoke-Command -Session $VMSession -ScriptBlock {
                 # Create working directory c:\eBPF.
                 if(!(Test-Path "$Env:SystemDrive\eBPF")) {
@@ -217,7 +232,9 @@ function Export-BuildArtifactsToVMs
 
                 return $Env:SystemDrive
             }
+            Write-Log "Created c:\eBPF, enabled SysInternals EULA and full memory dump on $VMName"
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
+            Write-Log "VM $VMName system drive is $VMSystemDrive"
         }
         Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
@@ -317,7 +334,7 @@ function Stop-eBPFComponentsOnVM
                 -ArgumentList($WorkingDirectory, $LogFileName) `
                 -Force -WarningAction SilentlyContinue
 
-            Stop-eBPFComponents -GranularTracing $GranularTracing
+            Stop-eBPFServiceAndDrivers -GranularTracing $GranularTracing
 
         } -ArgumentList ("eBPF", $LogFileName, $GranularTracing) -ErrorAction Stop
 
@@ -577,10 +594,9 @@ function Import-ResultsFromHost {
 #
 function Initialize-NetworkInterfaces {
     param(
-        # Initialize network interfaces directly on the host
-        [Parameter(Mandatory=$false)][bool] $ExecuteOnHost = $false,
-        # Initialize network interfaces on VMs.
-        [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $true,
+        # Initialize network interfaces on VMs if set to true.
+        # Initialize network interfaces directly on the host otherwise.
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $false,
         [Parameter(Mandatory=$false)] $VMList = @(),
         [Parameter(Mandatory=$true)][string] $TestWorkingDirectory,
         [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
@@ -599,20 +615,19 @@ function Initialize-NetworkInterfaces {
 
     $argumentList = @($TestWorkingDirectory, $LogFileName)
 
-    if ($ExecuteOnHost) {
-        Write-Log "Initializing network interfaces on host"
-        & $commandScriptBlock @argumentList
-    } elseif ($ExecuteOnVM) {
+    if ($ExecuteOnVM) {
+        # Execute on VMs.
         $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
-
-            Invoke-CommandOnVM -VMName $VMName -Credential $TestCredential -VMIsRemote $VMIsRemote  -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
+            Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
         }
     } else {
-        throw "Either ExecuteOnHost or ExecuteOnVM must be set."
+        Write-Log "Initializing network interfaces on host"
+        & $commandScriptBlock @argumentList
     }
+
 }
 
 #
@@ -620,10 +635,11 @@ function Initialize-NetworkInterfaces {
 #
 function Log-OSBuildInformationOnVM
 {
-    param([parameter(Mandatory=$true)][string] $VMName)
+    param([parameter(Mandatory=$true)][string] $VMName,
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+    Invoke-CommandOnVM -VMName $VMName -VMIsRemote:$VMIsRemote -Credential $TestCredential -ScriptBlock {
         $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
         Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
     }
@@ -959,19 +975,21 @@ function Create-VMSwitchIfNeeded {
 #>
 function Enable-HVCIOnVM {
     param (
-        [Parameter(Mandatory=$True)][string]$VmName
+        [Parameter(Mandatory=$True)][string]$VmName,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
     )
 
     try {
         Write-Log "Enabling HVCI on VM: $VmName"
         $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        Invoke-Command -VMName $VmName -Credential $vmCredential -ScriptBlock {
+        $commandScriptBlock = {
             # Enable HVCI
             New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
             # Restart the VM to apply changes
             Restart-Computer -Force -ErrorAction Stop
         }
+        Invoke-CommandOnVM -VMName $VmName -VMIsRemote $VMIsRemote -Credential $vmCredential -ScriptBlock $commandScriptBlock
     } catch {
         throw "Failed to enable HVCI on VM: $VmName with error: $_"
     }
@@ -980,25 +998,15 @@ function Enable-HVCIOnVM {
     Write-Log "Waiting for 1 minute for VM: $VmName to restart"
     Start-Sleep -Seconds 60
 
-    # Wait for the VM to restart and be ready again
-    Write-Log "Waiting for VM: $VmName to restart and be ready again"
-    Wait-AllVMsToInitialize -VMList @(@{ Name = $VmName }) -UserName $Admin -AdminPassword $AdminPassword
+    $VMList = @(@{ Name = $VmName })
+    if (-not $VMIsRemote){
+        # Wait for the VM to restart and be ready again
+        Write-Log "Waiting for VM: $VmName to restart and be ready again"
+        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+    } else {
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
+    }
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
-}
-
-
-function Invoke-CommandOnVM {
-    param(
-        [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
-        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
-        [Parameter(Mandatory = $true)][string] $VMName,
-        [Parameter(Mandatory = $true)] $Credential
-    )
-    if ($VMIsRemote) {
-        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-    } else {
-        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
-    }
 }

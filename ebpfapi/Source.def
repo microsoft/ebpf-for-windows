@@ -102,11 +102,8 @@ EXPORTS
     bpf_xdp_detach
     bpf_xdp_query_id
     ebpf_api_elf_disassemble_program
-    ebpf_api_elf_disassemble_section
     ebpf_api_elf_verify_program_from_file
     ebpf_api_elf_verify_program_from_memory
-    ebpf_api_elf_verify_section_from_file
-    ebpf_api_elf_verify_section_from_memory
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
@@ -114,9 +111,7 @@ EXPORTS
     ebpf_close_fd
     ebpf_duplicate_fd
     ebpf_enumerate_programs
-    ebpf_enumerate_sections = ebpf_enumerate_programs
     ebpf_free_programs
-    ebpf_free_sections = ebpf_free_programs
     ebpf_free_string
     ebpf_get_attach_type_name
     ebpf_get_bpf_attach_type
@@ -124,7 +119,6 @@ EXPORTS
     ebpf_get_ebpf_attach_type
     ebpf_get_ebpf_program_type
     ebpf_get_next_pinned_object_path
-    ebpf_get_next_pinned_program_path
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name

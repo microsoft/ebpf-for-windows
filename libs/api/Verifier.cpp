@@ -626,16 +626,6 @@ ebpf_api_elf_disassemble_program(
     return 0;
 }
 
-uint32_t
-ebpf_api_elf_disassemble_section(
-    _In_z_ const char* file,
-    _In_z_ const char* section,
-    _Outptr_result_maybenull_z_ const char** disassembly,
-    _Outptr_result_maybenull_z_ const char** error_message) noexcept
-{
-    return ebpf_api_elf_disassemble_program(file, section, {}, disassembly, error_message);
-}
-
 static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
     std::istream& stream,
     _In_z_ const char* stream_name,
@@ -798,19 +788,6 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_program_from_file(
         data, file, section_name, program_name, program_type, verbosity, report, error_message, stats);
 }
 
-_Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
-    _In_z_ const char* file,
-    _In_z_ const char* section,
-    _In_opt_ const ebpf_program_type_t* program_type,
-    ebpf_verification_verbosity_t verbosity,
-    _Outptr_result_maybenull_z_ const char** report,
-    _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
-{
-    return ebpf_api_elf_verify_program_from_file(
-        file, section, {}, program_type, verbosity, report, error_message, stats);
-}
-
 _Success_(return == 0) uint32_t ebpf_api_elf_verify_program_from_memory(
     _In_reads_(data_length) const char* data,
     size_t data_length,
@@ -832,18 +809,4 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_program_from_memory(
         report,
         error_message,
         stats);
-}
-
-_Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
-    _In_reads_(data_length) const char* data,
-    size_t data_length,
-    _In_z_ const char* section,
-    _In_opt_ const ebpf_program_type_t* program_type,
-    ebpf_verification_verbosity_t verbosity,
-    _Outptr_result_maybenull_z_ const char** report,
-    _Outptr_result_maybenull_z_ const char** error_message,
-    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
-{
-    return ebpf_api_elf_verify_program_from_memory(
-        data, data_length, section, {}, program_type, verbosity, report, error_message, stats);
 }

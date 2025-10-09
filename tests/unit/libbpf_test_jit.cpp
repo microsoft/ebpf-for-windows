@@ -431,29 +431,32 @@ _test_bpf_object_load_with_o()
     const char* my_object_name = "my_object_name";
     struct bpf_object_open_opts opts = {0};
     opts.object_name = my_object_name;
-    struct bpf_object* object = bpf_object__open_file("droppacket.o", &opts);
+    struct bpf_object* object = bpf_object__open_file("cgroup_sock_addr.o", &opts);
     REQUIRE(object != nullptr);
 
     REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
     REQUIRE(program != nullptr);
 
     REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
-    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
 
     // Make sure we can override the program type if desired.
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_BIND) == 0);
     REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_BIND);
 
-    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_XDP) == 0);
+    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_CGROUP_SOCK_ADDR) == 0);
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "egress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -473,10 +476,13 @@ _test_bpf_object_load_with_o()
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "egress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -497,9 +503,9 @@ _test_bpf_object_load_with_o_from_memory()
     struct bpf_object_open_opts opts = {0};
     opts.object_name = my_object_name;
 
-    // Read droppacket.o into a std::vector.
+    // Read cgroup_sock_addr.o into a std::vector.
     std::vector<uint8_t> object_data;
-    std::fstream file("droppacket.o", std::ios::in | std::ios::binary);
+    std::fstream file("cgroup_sock_addr.o", std::ios::in | std::ios::binary);
     REQUIRE(file.is_open());
     file.seekg(0, std::ios::end);
     object_data.resize(file.tellg());
@@ -512,24 +518,27 @@ _test_bpf_object_load_with_o_from_memory()
 
     REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
 
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "authorize_connect4");
     REQUIRE(program != nullptr);
 
     REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
-    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_CGROUP_SOCK_ADDR);
 
     // Make sure we can override the program type if desired.
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_BIND) == 0);
     REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_BIND);
 
-    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_XDP) == 0);
+    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_CGROUP_SOCK_ADDR) == 0);
 
-    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+      struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "egress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -549,10 +558,13 @@ _test_bpf_object_load_with_o_from_memory()
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "egress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);

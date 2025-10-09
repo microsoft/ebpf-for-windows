@@ -21,9 +21,8 @@ Environment:
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "net_ebpf_ext_sock_ops.h"
-#include "net_ebpf_ext_xdp.h"
 
-#define SECONDSTO100NS(x) ((x)*10000000)
+#define SECONDSTO100NS(x) ((x) * 10000000)
 #define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
 
 // Globals.
@@ -31,7 +30,6 @@ NDIS_HANDLE _net_ebpf_ext_ndis_handle = NULL;
 NDIS_HANDLE _net_ebpf_ext_nbl_pool_handle = NULL;
 HANDLE _net_ebpf_ext_l2_injection_handle = NULL;
 
-static bool _net_ebpf_xdp_providers_registered = false;
 static bool _net_ebpf_bind_providers_registered = false;
 static bool _net_ebpf_sock_addr_providers_registered = false;
 static bool _net_ebpf_sock_ops_providers_registered = false;
@@ -73,28 +71,6 @@ typedef struct _net_ebpf_ext_wfp_callout_state
 } net_ebpf_ext_wfp_callout_state_t;
 
 static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
-    // EBPF_HOOK_OUTBOUND_L2
-    {
-        &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
-        &FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
-        net_ebpf_ext_layer_2_classify,
-        net_ebpf_ext_filter_change_notify,
-        _net_ebpf_ext_flow_delete,
-        L"L2 Outbound",
-        L"L2 Outbound Callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
-    // EBPF_HOOK_INBOUND_L2
-    {
-        &EBPF_HOOK_INBOUND_L2_CALLOUT,
-        &FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE,
-        net_ebpf_ext_layer_2_classify,
-        net_ebpf_ext_filter_change_notify,
-        _net_ebpf_ext_flow_delete,
-        L"L2 Inbound",
-        L"L2 Inbound Callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
-    },
     // EBPF_HOOK_ALE_RESOURCE_ALLOC_V4
     {
         &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
@@ -329,12 +305,6 @@ net_ebpf_extension_get_hook_id_from_wfp_layer_id(uint16_t wfp_layer_id)
     net_ebpf_extension_hook_id_t hook_id = (net_ebpf_extension_hook_id_t)0;
 
     switch (wfp_layer_id) {
-    case FWPS_LAYER_OUTBOUND_MAC_FRAME_NATIVE:
-        hook_id = EBPF_HOOK_OUTBOUND_L2;
-        break;
-    case FWPS_LAYER_INBOUND_MAC_FRAME_NATIVE:
-        hook_id = EBPF_HOOK_INBOUND_L2;
-        break;
     case FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4:
         hook_id = EBPF_HOOK_ALE_RESOURCE_ALLOC_V4;
         break;
@@ -986,17 +956,6 @@ net_ebpf_ext_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    status = net_ebpf_ext_xdp_register_providers();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "net_ebpf_ext_xdp_register_providers failed.",
-            status);
-        goto Exit;
-    }
-    _net_ebpf_xdp_providers_registered = true;
-
     status = net_ebpf_ext_bind_register_providers();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -1042,10 +1001,6 @@ net_ebpf_ext_unregister_providers()
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
-    if (_net_ebpf_xdp_providers_registered) {
-        net_ebpf_ext_xdp_unregister_providers();
-        _net_ebpf_xdp_providers_registered = false;
-    }
     if (_net_ebpf_bind_providers_registered) {
         net_ebpf_ext_bind_unregister_providers();
         _net_ebpf_bind_providers_registered = false;

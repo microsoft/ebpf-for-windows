@@ -455,15 +455,6 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]") { test_ebpf_progra
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("xdp-decapsulate-permit-v4-jit", "[xdp_tests]")
-{
-    xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
-}
-TEST_CASE("xdp-decapsulate-permit-v6-jit", "[xdp_tests]")
-{
-    xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
-}
-
 void
 test_auto_pinned_maps_custom_path()
 {
@@ -540,7 +531,7 @@ test_auto_pinned_maps_custom_path()
 TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]") { test_auto_pinned_maps_custom_path(); }
 #endif
 
-// This test validates that a different program type (XDP in this case) cannot call
+// This test validates that a different program type (sample_ext in this case) cannot call
 // a helper function that is not implemented for that program type. Program load should
 // fail for such a program.
 void
@@ -554,11 +545,11 @@ test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
     bpf_object_ptr unique_object;
     fd_t program_fd;
 
-    program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "xdp_invalid_socket_cookie_um.dll" : "xdp_invalid_socket_cookie.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_socket_cookie.dll" : "test_sample_invalid_socket_cookie.o");
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
