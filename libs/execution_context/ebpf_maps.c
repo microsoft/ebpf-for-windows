@@ -15,6 +15,9 @@
 #include "ebpf_tracelog.h"
 
 #define IS_NESTED_ARRAY_MAP(x) ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_PROG_ARRAY)
+#define IS_NESTED_MAP(x) \
+    ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_PROG_ARRAY || (x) == BPF_MAP_TYPE_HASH_OF_MAPS)
+#define IS_NESTED_HASH_MAP(x) ((x) == BPF_MAP_TYPE_HASH_OF_MAPS)
 
 typedef struct _ebpf_core_map
 {
@@ -507,7 +510,7 @@ static ebpf_result_t
 _create_array_map_with_map_struct_size(
     size_t map_struct_size,
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
-    size_t supplemental_value_size,
+    size_t value_size,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval;
@@ -517,10 +520,8 @@ _create_array_map_with_map_struct_size(
 
     *map = NULL;
 
-    retval = ebpf_safe_size_t_add(map_definition->value_size, supplemental_value_size, &actual_value_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
+    // If value size is explicitly provided, use that. Else, use the value size from map definition.
+    actual_value_size = (value_size) ? value_size : map_definition->value_size;
 
     retval = ebpf_safe_size_t_multiply(map_definition->max_entries, actual_value_size, &map_data_size);
     if (retval != EBPF_SUCCESS) {
@@ -588,11 +589,10 @@ _find_array_map_entry(
         return EBPF_OBJECT_NOT_FOUND;
     }
 
-    size_t supplemental_value_size = 0;
     size_t actual_value_size = map->ebpf_map_definition.value_size;
     if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-        supplemental_value_size = sizeof(uint8_t*);
-        actual_value_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + supplemental_value_size;
+        // For nested array maps, the value is a pointer to the actual value.
+        actual_value_size = sizeof(uint8_t*);
     }
     *data = &map->data[key_value * actual_value_size];
 
@@ -603,20 +603,22 @@ static ebpf_result_t
 _find_array_map_entry_with_reference(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
+    uint8_t* value = NULL;
     ebpf_assert(map->ebpf_map_definition.value_size == sizeof(ebpf_id_t));
 
-    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, data);
+    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, &value);
 
     if (result != EBPF_SUCCESS) {
         return result;
     }
 
-    ebpf_id_t* id = (ebpf_id_t*)(*data);
-    if (id != NULL && *id == 0) {
-        // Turn zero ID into EBPF_OBJECT_NOT_FOUND.
-        *data = NULL;
+    // Use ReadULong64NoFence to read the pointer atomically.
+    ebpf_core_object_t* value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
+    if (value_object == NULL) {
         return EBPF_OBJECT_NOT_FOUND;
     }
+
+    *data = (uint8_t*)value_object;
 
     return EBPF_SUCCESS;
 }
@@ -660,15 +662,17 @@ _delete_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
         return EBPF_INVALID_ARGUMENT;
     }
 
-    size_t supplemental_value_size = 0;
     size_t actual_value_size = map->ebpf_map_definition.value_size;
     if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-        supplemental_value_size = sizeof(uint8_t*);
-        actual_value_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + supplemental_value_size;
+        actual_value_size = sizeof(uint8_t*);
     }
     uint8_t* entry = &map->data[key_value * actual_value_size];
+    if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
+        WriteULong64NoFence((volatile uint64_t*)entry, 0);
+    } else {
+        memset(entry, 0, actual_value_size);
+    }
 
-    memset(entry, 0, actual_value_size);
     return EBPF_SUCCESS;
 }
 
@@ -699,11 +703,9 @@ _next_array_map_key_and_value(
 
     // Copy the value of requested.
     if (value) {
-
         size_t actual_value_size = map->ebpf_map_definition.value_size;
         if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-            size_t supplementational_value_size = sizeof(uint8_t*);
-            actual_value_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + supplementational_value_size;
+            actual_value_size = sizeof(uint8_t*);
         }
         *value = &map->data[key_value * actual_value_size];
     }
@@ -758,8 +760,7 @@ static void
 _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-    size_t supplemental_value_size = sizeof(uint8_t*);
-    size_t actual_value_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + supplemental_value_size;
+    size_t actual_value_size = sizeof(uint8_t*);
 
     UNREFERENCED_PARAMETER(value_type);
     ebpf_assert(IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type));
@@ -768,13 +769,11 @@ _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t valu
 
     // Release all entry references.
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
-        uint8_t* entry = &map->data[i * actual_value_size];
-        ebpf_id_t id = *(ebpf_id_t*)entry;
-        if (id) {
-            ebpf_core_object_t* value_object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
-            ebpf_assert(value_object != NULL);
+        ebpf_core_object_t* value_object =
+            (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)&map->data[i * actual_value_size]);
+        if (value_object != NULL) {
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            *(ebpf_id_t*)entry = 0;
+            *(ebpf_core_object_t**)&map->data[i * actual_value_size] = NULL;
         }
     }
 
@@ -796,7 +795,7 @@ _create_object_array_map(
 {
     ebpf_core_map_t* local_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t supplemental_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = sizeof(uint8_t*);
 
     EBPF_LOG_ENTRY();
 
@@ -807,18 +806,8 @@ _create_object_array_map(
         goto Exit;
     }
 
-    // Align the supplemental value to 8 byte boundary.
-    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
-    result = ebpf_safe_size_t_add(
-        supplemental_value_size,
-        EBPF_PAD_8(map_definition->value_size) - map_definition->value_size,
-        &supplemental_value_size);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
     result = _create_array_map_with_map_struct_size(
-        sizeof(ebpf_core_object_map_t), map_definition, supplemental_value_size, &local_map);
+        sizeof(ebpf_core_object_map_t), map_definition, actual_value_size, &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1001,23 +990,18 @@ _update_array_map_entry_with_handle(
         }
     }
 
-    size_t supplemental_value_size = sizeof(uint8_t*);
-    size_t actual_value_size = EBPF_PAD_8(map->ebpf_map_definition.value_size) + supplemental_value_size;
-    uint8_t* entry = &map->data[*(uint32_t*)key * actual_value_size];
-    ebpf_id_t old_id = *(ebpf_id_t*)entry;
-    if (old_id) {
-        ebpf_core_object_t* old_object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
+    size_t actual_value_size = sizeof(uint8_t*);
+    ebpf_core_object_t* old_object = (ebpf_core_object_t*)ReadULong64NoFence(
+        (volatile const uint64_t*)&map->data[*(uint32_t*)key * actual_value_size]);
+    if (old_object) {
         EBPF_OBJECT_RELEASE_REFERENCE(old_object);
     }
 
     // Note that this could be an 'update to erase' operation where we don't have a valid (incoming) object.  In this
-    // case, the 'id' value in the map entry is 'updated' to zero.
-    ebpf_id_t id = value_object ? value_object->id : 0;
-    memcpy(entry, &id, map->ebpf_map_definition.value_size);
-    if (id != 0) {
-        uint8_t* object = (uint8_t*)_get_supplemental_value(map, entry);
-        memcpy(object, &value_object, supplemental_value_size);
-    }
+    // case, the map entry is 'updated' to zero.
+    uintptr_t value = (uintptr_t)value_object;
+    WriteULong64NoFence((volatile uint64_t*)&map->data[*(uint32_t*)key * actual_value_size], value);
+
     result = EBPF_SUCCESS;
 
 Done:
@@ -1058,13 +1042,12 @@ _delete_array_map_entry_with_reference(
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
     result = _find_array_map_entry(map, key, false, &entry);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)entry;
-        ebpf_core_object_t* value_object = NULL;
-        if (id) {
-            ebpf_assert_success(ebpf_object_pointer_by_id(id, value_type, (ebpf_core_object_t**)&value_object));
-            EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-        }
+        ebpf_core_object_t* object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)entry);
         _delete_array_map_entry(map, key);
+        if (object) {
+            ebpf_assert(object->type == value_type);
+            EBPF_OBJECT_RELEASE_REFERENCE(object);
+        }
     }
     ebpf_lock_unlock(&object_map->lock, lock_state);
 
@@ -1100,11 +1083,7 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
     if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (id != 0) {
-            object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
-            ebpf_assert(object != NULL);
-        }
+        object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
     }
 
     return object;
@@ -1114,6 +1093,7 @@ static ebpf_result_t
 _create_hash_map_internal(
     size_t map_struct_size,
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    size_t value_size,
     size_t supplemental_value_size,
     bool fixed_size_map,
     _In_opt_ void (*extract_function)(
@@ -1134,9 +1114,12 @@ _create_hash_map_internal(
     local_map->ebpf_map_definition = *map_definition;
     local_map->data = NULL;
 
+    // If value size is explicitly provided, use that. Else, use the value size from map definition.
+    size_t actual_value_size = value_size ? value_size : map_definition->value_size;
+
     const ebpf_hash_table_creation_options_t options = {
         .key_size = local_map->ebpf_map_definition.key_size,
-        .value_size = local_map->ebpf_map_definition.value_size,
+        .value_size = actual_value_size,
         .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
         .max_entries = fixed_size_map ? local_map->ebpf_map_definition.max_entries : EBPF_HASH_TABLE_NO_LIMIT,
         .extract_function = extract_function,
@@ -1179,7 +1162,7 @@ _create_hash_map(
     if (inner_map_handle != ebpf_handle_invalid) {
         return EBPF_INVALID_ARGUMENT;
     }
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, false, NULL, NULL, map);
+    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, 0, false, NULL, NULL, map);
 }
 
 static void
@@ -1205,13 +1188,10 @@ _clean_up_object_hash_map(_Inout_ ebpf_core_map_t* map)
         if (result != EBPF_SUCCESS) {
             break;
         }
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (id) {
-            ebpf_core_object_t* value_object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
-            ebpf_assert(value_object != NULL);
+        ebpf_core_object_t* value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
+        if (value_object) {
             EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-            *(ebpf_core_object_t**)_get_supplemental_value(map, value) = NULL;
-            *(ebpf_id_t*)value = 0;
+            WriteULong64NoFence((volatile uint64_t*)&value, 0);
         }
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)map->data, previous_key));
@@ -1240,7 +1220,7 @@ _create_object_hash_map(
 {
     ebpf_core_map_t* local_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t supplemental_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = sizeof(uint8_t*);
 
     EBPF_LOG_ENTRY();
 
@@ -1251,18 +1231,8 @@ _create_object_hash_map(
 
     *map = NULL;
 
-    // Align the supplemental value to 8 byte boundary.
-    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
-    result = ebpf_safe_size_t_add(
-        supplemental_value_size,
-        EBPF_PAD_8(map_definition->value_size) - map_definition->value_size,
-        &supplemental_value_size);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
     result = _create_hash_map_internal(
-        sizeof(ebpf_core_object_map_t), map_definition, supplemental_value_size, false, NULL, NULL, &local_map);
+        sizeof(ebpf_core_object_map_t), map_definition, actual_value_size, 0, false, NULL, NULL, &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1539,6 +1509,7 @@ _create_lru_hash_map(
     retval = _create_hash_map_internal(
         lru_map_size,
         map_definition,
+        0,
         supplemental_value_size,
         true,
         NULL,
@@ -1715,8 +1686,18 @@ _find_hash_map_entry(
         }
     }
 
-    *data = value;
-    return value == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+    if (IS_NESTED_HASH_MAP(map->ebpf_map_definition.type)) {
+        ebpf_core_object_t* value_object = NULL;
+        if (value != NULL) {
+            value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
+        }
+
+        *data = (uint8_t*)value_object;
+    } else {
+        *data = value;
+    }
+
+    return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
 /**
@@ -1732,14 +1713,7 @@ static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_t* object = NULL;
-    uint8_t* entry = NULL;
-    if (_find_hash_map_entry(map, key, false, &entry) == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)entry;
-        if (id) {
-            object = *(ebpf_core_object_t**)_get_supplemental_value(map, entry);
-            ebpf_assert(object != NULL);
-        }
-    }
+    _find_hash_map_entry(map, key, false, &(uint8_t*)object);
 
     return object;
 }
@@ -1856,26 +1830,16 @@ _update_hash_map_entry_with_handle(
         goto Done;
     }
 
-    // Store the content of old object ID.
-    ebpf_id_t old_id = (old_value) ? *(ebpf_id_t*)old_value : 0;
-    ebpf_core_object_t* old_object = (old_id) ? *(ebpf_core_object_t**)_get_supplemental_value(map, old_value) : NULL;
+    // Store the old object.
+    ebpf_core_object_t* old_object = (ebpf_core_object_t*)old_value;
 
     // Store the new entry.
-    result =
-        ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object->id, hash_table_operation);
+    result = ebpf_hash_table_update((ebpf_hash_table_t*)map->data, key, (uint8_t*)&value_object, hash_table_operation);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_NTSTATUS(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table update failed.", result);
         goto Done;
     }
-
-    // Lookup the newly added entry. This is needed to populate the supplemental value.
-    // This adds an extra hash map lookup, but it is still fine as this is not in the
-    // BPF program invocation path, and only invoked from user mode.
-    uint8_t* new_value = NULL;
-    result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &new_value);
-    ebpf_assert(result == EBPF_SUCCESS);
-    *(ebpf_core_object_t**)_get_supplemental_value(map, new_value) = value_object;
 
     // Release the reference on the old object stored here, if any.
     if (old_object) {
@@ -1907,15 +1871,11 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
-    uint8_t* value = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, &value);
+    ebpf_core_object_t* object = NULL;
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, &(uint8_t*)object);
     if (result == EBPF_SUCCESS) {
-        ebpf_id_t id = *(ebpf_id_t*)value;
-        if (id) {
-            ebpf_core_object_t* object = *(ebpf_core_object_t**)_get_supplemental_value(map, value);
-            ebpf_assert(object != NULL);
-            EBPF_OBJECT_RELEASE_REFERENCE(object);
-        }
+        ebpf_assert(object != NULL);
+        EBPF_OBJECT_RELEASE_REFERENCE(object);
     }
 
     ebpf_lock_unlock(&object_map->lock, lock_state);
@@ -2036,6 +1996,7 @@ _create_lpm_map(
     result = _create_hash_map_internal(
         EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length + 1),
         map_definition,
+        0,
         0,
         false,
         _lpm_extract,
@@ -3390,6 +3351,10 @@ ebpf_map_find_entry(
         }
 
         *(uint8_t**)value = return_value;
+    } else if (IS_NESTED_MAP(map->ebpf_map_definition.type)) {
+        // Get the ID from the object.
+        ebpf_core_object_t* object = (ebpf_core_object_t*)return_value;
+        *(uint32_t*)value = object->id;
     } else {
         memcpy(value, return_value, map->ebpf_map_definition.value_size);
     }
@@ -3790,6 +3755,14 @@ ebpf_map_get_next_key_and_value_batch(
 
         if (result != EBPF_SUCCESS) {
             break;
+        }
+
+        if (IS_NESTED_MAP(map->ebpf_map_definition.type)) {
+            // Get the ID from the object.
+            ebpf_core_object_t* object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)next_value);
+            *(uint32_t*)(key_and_value + output_length + key_size) = object ? object->id : 0;
+        } else {
+            memcpy(key_and_value + output_length + key_size, next_value, value_size);
         }
 
         memcpy(key_and_value + output_length + key_size, next_value, value_size);
