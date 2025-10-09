@@ -8,11 +8,15 @@
     <EventCollector Id="EventCollector_EbpfCoreProvider" Name="EbpfCoreProvider">
       <BufferSize Value="256" />
       <Buffers Value="1024" />
+      <MaximumFileSize Value="1024" FileMode="Circular"/>
+      <FileMax Value="2"/>
     </EventCollector>
 
     <EventCollector Id="EventCollector_EbpfNetworkingProvider" Name="EbpfNetworkingProvider">
       <BufferSize Value="512" />
       <Buffers Value="2048" />
+      <MaximumFileSize Value="1024" FileMode="Circular"/>
+      <FileMax Value="2"/>
     </EventCollector>
 
     <EventProvider Id="ExecutionContext" Name="394f321c-5cf4-404c-aa34-4df1428a7f9c" NonPagedMemory="true"/>

@@ -31,33 +31,11 @@ function Start-WPRTrace {
         [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
     )
 
-    # Create temp files for output redirection at function level
-    $tempOut = [System.IO.Path]::GetTempFileName()
-    $tempErr = [System.IO.Path]::GetTempFileName()
-
     try {
         Write-Log "Start-WPRTrace called with TraceType: $TraceType, WorkingDirectory: $WorkingDirectory"
 
         # Quick cleanup of any orphaned sessions
-        try {
-            Write-Log "Attempting to cancel any existing WPR sessions..."
-            $cancelProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-cancel" -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
-            $handle = $cancelProcess.Handle # Important: this ensures we can access the process info later
-
-            if ($cancelProcess.WaitForExit($TimeoutSeconds * 1000)) {
-                $exitCode = $cancelProcess.ExitCode
-                Write-Log "WPR cancel completed (exit code: $exitCode)"
-            } else {
-                Write-Log "WPR cancel timed out after $TimeoutSeconds seconds, terminating process"
-                if (-not $cancelProcess.HasExited) {
-                    $cancelProcess.Kill()
-                    $cancelProcess.WaitForExit(5000)
-                }
-                Write-Log "WPR cancel process terminated"
-            }
-        } catch {
-            Write-Log "WPR cancel failed. This may be expected if no WPR session was in progress. Error: $_"
-        }
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList @("-cancel") -TimeoutSeconds $TimeoutSeconds
 
         # Build profile path and check if it exists
         $wprpProfilePath = Join-Path $WorkingDirectory $WprpFileName
@@ -75,36 +53,14 @@ function Start-WPRTrace {
             $arguments += "-filemode"
         }
 
-        Write-Log "Executing: wpr.exe $($arguments -join ' ')"
-
-        $startProcess = Start-Process -FilePath "wpr.exe" -ArgumentList $arguments -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
-        $handle = $startProcess.Handle # Important: this ensures we can access the process info later
-        Write-Log "Process started with ID: $($startProcess.Id)"
-
-        Write-Log "Waiting for WPR start process to complete (timeout: $TimeoutSeconds seconds)..."
-        if ($startProcess.WaitForExit($TimeoutSeconds * 1000)) {
-            $exitCode = $startProcess.ExitCode
-            Write-Log "WPR start command completed with exit code: $exitCode"
-
-            if ($exitCode -eq 0) {
-                Write-Log "Successfully started trace"
-            } else {
-                Write-Log "Failed to start trace with exit code $exitCode"
-            }
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully started trace"
         } else {
-            Write-Log "WPR start command timed out after $TimeoutSeconds seconds, terminating process"
-            if (-not $startProcess.HasExited) {
-                $startProcess.Kill()
-                $startProcess.WaitForExit(5000)
-            }
-            Write-Log "WPR start process terminated due to timeout"
+            Write-Log "Failed to start trace with exit code $exitCode"
         }
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
-    } finally {
-        # Clean up temp files
-        if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
-        if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
 }
 
@@ -121,10 +77,6 @@ function Stop-WPRTrace {
         [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 600
     )
 
-    # Create temp files for output redirection at function level
-    $tempOut = [System.IO.Path]::GetTempFileName()
-    $tempErr = [System.IO.Path]::GetTempFileName()
-
     try {
         # Create output directory if needed
         $outputDir = Join-Path $WorkingDirectory "TestLogs"
@@ -137,32 +89,13 @@ function Stop-WPRTrace {
         $etlFileName = "${FileName}_${timestamp}.etl"
         $traceFile = Join-Path $outputDir $etlFileName
 
-        Write-Log "Stopping WPR trace" -ForegroundColor Cyan
-
-        $stopProcess = Start-Process -FilePath "wpr.exe" -ArgumentList "-stop", "`"$traceFile`"" -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
-        $handle = $stopProcess.Handle # Important: this ensures we can access the process info later
-
-        if ($stopProcess.WaitForExit($TimeoutSeconds * 1000)) {
-            $exitCode = $stopProcess.ExitCode
-
-            if ($exitCode -eq 0) {
-                Write-Log "Successfully stopped WPR trace: $traceFile"
-            } else {
-                Write-Log "Failed to stop WPR trace with exit code $exitCode"
-            }
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList @("-stop", "`"$traceFile`"") -TimeoutSeconds $TimeoutSeconds
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully stopped WPR trace: $traceFile"
         } else {
-            Write-Log "WPR stop command timed out after $TimeoutSeconds seconds, terminating process"
-            if (-not $stopProcess.HasExited) {
-                $stopProcess.Kill()
-                $stopProcess.WaitForExit(5000)
-            }
-            Write-Log "WPR stop process terminated due to timeout"
+            Write-Log "Failed to stop WPR trace with exit code $exitCode (This may be expected if no trace session was in progress)"
         }
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
-    } finally {
-        # Clean up temp files
-        if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
-        if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
 }
