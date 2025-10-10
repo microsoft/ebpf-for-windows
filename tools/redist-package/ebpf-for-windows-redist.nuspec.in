@@ -28,6 +28,9 @@
 		<file src="ebpfnetsh.pdb" target="lib\native\bin"/>
 		<file src="export_program_info.exe" target="lib\native\bin"/>
 		<file src="export_program_info.pdb" target="lib\native\bin"/>
+		<!-- eBPF service -->
+		<file src="ebpfsvc.exe" target="lib\native\bin"/>
+		<file src="ebpfsvc.pdb" target="lib\native\bin"/>
 		<!--eBPF drivers-->
 		<file src="eBPFCore.sys" target="lib\native\bin\drivers"/>
 		<file src="eBPFCore.pdb" target="lib\native\bin\drivers"/>
