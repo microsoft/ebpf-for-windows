@@ -8,7 +8,7 @@
     <EbpfVersion_Major>1</EbpfVersion_Major>
     <EbpfVersion_Minor>0</EbpfVersion_Minor>
     <EbpfVersion_Revision>0</EbpfVersion_Revision>
-    <EbpfVersion_Modifier/>
+    <EbpfVersion_Modifier>rc1</EbpfVersion_Modifier>
     <EbpfVersionNoModifier>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersionNoModifier>
     <EbpfVersion Condition="'$(EbpfVersion_Modifier)' == ''">$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
     <EbpfVersion Condition="'$(EbpfVersion_Modifier)' != ''">$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)-$(EbpfVersion_Modifier)</EbpfVersion>
