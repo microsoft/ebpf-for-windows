@@ -551,5 +551,6 @@ EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
  */
 EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
 #ifndef __doxygen
-#define bpf_get_current_thread_create_time ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
+#define bpf_get_current_thread_create_time \
+    ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
 #endif

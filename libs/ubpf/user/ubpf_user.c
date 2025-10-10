@@ -17,7 +17,6 @@
 #pragma warning(disable : 4267)
 
 #include <endian.h>
-
 #include <stdlib.h>
 
 #define malloc(X) ebpf_allocate_with_tag((X), EBPF_POOL_TAG_DEFAULT)
