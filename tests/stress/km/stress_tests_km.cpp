@@ -1620,6 +1620,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(
     WSACleanup();
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
 {
     // This test attempts to load the same JIT'ed ebpf program multiple times in different threads.  This test
@@ -1638,6 +1639,7 @@ TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]"
     _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
 {
@@ -1762,6 +1764,7 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("jit_unique_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
 {
     // This test attempts to load a unique JIT ebpf program multiple times in different threads. Specifically:
@@ -1862,6 +1865,7 @@ TEST_CASE("jit_bindmonitor_tail_call_invoke_program_test", "[jit_mt_stress_test]
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 static void
 _mt_load_stress_test_with_restart_timing(
@@ -2049,6 +2053,7 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
         extension_restart_thread_context_table);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_test]")
 {
     // Test resiliency during program 'open + load + attach' sequence with extension restart.
@@ -2065,6 +2070,7 @@ TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_tes
     _print_test_control_info(local_test_control_info);
     _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_JIT, local_test_control_info, true);
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stress_test]")
 {
@@ -2084,6 +2090,7 @@ TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stre
     _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, true);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test]")
 {
     // Test resiliency after program 'open + load + attach' sequence with extension restart.
@@ -2101,6 +2108,7 @@ TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test
     _print_test_control_info(local_test_control_info);
     _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_JIT, local_test_control_info, false);
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stress_test]")
 {
@@ -2121,6 +2129,7 @@ TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stres
     _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, false);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stress_test]")
 {
     // Multi-threaded stress test where each thread loads different programs with extension restart.
@@ -2136,6 +2145,7 @@ TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stres
     _print_test_control_info(local_test_control_info);
     _mt_invoke_stress_test_multiple_programs(EBPF_EXECUTION_JIT, local_test_control_info);
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 TEST_CASE("invoke_different_programs_restart_extension_test_native", "[native_mt_stress_test]")
 {
