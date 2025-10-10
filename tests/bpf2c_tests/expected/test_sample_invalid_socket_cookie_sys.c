@@ -230,6 +230,7 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
+    // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
@@ -238,30 +239,43 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
         return 0;
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     }
+    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=175664236
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = IMMEDIATE(175664236);
+    // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
+    // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=1768648559
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = (uint64_t)2675202385892831087;
+    // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-16 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
+    // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=1801678707
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = (uint64_t)7160569911484575603;
+    // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-24 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
+    // EBPF_OP_MOV64_IMM pc=9 dst=r1 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = IMMEDIATE(0);
+    // EBPF_OP_STXB pc=10 dst=r10 src=r1 offset=-4 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     WRITE_ONCE_8(r10, (uint8_t)r1, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=11 dst=r1 src=r10 offset=0 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = r10;
+    // EBPF_OP_ADD64_IMM pc=12 dst=r1 src=r0 offset=0 imm=-24
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 += IMMEDIATE(-24);
+    // EBPF_OP_MOV64_IMM pc=13 dst=r2 src=r0 offset=0 imm=21
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r2 = IMMEDIATE(21);
+    // EBPF_OP_MOV64_REG pc=14 dst=r3 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r3 = r0;
+    // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
@@ -270,8 +284,10 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
         return 0;
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     }
+    // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = IMMEDIATE(0);
+    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_sample_invalid_socket_cookie.c"
     return r0;
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
@@ -310,7 +326,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 22;
+    version->minor = 23;
     version->revision = 0;
 }
 
