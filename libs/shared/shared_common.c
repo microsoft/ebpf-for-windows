@@ -1,18 +1,11 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#define WIN32_NO_STATUS
 #include "bpf2c.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
-
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <ntdef.h>
-#undef WIN32_NO_STATUS
-#include <ntstatus.h>
 
 enum _extension_object_type
 {
@@ -740,9 +733,11 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             i++;
         }
     }
-
+    
     return EBPF_SUCCESS;
 }
+
+// typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 
 static const NTSTATUS _ebpf_result_mapping[] = {
     /* EBPF_SUCCESS */ STATUS_SUCCESS /* ERROR_SUCCESS */,
@@ -783,36 +778,15 @@ static const NTSTATUS _ebpf_result_mapping[] = {
     /* EBPF_INVALID_STATE */ STATUS_INVALID_STATE_TRANSITION /* ERROR_INVALID_STATE */,
 };
 
-// typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 
 NTSTATUS
 ebpf_result_to_ntstatus(ebpf_result_t result)
 {
     if (result < 0) {
-        return STATUS_UNSUCCESSFUL;
+        return -1;
     }
     if (result > ARRAYSIZE(_ebpf_result_mapping)) {
-        return STATUS_UNSUCCESSFUL;
+        return -1;
     }
     return _ebpf_result_mapping[result];
-}
-
-static uint32_t
-_ntstatus_to_win32_error_code(NTSTATUS status)
-{
-    static uint32_t (*RtlNtStatusToDosError)(NTSTATUS Status) = NULL;
-    if (!RtlNtStatusToDosError) {
-        HMODULE ntdll = LoadLibrary(L"ntdll.dll");
-        if (!ntdll) {
-            return ERROR_OUTOFMEMORY;
-        }
-        RtlNtStatusToDosError = (uint32_t)(GetProcAddress(ntdll, "RtlNtStatusToDosError"));
-    }
-    return RtlNtStatusToDosError(status);
-}
-
-uint32_t
-ebpf_result_to_win32_error_code(ebpf_result_t result)
-{
-    return _ntstatus_to_win32_error_code(ebpf_result_to_ntstatus(result));
 }

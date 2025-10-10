@@ -144,7 +144,6 @@ EXPORTS
     ebpf_program_query_info
     ebpf_program_synchronize
     ebpf_result_to_ntstatus
-    ebpf_result_to_win32_error_code
     ebpf_ring_buffer__new
     ebpf_ring_buffer_map_map_buffer
     ebpf_ring_buffer_map_unmap_buffer

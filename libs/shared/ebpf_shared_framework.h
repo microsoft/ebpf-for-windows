@@ -9,6 +9,8 @@
 #include "ebpf_windows.h"
 #include "shared_context.h"
 
+// #include <ntdef.h>
+// #include <ntstatus.h>
 #include <specstrings.h>
 #include <stdint.h>
 
@@ -231,14 +233,5 @@ typedef _Return_type_success_(return >= 0) LONG NTSTATUS; // Is this needed?
  */
 NTSTATUS
 ebpf_result_to_ntstatus(ebpf_result_t result);
-
-/**
- * @brief Map an ebpf_result_t to a generic Win32 error code.
- *
- * @param[in] result ebpf_result_t to map.
- * @return The generic Win32 error code.
- */
-uint32_t
-ebpf_result_to_win32_error_code(ebpf_result_t result);
 
 CXPLAT_EXTERN_C_END
