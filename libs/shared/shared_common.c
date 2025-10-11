@@ -347,8 +347,8 @@ _duplicate_program_descriptor(
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
     ebpf_context_descriptor_t* context_descriptor_copy = NULL;
 
-    program_type_descriptor_copy =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (program_type_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -368,7 +368,8 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
-    context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    context_descriptor_copy =
+        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -406,8 +407,8 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -546,8 +547,8 @@ _duplicate_helper_function_addresses(
 
     *new_helper_function_addresses = NULL;
 
-    helper_function_addresses_copy =
-        (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -558,8 +559,8 @@ _duplicate_helper_function_addresses(
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
     helper_function_addresses_copy->header.total_size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE;
 
-    helper_function_addresses_copy->helper_function_address =
-        (uint64_t*)ebpf_allocate_with_tag(helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy->helper_function_address = (uint64_t*)ebpf_allocate_with_tag(
+        helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy->helper_function_address == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -603,7 +604,8 @@ ebpf_duplicate_program_data(
 
     EBPF_LOG_ENTRY();
 
-    program_data_copy = (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
+    program_data_copy =
+        (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
     if (program_data_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -731,6 +733,60 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             i++;
         }
     }
-
+    
     return EBPF_SUCCESS;
+}
+
+// typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
+
+static const NTSTATUS _ebpf_result_mapping[] = {
+    /* EBPF_SUCCESS */ STATUS_SUCCESS /* ERROR_SUCCESS */,
+    /* EBPF_VERIFICATION_FAILED */ STATUS_VERIFIER_STOP /* ERROR_VERIFIER_STOP */,
+    /* EBPF_JIT_COMPILATION_FAILED */ STATUS_NONE_MAPPED /* ERROR_NONE_MAPPED */,
+    /* EBPF_PROGRAM_LOAD_FAILED */ STATUS_GENERIC_COMMAND_FAILED /* ERROR_GENERIC_COMMAND_FAILED */,
+    /* EBPF_INVALID_FD */ STATUS_INVALID_HANDLE /* ERROR_INVALID_HANDLE */,
+    /* EBPF_INVALID_OBJECT */ STATUS_INVALID_DEVICE_REQUEST /* ERROR_INVALID_FUNCTION */,
+    /* EBPF_INVALID_ARGUMENT */ STATUS_INVALID_PARAMETER /* ERROR_INVALID_PARAMETER */,
+    /* EBPF_OBJECT_NOT_FOUND */ STATUS_OBJECT_PATH_NOT_FOUND /* ERROR_PATH_NOT_FOUND */,
+    /* EBPF_OBJECT_ALREADY_EXISTS */ STATUS_OBJECTID_EXISTS /* ERROR_OBJECT_ALREADY_EXISTS */,
+    /* EBPF_FILE_NOT_FOUND */ STATUS_NO_SUCH_FILE /* ERROR_FILE_NOT_FOUND */,
+    /* EBPF_ALREADY_PINNED */ STATUS_OBJECT_NAME_EXISTS /* ERROR_OBJECT_NAME_EXISTS */,
+    /* EBPF_NOT_PINNED */ STATUS_RESOURCE_NOT_OWNED /* ERROR_NOT_OWNER */,
+    /* EBPF_NO_MEMORY */ STATUS_NO_MEMORY /* ERROR_NOT_ENOUGH_MEMORY */,
+    /* EBPF_PROGRAM_TOO_LARGE */ STATUS_TOO_MANY_COMMANDS /* ERROR_TOO_MANY_CMDS */,
+    /* EBPF_RPC_EXCEPTION */ RPC_NT_CALL_FAILED /* RPC_S_CALL_FAILED */,
+    /* EBPF_ALREADY_INITIALIZED */ STATUS_ALREADY_INITIALIZED /* ERROR_ALREADY_INITIALIZED */,
+    /* EBPF_ELF_PARSING_FAILED */ STATUS_INVALID_IMAGE_FORMAT /* ERROR_BAD_EXE_FORMAT */,
+    /* EBPF_FAILED */ STATUS_UNSUCCESSFUL /* ERROR_GEN_FAILURE */,
+    /* EBPF_OPERATION_NOT_SUPPORTED */ STATUS_NOT_SUPPORTED /* ERROR_NOT_SUPPORTED */,
+    /* EBPF_KEY_NOT_FOUND */ STATUS_NOT_FOUND /* ERROR_NOT_FOUND */,
+    /* EBPF_ACCESS_DENIED */ STATUS_ACCESS_DENIED /* ERROR_ACCESS_DENIED */,
+    /* EBPF_BLOCKED_BY_POLICY */ STATUS_CONTENT_BLOCKED /* ERROR_CONTENT_BLOCKED */,
+    /* EBPF_ARITHMETIC_OVERFLOW */ STATUS_INTEGER_OVERFLOW /* ERROR_ARITHMETIC_OVERFLOW */,
+    /* EBPF_EXTENSION_FAILED_TO_LOAD */ STATUS_DRIVER_UNABLE_TO_LOAD /* ERROR_BAD_DRIVER */,
+    /* EBPF_INSUFFICIENT_BUFFER */ STATUS_BUFFER_OVERFLOW /* ERROR_MORE_DATA */,
+    /* EBPF_NO_MORE_KEYS */ STATUS_NO_MORE_MATCHES /* ERROR_NO_MORE_MATCHES */,
+    /* EBPF_KEY_ALREADY_EXISTS */
+    STATUS_ALREADY_REGISTERED /* ERROR_INTERNAL_ERROR, but ought to be ERROR_ALREADY_REGISTERED */,
+    /* EBPF_NO_MORE_TAIL_CALLS */ STATUS_TOO_MANY_NODES /* ERROR_TOO_MANY_NAMES */,
+    /* EBPF_PENDING */ STATUS_PENDING /* ERROR_IO_PENDING */,
+    /* EBPF_OUT_OF_SPACE */ STATUS_INSUFFICIENT_RESOURCES /* ERROR_NO_SYSTEM_RESOURCES */,
+    /* EBPF_CANCELED */ STATUS_CANCELLED /* ERROR_OPERATION_ABORTED */,
+    /* EBPF_INVALID_POINTER */ STATUS_ACCESS_VIOLATION /* ERROR_NOACCESS */,
+    /* EBPF_TIMEOUT */ STATUS_TIMEOUT /* ERROR_TIMEOUT */,
+    /* EBPF_STALE_ID */ STATUS_INVALID_DEVICE_STATE /* ERROR_BAD_COMMAND */,
+    /* EBPF_INVALID_STATE */ STATUS_INVALID_STATE_TRANSITION /* ERROR_INVALID_STATE */,
+};
+
+
+NTSTATUS
+ebpf_result_to_ntstatus(ebpf_result_t result)
+{
+    if (result < 0) {
+        return -1;
+    }
+    if (result > ARRAYSIZE(_ebpf_result_mapping)) {
+        return -1;
+    }
+    return _ebpf_result_mapping[result];
 }
