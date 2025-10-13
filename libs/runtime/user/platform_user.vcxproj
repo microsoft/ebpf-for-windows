@@ -30,6 +30,7 @@
     <ClInclude Include="..\ebpf_async.h" />
     <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
+    <ClInclude Include="..\ebpf_error.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />
     <ClInclude Include="..\ebpf_pinning_table.h" />
