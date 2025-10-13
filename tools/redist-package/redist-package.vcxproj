@@ -146,6 +146,9 @@ NuGet.exe pack $(OutDir)ebpf-for-windows-redist.nuspec -OutputDirectory $(OutDir
     <ProjectReference Include="..\..\ebpfcore\EbpfCore.vcxproj">
       <Project>{97e52abb-2f1e-4ad2-aefd-6eb7fdc0a41d}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\ebpfsvc\eBPFSvc.vcxproj">
+      <Project>{ba065b6a-38f8-4197-8f66-87c84afad513}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\netebpfext\sys\netebpfext.vcxproj">
       <Project>{55499e36-37d4-4f86-b694-9f2990315758}</Project>
     </ProjectReference>
