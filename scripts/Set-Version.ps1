@@ -20,9 +20,18 @@ $version = ""
 $version += $VersionPropertyGroup.EbpfVersion_Major + "."
 $version += $VersionPropertyGroup.EbpfVersion_Minor + "."
 $version += $VersionPropertyGroup.EbpfVersion_Revision
+if ($VersionPropertyGroup.EbpfVersion_Modifier -ne "") {
+    $version += "-" + $VersionPropertyGroup.EbpfVersion_Modifier
+}
+
+$version_no_modifier = ""
+$version_no_modifier += $VersionPropertyGroup.EbpfVersion_Major + "."
+$version_no_modifier += $VersionPropertyGroup.EbpfVersion_Minor + "."
+$version_no_modifier += $VersionPropertyGroup.EbpfVersion_Revision
 
 $content = Get-Content $InputFile
 $content = $content.Replace("{version}", $version)
+$content = $content.Replace("{version_no_modifier}", $version_no_modifier)
 $content = $content.Replace("{VCToolsRedistDir}", $VCToolsRedistDir)
 $content = $content.Replace("{git_commit_id}", $git_commit_id)
 $content = $content.Replace("{architecture}", $architecture)

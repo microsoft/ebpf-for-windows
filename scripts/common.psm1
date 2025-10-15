@@ -34,6 +34,49 @@ function ThrowWithErrorMessage
     throw $ErrorMessage
 }
 
+function Start-ProcessWithTimeout
+{
+    param(
+        [Parameter(Mandatory=$true)] [string] $FilePath,
+        [Parameter(Mandatory=$false)] [string[]] $ArgumentList = @(),
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
+    )
+
+    # Create temp files for output redirection
+    $tempOut = [System.IO.Path]::GetTempFileName()
+    $tempErr = [System.IO.Path]::GetTempFileName()
+
+    try {
+        Write-Log "Starting process with timeout: $TimeoutSeconds seconds"
+        Write-Log "Executing: $FilePath $($ArgumentList -join ' ')"
+
+        $process = Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -NoNewWindow -PassThru -RedirectStandardOutput $tempOut -RedirectStandardError $tempErr
+        $handle = $process.Handle # Important: this ensures we can access the process info later
+        Write-Log "Process started with ID: $($process.Id)"
+
+        if ($process.WaitForExit($TimeoutSeconds * 1000)) {
+            $exitCode = $process.ExitCode
+            Write-Log "Process completed with exit code: $exitCode"
+            return $exitCode
+        } else {
+            Write-Log "Process timed out after $TimeoutSeconds seconds, terminating process"
+            if (-not $process.HasExited) {
+                $process.Kill()
+                $process.WaitForExit(5000)
+            }
+            Write-Log "Process terminated due to timeout"
+            return -1 # Indicate timeout
+        }
+    } catch {
+        Write-Log "Exception running process: $_" -ForegroundColor Red
+        return -2 # Indicate exception
+    } finally {
+        # Clean up temp files
+        if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
+        if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
+    }
+}
+
 function New-Credential
 {
     param([Parameter(Mandatory=$True)][string] $UserName,
