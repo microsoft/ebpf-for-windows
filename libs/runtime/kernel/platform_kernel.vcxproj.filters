@@ -31,9 +31,6 @@
     <ClCompile Include="..\ebpf_epoch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_error.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,6 +93,9 @@
     <ClInclude Include="..\..\..\include\ebpf_core_structs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\include\ebpf_error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\include\ebpf_program_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -115,9 +115,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_epoch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ebpf_error.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_handle.h">

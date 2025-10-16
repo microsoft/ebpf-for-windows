@@ -178,12 +178,10 @@
   <ItemGroup>
     <ClInclude Include="resource.h" />
     <ClInclude Include="..\libs\shared\hash.h" />
-    <ClInclude Include="..\libs\runtime\ebpf_error.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="..\libs\shared\hash.cpp" />
-    <ClCompile Include="..\libs\runtime\ebpf_error.c" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="rpc_client.cpp"/>
   </ItemGroup>
