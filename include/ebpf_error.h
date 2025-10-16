@@ -98,7 +98,7 @@ static const NTSTATUS _ebpf_result_mapping[] = {
  * @param[in] result ebpf_result_t to map.
  * @return The generic NTSTATUS code.
  */
-NTSTATUS
+static inline NTSTATUS
 ebpf_result_to_ntstatus(ebpf_result_t result)
 {
 
