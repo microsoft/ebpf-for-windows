@@ -156,6 +156,109 @@ connection_test(
     receiver_socket.complete_async_receive();
 }
 
+void
+auth_connection_test(
+    ADDRESS_FAMILY address_family,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
+    uint32_t protocol)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+    const char* auth_connect_program_name =
+        (address_family == AF_INET) ? "authorize_auth_connect4" : "authorize_auth_connect6";
+    bpf_program* auth_connect_program = bpf_object__find_program_by_name(object, auth_connect_program_name);
+    SAFE_REQUIRE(auth_connect_program != nullptr);
+
+    const char* recv_accept_program_name =
+        (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
+    bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, recv_accept_program_name);
+    SAFE_REQUIRE(recv_accept_program != nullptr);
+
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+    sender_socket.get_local_address(local_address, local_address_length);
+
+    connection_tuple_t tuple = {0};
+    if (address_family == AF_INET) {
+        tuple.remote_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        printf("tuple.remote_ip.ipv4 = %x\n", tuple.remote_ip.ipv4);
+    } else {
+        memcpy(tuple.remote_ip.ipv6, &in6addr_loopback, sizeof(tuple.remote_ip.ipv6));
+    }
+    tuple.remote_port = htons(SOCKET_TEST_PORT);
+    printf("tuple.remote_port = %x\n", tuple.remote_port);
+    tuple.protocol = protocol;
+
+    bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
+    SAFE_REQUIRE(ingress_connection_policy_map != nullptr);
+    bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(object, "egress_connection_policy_map");
+    SAFE_REQUIRE(egress_connection_policy_map != nullptr);
+
+    // Update ingress and egress policy to block loopback packet on test port.
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket.post_async_receive();
+
+    // Attach the auth connect program at BPF_CGROUP_INET4_AUTH_CONNECT.
+    bpf_attach_type auth_connect_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(auth_connect_program)), 0, auth_connect_attach_type, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Send loopback message to test port.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // The packet should be blocked by the auth connect program.
+    receiver_socket.complete_async_receive(true);
+    // Cancel send operation.
+    sender_socket.cancel_send_message();
+
+    // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
+    bpf_attach_type recv_accept_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT;
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Update egress policy to allow packet.
+    // Test both hard and soft permit.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
+
+    // Update ingress policy to allow packet.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
+    // destination.
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+    receiver_socket.complete_async_receive();
+}
+
 TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
@@ -184,6 +287,38 @@ TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
     connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("auth_connection_test_udp_v4", "[sock_addr_tests]")
+{
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    auth_connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+}
+
+TEST_CASE("auth_connection_test_udp_v6", "[sock_addr_tests]")
+{
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    auth_connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+}
+
+TEST_CASE("auth_connection_test_tcp_v4", "[sock_addr_tests]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    auth_connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("auth_connection_test_tcp_v6", "[sock_addr_tests]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    auth_connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")

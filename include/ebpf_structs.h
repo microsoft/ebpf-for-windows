@@ -321,6 +321,20 @@ enum bpf_attach_type
      */
     BPF_CGROUP_INET6_RECV_ACCEPT,
 
+    /** @brief Attach type for handling IPv4 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_AUTH_CONNECT,
+
+    /** @brief Attach type for handling IPv6 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_AUTH_CONNECT,
+
     /** @brief Attach type for handling various socket event notifications.
      *
      * **Program type:** \ref BPF_PROG_TYPE_SOCK_OPS

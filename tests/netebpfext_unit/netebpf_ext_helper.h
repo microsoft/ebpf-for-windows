@@ -75,6 +75,20 @@ typedef class _netebpf_ext_helper
     }
 
     FWP_ACTION_TYPE
+    test_cgroup_inet4_auth_connect(_In_ fwp_classify_parameters_t* parameters)
+    {
+        // AUTH_CONNECT uses the same underlying simulation as regular CONNECT
+        return usersim_fwp_cgroup_inet4_connect(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_auth_connect(_In_ fwp_classify_parameters_t* parameters)
+    {
+        // AUTH_CONNECT uses the same underlying simulation as regular CONNECT
+        return usersim_fwp_cgroup_inet6_connect(parameters);
+    }
+
+    FWP_ACTION_TYPE
     test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
     {
         return usersim_fwp_sock_ops_v4(parameters, flow_id);
