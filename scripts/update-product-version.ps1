@@ -9,6 +9,9 @@ param (
 
 # Check if the version number is in the format X.Y.Z
 if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+.*$') {
+    # Update the version number in version.json.
+    ('{{ "major": {0}, "minor": {1}, "patch": {2} }}' -f $majorVersion, $minorVersion, $revisionNumber) |
+        Set-Content ".\version.json"
 
     if (Test-Path -Path ".\ebpf-for-windows.sln") {
         # Set the new version number in the ebpf_version.h file.
