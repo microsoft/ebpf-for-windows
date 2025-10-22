@@ -19,13 +19,14 @@
 #include "usersim\fwp_test.h"
 
 #include <iostream>
+#include <set>
 #include <vector>
 
 typedef struct _netebpfext_helper_base_client_context
 {
     class _netebpf_ext_helper* helper;
     void* provider_binding_context;
-    bpf_attach_type_t desired_attach_type; // BPF_ATTACH_TYPE_UNSPEC for any allowed.
+    std::set<bpf_attach_type_t> desired_attach_types; // Empty list to allow all.
 } netebpfext_helper_base_client_context_t;
 
 typedef class _netebpf_ext_helper
