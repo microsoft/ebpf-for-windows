@@ -56,9 +56,11 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 - Interface and route information is not relevant to your use case
 
 ### Use AUTH_CONNECT Attach Types When:
-- You need **interface information** for authorization decisions
-- You need **tunnel type** information
-- You want to **authorize or deny** connections (not redirect them)
+- You need **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`)
+- You need **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`)
+- You need **next-hop interface** details (via `bpf_sock_addr_get_nexthop_interface_luid()`)
+- You need **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`)
+- You want to **authorize or deny** connections based on complete network context
 - Your policy depends on route-dependent metadata
 
 ## Implementation Details
@@ -72,6 +74,29 @@ AUTH_CONNECT programs can return:
 - `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the connection
 
 Note: Redirect functionality is not supported at the AUTH_CONNECT layer since route selection has already occurred.
+
+### Additional Helper Functions
+AUTH_CONNECT and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through specialized helper functions:
+
+#### `bpf_sock_addr_get_interface_type(ctx)`
+Returns the network interface type for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+- **Returns**: Interface type value, or 0 if not available
+- **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
+
+#### `bpf_sock_addr_get_tunnel_type(ctx)`
+Returns the tunnel type information for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+- **Returns**: Tunnel type value, or 0 if not a tunnel or not available
+- **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
+
+#### `bpf_sock_addr_get_nexthop_interface_luid(ctx)`
+Returns the next-hop interface LUID for the connection. Available for AUTH_CONNECT hooks only.
+- **Returns**: Next-hop interface LUID, or 0 if not available
+- **Use case**: Route-dependent access control decisions
+
+#### `bpf_sock_addr_get_sub_interface_index(ctx)`
+Returns the sub-interface index for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+- **Returns**: Sub-interface index, or 0 if not available
+- **Use case**: Granular interface-based policies
 
 ### Selective Program Invocation
 The implementation includes a filtering mechanism to ensure that:
@@ -87,11 +112,15 @@ This prevents cross-invocation and ensures programs run at the appropriate layer
 SEC("cgroup/auth_connect4")
 int auth_connect_interface_policy(struct bpf_sock_addr *ctx)
 {
-    // Get interface information (available at auth layer)
-    uint32_t interface_index = ctx->interface_index;
+    // Get interface type using helper function
+    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
 
     // Apply interface-specific policy
-    if (is_restricted_interface(interface_index)) {
+    if (interface_type == INTERFACE_TYPE_VPN) {
+        // Allow VPN connections
+        return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    } else if (interface_type == INTERFACE_TYPE_PUBLIC_WIFI) {
+        // Block connections on public WiFi for sensitive applications
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -105,9 +134,72 @@ SEC("cgroup/auth_connect4")
 int auth_connect_tunnel_policy(struct bpf_sock_addr *ctx)
 {
     // Check if connection will use tunneling
-    if (ctx->tunnel_type != TUNNEL_TYPE_NONE) {
+    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+
+    if (tunnel_type != 0) {
+        // This is a tunneled connection
         // Apply tunnel-specific security policy
-        return apply_tunnel_policy(ctx);
+        if (tunnel_type == TUNNEL_TYPE_IPSEC) {
+            return BPF_SOCK_ADDR_VERDICT_PROCEED;
+        } else {
+            // Unknown or unsupported tunnel type
+            return BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
+    }
+
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+```
+
+### Scenario 3: Route-Dependent Authorization
+```c
+SEC("cgroup/auth_connect4")
+int auth_connect_route_policy(struct bpf_sock_addr *ctx)
+{
+    // Get next-hop interface information
+    uint64_t nexthop_interface = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+
+    if (nexthop_interface != 0) {
+        // Check if the next-hop interface is approved for this type of traffic
+        if (!is_approved_interface(nexthop_interface)) {
+            return BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
+    }
+
+    // Get sub-interface details for fine-grained control
+    uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
+    if (sub_interface != 0 && is_restricted_sub_interface(sub_interface)) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+```
+
+### Scenario 4: Combined Network Context Analysis
+```c
+SEC("cgroup/auth_connect4")
+int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
+{
+    // Gather all available network context
+    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
+    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+    uint64_t nexthop_interface = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+    uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
+
+    // Create a comprehensive security decision based on all available context
+    if (interface_type == INTERFACE_TYPE_CELLULAR && tunnel_type == 0) {
+        // On cellular without tunnel - apply data usage restrictions
+        if (is_high_bandwidth_destination(ctx->user_ip4)) {
+            return BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
+    }
+
+    if (tunnel_type != 0 && nexthop_interface != 0) {
+        // Tunneled traffic with specific next-hop - enhanced validation
+        if (!validate_tunnel_route(tunnel_type, nexthop_interface)) {
+            return BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
     }
 
     return BPF_SOCK_ADDR_VERDICT_PROCEED;
@@ -123,8 +215,14 @@ Existing programs using `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT
 When developing new programs, consider:
 
 1. **Do you need to redirect connections?** → Use CONNECT attach types
-2. **Do you need interface/tunnel information?** → Use AUTH_CONNECT attach types
-3. **Do you only need basic connection info for authorization?** → Either type works, but AUTH_CONNECT provides more context
+2. **Do you need enhanced network context (interface type, tunnel info, routing details)?** → Use AUTH_CONNECT attach types with the new helper functions
+3. **Do you only need basic connection info for authorization?** → Either type works, but AUTH_CONNECT provides significantly more context
+
+### Backward Compatibility
+The new helper functions are designed to be backward compatible:
+- They return 0 when information is not available (e.g., on CONNECT_REDIRECT layers)
+- Existing programs that don't use these helpers continue to function normally
+- The `bpf_sock_addr_t` context structure remains unchanged to maintain ABI compatibility
 
 ## See Also
 
