@@ -1677,6 +1677,18 @@ Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }
 
+static bool
+_net_ebpf_extension_sock_addr_is_auth_connect_program(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+{
+    // hook_client->client_module_id contains the attach type GUID.
+    return (memcmp(
+                &hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT, sizeof(ebpf_attach_type_t)) ==
+            0) ||
+           (memcmp(
+                &hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT, sizeof(ebpf_attach_type_t)) ==
+            0);
+}
+
 /*
  * Default action is BLOCK. If this callout is being invoked, it means at least one
  * eBPF program is attached. Hence no connection should be allowed unless allowed by
@@ -1758,11 +1770,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
         net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
-        program_result =
-            net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &verdict);
+        program_result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+            sock_addr_ctx, &filter_context->base, &verdict, _net_ebpf_extension_sock_addr_is_auth_connect_program);
         if (program_result == EBPF_OBJECT_NOT_FOUND) {
-            // No eBPF program is attached to this filter, default to reject.
-            verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+            // No eBPF program is attached to this filter, leave the verdict as is.
         } else if (program_result != EBPF_SUCCESS) {
             // We failed to invoke at least one program in the chain, block the request.
             verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -2015,6 +2026,15 @@ _cache_connection_context_verdict(
     }
 }
 
+static bool
+_net_ebpf_extension_sock_addr_is_connect_program(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+{
+    // hook_client->client_module_id contains the attach type GUID.
+    return (memcmp(&hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(ebpf_attach_type_t)) ==
+            0) ||
+           (memcmp(&hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(ebpf_attach_type_t)) == 0);
+}
+
 /*
  * For every eBPF sock_addr program attached to INET_CONNECT attach point (for a given compartment), a WFP filter
  * is added to the WFP CONNECT_REDIRECT (with the compartment Id as filter condition). So, this classify callback
@@ -2181,8 +2201,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     // This parameter is not used. Verdict in net_ebpf_sock_addr_ctx is used instead as long as it's valid.
     uint32_t ignored_verdict;
-    result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
-        sock_addr_ctx, &filter_context->base, &ignored_verdict);
+    result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+        sock_addr_ctx, &filter_context->base, &ignored_verdict, _net_ebpf_extension_sock_addr_is_connect_program);
 
     if (net_ebpf_sock_addr_ctx.verdict >= 0) {
         verdict = net_ebpf_sock_addr_ctx.verdict;

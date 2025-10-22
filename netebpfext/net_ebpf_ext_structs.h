@@ -122,6 +122,7 @@ typedef struct _net_ebpf_extension_hook_client
     void* provider_data;                 ///< Opaque pointer to hook specific data associated with this client.
     PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
+    ebpf_attach_type_t attach_type;      ///< Attach type of the eBPF program.
 } net_ebpf_extension_hook_client_t;
 
 typedef struct _net_ebpf_extension_hook_provider
@@ -136,6 +137,7 @@ typedef struct _net_ebpf_extension_hook_provider
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
     LIST_ENTRY cleanup_list_entry;      ///< List entry for cleanup.
+    ebpf_attach_type_t attach_type;     ///< Attach type of the eBPF program.
 } net_ebpf_extension_hook_provider_t;
 
 typedef struct _net_ebpf_extension_invoke_programs_parameters
@@ -144,4 +146,5 @@ typedef struct _net_ebpf_extension_invoke_programs_parameters
     void* program_context;
     uint32_t verdict;
     ebpf_result_t result;
+    bool (*filter_function)(_In_ const net_ebpf_extension_hook_client_t* hook_client);
 } net_ebpf_extension_invoke_programs_parameters_t;
