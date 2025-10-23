@@ -530,7 +530,7 @@ _test_bpf_object_load_with_o_from_memory()
 
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_CGROUP_SOCK_ADDR) == 0);
 
-      struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
     REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);

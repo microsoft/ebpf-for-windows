@@ -67,14 +67,14 @@ extern "C"
     } ebpf_api_program_info_t;
 
     /**
-      * @brief Get list of programs and stats in an eBPF file.
-      * @param[in] file Name of file containing eBPF programs.
-      * @param[in] verbose Obtain additional info about the programs.
-      * @param[out] infos On success points to a list of eBPF programs.
-      * The caller is responsible for freeing the list via ebpf_free_programs().
-      * @param[out] error_message On failure points to a text description of
-      *  the error.
-      */
+     * @brief Get list of programs and stats in an eBPF file.
+     * @param[in] file Name of file containing eBPF programs.
+     * @param[in] verbose Obtain additional info about the programs.
+     * @param[out] infos On success points to a list of eBPF programs.
+     * The caller is responsible for freeing the list via ebpf_free_programs().
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     */
     _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_programs(
         _In_z_ const char* file,

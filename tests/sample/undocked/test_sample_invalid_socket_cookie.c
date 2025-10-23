@@ -14,14 +14,14 @@
 // Test eBPF program for EBPF_PROGRAM_TYPE_SAMPLE implemented in
 // the Sample eBPF extension.
 
-#include "sample_common_routines.h"
-#include "sample_ext_helpers.h"
-#include "sample_test_common.h"
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "sample_common_routines.h"
+#include "sample_ext_helpers.h"
+#include "sample_test_common.h"
 
 SEC("sample_ext")
 int

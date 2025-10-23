@@ -2267,10 +2267,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             completion) == EBPF_ARITHMETIC_OVERFLOW);
 }
 
-#define EBPF_PROGRAM_TYPE_TEST_GUID                                                    \
-    {                                                                                  \
-        0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
-    }
+#define EBPF_PROGRAM_TYPE_TEST_GUID {0x8ee1b757, 0xc0b2, 0x4c84, {0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9}}
 
 void
 test_register_provider(
