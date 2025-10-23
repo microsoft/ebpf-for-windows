@@ -1851,9 +1851,13 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
-    if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
-        // No context found from redirect, invoke the BPF program for AUTH_CONNECT
-        // Set up original context for comparison (needed by verdict processing)
+    // AUTH_CONNECT programs are only invoked for PROCEED_SOFT verdicts because:
+    // - PROCEED_HARD indicates the redirect layer already made a definitive authorization
+    //   decision and no further checks are needed (optimization to skip AUTH layer)
+    // - REJECT verdicts are already final and don't need additional authorization
+    // - PROCEED_SOFT indicates the connection should proceed but may benefit from
+    //   additional authorization checks at the AUTH layer with full network context
+    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
         bpf_sock_addr_t sock_addr_ctx_original;
         memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
         net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
