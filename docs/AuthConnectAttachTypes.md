@@ -42,6 +42,7 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 - **Timing**: Invoked **after route selection** but **before connection authorization**
 - **Available Information**: Full connection context including interface and tunnel information
 - **Purpose**: Authorization decisions based on complete connection metadata
+- **Limitation**: **No redirection support** - connections cannot be redirected at this layer since route selection has already occurred
 
 ### WFP Layer Mapping
 
@@ -51,7 +52,7 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 ## When to Use Each Attach Type
 
 ### Use CONNECT Attach Types When:
-- You need to **redirect** connections to different destinations
+- You need to **redirect** connections to different destinations (**redirection is only supported at these layers**)
 - You only need basic connection information (source/destination IP/port)
 - Interface and route information is not relevant to your use case
 
@@ -60,7 +61,7 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 - You need **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`)
 - You need **next-hop interface** details (via `bpf_sock_addr_get_nexthop_interface_luid()`)
 - You need **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`)
-- You want to **authorize or deny** connections based on complete network context
+- You want to **authorize or deny** connections based on complete network context (**no redirection support**)
 - Your policy depends on route-dependent metadata
 
 ## Implementation Details
@@ -87,7 +88,7 @@ AUTH_CONNECT programs can return:
 - Use `PROCEED_SOFT` or `PROCEED` for connections that should be allowed but may still need evaluation by other security mechanisms
 - Use `REJECT` to block connections that violate security policies
 
-Note: Redirect functionality is not supported at the AUTH_CONNECT layer since route selection has already occurred.
+**Important:** Redirect functionality is **not supported** at the AUTH_CONNECT layer since route selection has already occurred. Connection redirection can only be performed at the `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` layers.
 
 ### Additional Helper Functions
 AUTH_CONNECT and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through specialized helper functions:
