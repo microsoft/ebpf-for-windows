@@ -8,7 +8,7 @@ Official releases will be production signed using Microsoft certificates.
 
 ## Creating a new release
 
-A GitHub issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release. 
+A GitHub issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release.
 When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If
 the decision is to create a new release the release manager must proceed with the following process.
 1. Create a release branch  in the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows).
@@ -20,26 +20,26 @@ the decision is to create a new release the release manager must proceed with th
       git remote add upstream https://github.com/microsoft/ebpf-for-windows.git
    1. Push the topic branch into upstream. For example:
       ```bash
-      git push upstream release/0.21
+      git push upstream release/0.12
 1. Once the release branch is created, commits can be cherry-picked from the main branch (including feature work and bug fixes) as deemed necessary
    by the maintainers and the release managers.
-1. Create a tag on the *latest commit* on the release branch. The tag name must begin with `"Release-v"` and include the release version e.g. `"Release-v0.21"`.
+1. Create a tag on the *latest commit* on the release branch. The tag name must begin with `"Release-v"` and include the release version e.g., `"Release-v0.21"`.
 1. The tag creation will automatically trigger the "`CI/CD`" workflow for the `release/X.Y` branch.
 1. Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation) to ensure the quality of the release branch.
 1. In the triage meeting following the successful validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release.
    If not, move on to the following steps.
-1. The `sign-off` label will be added to the issue created in step 1. 
+1. The `sign-off` label will be added to the issue created in step 1.
 1. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 1. Follow the process in the [Updating the Product Version](ReleaseProcess.md#updating-the-product-version) to update the version of the product in the main branch,
-   for the next release. The main branch must always be ahead of the latest release branch by one minor version. For example, if the latest release is `vX.Y`, 
+   for the next release. The main branch should always be ahead of the latest release branch by one minor version. For example, if the latest release is `vX.Y`,
    then the version of the main branch should be updated to `"vX.(Y+1).0`.
 
 ## Release Branch Validation
 
 Tagging the release branch triggers `CI/CD` workflow (`cicd.yml`) which is used to validate a release branch. When triggered by the release tag, the workflow
 runs more tests than the regular CI/CD runs triggered by pull requests, including longer duration fuzz tests, fault injection tests, stress tests, performance tests etc.
-These tests can be manually scheduled as well. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub. 
-Once potential fixes are merged to the release branch repeat the release manager must run these tests manuually for validation. The process will be repeated 
+These tests can be manually scheduled as well. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub.
+Once potential fixes are merged to the release branch repeat the release manager must run these tests manuually for validation. The process will be repeated
 until the workflow completes successfully.
 
 ## Publishing the Release to GitHub
@@ -49,9 +49,8 @@ until the workflow completes successfully.
 1. Fill in the release title as "`vX.Y.Z`". Note "`Z`" must be `0` for the monthly release. Otherwise, it should be the patch number. It may optionally also include
    the version modifier such as `"-beta"` or `"-rc"`.
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
-1. Microsoft maintains an *internal mirror* of the eBPF for Windows project. 
-The release manager must download the relevant artifacts from the build pipeline of the internal mirror repo including the binaries, MSI installer and
-SDK nuget packages for x64 and ARM64 platforms.
+1. Microsoft maintains an *internal mirror* of the eBPF for Windows project.
+The release manager must download the relevant artifacts from the build pipeline of the internal mirror repo including the binaries and MSI installers for x64 and ARM64 platforms.
 1. Upload these files, by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
     For example, the file list for the release version `v0.21.1` are:
     - `Build-native-only.NativeOnlyDebug.arm64.zip`
@@ -61,16 +60,14 @@ SDK nuget packages for x64 and ARM64 platforms.
     - `Build.Debug.x64.zip`
     - `Build.Release.x64.zip`
     - `ebpf-for-windows.arm64.0.21.1.msi`
-    - `eBPF-for-Windows.ARM64.0.21.1.nupkg`
     - `ebpf-for-windows.x64.0.21.1.msi`
-    - `eBPF-for-Windows.x64.0.21.1.nupkg`
 
 1.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1.  Once the uploads are complete, click "`Publish release`". Github will automatically upload the zipped up source code file.
 
 ## Publishing the Release to NuGet.org
 
-Upload the **SDK** `.nupkg` files for x64 and ARM64 platforms to [NuGet.org](https://www.nuget.org/). 
+Upload the **SDK** `.nupkg` files for x64 and ARM64 platforms to [NuGet.org](https://www.nuget.org/).
 The metadata inside the `.nuget` package itself will automatically populate all the other form fields.
 
 ## Servicing a Release
@@ -104,7 +101,7 @@ version.
 
 1. Run `.\scripts\update-product-version.ps1` from the root directory of the repository, from a "*Developer Powershell for VS 2022"* terminal.
    The script takes as input parameters the major, minor, patch versions and *optionally* the version modifier.
-   
+
    Examples:
     ```ps
     # Update the product version in the main branch to 0.22.
@@ -121,9 +118,9 @@ version.
     For example, a successful run of the script for version 0.12.0 produces the following output:
 
     ```ps
-    PS D:\work\ebpf-for-windows> .\scripts\update-product-version.ps1 0 21 0
+    PS D:\work\ebpf-for-windows> .\scripts\update-product-version.ps1 0 12 0
     Updating the version number in the 'E:\ebpf-for-windows\scripts\..\Directory.Build.props' file...
-    Version number updated to '0.21.0' in E:\ebpf-for-windows\scripts\..\Directory.Build.props
+    Version number updated to '0.12.0' in E:\ebpf-for-windows\scripts\..\Directory.Build.props
     Rebuilding the solution, please wait...
     Regenerating the expected 'bpf2c' output...
     ...
