@@ -70,8 +70,22 @@ Both AUTH_CONNECT attach types use the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program 
 
 ### Verdict Handling
 AUTH_CONNECT programs can return:
-- `BPF_SOCK_ADDR_VERDICT_PROCEED` - Allow the connection
+- `BPF_SOCK_ADDR_VERDICT_PROCEED` - Allow the connection to proceed normally
+- `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the connection and skip further authorization checks
+- `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the connection but continue with additional authorization checks
 - `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the connection
+
+#### Verdict Types Explained
+
+**PROCEED_HARD vs PROCEED_SOFT:**
+- `PROCEED_HARD` provides an optimization by signaling to the WFP layer that no further authorization checks are needed for this connection, potentially improving performance for trusted connections
+- `PROCEED_SOFT` allows the connection but ensures that other WFP filters and authorization mechanisms continue to evaluate the connection normally
+- `PROCEED` (standard) behaves the same as `PROCEED_SOFT` - allows the connection with normal authorization flow
+
+**Use Cases:**
+- Use `PROCEED_HARD` for connections that have been thoroughly validated and are known to be safe, where bypassing additional checks improves performance
+- Use `PROCEED_SOFT` or `PROCEED` for connections that should be allowed but may still need evaluation by other security mechanisms
+- Use `REJECT` to block connections that violate security policies
 
 Note: Redirect functionality is not supported at the AUTH_CONNECT layer since route selection has already occurred.
 
@@ -115,15 +129,19 @@ int auth_connect_interface_policy(struct bpf_sock_addr *ctx)
     // Get interface type using helper function
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
 
-    // Apply interface-specific policy
+    // Apply interface-specific policy with appropriate verdict types
     if (interface_type == INTERFACE_TYPE_VPN) {
-        // Allow VPN connections
-        return BPF_SOCK_ADDR_VERDICT_PROCEED;
+        // VPN connections are highly trusted - skip additional authorization
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     } else if (interface_type == INTERFACE_TYPE_PUBLIC_WIFI) {
         // Block connections on public WiFi for sensitive applications
         return BPF_SOCK_ADDR_VERDICT_REJECT;
+    } else if (interface_type == INTERFACE_TYPE_CORPORATE_NETWORK) {
+        // Corporate network - allow but continue with normal authorization flow
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
+    // Default: allow with normal authorization checks
     return BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 ```
@@ -176,7 +194,44 @@ int auth_connect_route_policy(struct bpf_sock_addr *ctx)
 }
 ```
 
-### Scenario 4: Combined Network Context Analysis
+### Scenario 4: Verdict Type Demonstration
+```c
+SEC("cgroup/auth_connect4")
+int auth_connect_verdict_demo(struct bpf_sock_addr *ctx)
+{
+    uint32_t dest_ip = ctx->user_ip4;
+    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
+    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+
+    // Trusted internal network with VPN - maximum trust
+    if (is_internal_network(dest_ip) && tunnel_type == TUNNEL_TYPE_IPSEC) {
+        // Skip all further authorization checks for performance
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    }
+
+    // Known malicious destination - immediate block
+    if (is_blacklisted_destination(dest_ip)) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    // Corporate network - allow but let other filters validate
+    if (interface_type == INTERFACE_TYPE_CORPORATE_NETWORK) {
+        // Continue with normal authorization flow
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
+
+    // External destinations on public networks - proceed with caution
+    if (interface_type == INTERFACE_TYPE_PUBLIC_WIFI) {
+        // Allow but ensure other security mechanisms evaluate this
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
+
+    // Default case - standard proceed
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+```
+
+### Scenario 5: Combined Network Context Analysis
 ```c
 SEC("cgroup/auth_connect4")
 int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
@@ -193,6 +248,8 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
         if (is_high_bandwidth_destination(ctx->user_ip4)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
+        // Allow low-bandwidth destinations but continue with authorization checks
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
     if (tunnel_type != 0 && nexthop_interface != 0) {
@@ -200,8 +257,11 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
         if (!validate_tunnel_route(tunnel_type, nexthop_interface)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
+        // Validated tunnel connections can skip additional checks
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     }
 
+    // Default: allow with normal authorization flow
     return BPF_SOCK_ADDR_VERDICT_PROCEED;
 }
 ```
