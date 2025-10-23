@@ -1600,7 +1600,8 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         sock_addr_ctx->tunnel_type = 0;
     }
 
-    if (fields->nexthop_interface_field != 0) {
+    // Next hop can be NULL.
+    if ((fields->nexthop_interface_field != 0) && (incoming_values[fields->nexthop_interface_field].value.uint64)) {
         sock_addr_ctx->nexthop_interface_luid = *incoming_values[fields->nexthop_interface_field].value.uint64;
     } else {
         sock_addr_ctx->nexthop_interface_luid = 0;
