@@ -21,7 +21,8 @@ CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
-    SOCK_ADDR_TEST_TYPE_RECV_ACCEPT
+    SOCK_ADDR_TEST_TYPE_RECV_ACCEPT,
+    SOCK_ADDR_TEST_TYPE_AUTH_CONNECT
 } sock_addr_test_type_t;
 
 typedef enum _sock_addr_test_action
@@ -430,15 +431,6 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    // Classify operations for redirect.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
-
-    result = helper.test_cgroup_inet4_connect(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-    result = helper.test_cgroup_inet6_connect(&parameters);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
     // Test eBPF program invocation failure.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
 
@@ -510,6 +502,9 @@ sock_addr_thread_function(
         case SOCK_ADDR_TEST_TYPE_RECV_ACCEPT:
             result = helper->test_cgroup_inet4_recv_accept(parameters);
             break;
+        case SOCK_ADDR_TEST_TYPE_AUTH_CONNECT:
+            result = helper->test_cgroup_inet4_auth_connect(parameters);
+            break;
         case SOCK_ADDR_TEST_TYPE_CONNECT:
         default:
             result = helper->test_cgroup_inet4_connect(parameters);
@@ -522,6 +517,13 @@ sock_addr_thread_function(
         // Workaround for now - map to block.
         if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
             _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
+            expected_result = FWP_ACTION_BLOCK;
+        }
+
+        // SOCK_ADDR_TEST_ACTION_REDIRECT currently isn't supported in auth_connect.
+        // Workaround for now - map to block.
+        if (type == SOCK_ADDR_TEST_TYPE_AUTH_CONNECT &&
+            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_REDIRECT) {
             expected_result = FWP_ACTION_BLOCK;
         }
 
@@ -596,6 +598,8 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
     test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {
+        BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_RECV_ACCEPT, BPF_CGROUP_INET6_RECV_ACCEPT};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
@@ -760,6 +764,66 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.compartment_id == 0x12345679);
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
+
+TEST_CASE("sock_addr_auth_connect_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test AUTH_CONNECT operations that should be allowed.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
+    client_context->validate_sock_addr_entries = true;
+
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test AUTH_CONNECT operations that should be blocked.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
+    client_context->validate_sock_addr_entries = true;
+
+    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    // Test AUTH_CONNECT operations that should return hard permit.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_HARD;
+    client_context->validate_sock_addr_entries = true;
+
+    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test AUTH_CONNECT reauthorization.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
+    client_context->validate_sock_addr_entries = true;
+
+    parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
+
+    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+}
+
 #pragma endregion cgroup_sock_addr
 #pragma region sock_ops
 
