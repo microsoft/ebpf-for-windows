@@ -9,6 +9,7 @@
 #include "cxplat_fault_injection.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
+#include "ebpf_error.h"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
