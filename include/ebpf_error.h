@@ -5,8 +5,10 @@
 
 #include "ebpf_result.h"
 
+typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
+
 // If status values are already defined, do not include ntstatus.h.
-// This avoids macro redefinitions errors when ebpf_error.h is included in other fies that include these status codes.
+// This avoids macro redefinitions errors when ebpf_error.h is included in other files that include these status codes.
 #ifndef STATUS_SUCCESS
 #include <ntstatus.h>
 #endif
@@ -15,7 +17,6 @@
 #define _AMD64_
 #endif
 
-typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 
 // Mapping from each eBPF result to NTSTATUS
 // (and also show the Win32 error code that the NTSTATUS maps to).
@@ -70,10 +71,10 @@ ebpf_result_to_ntstatus(ebpf_result_t result)
 {
 
     if (result < 0) {
-        return STATUS_UNSUCCESSFUL;
+        return (NTSTATUS)STATUS_UNSUCCESSFUL;
     }
     if (result > ARRAYSIZE(_ebpf_result_mapping)) {
-        return STATUS_UNSUCCESSFUL;
+        return (NTSTATUS)STATUS_UNSUCCESSFUL;
     }
     return _ebpf_result_mapping[result];
 }
