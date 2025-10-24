@@ -26,6 +26,7 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+.*$') {
                         -replace '(?<=<EbpfVersion_Minor>)\d+', $minorVersion `
                         -replace '(?<=<EbpfVersion_Revision>)\d+', $revisionNumber
         if ($modifier -ne "") {
+            $newcontent = $newcontent -replace '(?<=<EbpfVersion_Modifier/>)', "<EbpfVersion_Modifier>$modifier</EbpfVersion_Modifier>"
             $newcontent = $newcontent -replace '(?<=<EbpfVersion_Modifier>)(.*?)(?=</EbpfVersion_Modifier>)', $modifier
             $newcontent = $newcontent -replace '(?<=<EbpfVersion>)(.*?)(?=</EbpfVersion>)', "$majorVersion.$minorVersion.$revisionNumber-$modifier"
         } else {
