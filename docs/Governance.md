@@ -64,10 +64,10 @@ Responsibilities:
 
 A maintainer can also merge pull requests.
 This corresponds to the "Write" role in github.
-All maintainers should be be listed in the [CODEOWNERS file](../.github/CODEOWNERS).
+All maintainers must be listed in the [CODEOWNERS file](../.github/CODEOWNERS).
 
-Personnel: @Alan-Jowett @dthaler @dv-msft @LakshK98 @matthewige @mikeagun @mtfriesen
-@poornagmsft @saxena-anurag @shankarseal @vpidatala94
+Personnel: @Alan-Jowett @dthaler @LakshK98 @matthewige @mikeagun
+@saxena-anurag @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -86,7 +86,7 @@ In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
 The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
-Personnel: @Alan-Jowett @dv-msft @kumarvin123 @LakshK98 @matthewige @mikeagun @nigriMSFT @saxena-anurag @shankarseal @vpidatala94
+Personnel: @Alan-Jowett @LakshK98 @matthewige @mikeagun @saxena-anurag @shankarseal
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -137,6 +137,16 @@ requested by users. `P1` issues MUST be set to the *current milestone*.
 This label is used for the next level of priority. Issues marked as `P2` can be set to the current milestone or to a future milestones (preferred).
 ### P3:
 This label is used for low priority issues. Issues marked as `P3` can be set to any future milestone or the `Backlog` milestone.
+
+## Closing Active Issues
+
+* Follow GitHub guidelines on [closing an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/administering-issues/closing-an-issue).
+* Follow GitHub guidelines on [closing duplicate issues](https://github.blog/changelog/2024-12-12-github-issues-projects-close-issue-as-a-duplicate-rest-api-for-sub-issues-and-more/#broom-close-an-issue-as-a-duplicate).
+* Issues for bugs that cannot be reproduced can be closed as "not planned" after providing relevant details (such as trace logs etc.).
+* Closing an issue for any other reason, including (but not limited to) not fixing the bug, or not completing the task
+ requires discussion in a triage meeting, and should not be done purely due to lack of resources for which case moving
+ to "P3, Help Wanted, Backlog" is preferred. Closing an issue as "*Won't Fix*" is appropriate when it is decided that
+ the proposal is (or no longer is) a good idea to be done at all.
 
 ## Milestone Issues Limit
 Triage managers need to ensure that the number of issues in a milestone does not exceed the capacity of the contributors
