@@ -1841,7 +1841,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     ebpf_core_object_t* object = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, &(uint8_t*)object);
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, (uint8_t**)&object);
     if (result == EBPF_SUCCESS) {
         ebpf_assert(object != NULL);
         EBPF_OBJECT_RELEASE_REFERENCE(object);
@@ -3721,8 +3721,6 @@ ebpf_map_get_next_key_and_value_batch(
         } else {
             memcpy(key_and_value + output_length + key_size, next_value, value_size);
         }
-
-        memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
         if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
             // If the caller requested deletion, delete the previous entry.
