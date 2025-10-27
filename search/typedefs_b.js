@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['u32_0',['u32',['../linux_2bpf_8h.html#afaa62991928fb9fb18ff0db62a040aba',1,'bpf.h']]],
-  ['u64_1',['u64',['../linux_2bpf_8h.html#a3f7e2bcbb0b4c338f3c4f6c937cd4234',1,'bpf.h']]],
-  ['u8_2',['u8',['../linux_2bpf_8h.html#a92c50087ca0e64fa93fc59402c55f8ca',1,'bpf.h']]],
-  ['udp_5fheader_3',['UDP_HEADER',['../udp_8h.html#a17ac0d25aba27db7ba6896b8c21026d8',1,'udp.h']]]
+  ['s32_0',['s32',['../linux_2bpf_8h.html#ae9b1af5c037e57a98884758875d3a7c4',1,'bpf.h']]],
+  ['sock_5faddr_5fhook_5ft_1',['sock_addr_hook_t',['../ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0',1,'ebpf_nethooks.h']]],
+  ['sock_5fops_5fhook_5ft_2',['sock_ops_hook_t',['../ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44',1,'ebpf_nethooks.h']]]
 ];

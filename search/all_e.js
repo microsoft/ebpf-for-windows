@@ -10,6 +10,7 @@ var searchData=
   ['ns_7',['ns',['../structtcphdr.html#aeafe34e2e91f4a4d9339afd1c3f1f6e8',1,'tcphdr']]],
   ['ntohl_8',['ntohl',['../bpf__endian_8h.html#a6a20f63e739c4f61a0f7f74cf1963c3b',1,'bpf_endian.h']]],
   ['ntohs_9',['ntohs',['../bpf__endian_8h.html#a118e9d76568ab81ad97f138d4ea1ddd2',1,'bpf_endian.h']]],
-  ['null_10',['NULL',['../bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4',1,'bpf_helpers.h']]],
-  ['numa_5fnode_11',['numa_node',['../structbpf__create__map__attr.html#af8723e4fa2d0798c321986487589a18e',1,'bpf_create_map_attr::numa_node'],['../structsys__bpf__map__create__attr__t.html#a8db9edf281d3ac77df758917127854e1',1,'sys_bpf_map_create_attr_t::numa_node']]]
+  ['ntstatus_10',['NTSTATUS',['../ebpf__error_8h.html#a77a2f6628aaa056315f8c8ad2c466fdc',1,'ebpf_error.h']]],
+  ['null_11',['NULL',['../bpf__helpers_8h.html#a070d2ce7b6bb7e5c05602aa8c308d0c4',1,'bpf_helpers.h']]],
+  ['numa_5fnode_12',['numa_node',['../structbpf__create__map__attr.html#af8723e4fa2d0798c321986487589a18e',1,'bpf_create_map_attr::numa_node'],['../structsys__bpf__map__create__attr__t.html#a8db9edf281d3ac77df758917127854e1',1,'sys_bpf_map_create_attr_t::numa_node']]]
 ];

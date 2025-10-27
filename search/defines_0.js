@@ -22,5 +22,6 @@ var searchData=
   ['_5f_5fsizeof_5fsize_5ft_5f_5f_19',['__SIZEOF_SIZE_T__',['../linux_2bpf_8h.html#ab6eb3d66486ef05ac7f1d489bfc675b4',1,'bpf.h']]],
   ['_5f_5ftype_20',['__type',['../bpf__helpers_8h.html#a8afc50e76565515dbc20be851740c541',1,'bpf_helpers.h']]],
   ['_5f_5fuint_21',['__uint',['../bpf__helpers_8h.html#a53eecf515a6f53b14bacff1706172981',1,'bpf_helpers.h']]],
-  ['_5fwin32_22',['_WIN32',['../bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3',1,'bpf_helpers.h']]]
+  ['_5famd64_5f_22',['_AMD64_',['../ebpf__error_8h.html#aecf841e6d30b2565cffcb9e35531c7d4',1,'ebpf_error.h']]],
+  ['_5fwin32_23',['_WIN32',['../bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3',1,'bpf_helpers.h']]]
 ];
