@@ -39,7 +39,7 @@ jobs:
           egress-policy: audit
 
       - name: Download performance result artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
         with:
           name: Test-Logs-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results_artifact
@@ -65,7 +65,7 @@ jobs:
 
       # Grab the output from the results directory and upload it as an artifact to debug failures.
       - name: Upload data as artifacts for debugging
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: Test-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results
@@ -105,7 +105,7 @@ jobs:
           psql -f ./check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
 
       - name: Upload regression results
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: Regression-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results/regression_results.csv
