@@ -6,6 +6,7 @@
 #define TOKEN_COMPARTMENT L"compartment"
 #define TOKEN_EXECUTION L"execution"
 #define TOKEN_FILENAME L"filename"
+#define TOKEN_HASHONLY L"hashonly"
 #define TOKEN_ID L"id"
 #define TOKEN_INTERFACE L"interface"
 #define TOKEN_LEVEL L"level"
