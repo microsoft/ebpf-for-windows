@@ -19,6 +19,8 @@
     ((x) == BPF_MAP_TYPE_ARRAY_OF_MAPS || (x) == BPF_MAP_TYPE_PROG_ARRAY || (x) == BPF_MAP_TYPE_HASH_OF_MAPS)
 #define IS_NESTED_HASH_MAP(x) ((x) == BPF_MAP_TYPE_HASH_OF_MAPS)
 
+#define ACTUAL_VALUE_SIZE(x) (IS_NESTED_MAP((x)->type) ? sizeof(ebpf_core_object_t*) : (x)->value_size)
+
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
@@ -309,9 +311,6 @@ typedef struct _ebpf_core_circular_map
     uint8_t* slots[1];
 } ebpf_core_circular_map_t;
 
-static uint8_t*
-_get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value);
-
 static size_t
 _ebpf_core_circular_map_add(_In_ const ebpf_core_circular_map_t* map, size_t value, int delta)
 {
@@ -419,7 +418,6 @@ typedef struct _ebpf_map_metadata_table
     ebpf_result_t (*associate_program)(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
         _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
-    ebpf_core_object_t* (*get_object_from_entry)(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
         _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
@@ -589,18 +587,14 @@ _find_array_map_entry(
         return EBPF_OBJECT_NOT_FOUND;
     }
 
-    size_t actual_value_size = map->ebpf_map_definition.value_size;
-    if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-        // For nested array maps, the value is a pointer to the actual value.
-        actual_value_size = sizeof(uint8_t*);
-    }
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
     *data = &map->data[key_value * actual_value_size];
 
     return EBPF_SUCCESS;
 }
 
 static ebpf_result_t
-_find_array_map_entry_with_reference(
+_find_object_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
@@ -662,10 +656,7 @@ _delete_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
         return EBPF_INVALID_ARGUMENT;
     }
 
-    size_t actual_value_size = map->ebpf_map_definition.value_size;
-    if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-        actual_value_size = sizeof(uint8_t*);
-    }
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
     uint8_t* entry = &map->data[key_value * actual_value_size];
     if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
         WriteULong64NoFence((volatile uint64_t*)entry, 0);
@@ -703,10 +694,7 @@ _next_array_map_key_and_value(
 
     // Copy the value of requested.
     if (value) {
-        size_t actual_value_size = map->ebpf_map_definition.value_size;
-        if (IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type)) {
-            actual_value_size = sizeof(uint8_t*);
-        }
+        size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
         *value = &map->data[key_value * actual_value_size];
     }
 
@@ -760,7 +748,7 @@ static void
 _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t value_type)
 {
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-    size_t actual_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
 
     UNREFERENCED_PARAMETER(value_type);
     ebpf_assert(IS_NESTED_ARRAY_MAP(map->ebpf_map_definition.type));
@@ -795,7 +783,7 @@ _create_object_array_map(
 {
     ebpf_core_map_t* local_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t actual_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(map_definition);
 
     EBPF_LOG_ENTRY();
 
@@ -990,7 +978,7 @@ _update_array_map_entry_with_handle(
         }
     }
 
-    size_t actual_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
     ebpf_core_object_t* old_object = (ebpf_core_object_t*)ReadULong64NoFence(
         (volatile const uint64_t*)&map->data[*(uint32_t*)key * actual_value_size]);
     if (old_object) {
@@ -1220,7 +1208,7 @@ _create_object_hash_map(
 {
     ebpf_core_map_t* local_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t actual_value_size = sizeof(uint8_t*);
+    size_t actual_value_size = ACTUAL_VALUE_SIZE(map_definition);
 
     EBPF_LOG_ENTRY();
 
@@ -1698,24 +1686,6 @@ _find_hash_map_entry(
     }
 
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
-}
-
-/**
- * @brief Get an object from a map entry that holds objects, such
- * as a hash of maps.  The object returned holds a
- * reference that the caller is responsible for releasing.
- *
- * @param[in] map Hash map to search.
- * @param[in] key Pointer to the key to search for.
- * @returns Object pointer, or NULL if none.
- */
-static _Ret_maybenull_ ebpf_core_object_t*
-_get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
-{
-    ebpf_core_object_t* object = NULL;
-    _find_hash_map_entry(map, key, false, &(uint8_t*)object);
-
-    return object;
 }
 
 volatile int32_t reap_attempt_counts[64] = {0};
@@ -3038,8 +3008,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_object_array_map,
         .delete_map = _delete_program_array_map,
         .associate_program = _associate_program_with_prog_array_map,
-        .find_entry = _find_array_map_entry_with_reference,
-        .get_object_from_entry = _get_object_from_array_map_entry,
+        .find_entry = _find_object_array_map_entry,
         .update_entry_with_handle = _update_prog_array_map_entry_with_handle,
         .delete_entry = _delete_program_array_map_entry,
         .next_key_and_value = _next_array_map_key_and_value,
@@ -3071,7 +3040,6 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_object_hash_map,
         .delete_map = _delete_object_hash_map,
         .find_entry = _find_hash_map_entry,
-        .get_object_from_entry = _get_object_from_hash_map_entry,
         .update_entry_with_handle = _update_map_hash_map_entry_with_handle,
         .delete_entry = _delete_map_hash_map_entry,
         .next_key_and_value = _next_hash_map_key_and_value,
@@ -3080,8 +3048,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
         .create_map = _create_object_array_map,
         .delete_map = _delete_map_array_map,
-        .find_entry = _find_array_map_entry_with_reference,
-        .get_object_from_entry = _get_object_from_array_map_entry,
+        .find_entry = _find_object_array_map_entry,
         .update_entry_with_handle = _update_map_array_map_entry_with_handle,
         .delete_entry = _delete_map_array_map_entry,
         .next_key_and_value = _next_array_map_key_and_value,
@@ -3260,7 +3227,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
+    ebpf_object_get_program_type_t get_program_type = (IS_NESTED_MAP(type)) ? _get_map_program_type : NULL;
     result = EBPF_OBJECT_INITIALIZE(
         &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, zero_user_function, get_program_type);
     if (result != EBPF_SUCCESS) {
@@ -3321,25 +3288,16 @@ ebpf_map_find_entry(
 
     EBPF_LOG_MAP_OPERATION(flags, "find", map, key);
 
-    if ((flags & EBPF_MAP_FLAG_HELPER) && (table->get_object_from_entry != NULL)) {
+    // Disallow reads to prog array maps from this helper call for now.
+    if ((flags & EBPF_MAP_FLAG_HELPER) && (type == BPF_MAP_TYPE_PROG_ARRAY)) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
+        return EBPF_INVALID_ARGUMENT;
+    }
 
-        // Disallow reads to prog array maps from this helper call for now.
-        if (type == BPF_MAP_TYPE_PROG_ARRAY) {
-            EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
-            return EBPF_INVALID_ARGUMENT;
-        }
-
-        ebpf_core_object_t* object = table->get_object_from_entry(map, key);
-        if (object) {
-            return_value = (uint8_t*)object;
-        }
-    } else {
-        ebpf_result_t result =
-            table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
-        if (result != EBPF_SUCCESS) {
-            return result;
-        }
+    ebpf_result_t result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+    if (result != EBPF_SUCCESS) {
+        return result;
     }
     if (return_value == NULL) {
         return EBPF_OBJECT_NOT_FOUND;
