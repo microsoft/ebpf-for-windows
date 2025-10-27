@@ -38,7 +38,7 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-// Extern variable defined in ebpf_core_jit.h
+// Extern variable defined in ebpf_core_jit.h.
 bool ebpf_platform_hypervisor_code_integrity_enabled = true;
 static bool _ebpf_platform_test_signing_enabled = true;
 

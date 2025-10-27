@@ -522,7 +522,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             if (map.name.empty()) {
                 map.name = "__anonymous_" + std::to_string(++anonymous_map_count);
             }
-            // Skip the global variable maps as they are handled seperately.
+            // Skip the global variable maps as they are handled separately.
             if (map.name == ".bss" || map.name == ".data" || map.name == ".rodata") {
                 continue;
             }

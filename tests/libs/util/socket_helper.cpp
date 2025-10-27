@@ -126,13 +126,13 @@ _base_socket::~_base_socket() { clean_up_socket(socket); }
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
 {
-    // Query the current local address from the socket
+    // Query the current local address from the socket.
     int error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
     if (error != 0) {
         FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
     }
 
-    // Return the freshly queried address
+    // Return the freshly queried address.
     address = (PSOCKADDR)&local_address;
     address_length = local_address_size;
 }
@@ -486,11 +486,11 @@ _datagram_server_socket::_datagram_server_socket(
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 
-    // Enable redirect context for UDP sockets
+    // Enable redirect context for UDP sockets.
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
 
-        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
+        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets.
         if (family == IPv4 || family == Dual) {
             int result = setsockopt(
                 socket,
@@ -503,7 +503,7 @@ _datagram_server_socket::_datagram_server_socket(
             }
         }
 
-        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
+        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets.
         if (family == IPv6 || family == Dual) {
             int result = setsockopt(
                 socket,
@@ -533,7 +533,7 @@ _datagram_server_socket::post_async_receive()
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
     }
 
-    // Set up WSAMSG structure for WSARecvMsg
+    // Set up WSAMSG structure for WSARecvMsg.
     recv_msg.name = (LPSOCKADDR)&sender_address;
     recv_msg.namelen = sender_address_size;
     recv_msg.lpBuffers = &wsa_recv_buffer;
@@ -541,7 +541,7 @@ _datagram_server_socket::post_async_receive()
     recv_msg.Control = wsa_control_buffer;
     recv_msg.dwFlags = 0;
 
-    // Post an asynchronous receive using WSARecvMsg to get ancillary data
+    // Post an asynchronous receive using WSARecvMsg to get ancillary data.
     error = receive_message(socket, &recv_msg, nullptr, &overlapped, nullptr);
 
     if (error != 0) {
