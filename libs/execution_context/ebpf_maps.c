@@ -1055,9 +1055,8 @@ _delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* ke
 }
 
 /**
- * @brief Get an object from a map entry that holds objects, such
- * as a program array or array of maps.  The object returned holds a
- * reference that the caller is responsible for releasing.
+ * @brief Get an object from a map entry that holds objects, such as a program array
+ * or array of maps.
  *
  * @param[in] map Array map to search.
  * @param[in] key Pointer to the key to search for.
