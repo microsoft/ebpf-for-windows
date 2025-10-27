@@ -1871,6 +1871,13 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             // We failed to invoke at least one program in the chain, block the request.
             verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
         }
+    } else {
+        // Attach point not invoked due to prior verdict
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "AUTH_CONNECT attach point skipped due to prior verdict",
+            verdict);
     }
 
 Exit:

@@ -421,8 +421,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                            old_code_size[1],
                            old_code_size[2],
                            old_code_size[3],
-                           code_size[4],
-                           code_size[5])));
+                           old_code_size[4],
+                           old_code_size[5])));
 
     if (!output_matches) {
         std::cerr << "Expected output:\n" << expected_output << "\n";

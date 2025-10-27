@@ -71,7 +71,6 @@ Both AUTH_CONNECT attach types use the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program 
 
 ### Verdict Handling
 AUTH_CONNECT programs can return:
-- `BPF_SOCK_ADDR_VERDICT_PROCEED` - Allow the connection to proceed normally
 - `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the connection and skip further authorization checks
 - `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the connection but continue with additional authorization checks
 - `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the connection
@@ -97,11 +96,13 @@ AUTH_CONNECT and AUTH_RECV_ACCEPT attach types provide access to additional netw
 Returns the network interface type for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Interface type value, or 0 if not available
 - **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
+- **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `6` (ethernetCsmacd), `71` (ieee80211 for WiFi), `131` (tunnel), etc.
 
 #### `bpf_sock_addr_get_tunnel_type(ctx)`
 Returns the tunnel type information for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Tunnel type value, or 0 if not a tunnel or not available
 - **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
+- **Note**: Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc.
 
 #### `bpf_sock_addr_get_nexthop_interface_luid(ctx)`
 Returns the next-hop interface LUID for the connection. Available for AUTH_CONNECT hooks only.
@@ -120,6 +121,96 @@ The implementation includes a filtering mechanism to ensure that:
 
 This prevents cross-invocation and ensures programs run at the appropriate layer.
 
+## Program Interaction: CONNECT and AUTH_CONNECT Together
+
+When both CONNECT and AUTH_CONNECT programs are attached to the same cgroup, they operate in a coordinated sequence that provides comprehensive connection control:
+
+### Execution Order
+1. **CONNECT Layer** (`BPF_CGROUP_INET4_CONNECT`/`BPF_CGROUP_INET6_CONNECT`)
+   - Executes first at the **redirect layer** (before route selection)
+   - Can **redirect** connections to different destinations
+   - Has access to basic connection information (source/dest IP/port)
+   - Produces a verdict that affects subsequent processing
+
+2. **AUTH_CONNECT Layer** (`BPF_CGROUP_INET4_AUTH_CONNECT`/`BPF_CGROUP_INET6_AUTH_CONNECT`)
+   - Executes second at the **authorization layer** (after route selection)
+   - **Cannot redirect** connections (route already selected)
+   - Has access to enhanced network context (interface type, tunnel info, routing details)
+   - Makes final authorization decision
+
+### Verdict Flow and Interaction
+
+The verdict from the CONNECT layer determines whether AUTH_CONNECT programs are invoked:
+
+- **`BPF_SOCK_ADDR_VERDICT_REJECT`** from CONNECT → Connection blocked, AUTH_CONNECT programs **not invoked**
+- **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** from CONNECT → Connection authorized, AUTH_CONNECT programs **not invoked** (optimization)
+- **`BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`** from CONNECT → AUTH_CONNECT programs **are invoked** for additional authorization
+
+### Use Case: Layered Security Policy
+
+```c
+// CONNECT layer program - handles redirection and basic filtering
+SEC("cgroup/connect4")
+int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
+{
+    // Block known malicious destinations immediately
+    if (is_blacklisted_destination(ctx->user_ip4)) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT; // AUTH_CONNECT will NOT run
+    }
+
+    // Redirect to local proxy for inspection
+    if (needs_proxy_inspection(ctx->user_ip4)) {
+        ctx->user_ip4 = PROXY_SERVER_IP;
+        ctx->user_port = PROXY_SERVER_PORT;
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // AUTH_CONNECT WILL run
+    }
+
+    // High-trust destinations can skip additional authorization
+    if (is_highly_trusted_destination(ctx->user_ip4)) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD; // AUTH_CONNECT will NOT run
+    }
+
+    // Default: allow but require additional authorization
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // AUTH_CONNECT WILL run
+}
+
+// AUTH_CONNECT layer program - handles interface-aware authorization
+SEC("cgroup/auth_connect4")
+int interface_aware_authorization(struct bpf_sock_addr *ctx)
+{
+    // This program only runs for PROCEED_SOFT verdicts from CONNECT layer
+
+    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
+    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+
+    // Block connections on public WiFi to sensitive destinations
+    if (interface_type == 71 && is_sensitive_destination(ctx->user_ip4)) { // ieee80211
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    // Require VPN for external connections
+    if (!is_internal_network(ctx->user_ip4) && tunnel_type == 0) {
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+
+    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+}
+```
+
+### Benefits of Layered Approach
+
+1. **Performance Optimization**: PROCEED_HARD verdicts skip unnecessary AUTH_CONNECT processing for trusted connections
+2. **Comprehensive Control**: CONNECT handles redirection + basic filtering, AUTH_CONNECT adds interface-aware policies
+3. **Separation of Concerns**: Network topology changes (CONNECT) vs. authorization policies (AUTH_CONNECT)
+4. **Flexibility**: Each layer can be independently updated without affecting the other
+
+### Important Considerations
+
+- **Redirection must happen at CONNECT layer**: Once AUTH_CONNECT runs, route selection is complete
+- **Context preservation**: Connection context from CONNECT layer is available to AUTH_CONNECT programs
+- **Verdict precedence**: REJECT verdicts are final; PROCEED_HARD optimizes by skipping AUTH_CONNECT
+- **Error handling**: Failures in either layer result in connection blocking for security
+
 ## Example Scenarios
 
 ### Scenario 1: Interface-Based Access Control
@@ -131,14 +222,14 @@ int auth_connect_interface_policy(struct bpf_sock_addr *ctx)
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
 
     // Apply interface-specific policy with appropriate verdict types
-    if (interface_type == INTERFACE_TYPE_VPN) {
+    if (interface_type == 131) { // tunnel(131) - VPN/tunnel interfaces
         // VPN connections are highly trusted - skip additional authorization
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-    } else if (interface_type == INTERFACE_TYPE_PUBLIC_WIFI) {
+    } else if (interface_type == 71) { // ieee80211(71) - WiFi interfaces
         // Block connections on public WiFi for sensitive applications
         return BPF_SOCK_ADDR_VERDICT_REJECT;
-    } else if (interface_type == INTERFACE_TYPE_CORPORATE_NETWORK) {
-        // Corporate network - allow but continue with normal authorization flow
+    } else if (interface_type == 6) { // ethernetCsmacd(6) - Ethernet interfaces
+        // Corporate wired network - allow but continue with normal authorization flow
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
@@ -158,7 +249,9 @@ int auth_connect_tunnel_policy(struct bpf_sock_addr *ctx)
     if (tunnel_type != 0) {
         // This is a tunneled connection
         // Apply tunnel-specific security policy
-        if (tunnel_type == TUNNEL_TYPE_IPSEC) {
+        if (tunnel_type == 19) { // ipsectunnelmode(19) - IPSec tunnel mode
+            return BPF_SOCK_ADDR_VERDICT_PROCEED;
+        } else if (tunnel_type == 3) { // gre(3) - GRE encapsulation
             return BPF_SOCK_ADDR_VERDICT_PROCEED;
         } else {
             // Unknown or unsupported tunnel type
@@ -205,7 +298,7 @@ int auth_connect_verdict_demo(struct bpf_sock_addr *ctx)
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
 
     // Trusted internal network with VPN - maximum trust
-    if (is_internal_network(dest_ip) && tunnel_type == TUNNEL_TYPE_IPSEC) {
+    if (is_internal_network(dest_ip) && tunnel_type == 19) { // ipsectunnelmode(19)
         // Skip all further authorization checks for performance
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     }
@@ -215,14 +308,14 @@ int auth_connect_verdict_demo(struct bpf_sock_addr *ctx)
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
-    // Corporate network - allow but let other filters validate
-    if (interface_type == INTERFACE_TYPE_CORPORATE_NETWORK) {
+    // Corporate wired network - allow but let other filters validate
+    if (interface_type == 6) { // ethernetCsmacd(6) - Ethernet
         // Continue with normal authorization flow
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    // External destinations on public networks - proceed with caution
-    if (interface_type == INTERFACE_TYPE_PUBLIC_WIFI) {
+    // External destinations on public WiFi networks - proceed with caution
+    if (interface_type == 71) { // ieee80211(71) - WiFi
         // Allow but ensure other security mechanisms evaluate this
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
@@ -244,7 +337,7 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
     uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
 
     // Create a comprehensive security decision based on all available context
-    if (interface_type == INTERFACE_TYPE_CELLULAR && tunnel_type == 0) {
+    if (interface_type == 187 && tunnel_type == 0) { // aal2(187) - cellular without tunnel
         // On cellular without tunnel - apply data usage restrictions
         if (is_high_bandwidth_destination(ctx->user_ip4)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
