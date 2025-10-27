@@ -2605,7 +2605,7 @@ _ebpf_pe_get_map_definitions(
         // at other times, they are 16-byte-aligned. Skip over them looking for the
         // map_entry_t which starts with an 8-byte-aligned NULL pointer where the previous
         // byte (if any) is also 00, and the following 8 bytes are also NULL. The next 8 bytes
-        // are not not NULL though.
+        // are not NULL though.
         uint32_t map_offset = 0;
         uint64_t zero = 0;
         while (map_offset + 24 < section_header.Misc.VirtualSize &&
@@ -5270,7 +5270,7 @@ ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_E
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-// Context structure for section data extraction
+// Context structure for section data extraction.
 typedef struct _ebpf_section_data_context
 {
     const char* section_name;
@@ -5279,7 +5279,7 @@ typedef struct _ebpf_section_data_context
     const uint8_t* section_data;
 } ebpf_section_data_context_t;
 
-// Callback function for PE section iteration
+// Callback function for PE section iteration.
 static int
 _ebpf_pe_find_section(
     _Inout_ void* context,
@@ -5297,9 +5297,9 @@ _ebpf_pe_find_section(
         ctx->section_found = true;
         ctx->section_size = buffer->bufLen;
         ctx->section_data = buffer->buf;
-        return 1; // Stop iteration
+        return 1; // Stop iteration.
     }
-    return 0; // Continue iteration
+    return 0; // Continue iteration.
 }
 CATCH_NO_MEMORY_INT(1)
 
@@ -5316,7 +5316,7 @@ ebpf_api_get_data_section(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    // Determine file type by extension
+    // Determine file type by extension.
     std::string path(file_path);
     bool is_pe_file = false;
     if (path.size() > 4) {
@@ -5330,14 +5330,14 @@ ebpf_api_get_data_section(
     ebpf_result_t result = EBPF_SUCCESS;
 
     if (is_pe_file) {
-        // Parse PE file using pe-parse library
+        // Parse PE file using pe-parse library.
         std::scoped_lock pe_parse_lock(_pe_parse_mutex);
         parsed_pe* pe = ParsePEFromFile(file_path);
         if (pe == nullptr) {
             EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
         }
 
-        // Set up context for section search
+        // Set up context for section search.
         ebpf_section_data_context_t section_context = {
             .section_name = section_name, .section_found = false, .section_size = 0, .section_data = nullptr};
 
@@ -5348,30 +5348,30 @@ ebpf_api_get_data_section(
             EBPF_RETURN_RESULT(EBPF_OBJECT_NOT_FOUND);
         }
 
-        // Check buffer size
+        // Check buffer size.
         if (data == nullptr) {
-            // Just return the size
+            // Just return the size.
             *data_size = section_context.section_size;
         } else if (*data_size < section_context.section_size) {
-            // Buffer too small
+            // Buffer too small.
             *data_size = section_context.section_size;
             DestructParsedPE(pe);
             EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
         } else {
-            // Copy data to buffer
+            // Copy data to buffer.
             memcpy(data, section_context.section_data, section_context.section_size);
             *data_size = section_context.section_size;
         }
 
         DestructParsedPE(pe);
     } else {
-        // Parse ELF file using ELFIO library
+        // Parse ELF file using ELFIO library.
         ELFIO::elfio reader;
         if (!reader.load(file_path)) {
             EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
         }
 
-        // Find the section by name
+        // Find the section by name.
         ELFIO::section* section = reader.sections[section_name];
         if (section == nullptr || section->get_data() == nullptr) {
             EBPF_RETURN_RESULT(EBPF_OBJECT_NOT_FOUND);
@@ -5379,16 +5379,16 @@ ebpf_api_get_data_section(
 
         size_t section_size = section->get_size();
 
-        // Check buffer size
+        // Check buffer size.
         if (data == nullptr) {
-            // Just return the size
+            // Just return the size.
             *data_size = section_size;
         } else if (*data_size < section_size) {
-            // Buffer too small
+            // Buffer too small.
             *data_size = section_size;
             EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
         } else {
-            // Copy data to buffer
+            // Copy data to buffer.
             memcpy(data, section->get_data(), section_size);
             *data_size = section_size;
         }
