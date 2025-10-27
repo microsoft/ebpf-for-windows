@@ -7,6 +7,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_error.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"

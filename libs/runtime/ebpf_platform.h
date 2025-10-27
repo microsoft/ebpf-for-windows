@@ -689,17 +689,6 @@ extern "C"
     void
     ebpf_restore_current_thread_cpu_affinity(_In_ GROUP_AFFINITY* old_cpu_affinity);
 
-    typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
-
-    /**
-     * @brief Map an ebpf_result_t to a generic NTSTATUS code.
-     *
-     * @param[in] result ebpf_result_t to map.
-     * @return The generic NTSTATUS code.
-     */
-    NTSTATUS
-    ebpf_result_to_ntstatus(ebpf_result_t result);
-
     /**
      * @brief Map an ebpf_result_t to a generic Win32 error code.
      *
