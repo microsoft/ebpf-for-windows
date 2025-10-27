@@ -18,7 +18,6 @@
   - [WFP Implementation Details](#wfp-implementation-details)
     - [Supported WFP Fields](#supported-wfp-fields)
     - [Filter Configuration](#filter-configuration)
-  - [Helper Functions](#helper-functions)
   - [Use Cases](#use-cases)
     - [Security and Access Control](#security-and-access-control)
     - [Monitoring and Auditing](#monitoring-and-auditing)
@@ -43,14 +42,13 @@ Support an eBPF interface for intercepting and controlling socket listen operati
 The new hooks will support:
 - Security solutions that need to control which applications can listen on specific ports
 - Network monitoring and auditing solutions
-- Port allocation enforcement and management
 - Process-based network access control
 
 ## Requirements
 
 - Hook that allows intercepting socket listen operations for both IPv4 and IPv6
 - Access to key socket and process information during listen authorization
-- Ability to allow, block, or redirect listen operations
+- Ability to allow or block listen operations
 - Support for multiple eBPF programs attached to the same hook
 - Minimal performance impact on non-monitored traffic
 - Integration with existing eBPF for Windows infrastructure
@@ -75,7 +73,7 @@ The listen hook extension introduces a new eBPF program type for intercepting so
 
 ### Program Type
 
-- **BPF_PROG_TYPE_SOCK_LISTEN**: A new program type specifically for socket listen operations. This program type is dedicated to intercepting and controlling socket bind/listen operations through the WFP ALE Authorization Listen layers.
+- **BPF_PROG_TYPE_SOCK_LISTEN**: A new program type specifically for socket listen operations. This program type is dedicated to intercepting and controlling socket listen operations through the WFP ALE Authorization Listen layers.
 
 The program type will have a corresponding GUID identifier:
 
@@ -171,7 +169,6 @@ typedef struct bpf_sock_addr_listen
     uint32_t socket_type;        ///< Socket type (SOCK_STREAM, SOCK_DGRAM, etc.).
     uint32_t interface_type;     ///< Interface type.
     uint32_t tunnel_type;        ///< Tunnel type.
-    uint32_t profile_id;         ///< Local interface profile ID.
 } bpf_sock_addr_listen_t;
 ```
 
@@ -220,7 +217,7 @@ eBPF Program(s)
     v
 WFP Action Processing
     |
-    | Allow/Block/Redirect
+    | Allow/Block
     v
 Socket Operation Result
 ```
@@ -245,17 +242,12 @@ The following WFP fields from the ALE_AUTH_LISTEN layers will be made available 
 | FWPM_CONDITION_IP_LOCAL_ADDRESS | Local IP address | local_ip4/local_ip6 |
 | FWPM_CONDITION_IP_LOCAL_PORT | Local port | local_port |
 | FWPM_CONDITION_IP_PROTOCOL | IP protocol | protocol |
-| FWPM_CONDITION_ALE_APP_ID | Application path | Available via helper |
-| FWPM_CONDITION_ALE_USER_ID | User SID | Available via helper |
 | FWPM_CONDITION_ALE_PROCESS_ID | Process ID | process_id |
 | FWPM_CONDITION_COMPARTMENT_ID | Compartment ID | compartment_id |
 | FWPM_CONDITION_IP_LOCAL_INTERFACE | Interface LUID | interface_luid |
 | FWPM_CONDITION_FLAGS | ALE flags | flags |
 | FWPM_CONDITION_INTERFACE_TYPE | Interface type | interface_type |
 | FWPM_CONDITION_TUNNEL_TYPE | Tunnel type | tunnel_type |
-| FWPM_CONDITION_LOCAL_INTERFACE_PROFILE_ID | Profile ID | profile_id |
-| FWPM_CONDITION_ALE_PACKAGE_ID | Package ID | Available via helper |
-| FWPM_CONDITION_PACKAGE_FAMILY_NAME | Package family name | Available via helper |
 
 ### Filter Configuration
 
@@ -281,47 +273,6 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameter
 };
 ```
 
-## Helper Functions
-
-The listen hook provides several helper functions to access additional context information:
-
-```c
-/**
- * @brief Get application path for the listening process
- * @param ctx Listen context
- * @param buffer Buffer to store application path
- * @param buffer_size Size of buffer
- * @return 0 on success, negative error code on failure
- */
-int bpf_listen_get_app_id(bpf_sock_listen_t* ctx, char* buffer, uint32_t buffer_size);
-
-/**
- * @brief Get user SID for the listening process
- * @param ctx Listen context
- * @param buffer Buffer to store SID
- * @param buffer_size Size of buffer
- * @return 0 on success, negative error code on failure
- */
-int bpf_listen_get_user_id(bpf_sock_listen_t* ctx, void* buffer, uint32_t buffer_size);
-
-/**
- * @brief Get package ID for UWP applications
- * @param ctx Listen context
- * @param package_id Pointer to store package ID
- * @return 0 on success, negative error code on failure
- */
-int bpf_listen_get_package_id(bpf_sock_listen_t* ctx, uint64_t* package_id);
-
-/**
- * @brief Get package family name for UWP applications
- * @param ctx Listen context
- * @param buffer Buffer to store package family name
- * @param buffer_size Size of buffer
- * @return 0 on success, negative error code on failure
- */
-int bpf_listen_get_package_family_name(bpf_sock_listen_t* ctx, char* buffer, uint32_t buffer_size);
-```
-
 ## Use Cases
 
 ### Security and Access Control
@@ -338,7 +289,6 @@ int bpf_listen_get_package_family_name(bpf_sock_listen_t* ctx, char* buffer, uin
 
 ### Resource Management
 
-- **Port Allocation Management**: Implement custom port allocation policies
 - **Service Conflict Prevention**: Prevent multiple services from conflicting on the same port
 - **Resource Quotas**: Limit the number of listening sockets per process/user
 
@@ -359,9 +309,7 @@ int monitor_listen_operations(bpf_sock_addr_listen_t* ctx)
     // Block privileged ports for non-privileged processes
     uint16_t port = bpf_ntohs(ctx->local_port);
     if (port < 1024) {
-        // Check if process has appropriate privileges
-        // This would typically involve checking user SID via helper function
-        // For demo purposes, block all privileged port access
+        // Block all privileged port access
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -412,8 +360,6 @@ The implementation should be benchmarked against:
 
 ### Phase 2: Context and Helpers
 - Implement bpf_sock_listen_t context population
-- Add helper functions for accessing process/application information and user SID
-- Implement helper functions for package information and extended context
 - Integrate with existing helper infrastructure for the new program type
 
 ### Phase 3: Testing and Validation
