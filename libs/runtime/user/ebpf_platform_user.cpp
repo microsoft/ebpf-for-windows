@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "..\..\external\usersim\src\platform.h"
+#include "ebpf_error.h"
 #include "ebpf_platform.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"

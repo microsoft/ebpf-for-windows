@@ -31,9 +31,6 @@
     <ClCompile Include="..\ebpf_epoch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_error.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>

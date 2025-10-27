@@ -4,6 +4,7 @@
 #define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
 
 #include "ebpf_core.h"
+#include "ebpf_error.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_native.h"
