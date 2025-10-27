@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-// The following function uses windows specific type as an input to match
-// definition of "FN_HANDLE_CMD" in public file of NetSh.h
+// The following function uses Windows-specific types as an input to match
+// definition of "FN_HANDLE_CMD" in public file of NetSh.h.
 unsigned long
 handle_ebpf_show_hash(
     IN LPCWSTR machine,
@@ -63,7 +63,7 @@ handle_ebpf_show_hash(
         return status;
     }
 
-    // First get the size of the hash section
+    // First get the size of the hash section.
     size_t hash_size = 0;
     ebpf_result_t result = ebpf_api_get_data_section(filename.c_str(), "hash", nullptr, &hash_size);
 
@@ -83,7 +83,7 @@ handle_ebpf_show_hash(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    // Allocate buffer and get the hash data
+    // Allocate buffer and get the hash data.
     std::vector<uint8_t> hash_data(hash_size);
     result = ebpf_api_get_data_section(filename.c_str(), "hash", hash_data.data(), &hash_size);
 
@@ -92,28 +92,28 @@ handle_ebpf_show_hash(
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    // Truncate hash to size of a SHA-256 hash if larger
+    // Truncate hash to size of a SHA-256 hash if larger.
     if (hash_size > 32) {
         hash_size = 32;
     }
 
-    // Resize vector to actual hash size
+    // Resize vector to actual hash size.
     hash_data.resize(hash_size);
 
     if (hash_only) {
-        // Print hash in PowerShell Get-FileHash format (uppercase, no spaces)
+        // Print hash in PowerShell Get-FileHash format (uppercase, no spaces).
         for (size_t i = 0; i < hash_size; i++) {
             std::cout << std::hex << std::uppercase << std::setw(2) << std::setfill('0')
                       << static_cast<unsigned int>(hash_data[i]);
         }
-        std::cout << std::dec << std::nouppercase << std::endl; // Reset formatting
+        std::cout << std::dec << std::nouppercase << std::endl; // Reset formatting.
     } else {
-        // Print detailed hash information
+        // Print detailed hash information.
         std::cout << "Hash for " << filename << ":" << std::endl;
         std::cout << "Size: " << hash_size << " bytes" << std::endl;
         std::cout << "Data: ";
 
-        // Print hash in hexadecimal format with spaces
+        // Print hash in hexadecimal format with spaces.
         for (size_t i = 0; i < hash_size; i++) {
             if (i > 0 && i % 16 == 0) {
                 std::cout << std::endl << "      ";
@@ -123,7 +123,7 @@ handle_ebpf_show_hash(
                 std::cout << " ";
             }
         }
-        std::cout << std::dec << std::endl; // Reset to decimal format
+        std::cout << std::dec << std::endl; // Reset to decimal format.
     }
 
     return NO_ERROR;

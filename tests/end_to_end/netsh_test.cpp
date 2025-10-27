@@ -1035,7 +1035,7 @@ _test_pin_unpin_map(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("pin/unpin map", "[netsh][pin]", _test_pin_unpin_map);
 
-// Test cases for show hash functionality
+// Test cases for show hash functionality.
 TEST_CASE("show hash nosuchfile.o", "[netsh][hash]")
 {
     _test_helper_netsh test_helper;
@@ -1064,7 +1064,7 @@ TEST_CASE("show hash PE file with hash section", "[netsh][hash]")
     test_helper.initialize();
 
     int result;
-    // Test with a PE file that has a hash section
+    // Test with a PE file that has a hash section.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUCCESS);
     REQUIRE(output.find("Hash for map_reuse_um.dll:") != std::string::npos);
@@ -1078,7 +1078,7 @@ TEST_CASE("show hash PE file without hash section", "[netsh][hash]")
     test_helper.initialize();
 
     int result;
-    // Test with a PE file that doesn't have a hash section
+    // Test with a PE file that doesn't have a hash section.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"EbpfApi.dll", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "No hash section found in EbpfApi.dll\n");
@@ -1090,20 +1090,20 @@ TEST_CASE("show hash PE file with hash section hashonly", "[netsh][hash]")
     test_helper.initialize();
 
     int result;
-    // Test with a PE file that has a hash section, hashonly format
+    // Test with a PE file that has a hash section, hashonly format.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"map_reuse_um.dll", L"hashonly", nullptr, &result);
     REQUIRE(result == ERROR_SUCCESS);
 
-    // Verify output is exactly 64 hex characters (32 bytes) + newline, all uppercase, no spaces
+    // Verify output is exactly 64 hex characters (32 bytes) + newline, all uppercase, no spaces.
     REQUIRE(output.length() == 65); // 64 characters + newline
     REQUIRE(output[64] == '\n');
 
-    // Check that all characters are uppercase hex
+    // Check that all characters are uppercase hex.
     for (int i = 0; i < 64; i++) {
         REQUIRE(((output[i] >= '0' && output[i] <= '9') || (output[i] >= 'A' && output[i] <= 'F')));
     }
 
-    // Verify no spaces in the hash
+    // Verify no spaces in the hash.
     REQUIRE(output.find(' ') == std::string::npos);
 }
 
@@ -1113,7 +1113,7 @@ TEST_CASE("show hash PE file without hash section hashonly", "[netsh][hash]")
     test_helper.initialize();
 
     int result;
-    // Test with a PE file that doesn't have a hash section, hashonly format
+    // Test with a PE file that doesn't have a hash section, hashonly format.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"EbpfApi.dll", L"hashonly", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     REQUIRE(output == "No hash section found in EbpfApi.dll\n");
