@@ -129,4 +129,8 @@ jobs:
             if [ "$RESPONSE" -ne 201 ]; then
               echo "::error ::Failed to comment on PR. HTTP $RESPONSE"
             fi
+
+            # Fail the workflow since no valid issue was found
+            echo "::error ::No valid issue reference found in PR title or body."
+            exit 1
           fi
