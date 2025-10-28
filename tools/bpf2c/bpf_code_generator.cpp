@@ -120,7 +120,7 @@ static const std::string _predicate_format_string[] = {
 
 #define ADD_OPCODE(X) {static_cast<uint8_t>(X), std::string(#X)}
 
-// remove EBPF_ATOMIC_ prefix
+// Remove EBPF_ATOMIC_ prefix.
 #define ADD_ATOMIC_OPCODE(X) {static_cast<int32_t>(X), std::string(#X).substr(12)}
 
 static std::map<int32_t, std::string> _atomic_opcode_name_strings = {
@@ -478,7 +478,7 @@ bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string&
             throw bpf_code_generator_exception("invalid symbol value");
         }
 
-        // Check for overflow of value + size
+        // Check for overflow of value + size.
         if ((value + size) < value) {
             throw bpf_code_generator_exception("invalid symbol value");
         }
@@ -522,7 +522,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             if (map.name.empty()) {
                 map.name = "__anonymous_" + std::to_string(++anonymous_map_count);
             }
-            // Skip the global variable maps as they are handled seperately.
+            // Skip the global variable maps as they are handled separately.
             if (map.name == ".bss" || map.name == ".data" || map.name == ".rodata") {
                 continue;
             }
@@ -1076,7 +1076,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
     auto helper_array_prefix = "runtime_context->helper_data[{}]";
 
-    // Encode instructions
+    // Encode instructions.
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         auto& inst = output.instruction;
