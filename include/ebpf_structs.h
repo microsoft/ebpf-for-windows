@@ -350,14 +350,14 @@ enum bpf_attach_type
      *
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */
-    BPF_CGROUP_INET4_AUTH_CONNECT,
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
 
     /** @brief Attach type for handling IPv6 TCP connect() or UDP send
      * authorization (before connection is authorized).
      *
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */
-    BPF_CGROUP_INET6_AUTH_CONNECT,
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
 
     __MAX_BPF_ATTACH_TYPE,
 };

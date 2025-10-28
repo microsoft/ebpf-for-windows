@@ -174,7 +174,7 @@ authorization_connect_test(
     // Load the programs.
     SAFE_REQUIRE(bpf_object__load(object) == 0);
     const char* authorization_connect_program_name =
-        (address_family == AF_INET) ? "authorize_auth_connect4" : "authorize_auth_connect6";
+        (address_family == AF_INET) ? "connect_authorization4" : "connect_authorization6";
     bpf_program* authorization_connect_program =
         bpf_object__find_program_by_name(object, authorization_connect_program_name);
     SAFE_REQUIRE(authorization_connect_program != nullptr);
@@ -212,9 +212,9 @@ authorization_connect_test(
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
-    // Attach the authorization connect program at BPF_CGROUP_INET4_AUTH_CONNECT.
+    // Attach the authorization connect program at BPF_CGROUP_INET4_CONNECT_AUTHORIZATION.
     bpf_attach_type authorization_connect_attach_type =
-        (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
         0,
@@ -365,9 +365,9 @@ helper_functions_validation_test(
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
-    // Attach the authorization connect program at the appropriate AUTH_CONNECT layer.
+    // Attach the authorization connect program at the appropriate CONNECT_AUTHORIZATION layer.
     bpf_attach_type authorization_connect_attach_type =
-        (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
         0,
@@ -378,7 +378,7 @@ helper_functions_validation_test(
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
-    // Send message to trigger the AUTH_CONNECT program.
+    // Send message to trigger the CONNECT_AUTHORIZATION program.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET) {
@@ -388,7 +388,7 @@ helper_functions_validation_test(
     }
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-    // Complete the connection to ensure AUTH_CONNECT program was invoked.
+    // Complete the connection to ensure CONNECT_AUTHORIZATION program was invoked.
     receiver_socket.complete_async_receive();
 
     // Calculate connection ID (same as in the eBPF program).
@@ -521,7 +521,10 @@ TEST_CASE(
 
     // Attach the conditional authorization program.
     int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)), 0, BPF_CGROUP_INET4_AUTH_CONNECT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+        0);
     SAFE_REQUIRE(result == 0);
 
     // Create test sockets.
@@ -531,7 +534,7 @@ TEST_CASE(
     // Post an asynchronous receive on the receiver socket.
     stream_server_socket.post_async_receive();
 
-    // Send message to trigger the conditional AUTH_CONNECT program.
+    // Send message to trigger the conditional CONNECT_AUTHORIZATION program.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);

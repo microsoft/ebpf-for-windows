@@ -13,7 +13,7 @@
 
 /**
  * @brief Sample program demonstrating the new socket address helper functions
- * for AUTH_CONNECT attach points. This program shows how to use the helper
+ * for CONNECT_AUTHORIZATION attach points. This program shows how to use the helper
  * functions to retrieve additional network layer properties.
  */
 
@@ -92,9 +92,9 @@ struct
 } test_results_map SEC(".maps");
 
 /**
- * @brief Test program for AUTH_CONNECT IPv4 that demonstrates all new helper functions.
+ * @brief Test program for CONNECT_AUTHORIZATION IPv4 that demonstrates all new helper functions.
  */
-SEC("cgroup/auth_connect4")
+SEC("cgroup/connect_authorization4")
 int
 test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
 {
@@ -147,9 +147,9 @@ exit:
 }
 
 /**
- * @brief Test program for AUTH_CONNECT IPv6 that demonstrates all new helper functions.
+ * @brief Test program for CONNECT_AUTHORIZATION IPv6 that demonstrates all new helper functions.
  */
-SEC("cgroup/auth_connect6")
+SEC("cgroup/connect_authorization6")
 int
 test_sock_addr_helpers_v6(bpf_sock_addr_t* ctx)
 {
@@ -200,7 +200,7 @@ exit:
 /**
  * @brief Demonstration program showing conditional logic based on helper function results.
  */
-SEC("cgroup/auth_connect4")
+SEC("cgroup/connect_authorization4")
 int
 conditional_authorization_v4(bpf_sock_addr_t* ctx)
 {

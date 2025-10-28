@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (AUTH_CONNECT and AUTH_RECV_ACCEPT only).
+    // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
     uint32_t interface_type;          ///< Interface type.
     uint32_t tunnel_type;             ///< Tunnel type (0 if not a tunnel).
     uint64_t next_hop_interface_luid; ///< Next-hop interface LUID.
@@ -483,27 +483,27 @@ const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
-    &EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT,
-    &EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT};
+    &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION};
 
 const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
     BPF_CGROUP_INET4_CONNECT,
     BPF_CGROUP_INET4_RECV_ACCEPT,
     BPF_CGROUP_INET6_CONNECT,
     BPF_CGROUP_INET6_RECV_ACCEPT,
-    BPF_CGROUP_INET4_AUTH_CONNECT,
-    BPF_CGROUP_INET6_AUTH_CONNECT};
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION};
 
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
 
-net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_auth_connect_filter_parameters[] = {
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_authorization_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V4,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
-net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_auth_connect_filter_parameters[] = {
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_authorization_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V6,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
@@ -572,12 +572,12 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
     {&EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
      EBPF_COUNT_OF(_cgroup_inet6_recv_accept_filter_parameters),
      &_cgroup_inet6_recv_accept_filter_parameters[0]},
-    {&EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT,
-     EBPF_COUNT_OF(_cgroup_inet4_auth_connect_filter_parameters),
-     &_cgroup_inet4_auth_connect_filter_parameters[0]},
-    {&EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT,
-     EBPF_COUNT_OF(_cgroup_inet6_auth_connect_filter_parameters),
-     &_cgroup_inet6_auth_connect_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+     EBPF_COUNT_OF(_cgroup_inet4_connect_authorization_filter_parameters),
+     &_cgroup_inet4_connect_authorization_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+     EBPF_COUNT_OF(_cgroup_inet6_connect_authorization_filter_parameters),
+     &_cgroup_inet6_connect_authorization_filter_parameters[0]},
 };
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
@@ -717,8 +717,8 @@ _net_ebpf_ext_is_cgroup_connect_attach_type(_In_ const ebpf_attach_type_t* attac
     return (
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0 ||
-        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT, sizeof(GUID)) == 0 ||
-        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT, sizeof(GUID)) == 0);
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0);
 }
 
 //
@@ -1771,11 +1771,13 @@ _net_ebpf_extension_sock_addr_is_auth_connect_program(_In_ const net_ebpf_extens
 {
     // hook_client->client_module_id contains the attach type GUID.
     return (memcmp(
-                &hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT, sizeof(ebpf_attach_type_t)) ==
-            0) ||
+                &hook_client->attach_type,
+                &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+                sizeof(ebpf_attach_type_t)) == 0) ||
            (memcmp(
-                &hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT, sizeof(ebpf_attach_type_t)) ==
-            0);
+                &hook_client->attach_type,
+                &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+                sizeof(ebpf_attach_type_t)) == 0);
 }
 
 /*

@@ -106,16 +106,16 @@ authorize_recv_accept6(bpf_sock_addr_t* ctx)
     return authorize_v6(ctx, &ingress_connection_policy_map);
 }
 
-SEC("cgroup/auth_connect4")
+SEC("cgroup/connect_authorization4")
 int
-authorize_auth_connect4(bpf_sock_addr_t* ctx)
+connect_authorization4(bpf_sock_addr_t* ctx)
 {
     return authorize_v4(ctx, &egress_connection_policy_map);
 }
 
-SEC("cgroup/auth_connect6")
+SEC("cgroup/connect_authorization6")
 int
-authorize_auth_connect6(bpf_sock_addr_t* ctx)
+connect_authorization6(bpf_sock_addr_t* ctx)
 {
     return authorize_v6(ctx, &egress_connection_policy_map);
 }

@@ -1,8 +1,8 @@
-# AUTH_CONNECT Attach Types
+# CONNECT_AUTHORIZATION Attach Types
 
 ## Overview
 
-This document explains the purpose and rationale behind the `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` attach types that were added to eBPF for Windows.
+This document explains the purpose and rationale behind the `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_AUTHORIZATION` attach types that were added to eBPF for Windows.
 
 ## Background
 
@@ -33,9 +33,9 @@ eBPF programs that need to make authorization decisions based on these propertie
 2. **Tunnel-aware security** - Different policies for tunneled vs. non-tunneled traffic
 3. **Route-dependent access control** - Authorization decisions that depend on the network path
 
-## Solution: AUTH_CONNECT Attach Types
+## Solution: CONNECT_AUTHORIZATION Attach Types
 
-The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` attach types address this limitation by operating at the **authorization layer** in WFP.
+The new `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_AUTHORIZATION` attach types address this limitation by operating at the **authorization layer** in WFP.
 
 ### Key Characteristics
 
@@ -46,8 +46,8 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 
 ### WFP Layer Mapping
 
-- `BPF_CGROUP_INET4_AUTH_CONNECT` → `FWPM_LAYER_ALE_AUTH_CONNECT_V4`
-- `BPF_CGROUP_INET6_AUTH_CONNECT` → `FWPM_LAYER_ALE_AUTH_CONNECT_V6`
+- `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` → `FWPM_LAYER_ALE_AUTH_CONNECT_V4`
+- `BPF_CGROUP_INET6_CONNECT_AUTHORIZATION` → `FWPM_LAYER_ALE_AUTH_CONNECT_V6`
 
 ## When to Use Each Attach Type
 
@@ -56,7 +56,7 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 - You only need basic connection information (source/destination IP/port)
 - Interface and route information is not relevant to your use case
 
-### Use AUTH_CONNECT Attach Types When:
+### Use CONNECT_AUTHORIZATION Attach Types When:
 - You need **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`)
 - You need **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`)
 - You need **next-hop interface** details (via `bpf_sock_addr_get_next_hop_interface_luid()`)
@@ -67,10 +67,10 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 ## Implementation Details
 
 ### Program Type
-Both AUTH_CONNECT attach types use the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, sharing the same context structure and helper functions as other sock_addr programs.
+Both CONNECT_AUTHORIZATION attach types use the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, sharing the same context structure and helper functions as other sock_addr programs.
 
 ### Verdict Handling
-AUTH_CONNECT programs can return:
+CONNECT_AUTHORIZATION programs can return:
 - `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the connection and skip further authorization checks
 - `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the connection but continue with additional authorization checks
 - `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the connection
@@ -87,43 +87,43 @@ AUTH_CONNECT programs can return:
 - Use `PROCEED_SOFT` or `PROCEED` for connections that should be allowed but may still need evaluation by other security mechanisms
 - Use `REJECT` to block connections that violate security policies
 
-**Important:** Redirect functionality is **not supported** at the AUTH_CONNECT layer since route selection has already occurred. Connection redirection can only be performed at the `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` layers.
+**Important:** Redirect functionality is **not supported** at the CONNECT_AUTHORIZATION layer since route selection has already occurred. Connection redirection can only be performed at the `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` layers.
 
 ### Additional Helper Functions
-AUTH_CONNECT and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through specialized helper functions:
+CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through specialized helper functions:
 
 #### `bpf_sock_addr_get_interface_type(ctx)`
-Returns the network interface type for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+Returns the network interface type for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Interface type value, or 0 if not available
 - **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
 - **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `6` (ethernetCsmacd), `71` (ieee80211 for WiFi), `131` (tunnel), etc.
 
 #### `bpf_sock_addr_get_tunnel_type(ctx)`
-Returns the tunnel type information for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+Returns the tunnel type information for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Tunnel type value, or 0 if not a tunnel or not available
 - **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
 - **Note**: Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc.
 
 #### `bpf_sock_addr_get_next_hop_interface_luid(ctx)`
-Returns the next-hop interface LUID for the connection. Available for AUTH_CONNECT hooks only.
+Returns the next-hop interface LUID for the connection. Available for CONNECT_AUTHORIZATION hooks only.
 - **Returns**: Next-hop interface LUID, or 0 if not available
 - **Use case**: Route-dependent access control decisions
 
 #### `bpf_sock_addr_get_sub_interface_index(ctx)`
-Returns the sub-interface index for the connection. Available for AUTH_CONNECT and AUTH_RECV_ACCEPT hooks.
+Returns the sub-interface index for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Sub-interface index, or 0 if not available
 - **Use case**: Granular interface-based policies
 
 ### Selective Program Invocation
 The implementation includes a filtering mechanism to ensure that:
-- AUTH_CONNECT programs are only invoked for AUTH_CONNECT attach points
+- CONNECT_AUTHORIZATION programs are only invoked for CONNECT_AUTHORIZATION attach points
 - CONNECT programs are only invoked for CONNECT attach points
 
 This prevents cross-invocation and ensures programs run at the appropriate layer.
 
-## Program Interaction: CONNECT and AUTH_CONNECT Together
+## Program Interaction: CONNECT and CONNECT_AUTHORIZATION Together
 
-When both CONNECT and AUTH_CONNECT programs are attached to the same cgroup, they operate in a coordinated sequence that provides comprehensive connection control:
+When both CONNECT and CONNECT_AUTHORIZATION programs are attached to the same cgroup, they operate in a coordinated sequence that provides comprehensive connection control:
 
 ### Execution Order
 1. **CONNECT Layer** (`BPF_CGROUP_INET4_CONNECT`/`BPF_CGROUP_INET6_CONNECT`)
@@ -132,7 +132,7 @@ When both CONNECT and AUTH_CONNECT programs are attached to the same cgroup, the
    - Has access to basic connection information (source/dest IP/port)
    - Produces a verdict that affects subsequent processing
 
-2. **AUTH_CONNECT Layer** (`BPF_CGROUP_INET4_AUTH_CONNECT`/`BPF_CGROUP_INET6_AUTH_CONNECT`)
+2. **CONNECT_AUTHORIZATION Layer** (`BPF_CGROUP_INET4_CONNECT_AUTHORIZATION`/`BPF_CGROUP_INET6_CONNECT_AUTHORIZATION`)
    - Executes second at the **authorization layer** (after route selection)
    - **Cannot redirect** connections (route already selected)
    - Has access to enhanced network context (interface type, tunnel info, routing details)
@@ -140,11 +140,11 @@ When both CONNECT and AUTH_CONNECT programs are attached to the same cgroup, the
 
 ### Verdict Flow and Interaction
 
-The verdict from the CONNECT layer determines whether AUTH_CONNECT programs are invoked:
+The verdict from the CONNECT layer determines whether CONNECT_AUTHORIZATION programs are invoked:
 
-- **`BPF_SOCK_ADDR_VERDICT_REJECT`** from CONNECT → Connection blocked, AUTH_CONNECT programs **not invoked**
-- **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** from CONNECT → Connection authorized, AUTH_CONNECT programs **not invoked** (optimization)
-- **`BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`** from CONNECT → AUTH_CONNECT programs **are invoked** for additional authorization
+- **`BPF_SOCK_ADDR_VERDICT_REJECT`** from CONNECT → Connection blocked, CONNECT_AUTHORIZATION programs **not invoked**
+- **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** from CONNECT → Connection authorized, CONNECT_AUTHORIZATION programs **not invoked** (optimization)
+- **`BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`** from CONNECT → CONNECT_AUTHORIZATION programs **are invoked** for additional authorization
 
 ### Use Case: Layered Security Policy
 
@@ -155,27 +155,27 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
 {
     // Block known malicious destinations immediately
     if (is_blacklisted_destination(ctx->user_ip4)) {
-        return BPF_SOCK_ADDR_VERDICT_REJECT; // AUTH_CONNECT will NOT run
+        return BPF_SOCK_ADDR_VERDICT_REJECT; // CONNECT_AUTHORIZATION will NOT run
     }
 
     // Redirect to local proxy for inspection
     if (needs_proxy_inspection(ctx->user_ip4)) {
         ctx->user_ip4 = PROXY_SERVER_IP;
         ctx->user_port = PROXY_SERVER_PORT;
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // AUTH_CONNECT WILL run
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run
     }
 
     // High-trust destinations can skip additional authorization
     if (is_highly_trusted_destination(ctx->user_ip4)) {
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD; // AUTH_CONNECT will NOT run
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD; // CONNECT_AUTHORIZATION will NOT run
     }
 
     // Default: allow but require additional authorization
-    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // AUTH_CONNECT WILL run
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run
 }
 
-// AUTH_CONNECT layer program - handles interface-aware authorization
-SEC("cgroup/auth_connect4")
+// CONNECT_AUTHORIZATION layer program - handles interface-aware authorization
+SEC("cgroup/connect_authorization4")
 int interface_aware_authorization(struct bpf_sock_addr *ctx)
 {
     // This program only runs for PROCEED_SOFT verdicts from CONNECT layer
@@ -199,24 +199,24 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 
 ### Benefits of Layered Approach
 
-1. **Performance Optimization**: PROCEED_HARD verdicts skip unnecessary AUTH_CONNECT processing for trusted connections
-2. **Comprehensive Control**: CONNECT handles redirection + basic filtering, AUTH_CONNECT adds interface-aware policies
-3. **Separation of Concerns**: Network topology changes (CONNECT) vs. authorization policies (AUTH_CONNECT)
+1. **Performance Optimization**: PROCEED_HARD verdicts skip unnecessary CONNECT_AUTHORIZATION processing for trusted connections
+2. **Comprehensive Control**: CONNECT handles redirection + basic filtering, CONNECT_AUTHORIZATION adds interface-aware policies
+3. **Separation of Concerns**: Network topology changes (CONNECT) vs. authorization policies (CONNECT_AUTHORIZATION)
 4. **Flexibility**: Each layer can be independently updated without affecting the other
 
 ### Important Considerations
 
-- **Redirection must happen at CONNECT layer**: Once AUTH_CONNECT runs, route selection is complete
-- **Context preservation**: Connection context from CONNECT layer is available to AUTH_CONNECT programs
-- **Verdict precedence**: REJECT verdicts are final; PROCEED_HARD optimizes by skipping AUTH_CONNECT
+- **Redirection must happen at CONNECT layer**: Once CONNECT_AUTHORIZATION runs, route selection is complete
+- **Context preservation**: Connection context from CONNECT layer is available to CONNECT_AUTHORIZATION programs
+- **Verdict precedence**: REJECT verdicts are final; PROCEED_HARD optimizes by skipping CONNECT_AUTHORIZATION
 - **Error handling**: Failures in either layer result in connection blocking for security
 
 ## Example Scenarios
 
 ### Scenario 1: Interface-Based Access Control
 ```c
-SEC("cgroup/auth_connect4")
-int auth_connect_interface_policy(struct bpf_sock_addr *ctx)
+SEC("cgroup/connect_authorization4")
+int connect_authorization_interface_policy(struct bpf_sock_addr *ctx)
 {
     // Get interface type using helper function
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
@@ -240,8 +240,8 @@ int auth_connect_interface_policy(struct bpf_sock_addr *ctx)
 
 ### Scenario 2: Tunnel-Aware Security
 ```c
-SEC("cgroup/auth_connect4")
-int auth_connect_tunnel_policy(struct bpf_sock_addr *ctx)
+SEC("cgroup/connect_authorization4")
+int connect_authorization_tunnel_policy(struct bpf_sock_addr *ctx)
 {
     // Check if connection will use tunneling
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
@@ -265,8 +265,8 @@ int auth_connect_tunnel_policy(struct bpf_sock_addr *ctx)
 
 ### Scenario 3: Route-Dependent Authorization
 ```c
-SEC("cgroup/auth_connect4")
-int auth_connect_route_policy(struct bpf_sock_addr *ctx)
+SEC("cgroup/connect_authorization4")
+int connect_authorization_route_policy(struct bpf_sock_addr *ctx)
 {
     // Get next-hop interface information
     uint64_t next_hop_interface = bpf_sock_addr_get_next_hop_interface_luid(ctx);
@@ -290,8 +290,8 @@ int auth_connect_route_policy(struct bpf_sock_addr *ctx)
 
 ### Scenario 4: Verdict Type Demonstration
 ```c
-SEC("cgroup/auth_connect4")
-int auth_connect_verdict_demo(struct bpf_sock_addr *ctx)
+SEC("cgroup/connect_authorization4")
+int connect_authorization_verdict_demo(struct bpf_sock_addr *ctx)
 {
     uint32_t dest_ip = ctx->user_ip4;
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
@@ -327,8 +327,8 @@ int auth_connect_verdict_demo(struct bpf_sock_addr *ctx)
 
 ### Scenario 5: Combined Network Context Analysis
 ```c
-SEC("cgroup/auth_connect4")
-int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
+SEC("cgroup/connect_authorization4")
+int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
 {
     // Gather all available network context
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
@@ -363,14 +363,14 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
 ## Migration Considerations
 
 ### Existing Programs
-Existing programs using `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` will continue to work unchanged. The new AUTH_CONNECT attach types are additional, not replacements.
+Existing programs using `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` will continue to work unchanged. The new CONNECT_AUTHORIZATION attach types are additional, not replacements.
 
 ### Choosing the Right Attach Type
 When developing new programs, consider:
 
 1. **Do you need to redirect connections?** → Use CONNECT attach types
-2. **Do you need enhanced network context (interface type, tunnel info, routing details)?** → Use AUTH_CONNECT attach types with the new helper functions
-3. **Do you only need basic connection info for authorization?** → Either type works, but AUTH_CONNECT provides significantly more context
+2. **Do you need enhanced network context (interface type, tunnel info, routing details)?** → Use CONNECT_AUTHORIZATION attach types with the new helper functions
+3. **Do you only need basic connection info for authorization?** → Either type works, but CONNECT_AUTHORIZATION provides significantly more context
 
 ### Backward Compatibility
 The new helper functions are designed to be backward compatible:

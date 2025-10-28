@@ -12,13 +12,13 @@ struct
     __type(key, uint16_t);
     __type(value, uint64_t);
     __uint(max_entries, 1);
-} auth_connect6_count_map SEC(".maps");
+} connect_authorization6_count_map SEC(".maps");
 
 static const uint16_t remote_port = SOCKET_TEST_PORT;
 
-SEC("cgroup/auth_connect6")
+SEC("cgroup/connect_authorization6")
 int
-count_tcp_auth_connect6(bpf_sock_addr_t* ctx)
+count_tcp_connect_authorization6(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
@@ -38,13 +38,13 @@ count_tcp_auth_connect6(bpf_sock_addr_t* ctx)
     // Get the current counter value (create new entry if not present).
     uint16_t key = remote_port;
     uint64_t value = 0;
-    uint64_t* count = bpf_map_lookup_elem(&auth_connect6_count_map, &key);
+    uint64_t* count = bpf_map_lookup_elem(&connect_authorization6_count_map, &key);
     if (!count) {
         value = 1;
-        bpf_map_update_elem(&auth_connect6_count_map, &key, &value, BPF_ANY);
+        bpf_map_update_elem(&connect_authorization6_count_map, &key, &value, BPF_ANY);
     } else {
         value = *count + 1;
-        bpf_map_update_elem(&auth_connect6_count_map, &key, &value, BPF_EXIST);
+        bpf_map_update_elem(&connect_authorization6_count_map, &key, &value, BPF_EXIST);
     }
 
     // Example authorization logic: block every 3rd connection.

@@ -44,16 +44,16 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID;
 
-#define EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT_GUID                                \
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID                       \
     {                                                                                  \
         0x6076c13a, 0xf04f, 0x4ff8, { 0x83, 0x80, 0x90, 0x85, 0x53, 0xf2, 0x22, 0x76 } \
     }
     /**
-     * @brief The program attached to the INET4_AUTH_CONNECT hook will be invoked for
+     * @brief The program attached to the INET4_CONNECT_AUTHORIZATION hook will be invoked for
      * connect() calls on TCP or UDP sockets before the connection is authorized.
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT =
-        EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID                                     \
     {                                                                                  \
@@ -68,16 +68,16 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID;
 
-#define EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT_GUID                                \
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID                       \
     {                                                                                  \
         0x54b0b6ed, 0x432a, 0x4674, { 0x8b, 0x27, 0x8d, 0x9f, 0x5b, 0x40, 0xc6, 0x75 } \
     }
     /**
-     * @brief The program attached to the INET6_AUTH_CONNECT hook will be invoked for
+     * @brief The program attached to the INET6_CONNECT_AUTHORIZATION hook will be invoked for
      * connect() calls on TCP or UDP sockets before the connection is authorized.
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT =
-        EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID                                 \
     {                                                                                  \

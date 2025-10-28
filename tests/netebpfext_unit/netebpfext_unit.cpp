@@ -22,7 +22,7 @@ typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
     SOCK_ADDR_TEST_TYPE_RECV_ACCEPT,
-    SOCK_ADDR_TEST_TYPE_AUTH_CONNECT
+    SOCK_ADDR_TEST_TYPE_CONNECT_AUTHORIZATION
 } sock_addr_test_type_t;
 
 typedef enum _sock_addr_test_action
@@ -502,8 +502,8 @@ sock_addr_thread_function(
         case SOCK_ADDR_TEST_TYPE_RECV_ACCEPT:
             result = helper->test_cgroup_inet4_recv_accept(parameters);
             break;
-        case SOCK_ADDR_TEST_TYPE_AUTH_CONNECT:
-            result = helper->test_cgroup_inet4_auth_connect(parameters);
+        case SOCK_ADDR_TEST_TYPE_CONNECT_AUTHORIZATION:
+            result = helper->test_cgroup_inet4_connect_authorization(parameters);
             break;
         case SOCK_ADDR_TEST_TYPE_CONNECT:
         default:
@@ -520,9 +520,9 @@ sock_addr_thread_function(
             expected_result = FWP_ACTION_BLOCK;
         }
 
-        // SOCK_ADDR_TEST_ACTION_REDIRECT currently isn't supported in auth_connect.
+        // SOCK_ADDR_TEST_ACTION_REDIRECT currently isn't supported in connect_authorization.
         // Workaround for now - map to block.
-        if (type == SOCK_ADDR_TEST_TYPE_AUTH_CONNECT &&
+        if (type == SOCK_ADDR_TEST_TYPE_CONNECT_AUTHORIZATION &&
             _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_REDIRECT) {
             expected_result = FWP_ACTION_BLOCK;
         }
@@ -765,7 +765,7 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
 
-TEST_CASE("sock_addr_auth_connect_invoke", "[netebpfext]")
+TEST_CASE("sock_addr_connect_authorization_invoke", "[netebpfext]")
 {
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
@@ -781,46 +781,46 @@ TEST_CASE("sock_addr_auth_connect_invoke", "[netebpfext]")
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
-    // Test AUTH_CONNECT operations that should be allowed.
+    // Test CONNECT_AUTHORIZATION operations that should be allowed.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
-    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    result = helper.test_cgroup_inet6_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    // Test AUTH_CONNECT operations that should be blocked.
+    // Test CONNECT_AUTHORIZATION operations that should be blocked.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
     client_context->validate_sock_addr_entries = true;
 
-    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    result = helper.test_cgroup_inet4_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    result = helper.test_cgroup_inet6_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    // Test AUTH_CONNECT operations that should return hard permit.
+    // Test CONNECT_AUTHORIZATION operations that should return hard permit.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_HARD;
     client_context->validate_sock_addr_entries = true;
 
-    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    result = helper.test_cgroup_inet4_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    result = helper.test_cgroup_inet6_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    // Test AUTH_CONNECT reauthorization.
+    // Test CONNECT_AUTHORIZATION reauthorization.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
     parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
 
-    result = helper.test_cgroup_inet4_auth_connect(&parameters);
+    result = helper.test_cgroup_inet4_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_cgroup_inet6_auth_connect(&parameters);
+    result = helper.test_cgroup_inet6_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
