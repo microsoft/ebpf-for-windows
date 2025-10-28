@@ -56,7 +56,7 @@ _change_egress_policy_test_ingress_block(
 }
 
 void
-connection_test(
+connect_test(
     ADDRESS_FAMILY address_family,
     _Inout_ client_socket_t& sender_socket,
     _Inout_ receiver_socket_t& receiver_socket,
@@ -158,7 +158,7 @@ connection_test(
 }
 
 void
-auth_connection_test(
+authorization_connect_test(
     ADDRESS_FAMILY address_family,
     _Inout_ client_socket_t& sender_socket,
     _Inout_ receiver_socket_t& receiver_socket,
@@ -173,10 +173,11 @@ auth_connection_test(
     SAFE_REQUIRE(object != nullptr);
     // Load the programs.
     SAFE_REQUIRE(bpf_object__load(object) == 0);
-    const char* auth_connect_program_name =
+    const char* authorization_connect_program_name =
         (address_family == AF_INET) ? "authorize_auth_connect4" : "authorize_auth_connect6";
-    bpf_program* auth_connect_program = bpf_object__find_program_by_name(object, auth_connect_program_name);
-    SAFE_REQUIRE(auth_connect_program != nullptr);
+    bpf_program* authorization_connect_program =
+        bpf_object__find_program_by_name(object, authorization_connect_program_name);
+    SAFE_REQUIRE(authorization_connect_program != nullptr);
 
     const char* recv_accept_program_name =
         (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
@@ -212,10 +213,13 @@ auth_connection_test(
     receiver_socket.post_async_receive();
 
     // Attach the authorization connect program at BPF_CGROUP_INET4_AUTH_CONNECT.
-    bpf_attach_type auth_connect_attach_type =
+    bpf_attach_type authorization_connect_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
     int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(auth_connect_program)), 0, auth_connect_attach_type, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
+        0,
+        authorization_connect_attach_type,
+        0);
     SAFE_REQUIRE(result == 0);
 
     // Send loopback message to test port.
@@ -260,66 +264,66 @@ auth_connection_test(
     receiver_socket.complete_async_receive();
 }
 
-TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
+TEST_CASE("connect_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
-TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_test_udp_v6", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
+TEST_CASE("connect_test_tcp_v4", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
-TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_test_tcp_v6", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("auth_connection_test_udp_v4", "[sock_addr_tests]")
+TEST_CASE("authorization_connect_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    auth_connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    authorization_connect_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("auth_connection_test_udp_v6", "[sock_addr_tests]")
+TEST_CASE("authorization_connect_test_udp_v6", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    auth_connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    authorization_connect_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("auth_connection_test_tcp_v4", "[sock_addr_tests]")
+TEST_CASE("authorization_connect_test_tcp_v4", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    auth_connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    authorization_connect_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("auth_connection_test_tcp_v6", "[sock_addr_tests]")
+TEST_CASE("authorization_connect_test_tcp_v6", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    auth_connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    authorization_connect_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
 void
@@ -341,10 +345,11 @@ helper_functions_validation_test(
     // Load the programs.
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
-    const char* auth_connect_program_name =
+    const char* authorization_connect_program_name =
         (address_family == AF_INET) ? "test_sock_addr_helpers_v4" : "test_sock_addr_helpers_v6";
-    bpf_program* auth_connect_program = bpf_object__find_program_by_name(object, auth_connect_program_name);
-    SAFE_REQUIRE(auth_connect_program != nullptr);
+    bpf_program* authorization_connect_program =
+        bpf_object__find_program_by_name(object, authorization_connect_program_name);
+    SAFE_REQUIRE(authorization_connect_program != nullptr);
 
     // Get maps to retrieve helper function results.
     bpf_map* interface_type_map = bpf_object__find_map_by_name(object, "interface_type_map");
@@ -361,10 +366,13 @@ helper_functions_validation_test(
     SAFE_REQUIRE(connection_count_map != nullptr);
 
     // Attach the authorization connect program at the appropriate AUTH_CONNECT layer.
-    bpf_attach_type auth_connect_attach_type =
+    bpf_attach_type authorization_connect_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
     int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(auth_connect_program)), 0, auth_connect_attach_type, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
+        0,
+        authorization_connect_attach_type,
+        0);
     SAFE_REQUIRE(result == 0);
 
     // Post an asynchronous receive on the receiver socket.
@@ -398,8 +406,6 @@ helper_functions_validation_test(
     if (result == 0) {
         printf("Interface type: %u\n", interface_type);
         // Interface type should be a valid IANA-assigned value or 0 if not available.
-        // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
-        // For loopback connections, we typically expect 24 (softwareLoopback) or 6 (ethernetCsmacd).
         bool valid_interface_type =
             (interface_type == 0 || interface_type == IF_TYPE_ETHERNET_CSMACD ||
              interface_type == IF_TYPE_SOFTWARE_LOOPBACK || interface_type == IF_TYPE_IEEE80211 ||
@@ -475,7 +481,7 @@ helper_functions_validation_test(
         (address_family == AF_INET) ? "IPv4" : "IPv6");
 }
 
-TEST_CASE("auth_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+TEST_CASE("authorization_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -483,7 +489,7 @@ TEST_CASE("auth_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][
     helper_functions_validation_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("auth_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+TEST_CASE("authorization_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -492,7 +498,8 @@ TEST_CASE("auth_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][
 }
 
 TEST_CASE(
-    "auth_connect_conditional_policy_validation_tcp_v4", "[sock_addr_tests][helper_validation][conditional_policy]")
+    "authorization_connect_conditional_policy_validation_tcp_v4",
+    "[sock_addr_tests][helper_validation][conditional_policy]")
 {
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
@@ -505,7 +512,7 @@ TEST_CASE(
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Use the conditional authorization program that makes policy decisions.
-    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_auth_v4");
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
     SAFE_REQUIRE(conditional_program != nullptr);
 
     // Get the connection count map to verify tunnel connection tracking.

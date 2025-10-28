@@ -202,7 +202,7 @@ exit:
  */
 SEC("cgroup/auth_connect4")
 int
-conditional_auth_v4(bpf_sock_addr_t* ctx)
+conditional_authorization_v4(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
