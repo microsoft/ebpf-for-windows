@@ -21,10 +21,10 @@
 #include "bpf_helpers.h"
 #include "net/ip.h"
 
-// Test port for socket connections
+// Test port for socket connections.
 #define SOCKET_TEST_PORT 8989
 
-// Map to store interface type information
+// Map to store interface type information.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -33,7 +33,7 @@ struct
     __uint(max_entries, 100);
 } interface_type_map SEC(".maps");
 
-// Map to store tunnel type information
+// Map to store tunnel type information.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -42,7 +42,7 @@ struct
     __uint(max_entries, 100);
 } tunnel_type_map SEC(".maps");
 
-// Map to store next-hop interface LUID
+// Map to store next-hop interface LUID.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -51,7 +51,7 @@ struct
     __uint(max_entries, 100);
 } next_hop_interface_map SEC(".maps");
 
-// Map to store sub-interface index
+// Map to store sub-interface index.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -60,7 +60,7 @@ struct
     __uint(max_entries, 100);
 } sub_interface_map SEC(".maps");
 
-// Map to store connection count for testing
+// Map to store connection count for testing.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -69,7 +69,7 @@ struct
     __uint(max_entries, 1);
 } connection_count_map SEC(".maps");
 
-// Structure to store all helper function results for verification
+// Structure to store all helper function results for verification.
 typedef struct _helper_results
 {
     uint32_t interface_type;
@@ -79,7 +79,7 @@ typedef struct _helper_results
     uint32_t connection_id;
 } helper_results_t;
 
-// Map to store comprehensive test results
+// Map to store comprehensive test results.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -97,15 +97,15 @@ test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
-    // Only process TCP connections for testing
+    // Only process TCP connections for testing.
     if (ctx->protocol != IPPROTO_TCP) {
         goto exit;
     }
 
-    // Generate a unique connection ID based on address and port
+    // Generate a unique connection ID based on address and port.
     uint32_t connection_id = ctx->user_ip4 ^ (ctx->user_port << 16);
 
-    // Test all new helper functions
+    // Test all new helper functions.
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
     uint64_t next_hop_interface_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
@@ -152,12 +152,12 @@ test_sock_addr_helpers_v6(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
-    // Only process TCP connections for testing
+    // Only process TCP connections for testing.
     if (ctx->protocol != IPPROTO_TCP) {
         goto exit;
     }
 
-    // Generate a unique connection ID for IPv6 (simplified hash)
+    // Generate a unique connection ID for IPv6 (simplified hash).
     uint32_t connection_id = (ctx->user_ip6[0] ^ ctx->user_ip6[3]) ^ (ctx->user_port << 16);
 
     // Test all new helper functions (same functions work for both IPv4 and IPv6)

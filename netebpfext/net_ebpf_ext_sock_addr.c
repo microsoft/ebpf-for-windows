@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (AUTH_CONNECT and AUTH_RECV_ACCEPT only)
+    // Additional network layer properties (AUTH_CONNECT and AUTH_RECV_ACCEPT only).
     uint32_t interface_type;          ///< Interface type.
     uint32_t tunnel_type;             ///< Tunnel type (0 if not a tunnel).
     uint64_t next_hop_interface_luid; ///< Next-hop interface LUID.
@@ -792,7 +792,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     // filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
         local_filter_context->base.wfp_engine_handle,
-        filter_parameters_array->count, // filter_count
+        filter_parameters_array->count, // Filter count.
         filter_parameters_array->filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
@@ -1417,7 +1417,7 @@ _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(net_ebpf_ext
 }
 
 const wfp_ale_layer_fields_t wfp_connection_fields[] = {
-    // EBPF_HOOK_ALE_AUTH_CONNECT_V4
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V4.
     {FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_ADDRESS,
@@ -1433,7 +1433,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_NEXTHOP_INTERFACE,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_AUTH_CONNECT_V6
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V6.
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_ADDRESS,
@@ -1449,7 +1449,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_NEXTHOP_INTERFACE,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4.
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS,
@@ -1465,7 +1465,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0,  // No next-hop interface in this layer.
      0}, // No sub-interface index in this layer.
 
-    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6.
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS,
@@ -1481,7 +1481,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      0,  // No next-hop interface in this layer.
      0}, // No sub-interface index in this layer.
 
-    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4.
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS,
@@ -1494,10 +1494,10 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_INTERFACE_TYPE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_TUNNEL_TYPE,
-     0, // No next-hop interface for recv_accept
+     0, // No next-hop interface for recv_accept.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6.
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS,
@@ -1510,7 +1510,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_TYPE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_TUNNEL_TYPE,
-     0, // No next-hop interface for recv_accept
+     0, // No next-hop interface for recv_accept.
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX}};
 
 static void
@@ -1587,7 +1587,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     // Store the FLAGS field.
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 
-    // Copy additional network layer properties (available for AUTH_CONNECT and AUTH_RECV_ACCEPT layers)
+    // Copy additional network layer properties (available for AUTH_CONNECT and AUTH_RECV_ACCEPT layers).
     if (fields->interface_type_field != 0) {
         sock_addr_ctx->interface_type = incoming_values[fields->interface_type_field].value.uint32;
     } else {
@@ -1633,7 +1633,7 @@ _get_verdict_priority(uint32_t verdict)
 {
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_REJECT:
-        return 3; // Highest priority
+        return 3; // Highest priority.
     case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
         return 2;
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
@@ -1848,16 +1848,16 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         goto Exit;
     }
 
-    // First, try to find and use existing connection context from redirect layer
+    // First, try to find and use existing connection context from redirect layer.
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
     // AUTH_CONNECT programs are only invoked for PROCEED_SOFT verdicts because:
     // - PROCEED_HARD indicates the redirect layer already made a definitive authorization
-    //   decision and no further checks are needed (optimization to skip AUTH layer)
-    // - REJECT verdicts are already final and don't need additional authorization
+    //   decision and no further checks are needed (optimization to skip AUTH layer).
+    // - REJECT verdicts are already final and don't need additional authorization.
     // - PROCEED_SOFT indicates the connection should proceed but may benefit from
-    //   additional authorization checks at the AUTH layer with full network context
+    //   additional authorization checks at the AUTH layer with full network context.
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
         bpf_sock_addr_t sock_addr_ctx_original;
         memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
@@ -1872,7 +1872,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
             verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
         }
     } else {
-        // Attach point not invoked due to prior verdict
+        // Attach point not invoked due to prior verdict.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
@@ -1881,7 +1881,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
 Exit:
-    // Set action type based on verdict
+    // Set action type based on verdict.
     // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:

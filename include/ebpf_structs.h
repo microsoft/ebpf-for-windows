@@ -198,7 +198,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type.
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
      *
@@ -263,7 +263,7 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 
 #define XDP_FLAGS_REPLACE 0x01
 
-// The link type is used to tell which union member is present
+// The link type is used to tell which union member is present.
 // in the bpf_link_info struct.  There is exactly one non-zero value
 // per union member.
 enum bpf_link_type

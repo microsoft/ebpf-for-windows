@@ -10,7 +10,7 @@
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*const name##_t) args
 #endif
 
-// BIND hook
+// BIND hook.
 
 typedef enum _bind_operation
 {

@@ -23,14 +23,14 @@ count_tcp_auth_connect6(bpf_sock_addr_t* ctx)
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
     if (ctx->protocol != IPPROTO_TCP) {
-        // Allow non-TCP connections
+        // Allow non-TCP connections.
         retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
 
     // IP address, port #s in the context are in network byte order.
     if (ctx->user_port != ntohs(remote_port)) {
-        // Allow connections to other ports
+        // Allow connections to other ports.
         retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto exit;
     }
@@ -47,7 +47,7 @@ count_tcp_auth_connect6(bpf_sock_addr_t* ctx)
         bpf_map_update_elem(&auth_connect6_count_map, &key, &value, BPF_EXIST);
     }
 
-    // Example authorization logic: block every 3rd connection
+    // Example authorization logic: block every 3rd connection.
     if (value % 3 == 0) {
         retval = BPF_SOCK_ADDR_VERDICT_REJECT;
     } else {
