@@ -158,7 +158,7 @@ connect_test(
 }
 
 void
-authorization_connect_test(
+connect_authorization_test(
     ADDRESS_FAMILY address_family,
     _Inout_ client_socket_t& sender_socket,
     _Inout_ receiver_socket_t& receiver_socket,
@@ -294,36 +294,36 @@ TEST_CASE("connect_test_tcp_v6", "[sock_addr_tests]")
     connect_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("authorization_connect_test_udp_v4", "[sock_addr_tests]")
+TEST_CASE("connect_authorization_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    authorization_connect_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_authorization_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("authorization_connect_test_udp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_authorization_test_udp_v6", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    authorization_connect_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_authorization_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("authorization_connect_test_tcp_v4", "[sock_addr_tests]")
+TEST_CASE("connect_authorization_test_tcp_v4", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    authorization_connect_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_authorization_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("authorization_connect_test_tcp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_authorization_test_tcp_v6", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    authorization_connect_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_authorization_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
 void
