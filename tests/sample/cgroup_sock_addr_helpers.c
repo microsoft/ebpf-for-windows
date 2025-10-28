@@ -42,14 +42,14 @@ struct
     __uint(max_entries, 100);
 } tunnel_type_map SEC(".maps");
 
-// Map to store nexthop interface LUID
+// Map to store next-hop interface LUID
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, uint32_t);
     __type(value, uint64_t);
     __uint(max_entries, 100);
-} nexthop_interface_map SEC(".maps");
+} next_hop_interface_map SEC(".maps");
 
 // Map to store sub-interface index
 struct
@@ -74,7 +74,7 @@ typedef struct _helper_results
 {
     uint32_t interface_type;
     uint32_t tunnel_type;
-    uint64_t nexthop_interface_luid;
+    uint64_t next_hop_interface_luid;
     uint32_t sub_interface_index;
     uint32_t connection_id;
 } helper_results_t;
@@ -108,20 +108,20 @@ test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
     // Test all new helper functions
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t nexthop_interface_luid = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+    uint64_t next_hop_interface_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
     uint32_t sub_interface_index = bpf_sock_addr_get_sub_interface_index(ctx);
 
     // Store individual results in separate maps for easy verification
     bpf_map_update_elem(&interface_type_map, &connection_id, &interface_type, BPF_ANY);
     bpf_map_update_elem(&tunnel_type_map, &connection_id, &tunnel_type, BPF_ANY);
-    bpf_map_update_elem(&nexthop_interface_map, &connection_id, &nexthop_interface_luid, BPF_ANY);
+    bpf_map_update_elem(&next_hop_interface_map, &connection_id, &next_hop_interface_luid, BPF_ANY);
     bpf_map_update_elem(&sub_interface_map, &connection_id, &sub_interface_index, BPF_ANY);
 
     // Store comprehensive results for detailed verification
     helper_results_t results = {
         .interface_type = interface_type,
         .tunnel_type = tunnel_type,
-        .nexthop_interface_luid = nexthop_interface_luid,
+        .next_hop_interface_luid = next_hop_interface_luid,
         .sub_interface_index = sub_interface_index,
         .connection_id = connection_id};
     bpf_map_update_elem(&test_results_map, &connection_id, &results, BPF_ANY);
@@ -163,20 +163,20 @@ test_sock_addr_helpers_v6(bpf_sock_addr_t* ctx)
     // Test all new helper functions (same functions work for both IPv4 and IPv6)
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t nexthop_interface_luid = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+    uint64_t next_hop_interface_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
     uint32_t sub_interface_index = bpf_sock_addr_get_sub_interface_index(ctx);
 
     // Store individual results in separate maps for easy verification
     bpf_map_update_elem(&interface_type_map, &connection_id, &interface_type, BPF_ANY);
     bpf_map_update_elem(&tunnel_type_map, &connection_id, &tunnel_type, BPF_ANY);
-    bpf_map_update_elem(&nexthop_interface_map, &connection_id, &nexthop_interface_luid, BPF_ANY);
+    bpf_map_update_elem(&next_hop_interface_map, &connection_id, &next_hop_interface_luid, BPF_ANY);
     bpf_map_update_elem(&sub_interface_map, &connection_id, &sub_interface_index, BPF_ANY);
 
     // Store comprehensive results for detailed verification
     helper_results_t results = {
         .interface_type = interface_type,
         .tunnel_type = tunnel_type,
-        .nexthop_interface_luid = nexthop_interface_luid,
+        .next_hop_interface_luid = next_hop_interface_luid,
         .sub_interface_index = sub_interface_index,
         .connection_id = connection_id};
     bpf_map_update_elem(&test_results_map, &connection_id, &results, BPF_ANY);
@@ -233,9 +233,9 @@ conditional_auth_v4(bpf_sock_addr_t* ctx)
         bpf_map_update_elem(&connection_count_map, &tunnel_key, &tunnel_count, BPF_ANY);
     }
 
-    // 3. Get nexthop interface for routing decisions
-    uint64_t nexthop_luid = bpf_sock_addr_get_nexthop_interface_luid(ctx);
-    if (nexthop_luid != 0) {
+    // 3. Get next-hop interface for routing decisions
+    uint64_t next_hop_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
+    if (next_hop_luid != 0) {
         // Could make decisions based on which interface the traffic will route through
         // For example, allow only certain outbound interfaces
     }

@@ -228,10 +228,10 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool address_changed : 1;
     bool v4_mapped : 1;
     // Additional network layer properties (AUTH_CONNECT and AUTH_RECV_ACCEPT only)
-    uint32_t interface_type;         ///< Interface type.
-    uint32_t tunnel_type;            ///< Tunnel type (0 if not a tunnel).
-    uint64_t nexthop_interface_luid; ///< Next hop interface LUID.
-    uint32_t sub_interface_index;    ///< Sub-interface index.
+    uint32_t interface_type;          ///< Interface type.
+    uint32_t tunnel_type;             ///< Tunnel type (0 if not a tunnel).
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID.
+    uint32_t sub_interface_index;     ///< Sub-interface index.
 } net_ebpf_sock_addr_t;
 
 /**
@@ -360,10 +360,10 @@ _ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
 }
 
 static uint64_t
-_ebpf_sock_addr_get_nexthop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
+_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
 {
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->nexthop_interface_luid;
+    return sock_addr_ctx->next_hop_interface_luid;
 }
 
 static uint32_t
@@ -615,7 +615,7 @@ static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
     (void*)_ebpf_sock_addr_get_interface_type,
     (void*)_ebpf_sock_addr_get_tunnel_type,
-    (void*)_ebpf_sock_addr_get_nexthop_interface_luid,
+    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
     (void*)_ebpf_sock_addr_get_sub_interface_index,
 };
 
@@ -1462,8 +1462,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS,
      0,  // No interface type in this layer.
      0,  // No tunnel type in this layer.
-     0,  // No nexthop interface in this layer.
-     0}, // No sub interface index in this layer.
+     0,  // No next-hop interface in this layer.
+     0}, // No sub-interface index in this layer.
 
     // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
@@ -1478,8 +1478,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_FLAGS,
      0,  // No interface type in this layer.
      0,  // No tunnel type in this layer.
-     0,  // No nexthop interface in this layer.
-     0}, // No sub interface index in this layer.
+     0,  // No next-hop interface in this layer.
+     0}, // No sub-interface index in this layer.
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
@@ -1494,7 +1494,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_INTERFACE_TYPE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_TUNNEL_TYPE,
-     0, // No nexthop interface for recv_accept
+     0, // No next-hop interface for recv_accept
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_SUB_INTERFACE_INDEX},
 
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
@@ -1510,7 +1510,7 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_TYPE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_TUNNEL_TYPE,
-     0, // No nexthop interface for recv_accept
+     0, // No next-hop interface for recv_accept
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX}};
 
 static void
@@ -1601,10 +1601,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     }
 
     // Next hop can be NULL.
-    if ((fields->nexthop_interface_field != 0) && (incoming_values[fields->nexthop_interface_field].value.uint64)) {
-        sock_addr_ctx->nexthop_interface_luid = *incoming_values[fields->nexthop_interface_field].value.uint64;
+    if ((fields->next_hop_interface_field != 0) && (incoming_values[fields->next_hop_interface_field].value.uint64)) {
+        sock_addr_ctx->next_hop_interface_luid = *incoming_values[fields->next_hop_interface_field].value.uint64;
     } else {
-        sock_addr_ctx->nexthop_interface_luid = 0;
+        sock_addr_ctx->next_hop_interface_luid = 0;
     }
 
     if (fields->sub_interface_index_field != 0) {

@@ -59,7 +59,7 @@ The new `BPF_CGROUP_INET4_AUTH_CONNECT` and `BPF_CGROUP_INET6_AUTH_CONNECT` atta
 ### Use AUTH_CONNECT Attach Types When:
 - You need **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`)
 - You need **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`)
-- You need **next-hop interface** details (via `bpf_sock_addr_get_nexthop_interface_luid()`)
+- You need **next-hop interface** details (via `bpf_sock_addr_get_next_hop_interface_luid()`)
 - You need **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`)
 - You want to **authorize or deny** connections based on complete network context (**no redirection support**)
 - Your policy depends on route-dependent metadata
@@ -104,7 +104,7 @@ Returns the tunnel type information for the connection. Available for AUTH_CONNE
 - **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
 - **Note**: Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc.
 
-#### `bpf_sock_addr_get_nexthop_interface_luid(ctx)`
+#### `bpf_sock_addr_get_next_hop_interface_luid(ctx)`
 Returns the next-hop interface LUID for the connection. Available for AUTH_CONNECT hooks only.
 - **Returns**: Next-hop interface LUID, or 0 if not available
 - **Use case**: Route-dependent access control decisions
@@ -269,11 +269,11 @@ SEC("cgroup/auth_connect4")
 int auth_connect_route_policy(struct bpf_sock_addr *ctx)
 {
     // Get next-hop interface information
-    uint64_t nexthop_interface = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+    uint64_t next_hop_interface = bpf_sock_addr_get_next_hop_interface_luid(ctx);
 
-    if (nexthop_interface != 0) {
+    if (next_hop_interface != 0) {
         // Check if the next-hop interface is approved for this type of traffic
-        if (!is_approved_interface(nexthop_interface)) {
+        if (!is_approved_interface(next_hop_interface)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
     }
@@ -333,7 +333,7 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
     // Gather all available network context
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t nexthop_interface = bpf_sock_addr_get_nexthop_interface_luid(ctx);
+    uint64_t next_hop_interface = bpf_sock_addr_get_next_hop_interface_luid(ctx);
     uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
 
     // Create a comprehensive security decision based on all available context
@@ -346,9 +346,9 @@ int auth_connect_comprehensive_policy(struct bpf_sock_addr *ctx)
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    if (tunnel_type != 0 && nexthop_interface != 0) {
+    if (tunnel_type != 0 && next_hop_interface != 0) {
         // Tunneled traffic with specific next-hop - enhanced validation
-        if (!validate_tunnel_route(tunnel_type, nexthop_interface)) {
+        if (!validate_tunnel_route(tunnel_type, next_hop_interface)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
         // Validated tunnel connections can skip additional checks

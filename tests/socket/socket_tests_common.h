@@ -73,7 +73,7 @@ typedef struct _helper_results
 {
     uint32_t interface_type;
     uint32_t tunnel_type;
-    uint64_t nexthop_interface_luid;
+    uint64_t next_hop_interface_luid;
     uint32_t sub_interface_index;
     uint32_t connection_id;
 } helper_results_t;

@@ -109,7 +109,7 @@ typedef enum
     BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
     BPF_FUNC_sock_addr_get_interface_type = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
     BPF_FUNC_sock_addr_get_tunnel_type = SOCK_ADDR_EXT_HELPER_FN_BASE + 4,
-    BPF_FUNC_sock_addr_get_nexthop_interface_luid = SOCK_ADDR_EXT_HELPER_FN_BASE + 5,
+    BPF_FUNC_sock_addr_get_next_hop_interface_luid = SOCK_ADDR_EXT_HELPER_FN_BASE + 5,
     BPF_FUNC_sock_addr_get_sub_interface_index = SOCK_ADDR_EXT_HELPER_FN_BASE + 6,
 } ebpf_sock_addr_helper_id_t;
 
@@ -161,10 +161,10 @@ EBPF_HELPER(uint32_t, bpf_sock_addr_get_tunnel_type, (bpf_sock_addr_t * ctx));
  *
  * @retval Next-hop interface LUID, or 0 if not available.
  */
-EBPF_HELPER(uint64_t, bpf_sock_addr_get_nexthop_interface_luid, (bpf_sock_addr_t * ctx));
+EBPF_HELPER(uint64_t, bpf_sock_addr_get_next_hop_interface_luid, (bpf_sock_addr_t * ctx));
 #ifndef __doxygen
-#define bpf_sock_addr_get_nexthop_interface_luid \
-    ((bpf_sock_addr_get_nexthop_interface_luid_t)BPF_FUNC_sock_addr_get_nexthop_interface_luid)
+#define bpf_sock_addr_get_next_hop_interface_luid \
+    ((bpf_sock_addr_get_next_hop_interface_luid_t)BPF_FUNC_sock_addr_get_next_hop_interface_luid)
 #endif
 
 /**

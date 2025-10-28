@@ -50,7 +50,7 @@ extern "C"
     }
     /**
      * @brief The program attached to the INET4_AUTH_CONNECT hook will be invoked for
-     * connect() calls on TCP or UDP sockets before the connection authorized.
+     * connect() calls on TCP or UDP sockets before the connection is authorized.
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET4_AUTH_CONNECT_GUID;
@@ -74,7 +74,7 @@ extern "C"
     }
     /**
      * @brief The program attached to the INET6_AUTH_CONNECT hook will be invoked for
-     * connect() calls on TCP or UDP sockets before the connection authorized.
+     * connect() calls on TCP or UDP sockets before the connection is authorized.
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT =
         EBPF_ATTACH_TYPE_CGROUP_INET6_AUTH_CONNECT_GUID;

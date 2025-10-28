@@ -675,7 +675,7 @@ _ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
 }
 
 static uint64_t
-_ebpf_sock_addr_get_nexthop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
+_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
 {
     UNREFERENCED_PARAMETER(ctx);
     return 0;
@@ -802,7 +802,7 @@ static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
     (void*)_ebpf_sock_addr_get_interface_type,
     (void*)_ebpf_sock_addr_get_tunnel_type,
-    (void*)_ebpf_sock_addr_get_nexthop_interface_luid,
+    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
     (void*)_ebpf_sock_addr_get_sub_interface_index,
 };
 
