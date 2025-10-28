@@ -21,6 +21,9 @@
 #include "bpf_helpers.h"
 #include "net/ip.h"
 
+typedef unsigned int ULONG;
+#include "ipifcons.h"
+
 // Test port for socket connections.
 #define SOCKET_TEST_PORT 8989
 
@@ -89,7 +92,7 @@ struct
 } test_results_map SEC(".maps");
 
 /**
- * @brief Test program for AUTH_CONNECT IPv4 that demonstrates all new helper functions
+ * @brief Test program for AUTH_CONNECT IPv4 that demonstrates all new helper functions.
  */
 SEC("cgroup/auth_connect4")
 int
@@ -135,7 +138,7 @@ test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
     }
     bpf_map_update_elem(&connection_count_map, &counter_key, &count, BPF_ANY);
 
-    // Example policy: Allow all connections but log the network properties
+    // Example policy: Allow all connections but log the network properties.
     // In a real scenario, you could make authorization decisions based on
     // interface type, tunnel type, etc.
 
@@ -144,7 +147,7 @@ exit:
 }
 
 /**
- * @brief Test program for AUTH_CONNECT IPv6 that demonstrates all new helper functions
+ * @brief Test program for AUTH_CONNECT IPv6 that demonstrates all new helper functions.
  */
 SEC("cgroup/auth_connect6")
 int
@@ -195,7 +198,7 @@ exit:
 }
 
 /**
- * @brief Demonstration program showing conditional logic based on helper function results
+ * @brief Demonstration program showing conditional logic based on helper function results.
  */
 SEC("cgroup/auth_connect4")
 int
@@ -214,8 +217,8 @@ conditional_auth_v4(bpf_sock_addr_t* ctx)
     // Example policy decisions based on network properties:
 
     // 1. Block connections through certain interface types.
-    // (This is just an example - actual values would depend on your environment)
-    if (interface_type == 23) { // IF_TYPE_PPP example.
+    // (This is just an example - actual values would depend on your environment).
+    if (interface_type == IF_TYPE_PPP) {
         retval = BPF_SOCK_ADDR_VERDICT_REJECT;
         goto exit;
     }
@@ -236,7 +239,7 @@ conditional_auth_v4(bpf_sock_addr_t* ctx)
     // 3. Get next-hop interface for routing decisions.
     uint64_t next_hop_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
     if (next_hop_luid != 0) {
-        // Could make decisions based on which interface the traffic will route through
+        // Could make decisions based on which interface the traffic will route through.
         // For example, allow only certain outbound interfaces.
     }
 

@@ -26,6 +26,7 @@
 #include <chrono>
 #include <future>
 #include <iostream>
+#include <ipifcons.h>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
 
@@ -210,7 +211,7 @@ auth_connection_test(
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
-    // Attach the auth connect program at BPF_CGROUP_INET4_AUTH_CONNECT.
+    // Attach the authorization connect program at BPF_CGROUP_INET4_AUTH_CONNECT.
     bpf_attach_type auth_connect_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
     int result = bpf_prog_attach(
@@ -227,7 +228,7 @@ auth_connection_test(
     }
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-    // The packet should be blocked by the auth connect program.
+    // The packet should be blocked by the authorization connect program.
     receiver_socket.complete_async_receive(true);
     // Cancel send operation.
     sender_socket.cancel_send_message();
@@ -359,7 +360,7 @@ helper_functions_validation_test(
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
-    // Attach the auth connect program at the appropriate AUTH_CONNECT layer.
+    // Attach the authorization connect program at the appropriate AUTH_CONNECT layer.
     bpf_attach_type auth_connect_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
     int result = bpf_prog_attach(
@@ -400,8 +401,9 @@ helper_functions_validation_test(
         // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
         // For loopback connections, we typically expect 24 (softwareLoopback) or 6 (ethernetCsmacd).
         bool valid_interface_type =
-            (interface_type == 0 || interface_type == 6 || interface_type == 24 || interface_type == 71 ||
-             interface_type == 131);
+            (interface_type == 0 || interface_type == IF_TYPE_ETHERNET_CSMACD ||
+             interface_type == IF_TYPE_SOFTWARE_LOOPBACK || interface_type == IF_TYPE_IEEE80211 ||
+             interface_type == IF_TYPE_TUNNEL);
         SAFE_REQUIRE(valid_interface_type);
     }
 
@@ -510,7 +512,7 @@ TEST_CASE(
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
-    // Attach the conditional auth program.
+    // Attach the conditional authorization program.
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(conditional_program)), 0, BPF_CGROUP_INET4_AUTH_CONNECT, 0);
     SAFE_REQUIRE(result == 0);
