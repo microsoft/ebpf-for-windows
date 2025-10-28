@@ -124,8 +124,7 @@ _sample_ebpf_ext_driver_initialize_objects(
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
 
     if (!NT_SUCCESS(status)) {
-        // Do not free if any other call
-        // after WdfDeviceCreate fails.
+        // Do not free if any other call after WdfDeviceCreate fails.
         WdfDeviceInitFree(device_initialize);
         device_initialize = NULL;
         goto Exit;
