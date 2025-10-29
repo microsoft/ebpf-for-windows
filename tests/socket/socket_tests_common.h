@@ -67,3 +67,13 @@ typedef struct _sock_addr_audit_entry
     uint16_t local_port;
     uint64_t socket_cookie;
 } sock_addr_audit_entry_t;
+
+// Structure to store all helper function results for verification (matches eBPF program).
+typedef struct _helper_results
+{
+    uint32_t interface_type;
+    uint32_t tunnel_type;
+    uint64_t next_hop_interface_luid;
+    uint32_t sub_interface_index;
+    uint32_t connection_id;
+} helper_results_t;

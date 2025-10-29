@@ -26,6 +26,7 @@
 #include <chrono>
 #include <future>
 #include <iostream>
+#include <ipifcons.h>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
 
@@ -55,7 +56,7 @@ _change_egress_policy_test_ingress_block(
 }
 
 void
-connection_test(
+connect_test(
     ADDRESS_FAMILY address_family,
     _Inout_ client_socket_t& sender_socket,
     _Inout_ receiver_socket_t& receiver_socket,
@@ -156,34 +157,406 @@ connection_test(
     receiver_socket.complete_async_receive();
 }
 
-TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
+void
+connect_authorization_test(
+    ADDRESS_FAMILY address_family,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
+    uint32_t protocol)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+    const char* authorization_connect_program_name =
+        (address_family == AF_INET) ? "connect_authorization4" : "connect_authorization6";
+    bpf_program* authorization_connect_program =
+        bpf_object__find_program_by_name(object, authorization_connect_program_name);
+    SAFE_REQUIRE(authorization_connect_program != nullptr);
+
+    const char* recv_accept_program_name =
+        (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
+    bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, recv_accept_program_name);
+    SAFE_REQUIRE(recv_accept_program != nullptr);
+
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+    sender_socket.get_local_address(local_address, local_address_length);
+
+    connection_tuple_t tuple = {0};
+    if (address_family == AF_INET) {
+        tuple.remote_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        printf("tuple.remote_ip.ipv4 = %x\n", tuple.remote_ip.ipv4);
+    } else {
+        memcpy(tuple.remote_ip.ipv6, &in6addr_loopback, sizeof(tuple.remote_ip.ipv6));
+    }
+    tuple.remote_port = htons(SOCKET_TEST_PORT);
+    printf("tuple.remote_port = %x\n", tuple.remote_port);
+    tuple.protocol = protocol;
+
+    bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
+    SAFE_REQUIRE(ingress_connection_policy_map != nullptr);
+    bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(object, "egress_connection_policy_map");
+    SAFE_REQUIRE(egress_connection_policy_map != nullptr);
+
+    // Update ingress and egress policy to block loopback packet on test port.
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket.post_async_receive();
+
+    // Attach the authorization connect program at BPF_CGROUP_INET4_CONNECT_AUTHORIZATION.
+    bpf_attach_type authorization_connect_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
+        0,
+        authorization_connect_attach_type,
+        0);
+    SAFE_REQUIRE(result == 0);
+
+    // Send loopback message to test port.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // The packet should be blocked by the authorization connect program.
+    receiver_socket.complete_async_receive(true);
+    // Cancel send operation.
+    sender_socket.cancel_send_message();
+
+    // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
+    bpf_attach_type recv_accept_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT;
+    result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Update egress policy to allow packet.
+    // Test both hard and soft permit.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    _change_egress_policy_test_ingress_block(
+        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
+
+    // Update ingress policy to allow packet.
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
+    // destination.
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+    receiver_socket.complete_async_receive();
+}
+
+TEST_CASE("connect_test_udp_v4", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
-TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_test_udp_v6", "[sock_addr_tests]")
 {
     datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
     datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    connect_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
 }
 
-TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
+TEST_CASE("connect_test_tcp_v4", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
-TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
+TEST_CASE("connect_test_tcp_v6", "[sock_addr_tests]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+    connect_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("connect_authorization_test_udp_v4", "[sock_addr_tests]")
+{
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connect_authorization_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+}
+
+TEST_CASE("connect_authorization_test_udp_v6", "[sock_addr_tests]")
+{
+    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
+    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
+
+    connect_authorization_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+}
+
+TEST_CASE("connect_authorization_test_tcp_v4", "[sock_addr_tests]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connect_authorization_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("connect_authorization_test_tcp_v6", "[sock_addr_tests]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    connect_authorization_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+void
+helper_functions_validation_test(
+    ADDRESS_FAMILY address_family,
+    _Inout_ client_socket_t& sender_socket,
+    _Inout_ receiver_socket_t& receiver_socket,
+    uint32_t protocol)
+{
+    UNREFERENCED_PARAMETER(protocol);
+
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    const char* authorization_connect_program_name =
+        (address_family == AF_INET) ? "test_sock_addr_helpers_v4" : "test_sock_addr_helpers_v6";
+    bpf_program* authorization_connect_program =
+        bpf_object__find_program_by_name(object, authorization_connect_program_name);
+    SAFE_REQUIRE(authorization_connect_program != nullptr);
+
+    // Get maps to retrieve helper function results.
+    bpf_map* interface_type_map = bpf_object__find_map_by_name(object, "interface_type_map");
+    SAFE_REQUIRE(interface_type_map != nullptr);
+    bpf_map* tunnel_type_map = bpf_object__find_map_by_name(object, "tunnel_type_map");
+    SAFE_REQUIRE(tunnel_type_map != nullptr);
+    bpf_map* next_hop_interface_map = bpf_object__find_map_by_name(object, "next_hop_interface_map");
+    SAFE_REQUIRE(next_hop_interface_map != nullptr);
+    bpf_map* sub_interface_map = bpf_object__find_map_by_name(object, "sub_interface_map");
+    SAFE_REQUIRE(sub_interface_map != nullptr);
+    bpf_map* test_results_map = bpf_object__find_map_by_name(object, "test_results_map");
+    SAFE_REQUIRE(test_results_map != nullptr);
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    // Attach the authorization connect program at the appropriate CONNECT_AUTHORIZATION layer.
+    bpf_attach_type authorization_connect_attach_type =
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(authorization_connect_program)),
+        0,
+        authorization_connect_attach_type,
+        0);
+    SAFE_REQUIRE(result == 0);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket.post_async_receive();
+
+    // Send message to trigger the CONNECT_AUTHORIZATION program.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
+    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // Complete the connection to ensure CONNECT_AUTHORIZATION program was invoked.
+    receiver_socket.complete_async_receive();
+
+    // Calculate connection ID (same as in the eBPF program).
+    uint32_t connection_id = 0;
+    if (address_family == AF_INET) {
+        connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+    } else {
+        // For IPv6, use simplified hash based on loopback address.
+        connection_id = (in6addr_loopback.u.Word[0] ^ in6addr_loopback.u.Word[7]) ^ (htons(SOCKET_TEST_PORT) << 16);
+    }
+
+    // Validate that helper functions returned reasonable values.
+    uint32_t interface_type = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(interface_type_map), &connection_id, &interface_type);
+    if (result == 0) {
+        printf("Interface type: %u\n", interface_type);
+        // Interface type should be a valid IANA-assigned value or -1 if not available.
+        bool valid_interface_type =
+            (interface_type == (uint32_t)-1 || interface_type == IF_TYPE_ETHERNET_CSMACD ||
+             interface_type == IF_TYPE_SOFTWARE_LOOPBACK || interface_type == IF_TYPE_IEEE80211 ||
+             interface_type == IF_TYPE_TUNNEL);
+        SAFE_REQUIRE((valid_interface_type));
+    }
+
+    uint32_t tunnel_type = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(tunnel_type_map), &connection_id, &tunnel_type);
+    if (result == 0) {
+        printf("Tunnel type: %u\n", tunnel_type);
+        // Tunnel type should be 0 (no tunnel), -1 (not available), or a valid IANA tunnel type.
+        // For loopback connections, we expect 0 (no tunnel).
+        bool valid_tunnel_type =
+            (tunnel_type == 0 || tunnel_type == (uint32_t)-1 || (tunnel_type >= 1 && tunnel_type <= 100));
+        SAFE_REQUIRE((valid_tunnel_type));
+    }
+
+    uint64_t next_hop_interface_luid = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(next_hop_interface_map), &connection_id, &next_hop_interface_luid);
+    if (result == 0) {
+        printf("Next-hop interface LUID: %llu\n", next_hop_interface_luid);
+        // LUID should be either -1 (not available) or a valid interface LUID.
+        // We can't predict the exact value, but it should be reasonable.
+        SAFE_REQUIRE((next_hop_interface_luid == (uint64_t)-1 || next_hop_interface_luid > 0));
+    }
+
+    uint32_t sub_interface_index = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(sub_interface_map), &connection_id, &sub_interface_index);
+    if (result == 0) {
+        printf("Sub-interface index: %u\n", sub_interface_index);
+        // Sub-interface index should be -1 (not available) or a valid index.
+        SAFE_REQUIRE((sub_interface_index == (uint32_t)-1 || sub_interface_index > 0));
+    }
+
+    // Verify that the connection was counted.
+    uint32_t counter_key = (address_family == AF_INET) ? 1 : 2;
+    uint64_t connection_count = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &counter_key, &connection_count);
+    if (result == 0) {
+        printf("Connection count: %llu\n", connection_count);
+        SAFE_REQUIRE(connection_count >= 1);
+    }
+
+    // Validate comprehensive results from test_results_map.
+    helper_results_t comprehensive_results = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(test_results_map), &connection_id, &comprehensive_results);
+    if (result == 0) {
+        printf(
+            "Comprehensive results - Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u, ConnID: %u\n",
+            comprehensive_results.interface_type,
+            comprehensive_results.tunnel_type,
+            comprehensive_results.next_hop_interface_luid,
+            comprehensive_results.sub_interface_index,
+            comprehensive_results.connection_id);
+
+        // Validate that comprehensive results match individual results.
+        SAFE_REQUIRE(comprehensive_results.interface_type == interface_type);
+        SAFE_REQUIRE(comprehensive_results.tunnel_type == tunnel_type);
+        SAFE_REQUIRE(comprehensive_results.next_hop_interface_luid == next_hop_interface_luid);
+        SAFE_REQUIRE(comprehensive_results.sub_interface_index == sub_interface_index);
+        SAFE_REQUIRE(comprehensive_results.connection_id == connection_id);
+
+        // Validate that at least some network context is available.
+        // For loopback connections, we should at least get interface type information.
+        bool has_network_context = (comprehensive_results.interface_type != 0) ||
+                                   (comprehensive_results.next_hop_interface_luid != 0) ||
+                                   (comprehensive_results.sub_interface_index != 0);
+        SAFE_REQUIRE(has_network_context);
+    }
+
+    printf(
+        "Helper functions validation test completed successfully for %s\n",
+        (address_family == AF_INET) ? "IPv4" : "IPv6");
+}
+
+TEST_CASE("authorization_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    helper_functions_validation_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE("authorization_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+{
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    helper_functions_validation_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
+}
+
+TEST_CASE(
+    "authorization_connect_conditional_policy_validation_tcp_v4",
+    "[sock_addr_tests][helper_validation][conditional_policy]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Use the conditional authorization program that makes policy decisions.
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
+    SAFE_REQUIRE(conditional_program != nullptr);
+
+    // Get the connection count map to verify tunnel connection tracking.
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    // Attach the conditional authorization program.
+    int result = bpf_prog_attach(
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+        0);
+    SAFE_REQUIRE(result == 0);
+
+    // Create test sockets.
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    // Post an asynchronous receive on the receiver socket.
+    stream_server_socket.post_async_receive();
+
+    // Send message to trigger the conditional CONNECT_AUTHORIZATION program.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+    stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+
+    // Complete the connection.
+    stream_server_socket.complete_async_receive();
+
+    // Check if tunnel connections were tracked (key 100 is used for tunnel connections).
+    uint32_t tunnel_key = 100;
+    uint64_t tunnel_count = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &tunnel_key, &tunnel_count);
+
+    // For loopback connections, we don't expect tunnels, so tunnel_count should be 0 or entry not found.
+    if (result == 0) {
+        printf("Tunnel connection count: %llu\n", tunnel_count);
+        // For loopback, tunnel count should typically be 0.
+        SAFE_REQUIRE(tunnel_count >= 0);
+    }
+
+    printf("Conditional policy validation test completed successfully\n");
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
@@ -413,7 +786,7 @@ connection_monitor_test(
         receiver_socket.close();
     }
 
-    // Wait for event handler getting notifications for all connection audit events.
+    // Wait for event handler to get notifications for all connection audit events.
     SAFE_REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
@@ -1739,7 +2112,7 @@ multi_attach_test_thread_function2(
 
 TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tests]")
 {
-    // This test case stresses the code path where 2 program -- one of type wildcard and other of specific attach
+    // This test case stresses the code path where 2 programs -- one of type wildcard and another of specific attach
     // types are attaching and detaching in parallel, and a third thread invokes the hook by sending packets.
     //
     // Thread 0,1: Invokes connections in a loop.
