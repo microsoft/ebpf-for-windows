@@ -664,7 +664,7 @@ static uint32_t
 _ebpf_sock_addr_get_interface_type(_In_ const bpf_sock_addr_t* ctx)
 {
     UNREFERENCED_PARAMETER(ctx);
-    return 0;
+    return (uint32_t)-1;
 }
 
 static uint32_t
@@ -678,14 +678,14 @@ static uint64_t
 _ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
 {
     UNREFERENCED_PARAMETER(ctx);
-    return 0;
+    return (uint64_t)-1;
 }
 
 static uint32_t
 _ebpf_sock_addr_get_sub_interface_index(_In_ const bpf_sock_addr_t* ctx)
 {
     UNREFERENCED_PARAMETER(ctx);
-    return 0;
+    return (uint32_t)-1;
 }
 
 static uint64_t

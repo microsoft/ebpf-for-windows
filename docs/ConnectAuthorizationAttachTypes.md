@@ -94,24 +94,24 @@ CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additi
 
 #### `bpf_sock_addr_get_interface_type(ctx)`
 Returns the network interface type for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Interface type value, or 0 if not available
+- **Returns**: Interface type value, or -1 if not available
 - **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
 - **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `6` (ethernetCsmacd), `71` (ieee80211 for WiFi), `131` (tunnel), etc.
 
 #### `bpf_sock_addr_get_tunnel_type(ctx)`
 Returns the tunnel type information for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Tunnel type value, or 0 if not a tunnel or not available
+- **Returns**: Tunnel type value, 0 if not a tunnel, or -1 if not available
 - **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
 - **Note**: Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc.
 
 #### `bpf_sock_addr_get_next_hop_interface_luid(ctx)`
 Returns the next-hop interface LUID for the connection. Available for CONNECT_AUTHORIZATION hooks only.
-- **Returns**: Next-hop interface LUID, or 0 if not available
+- **Returns**: Next-hop interface LUID, or -1 if not available
 - **Use case**: Route-dependent access control decisions
 
 #### `bpf_sock_addr_get_sub_interface_index(ctx)`
 Returns the sub-interface index for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Sub-interface index, or 0 if not available
+- **Returns**: Sub-interface index, or -1 if not available
 - **Use case**: Granular interface-based policies
 
 ### Selective Program Invocation
@@ -374,7 +374,7 @@ When developing new programs, consider:
 
 ### Backward Compatibility
 The new helper functions are designed to be backward compatible:
-- They return 0 when information is not available (e.g., on CONNECT_REDIRECT layers)
+- They return -1 when information is not available (e.g., on CONNECT_REDIRECT layers)
 - Existing programs that don't use these helpers continue to function normally
 - The `bpf_sock_addr_t` context structure remains unchanged to maintain ABI compatibility
 

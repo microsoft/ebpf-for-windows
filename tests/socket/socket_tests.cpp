@@ -405,39 +405,40 @@ helper_functions_validation_test(
     result = bpf_map_lookup_elem(bpf_map__fd(interface_type_map), &connection_id, &interface_type);
     if (result == 0) {
         printf("Interface type: %u\n", interface_type);
-        // Interface type should be a valid IANA-assigned value or 0 if not available.
+        // Interface type should be a valid IANA-assigned value or -1 if not available.
         bool valid_interface_type =
-            (interface_type == 0 || interface_type == IF_TYPE_ETHERNET_CSMACD ||
+            (interface_type == (uint32_t)-1 || interface_type == IF_TYPE_ETHERNET_CSMACD ||
              interface_type == IF_TYPE_SOFTWARE_LOOPBACK || interface_type == IF_TYPE_IEEE80211 ||
              interface_type == IF_TYPE_TUNNEL);
-        SAFE_REQUIRE(valid_interface_type);
+        SAFE_REQUIRE((valid_interface_type));
     }
 
     uint32_t tunnel_type = 0;
     result = bpf_map_lookup_elem(bpf_map__fd(tunnel_type_map), &connection_id, &tunnel_type);
     if (result == 0) {
         printf("Tunnel type: %u\n", tunnel_type);
-        // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
+        // Tunnel type should be 0 (no tunnel), -1 (not available), or a valid IANA tunnel type.
         // For loopback connections, we expect 0 (no tunnel).
-        bool valid_tunnel_type = (tunnel_type >= 0 && tunnel_type <= 100);
-        SAFE_REQUIRE(valid_tunnel_type);
+        bool valid_tunnel_type =
+            (tunnel_type == 0 || tunnel_type == (uint32_t)-1 || (tunnel_type >= 1 && tunnel_type <= 100));
+        SAFE_REQUIRE((valid_tunnel_type));
     }
 
     uint64_t next_hop_interface_luid = 0;
     result = bpf_map_lookup_elem(bpf_map__fd(next_hop_interface_map), &connection_id, &next_hop_interface_luid);
     if (result == 0) {
         printf("Next-hop interface LUID: %llu\n", next_hop_interface_luid);
-        // LUID should be either 0 (not available) or a valid interface LUID.
+        // LUID should be either -1 (not available) or a valid interface LUID.
         // We can't predict the exact value, but it should be reasonable.
-        SAFE_REQUIRE(next_hop_interface_luid >= 0);
+        SAFE_REQUIRE((next_hop_interface_luid == (uint64_t)-1 || next_hop_interface_luid > 0));
     }
 
     uint32_t sub_interface_index = 0;
     result = bpf_map_lookup_elem(bpf_map__fd(sub_interface_map), &connection_id, &sub_interface_index);
     if (result == 0) {
         printf("Sub-interface index: %u\n", sub_interface_index);
-        // Sub-interface index should be 0 (not available) or a valid index.
-        SAFE_REQUIRE(sub_interface_index >= 0);
+        // Sub-interface index should be -1 (not available) or a valid index.
+        SAFE_REQUIRE((sub_interface_index == (uint32_t)-1 || sub_interface_index > 0));
     }
 
     // Verify that the connection was counted.

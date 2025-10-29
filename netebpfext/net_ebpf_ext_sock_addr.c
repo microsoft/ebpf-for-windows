@@ -1591,26 +1591,26 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     if (fields->interface_type_field != 0) {
         sock_addr_ctx->interface_type = incoming_values[fields->interface_type_field].value.uint32;
     } else {
-        sock_addr_ctx->interface_type = 0;
+        sock_addr_ctx->interface_type = (uint32_t)-1;
     }
 
     if (fields->tunnel_type_field != 0) {
         sock_addr_ctx->tunnel_type = incoming_values[fields->tunnel_type_field].value.uint32;
     } else {
-        sock_addr_ctx->tunnel_type = 0;
+        sock_addr_ctx->tunnel_type = (uint32_t)-1;
     }
 
     // Next hop can be NULL.
     if ((fields->next_hop_interface_field != 0) && (incoming_values[fields->next_hop_interface_field].value.uint64)) {
         sock_addr_ctx->next_hop_interface_luid = *incoming_values[fields->next_hop_interface_field].value.uint64;
     } else {
-        sock_addr_ctx->next_hop_interface_luid = 0;
+        sock_addr_ctx->next_hop_interface_luid = (uint64_t)-1;
     }
 
     if (fields->sub_interface_index_field != 0) {
         sock_addr_ctx->sub_interface_index = incoming_values[fields->sub_interface_index_field].value.uint32;
     } else {
-        sock_addr_ctx->sub_interface_index = 0;
+        sock_addr_ctx->sub_interface_index = (uint32_t)-1;
     }
 }
 

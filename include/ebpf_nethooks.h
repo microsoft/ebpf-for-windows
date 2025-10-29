@@ -131,11 +131,11 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 #endif
 
 /**
- * @brief Get the interface type for the connection (AUTH_CONNECT and AUTH_RECV_ACCEPT only).
+ * @brief Get the interface type for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- * @retval Interface type value, or 0 if not available.
+ * @retval Interface type value, or -1 if not available.
  */
 EBPF_HELPER(uint32_t, bpf_sock_addr_get_interface_type, (bpf_sock_addr_t * ctx));
 #ifndef __doxygen
@@ -143,11 +143,11 @@ EBPF_HELPER(uint32_t, bpf_sock_addr_get_interface_type, (bpf_sock_addr_t * ctx))
 #endif
 
 /**
- * @brief Get the tunnel type for the connection (AUTH_CONNECT and AUTH_RECV_ACCEPT only).
+ * @brief Get the tunnel type for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- * @retval Tunnel type value, or 0 if not a tunnel or not available.
+ * @retval Tunnel type value, 0 if not a tunnel, or -1 if not available.
  */
 EBPF_HELPER(uint32_t, bpf_sock_addr_get_tunnel_type, (bpf_sock_addr_t * ctx));
 #ifndef __doxygen
@@ -155,11 +155,11 @@ EBPF_HELPER(uint32_t, bpf_sock_addr_get_tunnel_type, (bpf_sock_addr_t * ctx));
 #endif
 
 /**
- * @brief Get the next-hop interface LUID for the connection (AUTH_CONNECT only).
+ * @brief Get the next-hop interface LUID for the connection (CONNECT_AUTHORIZATION only).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- * @retval Next-hop interface LUID, or 0 if not available.
+ * @retval Next-hop interface LUID, or -1 if not available.
  */
 EBPF_HELPER(uint64_t, bpf_sock_addr_get_next_hop_interface_luid, (bpf_sock_addr_t * ctx));
 #ifndef __doxygen
@@ -168,11 +168,11 @@ EBPF_HELPER(uint64_t, bpf_sock_addr_get_next_hop_interface_luid, (bpf_sock_addr_
 #endif
 
 /**
- * @brief Get the sub-interface index for the connection (AUTH_CONNECT and AUTH_RECV_ACCEPT only).
+ * @brief Get the sub-interface index for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
- * @retval Sub-interface index, or 0 if not available.
+ * @retval Sub-interface index, or -1 if not available.
  */
 EBPF_HELPER(uint32_t, bpf_sock_addr_get_sub_interface_index, (bpf_sock_addr_t * ctx));
 #ifndef __doxygen
