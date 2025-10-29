@@ -199,7 +199,7 @@ typedef struct _bpf_sock_ops
 typedef int
 sock_ops_hook_t(bpf_sock_ops_t* context);
 
-#define SOCK_OPS_EXT_HELPER_FN_BASE 0xFFFE
+#define SOCK_OPS_EXT_HELPER_FN_BASE 0xFFFF
 
 typedef enum
 {
