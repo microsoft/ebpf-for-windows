@@ -193,7 +193,7 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
@@ -234,7 +234,7 @@ int connect_authorization_interface_policy(struct bpf_sock_addr *ctx)
     }
 
     // Default: allow with normal authorization checks.
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
@@ -250,16 +250,16 @@ int connect_authorization_tunnel_policy(struct bpf_sock_addr *ctx)
         // This is a tunneled outbound connection.
         // Apply tunnel-specific security policy.
         if (tunnel_type == 19) { // ipsectunnelmode(19) - IPSec tunnel mode.
-            return BPF_SOCK_ADDR_VERDICT_PROCEED;
+            return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         } else if (tunnel_type == 3) { // gre(3) - GRE encapsulation.
-            return BPF_SOCK_ADDR_VERDICT_PROCEED;
+            return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         } else {
             // Unknown or unsupported tunnel type.
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
     }
 
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
@@ -284,7 +284,7 @@ int connect_authorization_route_policy(struct bpf_sock_addr *ctx)
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
@@ -321,7 +321,7 @@ int connect_authorization_verdict_demo(struct bpf_sock_addr *ctx)
     }
 
     // Default case - standard proceed.
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
@@ -356,7 +356,7 @@ int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
     }
 
     // Default: allow with normal authorization flow.
-    return BPF_SOCK_ADDR_VERDICT_PROCEED;
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 
