@@ -96,7 +96,7 @@ CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additi
 Returns the network interface type for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
 - **Returns**: Interface type value, or -1 if not available
 - **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
-- **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `6` (ethernetCsmacd), `71` (ieee80211 for WiFi), `131` (tunnel), etc.
+- **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `IF_TYPE_ETHERNET_CSMACD` (6) (ethernetCsmacd), `IF_TYPE_IEEE80211` (71) (ieee80211 for WiFi), `IF_TYPE_TUNNEL` (131) (tunnel), etc. These constants are defined in the Windows SDK header `ipifcons.h`.
 
 #### `bpf_sock_addr_get_tunnel_type(ctx)`
 Returns the tunnel type information for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
@@ -184,7 +184,7 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
     uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
 
     // Block outbound connections on public WiFi to sensitive destinations.
-    if (interface_type == 71 && is_sensitive_destination(ctx->user_ip4)) { // ieee80211.
+    if (interface_type == IF_TYPE_IEEE80211 && is_sensitive_destination(ctx->user_ip4)) { // ieee80211.
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -222,13 +222,13 @@ int connect_authorization_interface_policy(struct bpf_sock_addr *ctx)
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
 
     // Apply interface-specific policy with appropriate verdict types.
-    if (interface_type == 131) { // tunnel(131) - VPN/tunnel interfaces.
+    if (interface_type == IF_TYPE_TUNNEL) { // tunnel(131) - VPN/tunnel interfaces.
         // VPN connections are highly trusted - skip additional authorization.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-    } else if (interface_type == 71) { // ieee80211(71) - WiFi interfaces.
+    } else if (interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi interfaces.
         // Block outbound connections on public WiFi for sensitive applications.
         return BPF_SOCK_ADDR_VERDICT_REJECT;
-    } else if (interface_type == 6) { // ethernetCsmacd(6) - Ethernet interfaces.
+    } else if (interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet interfaces.
         // Corporate wired network - allow but continue with normal authorization flow.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
@@ -309,13 +309,13 @@ int connect_authorization_verdict_demo(struct bpf_sock_addr *ctx)
     }
 
     // Corporate wired network - allow but let other filters validate.
-    if (interface_type == 6) { // ethernetCsmacd(6) - Ethernet.
+    if (interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet.
         // Continue with normal authorization flow.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
     // External destinations on public WiFi networks - proceed with caution.
-    if (interface_type == 71) { // ieee80211(71) - WiFi.
+    if (interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi.
         // Allow but ensure other security mechanisms evaluate this.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
@@ -337,7 +337,7 @@ int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
     uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
 
     // Create a comprehensive security decision based on all available context.
-    if (interface_type == 187 && tunnel_type == 0) { // aal2(187) - cellular without tunnel.
+    if (interface_type == IF_TYPE_AAL2 && tunnel_type == 0) { // aal2(187) - cellular without tunnel.
         // On cellular without tunnel - apply data usage restrictions.
         if (is_high_bandwidth_destination(ctx->user_ip4)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
