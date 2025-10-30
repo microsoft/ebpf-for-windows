@@ -9,6 +9,7 @@
  */
 
 #include "ebpf_core.h"
+#include "ebpf_error.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"

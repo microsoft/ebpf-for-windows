@@ -30,3 +30,4 @@ Doxyfile
 \.vsconfig
 packages.config
 installer/LICENSE.rtf
+version.json

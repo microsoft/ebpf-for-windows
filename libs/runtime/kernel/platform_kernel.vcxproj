@@ -9,7 +9,6 @@
     <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
-    <ClCompile Include="..\ebpf_error.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />
@@ -32,6 +31,7 @@
     <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat_size.h" />
     <ClInclude Include="..\..\..\external\usersim\cxplat\inc\winkernel\cxplat_winkernel.h" />
     <ClInclude Include="..\..\..\include\ebpf_core_structs.h" />
+     <ClInclude Include="..\..\..\include\ebpf_error.h" />
     <ClInclude Include="..\..\..\include\ebpf_program_types.h" />
     <ClInclude Include="..\..\..\include\ebpf_result.h" />
     <ClInclude Include="..\..\..\include\ebpf_structs.h" />
