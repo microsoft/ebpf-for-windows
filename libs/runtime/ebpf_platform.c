@@ -236,7 +236,8 @@ _Ret_maybenull_ ebpf_process_state_t*
 ebpf_allocate_process_state()
 {
     // Skipping fault injection as call to ebpf_allocate_with_tag(, EBPF_POOL_TAG_DEFAULT) covers it.
-    ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate_with_tag(sizeof(ebpf_process_state_t), EBPF_POOL_TAG_DEFAULT);
+    ebpf_process_state_t* state =
+        (ebpf_process_state_t*)ebpf_allocate_with_tag(sizeof(ebpf_process_state_t), EBPF_POOL_TAG_DEFAULT);
     return state;
 }
 
@@ -464,7 +465,8 @@ ebpf_allocate_timer_work_item(
     _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
     _Inout_opt_ void* work_item_context)
 {
-    *timer_work_item = (ebpf_timer_work_item_t*)ebpf_allocate_with_tag(sizeof(ebpf_timer_work_item_t), EBPF_POOL_TAG_DEFAULT);
+    *timer_work_item =
+        (ebpf_timer_work_item_t*)ebpf_allocate_with_tag(sizeof(ebpf_timer_work_item_t), EBPF_POOL_TAG_DEFAULT);
     if (*timer_work_item == NULL) {
         return EBPF_NO_MEMORY;
     }

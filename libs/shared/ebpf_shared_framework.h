@@ -58,7 +58,6 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_STATE = 'atse',
 } ebpf_pool_tag_t;
 
-
 __forceinline void
 ebpf_free(_Frees_ptr_opt_ void* pointer)
 {

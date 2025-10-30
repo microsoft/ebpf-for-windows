@@ -579,8 +579,8 @@ _ebpf_bind_context_create(
     ebpf_result_t retval;
     *context = nullptr;
     bind_md_t* bind_context = nullptr;
-    bind_context_header_t* bind_context_header =
-        reinterpret_cast<bind_context_header_t*>(ebpf_allocate_with_tag(sizeof(bind_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    bind_context_header_t* bind_context_header = reinterpret_cast<bind_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(bind_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (bind_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -714,8 +714,8 @@ _ebpf_sock_addr_context_create(
     *context = nullptr;
 
     bpf_sock_addr_t* sock_addr_context = nullptr;
-    sock_addr_context_header_t* sock_addr_context_header =
-        reinterpret_cast<sock_addr_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_addr_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    sock_addr_context_header_t* sock_addr_context_header = reinterpret_cast<sock_addr_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(sock_addr_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_addr_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -839,8 +839,8 @@ _ebpf_sock_ops_context_create(
     *context = nullptr;
 
     bpf_sock_ops_t* sock_ops_context = nullptr;
-    sock_ops_context_header_t* sock_ops_context_header =
-        reinterpret_cast<sock_ops_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_ops_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    sock_ops_context_header_t* sock_ops_context_header = reinterpret_cast<sock_ops_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(sock_ops_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_ops_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
