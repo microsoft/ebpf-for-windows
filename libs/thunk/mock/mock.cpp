@@ -180,12 +180,13 @@ _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status)
 }
 
 uint32_t
-_stop_service(SC_HANDLE service_handle)
+_stop_and_delete_service(SC_HANDLE service_handle, const wchar_t* service_name)
 {
     // TODO: (Issue# 852) Just a stub currently in order to compile.
     // Will be replaced by a proper mock.
 
     UNREFERENCED_PARAMETER(service_handle);
+    UNREFERENCED_PARAMETER(service_name);
     return ERROR_SUCCESS;
 }
 
