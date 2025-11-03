@@ -2118,6 +2118,7 @@ _find_circular_map_entry(
     // Queue uses no key, but the caller always passes in a non-null pointer (with a 0 key size)
     // so we cannot require key to be null.
     UNREFERENCED_PARAMETER(key);
+    UNREFERENCED_PARAMETER(helper_function);
 
     ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, map);
     ebpf_lock_state_t state = ebpf_lock_lock(&circular_map->lock);
