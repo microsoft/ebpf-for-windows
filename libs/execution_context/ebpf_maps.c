@@ -409,7 +409,11 @@ typedef struct _ebpf_map_metadata_table
     void (*delete_map)(_In_ _Post_invalid_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
-        _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
+        _Inout_ ebpf_core_map_t* map,
+        _In_opt_ const uint8_t* key,
+        bool delete_on_success,
+        bool helper_function,
+        _Outptr_ uint8_t** data);
     ebpf_core_object_t* (*get_object_from_entry)(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
     ebpf_result_t (*update_entry)(
         _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
@@ -524,9 +528,15 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_array_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* key,
+    bool delete_on_success,
+    bool helper_function,
+    _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
+    UNREFERENCED_PARAMETER(helper_function);
+
     if (!map || !key || delete_on_success) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -544,11 +554,15 @@ _find_array_map_entry(
 
 static ebpf_result_t
 _find_array_map_entry_with_reference(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* key,
+    bool delete_on_success,
+    bool helper_function,
+    _Outptr_ uint8_t** data)
 {
     ebpf_assert(map->ebpf_map_definition.value_size == sizeof(ebpf_id_t));
 
-    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, data);
+    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, helper_function, data);
 
     if (result != EBPF_SUCCESS) {
         return result;
@@ -960,7 +974,7 @@ _delete_array_map_entry_with_reference(
     uint8_t* entry;
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-    result = _find_array_map_entry(map, key, false, &entry);
+    result = _find_array_map_entry(map, key, false, true, &entry);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
@@ -1001,7 +1015,7 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
 
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
-    if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
+    if (_find_array_map_entry(map, (uint8_t*)&index, false, true, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[index * map->ebpf_map_definition.value_size];
         ebpf_object_type_t value_type =
             (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
@@ -1339,12 +1353,23 @@ _uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry
 
 static void
 _lru_hash_table_notification(
-    _In_ void* context, _In_ ebpf_hash_table_notification_type_t type, _In_ const uint8_t* key, _In_ uint8_t* value)
+    _In_ void* context,
+    _In_ ebpf_hash_table_notification_type_t type,
+    _In_opt_ const void* operation_context,
+    _In_ const uint8_t* key,
+    _In_ uint8_t* value)
 {
     ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)context;
     ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
     // Map the current CPU to a partition.
     uint32_t partition = ebpf_get_current_cpu() % lru_map->partition_count;
+    bool helper_function = true;
+    if (operation_context) {
+        helper_function = *(bool*)operation_context;
+    }
+    if (operation_context) {
+        partition = *(uint32_t*)operation_context;
+    }
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
         _initialize_lru_entry(lru_map, entry, partition, key);
@@ -1353,7 +1378,12 @@ _lru_hash_table_notification(
         _uninitialize_lru_entry(lru_map, entry);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        _insert_into_hot_list(lru_map, partition, entry);
+        if (helper_function) {
+            // Only when the entry is accessed via helper function, insert it into the hot list.
+            // This is to avoid the hot list from being filled with entries that are accessed via the user mode APIs.
+            _insert_into_hot_list(lru_map, partition, entry);
+        }
+        // _insert_into_hot_list(lru_map, partition, entry);
         break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -1567,14 +1597,19 @@ _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_hash_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* key,
+    bool delete_on_success,
+    bool helper_function,
+    _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
+    if (ebpf_hash_table_find_with_context((ebpf_hash_table_t*)map->data, key, &helper_function, &value) !=
+        EBPF_SUCCESS) {
         value = NULL;
     }
 
@@ -1604,7 +1639,7 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
 {
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
-    if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
+    if (_find_hash_map_entry(map, key, false, true, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, &object) != EBPF_SUCCESS) {
             object = NULL;
@@ -1772,7 +1807,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     uint8_t* value = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, &value);
+    ebpf_result_t result = _find_hash_map_entry(map, key, true, true, &value);
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
@@ -1848,12 +1883,12 @@ _update_entry_per_cpu(
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     uint8_t* target;
-    if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+    if (table->find_entry(map, key, false, true, &target) != EBPF_SUCCESS) {
         ebpf_result_t return_value = table->update_entry(map, key, NULL, option);
         if (return_value != EBPF_SUCCESS) {
             return return_value;
         }
-        if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+        if (table->find_entry(map, key, false, true, &target) != EBPF_SUCCESS) {
             return EBPF_NO_MEMORY;
         }
     }
@@ -1918,7 +1953,11 @@ Exit:
 
 static ebpf_result_t
 _find_lpm_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* key,
+    bool delete_on_success,
+    bool helper_function,
+    _Outptr_ uint8_t** data)
 {
     if (!map || !key || delete_on_success) {
         return EBPF_INVALID_ARGUMENT;
@@ -1939,7 +1978,7 @@ _find_lpm_map_entry(
     ebpf_bitmap_start_reverse_search_at((ebpf_bitmap_t*)trie_map->data, &cursor, original_prefix_length);
     lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
     while (lpm_key->prefix_length != MAXUINT32) {
-        if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
+        if (_find_hash_map_entry(map, key, false, helper_function, &value) == EBPF_SUCCESS) {
             break;
         }
         lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
@@ -2066,7 +2105,11 @@ _delete_circular_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_circular_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* key,
+    bool delete_on_success,
+    bool helper_function,
+    _Outptr_ uint8_t** data)
 {
     if (!map) {
         return EBPF_INVALID_ARGUMENT;
@@ -3136,8 +3179,9 @@ ebpf_map_find_entry(
             return_value = (uint8_t*)object;
         }
     } else {
-        ebpf_result_t result =
-            table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+        bool delete_on_find = (flags & EBPF_MAP_FIND_FLAG_DELETE) ? true : false;
+        bool helper = (flags & EBPF_MAP_FLAG_HELPER) ? true : false;
+        ebpf_result_t result = table->find_entry(map, key, delete_on_find, helper, &return_value);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -3438,6 +3482,8 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_INVALID_ARGUMENT;
     }
 
+    bool helper_function = (flags & EBPF_MAP_FLAG_HELPER) ? true : false;
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->find_entry == NULL) {
@@ -3449,7 +3495,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, true, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, true, helper_function, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3466,6 +3512,8 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_INVALID_ARGUMENT;
     }
 
+    bool helper_function = (flags & EBPF_MAP_FLAG_HELPER) ? true : false;
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->find_entry == NULL) {
@@ -3477,7 +3525,7 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, false, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, false, helper_function, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }

@@ -624,7 +624,7 @@ _ebpf_hash_table_replace_bucket(
         }
         if (hash_table->notification_callback) {
             hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, key, new_data);
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, NULL, key, new_data);
         }
     }
 
@@ -695,11 +695,11 @@ Done:
     if (hash_table->notification_callback) {
         if (new_data) {
             hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, new_data);
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, NULL, key, new_data);
         }
         if (old_data) {
             hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, old_data);
+                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, NULL, key, old_data);
         }
     }
 
@@ -801,7 +801,11 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+ebpf_hash_table_find_with_context(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _In_ const uint8_t* key,
+    _In_opt_ const void* context,
+    _Outptr_ uint8_t** value)
 {
     ebpf_result_t retval;
     uint32_t bucket_index;
@@ -839,11 +843,17 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     *value = data;
     if (hash_table->notification_callback) {
         hash_table->notification_callback(
-            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
+            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, context, key, data);
     }
     retval = EBPF_SUCCESS;
 Done:
     return retval;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+{
+    return ebpf_hash_table_find_with_context(hash_table, key, NULL, value);
 }
 
 _Must_inspect_result_ ebpf_result_t

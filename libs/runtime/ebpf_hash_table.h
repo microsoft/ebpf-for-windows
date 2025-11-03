@@ -31,6 +31,7 @@ extern "C"
     typedef void (*ebpf_hash_table_notification_function)(
         _Inout_ void* context,
         _In_ ebpf_hash_table_notification_type_t type,
+        _In_opt_ const void* operation_context, //< Context passed to ebpf_hash_table_* functions.
         _In_ const uint8_t* key,
         _Inout_ uint8_t* value);
 
@@ -100,6 +101,13 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_hash_table_find_with_context(
+        _In_ const ebpf_hash_table_t* hash_table,
+        _In_ const uint8_t* key,
+        _In_opt_ const void* context,
+        _Outptr_ uint8_t** value);
 
     /**
      * @brief Insert or update an entry in the hash table.
