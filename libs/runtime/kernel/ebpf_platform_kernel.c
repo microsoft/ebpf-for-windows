@@ -362,93 +362,108 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     return EBPF_SUCCESS;
 }
 
-// Function prototype to mimic RtlUTF8StringToUnicodeString
+// Function to convert UTF-8 string to Unicode string.
 static ebpf_result_t
-MyRtlUTF8StringToUnicodeString(PUNICODE_STRING DestinationString, PCSZ SourceString, BOOLEAN AllocateDestinationString)
+_convert_utf8_string_to_unicode_string(
+    _Out_ PUNICODE_STRING destination_string, _In_ PCSZ source_string, _In_ BOOLEAN allocate_destination_string)
 {
-    if (!DestinationString || !SourceString)
-        return STATUS_INVALID_PARAMETER;
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
 
-    SIZE_T srcLen = strlen(SourceString);
-    SIZE_T requiredWchars = 0;
+    if (!destination_string || !source_string) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
-    // --- Pass 1: calculate how many WCHARs are needed ---
-    const UCHAR* src = (const UCHAR*)SourceString;
-    SIZE_T i = 0;
-    while (i < srcLen) {
-        UCHAR c = src[i];
+    size_t source_length = strlen(source_string);
+    size_t required_wchars = 0;
+
+    // Pass 1: Calculate how many WCHARs are needed.
+    const UCHAR* source = (const UCHAR*)source_string;
+    size_t i = 0;
+    while (i < source_length) {
+        UCHAR c = source[i];
         if (c < 0x80) {
-            requiredWchars++;
+            required_wchars++;
             i++;
-        } else if ((c & 0xE0) == 0xC0 && i + 1 < srcLen) {
-            requiredWchars++;
+        } else if ((c & 0xE0) == 0xC0 && i + 1 < source_length) {
+            required_wchars++;
             i += 2;
-        } else if ((c & 0xF0) == 0xE0 && i + 2 < srcLen) {
-            requiredWchars++;
+        } else if ((c & 0xF0) == 0xE0 && i + 2 < source_length) {
+            required_wchars++;
             i += 3;
-        } else if ((c & 0xF8) == 0xF0 && i + 3 < srcLen) {
-            // surrogate pair — 2 WCHARs
-            requiredWchars += 2;
+        } else if ((c & 0xF8) == 0xF0 && i + 3 < source_length) {
+            // Surrogate pair - 2 WCHARs.
+            required_wchars += 2;
             i += 4;
         } else {
-            return EBPF_INVALID_ARGUMENT; // invalid UTF-8
+            // Invalid UTF-8.
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
     }
 
-    SIZE_T requiredBytes = (requiredWchars + 1) * sizeof(WCHAR);
+    size_t required_bytes = (required_wchars + 1) * sizeof(wchar_t);
 
-    // --- Allocate if needed ---
-    if (AllocateDestinationString) {
-        // DestinationString->Buffer = ExAllocatePoolWithTag(PagedPool, requiredBytes, '8tUR'); // 'RUt8'
-        DestinationString->Buffer = ebpf_allocate_with_tag(requiredBytes, EBPF_POOL_TAG_DEFAULT);
-        if (!DestinationString->Buffer)
-            return EBPF_NO_MEMORY;
-        DestinationString->MaximumLength = (USHORT)requiredBytes;
-    } else if (!DestinationString->Buffer || DestinationString->MaximumLength < requiredBytes) {
-        return EBPF_INSUFFICIENT_BUFFER;
+    // Allocate if needed.
+    if (allocate_destination_string) {
+        destination_string->Buffer = ebpf_allocate_with_tag(required_bytes, EBPF_POOL_TAG_DEFAULT);
+        if (!destination_string->Buffer) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        destination_string->MaximumLength = (USHORT)required_bytes;
+    } else if (!destination_string->Buffer || destination_string->MaximumLength < required_bytes) {
+        result = EBPF_INSUFFICIENT_BUFFER;
+        goto Done;
     }
 
-    // --- Pass 2: actual conversion ---
-    src = (const UCHAR*)SourceString;
-    WCHAR* dst = DestinationString->Buffer;
+    // Pass 2: Actual conversion.
+    source = (const UCHAR*)source_string;
+    wchar_t* destination = destination_string->Buffer;
     i = 0;
 
-    while (i < srcLen) {
+    while (i < source_length) {
         ULONG ch;
-        UCHAR c = src[i];
+        UCHAR c = source[i];
 
         if (c < 0x80) {
             ch = c;
             i += 1;
         } else if ((c & 0xE0) == 0xC0) {
-            ch = ((c & 0x1F) << 6) | (src[i + 1] & 0x3F);
+            ch = ((c & 0x1F) << 6) | (source[i + 1] & 0x3F);
             i += 2;
         } else if ((c & 0xF0) == 0xE0) {
-            ch = ((c & 0x0F) << 12) | ((src[i + 1] & 0x3F) << 6) | (src[i + 2] & 0x3F);
+            ch = ((c & 0x0F) << 12) | ((source[i + 1] & 0x3F) << 6) | (source[i + 2] & 0x3F);
             i += 3;
         } else if ((c & 0xF8) == 0xF0) {
-            ch = ((c & 0x07) << 18) | ((src[i + 1] & 0x3F) << 12) | ((src[i + 2] & 0x3F) << 6) | (src[i + 3] & 0x3F);
+            ch = ((c & 0x07) << 18) | ((source[i + 1] & 0x3F) << 12) | ((source[i + 2] & 0x3F) << 6) |
+                 (source[i + 3] & 0x3F);
             i += 4;
 
-            // Encode surrogate pair
+            // Encode surrogate pair.
             ch -= 0x10000;
-            *dst++ = (WCHAR)(0xD800 | (ch >> 10));
-            *dst++ = (WCHAR)(0xDC00 | (ch & 0x3FF));
+            *destination++ = (wchar_t)(0xD800 | (ch >> 10));
+            *destination++ = (wchar_t)(0xDC00 | (ch & 0x3FF));
             continue;
         } else {
-            if (AllocateDestinationString)
-                ExFreePoolWithTag(DestinationString->Buffer, '8tUR');
-            return STATUS_INVALID_PARAMETER;
+            if (allocate_destination_string) {
+                ebpf_free(destination_string->Buffer);
+                destination_string->Buffer = NULL;
+            }
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
         }
 
-        *dst++ = (WCHAR)ch;
+        *destination++ = (wchar_t)ch;
     }
 
-    *dst = L'\0';
-    DestinationString->Length = (USHORT)((dst - DestinationString->Buffer) * sizeof(WCHAR));
-    DestinationString->MaximumLength = (USHORT)requiredBytes;
+    *destination = L'\0';
+    destination_string->Length = (USHORT)((destination - destination_string->Buffer) * sizeof(wchar_t));
+    destination_string->MaximumLength = (USHORT)required_bytes;
 
-    return EBPF_SUCCESS;
+Done:
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -478,18 +493,17 @@ ebpf_open_readonly_file_mapping(
     FILE_STANDARD_INFORMATION file_standard_information = {0};
 
     // Convert from UTF-8 string to wide string.
-    status = MyRtlUTF8StringToUnicodeString(
-        &file_name_unicode, utf8_string.Buffer, TRUE); // AllocateDestinationString = TRUE
-    if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MyRtlUTF8StringToUnicodeString, status);
-        result = EBPF_INVALID_ARGUMENT;
+    result = _convert_utf8_string_to_unicode_string(&file_name_unicode, utf8_string.Buffer, TRUE);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "_convert_utf8_string_to_unicode_string failed");
         goto Done;
     }
 
     // If the last character is a null terminator, remove it.
     if (file_name_unicode.Length > 0 &&
-        file_name_unicode.Buffer[file_name_unicode.Length / sizeof(WCHAR) - 1] == L'\0') {
-        file_name_unicode.Length -= sizeof(WCHAR);
+        file_name_unicode.Buffer[file_name_unicode.Length / sizeof(wchar_t) - 1] == L'\0') {
+        file_name_unicode.Length -= sizeof(wchar_t);
     }
 
     InitializeObjectAttributes(
