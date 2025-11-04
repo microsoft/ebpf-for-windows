@@ -27,7 +27,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     EBPF_LOG_ENTRY();
     NTSTATUS status;
 
-    ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    ebpf_ring_descriptor_t* ring_descriptor =
+        ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     MDL* source_mdl = NULL;
     MDL* kernel_mdl = NULL;
 
@@ -361,6 +362,95 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     return EBPF_SUCCESS;
 }
 
+// Function prototype to mimic RtlUTF8StringToUnicodeString
+static ebpf_result_t
+MyRtlUTF8StringToUnicodeString(PUNICODE_STRING DestinationString, PCSZ SourceString, BOOLEAN AllocateDestinationString)
+{
+    if (!DestinationString || !SourceString)
+        return STATUS_INVALID_PARAMETER;
+
+    SIZE_T srcLen = strlen(SourceString);
+    SIZE_T requiredWchars = 0;
+
+    // --- Pass 1: calculate how many WCHARs are needed ---
+    const UCHAR* src = (const UCHAR*)SourceString;
+    SIZE_T i = 0;
+    while (i < srcLen) {
+        UCHAR c = src[i];
+        if (c < 0x80) {
+            requiredWchars++;
+            i++;
+        } else if ((c & 0xE0) == 0xC0 && i + 1 < srcLen) {
+            requiredWchars++;
+            i += 2;
+        } else if ((c & 0xF0) == 0xE0 && i + 2 < srcLen) {
+            requiredWchars++;
+            i += 3;
+        } else if ((c & 0xF8) == 0xF0 && i + 3 < srcLen) {
+            // surrogate pair — 2 WCHARs
+            requiredWchars += 2;
+            i += 4;
+        } else {
+            return EBPF_INVALID_ARGUMENT; // invalid UTF-8
+        }
+    }
+
+    SIZE_T requiredBytes = (requiredWchars + 1) * sizeof(WCHAR);
+
+    // --- Allocate if needed ---
+    if (AllocateDestinationString) {
+        // DestinationString->Buffer = ExAllocatePoolWithTag(PagedPool, requiredBytes, '8tUR'); // 'RUt8'
+        DestinationString->Buffer = ebpf_allocate_with_tag(requiredBytes, EBPF_POOL_TAG_DEFAULT);
+        if (!DestinationString->Buffer)
+            return EBPF_NO_MEMORY;
+        DestinationString->MaximumLength = (USHORT)requiredBytes;
+    } else if (!DestinationString->Buffer || DestinationString->MaximumLength < requiredBytes) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
+    // --- Pass 2: actual conversion ---
+    src = (const UCHAR*)SourceString;
+    WCHAR* dst = DestinationString->Buffer;
+    i = 0;
+
+    while (i < srcLen) {
+        ULONG ch;
+        UCHAR c = src[i];
+
+        if (c < 0x80) {
+            ch = c;
+            i += 1;
+        } else if ((c & 0xE0) == 0xC0) {
+            ch = ((c & 0x1F) << 6) | (src[i + 1] & 0x3F);
+            i += 2;
+        } else if ((c & 0xF0) == 0xE0) {
+            ch = ((c & 0x0F) << 12) | ((src[i + 1] & 0x3F) << 6) | (src[i + 2] & 0x3F);
+            i += 3;
+        } else if ((c & 0xF8) == 0xF0) {
+            ch = ((c & 0x07) << 18) | ((src[i + 1] & 0x3F) << 12) | ((src[i + 2] & 0x3F) << 6) | (src[i + 3] & 0x3F);
+            i += 4;
+
+            // Encode surrogate pair
+            ch -= 0x10000;
+            *dst++ = (WCHAR)(0xD800 | (ch >> 10));
+            *dst++ = (WCHAR)(0xDC00 | (ch & 0x3FF));
+            continue;
+        } else {
+            if (AllocateDestinationString)
+                ExFreePoolWithTag(DestinationString->Buffer, '8tUR');
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        *dst++ = (WCHAR)ch;
+    }
+
+    *dst = L'\0';
+    DestinationString->Length = (USHORT)((dst - DestinationString->Buffer) * sizeof(WCHAR));
+    DestinationString->MaximumLength = (USHORT)requiredBytes;
+
+    return EBPF_SUCCESS;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_open_readonly_file_mapping(
     _In_ const cxplat_utf8_string_t* file_name,
@@ -388,9 +478,10 @@ ebpf_open_readonly_file_mapping(
     FILE_STANDARD_INFORMATION file_standard_information = {0};
 
     // Convert from UTF-8 string to wide string.
-    status = RtlUTF8StringToUnicodeString(&file_name_unicode, &utf8_string, TRUE); // AllocateDestinationString = TRUE
+    status = MyRtlUTF8StringToUnicodeString(
+        &file_name_unicode, utf8_string.Buffer, TRUE); // AllocateDestinationString = TRUE
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8StringToUnicodeString, status);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MyRtlUTF8StringToUnicodeString, status);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
