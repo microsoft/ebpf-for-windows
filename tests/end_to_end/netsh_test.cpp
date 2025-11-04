@@ -354,14 +354,21 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
+    // Old code size is for MSVC 2022 version 17.13.7
+    // Code size is for MSVC 2022 version 17.14.0 and later.
+
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size[] = {333, 350, 333, 350};
+    const int old_code_size[] = {339, 363, 339, 363};
+    const int code_size[] = {339, 363, 339, 363};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size[] = {961, 1036, 961, 1036};
+    const int old_code_size[] = {961, 1036, 961, 1036};
+    const int code_size[] = {1089, 1224, 1089, 1224};
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size[] = {308, 324, 308, 324};
+    const int old_code_size[] = {328, 344, 328, 344};
+    const int code_size[] = {328, 352, 328, 352};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size[] = {1044, 1176, 1044, 1176};
+    const int old_code_size[] = {1132, 1288, 1132, 1288};
+    const int code_size[] = {1132, 1288, 1132, 1288};
 #else
 #error "Unsupported architecture"
 #endif
@@ -381,9 +388,21 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "              hash    56      4        1  egress_connection_policy_map\n"
                                         "              hash    56      4        1  ingress_connection_policy_map\n"
                                         "              hash    56      8     1000  socket_cookie_map\n";
-    REQUIRE(
-        output ==
-        std::vformat(expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])));
+
+    bool output_matches =
+        (output ==
+             std::vformat(
+                 expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])) ||
+         output == std::vformat(
+                       expected_output,
+                       std::make_format_args(old_code_size[0], old_code_size[1], old_code_size[2], old_code_size[3])));
+
+    if (!output_matches) {
+        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Actual output:\n" << output << "\n";
+    }
+
+    REQUIRE(output_matches);
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
