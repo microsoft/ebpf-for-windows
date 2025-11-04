@@ -380,6 +380,7 @@ _convert_utf8_string_to_unicode_string(
     destination_string->MaximumLength = 0;
 
     ULONG source_length = (ULONG)strlen(source_string);
+    ebpf_assert(source_length < USHORT_MAX);
 
     // First pass: Calculate how many bytes are needed for the UTF-16LE string.
     status = RtlUTF8ToUnicodeN(
@@ -397,6 +398,14 @@ _convert_utf8_string_to_unicode_string(
 
     // Add space for null terminator.
     ULONG required_bytes = bytes_in_unicode_string + sizeof(wchar_t);
+    if (required_bytes > USHORT_MAX) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "_convert_utf8_string_to_unicode_string: File path too long");
+        goto Done;
+    }
 
     // Allocate buffer if needed.
     if (allocate_destination_string) {
@@ -454,14 +463,25 @@ ebpf_open_readonly_file_mapping(
     size_t file_size = 0;
     size_t view_size = 0;
     NTSTATUS status;
-    UTF8_STRING utf8_string = {
-        .Buffer = (char*)file_name->value,
-        .Length = (USHORT)file_name->length,
-        .MaximumLength = (USHORT)file_name->length};
     UNICODE_STRING file_name_unicode = {0};
     OBJECT_ATTRIBUTES object_attributes = {0};
     IO_STATUS_BLOCK io_status_block = {0};
     FILE_STANDARD_INFORMATION file_standard_information = {0};
+
+    // If file path size is more than USHORT_MAX, fail the call.
+    if (file_name->length >= USHORT_MAX) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "ebpf_open_readonly_file_mapping: File path too long");
+        goto Done;
+    }
+
+    UTF8_STRING utf8_string = {
+        .Buffer = (char*)file_name->value,
+        .Length = (USHORT)file_name->length,
+        .MaximumLength = (USHORT)file_name->length};
 
     // Convert from UTF-8 string to UTF-16LE string.
     result = _convert_utf8_string_to_unicode_string(&file_name_unicode, utf8_string.Buffer, TRUE);
