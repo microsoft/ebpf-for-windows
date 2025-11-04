@@ -369,45 +369,38 @@ _convert_utf8_string_to_unicode_string(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
+    NTSTATUS status;
+    ULONG bytes_in_unicode_string = 0;
 
     if (!destination_string || !source_string) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
     destination_string->Buffer = NULL;
     destination_string->Length = 0;
+    destination_string->MaximumLength = 0;
 
-    size_t source_length = strlen(source_string);
-    size_t required_wchars = 0;
+    ULONG source_length = (ULONG)strlen(source_string);
 
-    // Pass 1: Calculate how many WCHARs are needed.
-    const uint8_t* source = (const uint8_t*)source_string;
-    size_t i = 0;
-    while (i < source_length) {
-        uint8_t c = source[i];
-        if (c < 0x80) {
-            required_wchars++;
-            i++;
-        } else if ((c & 0xE0) == 0xC0 && i + 1 < source_length) {
-            required_wchars++;
-            i += 2;
-        } else if ((c & 0xF0) == 0xE0 && i + 2 < source_length) {
-            required_wchars++;
-            i += 3;
-        } else if ((c & 0xF8) == 0xF0 && i + 3 < source_length) {
-            // Surrogate pair - 2 WCHARs.
-            required_wchars += 2;
-            i += 4;
-        } else {
-            // Invalid UTF-8.
-            result = EBPF_INVALID_ARGUMENT;
-            goto Done;
-        }
+    // First pass: Calculate how many bytes are needed for the Unicode string.
+    status = RtlUTF8ToUnicodeN(
+        NULL,                     // No destination buffer, just calculate size.
+        0,                        // No destination buffer size.
+        &bytes_in_unicode_string, // Receives the required size.
+        source_string,            // Source UTF-8 string.
+        source_length);           // Source length in bytes.
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8ToUnicodeN, status);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
-    size_t required_bytes = (required_wchars + 1) * sizeof(wchar_t);
+    // Add space for null terminator.
+    ULONG required_bytes = bytes_in_unicode_string + sizeof(wchar_t);
 
-    // Allocate if needed.
+    // Allocate buffer if needed.
     if (allocate_destination_string) {
         destination_string->Buffer = ebpf_allocate_with_tag(required_bytes, EBPF_POOL_TAG_DEFAULT);
         if (!destination_string->Buffer) {
@@ -420,49 +413,27 @@ _convert_utf8_string_to_unicode_string(
         goto Done;
     }
 
-    // Pass 2: Actual conversion.
-    source = (const uint8_t*)source_string;
-    wchar_t* destination = destination_string->Buffer;
-    i = 0;
+    // Second pass: Perform the actual conversion.
+    status = RtlUTF8ToUnicodeN(
+        destination_string->Buffer, // Destination buffer.
+        bytes_in_unicode_string,    // Destination buffer size (excluding null terminator).
+        &bytes_in_unicode_string,   // Receives actual bytes written.
+        source_string,              // Source UTF-8 string.
+        source_length);             // Source length in bytes.
 
-    while (i < source_length) {
-        uint32_t ch;
-        uint8_t c = source[i];
-
-        if (c < 0x80) {
-            ch = c;
-            i += 1;
-        } else if ((c & 0xE0) == 0xC0) {
-            ch = ((c & 0x1F) << 6) | (source[i + 1] & 0x3F);
-            i += 2;
-        } else if ((c & 0xF0) == 0xE0) {
-            ch = ((c & 0x0F) << 12) | ((source[i + 1] & 0x3F) << 6) | (source[i + 2] & 0x3F);
-            i += 3;
-        } else if ((c & 0xF8) == 0xF0) {
-            ch = ((c & 0x07) << 18) | ((source[i + 1] & 0x3F) << 12) | ((source[i + 2] & 0x3F) << 6) |
-                 (source[i + 3] & 0x3F);
-            i += 4;
-
-            // Encode surrogate pair.
-            ch -= 0x10000;
-            *destination++ = (wchar_t)(0xD800 | (ch >> 10));
-            *destination++ = (wchar_t)(0xDC00 | (ch & 0x3FF));
-            continue;
-        } else {
-            if (allocate_destination_string) {
-                ebpf_free(destination_string->Buffer);
-                destination_string->Buffer = NULL;
-            }
-            result = EBPF_INVALID_ARGUMENT;
-            goto Done;
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8ToUnicodeN, status);
+        if (allocate_destination_string) {
+            ebpf_free(destination_string->Buffer);
+            destination_string->Buffer = NULL;
         }
-
-        *destination++ = (wchar_t)ch;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
-    *destination = L'\0';
-    destination_string->Length = (USHORT)((destination - destination_string->Buffer) * sizeof(wchar_t));
-    destination_string->MaximumLength = (USHORT)required_bytes;
+    // Add null terminator.
+    destination_string->Buffer[bytes_in_unicode_string / sizeof(wchar_t)] = L'\0';
+    destination_string->Length = (USHORT)bytes_in_unicode_string;
 
 Done:
     EBPF_RETURN_RESULT(result);
