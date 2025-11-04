@@ -374,6 +374,8 @@ _convert_utf8_string_to_unicode_string(
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+    destination_string->Buffer = NULL;
+    destination_string->Length = 0;
 
     size_t source_length = strlen(source_string);
     size_t required_wchars = 0;
