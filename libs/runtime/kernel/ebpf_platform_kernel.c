@@ -381,10 +381,10 @@ _convert_utf8_string_to_unicode_string(
     size_t required_wchars = 0;
 
     // Pass 1: Calculate how many WCHARs are needed.
-    const UCHAR* source = (const UCHAR*)source_string;
+    const uint8_t* source = (const uint8_t*)source_string;
     size_t i = 0;
     while (i < source_length) {
-        UCHAR c = source[i];
+        uint8_t c = source[i];
         if (c < 0x80) {
             required_wchars++;
             i++;
@@ -421,13 +421,13 @@ _convert_utf8_string_to_unicode_string(
     }
 
     // Pass 2: Actual conversion.
-    source = (const UCHAR*)source_string;
+    source = (const uint8_t*)source_string;
     wchar_t* destination = destination_string->Buffer;
     i = 0;
 
     while (i < source_length) {
-        ULONG ch;
-        UCHAR c = source[i];
+        uint32_t ch;
+        uint8_t c = source[i];
 
         if (c < 0x80) {
             ch = c;
