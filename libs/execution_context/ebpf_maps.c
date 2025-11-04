@@ -1367,9 +1367,7 @@ _lru_hash_table_notification(
     if (operation_context) {
         helper_function = *(bool*)operation_context;
     }
-    if (operation_context) {
-        partition = *(uint32_t*)operation_context;
-    }
+
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
         _initialize_lru_entry(lru_map, entry, partition, key);
