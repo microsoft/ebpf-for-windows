@@ -372,10 +372,8 @@ _convert_utf8_string_to_unicode_string(
     NTSTATUS status;
     ULONG bytes_in_unicode_string = 0;
 
-    if (!destination_string || !source_string) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
+    ebpf_assert(destination_string);
+    ebpf_assert(source_string);
 
     destination_string->Buffer = NULL;
     destination_string->Length = 0;
