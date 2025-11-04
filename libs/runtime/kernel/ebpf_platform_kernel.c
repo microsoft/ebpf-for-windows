@@ -362,10 +362,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     return EBPF_SUCCESS;
 }
 
-// Function to convert UTF-8 string to Unicode string.
+// Function to convert a UTF-8 string to a UTF-16LE string.
 static ebpf_result_t
 _convert_utf8_string_to_unicode_string(
-    _Out_ PUNICODE_STRING destination_string, _In_ PCSZ source_string, _In_ BOOLEAN allocate_destination_string)
+    _Out_ PUNICODE_STRING destination_string, _In_ PCSZ source_string, BOOLEAN allocate_destination_string)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -383,7 +383,7 @@ _convert_utf8_string_to_unicode_string(
 
     ULONG source_length = (ULONG)strlen(source_string);
 
-    // First pass: Calculate how many bytes are needed for the Unicode string.
+    // First pass: Calculate how many bytes are needed for the UTF-16LE string.
     status = RtlUTF8ToUnicodeN(
         NULL,                     // No destination buffer, just calculate size.
         0,                        // No destination buffer size.
@@ -465,7 +465,7 @@ ebpf_open_readonly_file_mapping(
     IO_STATUS_BLOCK io_status_block = {0};
     FILE_STANDARD_INFORMATION file_standard_information = {0};
 
-    // Convert from UTF-8 string to wide string.
+    // Convert from UTF-8 string to UTF-16LE string.
     result = _convert_utf8_string_to_unicode_string(&file_name_unicode, utf8_string.Buffer, TRUE);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE(
