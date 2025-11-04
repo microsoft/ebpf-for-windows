@@ -18,7 +18,8 @@ This creates barriers for independent driver development and limits the extensib
 ### R1: External Driver Global Helper Registration
 - Drivers outside of `ebpfcore.sys` **MUST** be able to register global helper functions
 - The system **MUST** support global helper function registration without requiring pre-coordination
-- Registration **MUST** use existing interfaces without requiring new APIs
+- Existing interfaces **MUST** remain unchanged to maintain application compatibility
+- New interfaces **MAY** be added if needed to support this capability
 
 ### R2: Elimination of Central Coordination
 - Driver developers **MUST NOT** be required to coordinate helper function registration with other drivers
