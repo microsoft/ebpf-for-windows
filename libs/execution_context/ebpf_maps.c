@@ -2280,7 +2280,6 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
         ebpf_map_async_query_result_t* async_query_result = context->async_query_result;
         table->query_ring_buffer(map, context->index, async_query_result);
         ebpf_list_remove_entry(&context->entry);
-
         ebpf_operation_map_async_query_reply_t* reply =
             EBPF_FROM_FIELD(ebpf_operation_map_async_query_reply_t, async_query_result, async_query_result);
         ebpf_async_complete(context->async_context, sizeof(*reply), EBPF_SUCCESS);
@@ -2301,10 +2300,30 @@ _map_async_query_cancel(
     _Inout_ ebpf_core_map_async_contexts_t* async_contexts, _In_ ebpf_core_map_async_query_context_t* context)
 {
     ebpf_lock_state_t state = ebpf_lock_lock(&async_contexts->lock);
-    ebpf_list_remove_entry(&context->entry);
+
+    // Search the list for an entry whose context pointer matches.
+    ebpf_core_map_async_query_context_t* found_context = NULL;
+    LIST_ENTRY* list_entry = async_contexts->contexts.Flink;
+    while (list_entry != &async_contexts->contexts) {
+        ebpf_core_map_async_query_context_t* current =
+            EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, list_entry);
+        if (current == context) {
+            found_context = current;
+            break;
+        }
+        list_entry = list_entry->Flink;
+    }
+
+    if (!found_context) {
+        // Already completed.
+        ebpf_lock_unlock(&async_contexts->lock, state);
+        return;
+    }
+
+    ebpf_list_remove_entry(&found_context->entry);
     ebpf_lock_unlock(&async_contexts->lock, state);
-    ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
-    ebpf_free(context);
+    ebpf_async_complete(found_context->async_context, 0, EBPF_CANCELED);
+    ebpf_free(found_context);
 }
 
 static void
