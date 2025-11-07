@@ -15,6 +15,10 @@
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
+// Undefine Windows min/max macros for ELFIO
+#undef max
+#undef min
+#include "elfio_wrapper.hpp"
 #include "hash.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
@@ -564,7 +568,7 @@ _ebpf_map_lookup_element_batch_helper(
 
     while (count_returned < input_count) {
         // Fetch the next batch of entries.
-        size_t entries_to_fetch = min(input_count - count_returned, max_entries_per_batch);
+        size_t entries_to_fetch = std::min(input_count - count_returned, max_entries_per_batch);
 
         ebpf_protocol_buffer_t request_buffer(
             EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_request, previous_key) +
@@ -772,7 +776,7 @@ _update_map_element_batch(
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_update = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_update = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data) +
@@ -1102,7 +1106,7 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_delete = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_delete = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys) + key_size * entries_to_delete);
@@ -2596,7 +2600,7 @@ _ebpf_pe_get_map_definitions(
         // at other times, they are 16-byte-aligned. Skip over them looking for the
         // map_entry_t which starts with an 8-byte-aligned NULL pointer where the previous
         // byte (if any) is also 00, and the following 8 bytes are also NULL. The next 8 bytes
-        // are not not NULL though.
+        // are not NULL though.
         uint32_t map_offset = 0;
         uint64_t zero = 0;
         while (map_offset + 24 < section_header.Misc.VirtualSize &&
@@ -5248,6 +5252,134 @@ ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_E
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_MAP_SET_WAIT_HANDLE, map_handle, handle, index, 0};
 
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+// Context structure for section data extraction.
+typedef struct _ebpf_section_data_context
+{
+    const char* section_name;
+    bool section_found;
+    size_t section_size;
+    const uint8_t* section_data;
+} ebpf_section_data_context_t;
+
+// Callback function for PE section iteration.
+static int
+_ebpf_pe_find_section(
+    _Inout_ void* context,
+    _In_ const VA& va,
+    _In_ const std::string& section_name,
+    _In_ const image_section_header& section_header,
+    _In_ const bounded_buffer* buffer) NO_EXCEPT_TRY
+{
+    UNREFERENCED_PARAMETER(va);
+    UNREFERENCED_PARAMETER(section_header);
+
+    ebpf_section_data_context_t* ctx = static_cast<ebpf_section_data_context_t*>(context);
+
+    if (section_name == ctx->section_name && buffer != nullptr) {
+        ctx->section_found = true;
+        ctx->section_size = buffer->bufLen;
+        ctx->section_data = buffer->buf;
+        return 1; // Stop iteration.
+    }
+    return 0; // Continue iteration.
+}
+CATCH_NO_MEMORY_INT(1)
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_api_get_data_section(
+    _In_z_ const char* file_path,
+    _In_z_ const char* section_name,
+    _Out_writes_bytes_opt_(*data_size) uint8_t* data,
+    _Inout_ size_t* data_size) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+
+    if (file_path == nullptr || section_name == nullptr || data_size == nullptr) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    // Determine file type by extension.
+    std::string path(file_path);
+    bool is_pe_file = false;
+    if (path.size() > 4) {
+        std::string extension = path.substr(path.size() - 4);
+        std::transform(extension.begin(), extension.end(), extension.begin(), [](char c) {
+            return static_cast<char>(::tolower(static_cast<unsigned char>(c)));
+        });
+        is_pe_file = (extension == ".dll" || extension == ".sys" || extension == ".exe");
+    }
+
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    if (is_pe_file) {
+        // Parse PE file using pe-parse library.
+        std::scoped_lock pe_parse_lock(_pe_parse_mutex);
+        parsed_pe* pe = ParsePEFromFile(file_path);
+        if (pe == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
+        }
+
+        // Set up context for section search.
+        ebpf_section_data_context_t section_context = {
+            .section_name = section_name, .section_found = false, .section_size = 0, .section_data = nullptr};
+
+        IterSec(pe, _ebpf_pe_find_section, &section_context);
+
+        if (!section_context.section_found) {
+            DestructParsedPE(pe);
+            EBPF_RETURN_RESULT(EBPF_OBJECT_NOT_FOUND);
+        }
+
+        // Check buffer size.
+        if (data == nullptr) {
+            // Just return the size.
+            *data_size = section_context.section_size;
+        } else if (*data_size < section_context.section_size) {
+            // Buffer too small.
+            *data_size = section_context.section_size;
+            DestructParsedPE(pe);
+            EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+        } else {
+            // Copy data to buffer.
+            memcpy(data, section_context.section_data, section_context.section_size);
+            *data_size = section_context.section_size;
+        }
+
+        DestructParsedPE(pe);
+    } else {
+        // Parse ELF file using ELFIO library.
+        ELFIO::elfio reader;
+        if (!reader.load(file_path)) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
+        }
+
+        // Find the section by name.
+        ELFIO::section* section = reader.sections[section_name];
+        if (section == nullptr || section->get_data() == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_OBJECT_NOT_FOUND);
+        }
+
+        size_t section_size = section->get_size();
+
+        // Check buffer size.
+        if (data == nullptr) {
+            // Just return the size.
+            *data_size = section_size;
+        } else if (*data_size < section_size) {
+            // Buffer too small.
+            *data_size = section_size;
+            EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+        } else {
+            // Copy data to buffer.
+            memcpy(data, section->get_data(), section_size);
+            *data_size = section_size;
+        }
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
