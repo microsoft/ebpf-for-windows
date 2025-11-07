@@ -641,6 +641,62 @@ validate_connection_multi_attach(
 }
 
 void
+validate_recv_accept_multi_attach(
+    socket_family_t family,
+    ADDRESS_FAMILY address_family,
+    uint16_t receiver_port,
+    uint16_t destination_port,
+    uint16_t protocol,
+    connection_result_t expected_result)
+{
+    client_socket_t* sender_socket = nullptr;
+    receiver_socket_t* receiver_socket = nullptr;
+
+    if (protocol == IPPROTO_UDP) {
+        receiver_socket = new datagram_server_socket_t(SOCK_DGRAM, IPPROTO_UDP, receiver_port);
+    } else if (protocol == IPPROTO_TCP) {
+        receiver_socket = new stream_server_socket_t(SOCK_STREAM, IPPROTO_TCP, receiver_port);
+    } else {
+        SAFE_REQUIRE(false);
+    }
+    get_client_socket(family, protocol, &sender_socket);
+
+    // Post an asynchronous receive on the receiver socket.
+    receiver_socket->post_async_receive();
+
+    // Send loopback message to test port.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    if (address_family == AF_INET) {
+        if (family == socket_family_t::Dual) {
+            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+        } else {
+            IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&destination_address);
+        }
+    } else {
+        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
+    }
+
+    sender_socket->send_message_to_remote_host(message, destination_address, destination_port);
+
+    if (expected_result == RESULT_DROP) {
+        // The packet should be blocked.
+        receiver_socket->complete_async_receive(true);
+        // Cancel send operation.
+        sender_socket->cancel_send_message();
+    } else if (expected_result == RESULT_ALLOW) {
+        // The packet should be allowed by the recv_accept program.
+        receiver_socket->complete_async_receive();
+    } else {
+        // The result is not deterministic, so we don't care about the result.
+        receiver_socket->complete_async_receive(1000, receiver_socket_t::MODE_DONT_CARE);
+    }
+
+    delete sender_socket;
+    delete receiver_socket;
+}
+
+void
 multi_attach_test_common(
     bpf_object* object,
     socket_family_t family,
@@ -1034,6 +1090,104 @@ TEST_CASE("multi_attach_test_wildcard_UDP_IPv6", "[sock_addr_tests][multi_attach
 {
     multi_attach_test(UNSPECIFIED_COMPARTMENT_ID, socket_family_t::Dual, AF_INET6, IPPROTO_UDP);
     multi_attach_test(UNSPECIFIED_COMPARTMENT_ID, socket_family_t::IPv6, AF_INET6, IPPROTO_UDP);
+}
+// recv_accept hard permit integration tests
+TEST_CASE("recv_accept_hard_permit_integration", "[sock_addr_tests][hard_permit_tests][recv_accept]")
+{
+    // This test validates recv_accept hard permit behavior in real connection flows,
+    // ensuring that hard permits properly clear FWPS_RIGHT_ACTION_WRITE and take precedence.
+
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Test IPv4 hard permit behavior
+    {
+        bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
+        SAFE_REQUIRE(recv_accept_program != nullptr);
+
+        int result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 1, BPF_CGROUP_INET4_RECV_ACCEPT, 0);
+        SAFE_REQUIRE(result == 0);
+
+        bpf_map* ingress_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
+        SAFE_REQUIRE(ingress_policy_map != nullptr);
+        fd_t map_fd = bpf_map__fd(ingress_policy_map);
+        SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
+
+        // Configure for hard permit
+        _update_map_entry_multi_attach(
+            map_fd,
+            AF_INET,
+            htons(SOCKET_TEST_PORT),
+            htons(SOCKET_TEST_PORT),
+            IPPROTO_TCP,
+            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            true);
+
+        // Validate hard permit behavior
+        validate_recv_accept_multi_attach(
+            socket_family_t::IPv4, AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
+
+        // Test UDP as well
+        _update_map_entry_multi_attach(
+            map_fd,
+            AF_INET,
+            htons(SOCKET_TEST_PORT),
+            htons(SOCKET_TEST_PORT),
+            IPPROTO_UDP,
+            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            true);
+
+        validate_recv_accept_multi_attach(
+            socket_family_t::IPv4, AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_UDP, RESULT_ALLOW);
+    }
+
+    // Test IPv6 hard permit behavior
+    {
+        bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
+        SAFE_REQUIRE(recv_accept_program != nullptr);
+
+        int result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 1, BPF_CGROUP_INET6_RECV_ACCEPT, 0);
+        SAFE_REQUIRE(result == 0);
+
+        bpf_map* ingress_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
+        SAFE_REQUIRE(ingress_policy_map != nullptr);
+        fd_t map_fd = bpf_map__fd(ingress_policy_map);
+        SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
+
+        // Configure for hard permit
+        _update_map_entry_multi_attach(
+            map_fd,
+            AF_INET6,
+            htons(SOCKET_TEST_PORT),
+            htons(SOCKET_TEST_PORT),
+            IPPROTO_TCP,
+            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            true);
+
+        // Validate hard permit behavior
+        validate_recv_accept_multi_attach(
+            socket_family_t::IPv6, AF_INET6, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
+
+        // Test UDP as well
+        _update_map_entry_multi_attach(
+            map_fd,
+            AF_INET6,
+            htons(SOCKET_TEST_PORT),
+            htons(SOCKET_TEST_PORT),
+            IPPROTO_UDP,
+            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            true);
+
+        validate_recv_accept_multi_attach(
+            socket_family_t::IPv6, AF_INET6, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_UDP, RESULT_ALLOW);
+    }
 }
 
 typedef enum _program_action
