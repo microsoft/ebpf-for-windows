@@ -231,8 +231,8 @@ function Install-eBPFComponents
     }
 
     # Install the MSI package.
-    $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*v msi-install.log"
-    Write-Log("Installing the eBPF MSI package: 'msiexec.exe $arguments'...")
+    $arguments = @("/i", $MsiPath, "ADDLOCAL=ALL", "/qn", "/norestart", "/l*v", "msi-install.log")
+    Write-Log("Installing the eBPF MSI package: 'msiexec.exe $($arguments -join ' ')'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -ne 0) {
         Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode).") -ForegroundColor Red
@@ -430,8 +430,8 @@ function Uninstall-eBPFComponents
     Write-Log("Clearing export program info for the sample driver completed successfully!") -ForegroundColor Green
 
     # Uninstall the MSI package.
-    $arguments = "/x $MsiPath /qn /norestart /l*v msi-uninstall.log"
-    Write-Log("Uninstalling eBPF MSI package at 'msiexec.exe $arguments'...")
+    $arguments = @("/x", $MsiPath, "/qn", "/norestart", "/l*v", "msi-uninstall.log")
+    Write-Log("Uninstalling eBPF MSI package at 'msiexec.exe $($arguments -join ' ')'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Log("Uninstallation successful!") -ForegroundColor Green
