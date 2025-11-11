@@ -1237,8 +1237,8 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
-        total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_addresses = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1260,7 +1260,8 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_ids =
+            (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1487,6 +1488,7 @@ ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* 
     }
 
     if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT)) {
+        // TODO: Add a trace.
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 
