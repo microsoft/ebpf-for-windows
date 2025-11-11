@@ -298,14 +298,14 @@ jobs:
         id: run_test_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
-          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
+          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
       - name: Run test on 1ES runner
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES') && (inputs.fault_injection != true)
         id: run_test_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
-          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner'
+          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
       - name: Run test on github runner
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_platform == 'arm64') && (inputs.fault_injection != true)
