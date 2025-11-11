@@ -182,8 +182,6 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
-    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-
     // Empty context (not used by the eBPF program).
     INITIALIZE_SAMPLE_CONTEXT;
 
@@ -3575,3 +3573,85 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES(
     "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
+
+static void
+_batch_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "batch_test_um.dll" : "batch_test.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Lookup "tail_call" program and get its fd.
+    struct bpf_program* tail_call_prog = bpf_object__find_program_by_name(unique_object.get(), "tail_call");
+    REQUIRE(tail_call_prog != nullptr);
+    fd_t tail_call_fd = bpf_program__fd(tail_call_prog);
+    REQUIRE(tail_call_fd > 0);
+
+    // Lookup "test_program_entry" and get its fd.
+    struct bpf_program* test_program_entry_prog =
+        bpf_object__find_program_by_name(unique_object.get(), "test_program_entry");
+    REQUIRE(test_program_entry_prog != nullptr);
+    fd_t test_program_entry_fd = bpf_program__fd(test_program_entry_prog);
+    REQUIRE(test_program_entry_fd > 0);
+
+    // Lookup "prog_array_map" and insert "tail_call" fd at index 0.
+    fd_t prog_array_map_fd2 = bpf_object__find_map_fd_by_name(unique_object.get(), "prog_array_map");
+    REQUIRE(prog_array_map_fd2 > 0);
+    uint32_t prog_index = 0;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd2, &prog_index, &tail_call_fd, 0) == 0);
+
+    // Lookup map "test_map" and set value for key = 0 as 0.
+    fd_t test_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "test_map");
+    REQUIRE(test_map_fd > 0);
+    uint32_t test_key = 0;
+    uint32_t test_value = 0;
+    REQUIRE(bpf_map_update_elem(test_map_fd, &test_key, &test_value, 0) == 0);
+
+    REQUIRE(hook.attach_link(test_program_entry_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    // Empty context (not used by the eBPF program).
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+
+    uint8_t state[sizeof(ebpf_execution_context_state_t)] = {0};
+    REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);
+    // Invoke the program twice the times of max tail calls allowed.
+    for (int i = 0; i < 2 * MAX_TAIL_CALL_CNT; i++) {
+        REQUIRE(hook.batch_invoke(ctx, &hook_result, state) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 0);
+    }
+    REQUIRE(hook.batch_end(state) == EBPF_SUCCESS);
+
+    // Red the value from test_map_fd
+    REQUIRE(bpf_map_lookup_elem(test_map_fd, &test_key, &test_value) == 0);
+    // The value should be 2* 2 * MAX_TAIL_CALL_CNT, as each program invocation increments the
+    // value by 2.
+    REQUIRE(test_value == 2 * 2 * MAX_TAIL_CALL_CNT);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES("batch_test", "[end_to_end]", _batch_test);
