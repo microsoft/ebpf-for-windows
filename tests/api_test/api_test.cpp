@@ -1640,3 +1640,41 @@ TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }
+
+/**
+ * @brief Test that loads and unloads all native .sys drivers from tests/sample.
+ * 
+ * This is a kernel-mode (KM) test that loads all .sys kernel driver files corresponding
+ * to programs in tests/sample directory and verifies that all loads succeed.
+ */
+TEST_CASE("load_all_sample_programs", "[native_tests]")
+{
+    // List of all sample programs to test with native execution
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_bpf2bpf.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_mt_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_ringbuf.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_count_connect4.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_count_connect6.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_mt_connect4.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_mt_connect6.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_sock_addr.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_sock_addr2.sys", BPF_PROG_TYPE_UNSPEC},
+        {"multiple_programs.sys", BPF_PROG_TYPE_UNSPEC},
+        {"pidtgid.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk_legacy.sys", BPF_PROG_TYPE_UNSPEC},
+        {"process_start_key.sys", BPF_PROG_TYPE_UNSPEC},
+        {"sockops.sys", BPF_PROG_TYPE_UNSPEC},
+        {"strings.sys", BPF_PROG_TYPE_UNSPEC},
+        {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
+        {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}
+    };
+
+    _test_multiple_programs_load(
+        _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+}
