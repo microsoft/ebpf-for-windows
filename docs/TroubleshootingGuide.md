@@ -137,6 +137,11 @@ For eBPF programs using the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type and at
 2. `FWPM_LAYER_ALE_CONNECT_REDIRECT_V6`
 3. `FWPM_LAYER_ALE_AUTH_CONNECT_V4`
 
+For eBPF programs using the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type and attached at the
+`EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT` hook, we expect a `callout` and `filter` present in the following layers:
+1. `FWPM_LAYER_ALE_RECV_ACCEPT_V4`
+2. `FWPM_LAYER_ALE_RECV_ACCEPT_V6`
+
 In this scenario, the `FWPM_LAYER_ALE_CONNECT_REDIRECT_V6` layer objects are necessary due to the way the WFP stack
 handles dual-stack sockets.
 
