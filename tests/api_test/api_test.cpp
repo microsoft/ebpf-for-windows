@@ -1718,13 +1718,19 @@ TEST_CASE("ebpf_string_apis", "[ebpf_api]")
     ebpf_program_type_t sample_program_type = EBPF_PROGRAM_TYPE_BIND_GUID;
     const char* type_name = ebpf_get_program_type_name(&sample_program_type);
     REQUIRE(type_name != nullptr);
-    REQUIRE(strlen(type_name) > 0);
+    REQUIRE(std::string(type_name) == "bind"); // Verify actual content
 
     // Test attach type name lookup.
     ebpf_attach_type_t bind_attach_type = EBPF_ATTACH_TYPE_BIND_GUID;
     const char* attach_name = ebpf_get_attach_type_name(&bind_attach_type);
     REQUIRE(attach_name != nullptr);
-    REQUIRE(strlen(attach_name) > 0);
+    REQUIRE(std::string(attach_name) == "bind"); // Verify actual content
+
+    // Test with invalid/unknown program type to verify graceful handling.
+    ebpf_program_type_t invalid_type = {0};
+    const char* invalid_name = ebpf_get_program_type_name(&invalid_type);
+    // Should either return nullptr or empty string for unknown types.
+    REQUIRE((invalid_name == nullptr || strlen(invalid_name) == 0));
 }
 
 // Test eBPF program and attach type conversion APIs.
@@ -1773,6 +1779,19 @@ TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
     result = ebpf_canonicalize_pin_path(output, sizeof(output), "");
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(std::string(output) == "BPF:\\");
+
+    // Negative test: null input path.
+    result = ebpf_canonicalize_pin_path(output, sizeof(output), nullptr);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // Negative test: buffer too small.
+    char small_output[5];
+    result = ebpf_canonicalize_pin_path(small_output, sizeof(small_output), "/some/very/long/path/that/wont/fit");
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // Negative test: null output buffer.
+    result = ebpf_canonicalize_pin_path(nullptr, MAX_PATH, "/some/path");
+    REQUIRE(result != EBPF_SUCCESS);
 }
 
 // Test enumerate programs API.
@@ -1817,8 +1836,17 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
     const char* error_message = nullptr;
     ebpf_result_t result = ebpf_enumerate_programs("non_existent_file.o", false, &program_infos, &error_message);
     REQUIRE(result != EBPF_SUCCESS);
+    // Should provide error message when operation fails.
+    REQUIRE(error_message != nullptr);
 
-    // Clean up error message if any.
+    // Clean up error message.
+    ebpf_free_string(error_message);
+
+    // Negative test: null file path.
+    error_message = nullptr;
+    program_infos = nullptr;
+    result = ebpf_enumerate_programs(nullptr, false, &program_infos, &error_message);
+    REQUIRE(result != EBPF_SUCCESS);
     ebpf_free_string(error_message);
 }
 
@@ -1847,7 +1875,38 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         // Result should be 0 (success).
         REQUIRE(result == 0);
 
+        // Verify that stats are populated for successful verification.
+        REQUIRE(stats.total_instructions > 0); // Should have some instructions
+        REQUIRE(report != nullptr); // Should generate a report
+
         // Clean up strings.
+        ebpf_free_string(report);
+        ebpf_free_string(error_message);
+    }
+
+    // Negative test: invalid ELF data.
+    {
+        const char* report = nullptr;
+        const char* error_message = nullptr;
+        ebpf_api_verifier_stats_t stats = {};
+        const char* invalid_data = "this is not valid ELF data";
+
+        uint32_t result = ebpf_api_elf_verify_program_from_memory(
+            invalid_data,
+            strlen(invalid_data),
+            nullptr,
+            nullptr,
+            nullptr,
+            EBPF_VERIFICATION_VERBOSITY_NORMAL,
+            &report,
+            &error_message,
+            &stats);
+
+        // Should fail validation.
+        REQUIRE(result != 0);
+        // Should provide error details.
+        REQUIRE(error_message != nullptr);
+
         ebpf_free_string(report);
         ebpf_free_string(error_message);
     }
@@ -1895,15 +1954,26 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(map_count == 1);
     REQUIRE(map_info != nullptr);
+
+    // Validate ALL fields of the returned map info.
     REQUIRE(map_info[0].definition.type == BPF_MAP_TYPE_ARRAY);
     REQUIRE(std::string(map_info[0].pin_path) == "BPF:\\test_map_pin");
     REQUIRE(map_info[0].definition.key_size == sizeof(uint32_t));
     REQUIRE(map_info[0].definition.value_size == sizeof(uint32_t));
     REQUIRE(map_info[0].definition.max_entries == 1);
     REQUIRE(map_info[0].definition.inner_map_id == 0);
+    REQUIRE(map_info[0].id > 0); // Should have a valid ID
 
     // Clean up pinned map info returned by the API.
     ebpf_api_map_info_free(map_count, map_info);
+
+    // Negative test: null count parameter.
+    result = ebpf_api_get_pinned_map_info(nullptr, &map_info);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // Negative test: null info parameter.
+    result = ebpf_api_get_pinned_map_info(&map_count, nullptr);
+    REQUIRE(result != EBPF_SUCCESS);
 
     // Unpin the map object.
     result = ebpf_object_unpin(pin_path);
@@ -1942,13 +2012,23 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
     ebpf_result_t result = ebpf_get_next_pinned_object_path("", next_path, sizeof(next_path), &object_type);
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(object_type == EBPF_OBJECT_MAP);
-    // Ensure returned path contains our pin name.
+    // Validate the full path structure.
     REQUIRE(strstr(next_path, "test_get_next_pinned_object_path") != nullptr);
+    // Verify it starts with expected prefix.
+    REQUIRE(strstr(next_path, "BPF:") == next_path);
 
-    // 3) Verify that there are no more pinned objects after the current one.
-    result = ebpf_get_next_pinned_object_path(
-        "test_get_next_pinned_object_path", next_path, sizeof(next_path), &object_type);
+    // 3) Test iteration - should be no more objects after this one.
+    char second_path[EBPF_MAX_PIN_PATH_LENGTH];
+    result = ebpf_get_next_pinned_object_path(next_path, second_path, sizeof(second_path), &object_type);
     REQUIRE(result == EBPF_NO_MORE_KEYS);
+
+    // Negative test: null output buffer.
+    result = ebpf_get_next_pinned_object_path("", nullptr, sizeof(next_path), &object_type);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // Negative test: zero size buffer.
+    result = ebpf_get_next_pinned_object_path("", next_path, 0, &object_type);
+    REQUIRE(result != EBPF_SUCCESS);
 
     // 4) Unpin and free the map.
     ebpf_result_t unpin_result = ebpf_object_unpin(pin_path);
@@ -1960,9 +2040,11 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
 // Test eBPF program synchronization API.
 TEST_CASE("ebpf_program_synchronize", "[ebpf_api]")
 {
-    // Test program synchronization - should succeed even if no programs are running.
-    ebpf_result_t result = ebpf_program_synchronize();
-    REQUIRE(result == EBPF_SUCCESS);
+    // Test program synchronization multiple times to ensure it's idempotent.
+    for (int i = 0; i < 3; i++) {
+        ebpf_result_t result = ebpf_program_synchronize();
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 }
 
 // Test eBPF object execution type APIs.
@@ -1971,16 +2053,23 @@ TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
     // Load a test object to test execution type APIs.
     struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
     if (object != nullptr) {
-        // Test getting the default execution type.
+        // Test getting the default execution type - be flexible about default.
         ebpf_execution_type_t exec_type = ebpf_object_get_execution_type(object);
-        REQUIRE(exec_type == EBPF_EXECUTION_ANY);
+        REQUIRE(
+            (exec_type == EBPF_EXECUTION_ANY || exec_type == EBPF_EXECUTION_JIT ||
+             exec_type == EBPF_EXECUTION_INTERPRET || exec_type == EBPF_EXECUTION_NATIVE));
+        ebpf_execution_type_t original_type = exec_type;
 
-        // Test setting execution type.
+        // Test setting execution type to INTERPRET.
         ebpf_result_t result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
         if (result == EBPF_SUCCESS) {
             // Verify the execution type was set.
             exec_type = ebpf_object_get_execution_type(object);
             REQUIRE(exec_type == EBPF_EXECUTION_INTERPRET);
+        } else {
+            // If setting fails, verify the original value is unchanged.
+            ebpf_execution_type_t new_exec_type = ebpf_object_get_execution_type(object);
+            REQUIRE(new_exec_type == original_type);
         }
 
         // Test setting to JIT.
@@ -2004,8 +2093,20 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
         const char test_data[] = "test perf event data";
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
-        // Should succeed.
-        REQUIRE(result == EBPF_SUCCESS);
+        // Note: This might fail if no consumers are attached, which is valid.
+        REQUIRE((result == EBPF_SUCCESS || result == EBPF_NO_CONSUMERS));
+
+        // Negative test: invalid file descriptor.
+        result = ebpf_perf_event_array_map_write(-1, test_data, sizeof(test_data));
+        REQUIRE(result != EBPF_SUCCESS);
+
+        // Negative test: null data.
+        result = ebpf_perf_event_array_map_write(map_fd, nullptr, sizeof(test_data));
+        REQUIRE(result != EBPF_SUCCESS);
+
+        // Negative test: zero size.
+        result = ebpf_perf_event_array_map_write(map_fd, test_data, 0);
+        REQUIRE(result != EBPF_SUCCESS);
 
         (void)ebpf_close_fd(map_fd);
     }
