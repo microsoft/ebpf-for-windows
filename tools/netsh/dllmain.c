@@ -32,7 +32,7 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
     return TRUE;
 }
 
-// Verbs
+// Verbs.
 #define CMD_GROUP_ADD L"add"
 #define CMD_GROUP_DELETE L"delete"
 #define CMD_GROUP_PIN L"pin"
@@ -40,7 +40,7 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 #define CMD_GROUP_SHOW L"show"
 #define CMD_GROUP_UNPIN L"unpin"
 
-// Nouns
+// Nouns.
 #define CMD_EBPF_SHOW_DISASSEMBLY L"disassembly"
 #define CMD_EBPF_SHOW_LINKS L"links"
 #define CMD_EBPF_SHOW_MAPS L"maps"
@@ -87,25 +87,25 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
 #else
 typedef struct _CMD_ENTRY_ORIGINAL
 {
-    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command
-    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command
-    unsigned long dwShortCmdHelpToken;     // The short help message
+    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command.
+    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command.
+    unsigned long dwShortCmdHelpToken;     // The short help message.
     unsigned long
-        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
-    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
-    PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
+        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?).
+    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above).
+    PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against.
 } CMD_ENTRY_ORIGINAL, *PCMD_ENTRY_ORIGINAL;
 #define CREATE_CMD_ENTRY_ORIGINAL(t, f) {CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL}
 
 typedef struct _CMD_ENTRY_LONG
 {
-    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command
-    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command
-    unsigned long dwShortCmdHelpToken;     // The short help message
+    _Field_z_ const wchar_t* pwszCmdToken; // The token for the command.
+    PFN_HANDLE_CMD pfnCmdHandler;          // The function which handles this command.
+    unsigned long dwShortCmdHelpToken;     // The short help message.
     unsigned long
-        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?)
-    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
-    PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
+        dwCmdHlpToken; // The message to display if the only thing after the command is a help token (HELP, /?, -?, ?).
+    unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above).
+    PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against.
     void* pfnCustomHelpFn;
 } CMD_ENTRY_LONG, *PCMD_ENTRY_LONG;
 #define CREATE_CMD_ENTRY_LONG(t, f) {CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL, NULL}
