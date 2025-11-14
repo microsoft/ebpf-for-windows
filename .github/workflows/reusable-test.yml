@@ -67,8 +67,9 @@ permissions:
 
 jobs:
   run_test:
-    # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
-    timeout-minutes: 90
+    # Due to app-verifier, unit tests take a lot longer to execute. Also, stress tests now take around 90 minutes.
+    # Increase the timeout to 150 minutes.
+    timeout-minutes: 150
 
     strategy:
       matrix:
@@ -87,7 +88,7 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
-      TEST_TIMEOUT: 3600  # 1 hour timeout for tests.
+      TEST_TIMEOUT: 7200  # 2 hour timeout for tests.
 
     steps:
       - name: Harden Runner
@@ -297,14 +298,14 @@ jobs:
         id: run_test_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
-          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
+          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
       - name: Run test on 1ES runner
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES') && (inputs.fault_injection != true)
         id: run_test_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
-          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner'
+          ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
       - name: Run test on github runner
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_platform == 'arm64') && (inputs.fault_injection != true)
