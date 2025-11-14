@@ -1641,15 +1641,8 @@ TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }
 
-/**
- * @brief Test that loads and unloads all native .sys drivers from tests/sample.
- * 
- * This is a kernel-mode (KM) test that loads all .sys kernel driver files corresponding
- * to programs in tests/sample directory and verifies that all loads succeed.
- */
 TEST_CASE("load_all_sample_programs", "[native_tests]")
 {
-    // List of all sample programs to test with native execution
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},
         {"bindmonitor_bpf2bpf.sys", BPF_PROG_TYPE_UNSPEC},
