@@ -711,6 +711,28 @@ extern "C"
     struct ring_buffer;
 
     /**
+     * @brief Ring buffer consumer page definition (public API).
+     *
+     * Definition of the consumer-writeable portion of the ring buffer metadata.
+     * This page is read+write for the consumer and the producer only reads it.
+     */
+    typedef struct _ebpf_ring_buffer_consumer_page
+    {
+        volatile uint64_t consumer_offset; ///< Consumer has read up to this offset.
+    } ebpf_ring_buffer_consumer_page_t;
+
+    /**
+     * @brief Ring buffer producer page definition (public API).
+     *
+     * Definition of the producer-writeable portion of the ring buffer metadata.
+     * This page is read+write for the producer and read-only for the consumer.
+     */
+    typedef struct _ebpf_ring_buffer_producer_page
+    {
+        volatile uint64_t producer_offset; ///< Producer(s) have reserved up to this offset.
+    } ebpf_ring_buffer_producer_page_t;
+
+    /**
      * @brief Ring buffer sample callback function type.
      * @param[in] ctx User-provided context.
      * @param[in] data Pointer to sample data.
@@ -731,7 +753,9 @@ extern "C"
         uint64_t flags; /* Windows-specific ring buffer option flags. */
     };
 
-    /* Ring buffer option flags. */
+    /**
+     * @brief Ring buffer option flags.
+     */
     enum ebpf_ring_buffer_flags
     {
         EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
@@ -797,6 +821,45 @@ extern "C"
         perf_buffer_lost_fn lost_cb,
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
+    /**
+     * @brief Get the wait handle for a ring buffer map (works with ring buffer manager).
+     *
+     * Gets the wait handle for the first ring buffer map in the manager.
+     * For multiple maps, this returns the wait handle for the first map only.
+     * Use ebpf_map_set_wait_handle() for individual map control.
+     *
+     * @param[in] rb Ring buffer manager.
+     *
+     * @returns Wait handle for the first map, or INVALID_HANDLE_VALUE on error.
+     */
+    ebpf_handle_t
+    ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get pointers to the consumer, producer, and data regions for a specific ring buffer map.
+     *
+     * Gets mapped memory pointers for the specified ring buffer map in the manager.
+     * For multiple maps, use the index parameter to select which map to access.
+     *
+     * @param[in] rb Ring buffer manager.
+     * @param[in] index Index of the map in the ring buffer manager (0-based).
+     * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
+     * @param[out] producer_page Pointer to start of read-only mapped producer page.
+     * @param[out] data Pointer to start of read-only double-mapped data pages.
+     * @param[out] data_size Size of the mapped data buffer.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_OBJECT_NOT_FOUND No maps in the ring buffer manager or index out of range.
+     * @retval other An error occurred.
+     */
+    _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
+        _In_ struct ring_buffer* rb,
+        _In_ uint32_t index,
+        _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
+        _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
+        _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+        _Out_opt_ uint64_t* data_size) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }
