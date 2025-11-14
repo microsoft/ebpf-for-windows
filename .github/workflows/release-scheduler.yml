@@ -19,7 +19,7 @@ jobs:
       issues: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2  # v2.13.2
         with:
           disable-sudo: true
           egress-policy: block
@@ -27,7 +27,7 @@ jobs:
             api.github.com:443
 
       - name: Create release task
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         env:
           TITLE: Scheduled eBPF release is due
           LABELS: release

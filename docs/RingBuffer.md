@@ -1,5 +1,9 @@
 # eBPF Ring Buffer Map
 
+NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The default behavior has been changed to be linux-compatible.
+- Code expecting asynchonous callbacks should switch to `ebpf_ring_buffer__new` with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` set in the opts flags.
+- The synchronous API has not been implemented yet, so `ring_buffer__new` will return a not implemented error.
+
 ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for user-mode code.
 
 *More documentation on user-mode API to be added later.*
@@ -114,21 +118,12 @@ typedef int (*ring_buffer_sample_fn)(_Inout_ void *ctx, _In_reads_bytes_(size) v
 
 struct ring_buffer_opts {
   size_t sz; /* size of this struct, for forward/backward compatiblity */
-  uint64_t flags; /* ring buffer option flags */
 };
-
-// Ring buffer manager options.
-// - The default behaviour is currently automatic callbacks, but may change in the future per #4142.
-// - Only specify one of AUTO_CALLBACKS or NO_AUTO_CALLBACKS - specifying both is not allowed.
-enum ring_buffer_flags {
-  RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0 /* Automatically invoke callback for each record */
-  RINGBUF_FLAG_NO_AUTO_CALLBACK = (uint64_t)2 << 0 /* Don't automatically invoke callback for each record */
-};
-
-#define ring_buffer_opts__last_field sz
 
 /**
  * @brief Creates a new ring buffer manager.
+ *
+ * @note This currently returns NULL because the synchronous API is not implemented yet.
  *
  * Only one consumer can be attached at a time, so it should not be called multiple times on an fd.
  *
@@ -167,6 +162,46 @@ int ring_buffer__poll(_In_ struct ring_buffer *rb, int timeout_ms);
  * @param[in] rb Pointer to ring buffer manager to be freed.
  */
 void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
+
+
+//
+// Windows-specific Ring Buffer APIs
+//
+
+/**
+ * @brief Windows-specific ring buffer options structure.
+ *
+ * This structure extends ring_buffer_opts with Windows-specific fields.
+ * The first field(s) must match ring_buffer_opts exactly for compatibility.
+ */
+struct ebpf_ring_buffer_opts
+{
+    size_t sz;      /* Size of this struct, for forward/backward compatibility (must match ring_buffer_opts). */
+    uint64_t flags; /* Windows-specific ring buffer option flags. */
+};
+
+/* Ring buffer option flags. */
+enum ebpf_ring_buffer_flags
+{
+    EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
+};
+
+/**
+ * @brief Creates a new ring buffer manager (Windows-specific with flags support).
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] ctx Pointer to sample_cb callback function context.
+ * @param[in] opts Ring buffer options with flags support.
+ *
+ * @returns Pointer to ring buffer manager, or NULL on error.
+ */
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd,
+    ring_buffer_sample_fn sample_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_ring_buffer_opts* opts) EBPF_NO_EXCEPT;
 ```
 
 ### New ebpf APIs for mapped memory consumer
@@ -239,7 +274,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  *
  * Calling this multiple times will map the ring into user-space multiple times.
  *
- * Note: This is a wrapper around ebpf_map_map_buffer.
+ * Note: This is a wrapper around ebpf_ring_buffer_map_map_user.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer_page Pointer to start of read-only mapped producer page.
@@ -271,7 +306,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_map_map_buffer(
+ebpf_result_t ebpf_ring_buffer_map_map_user(
     fd_t map_fd,
     uint64_t index,
     _Outptr_result_buffer_(*size) const uint8_t **data,

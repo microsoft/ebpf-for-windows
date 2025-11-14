@@ -34,7 +34,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911  # v2.13.0
+        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2  # v2.13.2
         with:
           egress-policy: audit
 
@@ -53,13 +53,13 @@ jobs:
           gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
 
       - name: upload_results_azure_2022_x64
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: Test-Logs-netperf_azure_2022_x64
           path: netperf/ebpf_azure_2022_x64/ebpf.csv
 
       - name: upload_results_lab_2022_x64
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: Test-Logs-netperf_lab_2022_x64
           path: netperf/ebpf_lab_2022_x64/ebpf.csv

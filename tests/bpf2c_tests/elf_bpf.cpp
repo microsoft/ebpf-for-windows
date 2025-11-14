@@ -209,8 +209,6 @@ DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
 DECLARE_TEST("divide_by_zero", _test_mode::Verify)
-DECLARE_TEST("droppacket", _test_mode::Verify)
-DECLARE_TEST("encap_reflect_packet", _test_mode::Verify)
 DECLARE_TEST("hash_of_map", _test_mode::Verify)
 DECLARE_TEST("inner_map", _test_mode::Verify)
 DECLARE_TEST("map_in_map_btf", _test_mode::Verify)
@@ -221,7 +219,6 @@ DECLARE_TEST("map_reuse_2", _test_mode::Verify)
 DECLARE_TEST("pidtgid", _test_mode::Verify)
 DECLARE_TEST("printk", _test_mode::Verify)
 DECLARE_TEST("printk_legacy", _test_mode::Verify)
-DECLARE_TEST("reflect_packet", _test_mode::Verify)
 DECLARE_TEST("sockops", _test_mode::Verify)
 DECLARE_TEST("tail_call", _test_mode::Verify)
 DECLARE_TEST("tail_call_bad", _test_mode::Verify)
@@ -328,14 +325,14 @@ TEST_CASE("Verbose output", "[bpf2c_cli]")
         std::vector<const char*> argv;
         argv.push_back("bpf2c.exe");
         argv.push_back("--bpf");
-        argv.push_back("droppacket_unsafe.o");
+        argv.push_back("printk_unsafe.o");
         if (verbose) {
             argv.push_back("--verbose");
         }
         auto [out, err, result_value] = run_test_main(argv);
         REQUIRE(result_value != 0);
         REQUIRE(!err.empty());
-        REQUIRE(err.find("Verification failed for DropPacket with error Verification failed") != std::string::npos);
+        REQUIRE(err.find("Verification failed for func with error Verification failed") != std::string::npos);
         return err;
     };
 
@@ -359,14 +356,14 @@ TEST_CASE("Verbose output", "[bpf2c_cli]")
         }
     }
 
-    REQUIRE(pre_invariant == 34);
-    REQUIRE(post_invariant == 34);
+    REQUIRE(pre_invariant == 10);
+    REQUIRE(post_invariant == 10);
 
     // Check to make sure that the verbose flag doesn't cause verification to fail.
     std::vector<const char*> argv;
     argv.push_back("bpf2c.exe");
     argv.push_back("--bpf");
-    argv.push_back("droppacket.o");
+    argv.push_back("printk.o");
     argv.push_back("--verbose");
     auto [out, err, result_value] = run_test_main(argv);
     REQUIRE(result_value == 0);

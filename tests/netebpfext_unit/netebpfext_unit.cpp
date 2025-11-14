@@ -26,30 +26,20 @@ typedef enum _sock_addr_test_type
 
 typedef enum _sock_addr_test_action
 {
-    SOCK_ADDR_TEST_ACTION_PERMIT,
+    SOCK_ADDR_TEST_ACTION_PERMIT_SOFT,
+    SOCK_ADDR_TEST_ACTION_PERMIT_HARD,
     SOCK_ADDR_TEST_ACTION_BLOCK,
     SOCK_ADDR_TEST_ACTION_REDIRECT,
     SOCK_ADDR_TEST_ACTION_FAILURE,
     SOCK_ADDR_TEST_ACTION_ROUND_ROBIN
 } sock_addr_test_action_t;
 
-typedef enum _xdp_test_action
-{
-    XDP_TEST_ACTION_PASS,   ///< Allow the packet to pass.
-    XDP_TEST_ACTION_DROP,   ///< Drop the packet.
-    XDP_TEST_ACTION_TX,     ///< Bounce the received packet back out the same NIC it arrived on.
-    XDP_TEST_ACTION_FAILURE ///< Failed to invoke the eBPF program.
-} xdp_test_action_t;
-
 TEST_CASE("query program info", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     std::vector<GUID> expected_guids = {
-        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
-        EBPF_PROGRAM_TYPE_SOCK_OPS,
-        EBPF_PROGRAM_TYPE_BIND,
-        EBPF_PROGRAM_TYPE_XDP_TEST};
-    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp_test"};
+        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, EBPF_PROGRAM_TYPE_SOCK_OPS, EBPF_PROGRAM_TYPE_BIND};
+    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind"};
 
     auto guid_less = [](const GUID& lhs, const GUID& rhs) { return memcmp(&lhs, &rhs, sizeof(lhs)) < 0; };
 
@@ -74,151 +64,6 @@ TEST_CASE("query program info", "[netebpfext]")
     REQUIRE(expected_program_names == program_names);
 }
 
-#pragma region xdp
-
-typedef struct _test_xdp_client_context
-{
-    netebpfext_helper_base_client_context_t base;
-    void* provider_binding_context;
-    xdp_test_action_t xdp_action;
-} test_xdp_client_context_t;
-
-typedef struct _test_xdp_client_context_header
-{
-    EBPF_CONTEXT_HEADER;
-    test_xdp_client_context_t context;
-} test_xdp_client_context_header_t;
-
-// This callback occurs when netebpfext gets a packet and submits it to our dummy
-// eBPF program to handle.
-_Must_inspect_result_ ebpf_result_t
-netebpfext_unit_invoke_xdp_program(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
-{
-    ebpf_result_t return_result = EBPF_SUCCESS;
-    auto client_context = (test_xdp_client_context_t*)client_binding_context;
-    UNREFERENCED_PARAMETER(context);
-
-    switch (client_context->xdp_action) {
-    case XDP_TEST_ACTION_PASS:
-        *result = XDP_PASS;
-        break;
-    case XDP_TEST_ACTION_DROP:
-        *result = XDP_DROP;
-        break;
-    case XDP_TEST_ACTION_TX:
-        *result = XDP_TX;
-        break;
-    case XDP_TEST_ACTION_FAILURE:
-        return_result = EBPF_FAILED;
-        break;
-    default:
-        *result = XDP_DROP;
-        break;
-    }
-
-    return return_result;
-}
-
-TEST_CASE("classify_packet", "[netebpfext]")
-{
-    NET_IFINDEX if_index = 0;
-    ebpf_extension_data_t npi_specific_characteristics = {
-        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
-        .data = &if_index,
-        .data_size = sizeof(if_index),
-    };
-    test_xdp_client_context_header_t client_context_header = {0};
-    test_xdp_client_context_t* client_context = &client_context_header.context;
-    client_context->base.desired_attach_type = BPF_XDP_TEST;
-
-    netebpf_ext_helper_t helper(
-        &npi_specific_characteristics,
-        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_program,
-        (netebpfext_helper_base_client_context_t*)client_context);
-
-    // Classify an inbound packet that should pass.
-    client_context->xdp_action = XDP_TEST_ACTION_PASS;
-    FWP_ACTION_TYPE result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    REQUIRE(result == FWP_ACTION_PERMIT);
-
-    // Classify an inbound packet that should be hairpinned.
-    client_context->xdp_action = XDP_TEST_ACTION_TX;
-    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    REQUIRE(result == FWP_ACTION_BLOCK);
-
-    // Classify an inbound packet that should be dropped.
-    client_context->xdp_action = XDP_TEST_ACTION_DROP;
-    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    REQUIRE(result == FWP_ACTION_BLOCK);
-
-    // Classify an inbound packet when eBPF program invocation failed.
-    client_context->xdp_action = XDP_TEST_ACTION_FAILURE;
-    result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
-    REQUIRE(result == FWP_ACTION_BLOCK);
-}
-
-TEST_CASE("xdp_context", "[netebpfext]")
-{
-    netebpf_ext_helper_t helper;
-    auto xdp_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
-    REQUIRE(xdp_program_data != nullptr);
-
-    std::vector<uint8_t> input_data(100);
-    std::vector<uint8_t> output_data(100);
-    size_t output_data_size = output_data.size();
-    xdp_md_t input_context = {};
-    size_t output_context_size = sizeof(xdp_md_t);
-    xdp_md_t output_context = {};
-    xdp_md_t* xdp_context = nullptr;
-
-    input_context.data_meta = 12345;
-    input_context.ingress_ifindex = 67890;
-
-    // Negative test:
-    // Null data
-    REQUIRE(
-        xdp_program_data->context_create(
-            nullptr, 0, (const uint8_t*)&input_context, sizeof(input_context), (void**)&xdp_context) ==
-        EBPF_INVALID_ARGUMENT);
-
-    // Positive test:
-    // Null context
-    xdp_context = nullptr;
-    REQUIRE(
-        xdp_program_data->context_create(input_data.data(), input_data.size(), nullptr, 0, (void**)&xdp_context) ==
-        EBPF_SUCCESS);
-
-    xdp_program_data->context_destroy(xdp_context, nullptr, &output_data_size, nullptr, &output_context_size);
-
-    REQUIRE(
-        xdp_program_data->context_create(
-            input_data.data(),
-            input_data.size(),
-            (const uint8_t*)&input_context,
-            sizeof(input_context),
-            (void**)&xdp_context) == 0);
-
-    bpf_xdp_adjust_head_t adjust_head =
-        reinterpret_cast<bpf_xdp_adjust_head_t>(xdp_program_data->program_type_specific_helper_function_addresses
-                                                    ->helper_function_address[XDP_TEST_HELPER_ADJUST_HEAD]);
-
-    // Modify the context.
-    REQUIRE(adjust_head(xdp_context, 10) == 0);
-    xdp_context->data_meta++;
-    xdp_context->ingress_ifindex--;
-
-    output_data_size = output_data.size();
-
-    xdp_program_data->context_destroy(
-        xdp_context, output_data.data(), &output_data_size, (uint8_t*)&output_context, &output_context_size);
-
-    REQUIRE(output_data_size == 90);
-    REQUIRE(output_context.data_meta == 12346);
-    REQUIRE(output_context.ingress_ifindex == 67889);
-}
-
-#pragma endregion xdp
 #pragma region bind
 
 typedef struct test_bind_client_context_t
@@ -442,7 +287,8 @@ static inline FWP_ACTION_TYPE
 _get_fwp_sock_addr_action(uint16_t destination_port)
 {
     sock_addr_test_action_t action = _get_sock_addr_action(destination_port);
-    if (action == SOCK_ADDR_TEST_ACTION_PERMIT || action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
+    if (action == SOCK_ADDR_TEST_ACTION_PERMIT_SOFT || action == SOCK_ADDR_TEST_ACTION_PERMIT_HARD ||
+        action == SOCK_ADDR_TEST_ACTION_REDIRECT) {
         return FWP_ACTION_PERMIT;
     }
 
@@ -478,14 +324,14 @@ netebpfext_unit_invoke_sock_addr_program(
         REQUIRE(sock_addr_context->user_ip4 == htonl(0x01020304));
         REQUIRE(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
         REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
-        REQUIRE(sock_addr_context->user_port == htons(1234));
+        REQUIRE(sock_addr_context->user_port == htons(1235));
         REQUIRE(sock_addr_context->msg_src_port == htons(5678));
     } else {
         ASSERT((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
         ASSERT(sock_addr_context->user_ip4 == htonl(0x01020304));
         ASSERT(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
         ASSERT(sock_addr_context->protocol == IPPROTO_TCP);
-        ASSERT(sock_addr_context->user_port == htons(1234));
+        ASSERT(sock_addr_context->user_port == htons(1235));
         ASSERT(sock_addr_context->msg_src_port == htons(5678));
     }
 
@@ -499,8 +345,11 @@ netebpfext_unit_invoke_sock_addr_program(
     }
 
     switch (action) {
-    case SOCK_ADDR_TEST_ACTION_PERMIT:
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+    case SOCK_ADDR_TEST_ACTION_PERMIT_SOFT:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        break;
+    case SOCK_ADDR_TEST_ACTION_PERMIT_HARD:
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
         break;
     case SOCK_ADDR_TEST_ACTION_BLOCK:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -513,7 +362,7 @@ netebpfext_unit_invoke_sock_addr_program(
             auto first_octet = &sock_addr_context->user_ip6[0];
             (*first_octet)++;
         }
-        *result = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        *result = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         break;
     case SOCK_ADDR_TEST_ACTION_FAILURE:
         return_result = EBPF_FAILED;
@@ -542,7 +391,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
@@ -572,6 +421,15 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
+    // Classify operations for hard permit.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_HARD;
+
+    result = helper.test_cgroup_inet4_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
     // Classify operations for redirect.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
 
@@ -598,7 +456,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     // Test reauthorization flag.
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = true;
 
     parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
@@ -659,6 +517,14 @@ sock_addr_thread_function(
         }
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
+
+        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive.
+        // Workaround for now - map to block.
+        if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
+            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
+            expected_result = FWP_ACTION_BLOCK;
+        }
+
         if (result != expected_result) {
             if (fault_injection_enabled) {
                 // If fault injection is enabled, then the result can be different.
@@ -693,7 +559,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     client_context->validate_sock_addr_entries = false;
 
     // Classify operations that should be allowed.
-    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     for (uint32_t i = 0; i < thread_count; i++) {
@@ -1113,7 +979,7 @@ sock_ops_thread_function(
         result = helper->test_sock_ops_v4(parameters, &flow_id);
 
         sock_ops_test_action_t iteration_action = _get_sock_ops_action(action, port_number);
-        if (iteration_action != SOCK_OPS_TEST_ACTION_FAILURE) {
+        if (iteration_action != SOCK_OPS_TEST_ACTION_FAILURE && flow_id != 0) {
             // Create a list of flow context ids to delete after timeout. Flow context is created only if the invocation
             // is successful.
             flow_ids.push_back(flow_id);
@@ -1123,21 +989,19 @@ sock_ops_thread_function(
         count++;
 
         if (result != expected_result) {
-            // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
-            if (fault_injection_enabled && flow_id == 0) {
+            // If fault injection is enabled, FwpsFlowAssociateContext can fail in which case the sock_ops classifyfn
+            // will return FWP_ACTION_PERMIT.
+            if (fault_injection_enabled && result == FWP_ACTION_PERMIT) {
                 continue;
             }
             (*failure_count)++;
             break;
         }
     }
+
     // Sleep for the specified flow duration before removing flow contexts.
     std::this_thread::sleep_for(std::chrono::seconds(flow_duration_seconds));
     for (auto id : flow_ids) {
-        // If fault injection is enabled, then id can be 0 and lead to crash when trying to remove the flow context.
-        if (fault_injection_enabled && id == 0) {
-            continue;
-        }
         helper->test_sock_ops_v4_remove_flow_context(id);
     }
 }

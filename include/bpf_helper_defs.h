@@ -14,7 +14,7 @@
  * @param[in] key Key to use when searching map.
  * @return Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, void* key));
+EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)BPF_FUNC_map_lookup_elem)
 #endif
@@ -30,7 +30,7 @@ EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, void* key));
  * @retval -EBPF_NO_MEMORY Unable to allocate resources for this
  *  entry.
  */
-EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, void* key, void* value, uint64_t flags));
+EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, const void* key, const void* value, uint64_t flags));
 #ifndef __doxygen
 #define bpf_map_update_elem ((bpf_map_update_elem_t)BPF_FUNC_map_update_elem)
 #endif
@@ -43,7 +43,7 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, void* key, void* value, ui
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval -EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  */
-EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, void* key));
+EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_delete_elem ((bpf_map_delete_elem_t)BPF_FUNC_map_delete_elem)
 #endif
@@ -55,7 +55,7 @@ EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, void* key));
  * @param[in] key Key to use when searching map.
  * @return Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, void* key));
+EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
 #endif
@@ -69,7 +69,7 @@ EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, void* key));
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval -EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  */
-EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, void* prog_array_map, uint32_t index));
+EBPF_HELPER(int64_t, bpf_tail_call, (const void* ctx, const void* prog_array_map, uint32_t index));
 #ifndef __doxygen
 #define bpf_tail_call ((bpf_tail_call_t)BPF_FUNC_tail_call)
 #endif
@@ -126,7 +126,7 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
  *
  * @returns The checksum delta on success, or <0 on failure.
  */
-EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
+EBPF_HELPER(int, bpf_csum_diff, (const void* from, int from_size, const void* to, int to_size, int seed));
 #ifndef __doxygen
 #define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif
@@ -140,7 +140,7 @@ EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_siz
  * @param[in] flags Flags indicating if notification for new data availability should be sent.
  * @returns 0 on success and a negative value on error.
  */
-EBPF_HELPER(int, bpf_ringbuf_output, (void* ring_buffer, void* data, uint64_t size, uint64_t flags));
+EBPF_HELPER(int, bpf_ringbuf_output, (void* ring_buffer, const void* data, uint64_t size, uint64_t flags));
 #ifndef __doxygen
 #define bpf_ringbuf_output ((bpf_ringbuf_output_t)BPF_FUNC_ringbuf_output)
 #endif
@@ -264,7 +264,7 @@ bpf_printk(const char* fmt, ...);
  *  entry.
  * @retval -EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
  */
-EBPF_HELPER(int64_t, bpf_map_push_elem, (void* map, void* value, uint64_t flags));
+EBPF_HELPER(int64_t, bpf_map_push_elem, (void* map, const void* value, uint64_t flags));
 #ifndef __doxygen
 #define bpf_map_push_elem ((bpf_map_push_elem_t)BPF_FUNC_map_push_elem)
 #endif
@@ -350,10 +350,15 @@ EBPF_HELPER(int32_t, bpf_is_current_admin, (const void* ctx));
  *
  * @retval 0 The operation was successful.
  * @retval -EINVAL One or more parameters are invalid.
+ *
+ * @note If possible, use __builtin_memcpy instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory regions sizes are not known at compile time,
+ *       such as when the regions are map values.
+ *
  */
-EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memcpy_s, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
-#define bpf_memcpy ((bpf_memcpy_t)BPF_FUNC_memcpy)
+#define bpf_memcpy_s ((bpf_memcpy_s_t)BPF_FUNC_memcpy_s)
 #endif
 
 /**
@@ -366,11 +371,15 @@ EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, con
  *
  * @returns 0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the
  * contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.
+ *
+ * @note If possible, use __builtin_memcmp instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory regions sizes are not known at compile time,
+ *       such as when the memory regions are map values.
  */
 
-EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const void* memory2, uint32_t memory2_size));
+EBPF_HELPER(int, bpf_memcmp_s, (const void* memory1, size_t memory1_size, const void* memory2, size_t memory2_size));
 #ifndef __doxygen
-#define bpf_memcmp ((bpf_memcmp_t)BPF_FUNC_memcmp)
+#define bpf_memcmp_s ((bpf_memcmp_s_t)BPF_FUNC_memcmp_s)
 #endif
 
 /**
@@ -381,9 +390,13 @@ EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const 
  * @param[in] value Value to set the memory region to.
  *
  * @returns Pointer to the memory region, or a negative error in case of failure.
+ *
+ * @note If possible, use __builtin_memset instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory region size is not known at compile time,
+ *       such as when the memory region is a map value.
  */
 
-EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
+EBPF_HELPER(long, bpf_memset, (void* memory, size_t size, int value));
 #ifndef __doxygen
 #define bpf_memset ((bpf_memset_t)BPF_FUNC_memset)
 #endif
@@ -398,12 +411,15 @@ EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
  *
  * @retval 0 The operation was successful.
  * @retval -EINVAL One or more parameters are invalid.
+ *
+ * @note If possible, use __builtin_memmove instead of this function as it is more efficient.
+ *       This function is intended for use in cases where the memory region sizes are not known at compile time,
+ *       such as when the memory regions are map values.
  */
 
-EBPF_HELPER(
-    long, bpf_memmove, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memmove_s, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
-#define bpf_memmove ((bpf_memmove_t)BPF_FUNC_memmove)
+#define bpf_memmove_s ((bpf_memmove_s_t)BPF_FUNC_memmove_s)
 #endif
 
 /**
@@ -466,12 +482,12 @@ EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
 #endif
 
 #if __clang__
-#define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
-#define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)
+#define memcpy(dest, src, dest_size) bpf_memcpy_s(dest, dest_size, src, dest_size)
+#define memcmp(mem1, mem2, mem1_size) bpf_memcmp_s(mem1, mem1_size, mem2, mem1_size)
 #define memset(mem, value, mem_size) bpf_memset(mem, mem_size, value)
-#define memmove(dest, src, dest_size) bpf_memmove(dest, dest_size, src, dest_size)
-#define memcpy_s bpf_memcpy
-#define memmove_s bpf_memmove
+#define memmove(dest, src, dest_size) bpf_memmove_s(dest, dest_size, src, dest_size)
+#define memcpy_s bpf_memcpy_s
+#define memmove_s bpf_memmove_s
 #endif
 
 /**
@@ -510,7 +526,34 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
  *  entry.
  * @retval -EBPF_OUT_OF_SPACE Map is full.
  */
-EBPF_HELPER(int, bpf_perf_event_output, (void* ctx, void* perf_event_array, uint64_t flags, void* data, uint64_t size));
+EBPF_HELPER(
+    int,
+    bpf_perf_event_output,
+    (const void* ctx, void* perf_event_array, uint64_t flags, const void* data, uint64_t size));
 #ifndef __doxygen
 #define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)
+#endif
+
+/**
+ * @brief Get the current process start key.
+ *
+ * @returns A 64-bit integer containing the current process
+ * start key.
+ */
+EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
+#ifndef __doxygen
+#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)
+#endif
+
+/**
+ * @brief Get the current thread create time.
+ *
+ * @returns A 64-bit integer containing the current thread's
+ * create time. It represents the thread's creation time in 100-nanosecond
+ * intervals since January 1, 1601.
+ */
+EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
+#ifndef __doxygen
+#define bpf_get_current_thread_create_time \
+    ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
 #endif

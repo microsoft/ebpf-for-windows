@@ -136,45 +136,6 @@ TEST_CASE("prog load map_in_map 2", "[prog][load]")
     REQUIRE(result == 0);
 }
 
-#if 0
-// TODO(#2974): Once XDP support has fully migrated to xdp-for-windows repo, these tests should be migrated.
-TEST_CASE("prog attach by interface alias", "[prog][load]")
-{
-    int result;
-    std::string output;
-    char command[80];
-    sprintf_s(
-        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
-
-    output = run_command(command, &result);
-    REQUIRE(output == "");
-    REQUIRE(result == 0);
-
-    output = run_command("bpftool prog show", &result);
-    REQUIRE(result == 0);
-    std::string id = std::to_string(atoi(output.c_str()));
-    size_t offset = output.find(" map_ids ");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    offset = output.find(",");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
-
-    // Try attaching to an interface by friendly name.
-    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),
-    &result); REQUIRE(result == 0);
-
-    output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from BPF:\\droppacket\n");
-    REQUIRE(result == 0);
-
-    output = run_command("bpftool prog show", &result);
-    REQUIRE(output == "");
-    REQUIRE(result == 0);
-}
-#endif
-
 TEST_CASE("map create", "[map]")
 {
     int status;

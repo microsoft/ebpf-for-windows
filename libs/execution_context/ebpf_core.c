@@ -5,6 +5,7 @@
 
 #include "ebpf_async.h"
 #include "ebpf_core.h"
+#include "ebpf_core_jit.h"
 #include "ebpf_epoch.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
@@ -37,7 +38,8 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-static bool _ebpf_platform_hypervisor_code_integrity_enabled = true;
+// Extern variable defined in ebpf_core_jit.h
+bool ebpf_platform_hypervisor_code_integrity_enabled = true;
 static bool _ebpf_platform_test_signing_enabled = true;
 
 static void*
@@ -79,14 +81,14 @@ _ebpf_core_get_current_logon_id(_In_ const void* ctx);
 static int32_t
 _ebpf_core_is_current_admin(_In_ const void* ctx);
 static int32_t
-_ebpf_core_memcpy(
+_ebpf_core_memcpy_s(
     _Out_writes_(destination_size) void* destination,
     size_t destination_size,
     _In_reads_(source_size) const void* source,
     size_t source_size);
 
 static int32_t
-_ebpf_core_memcmp(
+_ebpf_core_memcmp_s(
     _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
     _In_reads_(buffer2_length) const void* buffer2,
@@ -96,7 +98,7 @@ static uintptr_t
 _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value);
 
 static int32_t
-_ebpf_core_memmove(
+_ebpf_core_memmove_s(
     _Out_writes_(destination_length) void* destination,
     size_t destination_length,
     _In_reads_(source_length) const void* source,
@@ -111,6 +113,24 @@ _ebpf_core_get_time_ms();
 static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
+
+static uint64_t
+_ebpf_core_get_current_process_start_key(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx);
+
+static int64_t
+_ebpf_core_get_current_thread_create_time(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -146,10 +166,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_pid_tgid,
     (void*)&_ebpf_core_get_current_logon_id,
     (void*)&_ebpf_core_is_current_admin,
-    (void*)&_ebpf_core_memcpy,
-    (void*)&_ebpf_core_memcmp,
+    (void*)&_ebpf_core_memcpy_s,
+    (void*)&_ebpf_core_memcmp_s,
     (void*)&_ebpf_core_memset,
-    (void*)&_ebpf_core_memmove,
+    (void*)&_ebpf_core_memmove_s,
     // No default implementation of bpf_get_socket_cookie
     (void*)NULL, // bpf_get_socket_cookie
     (void*)&_ebpf_core_strncpy_s,
@@ -159,6 +179,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ms,
     // Perf event array (perf buffer) output.
     (void*)&_ebpf_core_perf_event_output,
+    (void*)&_ebpf_core_get_current_process_start_key,
+    (void*)&_ebpf_core_get_current_thread_create_time,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -301,7 +323,7 @@ ebpf_core_initiate()
     }
 
     return_value = ebpf_get_code_integrity_state(
-        &_ebpf_platform_test_signing_enabled, &_ebpf_platform_hypervisor_code_integrity_enabled);
+        &_ebpf_platform_test_signing_enabled, &ebpf_platform_hypervisor_code_integrity_enabled);
 
 Done:
     if (return_value != EBPF_SUCCESS) {
@@ -320,6 +342,8 @@ ebpf_core_terminate()
         }
         _ebpf_global_helper_function_nmr_binding_handle = NULL;
     }
+
+    ebpf_link_terminate();
 
     ebpf_program_terminate();
 
@@ -378,57 +402,6 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-static ebpf_result_t
-_ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_result_t retval;
-    uint8_t* code = NULL;
-    size_t code_length = 0;
-
-    if (request->code_type <= EBPF_CODE_NONE || request->code_type >= EBPF_CODE_MAX) {
-        retval = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_CORE, "load_code: Invalid code type", request->code_type);
-        goto Done;
-    }
-
-    if (request->code_type == EBPF_CODE_NATIVE) {
-        retval = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "code_type == EBPF_CODE_NATIVE can only be loaded through program driver");
-        goto Done;
-    }
-
-    if (request->code_type == EBPF_CODE_JIT) {
-        if (_ebpf_platform_hypervisor_code_integrity_enabled) {
-            retval = EBPF_BLOCKED_BY_POLICY;
-            EBPF_LOG_MESSAGE(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_CORE,
-                "code_type == EBPF_CODE_JIT blocked by Hyper-V Code Integrity policy");
-            goto Done;
-        }
-    }
-
-    retval = ebpf_safe_size_t_subtract(
-        request->header.length, EBPF_OFFSET_OF(ebpf_operation_load_code_request_t, code), &code_length);
-    if (retval != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    code = (uint8_t*)request->code;
-
-    retval = ebpf_core_load_code(request->program_handle, request->code_type, NULL, code, code_length);
-
-Done:
-    EBPF_RETURN_RESULT(retval);
-}
-#endif
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
@@ -466,56 +439,6 @@ Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(return_value);
 }
-
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-static ebpf_result_t
-_ebpf_core_protocol_resolve_helper(
-    _In_ const ebpf_operation_resolve_helper_request_t* request,
-    _Inout_ ebpf_operation_resolve_helper_reply_t* reply,
-    uint16_t reply_length)
-{
-    EBPF_LOG_ENTRY();
-    uint32_t* request_helper_ids = NULL;
-    size_t required_reply_length = 0;
-    size_t helper_id_length;
-    ebpf_result_t return_value = ebpf_safe_size_t_subtract(
-        request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id), &helper_id_length);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-    size_t count_of_helpers = helper_id_length / sizeof(request->helper_id[0]);
-    required_reply_length =
-        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + count_of_helpers * sizeof(reply->address[0]);
-    size_t helper_index;
-
-    if (reply_length < required_reply_length) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    if (count_of_helpers != 0) {
-        request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
-        if (request_helper_ids == NULL) {
-            return_value = EBPF_NO_MEMORY;
-            goto Done;
-        }
-        for (helper_index = 0; helper_index < count_of_helpers; helper_index++) {
-            request_helper_ids[helper_index] = request->helper_id[helper_index];
-        }
-    }
-
-    return_value =
-        ebpf_core_resolve_helper(request->program_handle, count_of_helpers, request_helper_ids, reply->address);
-
-Done:
-    if (return_value == EBPF_SUCCESS) {
-        reply->header.length = (uint16_t)required_reply_length;
-    }
-
-    ebpf_free(request_helper_ids);
-    EBPF_RETURN_RESULT(return_value);
-}
-#endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
@@ -591,44 +514,6 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-static ebpf_result_t
-_ebpf_core_protocol_resolve_map(
-    _In_ const struct _ebpf_operation_resolve_map_request* request,
-    _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
-    uint16_t reply_length)
-{
-    EBPF_LOG_ENTRY();
-    size_t map_handle_length;
-    ebpf_result_t return_value = ebpf_safe_size_t_subtract(
-        request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle), &map_handle_length);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-    uint32_t count_of_maps = (uint32_t)(map_handle_length / sizeof(request->map_handle[0]));
-    size_t required_reply_length =
-        EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
-
-    if (reply_length < required_reply_length) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    if (count_of_maps == 0) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    return_value = ebpf_core_resolve_maps(request->program_handle, count_of_maps, request->map_handle, reply->address);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    reply->header.length = (uint16_t)required_reply_length;
-
-Done:
-    EBPF_RETURN_RESULT(return_value);
-}
-#endif
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
     _In_ const cxplat_utf8_string_t* map_name,
@@ -677,51 +562,6 @@ _ebpf_core_protocol_create_map(
 
     EBPF_RETURN_RESULT(retval);
 }
-
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-static ebpf_result_t
-_ebpf_core_protocol_create_program(
-    _In_ const ebpf_operation_create_program_request_t* request, _Inout_ ebpf_operation_create_program_reply_t* reply)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_result_t retval;
-    ebpf_program_parameters_t parameters = {0};
-    uint8_t* file_name = NULL;
-    size_t file_name_length = 0;
-    uint8_t* section_name = NULL;
-    size_t section_name_length = 0;
-    uint8_t* program_name = NULL;
-    size_t program_name_length = 0;
-
-    // Valid if:
-    // offsetof(data) <= section_name_offset <= program_name_offset <= header.length
-    if ((EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data) > request->section_name_offset) ||
-        (request->section_name_offset > request->program_name_offset) ||
-        (request->program_name_offset > request->header.length)) {
-        retval = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-    file_name = (uint8_t*)request->data;
-    section_name = ((uint8_t*)request) + request->section_name_offset;
-    program_name = ((uint8_t*)request) + request->program_name_offset;
-    file_name_length = section_name - file_name;
-    section_name_length = program_name - section_name;
-    program_name_length = ((uint8_t*)request) + request->header.length - program_name;
-
-    parameters.program_type = request->program_type;
-    parameters.program_name.value = program_name;
-    parameters.program_name.length = program_name_length;
-    parameters.section_name.value = section_name;
-    parameters.section_name.length = section_name_length;
-    parameters.file_name.value = file_name;
-    parameters.file_name.length = file_name_length;
-
-    retval = ebpf_program_create_and_initialize(&parameters, &reply->program_handle);
-
-Done:
-    EBPF_RETURN_RESULT(retval);
-}
-#endif
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
@@ -1321,7 +1161,7 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate(sizeof(ebpf_program_test_run_options_t));
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -1489,7 +1329,6 @@ _ebpf_core_protocol_get_pinned_object(
     _Inout_ struct _ebpf_operation_get_pinned_object_reply* reply)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_object_t* object = NULL;
     size_t path_length;
     ebpf_result_t retval = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_get_pinned_object_request_t, path), &path_length);
@@ -1506,7 +1345,6 @@ _ebpf_core_protocol_get_pinned_object(
     retval = ebpf_core_get_pinned_object(&path, &reply->handle);
 
 Done:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
     EBPF_RETURN_RESULT(retval);
 }
 
@@ -1701,21 +1539,6 @@ _ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_
     EBPF_LOG_ENTRY();
     EBPF_RETURN_RESULT(ebpf_handle_close(request->handle));
 }
-
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-static uint64_t
-_ebpf_core_protocol_get_ec_function(
-    _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
-{
-    EBPF_LOG_ENTRY();
-    if (request->function != EBPF_EC_FUNCTION_LOG) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    reply->address = (uint64_t)ebpf_log_function;
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
-}
-#endif
 
 // Get helper info for a program or program type.  This is used by the jitter/verifier,
 // not by libbpf which instead uses ebpf_program_get_info
@@ -2079,6 +1902,25 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     EBPF_RETURN_RESULT(result);
 }
 
+_Must_inspect_result_ ebpf_result_t
+_ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_handle_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_map_t* map = NULL;
+
+    ebpf_result_t result =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_map_set_wait_handle_internal(map, request->index, request->wait_handle, request->flags);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(result);
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* request)
 {
@@ -2299,8 +2141,63 @@ _ebpf_core_protocol_get_code_integrity_state(
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(request);
     ebpf_result_t result = EBPF_SUCCESS;
-    reply->hypervisor_code_integrity_enabled = _ebpf_platform_hypervisor_code_integrity_enabled;
+    reply->hypervisor_code_integrity_enabled = ebpf_platform_hypervisor_code_integrity_enabled;
     reply->test_signing_enabled = _ebpf_platform_test_signing_enabled;
+    EBPF_RETURN_RESULT(result);
+}
+
+static void
+_ebpf_core_epoch_synchronize_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ void* work_item_context)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(work_item);
+    ebpf_epoch_synchronize();
+    if (work_item_context != NULL) {
+        ebpf_async_complete(work_item_context, 0, EBPF_SUCCESS);
+    }
+
+    cxplat_free_preemptible_work_item(work_item);
+    return;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_epoch_synchronize(
+    _In_ const ebpf_operation_epoch_synchronize_request_t* request, _Inout_ void* async_context)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(request);
+    cxplat_preemptible_work_item_t* work_item = NULL;
+
+    // Allocate a pre-emptible work item to synchronize the epoch.
+    ebpf_result_t result =
+        ebpf_allocate_preemptible_work_item(&work_item, _ebpf_core_epoch_synchronize_work_item, async_context);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    // Submit the work item to the pre-emptible work queue so that it executes outside of the current epoch.
+    cxplat_queue_preemptible_work_item(work_item);
+    result = EBPF_PENDING;
+
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_link_set_legacy_mode(_In_ const ebpf_operation_link_set_legacy_mode_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    ebpf_link_t* link = NULL;
+
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->link_handle, EBPF_OBJECT_LINK, (ebpf_core_object_t**)&link);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_link_set_legacy_mode(link);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2598,6 +2495,54 @@ _ebpf_core_ring_buffer_output(
     return -ebpf_ring_buffer_map_output(map, data, length);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_map_buffer(
+    _In_ const ebpf_operation_ring_buffer_map_map_buffer_request_t* request,
+    _Inout_ ebpf_operation_ring_buffer_map_map_buffer_reply_t* reply)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = NULL;
+    void* consumer = NULL;
+    void* producer = NULL;
+    uint8_t* data = NULL;
+    size_t data_size = 0;
+
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    // Get the consumer and producer pointers to the mapped ring buffer memory.
+    result = ebpf_ring_buffer_map_map_user(map, &consumer, &producer, &data, &data_size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+        return result;
+    }
+
+    reply->consumer_address = (uint64_t)consumer;
+    reply->producer_address = (uint64_t)producer;
+    reply->data_address = (uint64_t)data;
+    reply->data_size = data_size;
+
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_unmap_buffer(
+    _In_ const ebpf_operation_ring_buffer_map_unmap_buffer_request_t* request)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = NULL;
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS)
+        return result;
+    result = ebpf_ring_buffer_map_unmap_user(
+        map, (const void*)request->consumer, (const void*)request->producer, (const void*)request->data);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    return result;
+}
+
 static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
@@ -2624,7 +2569,7 @@ _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 }
 
 static int32_t
-_ebpf_core_memcpy(
+_ebpf_core_memcpy_s(
     _Out_writes_(destination_size) void* destination,
     size_t destination_size,
     _In_reads_(source_size) const void* source,
@@ -2643,7 +2588,7 @@ _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value)
 }
 
 static int32_t
-_ebpf_core_memcmp(
+_ebpf_core_memcmp_s(
     _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
     _In_reads_(buffer2_length) const void* buffer2,
@@ -2664,7 +2609,7 @@ _ebpf_core_memcmp(
 }
 
 static int32_t
-_ebpf_core_memmove(
+_ebpf_core_memmove_s(
     _Out_writes_(destination_length) void* destination,
     size_t destination_length,
     _In_reads_(source_length) const void* source,
@@ -2674,6 +2619,44 @@ _ebpf_core_memmove(
         return -EINVAL;
     }
     return memmove_s(destination, destination_length, source, source_length);
+}
+
+static uint64_t
+_ebpf_core_get_current_process_start_key(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+
+    return PsGetProcessStartKey(IoGetCurrentProcess());
+}
+
+static int64_t
+_ebpf_core_get_current_thread_create_time(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+
+    return PsGetThreadCreateTime(KeGetCurrentThread());
 }
 
 typedef enum _ebpf_protocol_call_type
@@ -2686,6 +2669,7 @@ typedef enum _ebpf_protocol_call_type
     EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,
     EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC,
     EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC,
+    EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC,
 } ebpf_protocol_call_type_t;
 
 typedef struct _ebpf_protocol_handler
@@ -2707,6 +2691,8 @@ typedef struct _ebpf_protocol_handler
             _Out_writes_bytes_(output_buffer_length) ebpf_operation_header_t* reply,
             uint16_t output_buffer_length,
             _Inout_ void* async_context);
+        ebpf_result_t(__cdecl* async_protocol_handler_no_reply)(
+            _In_ const ebpf_operation_header_t* request, _Inout_ void* async_context);
     } dispatch;
     size_t minimum_request_size;
     size_t minimum_reply_size;
@@ -2728,24 +2714,6 @@ typedef struct _ebpf_protocol_handler
 
 } const ebpf_protocol_handler_t;
 
-#define PROTOCOL_NATIVE_MODE 1
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-#define PROTOCOL_JIT_MODE 2
-#endif
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define PROTOCOL_INTERPRET_MODE 4
-#endif
-#define PROTOCOL_PRIVILEGED_OPERATION 8
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define PROTOCOL_JIT_OR_INTERPRET_MODE (PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
-#define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
-#elif !defined(CONFIG_BPF_JIT_DISABLED)
-#define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_JIT_MODE
-#define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE)
-#else
-#define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
-#endif
-
 #define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS) \
     {EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY,                                \
      (void*)_ebpf_core_protocol_##OPERATION,                              \
@@ -2757,6 +2725,15 @@ typedef struct _ebpf_protocol_handler
      (void*)_ebpf_core_protocol_##OPERATION,                                 \
      sizeof(ebpf_operation_##OPERATION##_request_t),                         \
      sizeof(ebpf_operation_##OPERATION##_reply_t),                           \
+     .flags.value = FLAGS}
+
+// If function is not static, remove leading undercore to ebpf_core_protocol declaration.
+// This is needed because some functions are defined and implemented in ebpf_core_config files due to JIT requirements.
+#define DECLARE_NON_STATIC_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY,                                           \
+     (void*)ebpf_core_protocol_##OPERATION,                                             \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                                    \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                      \
      .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REPLY, FLAGS) \
@@ -2772,6 +2749,14 @@ typedef struct _ebpf_protocol_handler
      EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                 \
      .flags.value = FLAGS}
 
+// If function is not static, remove leading undercore to ebpf_core_protocol declaration.
+// This is needed because some functions are defined and implemented in ebpf_core_config files due to JIT requirements.
+#define DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY,                                                             \
+     (void*)ebpf_core_protocol_##OPERATION,                                                               \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                            \
+     .flags.value = FLAGS}
+
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
     {EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY,                                                  \
      (void*)_ebpf_core_protocol_##OPERATION,                                                      \
@@ -2779,11 +2764,30 @@ typedef struct _ebpf_protocol_handler
      sizeof(ebpf_operation_##OPERATION##_reply_t),                                                \
      .flags.value = FLAGS}
 
+// If function is not static, remove leading undercore to ebpf_core_protocol declaration.
+// This is needed because some functions are defined and implemented in ebpf_core_config files due to JIT requirements.
+#define DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY,                                                             \
+     (void*)ebpf_core_protocol_##OPERATION,                                                                  \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                               \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                                           \
+     .flags.value = FLAGS}
+
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS) \
     {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,                                                                  \
      (void*)_ebpf_core_protocol_##OPERATION,                                                                         \
      EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                                       \
      EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),                                           \
+     .flags.value = FLAGS}
+
+// If function is not static, remove leading undercore to ebpf_core_protocol declaration.
+// This is needed because some functions are defined and implemented in ebpf_core_config files due to JIT requirements.
+#define DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(   \
+    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                        \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,                            \
+     (void*)ebpf_core_protocol_##OPERATION,                                    \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST), \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),     \
      .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(OPERATION, FLAGS) \
@@ -2801,6 +2805,12 @@ typedef struct _ebpf_protocol_handler
      EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),     \
      .flags.value = FLAGS}
 
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                    \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                            \
+     .flags.value = FLAGS}
+
 #define DECLARE_PROTOCOL_HANDLER_INVALID(type) {type, NULL, 0, 0, .flags.value = 0}
 
 #define ALIAS_TYPES(X, Y)                                                  \
@@ -2816,22 +2826,23 @@ ALIAS_TYPES(get_handle_by_id, get_program_handle_by_id)
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+    DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         resolve_helper, helper_id, address, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+    DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         resolve_map, map_handle, address, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
 #endif
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_program, data, PROTOCOL_JIT_OR_INTERPRET_MODE),
+    DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(
+        create_program, data, PROTOCOL_JIT_OR_INTERPRET_MODE),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_map, data, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(
+    DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(
         load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
@@ -2849,7 +2860,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(unlink_program, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(close_handle, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
+    DECLARE_NON_STATIC_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
         get_ec_function, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY),
@@ -2883,6 +2894,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
         authorize_native_module, PROTOCOL_NATIVE_MODE | PROTOCOL_PRIVILEGED_OPERATION),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
         get_code_integrity_state, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_map_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -2898,7 +2914,7 @@ ebpf_core_get_protocol_handler_properties(
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     // JIT is permitted only if HVCI is off.
-    bool jit_permitted = !_ebpf_platform_hypervisor_code_integrity_enabled;
+    bool jit_permitted = !ebpf_platform_hypervisor_code_integrity_enabled;
 #endif
 
     // Interpret is only permitted if CONFIG_BPF_INTERPRETER_DISABLED is not set.
@@ -3012,6 +3028,7 @@ ebpf_core_invoke_protocol_handler(
     case EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         if (input_buffer_length < handler->minimum_request_size) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
@@ -3026,6 +3043,7 @@ ebpf_core_invoke_protocol_handler(
     switch (handler->call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         if (output_buffer || output_buffer_length) {
             retval = EBPF_INVALID_ARGUMENT;
             goto Done;
@@ -3074,6 +3092,22 @@ ebpf_core_invoke_protocol_handler(
         retval = handler->dispatch.protocol_handler_with_fixed_reply(request, reply);
         reply->id = operation_id;
         reply->length = (uint16_t)handler->minimum_reply_size;
+        break;
+
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
+        // Validated above.
+        if (!async_context || !on_complete) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        retval = ebpf_async_set_completion_callback(async_context, on_complete);
+        if (retval != EBPF_SUCCESS) {
+            goto Done;
+        }
+        retval = handler->dispatch.async_protocol_handler_no_reply(request, async_context);
+        if ((retval != EBPF_SUCCESS) && (retval != EBPF_PENDING)) {
+            ebpf_assert_success(ebpf_async_reset_completion_callback(async_context));
+        }
         break;
 
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
@@ -3151,7 +3185,7 @@ ebpf_core_close_context(_In_opt_ void* context)
     ebpf_epoch_enter(&epoch_state);
 
     ebpf_core_object_t* object = (ebpf_core_object_t*)context;
-    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT((&object->base));
+    EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT_USER((&object->base));
 
     ebpf_epoch_exit(&epoch_state);
 }

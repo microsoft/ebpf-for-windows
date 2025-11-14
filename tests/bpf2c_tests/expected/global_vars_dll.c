@@ -187,13 +187,13 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
     r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=2 dst=r1 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
-    r1 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_32(r1, r1, OFFSET(0));
     // EBPF_OP_LDDW pc=3 dst=r2 src=r2 offset=0 imm=2
 #line 30 "sample/undocked/global_vars.c"
     r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=5 dst=r2 src=r2 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
-    r2 = *(uint32_t*)(uintptr_t)(r2 + OFFSET(0));
+    READ_ONCE_32(r2, r2, OFFSET(0));
     // EBPF_OP_ADD64_REG pc=6 dst=r2 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     r2 += r1;
@@ -202,22 +202,22 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
     r1 = POINTER(runtime_context->global_variable_section_data[2].address_of_map_value + 0);
     // EBPF_OP_STXW pc=9 dst=r1 src=r2 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint32_t)r2;
+    WRITE_ONCE_32(r1, (uint32_t)r2, OFFSET(0));
     // EBPF_OP_LDDW pc=10 dst=r2 src=r2 offset=0 imm=2
 #line 31 "sample/undocked/global_vars.c"
     r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 4);
     // EBPF_OP_LDXW pc=12 dst=r2 src=r2 offset=0 imm=0
 #line 31 "sample/undocked/global_vars.c"
-    r2 = *(uint32_t*)(uintptr_t)(r2 + OFFSET(0));
+    READ_ONCE_32(r2, r2, OFFSET(0));
     // EBPF_OP_LDXW pc=13 dst=r3 src=r1 offset=0 imm=0
 #line 31 "sample/undocked/global_vars.c"
-    r3 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_32(r3, r1, OFFSET(0));
     // EBPF_OP_ADD64_REG pc=14 dst=r3 src=r2 offset=0 imm=0
 #line 31 "sample/undocked/global_vars.c"
     r3 += r2;
     // EBPF_OP_STXW pc=15 dst=r1 src=r3 offset=0 imm=0
 #line 31 "sample/undocked/global_vars.c"
-    *(uint32_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint32_t)r3;
+    WRITE_ONCE_32(r1, (uint32_t)r3, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/global_vars.c"
     r0 = IMMEDIATE(0);
@@ -259,8 +259,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 

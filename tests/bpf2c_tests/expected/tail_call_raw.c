@@ -160,7 +160,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
     r2 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
 #line 35 "sample/undocked/tail_call.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r2;
+    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-4));
     // EBPF_OP_LDDW pc=2 dst=r2 src=r1 offset=0 imm=1
 #line 38 "sample/undocked/tail_call.c"
     r2 = POINTER(runtime_context->map_data[0].address);
@@ -206,7 +206,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=13 dst=r0 src=r1 offset=0 imm=0
 #line 43 "sample/undocked/tail_call.c"
-    *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
+    WRITE_ONCE_32(r0, (uint32_t)r1, OFFSET(0));
 label_1:
     // EBPF_OP_MOV64_IMM pc=14 dst=r0 src=r0 offset=0 imm=6
 #line 46 "sample/undocked/tail_call.c"
@@ -264,8 +264,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 

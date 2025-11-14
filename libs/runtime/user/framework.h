@@ -7,6 +7,7 @@
 #include "ebpf_shared_framework.h"
 #include "usersim\ex.h"
 #include "usersim\ke.h"
+#include "usersim\ob.h"
 #include "usersim\ps.h"
 #include "usersim\rtl.h"
 #include "usersim\se.h"

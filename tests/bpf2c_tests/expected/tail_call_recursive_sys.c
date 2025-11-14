@@ -291,7 +291,7 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 47 "sample/undocked/tail_call_recursive.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r7;
+    WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=3 dst=r2 src=r10 offset=0 imm=0
 #line 47 "sample/undocked/tail_call_recursive.c"
     r2 = r10;
@@ -322,22 +322,22 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=10 dst=r10 src=r1 offset=-8 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1635133984
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = (uint64_t)4424071317313432096;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
     // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1969448306
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = (uint64_t)4207896362280510834;
     // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-24 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
     // EBPF_OP_LDXW pc=17 dst=r3 src=r0 offset=0 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
-    r3 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
+    READ_ONCE_32(r3, r0, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=18 dst=r1 src=r10 offset=0 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = r10;
@@ -361,13 +361,13 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
 #line 59 "sample/undocked/tail_call_recursive.c"
-    r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
+    READ_ONCE_32(r1, r7, OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=1
 #line 59 "sample/undocked/tail_call_recursive.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=25 dst=r7 src=r1 offset=0 imm=0
 #line 59 "sample/undocked/tail_call_recursive.c"
-    *(uint32_t*)(uintptr_t)(r7 + OFFSET(0)) = (uint32_t)r1;
+    WRITE_ONCE_32(r7, (uint32_t)r1, OFFSET(0));
     // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 62 "sample/undocked/tail_call_recursive.c"
     r1 = r6;
@@ -431,8 +431,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 

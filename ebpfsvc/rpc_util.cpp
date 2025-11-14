@@ -117,7 +117,7 @@ Exit:
 _Must_inspect_result_ _Ret_maybenull_
 _Post_writable_byte_size_(size) void* __RPC_USER MIDL_user_allocate(_In_ size_t size)
 {
-    return ebpf_allocate(size);
+    return ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
 }
 
 void __RPC_USER

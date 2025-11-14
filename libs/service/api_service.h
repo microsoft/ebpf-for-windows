@@ -50,19 +50,20 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
  * @brief Verify the signature of a system file.
  *
  * @param[in] file_name The name of the file to verify.
- * @param[in] issuer_name The name of the issuer to check against.
+ * @param[in] subject_name The name of the subject to check against.
  * @param[in] eku_count The number of EKUs to check.
  * @param[in] eku_list The list of EKUs to check against.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The file does not have the expected signature.
- * @retval EBPF_INVALID_ARGUMENT The file name or issuer name is invalid.
+ * @retval EBPF_INVALID_ARGUMENT The file name or subject name is invalid.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_FAILED A failure occurred during the verification process.
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_sys_file_signature(
     _In_z_ const wchar_t* file_name,
-    _In_z_ const char* issuer_name,
+    _In_z_ const char* subject_name,
+    _In_z_ const char* root_certificate_thumbprint,
     size_t eku_count,
     _In_reads_(eku_count) const char** eku_list);
 
@@ -73,10 +74,16 @@ void
 ebpf_service_cleanup() noexcept;
 
 /**
- * @brief This macro defines the required issuer for eBPF verification.
- * The issuer must match the one used for signing eBPF programs.
+ * @brief This macro defines the required subject for eBPF verification.
+ * The subject must match the one used for signing eBPF programs.
  */
-#define EBPF_REQUIRED_ISSUER "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification"
+#define EBPF_REQUIRED_SUBJECT "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification"
+
+/**
+ * @brief This macro defines the required root certificate thumbprint for eBPF verification.
+ * This is the thumbprint for the "Microsoft Root Certificate Authority 2011" root certificate.
+ */
+#define EBPF_REQUIRED_ROOT_CERTIFICATE_THUMBPRINT "8f43288ad272f3103b6fb1428485ea3014c0bcfe"
 
 /**
  * @brief This macro defines the EKU for code signing.

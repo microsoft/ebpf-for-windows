@@ -9,6 +9,6 @@ on:
 
 jobs:
   call-common:
-    uses: ./.github/workflows/check_pr.yml
+    uses: ./.github/workflows/check-pr.yml
     with:
       run_on_fork: false

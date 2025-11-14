@@ -169,22 +169,22 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     r1 = (uint64_t)4294967296;
     // EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 12 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
     // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=0
 #line 12 "sample/./sample_common_routines.h"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=4 dst=r10 src=r1 offset=-40 imm=0
 #line 13 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
     // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-48 imm=0
 #line 13 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
     // EBPF_OP_STXDW pc=6 dst=r10 src=r1 offset=-56 imm=0
 #line 13 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-56));
     // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-64 imm=0
 #line 13 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint64_t)r1;
+    WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-64));
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=6
 #line 16 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
@@ -196,7 +196,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-64 imm=0
 #line 16 "sample/./sample_common_routines.h"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint32_t)r0;
+    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-64));
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=7
 #line 24 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
@@ -208,7 +208,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=11 dst=r10 src=r0 offset=-48 imm=0
 #line 24 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-48));
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=9
 #line 27 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
@@ -220,7 +220,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=13 dst=r10 src=r0 offset=-56 imm=0
 #line 27 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-56));
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=8
 #line 30 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
@@ -232,7 +232,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXW pc=15 dst=r10 src=r0 offset=-40 imm=0
 #line 30 "sample/./sample_common_routines.h"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r0;
+    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-40));
     // EBPF_OP_CALL pc=16 dst=r0 src=r0 offset=0 imm=19
 #line 33 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
@@ -244,7 +244,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=17 dst=r10 src=r0 offset=-32 imm=0
 #line 33 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-32));
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=30
 #line 36 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
@@ -256,7 +256,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=19 dst=r10 src=r0 offset=-24 imm=0
 #line 36 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-24));
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=31
 #line 39 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
@@ -268,7 +268,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=21 dst=r10 src=r0 offset=-16 imm=0
 #line 39 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=22 dst=r2 src=r10 offset=0 imm=0
 #line 39 "sample/./sample_common_routines.h"
     r2 = r10;
@@ -310,7 +310,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXW pc=32 dst=r10 src=r0 offset=-64 imm=0
 #line 45 "sample/./sample_common_routines.h"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint32_t)r0;
+    WRITE_ONCE_32(r10, (uint32_t)r0, OFFSET(-64));
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=9
 #line 48 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
@@ -322,7 +322,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=34 dst=r10 src=r0 offset=-56 imm=0
 #line 48 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-56));
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=7
 #line 51 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
@@ -334,7 +334,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=36 dst=r10 src=r0 offset=-48 imm=0
 #line 51 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-48));
     // EBPF_OP_CALL pc=37 dst=r0 src=r0 offset=0 imm=19
 #line 54 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
@@ -346,7 +346,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=38 dst=r10 src=r0 offset=-32 imm=0
 #line 54 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-32));
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=30
 #line 57 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
@@ -358,7 +358,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=40 dst=r10 src=r0 offset=-24 imm=0
 #line 57 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-24));
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=31
 #line 60 "sample/./sample_common_routines.h"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
@@ -370,7 +370,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
     }
     // EBPF_OP_STXDW pc=42 dst=r10 src=r0 offset=-16 imm=0
 #line 60 "sample/./sample_common_routines.h"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
+    WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-16));
     // EBPF_OP_MOV64_REG pc=43 dst=r2 src=r10 offset=0 imm=0
 #line 63 "sample/./sample_common_routines.h"
     r2 = r10;
@@ -436,8 +436,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 
