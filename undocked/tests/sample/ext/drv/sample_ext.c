@@ -28,6 +28,9 @@
 
 #define CXPLAT_FREE(x) cxplat_free(x, CXPLAT_POOL_FLAG_NON_PAGED, SAMPLE_EXT_POOL_TAG_DEFAULT)
 
+// Define the sample map type
+#define BPF_MAP_TYPE_SAMPLE_MAP 0xF000
+
 // Sample Extension helper function addresses table.
 static uint64_t
 _sample_get_pid_tgid();
@@ -71,6 +74,110 @@ static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+
+//
+// Sample Map Provider Implementation
+//
+
+// Simple hash table implementation for sample map
+typedef struct _sample_map_entry
+{
+    struct _sample_map_entry* next;
+    uint8_t key[];
+    // value follows the key
+} sample_map_entry_t;
+
+typedef struct _sample_map
+{
+    uint32_t key_size;
+    uint32_t value_size;
+    uint32_t max_entries;
+    uint32_t entry_count;
+    sample_map_entry_t** buckets;
+    uint32_t bucket_count;
+} sample_map_t;
+
+// Map provider function declarations
+static ebpf_result_t
+_sample_map_create(
+    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    ebpf_handle_t inner_map_handle,
+    _Outptr_ ebpf_core_object_t** map);
+
+static void
+_sample_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* map);
+
+static ebpf_result_t
+_sample_map_find_entry(
+    _In_ ebpf_core_object_t* map,
+    _In_ const uint8_t* key,
+    bool delete_on_success,
+    _Outptr_result_maybenull_ uint8_t** data);
+
+static ebpf_result_t
+_sample_map_update_entry(
+    _In_ ebpf_core_object_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option);
+
+static ebpf_result_t
+_sample_map_delete_entry(_In_ ebpf_core_object_t* map, _In_ const uint8_t* key, bool require_exist);
+
+static ebpf_result_t
+_sample_map_get_next_key(_In_ ebpf_core_object_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+
+// Sample map extension data
+static ebpf_map_extension_data_t _sample_map_extension_data = {
+    BPF_MAP_TYPE_SAMPLE_MAP,
+    _sample_map_create,
+    _sample_map_delete,
+    _sample_map_find_entry,
+    _sample_map_update_entry,
+    _sample_map_delete_entry,
+    _sample_map_get_next_key,
+    NULL, // map_push_entry (not supported for hash maps)
+    NULL, // map_pop_entry (not supported for hash maps)
+    NULL, // map_peek_entry (not supported for hash maps)
+};
+
+// Map provider context structure
+typedef struct _sample_ebpf_extension_map_provider
+{
+    HANDLE nmr_provider_handle;
+} sample_ebpf_extension_map_provider_t;
+
+static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_map_provider_context = {NULL};
+
+// Forward declarations for map provider
+static NTSTATUS
+_sample_ebpf_extension_map_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch);
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_detach_client(_In_ const void* provider_binding_context);
+
+static void
+_sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
+
+// Map provider characteristics
+static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_characteristics = {
+    0,                                    // Version
+    sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length
+    _sample_ebpf_extension_map_provider_attach_client,
+    _sample_ebpf_extension_map_provider_detach_client,
+    _sample_ebpf_extension_map_provider_cleanup_binding_context,
+    {
+        0,                                 // Version
+        sizeof(NPI_REGISTRATION_INSTANCE), // Length
+        &EBPF_MAP_EXTENSION_IID,
+        &_sample_ebpf_extension_program_info_provider_moduleid, // Module ID (reuse program one)
+        0,                                                      // Number
+        &_sample_map_extension_data                             // Module context (extension data)
+    }};
 
 static ebpf_result_t
 _sample_context_create(
@@ -511,6 +618,88 @@ Exit:
     return status;
 }
 
+//
+// Map Provider Registration
+//
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch)
+{
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(provider_context);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+
+    // For extensible maps, the provider dispatch is the extension data
+    *provider_binding_context = &_sample_map_extension_data;
+    *provider_dispatch = &_sample_map_extension_data;
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_detach_client(_In_ const void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    return STATUS_SUCCESS;
+}
+
+static void
+_sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    // Nothing to clean up for static extension data
+}
+
+void
+sample_ebpf_extension_map_provider_unregister()
+{
+    sample_ebpf_extension_map_provider_t* provider_context = &_sample_ebpf_extension_map_provider_context;
+
+    if (provider_context->nmr_provider_handle == NULL) {
+        return;
+    }
+
+    NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+    if (status == STATUS_PENDING) {
+        // Wait for clients to detach.
+        NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    }
+    provider_context->nmr_provider_handle = NULL;
+}
+
+NTSTATUS
+sample_ebpf_extension_map_provider_register()
+{
+    sample_ebpf_extension_map_provider_t* local_provider_context;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    local_provider_context = &_sample_ebpf_extension_map_provider_context;
+
+    status = NmrRegisterProvider(
+        &_sample_ebpf_extension_map_provider_characteristics,
+        local_provider_context,
+        &local_provider_context->nmr_provider_handle);
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+Exit:
+    if (!NT_SUCCESS(status)) {
+        sample_ebpf_extension_map_provider_unregister();
+    }
+
+    return status;
+}
+
 _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, _Out_ uint32_t* result)
 {
@@ -734,6 +923,237 @@ _sample_ebpf_extension_helper_implicit_2(
 
     sample_program_context_t* sample_context = (sample_program_context_t*)context;
     return ((uint64_t)sample_context->helper_data_2 + arg);
+}
+
+//
+// Sample Map Implementation Functions
+//
+
+// Simple hash function for demonstration
+static uint32_t
+_sample_map_hash(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
+{
+    uint32_t hash = 0;
+    for (uint32_t i = 0; i < key_size; i++) {
+        hash = hash * 31 + key[i];
+    }
+    return hash % bucket_count;
+}
+
+static ebpf_result_t
+_sample_map_create(
+    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    ebpf_handle_t inner_map_handle,
+    _Outptr_ ebpf_core_object_t** map)
+{
+    UNREFERENCED_PARAMETER(inner_map_handle);
+
+    sample_map_t* sample_map = NULL;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    if (map_definition->key_size == 0 || map_definition->value_size == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    sample_map = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_map_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (sample_map == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(sample_map, 0, sizeof(sample_map_t));
+
+    sample_map->key_size = map_definition->key_size;
+    sample_map->value_size = map_definition->value_size;
+    sample_map->max_entries = map_definition->max_entries;
+    sample_map->bucket_count = 16; // Simple fixed bucket count for demonstration
+    sample_map->entry_count = 0;
+
+    sample_map->buckets = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED,
+        sizeof(sample_map_entry_t*) * sample_map->bucket_count,
+        SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (sample_map->buckets == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(sample_map->buckets, 0, sizeof(sample_map_entry_t*) * sample_map->bucket_count);
+
+    *map = (ebpf_core_object_t*)sample_map;
+
+Exit:
+    if (result != EBPF_SUCCESS && sample_map != NULL) {
+        if (sample_map->buckets != NULL) {
+            CXPLAT_FREE(sample_map->buckets);
+        }
+        CXPLAT_FREE(sample_map);
+    }
+    return result;
+}
+
+static void
+_sample_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* map)
+{
+    sample_map_t* sample_map = (sample_map_t*)map;
+    if (sample_map == NULL) {
+        return;
+    }
+
+    // Free all entries
+    for (uint32_t i = 0; i < sample_map->bucket_count; i++) {
+        sample_map_entry_t* entry = sample_map->buckets[i];
+        while (entry != NULL) {
+            sample_map_entry_t* next = entry->next;
+            CXPLAT_FREE(entry);
+            entry = next;
+        }
+    }
+
+    if (sample_map->buckets != NULL) {
+        CXPLAT_FREE(sample_map->buckets);
+    }
+    CXPLAT_FREE(sample_map);
+}
+
+static sample_map_entry_t*
+_sample_map_find_entry_internal(sample_map_t* sample_map, const uint8_t* key)
+{
+    uint32_t hash = _sample_map_hash(key, sample_map->key_size, sample_map->bucket_count);
+    sample_map_entry_t* entry = sample_map->buckets[hash];
+
+    while (entry != NULL) {
+        if (memcmp(entry->key, key, sample_map->key_size) == 0) {
+            return entry;
+        }
+        entry = entry->next;
+    }
+    return NULL;
+}
+
+static ebpf_result_t
+_sample_map_find_entry(
+    _In_ ebpf_core_object_t* map,
+    _In_ const uint8_t* key,
+    bool delete_on_success,
+    _Outptr_result_maybenull_ uint8_t** data)
+{
+    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_map_entry_t* entry;
+
+    *data = NULL;
+
+    entry = _sample_map_find_entry_internal(sample_map, key);
+    if (entry == NULL) {
+        return EBPF_KEY_NOT_FOUND;
+    }
+
+    *data = entry->key + sample_map->key_size; // Value follows key
+
+    if (delete_on_success) {
+        return _sample_map_delete_entry(map, key, true);
+    }
+
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_sample_map_update_entry(
+    _In_ ebpf_core_object_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option)
+{
+    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_map_entry_t* existing_entry;
+    sample_map_entry_t* new_entry;
+    uint32_t hash;
+    uint32_t entry_size;
+
+    existing_entry = _sample_map_find_entry_internal(sample_map, key);
+
+    // Check option constraints
+    if (option == EBPF_MAP_FLAG_NO_EXIST && existing_entry != NULL) {
+        return EBPF_KEY_EXISTS;
+    }
+    if (option == EBPF_MAP_FLAG_MUST_EXIST && existing_entry == NULL) {
+        return EBPF_KEY_NOT_FOUND;
+    }
+
+    if (existing_entry != NULL) {
+        // Update existing entry
+        memcpy(existing_entry->key + sample_map->key_size, data, sample_map->value_size);
+        return EBPF_SUCCESS;
+    }
+
+    // Create new entry
+    if (sample_map->entry_count >= sample_map->max_entries) {
+        return EBPF_NO_MEMORY;
+    }
+
+    entry_size = sizeof(sample_map_entry_t) + sample_map->key_size + sample_map->value_size;
+    new_entry = cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, entry_size, SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (new_entry == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    memcpy(new_entry->key, key, sample_map->key_size);
+    memcpy(new_entry->key + sample_map->key_size, data, sample_map->value_size);
+
+    hash = _sample_map_hash(key, sample_map->key_size, sample_map->bucket_count);
+    new_entry->next = sample_map->buckets[hash];
+    sample_map->buckets[hash] = new_entry;
+    sample_map->entry_count++;
+
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_sample_map_delete_entry(_In_ ebpf_core_object_t* map, _In_ const uint8_t* key, bool require_exist)
+{
+    sample_map_t* sample_map = (sample_map_t*)map;
+    uint32_t hash = _sample_map_hash(key, sample_map->key_size, sample_map->bucket_count);
+    sample_map_entry_t* entry = sample_map->buckets[hash];
+    sample_map_entry_t* prev = NULL;
+
+    while (entry != NULL) {
+        if (memcmp(entry->key, key, sample_map->key_size) == 0) {
+            if (prev == NULL) {
+                sample_map->buckets[hash] = entry->next;
+            } else {
+                prev->next = entry->next;
+            }
+            CXPLAT_FREE(entry);
+            sample_map->entry_count--;
+            return EBPF_SUCCESS;
+        }
+        prev = entry;
+        entry = entry->next;
+    }
+
+    return require_exist ? EBPF_KEY_NOT_FOUND : EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_sample_map_get_next_key(_In_ ebpf_core_object_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+{
+    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_map_entry_t* found_entry = NULL;
+    bool found_previous = (previous_key == NULL);
+
+    // Simple iteration through buckets
+    for (uint32_t i = 0; i < sample_map->bucket_count; i++) {
+        sample_map_entry_t* entry = sample_map->buckets[i];
+        while (entry != NULL) {
+            if (found_previous) {
+                // Return the first entry after previous_key
+                memcpy(next_key, entry->key, sample_map->key_size);
+                return EBPF_SUCCESS;
+            }
+            if (previous_key != NULL && memcmp(entry->key, previous_key, sample_map->key_size) == 0) {
+                found_previous = true;
+            }
+            entry = entry->next;
+        }
+    }
+
+    return EBPF_NO_MORE_KEYS;
 }
 
 static ebpf_result_t

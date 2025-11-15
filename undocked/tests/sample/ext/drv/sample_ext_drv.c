@@ -56,6 +56,8 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     sample_ebpf_extension_program_info_provider_unregister();
 
     sample_ebpf_extension_hook_provider_unregister();
+
+    sample_ebpf_extension_map_provider_unregister();
 }
 
 //
@@ -162,6 +164,11 @@ _sample_ebpf_ext_driver_initialize_objects(
     }
 
     status = sample_ebpf_extension_hook_provider_register();
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
+    status = sample_ebpf_extension_map_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }

@@ -6,6 +6,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_extensible_maps.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_maps.h"
@@ -3149,6 +3150,13 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
 };
 
+// Check if a map type is handled by extensible maps (>= 4096).
+static bool
+ebpf_map_type_is_extensible(ebpf_map_type_t type)
+{
+    return type >= 4096;
+}
+
 // ebpf_map_get_table(type) - get the metadata table for the given map type.
 //
 // type is checked on map creation and not user writeable, so in release mode we don't need to check it.
@@ -3186,6 +3194,26 @@ ebpf_map_create(
     cpu_count = ebpf_get_cpu_count();
     ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
     ebpf_notify_user_reference_count_zeroed_t zero_user_function = NULL;
+
+    // Check if this is an extensible map type first
+    if (ebpf_map_type_is_extensible(type)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_MAP, "Creating extensible map of type", type);
+
+        result = ebpf_extensible_map_create(ebpf_map_definition, inner_map_handle, &local_map);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        // Set map name
+        result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        *ebpf_map = local_map;
+        goto Exit;
+    }
 
     if (type < 0 || type >= EBPF_COUNT_OF(ebpf_map_metadata_tables)) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
