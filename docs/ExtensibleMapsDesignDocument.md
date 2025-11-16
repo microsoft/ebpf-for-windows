@@ -86,12 +86,12 @@ Map Type ID Range:
 typedef struct _ebpf_extensible_map {
     ebpf_core_map_t core_map;                    // Base map structure
     void* extension_map_context;                 // Extension-specific map data
-    
+
     // NMR client components (similar to ebpf_program_t and ebpf_link_t)
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
-    
+
     ebpf_lock_t lock;                            // Synchronization
     _Guarded_by_(lock) const ebpf_extensible_map_provider_t* provider; // Provider interface
     _Guarded_by_(lock) bool provider_attached;   // Provider attachment state
@@ -740,7 +740,7 @@ static const NPI_PROVIDER_CHARACTERISTICS sample_provider_characteristics = {
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: November 14, 2025  
-**Authors**: eBPF-for-Windows Development Team  
+**Document Version**: 1.0
+**Last Updated**: November 14, 2025
+**Authors**: eBPF-for-Windows Development Team
 **Review Status**: Draft for Implementation

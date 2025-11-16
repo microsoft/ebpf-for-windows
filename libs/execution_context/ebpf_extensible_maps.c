@@ -6,6 +6,28 @@
 #include "ebpf_extensible_maps.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_tracelog.h"
+#include "ebpf_program.h"
+
+/**
+ * @brief Extensible map structure with NMR client components.
+ */
+typedef struct _ebpf_extensible_map
+{
+    ebpf_core_map_t core_map;    // Base map structure
+    void* extension_map_context; // Extension-specific map data
+
+    // NMR client components (similar to ebpf_program_t and ebpf_link_t)
+    NPI_CLIENT_CHARACTERISTICS client_characteristics;
+    HANDLE nmr_client_handle;
+    NPI_MODULEID module_id;
+
+    ebpf_lock_t lock;                                                  // Synchronization
+    _Guarded_by_(lock) const ebpf_extensible_map_provider_t* provider; // Provider interface
+    _Guarded_by_(lock) bool provider_attached;                         // Provider attachment state
+    _Guarded_by_(lock) uint32_t reference_count;                       // Lifecycle management
+
+    EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
+} ebpf_extensible_map_t;
 
 // NMR client callbacks
 static NTSTATUS
@@ -70,6 +92,21 @@ ebpf_map_type_is_extensible(uint32_t map_type)
     return map_type >= 4096;
 }
 
+// Helper function to check if a map type is supported by provider
+static bool
+_is_map_type_supported(
+    uint32_t map_type,
+    uint32_t supported_map_type_count,
+    const uint32_t* supported_map_types)
+{
+    for (uint32_t i = 0; i < supported_map_type_count; i++) {
+        if (supported_map_types[i] == map_type) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static void
 _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_object_t* object)
 {
@@ -105,13 +142,20 @@ ebpf_extensible_map_create(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_extensible_map_t* extensible_map = NULL;
     NTSTATUS status;
+    GUID module_id;
 
     *map = NULL;
 
-    // Validate input
-    if (!ebpf_map_type_is_extensible(map_definition->type)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+    ebpf_assert(ebpf_map_type_is_extensible(map_definition->type));
+    // // Validate input
+    // if (!ebpf_map_type_is_extensible(map_definition->type)) {
+    //     result = EBPF_INVALID_ARGUMENT;
+    //     goto Done;
+    // }
+
+    result = ebpf_guid_create(&module_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 
     // Allocate extensible map
@@ -123,12 +167,17 @@ ebpf_extensible_map_create(
 
     memset(extensible_map, 0, sizeof(ebpf_extensible_map_t));
 
-    // Initialize base map structure
-    result = ebpf_map_initialize(
-        &extensible_map->core_map, map_definition, &_ebpf_extensible_map_function_table, _ebpf_extensible_map_delete);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
+    extensible_map->core_map.ebpf_map_definition = *map_definition;
+    extensible_map->module_id.Guid = module_id;
+    extensible_map->module_id.Length = sizeof(NPI_MODULEID);
+    extensible_map->module_id.Type = MIT_GUID;
+
+    // // Initialize base map structure
+    // result = ebpf_map_initialize(
+    //     &extensible_map->core_map, map_definition, &_ebpf_extensible_map_function_table, _ebpf_extensible_map_delete);
+    // if (result != EBPF_SUCCESS) {
+    //     goto Done;
+    // }
 
     // Initialize synchronization objects
     ebpf_lock_create(&extensible_map->lock);
@@ -194,13 +243,17 @@ _ebpf_extensible_map_client_attach_provider(
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result;
 
-    if (!provider_data || !provider_data->provider_interface) {
+    if (!provider_data || !provider_data->provider_interface || 
+        !provider_data->supported_map_types || provider_data->supported_map_type_count == 0) {
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
 
-    // Check if map type matches
-    if (provider_data->supported_map_type != extensible_map->core_map.ebpf_map_definition.type) {
+    // Check if map type matches any of the supported types
+    if (!_is_map_type_supported(
+            extensible_map->core_map.ebpf_map_definition.type,
+            provider_data->supported_map_type_count,
+            provider_data->supported_map_types)) {
         status = STATUS_NOT_SUPPORTED;
         goto Done;
     }
@@ -213,9 +266,21 @@ _ebpf_extensible_map_client_attach_provider(
         goto Done;
     }
 
+    // Allocate array for supported map types
+    binding_context->supported_map_types = (uint32_t*)ebpf_allocate_with_tag(
+        provider_data->supported_map_type_count * sizeof(uint32_t), EBPF_POOL_TAG_MAP);
+    if (!binding_context->supported_map_types) {
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
     binding_context->nmr_binding_handle = nmr_binding_handle;
     binding_context->provider_interface = provider_data->provider_interface;
-    binding_context->supported_map_type = provider_data->supported_map_type;
+    binding_context->supported_map_type_count = provider_data->supported_map_type_count;
+    memcpy(
+        binding_context->supported_map_types,
+        provider_data->supported_map_types,
+        provider_data->supported_map_type_count * sizeof(uint32_t));
 
     // Call provider's map_create
     result = provider_data->provider_interface->map_create(
@@ -240,11 +305,14 @@ _ebpf_extensible_map_client_attach_provider(
     EBPF_LOG_MESSAGE_UINT64(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_MAP,
-        "Successfully attached extensible map provider for type",
-        provider_data->supported_map_type);
+        "Successfully attached extensible map provider supporting map types",
+        provider_data->supported_map_type_count);
 
 Done:
     if (status != STATUS_SUCCESS && binding_context) {
+        if (binding_context->supported_map_types) {
+            ebpf_free(binding_context->supported_map_types);
+        }
         ebpf_free(binding_context);
         binding_context = NULL;
     }
@@ -258,6 +326,9 @@ _ebpf_extensible_map_client_detach_provider(_In_ void* client_binding_context)
         (ebpf_extensible_map_client_binding_t*)client_binding_context;
 
     if (binding_context) {
+        if (binding_context->supported_map_types) {
+            ebpf_free(binding_context->supported_map_types);
+        }
         ebpf_free(binding_context);
     }
     return STATUS_SUCCESS;

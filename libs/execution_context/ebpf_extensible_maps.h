@@ -14,7 +14,7 @@ extern "C"
 #endif
 
     // Forward declarations
-    typedef struct _ebpf_extensible_map ebpf_extensible_map_t;
+    // typedef struct _ebpf_extensible_map ebpf_extensible_map_t;
     typedef struct _ebpf_extensible_map_provider ebpf_extensible_map_provider_t;
 
     /**
@@ -24,7 +24,8 @@ extern "C"
     {
         // Provider identification
         GUID provider_guid;
-        uint32_t supported_map_type; // Single map type per provider (follows NMR pattern)
+        uint32_t supported_map_type_count;        // Number of supported map types
+        const uint32_t* supported_map_types;     // Array of supported map types
 
         // Map lifecycle operations
         ebpf_result_t (*map_create)(
@@ -59,30 +60,10 @@ extern "C"
     {
         uint16_t version;
         uint16_t size;
-        uint32_t supported_map_type; // Single map type this provider supports
+        uint32_t supported_map_type_count;        // Number of supported map types
+        const uint32_t* supported_map_types;     // Array of supported map types
         const ebpf_extensible_map_provider_t* provider_interface;
     } ebpf_map_extension_data_t;
-
-    /**
-     * @brief Extensible map structure with NMR client components.
-     */
-    typedef struct _ebpf_extensible_map
-    {
-        ebpf_core_map_t core_map;    // Base map structure
-        void* extension_map_context; // Extension-specific map data
-
-        // NMR client components (similar to ebpf_program_t and ebpf_link_t)
-        NPI_CLIENT_CHARACTERISTICS client_characteristics;
-        HANDLE nmr_client_handle;
-        NPI_MODULEID module_id;
-
-        ebpf_lock_t lock;                                                  // Synchronization
-        _Guarded_by_(lock) const ebpf_extensible_map_provider_t* provider; // Provider interface
-        _Guarded_by_(lock) bool provider_attached;                         // Provider attachment state
-        _Guarded_by_(lock) uint32_t reference_count;                       // Lifecycle management
-
-        EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
-    } ebpf_extensible_map_t;
 
     /**
      * @brief Client binding context for extensible map provider.
@@ -91,7 +72,8 @@ extern "C"
     {
         HANDLE nmr_binding_handle;
         const ebpf_extensible_map_provider_t* provider_interface;
-        uint32_t supported_map_type;
+        uint32_t supported_map_type_count;
+        uint32_t* supported_map_types;
     } ebpf_extensible_map_client_binding_t;
 
     // Function declarations

@@ -130,3 +130,58 @@ typedef struct _ebpf_execution_context_state
 
 #define EBPF_CONTEXT_HEADER uint64_t context_header[8]
 #define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)
+
+/**
+ * @brief Find an element in the eBPF map.
+ *
+ * @param[in] map The eBPF map to search.
+ * @param[in] key The key to search for.
+ * @param[out] data Pointer to the value associated with the key.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ */
+typedef ebpf_result_t (*ebpf_map_find_element_t)(_In_ const void* map, _In_ const uint8_t* key, _Outptr_ uint8_t** data);
+
+/**
+ * @brief Update an element in the eBPF map.
+ *
+ * @param[in] map The eBPF map to update.
+ * @param[in] key The key to update.
+ * @param[in] data The value to associate with the key.
+ * @param[in] flags Update flags.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ * @retval EBPF_NO_MEMORY Unable to allocate memory.
+ */
+typedef ebpf_result_t (*ebpf_map_update_element_t)(
+    _In_ const void* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option);
+
+/**
+ * @brief Delete an element from the eBPF map.
+ * @param[in] map The eBPF map to delete from.
+ * @param[in] key The key to delete. If the key is not found, the map is unchanged. If the key is found, the
+ * associated value is deleted.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ * @retval EBPF_NO_MEMORY Unable to allocate memory.
+ */
+typedef ebpf_result_t (*ebpf_map_delete_element_t)(_In_ const void* map, _In_ const uint8_t* key);
+
+/**
+ * @brief Get the next key in the eBPF map.
+ *
+ * @param[in] map The eBPF map to query.
+ * @param[in] previous_key The previous key. If NULL, get the first key.
+ * @param[out] next_key The next key in the map.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND No more keys in the map.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ */
+typedef ebpf_result_t (*ebpf_map_get_next_key_t)(
+    _In_ const void* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+

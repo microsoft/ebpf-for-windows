@@ -3154,7 +3154,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
 static bool
 ebpf_map_type_is_extensible(ebpf_map_type_t type)
 {
-    return type >= 4096;
+    return type > BPF_MAP_TYPE_MAX;
 }
 
 // ebpf_map_get_table(type) - get the metadata table for the given map type.
