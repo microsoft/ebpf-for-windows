@@ -19,7 +19,7 @@
       <FileType>Document</FileType>
       <Command>
          pushd $(OutDir)
-         $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)Elf.3d
+         "$(PkgEverParse)\lib\native\win-x86_64\everparse.cmd" $(ProjectDir)Elf.3d
          popd
        </Command>
       <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
