@@ -26,7 +26,9 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <PackageReference Include="EverParse">
+      <Version>2022.6.13</Version>
+    </PackageReference>
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">

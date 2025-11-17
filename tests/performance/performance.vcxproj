@@ -178,9 +178,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="performance.h" />
     <ClInclude Include="performance_measure.h" />
   </ItemGroup>
