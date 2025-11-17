@@ -364,6 +364,29 @@ powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\g
 copy "$(VC_CppRuntimeFilesPath_ARM64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.arm64">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.x64">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.x86">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.WDK.ARM64">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.WDK.x64">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Windows.WDK.x86">
+      <Version>10.0.26100.6584</Version>
+    </PackageReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
