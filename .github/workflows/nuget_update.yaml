@@ -48,8 +48,8 @@ jobs:
         env:
           cache-name: cache-nuget-modules
         with:
-          path: packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/*.vcxproj', '**/*.wixproj') }}
 
       - name: Restore NuGet packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -72,5 +72,5 @@ jobs:
           labels: |
             automated pr
             nuget update
-          branch: nuget_update_${{ hashFiles('**/packages.config') }}
+          branch: nuget_update_${{ hashFiles('**/*.vcxproj', '**/*.wixproj') }}
           base: ${{ github.event.workflow_run.head_branch }}
