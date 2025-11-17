@@ -132,6 +132,35 @@ typedef struct _ebpf_execution_context_state
 #define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)
 
 /**
+ * @brief Create an eBPF map.
+ *
+ * @param[in] map_type The type of map to create.
+ * @param[in] key_size The size of the key in bytes.
+ * @param[in] value_size The size of the value in bytes.
+ * @param[in] max_entries The maximum number of entries in the map.
+ * @param[in] map_definition Additional map definition parameters.
+ * @param[out] map_context The created map context.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Unable to allocate memory.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ */
+typedef ebpf_result_t (*ebpf_map_create_t)(
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _In_opt_ const void* map_definition,
+    _Outptr_ void** map_context);
+
+/**
+ * @brief Delete an eBPF map.
+ *
+ * @param[in] map_context The map context to delete.
+ */
+typedef void (*ebpf_map_delete_t)(_In_ _Post_invalid_ void* map_context);
+
+/**
  * @brief Find an element in the eBPF map.
  *
  * @param[in] map The eBPF map to search.
@@ -141,7 +170,8 @@ typedef struct _ebpf_execution_context_state
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  */
-typedef ebpf_result_t (*ebpf_map_find_element_t)(_In_ const void* map, _In_ const uint8_t* key, _Outptr_ uint8_t** data);
+typedef ebpf_result_t (*ebpf_map_find_element_t)(
+    _In_ const void* map, _In_ const uint8_t* key, _Outptr_ uint8_t** data);
 
 /**
  * @brief Update an element in the eBPF map.
@@ -185,3 +215,82 @@ typedef ebpf_result_t (*ebpf_map_delete_element_t)(_In_ const void* map, _In_ co
 typedef ebpf_result_t (*ebpf_map_get_next_key_t)(
     _In_ const void* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
+/**
+ * Dispatch table implemented by the eBPF extension to provide map operations.
+ * This table is used to provide map operations to the eBPF core.
+ */
+typedef struct _ebpf_map_provider_dispatch_table
+{
+    ebpf_extension_header_t header;
+    _Notnull_ ebpf_map_create_t create_map_function;
+    _Notnull_ ebpf_map_delete_t delete_map_function;
+    _Notnull_ ebpf_map_find_element_t find_element_function;
+    _Notnull_ ebpf_map_update_element_t update_element_function;
+    _Notnull_ ebpf_map_delete_element_t delete_element_function;
+    _Notnull_ ebpf_map_get_next_key_t get_next_key_function;
+} ebpf_map_provider_dispatch_table_t;
+
+/**
+ * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
+ */
+typedef struct _ebpf_map_client_dispatch_table
+{
+    ebpf_extension_header_t header;
+    void* dummy;
+} ebpf_map_client_dispatch_table_t;
+
+// /**
+//  * @brief Map provider interface structure that extensions must implement.
+//  */
+// typedef struct _ebpf_extensible_map_provider
+// {
+//     // Provider identification
+//     GUID provider_guid;
+//     uint32_t supported_map_type_count;        // Number of supported map types
+//     const uint32_t* supported_map_types;     // Array of supported map types
+
+//     // Map lifecycle operations
+//     ebpf_result_t (*map_create)(
+//         uint32_t map_type,
+//         uint32_t key_size,
+//         uint32_t value_size,
+//         uint32_t max_entries,
+//         const ebpf_map_definition_in_memory_t* map_definition,
+//         void** map_context);
+
+//     void (*map_delete)(void* map_context);
+
+//     // Map data operations
+//     ebpf_result_t (*map_lookup)(void* map_context, const uint8_t* key, uint8_t* value);
+
+//     ebpf_result_t (*map_update)(void* map_context, const uint8_t* key, const uint8_t* value, uint64_t flags);
+
+//     ebpf_result_t (*map_delete_element)(void* map_context, const uint8_t* key);
+
+//     // Validation and compatibility
+//     ebpf_result_t (*validate_map_program_association)(uint32_t map_type, const GUID* program_type);
+
+//     // Iterator support (optional)
+//     ebpf_result_t (*map_get_next_key)(void* map_context, const uint8_t* previous_key, uint8_t* next_key);
+
+// } ebpf_extensible_map_provider_t;
+
+/**
+ * @brief Extensible map provider data.
+ */
+typedef struct _ebpf_map_provider_data
+{
+    ebpf_extension_header_t header;
+    size_t supported_map_type_count;                                            // Number of supported map types
+    _Field_size_(supported_map_type_count) const uint32_t* supported_map_types; // Array of supported map types
+    ebpf_map_provider_dispatch_table_t* dispatch_table;
+} ebpf_map_provider_data_t;
+
+/**
+ * @brief Extensible map client data.
+ */
+typedef struct _ebpf_map_client_data
+{
+    ebpf_extension_header_t header;
+    ebpf_map_client_dispatch_table_t* dispatch_table;
+} ebpf_map_client_data_t;

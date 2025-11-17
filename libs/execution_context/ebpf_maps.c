@@ -22,14 +22,14 @@
 
 #define ACTUAL_VALUE_SIZE(x) (IS_NESTED_MAP((x)->type) ? sizeof(ebpf_core_object_t*) : (x)->value_size)
 
-typedef struct _ebpf_core_map
-{
-    ebpf_core_object_t object;
-    cxplat_utf8_string_t name;
-    ebpf_map_definition_in_memory_t ebpf_map_definition;
-    uint32_t original_value_size;
-    uint8_t* data;
-} ebpf_core_map_t;
+// typedef struct _ebpf_core_map
+// {
+//     ebpf_core_object_t object;
+//     cxplat_utf8_string_t name;
+//     ebpf_map_definition_in_memory_t ebpf_map_definition;
+//     uint32_t original_value_size;
+//     uint8_t* data;
+// } ebpf_core_map_t;
 
 typedef struct _ebpf_core_object_map
 {
@@ -3150,12 +3150,12 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
 };
 
-// Check if a map type is handled by extensible maps (>= 4096).
-static bool
-ebpf_map_type_is_extensible(ebpf_map_type_t type)
-{
-    return type > BPF_MAP_TYPE_MAX;
-}
+// // Check if a map type is handled by extensible maps (>= 4096).
+// static bool
+// ebpf_map_type_is_extensible(ebpf_map_type_t type)
+// {
+//     return type > BPF_MAP_TYPE_MAX;
+// }
 
 // ebpf_map_get_table(type) - get the metadata table for the given map type.
 //

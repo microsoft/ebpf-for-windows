@@ -16,6 +16,17 @@ extern "C"
 #define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
 #define EBPF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
 
+    // ANUSA TODO: This struct definition has been temporarily moved from .c file to here.
+    // Fix this.
+    typedef struct _ebpf_core_map
+    {
+        ebpf_core_object_t object;
+        cxplat_utf8_string_t name;
+        ebpf_map_definition_in_memory_t ebpf_map_definition;
+        uint32_t original_value_size;
+        uint8_t* data;
+    } ebpf_core_map_t;
+
     typedef struct _ebpf_core_map ebpf_map_t;
 
     /**
