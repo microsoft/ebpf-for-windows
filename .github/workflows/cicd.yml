@@ -307,7 +307,7 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "0.21.0" -GranularTracing
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.0.0-rc1" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022
