@@ -304,8 +304,8 @@ jobs:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
-    # Disabled for now for schedule, pull_request, merge_group, and push until in-progress breaking changes are completed.
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
+    # Disabled for now for pull_request, merge_group, and push until in-progress breaking changes are completed.
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "0.21.0" -GranularTracing
