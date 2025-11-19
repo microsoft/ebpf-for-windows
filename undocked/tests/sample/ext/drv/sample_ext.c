@@ -31,6 +31,14 @@
 // Define the sample map type
 #define BPF_MAP_TYPE_SAMPLE_MAP 0xF000
 
+#define EBPF_MAP_SAMPLE_GUID                                                           \
+    {                                                                                  \
+        0xf788ef4b, 0x207d, 0x4dc4, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
+    }
+
+NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_MAP_SAMPLE_GUID};
+
 // Sample Extension helper function addresses table.
 static uint64_t
 _sample_get_pid_tgid();
@@ -100,43 +108,50 @@ typedef struct _sample_map
 // Map provider function declarations
 static ebpf_result_t
 _sample_map_create(
-    _In_ const ebpf_map_definition_in_memory_t* map_definition,
-    ebpf_handle_t inner_map_handle,
-    _Outptr_ ebpf_core_object_t** map);
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    // _In_opt_ const void* map_definition,
+    _Outptr_ void** map_context);
 
 static void
-_sample_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* map);
+_sample_map_delete(_In_ _Post_invalid_ void* map);
 
 static ebpf_result_t
 _sample_map_find_entry(
-    _In_ ebpf_core_object_t* map,
-    _In_ const uint8_t* key,
-    bool delete_on_success,
-    _Outptr_result_maybenull_ uint8_t** data);
+    _In_ const void* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    _Outptr_ uint8_t** value,
+    uint32_t flags);
 
 static ebpf_result_t
 _sample_map_update_entry(
-    _In_ ebpf_core_object_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option);
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* key,
+    size_t value_size,
+    _In_ const uint8_t* value,
+    ebpf_map_option_t option,
+    uint32_t flags);
 
 static ebpf_result_t
-_sample_map_delete_entry(_In_ ebpf_core_object_t* map, _In_ const uint8_t* key, bool require_exist);
+_sample_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags);
 
 static ebpf_result_t
-_sample_map_get_next_key(_In_ ebpf_core_object_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+_sample_map_get_next_key(
+    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key);
 
 // Sample map extension data
-static ebpf_map_extension_data_t _sample_map_extension_data = {
-    BPF_MAP_TYPE_SAMPLE_MAP,
-    _sample_map_create,
-    _sample_map_delete,
-    _sample_map_find_entry,
-    _sample_map_update_entry,
-    _sample_map_delete_entry,
-    _sample_map_get_next_key,
-    NULL, // map_push_entry (not supported for hash maps)
-    NULL, // map_pop_entry (not supported for hash maps)
-    NULL, // map_peek_entry (not supported for hash maps)
-};
+static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
+    EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
+    .create_map_function = _sample_map_create,
+    .delete_map_function = _sample_map_delete,
+    .find_element_function = _sample_map_find_entry,
+    .update_element_function = _sample_map_update_entry,
+    .delete_element_function = _sample_map_delete_entry,
+    .get_next_key_function = _sample_map_get_next_key};
 
 // Map provider context structure
 typedef struct _sample_ebpf_extension_map_provider
@@ -174,9 +189,9 @@ static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_ch
         0,                                 // Version
         sizeof(NPI_REGISTRATION_INSTANCE), // Length
         &EBPF_MAP_EXTENSION_IID,
-        &_sample_ebpf_extension_program_info_provider_moduleid, // Module ID (reuse program one)
-        0,                                                      // Number
-        &_sample_map_extension_data                             // Module context (extension data)
+        &_sample_ebpf_extension_map_provider_moduleid, // Module ID (reuse program one)
+        0,                                             // Number
+        &_sample_map_dispatch_table                    // Module context (extension data)
     }};
 
 static ebpf_result_t
@@ -639,8 +654,8 @@ _sample_ebpf_extension_map_provider_attach_client(
     UNREFERENCED_PARAMETER(client_dispatch);
 
     // For extensible maps, the provider dispatch is the extension data
-    *provider_binding_context = &_sample_map_extension_data;
-    *provider_dispatch = &_sample_map_extension_data;
+    *provider_binding_context = &_sample_map_dispatch_table;
+    *provider_dispatch = &_sample_map_dispatch_table;
 
     return STATUS_SUCCESS;
 }
@@ -942,16 +957,14 @@ _sample_map_hash(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
 
 static ebpf_result_t
 _sample_map_create(
-    _In_ const ebpf_map_definition_in_memory_t* map_definition,
-    ebpf_handle_t inner_map_handle,
-    _Outptr_ ebpf_core_object_t** map)
+    uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, _Outptr_ void** map_context)
 {
-    UNREFERENCED_PARAMETER(inner_map_handle);
-
     sample_map_t* sample_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
 
-    if (map_definition->key_size == 0 || map_definition->value_size == 0) {
+    UNREFERENCED_PARAMETER(map_type);
+
+    if (key_size == 0 || value_size == 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -963,9 +976,9 @@ _sample_map_create(
     }
     memset(sample_map, 0, sizeof(sample_map_t));
 
-    sample_map->key_size = map_definition->key_size;
-    sample_map->value_size = map_definition->value_size;
-    sample_map->max_entries = map_definition->max_entries;
+    sample_map->key_size = key_size;
+    sample_map->value_size = value_size;
+    sample_map->max_entries = max_entries;
     sample_map->bucket_count = 16; // Simple fixed bucket count for demonstration
     sample_map->entry_count = 0;
 
@@ -979,7 +992,7 @@ _sample_map_create(
     }
     memset(sample_map->buckets, 0, sizeof(sample_map_entry_t*) * sample_map->bucket_count);
 
-    *map = (ebpf_core_object_t*)sample_map;
+    *map_context = (void*)sample_map;
 
 Exit:
     if (result != EBPF_SUCCESS && sample_map != NULL) {
@@ -992,7 +1005,7 @@ Exit:
 }
 
 static void
-_sample_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* map)
+_sample_map_delete(_In_ _Post_invalid_ void* map)
 {
     sample_map_t* sample_map = (sample_map_t*)map;
     if (sample_map == NULL) {
@@ -1032,25 +1045,29 @@ _sample_map_find_entry_internal(sample_map_t* sample_map, const uint8_t* key)
 
 static ebpf_result_t
 _sample_map_find_entry(
-    _In_ ebpf_core_object_t* map,
-    _In_ const uint8_t* key,
-    bool delete_on_success,
-    _Outptr_result_maybenull_ uint8_t** data)
+    _In_ const void* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    _Outptr_ uint8_t** value,
+    uint32_t flags)
 {
     sample_map_t* sample_map = (sample_map_t*)map;
     sample_map_entry_t* entry;
 
-    *data = NULL;
+    *value = NULL;
+
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(key_size);
 
     entry = _sample_map_find_entry_internal(sample_map, key);
     if (entry == NULL) {
         return EBPF_KEY_NOT_FOUND;
     }
 
-    *data = entry->key + sample_map->key_size; // Value follows key
+    *value = entry->key + sample_map->key_size; // Value follows key
 
-    if (delete_on_success) {
-        return _sample_map_delete_entry(map, key, true);
+    if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
+        return _sample_map_delete_entry(map, key_size, key, flags);
     }
 
     return EBPF_SUCCESS;
@@ -1058,7 +1075,13 @@ _sample_map_find_entry(
 
 static ebpf_result_t
 _sample_map_update_entry(
-    _In_ ebpf_core_object_t* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option)
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* key,
+    size_t value_size,
+    _In_ const uint8_t* value,
+    ebpf_map_option_t option,
+    uint32_t flags)
 {
     sample_map_t* sample_map = (sample_map_t*)map;
     sample_map_entry_t* existing_entry;
@@ -1066,19 +1089,23 @@ _sample_map_update_entry(
     uint32_t hash;
     uint32_t entry_size;
 
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(value_size);
+    UNREFERENCED_PARAMETER(key_size);
+
     existing_entry = _sample_map_find_entry_internal(sample_map, key);
 
     // Check option constraints
-    if (option == EBPF_MAP_FLAG_NO_EXIST && existing_entry != NULL) {
-        return EBPF_KEY_EXISTS;
+    if (option == EBPF_NOEXIST && existing_entry != NULL) {
+        return EBPF_KEY_ALREADY_EXISTS;
     }
-    if (option == EBPF_MAP_FLAG_MUST_EXIST && existing_entry == NULL) {
+    if (option == EBPF_EXIST && existing_entry == NULL) {
         return EBPF_KEY_NOT_FOUND;
     }
 
     if (existing_entry != NULL) {
         // Update existing entry
-        memcpy(existing_entry->key + sample_map->key_size, data, sample_map->value_size);
+        memcpy(existing_entry->key + sample_map->key_size, value, sample_map->value_size);
         return EBPF_SUCCESS;
     }
 
@@ -1094,7 +1121,7 @@ _sample_map_update_entry(
     }
 
     memcpy(new_entry->key, key, sample_map->key_size);
-    memcpy(new_entry->key + sample_map->key_size, data, sample_map->value_size);
+    memcpy(new_entry->key + sample_map->key_size, value, sample_map->value_size);
 
     hash = _sample_map_hash(key, sample_map->key_size, sample_map->bucket_count);
     new_entry->next = sample_map->buckets[hash];
@@ -1105,12 +1132,15 @@ _sample_map_update_entry(
 }
 
 static ebpf_result_t
-_sample_map_delete_entry(_In_ ebpf_core_object_t* map, _In_ const uint8_t* key, bool require_exist)
+_sample_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
 {
     sample_map_t* sample_map = (sample_map_t*)map;
     uint32_t hash = _sample_map_hash(key, sample_map->key_size, sample_map->bucket_count);
     sample_map_entry_t* entry = sample_map->buckets[hash];
     sample_map_entry_t* prev = NULL;
+
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(flags);
 
     while (entry != NULL) {
         if (memcmp(entry->key, key, sample_map->key_size) == 0) {
@@ -1127,15 +1157,18 @@ _sample_map_delete_entry(_In_ ebpf_core_object_t* map, _In_ const uint8_t* key, 
         entry = entry->next;
     }
 
-    return require_exist ? EBPF_KEY_NOT_FOUND : EBPF_SUCCESS;
+    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t
-_sample_map_get_next_key(_In_ ebpf_core_object_t* map, _In_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
+_sample_map_get_next_key(
+    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key)
 {
     sample_map_t* sample_map = (sample_map_t*)map;
-    sample_map_entry_t* found_entry = NULL;
+    // sample_map_entry_t* found_entry = NULL;
     bool found_previous = (previous_key == NULL);
+
+    UNREFERENCED_PARAMETER(key_size);
 
     // Simple iteration through buckets
     for (uint32_t i = 0; i < sample_map->bucket_count; i++) {

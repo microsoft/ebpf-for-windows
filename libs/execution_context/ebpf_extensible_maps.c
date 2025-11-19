@@ -29,6 +29,11 @@ typedef struct _ebpf_extensible_map
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
 } ebpf_extensible_map_t;
 
+// static struct
+// {
+//     int reserved;
+// } _ebpf_map_client_dispatch_table;
+
 // NMR client callbacks
 static NTSTATUS
 _ebpf_extensible_map_client_attach_provider(
@@ -222,7 +227,15 @@ ebpf_extensible_map_create(
     }
 
     // Acquire rundown before creating map.
-    ExAcquireRundownProtection(&extensible_map->provider_rundown_reference);
+    if (!ExAcquireRundownProtection(&extensible_map->provider_rundown_reference)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Failed to acquire rundown for extensible map type",
+            extensible_map->core_map.ebpf_map_definition.type);
+        result = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
 
     // Create extension map
     result = extensible_map->provider_dispatch->create_map_function(
@@ -230,7 +243,7 @@ ebpf_extensible_map_create(
         extensible_map->core_map.ebpf_map_definition.key_size,
         extensible_map->core_map.ebpf_map_definition.value_size,
         extensible_map->core_map.ebpf_map_definition.max_entries,
-        &extensible_map->core_map.ebpf_map_definition,
+        // &extensible_map->core_map.ebpf_map_definition,
         &extensible_map->extension_map_context);
 
     if (result != EBPF_SUCCESS) {
@@ -269,6 +282,13 @@ Done:
         _ebpf_extensible_map_delete(extensible_map);
     }
     return result;
+}
+
+void
+ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
+{
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    _ebpf_extensible_map_delete(extensible_map);
 }
 
 // static bool _ebpf_map_verify_provider_map_data(
@@ -359,8 +379,11 @@ _ebpf_extensible_map_client_attach_provider(
     ebpf_lock_unlock(&extensible_map->lock, state);
 
     // Found extension map provider. Attach to it.
+#pragma warning(push)
+#pragma warning(disable : 6387) // NULL is allowed for client dispatch
     status = NmrClientAttachProvider(
         nmr_binding_handle, extensible_map, NULL, &provider_binding_context, &provider_dispatch);
+#pragma warning(pop)
 
     // Acquire lock to update state after successful attachment
     state = ebpf_lock_lock(&extensible_map->lock);

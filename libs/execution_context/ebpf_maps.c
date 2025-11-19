@@ -3174,6 +3174,11 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = (ebpf_map_t*)object;
 
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_extensible_map_delete(map);
+        EBPF_RETURN_VOID();
+    }
+
     ebpf_free(map->name.value);
     ebpf_map_get_table(map->ebpf_map_definition.type)->delete_map(map);
     EBPF_RETURN_VOID();
@@ -3200,19 +3205,19 @@ ebpf_map_create(
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_MAP, "Creating extensible map of type", type);
 
-        result = ebpf_extensible_map_create(ebpf_map_definition, inner_map_handle, &local_map);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
-
-        // Set map name
+        // Set map name.
         result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
 
-        *ebpf_map = local_map;
-        goto Exit;
+        result = ebpf_extensible_map_create(ebpf_map_definition, inner_map_handle, &local_map);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        // *ebpf_map = local_map;
+        goto Initialize;
     }
 
     if (type < 0 || type >= EBPF_COUNT_OF(ebpf_map_metadata_tables)) {
@@ -3273,6 +3278,7 @@ ebpf_map_create(
         goto Exit;
     }
 
+Initialize:
     ebpf_object_get_program_type_t get_program_type = (IS_NESTED_MAP(type)) ? _get_map_program_type : NULL;
     result = EBPF_OBJECT_INITIALIZE(
         &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, zero_user_function, get_program_type);

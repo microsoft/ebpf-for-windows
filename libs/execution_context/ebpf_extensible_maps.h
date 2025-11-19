@@ -87,6 +87,9 @@ extern "C"
         ebpf_handle_t inner_map_handle,
         _Outptr_ ebpf_map_t** map);
 
+    void
+    ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map);
+
     /**
      * @brief Check if a map type is extensible (>= 4096).
      */

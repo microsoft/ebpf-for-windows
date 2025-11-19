@@ -6,6 +6,9 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
+#define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
+#define EBPF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
+
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
 
 typedef struct _ebpf_extension_dispatch_table
@@ -150,7 +153,7 @@ typedef ebpf_result_t (*ebpf_map_create_t)(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
-    _In_opt_ const void* map_definition,
+    // _In_opt_ const void* map_definition,
     _Outptr_ void** map_context);
 
 /**
@@ -164,21 +167,31 @@ typedef void (*ebpf_map_delete_t)(_In_ _Post_invalid_ void* map_context);
  * @brief Find an element in the eBPF map.
  *
  * @param[in] map The eBPF map to search.
+ * @param[in] key_size The size of the key in bytes.
  * @param[in] key The key to search for.
- * @param[out] data Pointer to the value associated with the key.
+ * @param[in] value_size The size of the value in bytes.
+ * @param[out] value Pointer to the value associated with the key.
+ * @param[in] flags Find flags.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  */
 typedef ebpf_result_t (*ebpf_map_find_element_t)(
-    _In_ const void* map, _In_ const uint8_t* key, _Outptr_ uint8_t** data);
+    _In_ const void* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    _Outptr_ uint8_t** value,
+    uint32_t flags);
 
 /**
  * @brief Update an element in the eBPF map.
  *
  * @param[in] map The eBPF map to update.
+ * @param[in] key_size The size of the key in bytes.
  * @param[in] key The key to update.
- * @param[in] data The value to associate with the key.
+ * @param[in] value_size The size of the value in bytes.
+ * @param[in] value The value to associate with the key.
+ * @param[in] option Update option.
  * @param[in] flags Update flags.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -187,19 +200,27 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
 typedef ebpf_result_t (*ebpf_map_update_element_t)(
-    _In_ const void* map, _In_ const uint8_t* key, _In_ const uint8_t* data, ebpf_map_option_t option);
+    _In_ const void* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    ebpf_map_option_t option,
+    uint32_t flags);
 
 /**
  * @brief Delete an element from the eBPF map.
  * @param[in] map The eBPF map to delete from.
  * @param[in] key The key to delete. If the key is not found, the map is unchanged. If the key is found, the
  * associated value is deleted.
+ * @param[in] flags Delete flags.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
-typedef ebpf_result_t (*ebpf_map_delete_element_t)(_In_ const void* map, _In_ const uint8_t* key);
+typedef ebpf_result_t (*ebpf_map_delete_element_t)(
+    _In_ const void* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, uint32_t flags);
 
 /**
  * @brief Get the next key in the eBPF map.
@@ -213,7 +234,10 @@ typedef ebpf_result_t (*ebpf_map_delete_element_t)(_In_ const void* map, _In_ co
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
 typedef ebpf_result_t (*ebpf_map_get_next_key_t)(
-    _In_ const void* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
+    _In_ const void* map,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key);
 
 /**
  * Dispatch table implemented by the eBPF extension to provide map operations.

@@ -158,17 +158,17 @@ _sample_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
+    status = sample_ebpf_extension_map_provider_register();
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
     status = sample_ebpf_extension_program_info_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
 
     status = sample_ebpf_extension_hook_provider_register();
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    status = sample_ebpf_extension_map_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
