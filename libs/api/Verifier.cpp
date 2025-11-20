@@ -14,7 +14,6 @@
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_type_data.h"
 #undef ebpf_inst
-#include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 
@@ -149,7 +148,7 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             .key_size = map.key_size,
             .value_size = map.value_size,
             .max_entries = map.max_entries,
-            .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+            .inner_map_fd = map.inner_map_type_id != static_cast<libbtf::btf_type_id>(0 ? map.inner_map_type_id : -1),
         });
     }
     btf_map_name_to_index = map_offsets;
@@ -311,13 +310,13 @@ load_byte_code(
         // If file_or_buffer is a string, it is a file name.
         if (std::holds_alternative<std::string>(file_or_buffer)) {
             raw_programs =
-                read_elf(std::get<std::string>(file_or_buffer), section_name_string, verifier_options, platform);
+                read_elf(std::get<std::string>(file_or_buffer), section_name_string, "", verifier_options, platform);
         } else {
             std::stringstream buffer_stream;
             // If file_or_buffer is a vector, it is a buffer.
             auto& buffer = std::get<std::vector<uint8_t>>(file_or_buffer);
             buffer_stream = std::stringstream(std::string(buffer.begin(), buffer.end()));
-            raw_programs = read_elf(buffer_stream, "memory", section_name_string, verifier_options, platform);
+            raw_programs = read_elf(buffer_stream, "memory", section_name_string, "", verifier_options, platform);
         }
 
         if (raw_programs.size() == 0) {
@@ -501,7 +500,8 @@ ebpf_api_elf_enumerate_programs(
     ebpf_clear_thread_local_storage();
 
     try {
-        auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), verifier_options, platform);
+        auto raw_programs = prevail::read_elf(
+            file, section ? std::string(section) : std::string(), string(), verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
             info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
             if (info == nullptr) {
@@ -510,15 +510,17 @@ ebpf_api_elf_enumerate_programs(
             memset(info, 0, sizeof(*info));
 
             if (verbose) {
+                vector<vector<string>> notes;
                 std::variant<prevail::InstructionSeq, std::string> instruction_sequence_or_error =
-                    unmarshal(raw_program);
+                    unmarshal(raw_program, notes, verifier_options);
                 if (std::holds_alternative<std::string>(instruction_sequence_or_error)) {
                     std::cout << "parse failure: " << std::get<std::string>(instruction_sequence_or_error) << "\n";
                     ebpf_free(info);
                     return 1;
                 }
                 auto& instruction_sequence = std::get<prevail::InstructionSeq>(instruction_sequence_or_error);
-                auto program = prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
+                auto program =
+                    prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
                 std::map<std::string, int> stats = collect_stats(program);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
@@ -589,7 +591,7 @@ ebpf_api_elf_disassemble_program(
 
     try {
         std::string section(section_name ? section_name : "");
-        auto raw_programs = read_elf(file, section, verifier_options, platform);
+        auto raw_programs = read_elf(file, section, string(), verifier_options, platform);
         auto found_program =
             std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const prevail::RawProgram& program) {
                 return (program_name == nullptr) || (program.function_name == program_name);
@@ -602,7 +604,9 @@ ebpf_api_elf_disassemble_program(
             }
         }
         prevail::RawProgram& raw_program = *found_program;
-        std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
+        std::vector<std::vector<std::string>> notes;
+        std::variant<prevail::InstructionSeq, std::string> programOrError =
+            prevail::unmarshal(raw_program, notes, verifier_options);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_string(error.str());
@@ -648,8 +652,8 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
-        auto raw_programs =
-            read_elf(stream, stream_name, (section_name != nullptr ? section_name : ""), verifier_options, platform);
+        auto raw_programs = read_elf(
+            stream, stream_name, (section_name != nullptr ? section_name : ""), string(), verifier_options, platform);
         std::optional<prevail::RawProgram> found_program;
         for (auto& program : raw_programs) {
             if ((program_name == nullptr) || (program.function_name == program_name)) {
@@ -665,7 +669,9 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
             }
         }
         prevail::RawProgram raw_program = *found_program;
-        std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
+        std::vector<std::vector<std::string>> notes;
+        std::variant<prevail::InstructionSeq, std::string> programOrError =
+            prevail::unmarshal(raw_program, notes, verifier_options);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_string(error.str());

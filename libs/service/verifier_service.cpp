@@ -19,20 +19,16 @@ bool g_ebpf_fuzzing_enabled = false;
 static ebpf_result_t
 _analyze(prevail::RawProgram& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
-    std::variant<prevail::InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
+    // First try optimized for the success case.
+    prevail::ebpf_verifier_options_t options = ebpf_get_default_verifier_options();
+
+    std::variant<prevail::InstructionSeq, std::string> prog_or_error = prevail::unmarshal(raw_prog, options);
     if (!std::holds_alternative<prevail::InstructionSeq>(prog_or_error)) {
         *error_message = allocate_string(std::get<std::string>(prog_or_error), error_message_size);
         return EBPF_VERIFICATION_FAILED; // Error;
     }
     prevail::InstructionSeq& prog = std::get<prevail::InstructionSeq>(prog_or_error);
 
-    // First try optimized for the success case.
-    prevail::ebpf_verifier_options_t options = ebpf_get_default_verifier_options();
-    // Until https://github.com/vbpf/ebpf-verifier/issues/643 is fixed, don't set options.assume_assertions to true when
-    // fuzzing.
-    if (g_ebpf_fuzzing_enabled) {
-        options.assume_assertions = false;
-    }
     ebpf_api_verifier_stats_t stats;
     bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, options, &stats);
     if (!res) {

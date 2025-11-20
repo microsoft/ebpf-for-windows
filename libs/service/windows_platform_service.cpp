@@ -5,9 +5,7 @@
 #include "api_internal.h"
 #include "ebpf_api.h"
 #include "ebpf_verifier_wrapper.hpp"
-#include "helpers.hpp"
 #include "platform.hpp"
-#include "spec_type_descriptors.hpp"
 #include "windows_platform_common.hpp"
 #include "windows_platform_service.hpp"
 
