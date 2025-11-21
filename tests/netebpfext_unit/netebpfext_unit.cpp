@@ -430,6 +430,13 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    // Test hard permit for recv_accept
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
     // Classify operations for redirect.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
 
@@ -437,6 +444,13 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test redirect for recv_accept
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Test eBPF program invocation failure.
@@ -517,13 +531,6 @@ sock_addr_thread_function(
         }
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
-
-        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive.
-        // Workaround for now - map to block.
-        if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
-            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
-            expected_result = FWP_ACTION_BLOCK;
-        }
 
         if (result != expected_result) {
             if (fault_injection_enabled) {
