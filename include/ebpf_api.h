@@ -67,14 +67,14 @@ extern "C"
     } ebpf_api_program_info_t;
 
     /**
-      * @brief Get list of programs and stats in an eBPF file.
-      * @param[in] file Name of file containing eBPF programs.
-      * @param[in] verbose Obtain additional info about the programs.
-      * @param[out] infos On success points to a list of eBPF programs.
-      * The caller is responsible for freeing the list via ebpf_free_programs().
-      * @param[out] error_message On failure points to a text description of
-      *  the error.
-      */
+     * @brief Get list of programs and stats in an eBPF file.
+     * @param[in] file Name of file containing eBPF programs.
+     * @param[in] verbose Obtain additional info about the programs.
+     * @param[out] infos On success points to a list of eBPF programs.
+     * The caller is responsible for freeing the list via ebpf_free_programs().
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     */
     _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_programs(
         _In_z_ const char* file,
@@ -797,6 +797,25 @@ extern "C"
         perf_buffer_lost_fn lost_cb,
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Extract data from a named section in a PE or ELF file.
+     * @param[in] file_path Path to the PE or ELF file.
+     * @param[in] section_name Name of the section to extract.
+     * @param[out] data Pointer to buffer to receive section data. If NULL, only the size is returned.
+     * @param[in,out] data_size On input, size of the buffer. On output, actual size of section data.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer is too small. data_size contains required size.
+     * @retval EBPF_INVALID_ARGUMENT Invalid parameters.
+     * @retval EBPF_OBJECT_NOT_FOUND Section not found in file.
+     * @retval EBPF_INVALID_OBJECT File format is invalid or unsupported.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_api_get_data_section(
+        _In_z_ const char* file_path,
+        _In_z_ const char* section_name,
+        _Out_writes_bytes_opt_(*data_size) uint8_t* data,
+        _Inout_ size_t* data_size) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }
