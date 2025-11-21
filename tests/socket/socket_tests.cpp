@@ -17,6 +17,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "filter_helper.h"
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "socket_helper.h"
@@ -54,12 +55,20 @@ _change_egress_policy_test_ingress_block(
     sender_socket.cancel_send_message();
 }
 
+/**
+ * @brief Test connection with given parameters.
+ *
+ * @param address_family Address family (AF_INET or AF_INET6).
+ * @param protocol Protocol (IPPROTO_TCP or IPPROTO_UDP).
+ * @param sender_socket Client socket.
+ * @param receiver_socket Server socket.
+ */
 void
 connection_test(
     ADDRESS_FAMILY address_family,
+    IPPROTO protocol,
     _Inout_ client_socket_t& sender_socket,
-    _Inout_ receiver_socket_t& receiver_socket,
-    uint32_t protocol)
+    _Inout_ receiver_socket_t& receiver_socket)
 {
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr", _is_main_thread);
@@ -146,45 +155,49 @@ connection_test(
     _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
-    // Update ingress policy to allow packet.
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    sender_socket.cancel_send_message();
 
-    // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
-    // destination.
-    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-    receiver_socket.complete_async_receive();
+    { // Test soft permit with default ingress block filter.
+        scoped_filter_helper scoped_helper(false, SOCKET_TEST_PORT, address_family, protocol);
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+        // Resend the packet, should be blocked due to default ingress block filter.
+        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        receiver_socket.complete_async_receive(true);
+        sender_socket.cancel_send_message();
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+        // Resend the packet, should be allowed due to hard permit overriding.
+        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        sender_socket.complete_async_send(1000, expected_result_t::SUCCESS);
+        receiver_socket.complete_async_receive(false);
+    }
 }
 
-TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
+void
+connection_test(ADDRESS_FAMILY address_family, IPPROTO protocol)
 {
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    if (protocol == IPPROTO_TCP) {
+        stream_client_socket_t client_socket(SOCK_STREAM, protocol, 0);
+        stream_server_socket_t server_socket(SOCK_STREAM, protocol, SOCKET_TEST_PORT);
+        connection_test(address_family, protocol, client_socket, server_socket);
+    } else if (protocol == IPPROTO_UDP) {
+        datagram_client_socket_t client_socket(SOCK_DGRAM, protocol, 0);
+        datagram_server_socket_t server_socket(SOCK_DGRAM, protocol, SOCKET_TEST_PORT);
+        connection_test(address_family, protocol, client_socket, server_socket);
+    } else {
+        FAIL("Unsupported protocol");
+    }
 }
-TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
-{
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
-}
-
-TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
-}
-TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
-}
+TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_TCP); }
+TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_TCP); }
+TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_UDP); }
+TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_UDP); }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
@@ -641,62 +654,6 @@ validate_connection_multi_attach(
 }
 
 void
-validate_recv_accept_multi_attach(
-    socket_family_t family,
-    ADDRESS_FAMILY address_family,
-    uint16_t receiver_port,
-    uint16_t destination_port,
-    uint16_t protocol,
-    connection_result_t expected_result)
-{
-    client_socket_t* sender_socket = nullptr;
-    receiver_socket_t* receiver_socket = nullptr;
-
-    if (protocol == IPPROTO_UDP) {
-        receiver_socket = new datagram_server_socket_t(SOCK_DGRAM, IPPROTO_UDP, receiver_port);
-    } else if (protocol == IPPROTO_TCP) {
-        receiver_socket = new stream_server_socket_t(SOCK_STREAM, IPPROTO_TCP, receiver_port);
-    } else {
-        SAFE_REQUIRE(false);
-    }
-    get_client_socket(family, protocol, &sender_socket);
-
-    // Post an asynchronous receive on the receiver socket.
-    receiver_socket->post_async_receive();
-
-    // Send loopback message to test port.
-    const char* message = CLIENT_MESSAGE;
-    sockaddr_storage destination_address{};
-    if (address_family == AF_INET) {
-        if (family == socket_family_t::Dual) {
-            IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-        } else {
-            IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&destination_address);
-        }
-    } else {
-        IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-    }
-
-    sender_socket->send_message_to_remote_host(message, destination_address, destination_port);
-
-    if (expected_result == RESULT_DROP) {
-        // The packet should be blocked.
-        receiver_socket->complete_async_receive(true);
-        // Cancel send operation.
-        sender_socket->cancel_send_message();
-    } else if (expected_result == RESULT_ALLOW) {
-        // The packet should be allowed by the recv_accept program.
-        receiver_socket->complete_async_receive();
-    } else {
-        // The result is not deterministic, so we don't care about the result.
-        receiver_socket->complete_async_receive(1000, receiver_socket_t::MODE_DONT_CARE);
-    }
-
-    delete sender_socket;
-    delete receiver_socket;
-}
-
-void
 multi_attach_test_common(
     bpf_object* object,
     socket_family_t family,
@@ -1090,104 +1047,6 @@ TEST_CASE("multi_attach_test_wildcard_UDP_IPv6", "[sock_addr_tests][multi_attach
 {
     multi_attach_test(UNSPECIFIED_COMPARTMENT_ID, socket_family_t::Dual, AF_INET6, IPPROTO_UDP);
     multi_attach_test(UNSPECIFIED_COMPARTMENT_ID, socket_family_t::IPv6, AF_INET6, IPPROTO_UDP);
-}
-// recv_accept hard permit integration tests
-TEST_CASE("recv_accept_hard_permit_integration", "[sock_addr_tests][hard_permit_tests][recv_accept]")
-{
-    // This test validates recv_accept hard permit behavior in real connection flows,
-    // ensuring that hard permits properly clear FWPS_RIGHT_ACTION_WRITE and take precedence.
-
-    native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr", _is_main_thread);
-
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    bpf_object_ptr object_ptr(object);
-    SAFE_REQUIRE(object != nullptr);
-    SAFE_REQUIRE(bpf_object__load(object) == 0);
-
-    // Test IPv4 hard permit behavior
-    {
-        bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
-        SAFE_REQUIRE(recv_accept_program != nullptr);
-
-        int result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 1, BPF_CGROUP_INET4_RECV_ACCEPT, 0);
-        SAFE_REQUIRE(result == 0);
-
-        bpf_map* ingress_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
-        SAFE_REQUIRE(ingress_policy_map != nullptr);
-        fd_t map_fd = bpf_map__fd(ingress_policy_map);
-        SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
-
-        // Configure for hard permit
-        _update_map_entry_multi_attach(
-            map_fd,
-            AF_INET,
-            htons(SOCKET_TEST_PORT),
-            htons(SOCKET_TEST_PORT),
-            IPPROTO_TCP,
-            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
-            true);
-
-        // Validate hard permit behavior
-        validate_recv_accept_multi_attach(
-            socket_family_t::IPv4, AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
-
-        // Test UDP as well
-        _update_map_entry_multi_attach(
-            map_fd,
-            AF_INET,
-            htons(SOCKET_TEST_PORT),
-            htons(SOCKET_TEST_PORT),
-            IPPROTO_UDP,
-            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
-            true);
-
-        validate_recv_accept_multi_attach(
-            socket_family_t::IPv4, AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_UDP, RESULT_ALLOW);
-    }
-
-    // Test IPv6 hard permit behavior
-    {
-        bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
-        SAFE_REQUIRE(recv_accept_program != nullptr);
-
-        int result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 1, BPF_CGROUP_INET6_RECV_ACCEPT, 0);
-        SAFE_REQUIRE(result == 0);
-
-        bpf_map* ingress_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
-        SAFE_REQUIRE(ingress_policy_map != nullptr);
-        fd_t map_fd = bpf_map__fd(ingress_policy_map);
-        SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
-
-        // Configure for hard permit
-        _update_map_entry_multi_attach(
-            map_fd,
-            AF_INET6,
-            htons(SOCKET_TEST_PORT),
-            htons(SOCKET_TEST_PORT),
-            IPPROTO_TCP,
-            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
-            true);
-
-        // Validate hard permit behavior
-        validate_recv_accept_multi_attach(
-            socket_family_t::IPv6, AF_INET6, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
-
-        // Test UDP as well
-        _update_map_entry_multi_attach(
-            map_fd,
-            AF_INET6,
-            htons(SOCKET_TEST_PORT),
-            htons(SOCKET_TEST_PORT),
-            IPPROTO_UDP,
-            BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
-            true);
-
-        validate_recv_accept_multi_attach(
-            socket_family_t::IPv6, AF_INET6, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_UDP, RESULT_ALLOW);
-    }
 }
 
 typedef enum _program_action
