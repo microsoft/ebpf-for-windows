@@ -127,6 +127,13 @@ size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0
 #define EBPF_MAP_CLIENT_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_data_t, dispatch_table)
 size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
+#define EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, get_next_key_function)
+size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
+
+#define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, dummy)
+size_t _ebpf_map_client_dispatch_table_supported_size[] = {EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0};
+
 struct _ebpf_extension_data_structure_supported_sizes
 {
     size_t* supported_sizes;
@@ -142,8 +149,8 @@ struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_suppo
     {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
     {_ebpf_map_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_data_supported_size)},
     {_ebpf_map_client_data_supported_size, EBPF_COUNT_OF(_ebpf_map_client_data_supported_size)},
-    {_ebpf_map_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_data_supported_size)},
-    {_ebpf_map_client_data_supported_size, EBPF_COUNT_OF(_ebpf_map_client_data_supported_size)},
+    {_ebpf_map_provider_dispatch_table_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_dispatch_table_supported_size)},
+    {_ebpf_map_client_dispatch_table_supported_size, EBPF_COUNT_OF(_ebpf_map_client_dispatch_table_supported_size)},
     {_ebpf_native_helper_function_entry_supported_size,
      EBPF_COUNT_OF(_ebpf_native_helper_function_entry_supported_size)},
     {_ebpf_native_helper_function_data_supported_size, EBPF_COUNT_OF(_ebpf_native_helper_function_data_supported_size)},

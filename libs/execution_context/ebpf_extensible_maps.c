@@ -116,14 +116,6 @@ _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_extensible_map_t* map)
     // Wait for rundown completion
     ExWaitForRundownProtectionRelease(&map->provider_rundown_reference);
 
-    // // Call provider's map_delete if provider is attached
-    // ebpf_lock_state_t state = ebpf_lock_lock(&extensible_map->lock);
-    // if (extensible_map->provider_attached) {
-    //     ebpf_assert(extensible_map->provider_dispatch);
-    //     extensible_map->provider_dispatch->delete_map_function(extensible_map->extension_map_context);
-    // }
-    // ebpf_lock_unlock(&extensible_map->lock, state);
-
     // Deregister NMR client
     if (map->nmr_client_handle) {
         NTSTATUS status = NmrDeregisterClient(map->nmr_client_handle);
@@ -136,6 +128,7 @@ _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_extensible_map_t* map)
 
     ebpf_lock_destroy(&map->lock);
     ebpf_free(map->provider_dispatch);
+    ebpf_free(map->core_map.name.value);
     ebpf_free(map);
 }
 
@@ -180,14 +173,6 @@ ebpf_extensible_map_create(
     extensible_map->module_id.Guid = module_id;
     extensible_map->module_id.Length = sizeof(NPI_MODULEID);
     extensible_map->module_id.Type = MIT_GUID;
-
-    // // Initialize base map structure
-    // result = ebpf_map_initialize(
-    //     &extensible_map->core_map, map_definition, &_ebpf_extensible_map_function_table,
-    //     _ebpf_extensible_map_delete);
-    // if (result != EBPF_SUCCESS) {
-    //     goto Done;
-    // }
 
     // Initialize synchronization objects
     ebpf_lock_create(&extensible_map->lock);
@@ -288,6 +273,13 @@ void
 ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
 {
     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+
+    // Call provider to delete the map.
+    extensible_map->provider_dispatch->delete_map_function(extensible_map->extension_map_context);
+
+    // Now that the map is deleted, release the rundown reference acquired during map creation.
+    ExReleaseRundownProtection(&extensible_map->provider_rundown_reference);
+
     _ebpf_extensible_map_delete(extensible_map);
 }
 
@@ -479,9 +471,9 @@ _ebpf_extensible_map_client_detach_provider(_In_ void* client_binding_context)
     // Wait for all provider operations to complete
     ExWaitForRundownProtectionRelease(&map->provider_rundown_reference);
 
-    ebpf_lock_destroy(&map->lock);
-    ebpf_free(map->provider_dispatch);
-    ebpf_free(map);
+    // ebpf_lock_destroy(&map->lock);
+    // ebpf_free(map->provider_dispatch);
+    // ebpf_free(map);
 
     return STATUS_SUCCESS;
 }
@@ -627,6 +619,76 @@ _ebpf_extensible_map_update_element_with_handle(
 
     // Extensible maps don't support handle-based updates by default
     return EBPF_OPERATION_NOT_SUPPORTED;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_extensible_map_find_entry(
+    _Inout_ ebpf_map_t* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    _Outptr_ uint8_t** value,
+    int flags)
+{
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
+    // uint8_t* provider_value = NULL;
+
+    // Get provider dispatch.
+    ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
+    ebpf_assert(provider_dispatch != NULL && provider_dispatch->find_element_function != NULL);
+    // Call provider's find function
+    result = provider_dispatch->find_element_function(
+        extensible_map->extension_map_context, key_size, key, value, (uint32_t)flags);
+
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_extensible_map_update_entry(
+    _Inout_ ebpf_map_t* map,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    ebpf_map_option_t option,
+    int flags)
+{
+    // if (map == NULL || key == NULL || value == NULL) {
+    //     return EBPF_INVALID_ARGUMENT;
+    // }
+
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
+
+    // Get provider dispatch.
+    ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
+    ebpf_assert(provider_dispatch != NULL && provider_dispatch->update_element_function != NULL);
+    // Call provider's update function
+    result = provider_dispatch->update_element_function(
+        extensible_map->extension_map_context, key_size, key, value_size, value, option, (uint32_t)flags);
+
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_extensible_map_delete_entry(
+    _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
+{
+    if (map == NULL || key == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
+
+    // Get provider dispatch.
+    ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
+    ebpf_assert(provider_dispatch != NULL && provider_dispatch->delete_element_function != NULL);
+    // Call provider's delete function
+    result = provider_dispatch->delete_element_function(
+        extensible_map->extension_map_context, key_size, key, (uint32_t)flags);
+
+    return result;
 }
 
 // static ebpf_result_t

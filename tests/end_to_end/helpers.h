@@ -3,10 +3,12 @@
 #pragma once
 
 #include "ebpf_api.h"
+#include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_structs.h"
 #include "ebpf_windows.h"
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
@@ -20,6 +22,13 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #include <ndis/nbl.h>
 #endif
 #include <vector>
+
+// Sample map type and GUID definitions
+// #define BPF_MAP_TYPE_SAMPLE_MAP 0xF000
+#define EBPF_SAMPLE_MAP_GUID                                                           \
+    {                                                                                  \
+        0xf788ef4b, 0x207d, 0x4dc4, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
+    }
 
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
@@ -401,6 +410,323 @@ typedef class _test_global_helper
     }
 } test_global_helper_t;
 
+// // Sample map implementation for testing extensible maps
+// typedef struct _test_sample_map_entry
+// {
+//     struct _test_sample_map_entry* next;
+//     uint8_t key[1]; // Variable length key followed by value
+// } test_sample_map_entry_t;
+
+#pragma region Sample Array Map Implementation
+typedef struct _test_sample_array_map
+{
+    uint32_t key_size;
+    uint32_t value_size;
+    uint32_t max_entries;
+    uint8_t* data;
+} test_sample_array_map_t;
+
+static ebpf_result_t
+_test_sample_map_create(
+    uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, _Outptr_ void** map_context)
+{
+    UNREFERENCED_PARAMETER(map_type);
+
+    if (key_size == 0 || value_size == 0 || max_entries == 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    test_sample_array_map_t* sample_map = (test_sample_array_map_t*)malloc(sizeof(test_sample_array_map_t));
+    if (sample_map == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+    memset(sample_map, 0, sizeof(test_sample_array_map_t));
+    sample_map->key_size = key_size;
+    sample_map->value_size = value_size;
+    sample_map->max_entries = max_entries;
+
+    sample_map->data = (uint8_t*)malloc(value_size * max_entries);
+    if (sample_map->data == nullptr) {
+        free(sample_map);
+        return EBPF_NO_MEMORY;
+    }
+
+    *map_context = (void*)sample_map;
+    return EBPF_SUCCESS;
+}
+
+static void
+_test_sample_map_delete(_In_ _Post_invalid_ void* map_context)
+{
+    if (map_context == nullptr) {
+        return;
+    }
+
+    test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
+
+    if (map->data != nullptr) {
+        free(map->data);
+    }
+
+    // Free map structure
+    free(map);
+}
+
+static ebpf_result_t
+_test_sample_map_find_entry(
+    _In_ const void* map_context,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    _Outptr_ uint8_t** value,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+
+    if (map_context == nullptr || key == nullptr || value == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
+    if (key_size != map->key_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // In an array map, the key is an index.
+    uint32_t index = *(uint32_t*)key;
+    if (index >= map->max_entries) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    *value = map->data + (index * map->value_size);
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_test_sample_map_update_entry(
+    _In_ const void* map_context,
+    size_t key_size,
+    _In_reads_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    ebpf_map_option_t option,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(option);
+
+    if (map_context == nullptr || key == nullptr || value == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
+    if (key_size != map->key_size || value_size != map->value_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // In an array map, the key is an index.
+    uint32_t index = *(uint32_t*)key;
+    if (index >= map->max_entries) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    // Update existing entry
+    memcpy(map->data + (index * map->value_size), value, map->value_size);
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_test_sample_map_delete_entry(
+    _In_ const void* map_context, size_t key_size, _In_reads_(key_size) const uint8_t* key, uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+
+    if (map_context == nullptr || key == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
+    if (key_size != map->key_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // In an array map, the key is an index.
+    uint32_t index = *(uint32_t*)key;
+    if (index >= map->max_entries) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+    memset(map->data + (index * map->value_size), 0, map->value_size);
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_test_sample_map_get_next_key(
+    _In_ const void* map_context,
+    size_t key_size,
+    _In_opt_ const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key)
+{
+    ebpf_result_t result = EBPF_NO_MORE_KEYS;
+    if (map_context == nullptr || next_key == nullptr) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
+    if (key_size != map->key_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (previous_key != nullptr) {
+        uint32_t prev_index = *(uint32_t*)previous_key;
+        if (prev_index + 1 < map->max_entries) {
+            uint32_t next_index = prev_index + 1;
+            memcpy(next_key, &next_index, map->key_size);
+            result = EBPF_SUCCESS;
+        } else {
+            result = EBPF_NO_MORE_KEYS;
+        }
+    }
+
+    return result;
+}
+#pragma endregion
+
+static uint32_t _sample_supported_map_types[1] = {BPF_MAP_TYPE_SAMPLE_MAP};
+
+static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
+    .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
+    .create_map_function = _test_sample_map_create,
+    .delete_map_function = _test_sample_map_delete,
+    .find_element_function = _test_sample_map_find_entry,
+    .update_element_function = _test_sample_map_update_entry,
+    .delete_element_function = _test_sample_map_delete_entry,
+    .get_next_key_function = _test_sample_map_get_next_key};
+
+static ebpf_map_provider_data_t _test_sample_map_provider_data = {
+    EBPF_MAP_PROVIDER_DATA_HEADER, 1, _sample_supported_map_types, &_sample_map_dispatch_table};
+
+typedef class _test_sample_map_provider
+{
+    // Map provider implementation
+  public:
+    ~_test_sample_map_provider()
+    {
+        if (_map_provider_handle != INVALID_HANDLE_VALUE) {
+            NTSTATUS status = NmrDeregisterProvider(_map_provider_handle);
+            if (status == STATUS_PENDING) {
+                NmrWaitForProviderDeregisterComplete(_map_provider_handle);
+            } else {
+                ebpf_assert(status == STATUS_SUCCESS);
+            }
+
+            _map_provider_handle = INVALID_HANDLE_VALUE;
+        }
+    }
+
+    ebpf_result_t
+    initialize()
+    {
+        // // Initialize supported map types
+        // _supported_map_types[0] = BPF_MAP_TYPE_SAMPLE_MAP;
+
+        // // Initialize provider data
+        // _map_provider_data.header = EBPF_MAP_PROVIDER_DATA_HEADER;
+        // _map_provider_data.supported_map_type_count = 1;
+        // _map_provider_data.supported_map_types = _supported_map_types;
+        // _map_provider_data.dispatch_table = &_map_dispatch_table;
+
+        // Register as NMR provider
+        NTSTATUS status = NmrRegisterProvider(&_map_provider_characteristics, nullptr, &_map_provider_handle);
+        return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
+    }
+
+    static NTSTATUS
+    _map_provider_attach_client(
+        _In_ HANDLE nmr_binding_handle,
+        _In_ const void* provider_context,
+        _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+        _In_ const void* client_binding_context,
+        _In_ const void* client_dispatch,
+        _Outptr_ void** provider_binding_context,
+        _Outptr_result_maybenull_ const void** provider_dispatch)
+    {
+        UNREFERENCED_PARAMETER(nmr_binding_handle);
+        UNREFERENCED_PARAMETER(provider_context);
+        UNREFERENCED_PARAMETER(client_registration_instance);
+        UNREFERENCED_PARAMETER(client_binding_context);
+        UNREFERENCED_PARAMETER(client_dispatch);
+
+        *provider_binding_context = nullptr;
+        *provider_dispatch = nullptr;
+        return STATUS_SUCCESS;
+    }
+
+    static NTSTATUS
+    _map_provider_detach_client(_In_ const void* provider_binding_context)
+    {
+        UNREFERENCED_PARAMETER(provider_binding_context);
+        return STATUS_SUCCESS;
+    }
+
+    // static void
+    // cleanup_map_provider()
+    // {
+    //     if (_map_provider_handle != nullptr) {
+    //         NTSTATUS status = NmrDeregisterProvider(_map_provider_handle);
+    //         if (status == STATUS_PENDING) {
+    //             NmrWaitForProviderDeregisterComplete(_map_provider_handle);
+    //         }
+    //         _map_provider_handle = nullptr;
+    //     }
+    // }
+
+    // NMR Provider infrastructure
+  private:
+    HANDLE _map_provider_handle;
+    // static ebpf_map_provider_dispatch_table_t _map_dispatch_table;
+    NPI_MODULEID _map_module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_GUID};
+    NPI_PROVIDER_CHARACTERISTICS _map_provider_characteristics = {
+        0,
+        sizeof(NPI_PROVIDER_CHARACTERISTICS),
+        (NPI_PROVIDER_ATTACH_CLIENT_FN*)_map_provider_attach_client,
+        (NPI_PROVIDER_DETACH_CLIENT_FN*)_map_provider_detach_client,
+        nullptr,
+        {0,
+         sizeof(NPI_REGISTRATION_INSTANCE),
+         &EBPF_MAP_EXTENSION_IID,
+         &_map_module_id,
+         0,
+         &_test_sample_map_provider_data}};
+
+    static void
+    _map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
+    {
+        UNREFERENCED_PARAMETER(provider_binding_context);
+    }
+
+    // private:
+    // static uint32_t _hash_function(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
+    // {
+    //     uint32_t hash = 0;
+    //     for (uint32_t i = 0; i < key_size; i++) {
+    //         hash = hash * 31 + key[i];
+    //     }
+    //     return hash % bucket_count;
+    // }
+
+    // static test_sample_map_entry_t* _find_entry(test_sample_map_t* map, const uint8_t* key)
+    // {
+    //     uint32_t hash = _hash_function(key, map->key_size, map->bucket_count);
+    //     test_sample_map_entry_t* entry = map->buckets[hash];
+    //     while (entry != nullptr) {
+    //         if (memcmp(entry->key, key, map->key_size) == 0) {
+    //             return entry;
+    //         }
+    //         entry = entry->next;
+    //     }
+    //     return nullptr;
+    // }
+} test_sample_map_provider_t;
+
 typedef class _test_sample_helper
 {
   public:
@@ -579,8 +905,8 @@ _ebpf_bind_context_create(
     ebpf_result_t retval;
     *context = nullptr;
     bind_md_t* bind_context = nullptr;
-    bind_context_header_t* bind_context_header =
-        reinterpret_cast<bind_context_header_t*>(ebpf_allocate_with_tag(sizeof(bind_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    bind_context_header_t* bind_context_header = reinterpret_cast<bind_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(bind_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (bind_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -714,8 +1040,8 @@ _ebpf_sock_addr_context_create(
     *context = nullptr;
 
     bpf_sock_addr_t* sock_addr_context = nullptr;
-    sock_addr_context_header_t* sock_addr_context_header =
-        reinterpret_cast<sock_addr_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_addr_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    sock_addr_context_header_t* sock_addr_context_header = reinterpret_cast<sock_addr_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(sock_addr_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_addr_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -839,8 +1165,8 @@ _ebpf_sock_ops_context_create(
     *context = nullptr;
 
     bpf_sock_ops_t* sock_ops_context = nullptr;
-    sock_ops_context_header_t* sock_ops_context_header =
-        reinterpret_cast<sock_ops_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_ops_context_header_t), EBPF_POOL_TAG_DEFAULT));
+    sock_ops_context_header_t* sock_ops_context_header = reinterpret_cast<sock_ops_context_header_t*>(
+        ebpf_allocate_with_tag(sizeof(sock_ops_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_ops_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;

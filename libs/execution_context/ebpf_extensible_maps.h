@@ -96,6 +96,37 @@ extern "C"
     _Must_inspect_result_ bool
     ebpf_map_type_is_extensible(uint32_t map_type);
 
+    /**
+     * @brief Find an element in an extensible map.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_extensible_map_find_entry(
+        _Inout_ ebpf_map_t* map,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
+        _Outptr_ uint8_t** value,
+        int flags);
+
+    /**
+     * @brief Update an element in an extensible map.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_extensible_map_update_entry(
+        _Inout_ ebpf_map_t* map,
+        size_t key_size,
+        _In_reads_(key_size) const uint8_t* key,
+        size_t value_size,
+        _In_reads_(value_size) const uint8_t* value,
+        ebpf_map_option_t option,
+        int flags);
+
+    /**
+     * @brief Delete an element from an extensible map.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_extensible_map_delete_entry(
+        _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
+
     // /**
     //  * @brief Safely call provider operation with rundown protection.
     //  */

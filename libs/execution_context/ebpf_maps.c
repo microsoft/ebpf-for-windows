@@ -3205,16 +3205,16 @@ ebpf_map_create(
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_MAP, "Creating extensible map of type", type);
 
-        // Set map name.
-        result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
-        if (result != EBPF_SUCCESS) {
-            goto Exit;
-        }
-
         result = ebpf_extensible_map_create(ebpf_map_definition, inner_map_handle, &local_map);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
+
+        // // Set map name.
+        // result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
+        // if (result != EBPF_SUCCESS) {
+        //     goto Exit;
+        // }
 
         // *ebpf_map = local_map;
         goto Initialize;
@@ -3271,6 +3271,7 @@ ebpf_map_create(
     }
     ebpf_assert(type == local_map->ebpf_map_definition.type);
 
+Initialize:
     local_map->original_value_size = ebpf_map_definition->value_size;
 
     result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
@@ -3278,7 +3279,6 @@ ebpf_map_create(
         goto Exit;
     }
 
-Initialize:
     ebpf_object_get_program_type_t get_program_type = (IS_NESTED_MAP(type)) ? _get_map_program_type : NULL;
     result = EBPF_OBJECT_INITIALIZE(
         &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, zero_user_function, get_program_type);
@@ -3308,6 +3308,21 @@ ebpf_map_find_entry(
 {
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
+    ebpf_result_t result;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        result = ebpf_extensible_map_find_entry(map, key_size, key, &return_value, flags);
+
+        if (result == EBPF_SUCCESS) {
+            if (flags & EBPF_MAP_FLAG_HELPER) {
+                *(uint8_t**)value = return_value;
+            } else {
+                memcpy(value, return_value, map->ebpf_map_definition.value_size);
+            }
+        }
+
+        return result;
+    }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
@@ -3347,7 +3362,7 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    ebpf_result_t result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+    result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3423,6 +3438,10 @@ ebpf_map_update_entry(
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_update_entry(map, key_size, key, value_size, value, option, flags);
+    }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
@@ -3513,6 +3532,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_delete_entry(map, key_size, key, flags);
+    }
+
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,

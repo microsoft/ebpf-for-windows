@@ -1705,3 +1705,46 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
     _test_multiple_programs_load(
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
+
+TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
+{
+    // This test validates extensible map user APIs.
+    fd_t extensible_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_SAMPLE_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
+    REQUIRE(extensible_map_fd > 0);
+
+    // Update elements at various indices.
+    for (uint32_t i = 0; i < 10; i++) {
+        uint32_t key = i * 10;
+        uint32_t value = i + 100;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // Lookup elements and validate values.
+    for (uint32_t i = 0; i < 10; i++) {
+        uint32_t key = i * 10;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        REQUIRE(result == ERROR_SUCCESS);
+        REQUIRE(value == i + 100);
+    }
+
+    // Delete some elements.
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t key = i * 10;
+        int result = bpf_map_delete_elem(extensible_map_fd, &key);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // Validate deleted elements are no longer present.
+    for (uint32_t i = 0; i < 5; i++) {
+        uint32_t key = i * 10;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        REQUIRE(result != ERROR_SUCCESS);
+    }
+
+    // Clean up
+    _close(extensible_map_fd);
+}
