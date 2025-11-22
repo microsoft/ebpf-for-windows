@@ -3390,6 +3390,11 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        EBPF_RETURN_RESULT(ebpf_extensible_map_associate_program(map, program));
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->associate_program != NULL) {
         return table->associate_program(map, program);

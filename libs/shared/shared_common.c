@@ -128,7 +128,7 @@ size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0
 size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
 #define EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, get_next_key_function)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, associate_program_function)
 size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, dummy)
@@ -802,7 +802,9 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch
             if (local_dispatch_table.find_element_function == NULL ||
                 local_dispatch_table.update_element_function == NULL ||
                 local_dispatch_table.delete_element_function == NULL ||
-                local_dispatch_table.get_next_key_function == NULL) {
+                local_dispatch_table.get_next_key_function == NULL ||
+                local_dispatch_table.create_map_function == NULL ||
+                local_dispatch_table.associate_program_function == NULL) {
                 return false;
             }
         }

@@ -3661,3 +3661,47 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
     // Clean up
     Platform::_close(extensible_map_fd);
 }
+
+// TEST_CASE("extensible_maps_program_load", "[extensible_maps]")
+void
+_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    bpf_object_ptr unique_object;
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_basic_um.dll" : "extensible_map_basic.o";
+
+    // Try to load the program without initializing the map provider. This should fail.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    REQUIRE(result != 0);
+
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    if (result != 0) {
+        bpf_object__close(unique_object.release());
+    }
+    REQUIRE(result == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES(
+    "extensible_maps_program_load", "[end_to_end][extensible_maps]", _test_extensible_maps_program_load);

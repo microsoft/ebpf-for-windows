@@ -240,6 +240,18 @@ typedef ebpf_result_t (*ebpf_map_get_next_key_t)(
     _Out_writes_(key_size) uint8_t* next_key);
 
 /**
+ * @brief Get the next key in the eBPF map.
+ *
+ * @param[in] map The eBPF map to query.
+ * @param[in] program_type The program type.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
+ */
+typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
+    _In_ const void* map, _In_ const ebpf_program_type_t* program_type);
+
+/**
  * Dispatch table implemented by the eBPF extension to provide map operations.
  * This table is used to provide map operations to the eBPF core.
  */
@@ -252,6 +264,7 @@ typedef struct _ebpf_map_provider_dispatch_table
     _Notnull_ ebpf_map_update_element_t update_element_function;
     _Notnull_ ebpf_map_delete_element_t delete_element_function;
     _Notnull_ ebpf_map_get_next_key_t get_next_key_function;
+    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
 } ebpf_map_provider_dispatch_table_t;
 
 /**

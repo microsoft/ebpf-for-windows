@@ -23,9 +23,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #endif
 #include <vector>
 
-// Sample map type and GUID definitions
-// #define BPF_MAP_TYPE_SAMPLE_MAP 0xF000
-#define EBPF_SAMPLE_MAP_GUID                                                           \
+#define EBPF_SAMPLE_MAP_PROVIDER_GUID                                                  \
     {                                                                                  \
         0xf788ef4b, 0x207d, 0x4dc4, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
     }
@@ -588,6 +586,18 @@ _test_sample_map_get_next_key(
 
     return result;
 }
+
+static ebpf_result_t
+_test_sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type)
+{
+    UNREFERENCED_PARAMETER(map_context);
+
+    // Check that the program type is supported.
+    if (*program_type != EBPF_PROGRAM_TYPE_SAMPLE) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return EBPF_SUCCESS;
+}
 #pragma endregion
 
 static uint32_t _sample_supported_map_types[1] = {BPF_MAP_TYPE_SAMPLE_MAP};
@@ -599,7 +609,8 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .find_element_function = _test_sample_map_find_entry,
     .update_element_function = _test_sample_map_update_entry,
     .delete_element_function = _test_sample_map_delete_entry,
-    .get_next_key_function = _test_sample_map_get_next_key};
+    .get_next_key_function = _test_sample_map_get_next_key,
+    .associate_program_function = _test_sample_map_associate_program};
 
 static ebpf_map_provider_data_t _test_sample_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER, 1, _sample_supported_map_types, &_sample_map_dispatch_table};
@@ -683,7 +694,7 @@ typedef class _test_sample_map_provider
   private:
     HANDLE _map_provider_handle;
     // static ebpf_map_provider_dispatch_table_t _map_dispatch_table;
-    NPI_MODULEID _map_module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_GUID};
+    NPI_MODULEID _map_module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
     NPI_PROVIDER_CHARACTERISTICS _map_provider_characteristics = {
         0,
         sizeof(NPI_PROVIDER_CHARACTERISTICS),

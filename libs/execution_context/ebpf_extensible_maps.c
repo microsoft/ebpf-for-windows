@@ -674,10 +674,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_extensible_map_delete_entry(
     _In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
-    if (map == NULL || key == NULL) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
     ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
 
@@ -687,6 +683,22 @@ ebpf_extensible_map_delete_entry(
     // Call provider's delete function
     result = provider_dispatch->delete_element_function(
         extensible_map->extension_map_context, key_size, key, (uint32_t)flags);
+
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_extensible_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _ebpf_program* program)
+{
+    ebpf_result_t result;
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
+
+    // Get provider dispatch.
+    ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
+    ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
+    // Call provider's associate program function
+    result = provider_dispatch->associate_program_function(extensible_map->extension_map_context, &program_type);
 
     return result;
 }

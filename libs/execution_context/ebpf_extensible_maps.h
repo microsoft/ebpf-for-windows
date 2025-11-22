@@ -136,6 +136,9 @@ extern "C"
     //     _In_ void* operation_context,
     //     _In_ ebpf_result_t (*operation)(const ebpf_extensible_map_provider_t* provider, void* context));
 
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_extensible_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _ebpf_program* program);
+
 #ifdef __cplusplus
 }
 #endif
