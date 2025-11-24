@@ -37,7 +37,7 @@ The new approach focuses on creating a shared **eBPF Extension Common Repository
 ### Phase 3: Move Sample Extension
 - Move sample extension implementations to the common repository.
 - Use sample extension as the primary CI/CD test for the common repository.
-- **Checkpoint 4**: Sample extensions build and run successfully, serving as both test cases and developer documentation.
+- **Checkpoint 3**: Sample extensions build and run successfully, serving as both test cases and developer documentation.
 
 ### Phase 4: Future work
 - Publish the extension common repository as an official sample Extension SDK.
