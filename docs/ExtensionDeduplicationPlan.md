@@ -6,14 +6,12 @@ The eBPF for Windows project comprises two main components:
 - **Core Engine**: Delivers foundational capabilities for eBPF on Windows.
 - **Extensions**: Build on top of the core engine to enable hook points for specific functionalities.
 
-Currently, extensions are distributed across multiple repositories with significant code duplication between `netebpfext` and other extensions in `ntosebpfext`.
+Currently, extensions are distributed across multiple repositories with significant code duplication between `netebpfext`, `ntosebpfext` and `xdp-for-windows`.
 
 ### Vision
 The new approach focuses on creating a shared **eBPF Extension Common Repository** that contains common code for developing eBPF extensions. This repo would be included as a submodule into other extension repositories as needed. This eliminates code duplication and provides a standardized foundation for all extensions.
 
-**Initial Scope**: The initial effort will focus on extracting common code shared between `netebpfext` and `ntosebpfext` extensions to establish the foundation and prove the architecture.
-
-**Future Expansion**: XDP and other internal extension repositories can consume the common repo.
+**Initial Scope**: The initial effort will focus on extracting common code shared between `netebpfext`, `ntosebpfext` and `xdp-for-windows` extensions to establish the foundation and prove the architecture.
 
 ---
 
@@ -41,7 +39,7 @@ The new approach focuses on creating a shared **eBPF Extension Common Repository
 - Use sample extension as the primary CI/CD test for the common repository.
 - **Checkpoint 4**: Sample extensions build and run successfully, serving as both test cases and developer documentation.
 
-### Future work
+### Phase 4: Future work
 - Publish the extension common repository as an official sample Extension SDK.
 - Consume the common submodule in xdp and other internal extension repos.
 - Re-evaluate the need for migrating `netebpfext` to its own repository or merging with `ntosebpfext` based on the new architecture.
