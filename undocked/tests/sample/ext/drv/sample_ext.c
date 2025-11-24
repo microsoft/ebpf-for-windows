@@ -144,7 +144,7 @@ _sample_ebpf_extension_program_info_provider_detach_client(_In_ const void* prov
 static void
 _sample_ebpf_extension_program_info_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
-// Sample eBPF extension Program Information NPI provider characteristics
+// Sample eBPF extension Program Information NPI provider characteristics.
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_program_info_provider_characteristics = {
     0,
@@ -227,7 +227,7 @@ _sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bin
 static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
-// Sample eBPF extension Hook NPI provider characteristics
+// Sample eBPF extension Hook NPI provider characteristics.
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data = {
     EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_SAMPLE_GUID, BPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC};
 
