@@ -169,7 +169,7 @@ typedef void (*ebpf_map_delete_t)(_In_ _Post_invalid_ void* map_context);
  * @param[in] map The eBPF map to search.
  * @param[in] key_size The size of the key in bytes.
  * @param[in] key The key to search for.
- * @param[in] value_size The size of the value in bytes.
+ * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
  * @param[out] value Pointer to the value associated with the key.
  * @param[in] flags Find flags.
  *
@@ -268,49 +268,44 @@ typedef struct _ebpf_map_provider_dispatch_table
 } ebpf_map_provider_dispatch_table_t;
 
 /**
+ * @brief Allocate memory under epoch control.
+ * @param[in] size Size of memory to allocate
+ * @param[in] tag Pool tag to use.
+ * @returns Pointer to memory block allocated, or null on failure.
+ */
+typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_with_tag_t)(size_t size, uint32_t tag);
+
+/**
+ * @brief Allocate cache aligned memory under epoch control.
+ * @param[in] size Size of memory to allocate
+ * @param[in] tag Pool tag to use.
+ * @returns Pointer to memory block allocated, or null on failure.
+ */
+typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_cache_aligned_with_tag_t)(size_t size, uint32_t tag);
+
+/**
+ * @brief Free memory under epoch control.
+ * @param[in] memory Allocation to be freed once epoch ends.
+ */
+typedef void (*epoch_free_t)(_In_opt_ void* memory);
+
+/**
+ * @brief Free memory under epoch control.
+ * @param[in] memory Allocation to be freed once epoch ends.
+ */
+typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
+
+/**
  * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
  */
 typedef struct _ebpf_map_client_dispatch_table
 {
     ebpf_extension_header_t header;
-    void* dummy;
+    epoch_allocate_with_tag_t epoch_allocate_with_tag;
+    epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
+    epoch_free_t epoch_free;
+    epoch_free_cache_aligned_t epoch_free_cache_aligned;
 } ebpf_map_client_dispatch_table_t;
-
-// /**
-//  * @brief Map provider interface structure that extensions must implement.
-//  */
-// typedef struct _ebpf_extensible_map_provider
-// {
-//     // Provider identification
-//     GUID provider_guid;
-//     uint32_t supported_map_type_count;        // Number of supported map types
-//     const uint32_t* supported_map_types;     // Array of supported map types
-
-//     // Map lifecycle operations
-//     ebpf_result_t (*map_create)(
-//         uint32_t map_type,
-//         uint32_t key_size,
-//         uint32_t value_size,
-//         uint32_t max_entries,
-//         const ebpf_map_definition_in_memory_t* map_definition,
-//         void** map_context);
-
-//     void (*map_delete)(void* map_context);
-
-//     // Map data operations
-//     ebpf_result_t (*map_lookup)(void* map_context, const uint8_t* key, uint8_t* value);
-
-//     ebpf_result_t (*map_update)(void* map_context, const uint8_t* key, const uint8_t* value, uint64_t flags);
-
-//     ebpf_result_t (*map_delete_element)(void* map_context, const uint8_t* key);
-
-//     // Validation and compatibility
-//     ebpf_result_t (*validate_map_program_association)(uint32_t map_type, const GUID* program_type);
-
-//     // Iterator support (optional)
-//     ebpf_result_t (*map_get_next_key)(void* map_context, const uint8_t* previous_key, uint8_t* next_key);
-
-// } ebpf_extensible_map_provider_t;
 
 /**
  * @brief Extensible map provider data.

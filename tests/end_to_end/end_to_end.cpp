@@ -3673,6 +3673,7 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     const char* error_message = nullptr;
     fd_t program_fd;
     bpf_link_ptr link;
+    int iteration = 10;
 
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
@@ -3688,6 +3689,13 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     test_sample_map_provider_t sample_map_provider;
     REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
 
+    auto require_and_close_object = [&](bool condition) {
+        if (!condition) {
+            bpf_object__close(unique_object.release());
+        }
+        REQUIRE(condition);
+    };
+
     // Load eBPF program.
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
@@ -3695,10 +3703,31 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
-    if (result != 0) {
-        bpf_object__close(unique_object.release());
-    }
     REQUIRE(result == 0);
+
+    // Set value in the map.
+    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
+    require_and_close_object(map_fd > 0);
+    uint32_t key = 0;
+    uint32_t value = 1234;
+    require_and_close_object((bpf_map_update_elem(map_fd, &key, &value, 0) == 0));
+
+    // Now invoke the program. The map value should be incremented by 1 by the program.
+    bpf_test_run_opts opts = {};
+    sample_program_context_t ctx = {};
+    opts.batch_size = 1;
+    opts.repeat = iteration;
+    opts.ctx_in = &ctx;
+    opts.ctx_size_in = sizeof(sample_program_context_t);
+    opts.ctx_out = &ctx;
+    opts.ctx_size_out = sizeof(sample_program_context_t);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the map value and validate it is updated.
+    uint32_t updated_value = 0;
+    require_and_close_object(bpf_map_lookup_elem(map_fd, &key, &updated_value) == 0);
+    require_and_close_object(updated_value == value + iteration);
 
     bpf_object__close(unique_object.release());
 }

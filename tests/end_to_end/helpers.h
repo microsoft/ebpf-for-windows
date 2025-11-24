@@ -443,7 +443,7 @@ _test_sample_map_create(
     sample_map->value_size = value_size;
     sample_map->max_entries = max_entries;
 
-    sample_map->data = (uint8_t*)malloc(value_size * max_entries);
+    sample_map->data = (uint8_t*)malloc((size_t)value_size * (size_t)max_entries);
     if (sample_map->data == nullptr) {
         free(sample_map);
         return EBPF_NO_MEMORY;
@@ -485,7 +485,7 @@ _test_sample_map_find_entry(
     }
 
     test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
-    if (key_size != map->key_size) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != map->key_size) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -495,7 +495,7 @@ _test_sample_map_find_entry(
         return EBPF_OBJECT_NOT_FOUND;
     }
 
-    *value = map->data + (index * map->value_size);
+    *value = map->data + ((size_t)index * map->value_size);
     return EBPF_SUCCESS;
 }
 
@@ -528,7 +528,7 @@ _test_sample_map_update_entry(
     }
 
     // Update existing entry
-    memcpy(map->data + (index * map->value_size), value, map->value_size);
+    memcpy(map->data + ((size_t)index * map->value_size), value, map->value_size);
     return EBPF_SUCCESS;
 }
 
@@ -552,7 +552,7 @@ _test_sample_map_delete_entry(
     if (index >= map->max_entries) {
         return EBPF_OBJECT_NOT_FOUND;
     }
-    memset(map->data + (index * map->value_size), 0, map->value_size);
+    memset(map->data + ((size_t)index * map->value_size), 0, map->value_size);
     return EBPF_SUCCESS;
 }
 
@@ -653,7 +653,7 @@ typedef class _test_sample_map_provider
     static NTSTATUS
     _map_provider_attach_client(
         _In_ HANDLE nmr_binding_handle,
-        _In_ const void* provider_context,
+        _Inout_ void* provider_context,
         _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
         _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
@@ -661,12 +661,11 @@ typedef class _test_sample_map_provider
         _Outptr_result_maybenull_ const void** provider_dispatch)
     {
         UNREFERENCED_PARAMETER(nmr_binding_handle);
-        UNREFERENCED_PARAMETER(provider_context);
         UNREFERENCED_PARAMETER(client_registration_instance);
         UNREFERENCED_PARAMETER(client_binding_context);
         UNREFERENCED_PARAMETER(client_dispatch);
 
-        *provider_binding_context = nullptr;
+        *provider_binding_context = provider_context;
         *provider_dispatch = nullptr;
         return STATUS_SUCCESS;
     }
@@ -692,7 +691,7 @@ typedef class _test_sample_map_provider
 
     // NMR Provider infrastructure
   private:
-    HANDLE _map_provider_handle;
+    HANDLE _map_provider_handle = INVALID_HANDLE_VALUE;
     // static ebpf_map_provider_dispatch_table_t _map_dispatch_table;
     NPI_MODULEID _map_module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
     NPI_PROVIDER_CHARACTERISTICS _map_provider_characteristics = {

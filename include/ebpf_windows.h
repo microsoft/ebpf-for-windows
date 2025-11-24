@@ -168,7 +168,7 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION 1
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, dummy)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, epoch_free_cache_aligned)
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_map_client_dispatch_table_t)
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER             \
     {EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION,      \

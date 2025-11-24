@@ -3,10 +3,21 @@
 
 #define EBPF_FILE_ID EBPF_FILE_ID_EXTENSIBLE_MAPS
 
+#include "ebpf_epoch.h"
 #include "ebpf_extensible_maps.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_program.h"
 #include "ebpf_tracelog.h"
+
+static ebpf_map_client_dispatch_table_t _ebpf_extensible_map_client_dispatch_table = {
+    EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
+    ebpf_epoch_allocate_with_tag,
+    ebpf_epoch_allocate_cache_aligned_with_tag,
+    ebpf_epoch_free,
+    ebpf_epoch_free_cache_aligned};
+
+static ebpf_map_client_data_t _ebpf_extensible_map_client_data = {
+    EBPF_MAP_CLIENT_DATA_HEADER, &_ebpf_extensible_map_client_dispatch_table};
 
 /**
  * @brief Extensible map structure with NMR client components.
@@ -21,7 +32,8 @@ typedef struct _ebpf_extensible_map
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
 
-    ebpf_lock_t lock;                                                         // Synchronization
+    ebpf_lock_t lock; // Synchronization
+    // ANUSA TODO: Make sure the provider dispatch variable and the actual memory are both cache aligned.
     _Guarded_by_(lock) ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
     _Guarded_by_(lock) bool provider_attached;                                // Provider attachment state
     _Guarded_by_(lock) uint32_t reference_count;                              // Lifecycle management
@@ -88,7 +100,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_extensible_map_client_characterist
         &EBPF_MAP_EXTENSION_IID,
         NULL,
         0,
-        NULL,
+        &_ebpf_extensible_map_client_data,
     },
 };
 
