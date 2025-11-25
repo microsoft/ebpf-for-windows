@@ -1670,7 +1670,4 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
 
     _test_multiple_programs_load(
         _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
-
-    std::cout << "Test Success" << std::endl;
-    FAIL("Test Failure: success");
 }
