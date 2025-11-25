@@ -763,26 +763,6 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
     return EBPF_SUCCESS;
 }
 
-// static bool
-// _ebpf_validate_map_provider_dispatch_table(
-//     _In_ const ebpf_map_provider_dispatch_table_t* dispatch_table)
-// {
-//     if (dispatch_table == NULL) {
-//         return false;
-//     }
-
-//     for (uint16_t i = 0; i < supported_map_type_count; i++) {
-//         if (dispatch_table[i].map_create == NULL || dispatch_table[i].map_update_element == NULL ||
-//             dispatch_table[i].map_delete_element == NULL || dispatch_table[i].map_find_element == NULL ||
-//             dispatch_table[i].map_next_key == NULL || dispatch_table[i].map_update_element_with_handle == NULL ||
-//             dispatch_table[i].map_delete_element_with_handle == NULL ||
-//             dispatch_table[i].map_get_next_key_with_handle == NULL) { return false;
-//         }
-//     }
-
-//     return true;
-// }
-
 static bool
 _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch_table_t* dispatch_table)
 {
@@ -796,7 +776,7 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch
     memcpy(
         &local_dispatch_table,
         dispatch_table,
-        min(local_dispatch_table.header.size, sizeof(ebpf_map_provider_dispatch_table_t)));
+        min(dispatch_table->header.size, sizeof(ebpf_map_provider_dispatch_table_t)));
 
     if (local_dispatch_table.header.version == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
         if (local_dispatch_table.header.size == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
@@ -808,7 +788,11 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch
                 local_dispatch_table.associate_program_function == NULL) {
                 return false;
             }
+        } else {
+            return false;
         }
+    } else {
+        return false;
     }
 
     return true;

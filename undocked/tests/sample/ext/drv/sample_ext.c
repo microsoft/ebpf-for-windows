@@ -143,6 +143,11 @@ static ebpf_result_t
 _sample_map_get_next_key(
     _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key);
 
+static ebpf_result_t
+_sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
+
+static uint32_t _sample_supported_map_types[1] = {BPF_MAP_TYPE_SAMPLE_MAP};
+
 // Sample map extension data
 static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
@@ -151,7 +156,11 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .find_element_function = _sample_map_find_entry,
     .update_element_function = _sample_map_update_entry,
     .delete_element_function = _sample_map_delete_entry,
-    .get_next_key_function = _sample_map_get_next_key};
+    .get_next_key_function = _sample_map_get_next_key,
+    .associate_program_function = _sample_map_associate_program};
+
+static ebpf_map_provider_data_t _sample_map_provider_data = {
+    EBPF_MAP_PROVIDER_DATA_HEADER, 1, _sample_supported_map_types, &_sample_map_dispatch_table};
 
 // Map provider context structure
 typedef struct _sample_ebpf_extension_map_provider
@@ -191,7 +200,7 @@ static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_ch
         &EBPF_MAP_EXTENSION_IID,
         &_sample_ebpf_extension_map_provider_moduleid, // Module ID (reuse program one)
         0,                                             // Number
-        &_sample_map_dispatch_table                    // Module context (extension data)
+        &_sample_map_provider_data                     // Module context (extension data)
     }};
 
 static ebpf_result_t
@@ -640,7 +649,7 @@ Exit:
 static NTSTATUS
 _sample_ebpf_extension_map_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
-    _In_ const void* provider_context,
+    _In_ void* provider_context,
     _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
     _In_ const void* client_binding_context,
     _In_ const void* client_dispatch,
@@ -648,14 +657,13 @@ _sample_ebpf_extension_map_provider_attach_client(
     _Outptr_result_maybenull_ const void** provider_dispatch)
 {
     UNREFERENCED_PARAMETER(nmr_binding_handle);
-    UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_registration_instance);
     UNREFERENCED_PARAMETER(client_binding_context);
     UNREFERENCED_PARAMETER(client_dispatch);
 
     // For extensible maps, the provider dispatch is the extension data
-    *provider_binding_context = &_sample_map_dispatch_table;
-    *provider_dispatch = &_sample_map_dispatch_table;
+    *provider_binding_context = provider_context;
+    *provider_dispatch = NULL;
 
     return STATUS_SUCCESS;
 }
@@ -1187,6 +1195,18 @@ _sample_map_get_next_key(
     }
 
     return EBPF_NO_MORE_KEYS;
+}
+
+static ebpf_result_t
+_sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type)
+{
+    UNREFERENCED_PARAMETER(map_context);
+
+    // Check that the program type is supported.
+    if (memcmp(program_type, &EBPF_PROGRAM_TYPE_SAMPLE, sizeof(ebpf_program_type_t)) != 0) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t

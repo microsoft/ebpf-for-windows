@@ -1699,11 +1699,9 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
         {"strings.sys", BPF_PROG_TYPE_UNSPEC},
         {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
         {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
-        {"utility.sys", BPF_PROG_TYPE_UNSPEC}
-    };
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
 
-    _test_multiple_programs_load(
-        _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
 TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
@@ -1747,4 +1745,73 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 
     // Clean up
     _close(extensible_map_fd);
+}
+
+void
+_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+{
+    // _test_helper_end_to_end test_helper;
+    // test_helper.initialize();
+    bpf_object_ptr unique_object{nullptr};
+    int result;
+    // const char* error_message = nullptr;
+    fd_t program_fd;
+    bpf_link_ptr link;
+    int iteration = 10;
+    bpf_object* object = nullptr;
+
+    // program_info_provider_t sample_program_info;
+    // REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_basic.sys" : "extensible_map_basic.o";
+
+    result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd);
+    REQUIRE(result == 0);
+
+    unique_object.reset(object);
+
+    auto require_and_close_object = [&](bool condition) {
+        if (!condition) {
+            bpf_object__close(unique_object.release());
+        }
+        REQUIRE(condition);
+    };
+
+    // Set value in the map.
+    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
+    require_and_close_object(map_fd > 0);
+    uint32_t key = 0;
+    uint32_t value = 1234;
+    require_and_close_object((bpf_map_update_elem(map_fd, &key, &value, 0) == 0));
+
+    // Now invoke the program. The map value should be incremented by 1 by the program.
+    bpf_test_run_opts opts = {};
+    sample_program_context_t ctx = {};
+    opts.batch_size = 1;
+    opts.repeat = iteration;
+    opts.ctx_in = &ctx;
+    opts.ctx_size_in = sizeof(sample_program_context_t);
+    opts.ctx_out = &ctx;
+    opts.ctx_size_out = sizeof(sample_program_context_t);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the map value and validate it is updated.
+    uint32_t updated_value = 0;
+    require_and_close_object(bpf_map_lookup_elem(map_fd, &key, &updated_value) == 0);
+    require_and_close_object(updated_value == value + iteration);
+
+    bpf_object__close(unique_object.release());
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("extensible_maps_program_load-jit", "[extensible_maps]")
+{
+    _test_extensible_maps_program_load(EBPF_EXECUTION_JIT);
+}
+#endif
+TEST_CASE("extensible_maps_program_load-native", "[extensible_maps]")
+{
+    _test_extensible_maps_program_load(EBPF_EXECUTION_NATIVE);
 }
