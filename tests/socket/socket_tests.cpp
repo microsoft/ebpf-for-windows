@@ -158,7 +158,7 @@ connection_test(
     sender_socket.cancel_send_message();
 
     { // Test soft permit with default ingress block filter.
-        filter_helper scoped_helper(false, SOCKET_TEST_PORT, address_family, protocol);
+        filter_helper default_block(false, SOCKET_TEST_PORT, address_family, protocol);
 
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);

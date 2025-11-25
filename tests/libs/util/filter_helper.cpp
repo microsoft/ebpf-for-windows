@@ -66,13 +66,18 @@ filter_helper::cleanup()
         if (result == ERROR_SUCCESS) {
             for (uint64_t filter_id : filter_ids) {
                 result = FwpmFilterDeleteById(wfp_engine, filter_id);
-                if (result != ERROR_SUCCESS && result != FWP_E_NOT_FOUND) {
+                if (result != ERROR_SUCCESS) {
                     printf("Failed to delete WFP filter during filter_helper cleanup. Error: 0x%lX\n", result);
                 }
             }
-            // Ignore errors when deleting sublayer and provider.
-            FwpmSubLayerDeleteByKey(wfp_engine, &sublayer_guid);
+            result = FwpmSubLayerDeleteByKey(wfp_engine, &sublayer_guid);
+            if (result != ERROR_SUCCESS) {
+                printf("Failed to delete WFP sublayer during filter_helper cleanup. Error: 0x%lX\n", result);
+            }
             FwpmProviderDeleteByKey(wfp_engine, &provider_guid);
+            if (result != ERROR_SUCCESS) {
+                printf("Failed to delete WFP provider during filter_helper cleanup. Error: 0x%lX\n", result);
+            }
             result = FwpmTransactionCommit(wfp_engine);
             if (result != ERROR_SUCCESS) {
                 printf("Failed to commit WFP transaction for filter_helper cleanup. Error: 0x%lX\n", result);
@@ -116,6 +121,7 @@ filter_helper::add_block_filter()
     filter.numFilterConditions = 1;
 
     REQUIRE(FwpmFilterAdd(wfp_engine, &filter, nullptr, &filter_id) == ERROR_SUCCESS);
+    filter_ids.push_back(filter_id);
 
     return ERROR_SUCCESS;
 }
