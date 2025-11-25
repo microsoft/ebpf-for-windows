@@ -24,8 +24,8 @@
 class filter_helper
 {
   private:
-    static const GUID provider_guid{};
-    static const GUID sublayer_guid{};
+    static const GUID provider_guid;
+    static const GUID sublayer_guid;
 
     HANDLE wfp_engine{};
     std::vector<uint64_t> filter_ids{};
