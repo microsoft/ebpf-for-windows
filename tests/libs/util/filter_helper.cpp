@@ -1,75 +1,58 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "catch_wrapper.hpp"
 #include "filter_helper.h"
 
 const GUID filter_helper::provider_guid = {
-    0x12345678, 0x1234, 0x5678, {0x90, 0x12, 0x12, 0x34, 0x56, 0x78, 0x90, 0x12}};
+    0x3d6a3b42, 0x7c8e, 0x4f2a, {0x9b, 0x5d, 0x8f, 0x1a, 0x2e, 0x4c, 0x6b, 0x9d}};
 
 const GUID filter_helper::sublayer_guid = {
-    0x87654321, 0x4321, 0x8765, {0x21, 0x09, 0x21, 0x09, 0x87, 0x65, 0x43, 0x21}};
+    0x7f9e2a1c, 0x5b3d, 0x4e8f, {0xa2, 0x6c, 0x1d, 0x4b, 0x7e, 0x3a, 0x9f, 0x5c}};
 
 filter_helper::filter_helper(bool egress, uint16_t test_port, ADDRESS_FAMILY address_family, IPPROTO protocol)
     : egress(egress), test_port(test_port), address_family(address_family), protocol(protocol)
 {
-    DWORD result = FwpmEngineOpen(nullptr, RPC_C_AUTHN_DEFAULT, nullptr, nullptr, &wfp_engine);
-    if (result != ERROR_SUCCESS) {
-        last_error = result;
-        return;
+    REQUIRE(FwpmEngineOpen(nullptr, RPC_C_AUTHN_DEFAULT, nullptr, nullptr, &wfp_engine) == ERROR_SUCCESS);
+
+    auto cleanup_on_failure = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) { cleanup(); });
+
+    REQUIRE(FwpmTransactionBegin(wfp_engine, 0) == ERROR_SUCCESS);
+    {
+        auto abort_on_failure = std::unique_ptr<void, std::function<void(void*)>>(
+            reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+            [&](void*) { FwpmTransactionAbort(wfp_engine); });
+        // Add provider
+        FWPM_PROVIDER provider = {};
+        provider.providerKey = provider_guid;
+        provider.displayData.name = const_cast<wchar_t*>(L"eBPF Test Provider");
+        provider.flags = 0;
+
+        DWORD result = FwpmProviderAdd(wfp_engine, &provider, nullptr);
+        bool success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
+        REQUIRE(success_or_exists);
+
+        // Add sublayer
+        FWPM_SUBLAYER sublayer = {};
+        sublayer.subLayerKey = sublayer_guid;
+        sublayer.displayData.name = const_cast<wchar_t*>(L"eBPF Test Sublayer");
+        sublayer.providerKey = const_cast<GUID*>(&provider_guid);
+        sublayer.weight = 0x8000;
+
+        result = FwpmSubLayerAdd(wfp_engine, &sublayer, nullptr);
+        success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
+        REQUIRE(success_or_exists);
+
+        // Add the block filter
+        REQUIRE(add_block_filter() == ERROR_SUCCESS);
+
+        [[maybe_unused]] auto _ = abort_on_failure.release();
+        REQUIRE(FwpmTransactionCommit(wfp_engine) == ERROR_SUCCESS);
     }
 
-    result = FwpmTransactionBegin(wfp_engine, 0);
-    if (result != ERROR_SUCCESS) {
-        last_error = result;
-        cleanup();
-        return;
-    }
-
-    // Add provider
-    FWPM_PROVIDER provider = {};
-    provider.providerKey = provider_guid;
-    provider.displayData.name = const_cast<wchar_t*>(L"eBPF Test Provider");
-    provider.flags = 0;
-
-    result = FwpmProviderAdd(wfp_engine, &provider, nullptr);
-    if (result != ERROR_SUCCESS && result != FWP_E_ALREADY_EXISTS) {
-        last_error = result;
-        FwpmTransactionAbort(wfp_engine);
-        cleanup();
-        return;
-    }
-
-    // Add sublayer
-    FWPM_SUBLAYER sublayer = {};
-    sublayer.subLayerKey = sublayer_guid;
-    sublayer.displayData.name = const_cast<wchar_t*>(L"eBPF Test Sublayer");
-    sublayer.providerKey = const_cast<GUID*>(&provider_guid);
-    sublayer.weight = 0x8000;
-
-    result = FwpmSubLayerAdd(wfp_engine, &sublayer, nullptr);
-    if (result != ERROR_SUCCESS && result != FWP_E_ALREADY_EXISTS) {
-        last_error = result;
-        FwpmTransactionAbort(wfp_engine);
-        cleanup();
-        return;
-    }
-
-    // Add the soft block filter
-    result = add_soft_block_filter();
-    if (result != ERROR_SUCCESS) {
-        last_error = result;
-        FwpmTransactionAbort(wfp_engine);
-        cleanup();
-        return;
-    }
-
-    result = FwpmTransactionCommit(wfp_engine);
-    if (result != ERROR_SUCCESS) {
-        last_error = result;
-        cleanup();
-        return;
-    }
-
+    [[maybe_unused]] auto _ = cleanup_on_failure.release();
     initialized = true;
 }
 
@@ -79,22 +62,35 @@ void
 filter_helper::cleanup()
 {
     if (wfp_engine != nullptr) {
-        if (FwpmTransactionBegin(wfp_engine, 0) == ERROR_SUCCESS) {
+        DWORD result = FwpmTransactionBegin(wfp_engine, 0);
+        if (result == ERROR_SUCCESS) {
             for (uint64_t filter_id : filter_ids) {
-                FwpmFilterDeleteById(wfp_engine, filter_id);
+                result = FwpmFilterDeleteById(wfp_engine, filter_id);
+                if (result != ERROR_SUCCESS && result != FWP_E_NOT_FOUND) {
+                    printf("Failed to delete WFP filter during filter_helper cleanup. Error: 0x%lX\n", result);
+                }
             }
+            // Ignore errors when deleting sublayer and provider.
             FwpmSubLayerDeleteByKey(wfp_engine, &sublayer_guid);
             FwpmProviderDeleteByKey(wfp_engine, &provider_guid);
-            FwpmTransactionCommit(wfp_engine);
+            result = FwpmTransactionCommit(wfp_engine);
+            if (result != ERROR_SUCCESS) {
+                printf("Failed to commit WFP transaction for filter_helper cleanup. Error: 0x%lX\n", result);
+            }
+        } else {
+            printf("Failed to begin WFP transaction for filter_helper cleanup. Error: 0x%lX\n", result);
         }
-        FwpmEngineClose(wfp_engine);
+        result = FwpmEngineClose(wfp_engine);
+        if (result != ERROR_SUCCESS) {
+            printf("Failed to close WFP engine during filter_helper cleanup. Error: 0x%lX\n", result);
+        }
         wfp_engine = nullptr;
     }
     filter_ids.clear();
 }
 
 DWORD
-filter_helper::add_soft_block_filter()
+filter_helper::add_block_filter()
 {
     FWPM_FILTER filter = {};
     uint64_t filter_id = 0;
@@ -119,10 +115,7 @@ filter_helper::add_soft_block_filter()
     filter.filterCondition = &condition;
     filter.numFilterConditions = 1;
 
-    DWORD result = FwpmFilterAdd(wfp_engine, &filter, nullptr, &filter_id);
-    if (result == ERROR_SUCCESS) {
-        filter_ids.push_back(filter_id);
-    }
+    REQUIRE(FwpmFilterAdd(wfp_engine, &filter, nullptr, &filter_id) == ERROR_SUCCESS);
 
-    return result;
+    return ERROR_SUCCESS;
 }

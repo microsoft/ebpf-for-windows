@@ -17,26 +17,28 @@
  * This class provides RAII management of WFP filters to enable testing of hard/soft permit
  * functionality. It creates a low-priority soft block filter that can be bypassed by
  * higher-priority hard permit filters.
+ *
+ * @note Uses catch2 assertions to fail in case of errors during setup or cleanup.
+ *
  */
 class filter_helper
 {
   private:
-    static const GUID provider_guid;
-    static const GUID sublayer_guid;
+    static const GUID provider_guid{};
+    static const GUID sublayer_guid{};
 
-    HANDLE wfp_engine = nullptr;
-    std::vector<uint64_t> filter_ids;
-    uint16_t test_port;
-    ADDRESS_FAMILY address_family;
-    IPPROTO protocol;
-    DWORD last_error = ERROR_SUCCESS;
-    bool egress = false;
-    bool initialized = false;
+    HANDLE wfp_engine{};
+    std::vector<uint64_t> filter_ids{};
+    uint16_t test_port{};
+    ADDRESS_FAMILY address_family{AF_INET};
+    IPPROTO protocol{IPPROTO_TCP};
+    bool egress{false};
+    bool initialized{false};
 
     void
     cleanup();
     DWORD
-    add_soft_block_filter();
+    add_block_filter();
 
   public:
     /**
@@ -70,38 +72,4 @@ class filter_helper
     {
         return initialized;
     }
-
-    /**
-     * @brief Get last error code from WFP operations.
-     */
-    DWORD
-    get_last_error() const { return last_error; }
-};
-
-/**
- * @brief RAII wrapper for filter_helper that throws on initialization failure.
- */
-class scoped_filter_helper
-{
-  private:
-    filter_helper helper;
-
-  public:
-    scoped_filter_helper(
-        bool egress = false,
-        uint16_t test_port = 8989,
-        ADDRESS_FAMILY address_family = AF_INET,
-        IPPROTO protocol = IPPROTO_TCP)
-        : helper(egress, test_port, address_family, protocol)
-    {
-        if (!helper.is_initialized()) {
-            throw std::runtime_error(
-                "Failed to initialize WFP filter helper: " + std::to_string(helper.get_last_error()));
-        }
-    }
-
-    // Non-copyable
-    scoped_filter_helper(const scoped_filter_helper&) = delete;
-    scoped_filter_helper&
-    operator=(const scoped_filter_helper&) = delete;
 };
