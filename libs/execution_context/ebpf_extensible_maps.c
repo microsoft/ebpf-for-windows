@@ -31,12 +31,14 @@ typedef struct _ebpf_extensible_map
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
+    void* provider_binding_context;
 
     ebpf_lock_t lock; // Synchronization
     // ANUSA TODO: Make sure the provider dispatch variable and the actual memory are both cache aligned.
     _Guarded_by_(lock) ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
     _Guarded_by_(lock) bool provider_attached;                                // Provider attachment state
-    _Guarded_by_(lock) uint32_t reference_count;                              // Lifecycle management
+    _Guarded_by_(lock) uint32_t reference_count;                              // Lifecycle management.
+    _Guarded_by_(lock) void* provider_context;                                // Provider context returned during attach
 
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
 } ebpf_extensible_map_t;
@@ -236,6 +238,7 @@ ebpf_extensible_map_create(
 
     // Create extension map
     result = extensible_map->provider_dispatch->create_map_function(
+        extensible_map->provider_context,
         extensible_map->core_map.ebpf_map_definition.type,
         extensible_map->core_map.ebpf_map_definition.key_size,
         extensible_map->core_map.ebpf_map_definition.value_size,
@@ -404,6 +407,8 @@ _ebpf_extensible_map_client_attach_provider(
         extensible_map->provider_dispatch = NULL;
         extensible_map->provider_attached = false;
         goto Done;
+    } else {
+        extensible_map->provider_context = provider_binding_context;
     }
 
     ebpf_lock_unlock(&extensible_map->lock, state);

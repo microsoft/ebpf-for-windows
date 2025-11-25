@@ -108,6 +108,7 @@ typedef struct _sample_map
 // Map provider function declarations
 static ebpf_result_t
 _sample_map_create(
+    _In_ void* binding_context,
     uint32_t map_type,
     uint32_t key_size,
     uint32_t value_size,
@@ -169,6 +170,11 @@ typedef struct _sample_ebpf_extension_map_provider
 } sample_ebpf_extension_map_provider_t;
 
 static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_map_provider_context = {NULL};
+
+typedef struct _sample_extension_map_provider_binding_context
+{
+    ebpf_map_client_dispatch_table_t client_dispatch_table;
+} sample_extension_map_provider_binding_context_t;
 
 // Forward declarations for map provider
 static NTSTATUS
@@ -642,6 +648,16 @@ Exit:
     return status;
 }
 
+bool
+_sample_validate_client_map_data(_In_ const ebpf_map_client_data_t* client_data)
+{
+    if (client_data->header.version != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION ||
+        client_data->header.size != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION_SIZE) {
+        return false;
+    }
+    return true;
+}
+
 //
 // Map Provider Registration
 //
@@ -660,9 +676,33 @@ _sample_ebpf_extension_map_provider_attach_client(
     UNREFERENCED_PARAMETER(client_registration_instance);
     UNREFERENCED_PARAMETER(client_binding_context);
     UNREFERENCED_PARAMETER(client_dispatch);
+    UNREFERENCED_PARAMETER(provider_context);
 
-    // For extensible maps, the provider dispatch is the extension data
-    *provider_binding_context = provider_context;
+    sample_extension_map_provider_binding_context_t* local_provider_context = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED,
+        sizeof(sample_extension_map_provider_binding_context_t),
+        SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (local_provider_context == NULL) {
+        return STATUS_NO_MEMORY;
+    }
+
+    const ebpf_map_client_data_t* client_data =
+        (const ebpf_map_client_data_t*)client_registration_instance->NpiSpecificCharacteristics;
+    if (!_sample_validate_client_map_data(client_data)) {
+        CXPLAT_FREE(local_provider_context);
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    memcpy(
+        &local_provider_context->client_dispatch_table,
+        client_data->dispatch_table,
+        min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
+    // if (!_sample_validate_client_map_data(&local_provider_context->client_dispatch_table)) {
+    //     CXPLAT_FREE(local_provider_context);
+    //     return STATUS_INVALID_PARAMETER;
+    // }
+
+    *provider_binding_context = local_provider_context;
     *provider_dispatch = NULL;
 
     return STATUS_SUCCESS;
@@ -678,8 +718,9 @@ _sample_ebpf_extension_map_provider_detach_client(_In_ const void* provider_bind
 static void
 _sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    UNREFERENCED_PARAMETER(provider_binding_context);
-    // Nothing to clean up for static extension data
+    sample_extension_map_provider_binding_context_t* local_provider_context =
+        (sample_extension_map_provider_binding_context_t*)provider_binding_context;
+    CXPLAT_FREE(local_provider_context);
 }
 
 void
@@ -965,12 +1006,18 @@ _sample_map_hash(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
 
 static ebpf_result_t
 _sample_map_create(
-    uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, _Outptr_ void** map_context)
+    _In_ void* binding_context,
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _Outptr_ void** map_context)
 {
     sample_map_t* sample_map = NULL;
     ebpf_result_t result = EBPF_SUCCESS;
 
     UNREFERENCED_PARAMETER(map_type);
+    UNREFERENCED_PARAMETER(binding_context);
 
     if (key_size == 0 || value_size == 0) {
         result = EBPF_INVALID_ARGUMENT;

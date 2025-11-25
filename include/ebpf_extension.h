@@ -149,6 +149,7 @@ typedef struct _ebpf_execution_context_state
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
 typedef ebpf_result_t (*ebpf_map_create_t)(
+    _In_ void* binding_context,
     uint32_t map_type,
     uint32_t key_size,
     uint32_t value_size,
