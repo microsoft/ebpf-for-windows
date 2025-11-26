@@ -97,6 +97,33 @@ register_xdp_program_information()
     return ERROR_SUCCESS;
 }
 
+// Unregister XDP program information from the store
+static void
+unregister_xdp_program_information()
+{
+    if (!g_xdp_registered) {
+        return;
+    }
+
+    ebpf_result_t result;
+
+    // Delete section information
+    for (size_t i = 0; i < EBPF_COUNT_OF(_mock_xdp_section_info); i++) {
+        result = ebpf_store_delete_section_information(&_mock_xdp_section_info[i]);
+        if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+            std::cerr << "Failed to delete XDP section information: " << result << std::endl;
+        }
+    }
+
+    // Delete program information
+    result = ebpf_store_delete_program_information(&_mock_xdp_program_info);
+    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+        std::cerr << "Failed to delete XDP program information: " << result << std::endl;
+    }
+
+    g_xdp_registered = false;
+}
+
 void
 verify_program(_In_z_ const char* file, uint32_t expected_section_count)
 {
@@ -146,6 +173,7 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
     }
 
     REQUIRE(section_count == expected_section_count);
+    unregister_xdp_program_information();
 }
 
 TEST_CASE("verify_snat_program", "[cilium][xdp]")
