@@ -157,11 +157,11 @@ SPDX-License-Identifier: MIT
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
 		<!--This workaround uses PowerShell to batch two commands, one to change the working directory, the other to execute the actual command from that directory.-->
-		<SetProperty Id="eBPF_netsh_helper_install" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh add helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_install" Sequence="execute"/>
+		<SetProperty Id="eBPF_netsh_helper_install" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';&amp;netsh add helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_install" Sequence="execute"/>
 		<CustomAction Id="eBPF_netsh_helper_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
-		<SetProperty Id="eBPF_netsh_helper_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall" Sequence="execute"/>
+		<SetProperty Id="eBPF_netsh_helper_uninstall" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';&amp;netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall" Sequence="execute"/>
 		<CustomAction Id="eBPF_netsh_helper_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="eBPF_netsh_helper_uninstall_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall_rollback" Sequence="execute"/>
+		<SetProperty Id="eBPF_netsh_helper_uninstall_rollback" Value="&quot;[WindowsFolder]System32\WindowsPowerShell\v1.0\powershell.exe&quot; -ExecutionPolicy Bypass &quot;cd '[INSTALLFOLDER]';&amp;netsh delete helper ebpfnetsh.dll&quot;" Before="eBPF_netsh_helper_uninstall_rollback" Sequence="execute"/>
 		<CustomAction Id="eBPF_netsh_helper_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall the eBPF Service -->
