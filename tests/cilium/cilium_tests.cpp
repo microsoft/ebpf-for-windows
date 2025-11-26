@@ -12,6 +12,7 @@
 #include "ebpf_shared_framework.h"
 
 #include <iostream>
+#include <stdexcept>
 
 #define SAMPLE_PATH ""
 #define CILIUM_XDP_SECTIONS_SNAT 10
@@ -71,11 +72,39 @@ static ebpf_program_section_info_t _mock_xdp_section_info[] = {
      BPF_PROG_TYPE_XDP,
      BPF_XDP}};
 
-static bool g_xdp_registered = false;
+// RAII wrapper to ensure XDP program information is unregistered on scope exit
+class xdp_program_info_guard
+{
+  public:
+    xdp_program_info_guard()
+    {
+        uint32_t status = register_xdp_program_information();
+        if (status != ERROR_SUCCESS) {
+            throw std::runtime_error("Failed to register XDP program information");
+        }
+    }
+
+    ~xdp_program_info_guard()
+    {
+        unregister_xdp_program_information();
+    }
+
+    // Delete copy constructor and assignment operator
+    xdp_program_info_guard(const xdp_program_info_guard&) = delete;
+    xdp_program_info_guard& operator=(const xdp_program_info_guard&) = delete;
+
+  private:
+    static uint32_t register_xdp_program_information();
+    static void unregister_xdp_program_information();
+    static bool g_xdp_registered;
+};
+
+// Initialize static member
+bool xdp_program_info_guard::g_xdp_registered = false;
 
 // Register XDP program information with the store
-static uint32_t
-register_xdp_program_information()
+uint32_t
+xdp_program_info_guard::register_xdp_program_information()
 {
     if (g_xdp_registered) {
         return ERROR_SUCCESS;
@@ -98,8 +127,8 @@ register_xdp_program_information()
 }
 
 // Unregister XDP program information from the store
-static void
-unregister_xdp_program_information()
+void
+xdp_program_info_guard::unregister_xdp_program_information()
 {
     if (!g_xdp_registered) {
         return;
@@ -127,9 +156,8 @@ unregister_xdp_program_information()
 void
 verify_program(_In_z_ const char* file, uint32_t expected_section_count)
 {
-    // Register XDP program information before verification
-    uint32_t status = register_xdp_program_information();
-    REQUIRE(status == ERROR_SUCCESS);
+    // RAII guard to ensure XDP program information is registered and unregistered
+    xdp_program_info_guard guard;
 
     struct bpf_object_open_opts opts = {0};
     bpf_program* program = nullptr;
@@ -173,7 +201,6 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
     }
 
     REQUIRE(section_count == expected_section_count);
-    unregister_xdp_program_information();
 }
 
 TEST_CASE("verify_snat_program", "[cilium][xdp]")
