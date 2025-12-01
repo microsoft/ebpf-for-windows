@@ -126,6 +126,7 @@ _test_multiple_programs_load(
         fd_t program_fd;
 
         result = program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
+        INFO("Failed to load program: " << file_name << " with result: " << result);
         REQUIRE(expected_load_result == result);
         if (expected_load_result == 0) {
             REQUIRE(program_fd > 0);
