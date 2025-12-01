@@ -45,7 +45,7 @@ AddVectoredExceptionHandler_test(_In_ unsigned long first, _In_ PVECTORED_EXCEPT
 unsigned long SetThreadStackGuarantee_test_stack_size_in_bytes = 0;
 
 // Use BOOL to pass "SetThreadStackGuarantee"
-// defined in windows "processthreadapi.h" file
+// defined in windows "processthreadapi.h" file.
 BOOL
 SetThreadStackGuarantee_test(_Inout_ unsigned long* stack_size_in_bytes)
 {
@@ -209,7 +209,7 @@ TEST_CASE("wer_report_failure", "[wer_report]")
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
 
-    // Fail WerReportCreate
+    // Fail WerReportCreate.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(WerReportCreate_test_called);
     REQUIRE(!WerReportAddDump_test_called);
@@ -222,7 +222,7 @@ TEST_CASE("wer_report_failure", "[wer_report]")
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
 
-    // Fail WerReportAddDump
+    // Fail WerReportAddDump.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(WerReportCreate_test_called);
     REQUIRE(WerReportAddDump_test_called);
@@ -235,7 +235,7 @@ TEST_CASE("wer_report_failure", "[wer_report]")
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
 
-    // Fail WerReportSubmit
+    // Fail WerReportSubmit.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(WerReportCreate_test_called);
     REQUIRE(WerReportAddDump_test_called);
