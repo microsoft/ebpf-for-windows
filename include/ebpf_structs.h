@@ -40,7 +40,8 @@ typedef enum bpf_map_type
 
     BPF_MAP_TYPE_MAX = 4095, ///< Maximum value for global map types.
 
-    BPF_MAP_TYPE_SAMPLE_MAP = 0xF000, ///< Sample map type.
+    BPF_MAP_TYPE_SAMPLE_ARRAY_MAP = 0xF000, ///< Sample array map type.
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP = 0xF001   ///< Sample hash map type.
 } ebpf_map_type_t;
 
 #define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \

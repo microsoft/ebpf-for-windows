@@ -22,6 +22,7 @@
 #include <ws2tcpip.h>
 #include <chrono>
 #include <io.h>
+#include <iomanip>
 #include <lsalookup.h>
 #include <mstcpip.h>
 #include <mutex>
@@ -1707,8 +1708,8 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
 TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 {
     // This test validates extensible map user APIs.
-    fd_t extensible_map_fd =
-        bpf_map_create(BPF_MAP_TYPE_SAMPLE_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
+    fd_t extensible_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
     REQUIRE(extensible_map_fd > 0);
 
     // Update elements at various indices.
@@ -1794,8 +1795,8 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     opts.ctx_size_in = sizeof(sample_program_context_t);
     opts.ctx_out = &ctx;
     opts.ctx_size_out = sizeof(sample_program_context_t);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    require_and_close_object(result == 0);
+    int test_result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(test_result == 0);
 
     // Lookup the map value and validate it is updated.
     uint32_t updated_value = 0;
@@ -1814,4 +1815,243 @@ TEST_CASE("extensible_maps_program_load-jit", "[extensible_maps]")
 TEST_CASE("extensible_maps_program_load-native", "[extensible_maps]")
 {
     _test_extensible_maps_program_load(EBPF_EXECUTION_NATIVE);
+}
+
+// Performance test structure for extensible map operations
+typedef struct _extensible_map_perf_result
+{
+    uint64_t duration_ns;
+    uint32_t cpu_id;
+    uint32_t operations_count;
+} extensible_map_perf_result_t;
+
+void
+print_extensible_map_performance_results(
+    const std::string& test_name, const std::vector<extensible_map_perf_result_t>& results)
+{
+    if (results.empty())
+        return;
+
+    uint64_t total_duration = 0;
+    uint32_t valid_results = 0;
+
+    std::cout << "\n=== " << test_name << " Performance Results ===" << std::endl;
+    std::cout << "CPU\tOperations\tDuration (ns)\tNs/Op" << std::endl;
+
+    for (const auto& result : results) {
+        if (result.operations_count > 0) {
+            double ns_per_op = static_cast<double>(result.duration_ns) / result.operations_count;
+            std::cout << result.cpu_id << "\t" << result.operations_count << "\t\t" << result.duration_ns << "\t\t"
+                      << std::fixed << std::setprecision(2) << ns_per_op << std::endl;
+            total_duration += result.duration_ns;
+            valid_results++;
+        }
+    }
+
+    if (valid_results > 0) {
+        double average_ns_per_cpu = static_cast<double>(total_duration) / valid_results;
+        std::cout << "AVG\t-\t\t" << static_cast<uint64_t>(average_ns_per_cpu) << "\t\t" << std::fixed
+                  << std::setprecision(2) << (average_ns_per_cpu / 1000000) << " ms/CPU" << std::endl;
+    }
+    std::cout << "=============================================" << std::endl;
+}
+
+void
+wait_for_input()
+{
+    std::cout << "Press Enter to continue..." << std::endl;
+    std::cin.get();
+}
+
+TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performance]")
+{
+    // Performance test parameters
+    const uint32_t PREPARE_ITERATIONS = 1024;
+    const uint32_t PERFORMANCE_ITERATIONS = 1000000;
+
+    // int result;
+    // hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    // program_load_attach_helper_t _helper;
+    struct bpf_object* object = nullptr;
+    native_module_helper_t native_helper;
+    fd_t program_fd;
+    native_helper.initialize("extensible_map_operations", EBPF_EXECUTION_NATIVE);
+    // _helper.initialize(
+    //     native_helper.get_file_name().c_str(),
+    //     BPF_PROG_TYPE_SAMPLE,
+    //     "read",
+    //     EBPF_EXECUTION_NATIVE,
+    //     nullptr,
+    //     0,
+    //     hook);
+
+    std::unique_ptr<bpf_object, decltype(&bpf_object__close)> unique_object(nullptr, bpf_object__close);
+
+    // const char* file_name = native_helper.get_file_name().c_str();
+    const char* file_name = "extensible_map_operations.sys";
+    int result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    unique_object.reset(object);
+
+    auto require_and_close_object = [&](bool condition) {
+        if (!condition) {
+            bpf_object__close(unique_object.release());
+        }
+        REQUIRE(condition);
+    };
+
+    // Find all required programs
+    bpf_program* prepare_program = bpf_object__find_program_by_name(object, "prepare");
+    bpf_program* read_program = bpf_object__find_program_by_name(object, "read");
+    bpf_program* update_program = bpf_object__find_program_by_name(object, "update");
+    bpf_program* replace_program = bpf_object__find_program_by_name(object, "replace");
+
+    require_and_close_object(prepare_program != nullptr);
+    require_and_close_object(read_program != nullptr);
+    require_and_close_object(update_program != nullptr);
+    require_and_close_object(replace_program != nullptr);
+
+    fd_t prepare_fd = bpf_program__fd(prepare_program);
+    fd_t read_fd = bpf_program__fd(read_program);
+    fd_t update_fd = bpf_program__fd(update_program);
+    fd_t replace_fd = bpf_program__fd(replace_program);
+
+    require_and_close_object(prepare_fd > 0);
+    require_and_close_object(read_fd > 0);
+    require_and_close_object(update_fd > 0);
+    require_and_close_object(replace_fd > 0);
+
+    // Get system info for CPU count
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    uint32_t cpu_count = sysinfo.dwNumberOfProcessors;
+
+    std::cout << "Running extensible map performance test on " << cpu_count << " CPUs" << std::endl;
+
+    // Step 3: Execute "sample_ext/prepare" program 1024 times to prepare the maps
+    std::cout << "Preparing maps with " << PREPARE_ITERATIONS << " iterations..." << std::endl;
+
+    bpf_test_run_opts prepare_opts = {};
+    prepare_opts.sz = sizeof(prepare_opts);
+    prepare_opts.repeat = PREPARE_ITERATIONS;
+    prepare_opts.batch_size = 1;
+    sample_program_context_t prepare_ctx = {};
+    prepare_opts.ctx_in = &prepare_ctx;
+    prepare_opts.ctx_size_in = sizeof(sample_program_context_t);
+    prepare_opts.ctx_out = &prepare_ctx;
+    prepare_opts.ctx_size_out = sizeof(sample_program_context_t);
+
+    result = bpf_prog_test_run_opts(prepare_fd, &prepare_opts);
+    require_and_close_object(result == 0);
+
+    // Performance test data structures
+    std::vector<extensible_map_perf_result_t> read_results(cpu_count);
+    std::vector<extensible_map_perf_result_t> update_results(cpu_count);
+    std::vector<extensible_map_perf_result_t> replace_results(cpu_count);
+
+    // Test structure for each operation type
+    struct perf_test_config
+    {
+        const char* name;
+        fd_t program_fd;
+        std::vector<extensible_map_perf_result_t>* results;
+    };
+
+    std::vector<perf_test_config> tests = {
+        {"Read Operations", read_fd, &read_results},
+        {"Update Operations", update_fd, &update_results},
+        {"Replace Operations", replace_fd, &replace_results}};
+
+    // Run performance tests for each operation type
+    for (auto& test : tests) {
+        std::cout << "\nRunning " << test.name << " with " << PERFORMANCE_ITERATIONS << " iterations per CPU..."
+                  << std::endl;
+
+        std::vector<std::jthread> threads;
+        std::atomic<size_t> failure_count = 0;
+
+        // Create one thread per CPU
+        for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+            threads.emplace_back([&, cpu_id, test]() {
+                try {
+                    bpf_test_run_opts opts = {};
+                    sample_program_context_t ctx = {};
+                    opts.sz = sizeof(opts);
+                    opts.repeat = PERFORMANCE_ITERATIONS;
+                    opts.batch_size = 1;
+                    opts.cpu = cpu_id;
+                    opts.ctx_in = &ctx;
+                    opts.ctx_size_in = sizeof(sample_program_context_t);
+                    opts.ctx_out = &ctx;
+                    opts.ctx_size_out = sizeof(sample_program_context_t);
+
+                    // Measure start time
+                    // auto start_time = std::chrono::high_resolution_clock::now();
+
+                    int thread_result = bpf_prog_test_run_opts(test.program_fd, &opts);
+                    if (thread_result != 0) {
+                        failure_count++;
+                    }
+                    // Execute the operation PERFORMANCE_ITERATIONS times
+                    // for (uint32_t i = 0; i < PERFORMANCE_ITERATIONS; i++) {
+                    //     int thread_result = bpf_prog_test_run_opts(test.program_fd, &opts);
+                    //     if (thread_result != 0) {
+                    //         failure_count++;
+                    //         break;
+                    //     }
+                    // }
+
+                    // Measure end time
+                    // auto end_time = std::chrono::high_resolution_clock::now();
+                    // auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
+
+                    // Store results
+                    (*test.results)[cpu_id] = {
+                        opts.duration, // Duration in nanoseconds from opts
+                        cpu_id,
+                        PERFORMANCE_ITERATIONS};
+
+                } catch (...) {
+                    failure_count++;
+                }
+            });
+        }
+
+        // Wait for all threads to complete
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+        require_and_close_object(failure_count == 0);
+
+        // Print performance results for this test
+        print_extensible_map_performance_results(test.name, *test.results);
+    }
+
+    // Print summary comparison
+    std::cout << "\n=== Performance Summary ===" << std::endl;
+
+    for (auto& test : tests) {
+        uint64_t total_ops = 0;
+        uint64_t total_time = 0;
+
+        for (const auto& perf_result : *test.results) {
+            total_ops += perf_result.operations_count;
+            total_time += perf_result.duration_ns;
+        }
+
+        if (total_ops > 0) {
+            double ops_per_second = static_cast<double>(total_ops) / (static_cast<double>(total_time) / 1e9);
+            double avg_ns_per_op = static_cast<double>(total_time) / total_ops;
+
+            std::cout << test.name << ":" << std::endl;
+            std::cout << "  Total Operations: " << total_ops << std::endl;
+            std::cout << "  Total Time: " << total_time << " ns" << std::endl;
+            std::cout << "  Operations/Second: " << std::fixed << std::setprecision(0) << ops_per_second << std::endl;
+            std::cout << "  Avg ns/Operation: " << std::fixed << std::setprecision(2) << avg_ns_per_op << std::endl;
+            std::cout << std::endl;
+        }
+    }
+
+    bpf_object__close(unique_object.release());
 }

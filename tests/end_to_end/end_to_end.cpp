@@ -3590,7 +3590,7 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
         // Try to create extensible map without initializing the map provider.
         // This should fail.
         fd_t invalid_map_fd = bpf_map_create(
-            BPF_MAP_TYPE_SAMPLE_MAP, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+            BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
         REQUIRE(invalid_map_fd < 0);
     }
 
@@ -3600,7 +3600,7 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 
     // This test validates extensible map user APIs.
     fd_t extensible_map_fd = bpf_map_create(
-        BPF_MAP_TYPE_SAMPLE_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
     REQUIRE(extensible_map_fd > 0);
 
     auto require_and_close = [](bool condition, fd_t fd) {

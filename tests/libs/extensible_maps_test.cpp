@@ -12,13 +12,13 @@
 
 #include <catch2/catch_all.hpp>
 
-// Test BPF_MAP_TYPE_SAMPLE_MAP which should be handled by extensible maps
-#define BPF_MAP_TYPE_SAMPLE_MAP 0xF000
+// Test BPF_MAP_TYPE_SAMPLE_ARRAY_MAP which should be handled by extensible maps
+#define BPF_MAP_TYPE_SAMPLE_ARRAY_MAP 0xF000
 
 TEST_CASE("extensible_maps_type_check", "[extensible_maps]")
 {
     // Test that extensible map types are correctly identified
-    REQUIRE(ebpf_map_type_is_extensible(BPF_MAP_TYPE_SAMPLE_MAP));
+    REQUIRE(ebpf_map_type_is_extensible(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP));
     REQUIRE(ebpf_map_type_is_extensible(4096));
     REQUIRE(ebpf_map_type_is_extensible(65535));
 
@@ -48,7 +48,7 @@ TEST_CASE("extensible_maps_create_without_provider", "[extensible_maps]")
         REQUIRE(result == EBPF_SUCCESS);
 
         ebpf_map_definition_in_memory_t map_def = {
-            .type = BPF_MAP_TYPE_SAMPLE_MAP,
+            .type = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP,
             .key_size = sizeof(uint32_t),
             .value_size = sizeof(uint64_t),
             .max_entries = 1024};

@@ -22,23 +22,22 @@ static ebpf_map_client_data_t _ebpf_extensible_map_client_data = {
 /**
  * @brief Extensible map structure with NMR client components.
  */
-typedef struct _ebpf_extensible_map
+__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_extensible_map
 {
     ebpf_core_map_t core_map;    // Base map structure
     void* extension_map_context; // Extension-specific map data
+
+    ebpf_lock_t lock;                                      // Synchronization lock
+    ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
+    void* provider_context;                                // Provider context returned during attach
+    // void* provider_binding_context;               // Provider binding context
+    // bool provider_attached;                                // Provider attachment state
+    // uint32_t reference_count;                              // Lifecycle management.
 
     // NMR client components (similar to ebpf_program_t and ebpf_link_t)
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
-    void* provider_binding_context;
-
-    ebpf_lock_t lock; // Synchronization
-    // ANUSA TODO: Make sure the provider dispatch variable and the actual memory are both cache aligned.
-    _Guarded_by_(lock) ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
-    _Guarded_by_(lock) bool provider_attached;                                // Provider attachment state
-    _Guarded_by_(lock) uint32_t reference_count;                              // Lifecycle management.
-    _Guarded_by_(lock) void* provider_context;                                // Provider context returned during attach
 
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
 } ebpf_extensible_map_t;
@@ -214,8 +213,8 @@ ebpf_extensible_map_create(
         goto Done;
     }
 
-    if (!extensible_map->provider_attached) {
-        // Provider already attached. This should not happen.
+    if (extensible_map->provider_dispatch == NULL) {
+        // No provider found for map type.
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -258,21 +257,6 @@ ebpf_extensible_map_create(
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
-
-    // // Check if provider attached successfully
-    // ebpf_lock_state_t state = ebpf_lock_lock(&extensible_map->lock);
-    // bool provider_attached = extensible_map->provider_attached;
-    // ebpf_lock_unlock(&extensible_map->lock, state);
-
-    // if (!provider_attached) {
-    //     EBPF_LOG_MESSAGE_UINT64(
-    //         EBPF_TRACELOG_LEVEL_INFO,
-    //         EBPF_TRACELOG_KEYWORD_MAP,
-    //         "No provider found for extensible map type",
-    //         map_definition->type);
-    //     result = EBPF_EXTENSION_FAILED_TO_LOAD;
-    //     goto Done;
-    // }
 
     *map = &extensible_map->core_map;
     extensible_map = NULL;
@@ -351,8 +335,8 @@ _ebpf_extensible_map_client_attach_provider(
 
     // Provider supports the requested map type.
 
-    // Create a copy of the dispatch table
-    provider_dispatch_table = (ebpf_map_provider_dispatch_table_t*)ebpf_allocate_with_tag(
+    // Create a cache-aligned copy of the dispatch table for hot path performance
+    provider_dispatch_table = (ebpf_map_provider_dispatch_table_t*)ebpf_allocate_cache_aligned_with_tag(
         sizeof(ebpf_map_provider_dispatch_table_t), EBPF_POOL_TAG_EXTENSIBLE_MAP);
     if (!provider_dispatch_table) {
         status = STATUS_NO_MEMORY;
@@ -363,7 +347,7 @@ _ebpf_extensible_map_client_attach_provider(
     state = ebpf_lock_lock(&extensible_map->lock);
     lock_acquired = true;
 
-    if (extensible_map->provider_attached) {
+    if (extensible_map->provider_dispatch != NULL) {
         // Provider already attached. This should not happen.
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -381,7 +365,7 @@ _ebpf_extensible_map_client_attach_provider(
     extensible_map->provider_dispatch = provider_dispatch_table;
     provider_dispatch_table = NULL;
 
-    extensible_map->provider_attached = true;
+    // extensible_map->provider_attached = true;
 
     ebpf_lock_unlock(&extensible_map->lock, state);
 
@@ -405,7 +389,7 @@ _ebpf_extensible_map_client_attach_provider(
 
         ebpf_free((void*)extensible_map->provider_dispatch);
         extensible_map->provider_dispatch = NULL;
-        extensible_map->provider_attached = false;
+        // extensible_map->provider_attached = false;
         goto Done;
     } else {
         extensible_map->provider_context = provider_binding_context;
@@ -414,68 +398,11 @@ _ebpf_extensible_map_client_attach_provider(
     ebpf_lock_unlock(&extensible_map->lock, state);
     lock_acquired = false;
 
-    // // Allocate binding context
-    // binding_context = (ebpf_extensible_map_client_binding_t*)ebpf_allocate_with_tag(
-    //     sizeof(ebpf_extensible_map_client_binding_t), EBPF_POOL_TAG_EXTENSIBLE_MAP);
-    // if (!binding_context) {
-    //     status = STATUS_NO_MEMORY;
-    //     goto Done;
-    // }
-
-    // // Allocate array for supported map types
-    // binding_context->supported_map_types = (uint32_t*)ebpf_allocate_with_tag(
-    //     provider_data->supported_map_type_count * sizeof(uint32_t), EBPF_POOL_TAG_EXTENSIBLE_MAP);
-    // if (!binding_context->supported_map_types) {
-    //     status = STATUS_NO_MEMORY;
-    //     goto Done;
-    // }
-
-    // binding_context->nmr_binding_handle = nmr_binding_handle;
-    // binding_context->provider_interface = provider_data->provider_interface;
-    // binding_context->supported_map_type_count = provider_data->supported_map_type_count;
-    // memcpy(
-    //     binding_context->supported_map_types,
-    //     provider_data->supported_map_types,
-    //     provider_data->supported_map_type_count * sizeof(uint32_t));
-
-    // // Call provider's map_create
-    // result = provider_data->provider_interface->map_create(
-    //     extensible_map->core_map.ebpf_map_definition.type,
-    //     extensible_map->core_map.ebpf_map_definition.key_size,
-    //     extensible_map->core_map.ebpf_map_definition.value_size,
-    //     extensible_map->core_map.ebpf_map_definition.max_entries,
-    //     &extensible_map->core_map.ebpf_map_definition,
-    //     &extensible_map->extension_map_context);
-
-    // if (result != EBPF_SUCCESS) {
-    //     status = STATUS_UNSUCCESSFUL;
-    //     goto Done;
-    // }
-
-    // // Update extensible map state
-    // ebpf_lock_state_t state = ebpf_lock_lock(&extensible_map->lock);
-    // extensible_map->provider = provider_data->provider_interface;
-    // extensible_map->provider_attached = true;
-    // ebpf_lock_unlock(&extensible_map->lock, state);
-
-    // EBPF_LOG_MESSAGE_UINT64(
-    //     EBPF_TRACELOG_LEVEL_INFO,
-    //     EBPF_TRACELOG_KEYWORD_MAP,
-    //     "Successfully attached extensible map provider supporting map types",
-    //     provider_data->supported_map_type_count);
-
 Done:
     if (lock_acquired) {
         ebpf_lock_unlock(&extensible_map->lock, state);
     }
 
-    // if (status != STATUS_SUCCESS && binding_context) {
-    //     if (binding_context->supported_map_types) {
-    //         ebpf_free(binding_context->supported_map_types);
-    //     }
-    //     ebpf_free(binding_context);
-    //     binding_context = NULL;
-    // }
     ebpf_free(provider_dispatch_table);
     return status;
 }
@@ -494,39 +421,6 @@ _ebpf_extensible_map_client_detach_provider(_In_ void* client_binding_context)
 
     return STATUS_SUCCESS;
 }
-
-// _Must_inspect_result_ ebpf_result_t
-// ebpf_extensible_map_invoke_with_provider(
-//     _In_ ebpf_extensible_map_t* extensible_map,
-//     _In_ void* operation_context,
-//     _In_ ebpf_result_t (*operation)(const ebpf_extensible_map_provider_t* provider, void* context))
-// {
-//     ebpf_result_t result;
-//     const ebpf_extensible_map_provider_t* provider;
-
-//     // Acquire rundown protection
-//     if (!ExAcquireRundownProtection(&extensible_map->provider_rundown_reference)) {
-//         return EBPF_INVALID_OBJECT;
-//     }
-
-//     // Get provider under lock
-//     ebpf_lock_state_t state = ebpf_lock_lock(&extensible_map->lock);
-//     provider = extensible_map->provider_attached ? extensible_map->provider : NULL;
-//     ebpf_lock_unlock(&extensible_map->lock, state);
-
-//     if (!provider) {
-//         result = EBPF_INVALID_OBJECT;
-//         goto Done;
-//     }
-
-//     // Call the operation
-//     result = operation(provider, operation_context);
-
-// Done:
-//     // Release rundown protection
-//     ExReleaseRundownProtection(&extensible_map->provider_rundown_reference);
-//     return result;
-// }
 
 // Map operation context structures
 typedef struct _map_lookup_context
@@ -719,51 +613,3 @@ ebpf_extensible_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct
 
     return result;
 }
-
-// static ebpf_result_t
-// _ebpf_extensible_map_delete_element(_In_ ebpf_map_t* map, _In_ const uint8_t* key)
-// {
-//     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
-//     map_delete_context_t context = {key};
-
-//     return ebpf_extensible_map_invoke_with_provider(extensible_map, &context, _provider_delete_operation);
-// }
-
-// static ebpf_result_t
-// _ebpf_extensible_map_get_next_key(_In_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t*
-// next_key)
-// {
-//     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
-//     map_next_key_context_t context = {previous_key, next_key};
-
-//     return ebpf_extensible_map_invoke_with_provider(extensible_map, &context, _provider_next_key_operation);
-// }
-
-// static ebpf_result_t
-// _ebpf_extensible_map_associate_program(_In_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
-// {
-//     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
-//     ebpf_result_t result = EBPF_SUCCESS;
-
-//     // Get provider under lock
-//     ebpf_lock_state_t state = ebpf_lock_lock(&extensible_map->lock);
-//     const ebpf_extensible_map_provider_t* provider =
-//         extensible_map->provider_attached ? extensible_map->provider : NULL;
-//     ebpf_lock_unlock(&extensible_map->lock, state);
-
-//     if (!provider) {
-//         result = EBPF_INVALID_OBJECT;
-//         goto Done;
-//     }
-
-//     // Validate association if provider supports it
-//     if (provider->validate_map_program_association) {
-//         // Get program type from program
-//         // Note: This would require access to program internals
-//         // For now, we'll allow all associations
-//         result = EBPF_SUCCESS;
-//     }
-
-// Done:
-//     return result;
-// }

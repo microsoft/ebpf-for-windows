@@ -559,7 +559,7 @@ _test_sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf
 }
 #pragma endregion
 
-static uint32_t _sample_supported_map_types[1] = {BPF_MAP_TYPE_SAMPLE_MAP};
+static uint32_t _sample_supported_map_types[1] = {BPF_MAP_TYPE_SAMPLE_ARRAY_MAP};
 
 static ebpf_result_t
 _test_sample_map_create(
@@ -608,7 +608,7 @@ typedef class _test_sample_map_provider
     initialize()
     {
         // // Initialize supported map types
-        // _supported_map_types[0] = BPF_MAP_TYPE_SAMPLE_MAP;
+        // _supported_map_types[0] = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP;
 
         // // Initialize provider data
         // _map_provider_data.header = EBPF_MAP_PROVIDER_DATA_HEADER;
