@@ -4,7 +4,7 @@
 #include "ebpf_core.h"
 #include "ebpf_handle.h"
 #include "ebpf_program.h"
-#include "ebpf_vm_isa.hpp"
+#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libfuzzer.h"
 #include "platform.h"

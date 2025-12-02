@@ -19,7 +19,8 @@
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_parse.h"
 #include "libbtf/btf_type_data.h"
-#include "spec_type_descriptors.hpp"
+#include "src/spec/type_descriptors.hpp"
+#include "src/spec/vm_isa.hpp"
 #undef ebpf_inst
 
 #include <windows.h>
@@ -533,7 +534,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 .key_size = map.key_size,
                 .value_size = map.value_size,
                 .max_entries = map.max_entries,
-                .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+                .inner_map_fd = static_cast<int>(map.inner_map_type_id != 0 ? map.inner_map_type_id : -1),
             });
         }
         auto map_name_to_index = map_offsets;
