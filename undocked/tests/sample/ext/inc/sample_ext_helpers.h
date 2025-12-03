@@ -115,7 +115,7 @@ EBPF_HELPER(int64_t, sample_ebpf_extension_helper_implicit_2, (uint32_t arg));
  * @param[in] key Pointer to the key.
  * @returns Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, sample_ext_helper_map_lookup_element, (const void* map, const uint8_t* key));
+EBPF_HELPER(void*, sample_ext_helper_map_lookup_element, (void* map, const void* key));
 #ifndef __doxygen
 #define sample_ext_helper_map_lookup_element ((sample_ext_helper_map_lookup_element_t)SAMPLE_EXT_HELPER_FN_BASE + 6)
 #endif

@@ -9,8 +9,8 @@
 #include "ebpf_program.h"
 #include "ebpf_tracelog.h"
 
-static ebpf_result_t
-_ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context);
+// static ebpf_result_t
+// _ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context);
 
 static ebpf_map_client_dispatch_table_t _ebpf_extensible_map_client_dispatch_table = {
     EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
@@ -553,6 +553,8 @@ ebpf_extensible_map_find_entry(
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->find_element_function != NULL);
     // Call provider's find function
+    __analysis_assume(provider_dispatch != NULL);
+    __analysis_assume(provider_dispatch->find_element_function != NULL);
     result = provider_dispatch->find_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, value, (uint32_t)flags);
 
@@ -580,6 +582,8 @@ ebpf_extensible_map_update_entry(
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->update_element_function != NULL);
     // Call provider's update function
+    __analysis_assume(provider_dispatch != NULL);
+    __analysis_assume(provider_dispatch->update_element_function != NULL);
     result = provider_dispatch->update_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, value_size, value, option, (uint32_t)flags);
 
@@ -597,6 +601,8 @@ ebpf_extensible_map_delete_entry(
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->delete_element_function != NULL);
     // Call provider's delete function
+    __analysis_assume(provider_dispatch != NULL);
+    __analysis_assume(provider_dispatch->delete_element_function != NULL);
     result = provider_dispatch->delete_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, (uint32_t)flags);
 
@@ -614,20 +620,22 @@ ebpf_extensible_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
     // Call provider's associate program function
+    __analysis_assume(provider_dispatch != NULL);
+    __analysis_assume(provider_dispatch->associate_program_function != NULL);
     result = provider_dispatch->associate_program_function(extensible_map->core_map.extensible_map_data, &program_type);
 
     return result;
 }
 
-static ebpf_result_t
-_ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context)
-{
-    ebpf_core_map_t* core_map = (ebpf_core_map_t*)map;
-    if (core_map->ebpf_map_definition.type <= BPF_MAP_TYPE_MAX) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+// static ebpf_result_t
+// _ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context)
+// {
+//     ebpf_core_map_t* core_map = (ebpf_core_map_t*)map;
+//     if (core_map->ebpf_map_definition.type <= BPF_MAP_TYPE_MAX) {
+//         return EBPF_INVALID_ARGUMENT;
+//     }
+//     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
 
-    *extensible_map_context = extensible_map->core_map.extensible_map_data;
-    return EBPF_SUCCESS;
-}
+//     *extensible_map_context = extensible_map->core_map.extensible_map_data;
+//     return EBPF_SUCCESS;
+// }

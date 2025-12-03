@@ -27,14 +27,112 @@ struct
     __uint(max_entries, 1);
 } sample_map SEC(".maps");
 
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} result_map SEC(".maps");
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 1);
+} array_map SEC(".maps");
+
+static inline void
+set_result(uint32_t result)
+{
+    uint32_t key = 0;
+    bpf_map_update_elem(&result_map, &key, &result, 0);
+}
+
 SEC("sample_ext")
 uint32_t
-increment(sample_program_context_t* ctx)
+test_map_read_increment(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     uint32_t* value = bpf_map_lookup_elem(&sample_map, &key);
     if (value) {
         (*value)++;
     }
+    set_result(value ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_read_helper_increment(sample_program_context_t* ctx)
+{
+    uint32_t key = 0;
+    uint32_t* value = sample_ext_helper_map_lookup_element(&sample_map, &key);
+    if (value) {
+        (*value)++;
+    }
+    set_result(value ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_update_element(sample_program_context_t* ctx)
+{
+    uint32_t key = 0;
+    uint32_t value = 42;
+    int result = bpf_map_update_elem(&sample_map, &key, &value, 0);
+    set_result(result == 0 ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_delete_element(sample_program_context_t* ctx)
+{
+    uint32_t key = 0;
+    int result = bpf_map_delete_elem(&sample_map, &key);
+    set_result(result == 0 ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_find_and_delete_element(sample_program_context_t* ctx)
+{
+    uint32_t key = 0;
+    uint32_t* value = bpf_map_lookup_and_delete_elem(&sample_map, &key);
+    set_result(value != NULL ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_push_elem(sample_program_context_t* ctx)
+{
+    uint32_t value = 100;
+    int result = bpf_map_push_elem(&sample_map, &value, 0);
+    set_result(result == 0 ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_pop_elem(sample_program_context_t* ctx)
+{
+    uint32_t value = 0;
+    int result = bpf_map_pop_elem(&sample_map, &value);
+    set_result(result == 0 ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
+test_map_peek_elem(sample_program_context_t* ctx)
+{
+    uint32_t value = 0;
+    int result = bpf_map_peek_elem(&sample_map, &value);
+    set_result(result == 0 ? 1 : 0);
     return 0;
 }
