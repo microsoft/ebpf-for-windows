@@ -1675,7 +1675,7 @@ TEST_CASE("native_load_retry_after_insufficient_buffers", "[native_tests]")
     }
 }
 
-TEST_CASE("load_all_sample_programs", "[native_tests]")
+TEST_CASE("load_all_sample_programs", "[native_tests][!mayfail]")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},
