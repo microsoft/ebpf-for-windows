@@ -25,6 +25,8 @@ extern "C"
         ebpf_map_definition_in_memory_t ebpf_map_definition;
         uint32_t original_value_size;
         uint8_t* data;
+        uint8_t*
+            extensible_map_data; // Pointer to extensible map context, if any. *Should be* NULL for non-extensible maps.
     } ebpf_core_map_t;
 
     typedef struct _ebpf_core_map ebpf_map_t;

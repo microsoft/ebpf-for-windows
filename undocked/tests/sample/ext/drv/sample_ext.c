@@ -42,6 +42,9 @@
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_MAP_SAMPLE_GUID};
 
+// ebpf_map_client_dispatch_table_t table = {0};
+static uint64_t _map_context_offset = 0;
+
 // Sample Extension helper function addresses table.
 static uint64_t
 _sample_get_pid_tgid();
@@ -69,12 +72,17 @@ _sample_ebpf_extension_helper_implicit_2(
     uint64_t dummy_param4,
     _In_ const sample_program_context_t* context);
 
+static void*
+_sample_ext_helper_map_lookup_element(
+    _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3);
+
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
     (void*)&_sample_ebpf_extension_find,
     (void*)&_sample_ebpf_extension_replace,
     (void*)&_sample_ebpf_extension_helper_implicit_1,
-    (void*)&_sample_ebpf_extension_helper_implicit_2};
+    (void*)&_sample_ebpf_extension_helper_implicit_2,
+    (void*)&_sample_ext_helper_map_lookup_element};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -106,6 +114,7 @@ typedef struct _sample_hash_bucket
 
 typedef struct _sample_map
 {
+    // EBPF_MAP_HEADER;
     uint32_t map_type;
     uint32_t key_size;
     uint32_t value_size;
@@ -718,6 +727,16 @@ _sample_ebpf_extension_map_provider_attach_client(
         &local_provider_context->client_dispatch_table,
         client_data->dispatch_table,
         min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
+
+    // memcpy(
+    //     &table,
+    //     client_data->dispatch_table,
+    //     min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
+
+    // As per contract, map context offset is same for all the map instances created by the client.
+    // Save it in a global variable.
+    WriteULong64NoFence((volatile uint64_t*)&_map_context_offset, client_data->map_context_offset);
+    // _map_context_offset = client_data->map_context_offset;
 
     *provider_binding_context = local_provider_context;
     *provider_dispatch = NULL;
@@ -1360,6 +1379,28 @@ _sample_hash_map_get_next_key(
     return EBPF_NO_MORE_KEYS;
 }
 
+static void*
+_sample_ext_helper_map_lookup_element(
+    _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+
+    sample_map_t** sample_map = (sample_map_t**)MAP_CONTEXT(map, _map_context_offset);
+    if (*sample_map == NULL) {
+        return NULL;
+    }
+    uint8_t* value = NULL;
+
+    ebpf_result_t result = _sample_map_find_entry(*sample_map, (*sample_map)->key_size, key, &value, 0);
+    if (result != EBPF_SUCCESS) {
+        return NULL;
+    }
+
+    return value;
+}
+
 // static ebpf_result_t
 // _sample_hash_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type)
 // {
@@ -1411,7 +1452,7 @@ _sample_array_map_create(
 
     // Allocate array of values (not entries)
     sample_map->entries = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
-        value_size * max_entries, SAMPLE_EXT_POOL_TAG_DEFAULT);
+        (size_t)value_size * max_entries, SAMPLE_EXT_POOL_TAG_DEFAULT);
     if (sample_map->entries == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1478,7 +1519,7 @@ _sample_array_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    *value = array_map->entries + (index * array_map->base.value_size);
+    *value = array_map->entries + ((size_t)index * array_map->base.value_size);
     return EBPF_SUCCESS;
 }
 
@@ -1509,7 +1550,7 @@ _sample_array_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry_value = array_map->entries + (index * array_map->base.value_size);
+    uint8_t* entry_value = array_map->entries + ((size_t)index * array_map->base.value_size);
     memcpy(entry_value, value, array_map->base.value_size);
     return EBPF_SUCCESS;
 }
@@ -1532,7 +1573,7 @@ _sample_array_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const
     }
 
     // Set the entry to all zeroes
-    uint8_t* entry_value = array_map->entries + (index * array_map->base.value_size);
+    uint8_t* entry_value = array_map->entries + ((size_t)index * array_map->base.value_size);
     memset(entry_value, 0, array_map->base.value_size);
 
     return EBPF_SUCCESS;

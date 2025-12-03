@@ -1867,7 +1867,7 @@ TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performanc
 {
     // Performance test parameters
     const uint32_t PREPARE_ITERATIONS = 1024;
-    const uint32_t PERFORMANCE_ITERATIONS = 1000000;
+    const uint32_t PERFORMANCE_ITERATIONS = 10000000;
 
     // int result;
     // hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);

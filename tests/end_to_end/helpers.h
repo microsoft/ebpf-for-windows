@@ -642,6 +642,7 @@ typedef class _test_sample_map_provider
         ebpf_map_client_dispatch_table_t* client_dispatch_table = client_data->dispatch_table;
 
         map_provider->set_dispatch_table(client_dispatch_table);
+        map_provider->set_map_context_offset(client_data->map_context_offset);
 
         *provider_binding_context = provider_context;
         *provider_dispatch = nullptr;
@@ -673,6 +674,18 @@ typedef class _test_sample_map_provider
         return &_client_dispatch_table;
     }
 
+    static void
+    set_map_context_offset(uint64_t offset)
+    {
+        _map_context_offset = offset;
+    }
+
+    static uint64_t
+    get_map_context_offset()
+    {
+        return _map_context_offset;
+    }
+
     // NMR Provider infrastructure
   private:
     HANDLE _map_provider_handle = INVALID_HANDLE_VALUE;
@@ -693,6 +706,7 @@ typedef class _test_sample_map_provider
 
     ebpf_map_client_dispatch_table_t _client_dispatch_table = {};
 
+    static uint64_t _map_context_offset;
     // private:
     // static uint32_t _hash_function(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
     // {
@@ -716,6 +730,9 @@ typedef class _test_sample_map_provider
     //     return nullptr;
     // }
 } test_sample_map_provider_t;
+
+// Definition of the static member variable - inline to avoid multiple definition errors
+inline uint64_t _test_sample_map_provider::_map_context_offset = 0;
 
 static ebpf_result_t
 _test_sample_map_create(
@@ -857,6 +874,33 @@ typedef class _test_sample_helper
         UNREFERENCED_PARAMETER(dummy_param4);
         sample_program_context_t* sample_context = (sample_program_context_t*)context;
         return ((uint64_t)sample_context->helper_data_2 + arg);
+    }
+
+    static void*
+    _sample_helper_map_lookup_element(
+        _In_ const void* map,
+        _In_ const uint8_t* key,
+        uint64_t dummy_param1,
+        uint64_t dummy_param2,
+        uint64_t dummy_param3)
+    {
+        UNREFERENCED_PARAMETER(dummy_param1);
+        UNREFERENCED_PARAMETER(dummy_param2);
+        UNREFERENCED_PARAMETER(dummy_param3);
+
+        test_sample_array_map_t** sample_map =
+            (test_sample_array_map_t**)MAP_CONTEXT(map, test_sample_map_provider_t::get_map_context_offset());
+        if (*sample_map == NULL) {
+            return NULL;
+        }
+        uint8_t* value = NULL;
+
+        ebpf_result_t result = _test_sample_map_find_entry(*sample_map, (*sample_map)->key_size, key, &value, 0);
+        if (result != EBPF_SUCCESS) {
+            return NULL;
+        }
+
+        return value;
     }
 } test_sample_helper_t;
 
@@ -1284,7 +1328,8 @@ static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_find,
     test_sample_helper_t::_sample_ebpf_extension_replace,
     test_sample_helper_t::_sample_ebpf_extension_helper_implicit_1,
-    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_2};
+    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_2,
+    test_sample_helper_t::_sample_helper_map_lookup_element};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

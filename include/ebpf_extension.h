@@ -134,6 +134,9 @@ typedef struct _ebpf_execution_context_state
 #define EBPF_CONTEXT_HEADER uint64_t context_header[8]
 #define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)
 
+// #define EBPF_MAP_HEADER uint64_t map_header[8]
+// #define EBPF_MAP_HEADER_SIZE (sizeof(uint64_t) * 8)
+
 /**
  * @brief Create an eBPF map.
  *
@@ -296,6 +299,8 @@ typedef void (*epoch_free_t)(_In_opt_ void* memory);
  */
 typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
 
+typedef ebpf_result_t (*ebpf_get_map_context_t)(_In_ const void* map, _Outptr_ void** map_context);
+
 /**
  * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
  */
@@ -306,6 +311,7 @@ typedef struct _ebpf_map_client_dispatch_table
     epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
     epoch_free_t epoch_free;
     epoch_free_cache_aligned_t epoch_free_cache_aligned;
+    // ebpf_get_map_context_t get_map_context;
 } ebpf_map_client_dispatch_table_t;
 
 /**
@@ -324,6 +330,9 @@ typedef struct _ebpf_map_provider_data
  */
 typedef struct _ebpf_map_client_data
 {
-    ebpf_extension_header_t header;
-    ebpf_map_client_dispatch_table_t* dispatch_table;
+    ebpf_extension_header_t header; ///< Standard extension header containing version and size information.
+    uint64_t map_context_offset;    ///< Offset within the map structure where the provider context data is stored.
+    ebpf_map_client_dispatch_table_t* dispatch_table; ///< Pointer to client dispatch table.
 } ebpf_map_client_data_t;
+
+#define MAP_CONTEXT(map_pointer, offset) ((void**)(((uint8_t*)(map_pointer)) + (offset)))

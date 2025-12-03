@@ -185,8 +185,8 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map; //< Core map structure.
     size_t partition_count;   //< Number of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
-    uint8_t padding[8];       //< Required to ensure partitions are cache aligned.
-    ebpf_lru_partition_t
+    // uint8_t padding[8];       //< Required to ensure partitions are cache aligned.
+    __declspec(align(EBPF_CACHE_LINE_SIZE)) ebpf_lru_partition_t
         partitions[1]; //< Array of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
 } ebpf_core_lru_map_t;
 

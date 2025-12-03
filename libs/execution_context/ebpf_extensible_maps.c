@@ -9,6 +9,9 @@
 #include "ebpf_program.h"
 #include "ebpf_tracelog.h"
 
+static ebpf_result_t
+_ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context);
+
 static ebpf_map_client_dispatch_table_t _ebpf_extensible_map_client_dispatch_table = {
     EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
     ebpf_epoch_allocate_with_tag,
@@ -16,16 +19,13 @@ static ebpf_map_client_dispatch_table_t _ebpf_extensible_map_client_dispatch_tab
     ebpf_epoch_free,
     ebpf_epoch_free_cache_aligned};
 
-static ebpf_map_client_data_t _ebpf_extensible_map_client_data = {
-    EBPF_MAP_CLIENT_DATA_HEADER, &_ebpf_extensible_map_client_dispatch_table};
-
 /**
  * @brief Extensible map structure with NMR client components.
  */
 __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_extensible_map
 {
-    ebpf_core_map_t core_map;    // Base map structure
-    void* extension_map_context; // Extension-specific map data
+    ebpf_core_map_t core_map; // Base map structure
+    // void* extension_map_context; // Extension-specific map data
 
     ebpf_lock_t lock;                                      // Synchronization lock
     ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
@@ -41,6 +41,11 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_extensible_map
 
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
 } ebpf_extensible_map_t;
+
+static ebpf_map_client_data_t _ebpf_extensible_map_client_data = {
+    EBPF_MAP_CLIENT_DATA_HEADER,
+    offsetof(ebpf_extensible_map_t, core_map) + offsetof(ebpf_core_map_t, extensible_map_data),
+    &_ebpf_extensible_map_client_dispatch_table};
 
 // static struct
 // {
@@ -243,7 +248,7 @@ ebpf_extensible_map_create(
         extensible_map->core_map.ebpf_map_definition.value_size,
         extensible_map->core_map.ebpf_map_definition.max_entries,
         // &extensible_map->core_map.ebpf_map_definition,
-        &extensible_map->extension_map_context);
+        &extensible_map->core_map.extensible_map_data);
 
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -274,7 +279,7 @@ ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
 
     // Call provider to delete the map.
-    extensible_map->provider_dispatch->delete_map_function(extensible_map->extension_map_context);
+    extensible_map->provider_dispatch->delete_map_function(extensible_map->core_map.extensible_map_data);
 
     // Now that the map is deleted, release the rundown reference acquired during map creation.
     ExReleaseRundownProtection(&extensible_map->provider_rundown_reference);
@@ -549,7 +554,7 @@ ebpf_extensible_map_find_entry(
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->find_element_function != NULL);
     // Call provider's find function
     result = provider_dispatch->find_element_function(
-        extensible_map->extension_map_context, key_size, key, value, (uint32_t)flags);
+        extensible_map->core_map.extensible_map_data, key_size, key, value, (uint32_t)flags);
 
     return result;
 }
@@ -576,7 +581,7 @@ ebpf_extensible_map_update_entry(
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->update_element_function != NULL);
     // Call provider's update function
     result = provider_dispatch->update_element_function(
-        extensible_map->extension_map_context, key_size, key, value_size, value, option, (uint32_t)flags);
+        extensible_map->core_map.extensible_map_data, key_size, key, value_size, value, option, (uint32_t)flags);
 
     return result;
 }
@@ -593,7 +598,7 @@ ebpf_extensible_map_delete_entry(
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->delete_element_function != NULL);
     // Call provider's delete function
     result = provider_dispatch->delete_element_function(
-        extensible_map->extension_map_context, key_size, key, (uint32_t)flags);
+        extensible_map->core_map.extensible_map_data, key_size, key, (uint32_t)flags);
 
     return result;
 }
@@ -609,7 +614,20 @@ ebpf_extensible_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
     // Call provider's associate program function
-    result = provider_dispatch->associate_program_function(extensible_map->extension_map_context, &program_type);
+    result = provider_dispatch->associate_program_function(extensible_map->core_map.extensible_map_data, &program_type);
 
     return result;
+}
+
+static ebpf_result_t
+_ebpf_get_extensible_map_context(_In_ void* map, _Outptr_ void** extensible_map_context)
+{
+    ebpf_core_map_t* core_map = (ebpf_core_map_t*)map;
+    if (core_map->ebpf_map_definition.type <= BPF_MAP_TYPE_MAX) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+
+    *extensible_map_context = extensible_map->core_map.extensible_map_data;
+    return EBPF_SUCCESS;
 }
