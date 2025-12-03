@@ -263,7 +263,7 @@ ebpf_result_t ebpf_core_map_update_helper(
 ## Sample Extension Update for Testing
 
 ### Overview
-To test the extensible maps functionality, the existing sample extension (`undocked/tests/sample/ext/drv/`) needs to be updated to register as a map provider for `BPF_MAP_TYPE_SAMPLE_MAP` (value 0xF000, already defined in `ebpf_structs.h`).
+To test the extensible maps functionality, the existing sample extension (`undocked/tests/sample/ext/drv/`) needs to be updated to register as a map provider for `BPF_MAP_TYPE_SAMPLE_ARRAY_MAP` (value 0xF000, already defined in `ebpf_structs.h`).
 
 ### Current Sample Extension Architecture
 The sample extension already demonstrates the NMR provider pattern with two providers:
@@ -281,13 +281,13 @@ We'll add a third provider following the same pattern:
 static ebpf_map_extension_data_t _sample_ebpf_extension_map_provider_data = {
     .version = 1,
     .size = sizeof(ebpf_map_extension_data_t),
-    .supported_map_type = BPF_MAP_TYPE_SAMPLE_MAP,
+    .supported_map_type = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP,
     .provider_interface = &_sample_ebpf_extension_map_provider,
 };
 
 // Module ID for map provider
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {BPF_MAP_TYPE_SAMPLE_MAP, 0, 0, {0}}
+    sizeof(NPI_MODULEID), MIT_GUID, {BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, 0, 0, {0}}
 };
 ```
 
@@ -353,7 +353,7 @@ static ebpf_result_t _sample_map_get_next_key(
 
 static const ebpf_extensible_map_provider_t _sample_ebpf_extension_map_provider = {
     .provider_guid = SAMPLE_MAP_PROVIDER_GUID,
-    .supported_map_type = BPF_MAP_TYPE_SAMPLE_MAP,
+    .supported_map_type = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP,
     .map_create = _sample_map_create,
     .map_delete = _sample_map_delete,
     .map_lookup = _sample_map_lookup,
@@ -502,14 +502,14 @@ void sample_ebpf_extension_map_provider_unregister();
 
 ### Testing the Implementation
 Once updated, the sample extension will:
-1. Register as a map provider for `BPF_MAP_TYPE_SAMPLE_MAP`
+1. Register as a map provider for `BPF_MAP_TYPE_SAMPLE_ARRAY_MAP`
 2. Accept map creation requests from eBPFCore
 3. Provide a simple map implementation for testing
 4. Allow end-to-end testing of the extensible maps feature
 
 ### Integration with Existing Tests
 The existing sample tests can be extended to:
-- Create maps of type `BPF_MAP_TYPE_SAMPLE_MAP`
+- Create maps of type `BPF_MAP_TYPE_SAMPLE_ARRAY_MAP`
 - Perform map operations (lookup, update, delete)
 - Verify map behavior with sample programs
 - Test map lifecycle and cleanup scenarios
