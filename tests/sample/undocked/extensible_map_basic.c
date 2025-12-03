@@ -103,7 +103,8 @@ test_map_find_and_delete_element(sample_program_context_t* ctx)
 {
     uint32_t key = 0;
     uint32_t* value = bpf_map_lookup_and_delete_elem(&sample_map, &key);
-    set_result(value != NULL ? 1 : 0);
+    // find and delete is not allowed for array map, so value should be NULL.
+    set_result(value == NULL ? 1 : 0);
     return 0;
 }
 

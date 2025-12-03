@@ -145,7 +145,7 @@ _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_extensible_map_t* map)
     }
 
     ebpf_lock_destroy(&map->lock);
-    ebpf_free(map->provider_dispatch);
+    ebpf_free_cache_aligned(map->provider_dispatch);
     ebpf_free(map->core_map.name.value);
     ebpf_free(map);
 }
@@ -340,7 +340,7 @@ _ebpf_extensible_map_client_attach_provider(
 
     // Provider supports the requested map type.
 
-    // Create a cache-aligned copy of the dispatch table for hot path performance
+    // Create a cache-aligned copy of the dispatch table for hot path performance.
     provider_dispatch_table = (ebpf_map_provider_dispatch_table_t*)ebpf_allocate_cache_aligned_with_tag(
         sizeof(ebpf_map_provider_dispatch_table_t), EBPF_POOL_TAG_EXTENSIBLE_MAP);
     if (!provider_dispatch_table) {

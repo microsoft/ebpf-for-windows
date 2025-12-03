@@ -3705,14 +3705,33 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
+    fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
+    require_and_close_object(result_map_fd > 0);
+
+    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
+    require_and_close_object(sample_map_fd > 0);
+
+    auto validate_result_map = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t result_value = 0;
+        require_and_close_object(bpf_map_lookup_elem(result_map_fd, &key, &result_value) == 0);
+        require_and_close_object(result_value == expected_value);
+    };
+
+    auto validate_sample_map_value = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t map_value = 0;
+        require_and_close_object(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
+        require_and_close_object(map_value == expected_value);
+    };
+
     // Set value in the map.
-    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
-    require_and_close_object(map_fd > 0);
     uint32_t key = 0;
     uint32_t value = 1234;
-    require_and_close_object((bpf_map_update_elem(map_fd, &key, &value, 0) == 0));
+    require_and_close_object((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
 
-    // Now invoke the program. The map value should be incremented by 1 by the program.
+    // First invoke "test_map_read_increment" program. The map value should be incremented by 1 by the program for each
+    // iteration.
     bpf_test_run_opts opts = {};
     sample_program_context_t ctx = {};
     opts.batch_size = 1;
@@ -3721,13 +3740,95 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     opts.ctx_size_in = sizeof(sample_program_context_t);
     opts.ctx_out = &ctx;
     opts.ctx_size_out = sizeof(sample_program_context_t);
+
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_increment"));
+    require_and_close_object(program_fd > 0);
     result = bpf_prog_test_run_opts(program_fd, &opts);
     require_and_close_object(result == 0);
 
-    // Lookup the map value and validate it is updated.
-    uint32_t updated_value = 0;
-    require_and_close_object(bpf_map_lookup_elem(map_fd, &key, &updated_value) == 0);
-    require_and_close_object(updated_value == value + iteration);
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    // Now invoke "test_map_read_helper_increment" program. The map value should be incremented by 1 by the program for
+    // each iteration.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    // Set iteration to 1 for the remaining tests.
+    opts.repeat = 1;
+
+    // Now invoke "test_map_update_element" program. The value should be set to 42.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is set to 42.
+    validate_sample_map_value(42);
+    validate_result_map(1);
+
+    // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is set to 0.
+    validate_sample_map_value(0);
+    validate_result_map(1);
+
+    // Set map value to 200.
+    value = 200;
+    require_and_close_object((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
+
+    // Invoke "test_map_find_and_delete_element" program.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // find_and_delete is not supported for array maps, so value should remain unchanged.
+    validate_sample_map_value(200);
+    // Validate that result map value is 1.
+    validate_result_map(1);
+
+    // Invoke "test_map_push_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // push_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
+
+    // Invoke "test_map_pop_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_pop_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // pop_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
+
+    // Invoke "test_map_peek_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_peek_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // peek_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
 
     bpf_object__close(unique_object.release());
 }

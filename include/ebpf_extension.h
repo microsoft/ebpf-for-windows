@@ -191,9 +191,9 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
  * @brief Update an element in the eBPF map.
  *
  * @param[in] map The eBPF map to update.
- * @param[in] key_size The size of the key in bytes.
+ * @param[in] key_size The size of the key in bytes. Set to 0 in case of a helper function call.
  * @param[in] key The key to update.
- * @param[in] value_size The size of the value in bytes.
+ * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
  * @param[in] value The value to associate with the key.
  * @param[in] option Update option.
  * @param[in] flags Update flags.
@@ -215,6 +215,7 @@ typedef ebpf_result_t (*ebpf_map_update_element_t)(
 /**
  * @brief Delete an element from the eBPF map.
  * @param[in] map The eBPF map to delete from.
+ * @param[in] key_size The size of the key in bytes. Set to 0 in case of a helper function call.
  * @param[in] key The key to delete. If the key is not found, the map is unchanged. If the key is found, the
  * associated value is deleted.
  * @param[in] flags Delete flags.

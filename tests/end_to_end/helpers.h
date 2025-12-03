@@ -442,6 +442,10 @@ _test_sample_map_find_entry(
     if (map_context == nullptr || key == nullptr || value == nullptr) {
         return EBPF_INVALID_ARGUMENT;
     }
+    if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
+        // Deletion is not supported for array map.
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != map->key_size) {
@@ -476,7 +480,7 @@ _test_sample_map_update_entry(
     }
 
     test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
-    if (key_size != map->key_size || value_size != map->value_size) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->key_size || value_size != map->value_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -502,7 +506,7 @@ _test_sample_map_delete_entry(
     }
 
     test_sample_array_map_t* map = (test_sample_array_map_t*)map_context;
-    if (key_size != map->key_size) {
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != map->key_size) {
         return EBPF_INVALID_ARGUMENT;
     }
 

@@ -3657,6 +3657,10 @@ ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_update_entry(map, 0, NULL, value_size, value, 0, flags);
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->update_entry == NULL) {
@@ -3677,6 +3681,17 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_result_t result = ebpf_extensible_map_find_entry(map, 0, NULL, &return_value, EBPF_MAP_FIND_FLAG_DELETE);
+
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        memcpy(value, return_value, map->ebpf_map_definition.value_size);
+        return EBPF_SUCCESS;
     }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -3705,6 +3720,17 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_result_t result = ebpf_extensible_map_find_entry(map, 0, NULL, &return_value, 0);
+
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        memcpy(value, return_value, map->ebpf_map_definition.value_size);
+        return EBPF_SUCCESS;
     }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
