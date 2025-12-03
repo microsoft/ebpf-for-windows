@@ -50,7 +50,7 @@ The new approach focuses on creating a shared **eBPF Extension Common Repository
 Both ebpf-for-windows and extension repositories continue with their existing packaging while integrating the new repository as a submodule.
 
 ### Future Releases
-- Common repository releases are synchronized with extension needs.
+- Common repository will maintain clear release branches and tagged releases to support stable integration points for extensions.
 - Extension repositories can independently version and release while depending on stable common repository versions.
 
 ---
