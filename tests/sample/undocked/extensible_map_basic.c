@@ -78,6 +78,20 @@ test_map_read_helper_increment(sample_program_context_t* ctx)
 
 SEC("sample_ext")
 uint32_t
+test_map_read_helper_increment_invalid(sample_program_context_t* ctx)
+{
+    uint32_t key = 0;
+    // Invoke helper on a non-extensible map to test failure case.
+    uint32_t* value = sample_ext_helper_map_lookup_element(&array_map, &key);
+    if (value) {
+        (*value)++;
+    }
+    set_result(value ? 1 : 0);
+    return 0;
+}
+
+SEC("sample_ext")
+uint32_t
 test_map_update_element(sample_program_context_t* ctx)
 {
     uint32_t key = 0;

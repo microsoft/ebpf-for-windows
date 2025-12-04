@@ -1741,7 +1741,9 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
         uint32_t key = i * 10;
         uint32_t value = 0;
         int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
-        REQUIRE(result != ERROR_SUCCESS);
+        // Since this is an array map, lookup should succeed but value should be zero.
+        REQUIRE(result == ERROR_SUCCESS);
+        REQUIRE(value == 0);
     }
 
     // Clean up
@@ -1749,10 +1751,15 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 }
 
 void
+wait_for_input(int i)
+{
+    std::cout << "Press Enter to continue...[" << i << "]" << std::endl;
+    // std::cin.get();
+}
+
+void
 _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 {
-    // _test_helper_end_to_end test_helper;
-    // test_helper.initialize();
     bpf_object_ptr unique_object{nullptr};
     int result;
     // const char* error_message = nullptr;
@@ -1760,9 +1767,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     bpf_link_ptr link;
     int iteration = 10;
     bpf_object* object = nullptr;
-
-    // program_info_provider_t sample_program_info;
-    // REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
         (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_basic.sys" : "extensible_map_basic.o";
@@ -1772,21 +1776,40 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 
     unique_object.reset(object);
 
-    auto require_and_close_object = [&](bool condition) {
-        if (!condition) {
-            bpf_object__close(unique_object.release());
-        }
-        REQUIRE(condition);
+    // auto require_and_close_object = [&](bool condition) {
+    //     if (!condition) {
+    //         bpf_object__close(unique_object.release());
+    //     }
+    //     REQUIRE(condition);
+    // };
+
+    fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
+    REQUIRE(result_map_fd > 0);
+
+    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
+    REQUIRE(sample_map_fd > 0);
+
+    auto validate_result_map = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t result_value = 0;
+        REQUIRE(bpf_map_lookup_elem(result_map_fd, &key, &result_value) == 0);
+        REQUIRE(result_value == expected_value);
+    };
+
+    auto validate_sample_map_value = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t map_value = 0;
+        REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
+        REQUIRE(map_value == expected_value);
     };
 
     // Set value in the map.
-    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
-    require_and_close_object(map_fd > 0);
     uint32_t key = 0;
     uint32_t value = 1234;
-    require_and_close_object((bpf_map_update_elem(map_fd, &key, &value, 0) == 0));
+    REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
 
-    // Now invoke the program. The map value should be incremented by 1 by the program.
+    // First invoke "test_map_read_increment" program. The map value should be incremented by 1 by the program for each
+    // iteration.
     bpf_test_run_opts opts = {};
     sample_program_context_t ctx = {};
     opts.batch_size = 1;
@@ -1795,13 +1818,115 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     opts.ctx_size_in = sizeof(sample_program_context_t);
     opts.ctx_out = &ctx;
     opts.ctx_size_out = sizeof(sample_program_context_t);
-    int test_result = bpf_prog_test_run_opts(program_fd, &opts);
-    require_and_close_object(test_result == 0);
 
-    // Lookup the map value and validate it is updated.
-    uint32_t updated_value = 0;
-    require_and_close_object(bpf_map_lookup_elem(map_fd, &key, &updated_value) == 0);
-    require_and_close_object(updated_value == value + iteration);
+    wait_for_input(1);
+
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_increment"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    wait_for_input(2);
+    // Now invoke "test_map_read_helper_increment" program. The map value should be incremented by 1 by the program for
+    // each iteration.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    // Set iteration to 1 for the remaining tests.
+    opts.repeat = 1;
+
+    wait_for_input(3);
+    // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
+    program_fd = bpf_program__fd(
+        bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment_invalid"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // Validate that the program failed by checking the result map.
+    validate_result_map(0);
+
+    wait_for_input(4);
+    // Now invoke "test_map_update_element" program. The value should be set to 42.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // Lookup the sample map value and validate it is set to 42.
+    validate_sample_map_value(42);
+    validate_result_map(1);
+
+    wait_for_input(5);
+    // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // Lookup the sample map value and validate it is set to 0.
+    validate_sample_map_value(0);
+    validate_result_map(1);
+
+    // Set map value to 200.
+    value = 200;
+    REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
+
+    wait_for_input(6);
+    // Invoke "test_map_find_and_delete_element" program.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // find_and_delete is not supported for array maps, so value should remain unchanged.
+    validate_sample_map_value(200);
+    // Validate that result map value is 1.
+    validate_result_map(1);
+
+    wait_for_input(7);
+    // Invoke "test_map_push_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // push_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
+
+    wait_for_input(8);
+    // Invoke "test_map_pop_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_pop_elem"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // pop_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
+
+    wait_for_input(9);
+    // Invoke "test_map_peek_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_peek_elem"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    // peek_elem is not supported for array maps, validate that the call failed.
+    validate_result_map(0);
 
     bpf_object__close(unique_object.release());
 }
@@ -1856,13 +1981,6 @@ print_extensible_map_performance_results(
     std::cout << "=============================================" << std::endl;
 }
 
-void
-wait_for_input()
-{
-    std::cout << "Press Enter to continue..." << std::endl;
-    std::cin.get();
-}
-
 TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performance]")
 {
     // Performance test parameters
@@ -1893,7 +2011,7 @@ TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performanc
     REQUIRE(result == 0);
     unique_object.reset(object);
 
-    auto require_and_close_object = [&](bool condition) {
+    auto REQUIRE = [&](bool condition) {
         if (!condition) {
             bpf_object__close(unique_object.release());
         }
@@ -1906,20 +2024,20 @@ TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performanc
     bpf_program* update_program = bpf_object__find_program_by_name(object, "update");
     bpf_program* replace_program = bpf_object__find_program_by_name(object, "replace");
 
-    require_and_close_object(prepare_program != nullptr);
-    require_and_close_object(read_program != nullptr);
-    require_and_close_object(update_program != nullptr);
-    require_and_close_object(replace_program != nullptr);
+    REQUIRE(prepare_program != nullptr);
+    REQUIRE(read_program != nullptr);
+    REQUIRE(update_program != nullptr);
+    REQUIRE(replace_program != nullptr);
 
     fd_t prepare_fd = bpf_program__fd(prepare_program);
     fd_t read_fd = bpf_program__fd(read_program);
     fd_t update_fd = bpf_program__fd(update_program);
     fd_t replace_fd = bpf_program__fd(replace_program);
 
-    require_and_close_object(prepare_fd > 0);
-    require_and_close_object(read_fd > 0);
-    require_and_close_object(update_fd > 0);
-    require_and_close_object(replace_fd > 0);
+    REQUIRE(prepare_fd > 0);
+    REQUIRE(read_fd > 0);
+    REQUIRE(update_fd > 0);
+    REQUIRE(replace_fd > 0);
 
     // Get system info for CPU count
     SYSTEM_INFO sysinfo;
@@ -1942,7 +2060,7 @@ TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performanc
     prepare_opts.ctx_size_out = sizeof(sample_program_context_t);
 
     result = bpf_prog_test_run_opts(prepare_fd, &prepare_opts);
-    require_and_close_object(result == 0);
+    REQUIRE(result == 0);
 
     // Performance test data structures
     std::vector<extensible_map_perf_result_t> read_results(cpu_count);
@@ -2022,7 +2140,7 @@ TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performanc
             thread.join();
         }
 
-        require_and_close_object(failure_count == 0);
+        REQUIRE(failure_count == 0);
 
         // Print performance results for this test
         print_extensible_map_performance_results(test.name, *test.results);

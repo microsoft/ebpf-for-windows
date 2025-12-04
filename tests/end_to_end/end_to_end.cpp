@@ -3767,6 +3767,16 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // Set iteration to 1 for the remaining tests.
     opts.repeat = 1;
 
+    // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
+    program_fd = bpf_program__fd(
+        bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment_invalid"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Validate that the program failed by checking the result map.
+    validate_result_map(0);
+
     // Now invoke "test_map_update_element" program. The value should be set to 42.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
     require_and_close_object(program_fd > 0);
@@ -3835,3 +3845,36 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES(
     "extensible_maps_program_load", "[end_to_end][extensible_maps]", _test_extensible_maps_program_load);
+
+static void
+_test_extensible_maps_invalid(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    bpf_object_ptr unique_object;
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t sock_addr_program_info;
+    REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_invalid_um.dll" : "extensible_map_invalid.o";
+
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
+
+    // Try to load the program with invalid extensible map usage.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result != 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES("extensible_maps_invalid", "[end_to_end][extensible_maps]", _test_extensible_maps_invalid);

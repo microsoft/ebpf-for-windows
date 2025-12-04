@@ -47,11 +47,6 @@ static ebpf_map_client_data_t _ebpf_extensible_map_client_data = {
     offsetof(ebpf_extensible_map_t, core_map) + offsetof(ebpf_core_map_t, extensible_map_data),
     &_ebpf_extensible_map_client_dispatch_table};
 
-// static struct
-// {
-//     int reserved;
-// } _ebpf_map_client_dispatch_table;
-
 // NMR client callbacks
 static NTSTATUS
 _ebpf_extensible_map_client_attach_provider(

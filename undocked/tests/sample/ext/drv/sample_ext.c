@@ -153,7 +153,7 @@ static ebpf_result_t
 _sample_map_find_entry(
     _In_ const void* map,
     size_t key_size,
-    _In_reads_(key_size) const uint8_t* key,
+    _In_reads_opt_(key_size) const uint8_t* key,
     _Outptr_ uint8_t** value,
     uint32_t flags);
 
@@ -161,14 +161,15 @@ static ebpf_result_t
 _sample_map_update_entry(
     _In_ const void* map,
     size_t key_size,
-    _In_ const uint8_t* key,
+    _In_opt_ const uint8_t* key,
     size_t value_size,
-    _In_ const uint8_t* value,
+    _In_opt_ const uint8_t* value,
     ebpf_map_option_t option,
     uint32_t flags);
 
 static ebpf_result_t
-_sample_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags);
+_sample_map_delete_entry(
+    _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
 
 static ebpf_result_t
 _sample_map_get_next_key(
@@ -1169,8 +1170,6 @@ _sample_hash_map_find_entry(
 
     *value = NULL;
 
-    UNREFERENCED_PARAMETER(key_size);
-
     hash = _sample_map_hash(key, sample_map->base.key_size, sample_map->bucket_count);
     bucket = &sample_map->buckets[hash];
 
@@ -1510,7 +1509,8 @@ _sample_array_map_find_entry(
 
     *value = NULL;
 
-    if (key_size != sizeof(uint32_t)) {
+    if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
+        // Deletion is not supported for array map.
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -1541,10 +1541,6 @@ _sample_array_map_update_entry(
     UNREFERENCED_PARAMETER(option);
     UNREFERENCED_PARAMETER(flags);
 
-    if (key_size != sizeof(uint32_t)) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
     index = *(uint32_t*)key;
     if (index >= array_map->base.max_entries) {
         return EBPF_INVALID_ARGUMENT;
@@ -1562,10 +1558,7 @@ _sample_array_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const
     uint32_t index;
 
     UNREFERENCED_PARAMETER(flags);
-
-    if (key_size != sizeof(uint32_t)) {
-        return EBPF_INVALID_ARGUMENT;
-    }
+    UNREFERENCED_PARAMETER(key_size);
 
     index = *(uint32_t*)key;
     if (index >= array_map->base.max_entries) {
@@ -1637,15 +1630,26 @@ static ebpf_result_t
 _sample_map_find_entry(
     _In_ const void* map,
     size_t key_size,
-    _In_reads_(key_size) const uint8_t* key,
+    _In_reads_opt_(key_size) const uint8_t* key,
     _Outptr_ uint8_t** value,
     uint32_t flags)
 {
-    uint32_t map_type = MAP_TYPE(map);
+    // Neither of the maps support null key.
+    if (key == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    sample_map_t* sample_map = (sample_map_t*)map;
+
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != sample_map->key_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    uint32_t map_type = MAP_TYPE(sample_map);
     if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
-        return _sample_array_map_find_entry(map, key_size, key, value, flags);
+        return _sample_array_map_find_entry(sample_map, key_size, key, value, flags);
     } else if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
-        return _sample_hash_map_find_entry(map, key_size, key, value, flags);
+        return _sample_hash_map_find_entry(sample_map, key_size, key, value, flags);
     } else {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -1655,13 +1659,22 @@ static ebpf_result_t
 _sample_map_update_entry(
     _In_ const void* map,
     size_t key_size,
-    _In_ const uint8_t* key,
+    _In_opt_ const uint8_t* key,
     size_t value_size,
-    _In_ const uint8_t* value,
+    _In_opt_ const uint8_t* value,
     ebpf_map_option_t option,
     uint32_t flags)
 {
-    uint32_t map_type = MAP_TYPE(map);
+    if (key == NULL || value == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    sample_map_t* sample_map = (sample_map_t*)map;
+
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != sample_map->key_size || value_size != sample_map->value_size)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    uint32_t map_type = MAP_TYPE(sample_map);
     if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
         return _sample_array_map_update_entry(map, key_size, key, value_size, value, option, flags);
     } else if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
@@ -1672,9 +1685,17 @@ _sample_map_update_entry(
 }
 
 static ebpf_result_t
-_sample_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
+_sample_map_delete_entry(
+    _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags)
 {
-    uint32_t map_type = MAP_TYPE(map);
+    if (key == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    sample_map_t* sample_map = (sample_map_t*)map;
+    if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != sample_map->key_size) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    uint32_t map_type = MAP_TYPE(sample_map);
     if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
         return _sample_array_map_delete_entry(map, key_size, key, flags);
     } else if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {

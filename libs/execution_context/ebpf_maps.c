@@ -3520,6 +3520,10 @@ ebpf_map_update_entry_with_handle(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->update_entry_with_handle == NULL) {
