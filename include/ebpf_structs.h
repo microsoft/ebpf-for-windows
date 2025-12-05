@@ -14,6 +14,11 @@
 
 #define BPF_ENUM_TO_STRING(X) #X
 
+/**
+ * @brief eBPF map type.
+ * Global map types are defined in the range 1-4095.  The range 4096-65535 is reserved
+ * for extensible map types.
+ */
 typedef enum bpf_map_type
 {
     BPF_MAP_TYPE_UNSPEC = 0, ///< Unspecified map type.
@@ -32,6 +37,11 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_STACK = 12,            ///< Stack.
     BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
     BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
+
+    BPF_MAP_TYPE_MAX = 4095, ///< Maximum value for global map types.
+
+    BPF_MAP_TYPE_SAMPLE_ARRAY_MAP = 0xF000, ///< Sample array map type.
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP = 0xF001   ///< Sample hash map type.
 } ebpf_map_type_t;
 
 #define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \
