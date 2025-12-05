@@ -7,6 +7,7 @@
 #include "ebpf_extension.h"
 #include "ebpf_maps.h"
 #include "ebpf_platform.h"
+#include "ebpf_structs.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -28,7 +29,11 @@ extern "C"
     /**
      * @brief Check if a map type is extensible (>= 4096).
      */
-    bool __forceinline ebpf_map_type_is_extensible(uint32_t map_type);
+    static inline bool
+    ebpf_map_type_is_extensible(uint32_t map_type)
+    {
+        return map_type > BPF_MAP_TYPE_MAX;
+    }
 
     /**
      * @brief Find an element in an extensible map.

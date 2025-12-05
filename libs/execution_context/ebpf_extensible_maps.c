@@ -67,8 +67,6 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_extensible_map_client_characterist
     },
 };
 
-bool __forceinline ebpf_map_type_is_extensible(ebpf_map_type_t type) { return type > BPF_MAP_TYPE_MAX; }
-
 // Helper function to check if a map type is supported by provider
 static bool
 _is_map_type_supported(uint32_t map_type, size_t supported_map_type_count, const uint32_t* supported_map_types)

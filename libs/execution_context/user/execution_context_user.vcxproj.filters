@@ -25,6 +25,9 @@
     <ClCompile Include="..\ebpf_core_jit.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ebpf_extensible_maps.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\ebpf_general_helpers.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -51,6 +54,9 @@
     <ClCompile Include="..\ebpf_core_jit.h">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClInclude Include="..\ebpf_extensible_maps.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ebpf_link.h">
       <Filter>Header Files</Filter>
     </ClInclude>
