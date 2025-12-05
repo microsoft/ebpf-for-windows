@@ -228,7 +228,7 @@ typedef ebpf_result_t (*ebpf_map_delete_element_t)(
     _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
 
 /**
- * @brief Get the next key in the eBPF map.
+ * @brief Get the next key and value in the eBPF map.
  *
  * @param[in] map The eBPF map to query.
  * @param[in] previous_key The previous key. If NULL, get the first key.
@@ -238,11 +238,12 @@ typedef ebpf_result_t (*ebpf_map_delete_element_t)(
  * @retval EBPF_OBJECT_NOT_FOUND No more keys in the map.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
-typedef ebpf_result_t (*ebpf_map_get_next_key_t)(
+typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
     _In_ const void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key);
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value);
 
 /**
  * @brief Get the next key in the eBPF map.
@@ -269,7 +270,7 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_map_find_element_t find_element_function;
     ebpf_map_update_element_t update_element_function;
     ebpf_map_delete_element_t delete_element_function;
-    ebpf_map_get_next_key_t get_next_key_function;
+    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
 } ebpf_map_provider_dispatch_table_t;
 
 /**

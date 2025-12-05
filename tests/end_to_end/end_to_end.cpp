@@ -3662,7 +3662,6 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
     Platform::_close(extensible_map_fd);
 }
 
-// TEST_CASE("extensible_maps_program_load", "[extensible_maps]")
 void
 _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 {
@@ -3875,19 +3874,6 @@ _test_extensible_maps_invalid(ebpf_execution_type_t execution_type)
     REQUIRE(result != 0);
 
     bpf_object__close(unique_object.release());
-
-    // // Now try to load extensible_map_invalid_nested_map.o which has nested extensible map usage.
-    // file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_invalid_nested_map_um.dll"
-    //                                                        : "extensible_map_invalid_nested_map.o";
-    // result =
-    //     ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd,
-    //     &error_message);
-    // if (error_message) {
-    //     printf("ebpf_program_load failed with %s\n", error_message);
-    //     ebpf_free((void*)error_message);
-    // }
-    // REQUIRE(result != 0);
-    // bpf_object__close(unique_object.release());
 }
 
 DECLARE_ALL_TEST_CASES(

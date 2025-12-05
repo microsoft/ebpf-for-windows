@@ -172,8 +172,12 @@ _sample_map_delete_entry(
     _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
 
 static ebpf_result_t
-_sample_map_get_next_key(
-    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key);
+_sample_map_get_next_key_and_value(
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value);
 
 static ebpf_result_t
 _sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
@@ -188,7 +192,7 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .find_element_function = _sample_map_find_entry,
     .update_element_function = _sample_map_update_entry,
     .delete_element_function = _sample_map_delete_entry,
-    .get_next_key_function = _sample_map_get_next_key,
+    .get_next_key_and_value_function = _sample_map_get_next_key_and_value,
     .associate_program_function = _sample_map_associate_program};
 
 static ebpf_map_provider_data_t _sample_map_provider_data = {
@@ -1341,8 +1345,12 @@ _sample_hash_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const 
 }
 
 static ebpf_result_t
-_sample_hash_map_get_next_key(
-    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key)
+_sample_hash_map_get_next_key_and_value(
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value)
 {
     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
     bool found_previous = (previous_key == NULL);
@@ -1362,6 +1370,9 @@ _sample_hash_map_get_next_key(
                 if (found_previous) {
                     // Return the first entry after previous_key
                     memcpy(next_key, bucket->entries[j].key_value_data, sample_map->base.key_size);
+                    if (next_value != NULL) {
+                        *next_value = bucket->entries[j].key_value_data + sample_map->base.key_size;
+                    }
                     ExReleaseSpinLockShared(&bucket->lock, old_irql);
                     return EBPF_SUCCESS;
                 }
@@ -1573,8 +1584,12 @@ _sample_array_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const
 }
 
 static ebpf_result_t
-_sample_array_map_get_next_key(
-    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key)
+_sample_array_map_get_next_key_and_value(
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
     uint32_t index;
@@ -1592,6 +1607,9 @@ _sample_array_map_get_next_key(
     }
 
     *(uint32_t*)next_key = index;
+    if (next_value != NULL) {
+        *next_value = array_map->entries + ((size_t)index * array_map->base.value_size);
+    }
     return EBPF_SUCCESS;
 }
 
@@ -1706,14 +1724,18 @@ _sample_map_delete_entry(
 }
 
 static ebpf_result_t
-_sample_map_get_next_key(
-    _In_ const void* map, size_t key_size, _In_ const uint8_t* previous_key, _Out_writes_(key_size) uint8_t* next_key)
+_sample_map_get_next_key_and_value(
+    _In_ const void* map,
+    size_t key_size,
+    _In_ const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value)
 {
     uint32_t map_type = MAP_TYPE(map);
     if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
-        return _sample_array_map_get_next_key(map, key_size, previous_key, next_key);
+        return _sample_array_map_get_next_key_and_value(map, key_size, previous_key, next_key, next_value);
     } else if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
-        return _sample_hash_map_get_next_key(map, key_size, previous_key, next_key);
+        return _sample_hash_map_get_next_key_and_value(map, key_size, previous_key, next_key, next_value);
     } else {
         return EBPF_INVALID_ARGUMENT;
     }

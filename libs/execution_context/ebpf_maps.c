@@ -859,14 +859,25 @@ _associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const 
 }
 
 // static ebpf_result_t
-// _associate_program_with_nested_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
+// _associate_program_with_map_of_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
 // {
 //     ebpf_assert(
 //         map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
 //         map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
 
 //     ebpf_core_object_map_t* outer_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+//     ebpf_map_type_t inner_map_type = outer_map->inner_template_map_definition.type;
 
+//     if (inner_map_type == BPF_MAP_TYPE_ARRAY_OF_MAPS || inner_map_type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+//         // Inner map is a nested map, so validate program type against that.
+//         return _associate_program_with_map_of_map(map, program);
+//     }
+//     // Check the inner map type. If is it a global map type, return success.
+//     if (!ebpf_map_type_is_extensible(outer_map->inner_template_map_definition.type)) {
+//         return EBPF_SUCCESS;
+//     }
+
+//     // Map type
 //     // Validate that the program type is not in conflict with the map's program type.
 //     ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
 //     ebpf_result_t result = EBPF_SUCCESS;

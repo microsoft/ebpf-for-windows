@@ -520,11 +520,12 @@ _test_sample_map_delete_entry(
 }
 
 static ebpf_result_t
-_test_sample_map_get_next_key(
+_test_sample_map_get_next_key_and_value(
     _In_ const void* map_context,
     size_t key_size,
     _In_opt_ const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key)
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value)
 {
     ebpf_result_t result = EBPF_NO_MORE_KEYS;
     if (map_context == nullptr || next_key == nullptr) {
@@ -541,6 +542,9 @@ _test_sample_map_get_next_key(
         if (prev_index + 1 < map->max_entries) {
             uint32_t next_index = prev_index + 1;
             memcpy(next_key, &next_index, map->key_size);
+            if (next_value != nullptr) {
+                *next_value = map->data + ((size_t)next_index * map->value_size);
+            }
             result = EBPF_SUCCESS;
         } else {
             result = EBPF_NO_MORE_KEYS;
@@ -585,7 +589,7 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .find_element_function = _test_sample_map_find_entry,
     .update_element_function = _test_sample_map_update_entry,
     .delete_element_function = _test_sample_map_delete_entry,
-    .get_next_key_function = _test_sample_map_get_next_key};
+    .get_next_key_and_value_function = _test_sample_map_get_next_key_and_value};
 
 static ebpf_map_provider_data_t _test_sample_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER, 1, _sample_supported_map_types, &_sample_map_dispatch_table};
