@@ -7,6 +7,7 @@
   <ItemGroup>
     <ClCompile Include="capture_helper.cpp" />
     <ClCompile Include="..\..\..\libs\shared\hash.cpp" />
+    <ClCompile Include="filter_helper.cpp" />
     <ClCompile Include="ioctl_helper.cpp" />
     <ClCompile Include="native_helper.cpp" />
     <ClCompile Include="netsh_helper.cpp" />
@@ -16,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\libs\shared\hash.h" />
+    <ClInclude Include="filter_helper.h" />
     <ClInclude Include="header.h" />
     <ClInclude Include="ioctl_helper.h" />
     <ClInclude Include="native_helper.hpp" />
@@ -108,6 +110,7 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\api;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalDependencies>fwpuclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -120,6 +123,7 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\api;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalDependencies>fwpuclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -132,6 +136,7 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\api;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalDependencies>fwpuclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -147,6 +152,7 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\api;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalDependencies>fwpuclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -161,6 +167,7 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(SolutionDir)libs\thunk;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\sample;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\api;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalDependencies>fwpuclnt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </ClCompile>
     <Link>
       <SubSystem>
