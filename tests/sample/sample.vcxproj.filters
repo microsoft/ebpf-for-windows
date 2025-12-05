@@ -120,15 +120,6 @@
     <CustomBuild Include="extensible_map_invalid.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="extensible_map_invalid_nested_map.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="extensible_map_invalid_nested_map2.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="extensible_map_invalid_nested_map3.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="extensible_map_operations.c">
       <Filter>Source Files</Filter>
     </CustomBuild>

@@ -22,15 +22,6 @@
 
 #define ACTUAL_VALUE_SIZE(x) (IS_NESTED_MAP((x)->type) ? sizeof(ebpf_core_object_t*) : (x)->value_size)
 
-// typedef struct _ebpf_core_map
-// {
-//     ebpf_core_object_t object;
-//     cxplat_utf8_string_t name;
-//     ebpf_map_definition_in_memory_t ebpf_map_definition;
-//     uint32_t original_value_size;
-//     uint8_t* data;
-// } ebpf_core_map_t;
-
 typedef struct _ebpf_core_object_map
 {
     ebpf_core_map_t core_map;
@@ -185,7 +176,6 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map; //< Core map structure.
     size_t partition_count;   //< Number of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
-    // uint8_t padding[8];       //< Required to ensure partitions are cache aligned.
     __declspec(align(EBPF_CACHE_LINE_SIZE)) ebpf_lru_partition_t
         partitions[1]; //< Array of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
 } ebpf_core_lru_map_t;
@@ -857,44 +847,6 @@ _associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const 
 
     return result;
 }
-
-// static ebpf_result_t
-// _associate_program_with_map_of_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
-// {
-//     ebpf_assert(
-//         map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-//         map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
-
-//     ebpf_core_object_map_t* outer_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-//     ebpf_map_type_t inner_map_type = outer_map->inner_template_map_definition.type;
-
-//     if (inner_map_type == BPF_MAP_TYPE_ARRAY_OF_MAPS || inner_map_type == BPF_MAP_TYPE_HASH_OF_MAPS) {
-//         // Inner map is a nested map, so validate program type against that.
-//         return _associate_program_with_map_of_map(map, program);
-//     }
-//     // Check the inner map type. If is it a global map type, return success.
-//     if (!ebpf_map_type_is_extensible(outer_map->inner_template_map_definition.type)) {
-//         return EBPF_SUCCESS;
-//     }
-
-//     // Map type
-//     // Validate that the program type is not in conflict with the map's program type.
-//     ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
-//     ebpf_result_t result = EBPF_SUCCESS;
-
-//     ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
-
-//     if (!program_array->is_program_type_set) {
-//         program_array->is_program_type_set = TRUE;
-//         program_array->program_type = program_type;
-//     } else if (memcmp(&program_array->program_type, &program_type, sizeof(program_type)) != 0) {
-//         result = EBPF_INVALID_FD;
-//     }
-
-//     ebpf_lock_unlock(&program_array->lock, lock_state);
-
-//     return result;
-// }
 
 static bool // Returns true if ok, false if not.
 _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_object_t* value_object)

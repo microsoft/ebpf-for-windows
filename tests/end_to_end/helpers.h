@@ -410,13 +410,6 @@ typedef class _test_global_helper
     }
 } test_global_helper_t;
 
-// // Sample map implementation for testing extensible maps
-// typedef struct _test_sample_map_entry
-// {
-//     struct _test_sample_map_entry* next;
-//     uint8_t key[1]; // Variable length key followed by value
-// } test_sample_map_entry_t;
-
 class _test_sample_map_provider;
 
 #pragma region Sample Array Map Implementation
@@ -615,15 +608,6 @@ typedef class _test_sample_map_provider
     ebpf_result_t
     initialize()
     {
-        // // Initialize supported map types
-        // _supported_map_types[0] = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP;
-
-        // // Initialize provider data
-        // _map_provider_data.header = EBPF_MAP_PROVIDER_DATA_HEADER;
-        // _map_provider_data.supported_map_type_count = 1;
-        // _map_provider_data.supported_map_types = _supported_map_types;
-        // _map_provider_data.dispatch_table = &_map_dispatch_table;
-
         // Register as NMR provider
         NTSTATUS status = NmrRegisterProvider(&_map_provider_characteristics, this, &_map_provider_handle);
         return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
@@ -697,7 +681,6 @@ typedef class _test_sample_map_provider
     // NMR Provider infrastructure
   private:
     HANDLE _map_provider_handle = INVALID_HANDLE_VALUE;
-    // static ebpf_map_provider_dispatch_table_t _map_dispatch_table;
     NPI_MODULEID _map_module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
     NPI_PROVIDER_CHARACTERISTICS _map_provider_characteristics = {
         0,
@@ -715,28 +698,6 @@ typedef class _test_sample_map_provider
     ebpf_map_client_dispatch_table_t _client_dispatch_table = {};
 
     static uint64_t _map_context_offset;
-    // private:
-    // static uint32_t _hash_function(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
-    // {
-    //     uint32_t hash = 0;
-    //     for (uint32_t i = 0; i < key_size; i++) {
-    //         hash = hash * 31 + key[i];
-    //     }
-    //     return hash % bucket_count;
-    // }
-
-    // static test_sample_map_entry_t* _find_entry(test_sample_map_t* map, const uint8_t* key)
-    // {
-    //     uint32_t hash = _hash_function(key, map->key_size, map->bucket_count);
-    //     test_sample_map_entry_t* entry = map->buckets[hash];
-    //     while (entry != nullptr) {
-    //         if (memcmp(entry->key, key, map->key_size) == 0) {
-    //             return entry;
-    //         }
-    //         entry = entry->next;
-    //     }
-    //     return nullptr;
-    // }
 } test_sample_map_provider_t;
 
 // Definition of the static member variable - inline to avoid multiple definition errors

@@ -1751,13 +1751,6 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 }
 
 void
-wait_for_input(int i)
-{
-    std::cout << "Press Enter to continue...[" << i << "]" << std::endl;
-    // std::cin.get();
-}
-
-void
 _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 {
     bpf_object_ptr unique_object{nullptr};
@@ -1775,13 +1768,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     REQUIRE(result == 0);
 
     unique_object.reset(object);
-
-    // auto require_and_close_object = [&](bool condition) {
-    //     if (!condition) {
-    //         bpf_object__close(unique_object.release());
-    //     }
-    //     REQUIRE(condition);
-    // };
 
     fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
     REQUIRE(result_map_fd > 0);
@@ -1819,8 +1805,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     opts.ctx_out = &ctx;
     opts.ctx_size_out = sizeof(sample_program_context_t);
 
-    wait_for_input(1);
-
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_increment"));
     REQUIRE(program_fd > 0);
     result = bpf_prog_test_run_opts(program_fd, &opts);
@@ -1831,7 +1815,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     validate_result_map(1);
     value += iteration;
 
-    wait_for_input(2);
     // Now invoke "test_map_read_helper_increment" program. The map value should be incremented by 1 by the program for
     // each iteration.
     program_fd =
@@ -1848,7 +1831,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // Set iteration to 1 for the remaining tests.
     opts.repeat = 1;
 
-    wait_for_input(3);
     // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
     program_fd = bpf_program__fd(
         bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment_invalid"));
@@ -1859,7 +1841,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // Validate that the program failed by checking the result map.
     validate_result_map(0);
 
-    wait_for_input(4);
     // Now invoke "test_map_update_element" program. The value should be set to 42.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
     REQUIRE(program_fd > 0);
@@ -1870,7 +1851,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     validate_sample_map_value(42);
     validate_result_map(1);
 
-    wait_for_input(5);
     // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
     REQUIRE(program_fd > 0);
@@ -1885,7 +1865,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     value = 200;
     REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
 
-    wait_for_input(6);
     // Invoke "test_map_find_and_delete_element" program.
     program_fd =
         bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
@@ -1898,7 +1877,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // Validate that result map value is 1.
     validate_result_map(1);
 
-    wait_for_input(7);
     // Invoke "test_map_push_elem" program.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
     REQUIRE(program_fd > 0);
@@ -1908,7 +1886,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // push_elem is not supported for array maps, validate that the call failed.
     validate_result_map(0);
 
-    wait_for_input(8);
     // Invoke "test_map_pop_elem" program.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_pop_elem"));
     REQUIRE(program_fd > 0);
@@ -1918,7 +1895,6 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     // pop_elem is not supported for array maps, validate that the call failed.
     validate_result_map(0);
 
-    wait_for_input(9);
     // Invoke "test_map_peek_elem" program.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_peek_elem"));
     REQUIRE(program_fd > 0);
@@ -1940,236 +1916,4 @@ TEST_CASE("extensible_maps_program_load-jit", "[extensible_maps]")
 TEST_CASE("extensible_maps_program_load-native", "[extensible_maps]")
 {
     _test_extensible_maps_program_load(EBPF_EXECUTION_NATIVE);
-}
-
-// Performance test structure for extensible map operations
-typedef struct _extensible_map_perf_result
-{
-    uint64_t duration_ns;
-    uint32_t cpu_id;
-    uint32_t operations_count;
-} extensible_map_perf_result_t;
-
-void
-print_extensible_map_performance_results(
-    const std::string& test_name, const std::vector<extensible_map_perf_result_t>& results)
-{
-    if (results.empty())
-        return;
-
-    uint64_t total_duration = 0;
-    uint32_t valid_results = 0;
-
-    std::cout << "\n=== " << test_name << " Performance Results ===" << std::endl;
-    std::cout << "CPU\tOperations\tDuration (ns)\tNs/Op" << std::endl;
-
-    for (const auto& result : results) {
-        if (result.operations_count > 0) {
-            double ns_per_op = static_cast<double>(result.duration_ns) / result.operations_count;
-            std::cout << result.cpu_id << "\t" << result.operations_count << "\t\t" << result.duration_ns << "\t\t"
-                      << std::fixed << std::setprecision(2) << ns_per_op << std::endl;
-            total_duration += result.duration_ns;
-            valid_results++;
-        }
-    }
-
-    if (valid_results > 0) {
-        double average_ns_per_cpu = static_cast<double>(total_duration) / valid_results;
-        std::cout << "AVG\t-\t\t" << static_cast<uint64_t>(average_ns_per_cpu) << "\t\t" << std::fixed
-                  << std::setprecision(2) << (average_ns_per_cpu / 1000000) << " ms/CPU" << std::endl;
-    }
-    std::cout << "=============================================" << std::endl;
-}
-
-TEST_CASE("extensible_map_operations_performance", "[extensible_maps][performance]")
-{
-    // Performance test parameters
-    const uint32_t PREPARE_ITERATIONS = 1024;
-    const uint32_t PERFORMANCE_ITERATIONS = 10000000;
-
-    // int result;
-    // hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
-    // program_load_attach_helper_t _helper;
-    struct bpf_object* object = nullptr;
-    native_module_helper_t native_helper;
-    fd_t program_fd;
-    native_helper.initialize("extensible_map_operations", EBPF_EXECUTION_NATIVE);
-    // _helper.initialize(
-    //     native_helper.get_file_name().c_str(),
-    //     BPF_PROG_TYPE_SAMPLE,
-    //     "read",
-    //     EBPF_EXECUTION_NATIVE,
-    //     nullptr,
-    //     0,
-    //     hook);
-
-    std::unique_ptr<bpf_object, decltype(&bpf_object__close)> unique_object(nullptr, bpf_object__close);
-
-    // const char* file_name = native_helper.get_file_name().c_str();
-    const char* file_name = "extensible_map_operations.sys";
-    int result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
-    REQUIRE(result == 0);
-    unique_object.reset(object);
-
-    auto REQUIRE = [&](bool condition) {
-        if (!condition) {
-            bpf_object__close(unique_object.release());
-        }
-        REQUIRE(condition);
-    };
-
-    // Find all required programs
-    bpf_program* prepare_program = bpf_object__find_program_by_name(object, "prepare");
-    bpf_program* read_program = bpf_object__find_program_by_name(object, "read");
-    bpf_program* update_program = bpf_object__find_program_by_name(object, "update");
-    bpf_program* replace_program = bpf_object__find_program_by_name(object, "replace");
-
-    REQUIRE(prepare_program != nullptr);
-    REQUIRE(read_program != nullptr);
-    REQUIRE(update_program != nullptr);
-    REQUIRE(replace_program != nullptr);
-
-    fd_t prepare_fd = bpf_program__fd(prepare_program);
-    fd_t read_fd = bpf_program__fd(read_program);
-    fd_t update_fd = bpf_program__fd(update_program);
-    fd_t replace_fd = bpf_program__fd(replace_program);
-
-    REQUIRE(prepare_fd > 0);
-    REQUIRE(read_fd > 0);
-    REQUIRE(update_fd > 0);
-    REQUIRE(replace_fd > 0);
-
-    // Get system info for CPU count
-    SYSTEM_INFO sysinfo;
-    GetSystemInfo(&sysinfo);
-    uint32_t cpu_count = sysinfo.dwNumberOfProcessors;
-
-    std::cout << "Running extensible map performance test on " << cpu_count << " CPUs" << std::endl;
-
-    // Step 3: Execute "sample_ext/prepare" program 1024 times to prepare the maps
-    std::cout << "Preparing maps with " << PREPARE_ITERATIONS << " iterations..." << std::endl;
-
-    bpf_test_run_opts prepare_opts = {};
-    prepare_opts.sz = sizeof(prepare_opts);
-    prepare_opts.repeat = PREPARE_ITERATIONS;
-    prepare_opts.batch_size = 1;
-    sample_program_context_t prepare_ctx = {};
-    prepare_opts.ctx_in = &prepare_ctx;
-    prepare_opts.ctx_size_in = sizeof(sample_program_context_t);
-    prepare_opts.ctx_out = &prepare_ctx;
-    prepare_opts.ctx_size_out = sizeof(sample_program_context_t);
-
-    result = bpf_prog_test_run_opts(prepare_fd, &prepare_opts);
-    REQUIRE(result == 0);
-
-    // Performance test data structures
-    std::vector<extensible_map_perf_result_t> read_results(cpu_count);
-    std::vector<extensible_map_perf_result_t> update_results(cpu_count);
-    std::vector<extensible_map_perf_result_t> replace_results(cpu_count);
-
-    // Test structure for each operation type
-    struct perf_test_config
-    {
-        const char* name;
-        fd_t program_fd;
-        std::vector<extensible_map_perf_result_t>* results;
-    };
-
-    std::vector<perf_test_config> tests = {
-        {"Read Operations", read_fd, &read_results},
-        {"Update Operations", update_fd, &update_results},
-        {"Replace Operations", replace_fd, &replace_results}};
-
-    // Run performance tests for each operation type
-    for (auto& test : tests) {
-        std::cout << "\nRunning " << test.name << " with " << PERFORMANCE_ITERATIONS << " iterations per CPU..."
-                  << std::endl;
-
-        std::vector<std::jthread> threads;
-        std::atomic<size_t> failure_count = 0;
-
-        // Create one thread per CPU
-        for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
-            threads.emplace_back([&, cpu_id, test]() {
-                try {
-                    bpf_test_run_opts opts = {};
-                    sample_program_context_t ctx = {};
-                    opts.sz = sizeof(opts);
-                    opts.repeat = PERFORMANCE_ITERATIONS;
-                    opts.batch_size = 1;
-                    opts.cpu = cpu_id;
-                    opts.ctx_in = &ctx;
-                    opts.ctx_size_in = sizeof(sample_program_context_t);
-                    opts.ctx_out = &ctx;
-                    opts.ctx_size_out = sizeof(sample_program_context_t);
-
-                    // Measure start time
-                    // auto start_time = std::chrono::high_resolution_clock::now();
-
-                    int thread_result = bpf_prog_test_run_opts(test.program_fd, &opts);
-                    if (thread_result != 0) {
-                        failure_count++;
-                    }
-                    // Execute the operation PERFORMANCE_ITERATIONS times
-                    // for (uint32_t i = 0; i < PERFORMANCE_ITERATIONS; i++) {
-                    //     int thread_result = bpf_prog_test_run_opts(test.program_fd, &opts);
-                    //     if (thread_result != 0) {
-                    //         failure_count++;
-                    //         break;
-                    //     }
-                    // }
-
-                    // Measure end time
-                    // auto end_time = std::chrono::high_resolution_clock::now();
-                    // auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end_time - start_time);
-
-                    // Store results
-                    (*test.results)[cpu_id] = {
-                        opts.duration, // Duration in nanoseconds from opts
-                        cpu_id,
-                        PERFORMANCE_ITERATIONS};
-
-                } catch (...) {
-                    failure_count++;
-                }
-            });
-        }
-
-        // Wait for all threads to complete
-        for (auto& thread : threads) {
-            thread.join();
-        }
-
-        REQUIRE(failure_count == 0);
-
-        // Print performance results for this test
-        print_extensible_map_performance_results(test.name, *test.results);
-    }
-
-    // Print summary comparison
-    std::cout << "\n=== Performance Summary ===" << std::endl;
-
-    for (auto& test : tests) {
-        uint64_t total_ops = 0;
-        uint64_t total_time = 0;
-
-        for (const auto& perf_result : *test.results) {
-            total_ops += perf_result.operations_count;
-            total_time += perf_result.duration_ns;
-        }
-
-        if (total_ops > 0) {
-            double ops_per_second = static_cast<double>(total_ops) / (static_cast<double>(total_time) / 1e9);
-            double avg_ns_per_op = static_cast<double>(total_time) / total_ops;
-
-            std::cout << test.name << ":" << std::endl;
-            std::cout << "  Total Operations: " << total_ops << std::endl;
-            std::cout << "  Total Time: " << total_time << " ns" << std::endl;
-            std::cout << "  Operations/Second: " << std::fixed << std::setprecision(0) << ops_per_second << std::endl;
-            std::cout << "  Avg ns/Operation: " << std::fixed << std::setprecision(2) << avg_ns_per_op << std::endl;
-            std::cout << std::endl;
-        }
-    }
-
-    bpf_object__close(unique_object.release());
 }

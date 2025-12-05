@@ -134,9 +134,6 @@ typedef struct _ebpf_execution_context_state
 #define EBPF_CONTEXT_HEADER uint64_t context_header[8]
 #define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)
 
-// #define EBPF_MAP_HEADER uint64_t map_header[8]
-// #define EBPF_MAP_HEADER_SIZE (sizeof(uint64_t) * 8)
-
 /**
  * @brief Create an eBPF map.
  *
@@ -144,7 +141,6 @@ typedef struct _ebpf_execution_context_state
  * @param[in] key_size The size of the key in bytes.
  * @param[in] value_size The size of the value in bytes.
  * @param[in] max_entries The maximum number of entries in the map.
- * @param[in] map_definition Additional map definition parameters.
  * @param[out] map_context The created map context.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -157,7 +153,6 @@ typedef ebpf_result_t (*ebpf_map_create_t)(
     uint32_t key_size,
     uint32_t value_size,
     uint32_t max_entries,
-    // _In_opt_ const void* map_definition,
     _Outptr_ void** map_context);
 
 /**
