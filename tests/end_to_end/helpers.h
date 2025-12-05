@@ -581,11 +581,11 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .create_map_function = _test_sample_map_create,
     .delete_map_function = _test_sample_map_delete,
+    .associate_program_function = _test_sample_map_associate_program,
     .find_element_function = _test_sample_map_find_entry,
     .update_element_function = _test_sample_map_update_entry,
     .delete_element_function = _test_sample_map_delete_entry,
-    .get_next_key_function = _test_sample_map_get_next_key,
-    .associate_program_function = _test_sample_map_associate_program};
+    .get_next_key_function = _test_sample_map_get_next_key};
 
 static ebpf_map_provider_data_t _test_sample_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER, 1, _sample_supported_map_types, &_sample_map_dispatch_table};
@@ -703,7 +703,7 @@ typedef class _test_sample_map_provider
         (PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN)_map_provider_cleanup_binding_context,
         {0,
          sizeof(NPI_REGISTRATION_INSTANCE),
-         &EBPF_MAP_EXTENSION_IID,
+         &EBPF_MAP_INFO_EXTENSION_IID,
          &_map_module_id,
          0,
          &_test_sample_map_provider_data}};

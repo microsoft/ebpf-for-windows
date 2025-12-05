@@ -23,7 +23,7 @@ extern "C"
     /** @brief NPI ID for eBPF map extension.
      *  0x3c2b0f4e, 0x8b0e, 0x4e5e, 0x8e1b, 0x7f4b1f0e1f0e
      */
-    __declspec(selectany) GUID EBPF_MAP_EXTENSION_IID = {
+    __declspec(selectany) GUID EBPF_MAP_INFO_EXTENSION_IID = {
         0x3c2b0f4e, 0x8b0e, 0x4e5e, {0x8e, 0x1b, 0x7f, 0x4b, 0x1f, 0x0e, 0x1f, 0x0e}};
 #ifdef __cplusplus
 }

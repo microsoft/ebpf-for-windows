@@ -265,11 +265,11 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_extension_header_t header;
     _Notnull_ ebpf_map_create_t create_map_function;
     _Notnull_ ebpf_map_delete_t delete_map_function;
-    _Notnull_ ebpf_map_find_element_t find_element_function;
-    _Notnull_ ebpf_map_update_element_t update_element_function;
-    _Notnull_ ebpf_map_delete_element_t delete_element_function;
-    _Notnull_ ebpf_map_get_next_key_t get_next_key_function;
     _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
+    ebpf_map_find_element_t find_element_function;
+    ebpf_map_update_element_t update_element_function;
+    ebpf_map_delete_element_t delete_element_function;
+    ebpf_map_get_next_key_t get_next_key_function;
 } ebpf_map_provider_dispatch_table_t;
 
 /**

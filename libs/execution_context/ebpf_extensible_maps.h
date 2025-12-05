@@ -93,8 +93,7 @@ extern "C"
     /**
      * @brief Check if a map type is extensible (>= 4096).
      */
-    _Must_inspect_result_ bool
-    ebpf_map_type_is_extensible(uint32_t map_type);
+    bool __forceinline ebpf_map_type_is_extensible(uint32_t map_type);
 
     /**
      * @brief Find an element in an extensible map.

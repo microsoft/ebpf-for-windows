@@ -460,12 +460,15 @@ typedef struct _ebpf_map_metadata_table
 
 const ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
 
-// ebpf_map_get_table(type) - get the metadata table for the given map type.
+// _ebpf_map_get_table(type) - get the metadata table for the given map type.
 //
 // type is checked on map creation and not user writeable, so in release mode we don't need to check it.
 // In debug mode, we assert that the type is within the table bounds.
 static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
-ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
+_ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
+
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(const ebpf_map_type_t type);
 
 static void
 _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t value_type);
@@ -836,6 +839,33 @@ _associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const 
 {
     ebpf_assert(map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY);
     ebpf_core_object_map_t* program_array = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+
+    // Validate that the program type is not in conflict with the map's program type.
+    ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
+
+    if (!program_array->is_program_type_set) {
+        program_array->is_program_type_set = TRUE;
+        program_array->program_type = program_type;
+    } else if (memcmp(&program_array->program_type, &program_type, sizeof(program_type)) != 0) {
+        result = EBPF_INVALID_FD;
+    }
+
+    ebpf_lock_unlock(&program_array->lock, lock_state);
+
+    return result;
+}
+
+static ebpf_result_t
+_associate_program_with_nested_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
+{
+    ebpf_assert(
+        map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
+        map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
+
+    ebpf_core_object_map_t* outer_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
     // Validate that the program type is not in conflict with the map's program type.
     ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
@@ -2668,6 +2698,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_query_buffer(
     _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->query_buffer == NULL) {
@@ -2715,6 +2749,9 @@ ebpf_ring_buffer_map_unmap_user(
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_set_wait_handle_internal(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->set_wait_handle == NULL) {
@@ -2735,6 +2772,10 @@ ebpf_map_async_query(
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->async_query == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -2766,6 +2807,9 @@ ebpf_map_return_buffer(_In_ const ebpf_map_t* map, uint64_t flags, size_t length
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_write_data(_Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->write_data == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -3150,22 +3194,28 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
 };
 
-// // Check if a map type is handled by extensible maps (>= 4096).
-// static bool
-// ebpf_map_type_is_extensible(ebpf_map_type_t type)
-// {
-//     return type > BPF_MAP_TYPE_MAX;
-// }
+// Catch-all metadata table for operations on extensible maps.
+const ebpf_map_metadata_table_t _ebpf_extensible_map_metadata_table = {0};
 
 // ebpf_map_get_table(type) - get the metadata table for the given map type.
 //
 // type is checked on map creation and not user writeable, so in release mode we don't need to check it.
 // In debug mode, we assert that the type is within the table bounds.
 static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
-ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type)
+_ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type)
 {
     ebpf_assert(type < EBPF_COUNT_OF(ebpf_map_metadata_tables));
     return &ebpf_map_metadata_tables[type];
+}
+
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(const ebpf_map_type_t type)
+{
+    if (ebpf_map_type_is_extensible(type)) {
+        return &_ebpf_extensible_map_metadata_table;
+    }
+
+    return _ebpf_map_get_table(type);
 }
 
 static void
@@ -3210,13 +3260,6 @@ ebpf_map_create(
             goto Exit;
         }
 
-        // // Set map name.
-        // result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
-        // if (result != EBPF_SUCCESS) {
-        //     goto Exit;
-        // }
-
-        // *ebpf_map = local_map;
         goto Initialize;
     }
 
@@ -3579,6 +3622,10 @@ ebpf_map_next_key(
     _In_reads_opt_(key_size) const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
     // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
@@ -3777,6 +3824,15 @@ ebpf_map_get_next_key_and_value_batch(
     size_t value_size = map->ebpf_map_definition.value_size;
     size_t output_length = 0;
     size_t maximum_output_length = *key_and_value_length;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_get_next_key_and_value_batch not supported on extensible map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 

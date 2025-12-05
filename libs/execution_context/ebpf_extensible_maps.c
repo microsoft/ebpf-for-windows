@@ -98,18 +98,14 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_extensible_map_client_characterist
     {
         0,
         sizeof(NPI_REGISTRATION_INSTANCE),
-        &EBPF_MAP_EXTENSION_IID,
+        &EBPF_MAP_INFO_EXTENSION_IID,
         NULL,
         0,
         &_ebpf_extensible_map_client_data,
     },
 };
 
-_Must_inspect_result_ bool
-ebpf_map_type_is_extensible(ebpf_map_type_t type)
-{
-    return type > BPF_MAP_TYPE_MAX;
-}
+bool __forceinline ebpf_map_type_is_extensible(ebpf_map_type_t type) { return type > BPF_MAP_TYPE_MAX; }
 
 // Helper function to check if a map type is supported by provider
 static bool
@@ -542,14 +538,15 @@ ebpf_extensible_map_find_entry(
 {
     ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
     ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
-    // uint8_t* provider_value = NULL;
 
     // Get provider dispatch.
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
-    ebpf_assert(provider_dispatch != NULL && provider_dispatch->find_element_function != NULL);
+    ebpf_assert(provider_dispatch != NULL);
     // Call provider's find function
     __analysis_assume(provider_dispatch != NULL);
-    __analysis_assume(provider_dispatch->find_element_function != NULL);
+    if (provider_dispatch->find_element_function == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
     result = provider_dispatch->find_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, value, (uint32_t)flags);
 
@@ -575,10 +572,12 @@ ebpf_extensible_map_update_entry(
 
     // Get provider dispatch.
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
-    ebpf_assert(provider_dispatch != NULL && provider_dispatch->update_element_function != NULL);
+    ebpf_assert(provider_dispatch != NULL);
     // Call provider's update function
     __analysis_assume(provider_dispatch != NULL);
-    __analysis_assume(provider_dispatch->update_element_function != NULL);
+    if (provider_dispatch->update_element_function == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
     result = provider_dispatch->update_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, value_size, value, option, (uint32_t)flags);
 
@@ -594,10 +593,12 @@ ebpf_extensible_map_delete_entry(
 
     // Get provider dispatch.
     ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
-    ebpf_assert(provider_dispatch != NULL && provider_dispatch->delete_element_function != NULL);
+    ebpf_assert(provider_dispatch != NULL);
     // Call provider's delete function
     __analysis_assume(provider_dispatch != NULL);
-    __analysis_assume(provider_dispatch->delete_element_function != NULL);
+    if (provider_dispatch->delete_element_function == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
     result = provider_dispatch->delete_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, (uint32_t)flags);
 

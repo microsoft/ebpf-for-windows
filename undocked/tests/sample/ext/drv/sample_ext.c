@@ -234,8 +234,8 @@ static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_ch
     {
         0,                                 // Version
         sizeof(NPI_REGISTRATION_INSTANCE), // Length
-        &EBPF_MAP_EXTENSION_IID,
-        &_sample_ebpf_extension_map_provider_moduleid, // Module ID (reuse program one)
+        &EBPF_MAP_INFO_EXTENSION_IID,
+        &_sample_ebpf_extension_map_provider_moduleid, // Module ID.
         0,                                             // Number
         &_sample_map_provider_data                     // Module context (extension data)
     }};
