@@ -858,32 +858,32 @@ _associate_program_with_prog_array_map(_Inout_ ebpf_core_map_t* map, _In_ const 
     return result;
 }
 
-static ebpf_result_t
-_associate_program_with_nested_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
-{
-    ebpf_assert(
-        map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
-        map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
+// static ebpf_result_t
+// _associate_program_with_nested_map(_Inout_ ebpf_core_map_t* map, _In_ const ebpf_program_t* program)
+// {
+//     ebpf_assert(
+//         map->ebpf_map_definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
+//         map->ebpf_map_definition.type == BPF_MAP_TYPE_HASH_OF_MAPS);
 
-    ebpf_core_object_map_t* outer_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
+//     ebpf_core_object_map_t* outer_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
 
-    // Validate that the program type is not in conflict with the map's program type.
-    ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
-    ebpf_result_t result = EBPF_SUCCESS;
+//     // Validate that the program type is not in conflict with the map's program type.
+//     ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
+//     ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
+//     ebpf_lock_state_t lock_state = ebpf_lock_lock(&program_array->lock);
 
-    if (!program_array->is_program_type_set) {
-        program_array->is_program_type_set = TRUE;
-        program_array->program_type = program_type;
-    } else if (memcmp(&program_array->program_type, &program_type, sizeof(program_type)) != 0) {
-        result = EBPF_INVALID_FD;
-    }
+//     if (!program_array->is_program_type_set) {
+//         program_array->is_program_type_set = TRUE;
+//         program_array->program_type = program_type;
+//     } else if (memcmp(&program_array->program_type, &program_type, sizeof(program_type)) != 0) {
+//         result = EBPF_INVALID_FD;
+//     }
 
-    ebpf_lock_unlock(&program_array->lock, lock_state);
+//     ebpf_lock_unlock(&program_array->lock, lock_state);
 
-    return result;
-}
+//     return result;
+// }
 
 static bool // Returns true if ok, false if not.
 _check_value_type(_In_ const ebpf_core_map_t* outer_map, _In_ const ebpf_core_object_t* value_object)
