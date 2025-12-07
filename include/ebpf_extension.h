@@ -317,8 +317,7 @@ typedef struct _ebpf_map_client_dispatch_table
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    size_t supported_map_type_count;                                            // Number of supported map types
-    _Field_size_(supported_map_type_count) const uint32_t* supported_map_types; // Array of supported map types
+    uint32_t map_type; // Extensible map type implemented by the provider.
     ebpf_map_provider_dispatch_table_t* dispatch_table;
 } ebpf_map_provider_data_t;
 

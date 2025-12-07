@@ -67,17 +67,17 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_extensible_map_client_characterist
     },
 };
 
-// Helper function to check if a map type is supported by provider
-static bool
-_is_map_type_supported(uint32_t map_type, size_t supported_map_type_count, const uint32_t* supported_map_types)
-{
-    for (uint32_t i = 0; i < supported_map_type_count; i++) {
-        if (supported_map_types[i] == map_type) {
-            return true;
-        }
-    }
-    return false;
-}
+// // Helper function to check if a map type is supported by provider
+// static bool
+// _is_map_type_supported(uint32_t map_type, size_t supported_map_type_count, const uint32_t* supported_map_types)
+// {
+//     for (uint32_t i = 0; i < supported_map_type_count; i++) {
+//         if (supported_map_types[i] == map_type) {
+//             return true;
+//         }
+//     }
+//     return false;
+// }
 
 static void
 _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_extensible_map_t* map)
@@ -252,10 +252,7 @@ _ebpf_extensible_map_client_attach_provider(
     }
 
     // Check if map type matches any of the supported types
-    if (!_is_map_type_supported(
-            extensible_map->core_map.ebpf_map_definition.type,
-            provider_data->supported_map_type_count,
-            provider_data->supported_map_types)) {
+    if ((uint32_t)extensible_map->core_map.ebpf_map_definition.type != provider_data->map_type) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -455,6 +452,31 @@ ebpf_extensible_map_delete_entry(
     }
     result = provider_dispatch->delete_element_function(
         extensible_map->core_map.extensible_map_data, key_size, key, (uint32_t)flags);
+
+    return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_extensible_map_get_next_key_and_value(
+    _Inout_ ebpf_map_t* map,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* previous_key,
+    _Out_writes_(key_size) uint8_t* next_key,
+    _Outptr_opt_ uint8_t** next_value)
+{
+    ebpf_extensible_map_t* extensible_map = CONTAINING_RECORD(map, ebpf_extensible_map_t, core_map);
+    ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
+
+    // Get provider dispatch.
+    ebpf_map_provider_dispatch_table_t* provider_dispatch = extensible_map->provider_dispatch;
+    ebpf_assert(provider_dispatch != NULL);
+    // Call provider's get next key and value function
+    __analysis_assume(provider_dispatch != NULL);
+    if (provider_dispatch->get_next_key_and_value_function == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    result = provider_dispatch->get_next_key_and_value_function(
+        extensible_map->core_map.extensible_map_data, key_size, previous_key, next_key, next_value);
 
     return result;
 }

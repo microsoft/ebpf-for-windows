@@ -800,6 +800,6 @@ ebpf_validate_map_provider_data(_In_ const ebpf_map_provider_data_t* map_provide
     return (
         (map_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DATA, &map_provider_data->header) &&
-        (map_provider_data->supported_map_type_count > 0) && (map_provider_data->supported_map_types != NULL) &&
+        // (map_provider_data->supported_map_type_count > 0) && (map_provider_data->supported_map_types != NULL) &&
         (_ebpf_validate_map_provider_dispatch_table(map_provider_data->dispatch_table)));
 }

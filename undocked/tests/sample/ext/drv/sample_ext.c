@@ -114,7 +114,6 @@ typedef struct _sample_hash_bucket
 
 typedef struct _sample_map
 {
-    // EBPF_MAP_HEADER;
     uint32_t map_type;
     uint32_t key_size;
     uint32_t value_size;
@@ -182,7 +181,7 @@ _sample_map_get_next_key_and_value(
 static ebpf_result_t
 _sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
 
-static uint32_t _sample_supported_map_types[2] = {BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, BPF_MAP_TYPE_SAMPLE_HASH_MAP};
+// static uint32_t _sample_supported_map_types[2] = {BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, BPF_MAP_TYPE_SAMPLE_HASH_MAP};
 
 // Sample map extension data
 static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
@@ -196,7 +195,7 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .associate_program_function = _sample_map_associate_program};
 
 static ebpf_map_provider_data_t _sample_map_provider_data = {
-    EBPF_MAP_PROVIDER_DATA_HEADER, 2, _sample_supported_map_types, &_sample_map_dispatch_table};
+    EBPF_MAP_PROVIDER_DATA_HEADER, BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, &_sample_map_dispatch_table};
 
 // Map provider context structure
 typedef struct _sample_ebpf_extension_map_provider

@@ -2735,10 +2735,6 @@ ebpf_map_async_query(
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->async_query == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -2770,9 +2766,6 @@ ebpf_map_return_buffer(_In_ const ebpf_map_t* map, uint64_t flags, size_t length
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_write_data(_Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->write_data == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -3586,7 +3579,7 @@ ebpf_map_next_key(
     _Out_writes_(key_size) uint8_t* next_key)
 {
     if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        return ebpf_extensible_map_get_next_key_and_value(map, key_size, previous_key, next_key, NULL);
     }
 
     // High volume call - Skip entry/exit logging.

@@ -6,6 +6,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_mt_stress.h"
+#include "helpers.h"
 #include "program_helper.h"
 #include "test_helper.hpp"
 

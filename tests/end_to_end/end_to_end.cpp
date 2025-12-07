@@ -3576,11 +3576,15 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
 DECLARE_JIT_TEST_CASES(
     "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
 
-TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
+// This test validates extensible map user APIs.
+void
+_test_extensible_maps_user_apis(ebpf_map_type_t map_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     uint32_t map_size = 10;
+
+    REQUIRE(map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
@@ -3594,11 +3598,15 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
         REQUIRE(invalid_map_fd < 0);
     }
 
+    // Create a map with invalid map types. This should fail.
+    fd_t invalid_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_MAX, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(invalid_map_fd < 0);
+
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
 
-    // This test validates extensible map user APIs.
     fd_t extensible_map_fd = bpf_map_create(
         BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
     REQUIRE(extensible_map_fd > 0);
@@ -3658,7 +3666,165 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
         require_and_close((value == 0), extensible_map_fd);
     }
 
+    // Test bpf_map_get_next_key on extensible map.
+    // For array maps, we should iterate through all indices from 0 to map_size-1.
+    uint32_t next_key = 0;
+    uint32_t count = 0;
+    uint32_t* prev_key = nullptr;
+
+    // First call with nullptr should return key 0.
+    int result = bpf_map_get_next_key(extensible_map_fd, nullptr, &next_key);
+    require_and_close((result == 0), extensible_map_fd);
+    require_and_close((next_key == 0), extensible_map_fd);
+
+    // Iterate through all keys in the array map.
+    prev_key = nullptr;
+    count = 0;
+    while (bpf_map_get_next_key(extensible_map_fd, prev_key, &next_key) == 0) {
+        require_and_close((next_key == count), extensible_map_fd);
+        count++;
+        prev_key = &next_key;
+    }
+    // Should have iterated through all map_size entries.
+    require_and_close((count == map_size), extensible_map_fd);
+
     // Clean up
+    Platform::_close(extensible_map_fd);
+}
+
+TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    uint32_t map_size = 10;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+
+    {
+        // Try to create extensible map without initializing the map provider.
+        // This should fail.
+        fd_t invalid_map_fd = bpf_map_create(
+            BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+        REQUIRE(invalid_map_fd < 0);
+    }
+
+    // Create a map with invalid map types. This should fail.
+    fd_t invalid_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_MAX, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(invalid_map_fd < 0);
+
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
+
+    fd_t extensible_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(extensible_map_fd > 0);
+
+    auto require_and_close = [](bool condition, fd_t fd) {
+        if (condition == false) {
+            Platform::_close(fd);
+        }
+        REQUIRE(condition);
+    };
+
+    // Update elements at various indices.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = i + 100;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        require_and_close((result == 0), extensible_map_fd);
+    }
+    // Try updating an element beyond the current map size.
+    {
+        uint32_t key = map_size + 10;
+        uint32_t value = 999;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        require_and_close((result != 0), extensible_map_fd);
+    }
+
+    // Lookup elements and validate values.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((value == i + 100), extensible_map_fd);
+    }
+    // Lookup an invalid key
+    {
+        uint32_t key = map_size + 20;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        require_and_close((result != 0), extensible_map_fd);
+    }
+
+    // Delete all elements.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        int result = bpf_map_delete_elem(extensible_map_fd, &key);
+        require_and_close((result == 0), extensible_map_fd);
+    }
+
+    // Validate deleted elements are no longer present.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        // Since this is an array map, lookup should succeed but value should be zero.
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((value == 0), extensible_map_fd);
+    }
+
+    // Test bpf_map_get_next_key on extensible map.
+    // For array maps, we should iterate through all indices from 0 to map_size-1.
+    uint32_t next_key = 0;
+    uint32_t count = 0;
+    uint32_t* prev_key = nullptr;
+
+    // First call with nullptr should return key 0.
+    int result = bpf_map_get_next_key(extensible_map_fd, nullptr, &next_key);
+    require_and_close((result == 0), extensible_map_fd);
+    require_and_close((next_key == 0), extensible_map_fd);
+
+    // Iterate through all keys in the array map.
+    prev_key = nullptr;
+    count = 0;
+    while (bpf_map_get_next_key(extensible_map_fd, prev_key, &next_key) == 0) {
+        require_and_close((next_key == count), extensible_map_fd);
+        count++;
+        prev_key = &next_key;
+    }
+    // Should have iterated through all map_size entries.
+    require_and_close((count == map_size), extensible_map_fd);
+
+    // Clean up
+    Platform::_close(extensible_map_fd);
+}
+
+TEST_CASE("extensible_maps_user_apis_negative", "[extensible_maps]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
+
+    // 1. create an extensible map.
+    fd_t extensible_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 10, nullptr);
+    REQUIRE(extensible_map_fd > 0);
+
+    // 2. Invoke test_ioctl_map_write for the map. This should fail.
+    ebpf_handle_t map_handle = (ebpf_handle_t)Platform::_get_osfhandle(extensible_map_fd);
+    uint32_t data = 42;
+    REQUIRE(test_ioctl_map_write(map_handle, &data, sizeof(data)) != EBPF_SUCCESS);
+
     Platform::_close(extensible_map_fd);
 }
 
@@ -3686,7 +3852,7 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     REQUIRE(result != 0);
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
 
     auto require_and_close_object = [&](bool condition) {
         if (!condition) {
@@ -3862,7 +4028,7 @@ _test_extensible_maps_invalid(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_invalid_um.dll" : "extensible_map_invalid.o";
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize() == EBPF_SUCCESS);
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
 
     // Try to load the program with invalid extensible map usage.
     result =
