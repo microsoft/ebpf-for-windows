@@ -245,7 +245,7 @@ struct program_info_provider_reference_guard
   public:
     program_info_provider_reference_guard(ebpf_program_t* program) : _program(program)
     {
-        REQUIRE(ebpf_program_reference_providers(program));
+        REQUIRE(ebpf_program_reference_providers(program) == EBPF_SUCCESS);
     }
     ~program_info_provider_reference_guard() { ebpf_program_dereference_providers(_program); }
 
