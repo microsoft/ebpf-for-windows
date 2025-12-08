@@ -131,7 +131,7 @@ extern "C"
      *
      * @param[in] program Program that loaded the extension.
      * @param[out] program_info Pointer to the output allocated program info. Must be freed by caller by calling
-     * ebpf_program_free_program_info().
+     * ebpf_program_free_program_info(). Must hold a reference on the program information provider.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
      * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.

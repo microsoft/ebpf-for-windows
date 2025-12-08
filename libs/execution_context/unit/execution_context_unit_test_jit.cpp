@@ -275,9 +275,11 @@ test_program_context()
     REQUIRE(
         memcmp(&program_parameters.program_type, &returned_program_type, sizeof(program_parameters.program_type)) == 0);
 
+    REQUIRE(ebpf_program_reference_providers(program.get()) == EBPF_SUCCESS);
     REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
     REQUIRE(program_info != nullptr);
     ebpf_program_free_program_info(program_info);
+    ebpf_program_dereference_providers(program.get());
 
     ebpf_map_t* maps[] = {map.get()};
 
