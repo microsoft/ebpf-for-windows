@@ -471,7 +471,7 @@ _test_sample_array_map_update_entry(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(option);
 
-    if (map_context == nullptr || key == nullptr || value == nullptr) {
+    if (map_context == nullptr || key == nullptr || value == nullptr || option == EBPF_NOEXIST) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -954,6 +954,7 @@ _test_sample_hash_map_create(
     sample_map->value_size = value_size;
     sample_map->max_entries = max_entries;
     sample_map->provider = provider;
+    sample_map->bucket_count = max_entries;
 
     // Allocate array of hash buckets
     sample_map->buckets = (test_sample_hash_bucket_t*)provider->dispatch_table()->epoch_allocate_cache_aligned_with_tag(

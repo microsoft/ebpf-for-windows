@@ -162,3 +162,37 @@ test_ioctl_load_native_programs(
 Done:
     return error;
 }
+
+uint32_t
+test_ioctl_map_update_element_with_handle(
+    ebpf_handle_t map_handle,
+    uint32_t key_size,
+    _In_reads_bytes_(key_size) const uint8_t* key,
+    ebpf_handle_t value_handle)
+{
+    uint32_t error = ERROR_SUCCESS;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_map_update_element_with_handle_request_t* request;
+
+    if (map_handle == ebpf_handle_invalid || key == nullptr || key_size == 0 || value_handle == ebpf_handle_invalid) {
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    try {
+        size_t buffer_size = offsetof(ebpf_operation_map_update_element_with_handle_request_t, key) + key_size;
+        request_buffer.resize(buffer_size);
+
+        request = reinterpret_cast<ebpf_operation_map_update_element_with_handle_request_t*>(request_buffer.data());
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE;
+        request->map_handle = (uint64_t)map_handle;
+        request->value_handle = (uint64_t)value_handle;
+        memcpy(request->key, key, key_size);
+
+        error = invoke_ioctl(request_buffer);
+    } catch (const std::bad_alloc&) {
+        error = ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    return error;
+}

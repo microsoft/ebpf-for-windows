@@ -22,11 +22,9 @@ test_ioctl_load_native_programs(
 uint32_t
 test_ioctl_map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) const void* data, size_t data_length);
 
-// uint32_t
-// test_ioctl_map_async_query(
-//     ebpf_handle_t map_handle,
-//     uint32_t index,
-//     size_t consumer_offset,
-//     _Out_ size_t* producer,
-//     _Out_ size_t* consumer,
-//     _Out_ size_t* lost_count);
+uint32_t
+test_ioctl_map_update_element_with_handle(
+    ebpf_handle_t map_handle,
+    uint32_t key_size,
+    _In_reads_bytes_(key_size) const uint8_t* key,
+    ebpf_handle_t value_handle);

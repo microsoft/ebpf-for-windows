@@ -2661,10 +2661,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_query_buffer(
     _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->query_buffer == NULL) {
@@ -2712,9 +2708,6 @@ ebpf_ring_buffer_map_unmap_user(
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_set_wait_handle_internal(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags)
 {
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->set_wait_handle == NULL) {
@@ -3519,10 +3512,6 @@ ebpf_map_update_entry_with_handle(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->update_entry_with_handle == NULL) {
@@ -3780,15 +3769,6 @@ ebpf_map_get_next_key_and_value_batch(
     size_t value_size = map->ebpf_map_definition.value_size;
     size_t output_length = 0;
     size_t maximum_output_length = *key_and_value_length;
-
-    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_map_get_next_key_and_value_batch not supported on extensible map",
-            map->ebpf_map_definition.type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
