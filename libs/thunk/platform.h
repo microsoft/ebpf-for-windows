@@ -79,7 +79,7 @@ uint32_t
 _delete_service(SC_HANDLE service_handle);
 
 uint32_t
-_stop_service(SC_HANDLE service_handle);
+_stop_and_delete_service(SC_HANDLE service_handle, const wchar_t* service_name);
 
 bool
 _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status);

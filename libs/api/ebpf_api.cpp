@@ -38,6 +38,7 @@ typedef unsigned char boolean;
 
 #include <algorithm>
 #include <codecvt>
+#include <cstdint>
 #include <fcntl.h>
 #include <io.h>
 #include <mutex>
@@ -3755,9 +3756,9 @@ _Must_inspect_result_ ebpf_result_t
 _ebpf_object_load_native(
     _In_z_ const char* file_name,
     _Out_ ebpf_handle_t* native_module_handle,
-    _Out_ size_t* count_of_maps,
+    _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
-    _Out_ size_t* count_of_programs,
+    _Inout_ size_t* count_of_programs,
     _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -3779,11 +3780,11 @@ _ebpf_object_load_native(
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
+    size_t real_count_of_maps = 0;
+    size_t real_count_of_programs = 0;
 
     *native_module_handle = ebpf_handle_invalid;
-    *count_of_maps = 0;
     *map_handles = nullptr;
-    *count_of_programs = 0;
     *program_handles = nullptr;
 
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
@@ -3852,7 +3853,7 @@ _ebpf_object_load_native(
 
         service_path = service_path + service_name.c_str();
         result = _load_native_module(
-            service_path, &provider_module_id, native_module_handle, count_of_maps, count_of_programs);
+            service_path, &provider_module_id, native_module_handle, &real_count_of_maps, &real_count_of_programs);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_WSTRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3862,8 +3863,19 @@ _ebpf_object_load_native(
             goto Done;
         }
 
+        if (*count_of_maps < real_count_of_maps || *count_of_programs < real_count_of_programs) {
+            result = EBPF_NO_MEMORY;
+        }
+
+        *count_of_maps = real_count_of_maps;
+        *count_of_programs = real_count_of_programs;
+
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         result = _load_native_programs(
-            &provider_module_id, *count_of_maps, map_handles, *count_of_programs, program_handles);
+            &provider_module_id, real_count_of_maps, map_handles, real_count_of_programs, program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3882,14 +3894,15 @@ _ebpf_object_load_native(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_free_handles(*count_of_maps, *map_handles);
-        _ebpf_free_handles(*count_of_programs, *program_handles);
+        _ebpf_free_handles(real_count_of_maps, *map_handles);
+        _ebpf_free_handles(real_count_of_programs, *program_handles);
 
         if (*native_module_handle != ebpf_handle_invalid) {
             Platform::CloseHandle(*native_module_handle);
         }
 
-        Platform::_stop_service(service_handle);
+        Platform::_stop_and_delete_service(service_handle, service_name.c_str());
+        EBPF_RETURN_RESULT(result);
     }
 
     // Workaround: Querying service status hydrates service reference count in SCM.
@@ -3919,36 +3932,24 @@ ebpf_object_load_native_by_fds(
     EBPF_LOG_ENTRY();
 
     ebpf_assert(count_of_maps);
-    ebpf_assert(*count_of_maps > 0 && map_fds);
+    ebpf_assert(*count_of_maps == 0 || map_fds);
     ebpf_assert(count_of_programs);
-    ebpf_assert(*count_of_programs > 0 && program_fds);
+    ebpf_assert(*count_of_programs == 0 || program_fds);
 
     ebpf_handle_t native_module_handle;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-    size_t real_count_of_maps = 0;
-    size_t real_count_of_programs = 0;
 
     ebpf_result_t result = _ebpf_object_load_native(
-        file_name, &native_module_handle, &real_count_of_maps, &map_handles, &real_count_of_programs, &program_handles);
+        file_name, &native_module_handle, count_of_maps, &map_handles, count_of_programs, &program_handles);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
 
     Platform::CloseHandle(native_module_handle);
 
-    if (*count_of_maps < real_count_of_maps || *count_of_programs < real_count_of_programs) {
-        *count_of_maps = real_count_of_maps;
-        *count_of_programs = real_count_of_programs;
-        _ebpf_free_handles(real_count_of_maps, map_handles);
-        _ebpf_free_handles(real_count_of_programs, program_handles);
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-    }
-
-    *count_of_maps = real_count_of_maps;
-    *count_of_programs = real_count_of_programs;
-
-    for (int i = 0; i < real_count_of_maps; i++) {
+    __analysis_assume(*count_of_maps == 0 || map_handles != nullptr);
+    for (int i = 0; i < *count_of_maps; i++) {
         map_fds[i] = _create_file_descriptor_for_handle(map_handles[i]);
         if (map_fds[i] == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
@@ -3957,7 +3958,8 @@ ebpf_object_load_native_by_fds(
         }
     }
 
-    for (int i = 0; i < real_count_of_programs; i++) {
+    __analysis_assume(*count_of_programs == 0 || program_handles != nullptr);
+    for (int i = 0; i < *count_of_programs; i++) {
         program_fds[i] = _create_file_descriptor_for_handle(program_handles[i]);
         if (program_fds[i] == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
@@ -3968,7 +3970,7 @@ ebpf_object_load_native_by_fds(
 
     if (result != EBPF_SUCCESS) {
         if (map_fds != nullptr) {
-            for (int i = 0; i < real_count_of_maps; i++) {
+            for (int i = 0; i < *count_of_maps; i++) {
                 if (map_fds[i] != ebpf_fd_invalid) {
                     Platform::_close(map_fds[i]);
                     map_fds[i] = ebpf_fd_invalid;
@@ -3977,7 +3979,7 @@ ebpf_object_load_native_by_fds(
         }
 
         if (program_fds != nullptr) {
-            for (int i = 0; i < real_count_of_programs; i++) {
+            for (int i = 0; i < *count_of_programs; i++) {
                 if (program_fds[i] != ebpf_fd_invalid) {
                     Platform::_close(program_fds[i]);
                     program_fds[i] = ebpf_fd_invalid;
@@ -3986,8 +3988,8 @@ ebpf_object_load_native_by_fds(
         }
     }
 
-    _ebpf_free_handles(real_count_of_maps, map_handles);
-    _ebpf_free_handles(real_count_of_programs, program_handles);
+    _ebpf_free_handles(*count_of_maps, map_handles);
+    _ebpf_free_handles(*count_of_programs, program_handles);
 
     EBPF_RETURN_RESULT(result);
 }
@@ -4006,8 +4008,8 @@ _ebpf_program_load_native(
     ebpf_handle_t native_module_handle = ebpf_handle_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-    size_t count_of_maps = 0;
-    size_t count_of_programs = 0;
+    size_t count_of_maps = SIZE_MAX;
+    size_t count_of_programs = SIZE_MAX;
 
     try {
         result = _ebpf_object_load_native(
