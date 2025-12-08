@@ -2621,10 +2621,12 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_helper_function_prototype_t helper_function_prototypes[5];
+        ebpf_helper_function_prototype_t
+            helper_function_prototypes[EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype)];
         std::copy(
             _sample_ebpf_extension_helper_function_prototype,
-            _sample_ebpf_extension_helper_function_prototype + 5,
+            _sample_ebpf_extension_helper_function_prototype +
+                EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
             helper_function_prototypes);
         // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
         // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.

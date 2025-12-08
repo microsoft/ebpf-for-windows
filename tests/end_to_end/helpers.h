@@ -1171,7 +1171,6 @@ _test_sample_hash_map_update_entry(
                 sizeof(test_sample_hash_bucket_entry_t) * new_capacity, EBPF_TEST_POOL_TAG);
 
         if (new_entries == NULL) {
-            client_dispatch_table->epoch_free(key_value_data);
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
@@ -1190,7 +1189,7 @@ _test_sample_hash_map_update_entry(
     bucket->entries[bucket->count].key_value_data = key_value_data;
     bucket->count++;
     sample_map->entry_count++;
-    key_value_data = NULL; // Don't free on exit
+    key_value_data = NULL;
 
 Exit:
     ExReleaseSpinLockExclusive(&bucket->lock, old_irql);
