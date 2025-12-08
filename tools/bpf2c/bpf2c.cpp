@@ -104,7 +104,7 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
                 helper_id_ordering[helper_id] = index;
             }
         }
-        // Hash helper ids in increasing helper_id order
+        // Hash helper ids in increasing helper_id order.
         for (auto [helper_id, index] : helper_id_ordering) {
             hash_t::append_byte_range(
                 byte_range, program_info->program_type_specific_helper_prototype[index].helper_id);

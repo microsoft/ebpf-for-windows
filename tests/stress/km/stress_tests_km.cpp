@@ -30,9 +30,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
+    _Guarded_by_(lock) bool available { true };
+    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
+    _Guarded_by_(lock) bool loaded { false };
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -353,7 +353,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                 // to force a race between 'load', 'attach' and 'destroy'.
                 std::lock_guard lock(*entry.lock.get());
 
-                // Make sure entry is _still_ free (some other creator thread may have grabbed it)
+                // Make sure entry is _still_ free (some other creator thread may have grabbed it).
                 if (!entry.available) {
                     continue;
                 }
@@ -747,13 +747,13 @@ wait_and_verify_test_threads(
     std::vector<std::thread>& extension_restart_thread_table,
     std::vector<thread_context>& extension_restart_thread_context_table)
 {
-    // Wait for all test threads
+    // Wait for all test threads.
     LOG_VERBOSE("waiting on {} test threads...", thread_table.size());
     for (auto& t : thread_table) {
         t.join();
     }
 
-    // Wait for all extension restart threads
+    // Wait for all extension restart threads.
     if (test_control_info.extension_restart_enabled) {
         LOG_VERBOSE("waiting on {} extension restart threads...", extension_restart_thread_table.size());
         for (auto& t : extension_restart_thread_table) {
@@ -835,7 +835,7 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
                     context_entry.file_name = _make_unique_file_copy(program_attribs.native_file_name);
                 } else {
 
-                    // Use the same file name for all 'creator' threads
+                    // Use the same file name for all 'creator' threads.
                     context_entry.file_name = program_attribs.native_file_name;
                 }
             } else {
@@ -1042,7 +1042,7 @@ _invoke_test_thread_function(thread_context& context)
         exit(-1);
     }
 
-    // Set the timeout for connect attempts
+    // Set the timeout for connect attempts.
     timeval timeout;
     timeout.tv_sec = 5; // 5 seconds
     timeout.tv_usec = 0;
@@ -1974,7 +1974,7 @@ _mt_load_stress_test_with_restart_timing(
     if (test_control_info.extension_restart_enabled && !start_restart_before_load) {
         // Wait for programs to load, then start extension restart.
         LOG_INFO("Waiting for programs to load, then starting extension restart");
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // Give programs time to load and attach
+        std::this_thread::sleep_for(std::chrono::seconds(5)); // Give programs time to load and attach.
         configure_extension_restart(
             test_control_info,
             extension_names,
@@ -2032,9 +2032,9 @@ _mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, con
         }
 
         context_entry.program_name = "cgroup_sock_addr";
-        context_entry.role = thread_role_type::CREATOR; // All threads are creators for this test
+        context_entry.role = thread_role_type::CREATOR; // All threads are creators for this test.
         context_entry.thread_index = i;
-        context_entry.compartment_id = i + 1; // Unique compartment IDs
+        context_entry.compartment_id = i + 1; // Unique compartment IDs.
         context_entry.duration_minutes = test_control_info.duration_minutes;
         context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
     }
