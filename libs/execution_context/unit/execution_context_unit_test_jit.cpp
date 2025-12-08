@@ -239,6 +239,20 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
+
+struct program_info_provider_reference_guard
+{
+  public:
+    program_info_provider_reference_guard(ebpf_program_t* program) : _program(program)
+    {
+        REQUIRE(ebpf_program_reference_providers(program));
+    }
+    ~program_info_provider_reference_guard() { ebpf_program_dereference_providers(_program); }
+
+  private:
+    ebpf_program_t* _program;
+};
+
 void
 test_program_context()
 {
@@ -275,11 +289,13 @@ test_program_context()
     REQUIRE(
         memcmp(&program_parameters.program_type, &returned_program_type, sizeof(program_parameters.program_type)) == 0);
 
-    REQUIRE(ebpf_program_reference_providers(program.get()) == EBPF_SUCCESS);
-    REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
-    REQUIRE(program_info != nullptr);
-    ebpf_program_free_program_info(program_info);
-    ebpf_program_dereference_providers(program.get());
+    {
+        program_info_provider_reference_guard guard(program.get());
+
+        REQUIRE(ebpf_program_get_program_info(program.get(), &program_info) == EBPF_SUCCESS);
+        REQUIRE(program_info != nullptr);
+        ebpf_program_free_program_info(program_info);
+    }
 
     ebpf_map_t* maps[] = {map.get()};
 
