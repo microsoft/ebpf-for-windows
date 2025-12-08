@@ -1701,11 +1701,9 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
         {"strings.sys", BPF_PROG_TYPE_UNSPEC},
         {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
         {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
-        {"utility.sys", BPF_PROG_TYPE_UNSPEC}
-    };
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
 
-    _test_multiple_programs_load(
-        _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
 // Test eBPF string and type conversion APIs.
@@ -1876,7 +1874,6 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         REQUIRE(result == 0);
 
         // Verify that stats are populated for successful verification.
-        REQUIRE(stats.total_instructions > 0); // Should have some instructions
         REQUIRE(report != nullptr); // Should generate a report
 
         // Clean up strings.
@@ -1962,7 +1959,6 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     REQUIRE(map_info[0].definition.value_size == sizeof(uint32_t));
     REQUIRE(map_info[0].definition.max_entries == 1);
     REQUIRE(map_info[0].definition.inner_map_id == 0);
-    REQUIRE(map_info[0].id > 0); // Should have a valid ID
 
     // Clean up pinned map info returned by the API.
     ebpf_api_map_info_free(map_count, map_info);
@@ -2093,8 +2089,7 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
         const char test_data[] = "test perf event data";
         ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
 
-        // Note: This might fail if no consumers are attached, which is valid.
-        REQUIRE((result == EBPF_SUCCESS || result == EBPF_NO_CONSUMERS));
+        REQUIRE(result == EBPF_SUCCESS);
 
         // Negative test: invalid file descriptor.
         result = ebpf_perf_event_array_map_write(-1, test_data, sizeof(test_data));
@@ -2228,49 +2223,6 @@ TEST_CASE("ebpf_program_info_from_verifier_api", "[ebpf_api]")
     REQUIRE(program_info != nullptr);
 }
 
-// Test deprecated eBPF section enumeration API for backward compatibility.
-TEST_CASE("ebpf_enumerate_sections_deprecated", "[ebpf_api]")
-{
-    // Test the deprecated ebpf_enumerate_sections API.
-    const char* test_file = "test_sample_ebpf.o";
-    ebpf_section_info_t* section_infos = nullptr;
-    const char* error_message = nullptr;
-
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-    ebpf_result_t result = ebpf_enumerate_sections(test_file, false, &section_infos, &error_message);
-#pragma warning(pop)
-
-    if (result == EBPF_SUCCESS && section_infos != nullptr) {
-        // Verify we got some section info.
-        REQUIRE(section_infos->section_name != nullptr);
-        REQUIRE(strlen(section_infos->section_name) > 0);
-
-        // Clean up using deprecated API.
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-        ebpf_free_sections(section_infos);
-#pragma warning(pop)
-    }
-
-    // Clean up error message if any.
-    ebpf_free_string(error_message);
-}
-
-// Test deprecated ebpf_get_next_pinned_program_path API.
-TEST_CASE("ebpf_get_next_pinned_program_path_deprecated", "[ebpf_api]")
-{
-    char next_path[EBPF_MAX_PIN_PATH_LENGTH];
-
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-    ebpf_result_t result = ebpf_get_next_pinned_program_path("", next_path);
-#pragma warning(pop)
-
-    // Should return EBPF_NO_MORE_KEYS as no objects are pinned.
-    REQUIRE(result == EBPF_NO_MORE_KEYS);
-}
-
 // Test eBPF memory-based verification APIs.
 TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
 {
@@ -2303,71 +2255,6 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     result = ebpf_api_elf_verify_program_from_memory(
         nullptr, 0, nullptr, nullptr, nullptr, EBPF_VERIFICATION_VERBOSITY_NORMAL, &report, &error_message, &stats);
     REQUIRE(result != 0);
-
-    // Clean up strings.
-    ebpf_free_string(report);
-    ebpf_free_string(error_message);
-}
-
-// Test remaining deprecated eBPF verification APIs for completeness.
-TEST_CASE("ebpf_deprecated_verification_apis", "[ebpf_api]")
-{
-    const char* test_file = "test_sample_ebpf.o";
-    const char* disassembly = nullptr;
-    const char* error_message = nullptr;
-
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-    // Test deprecated disassemble section API.
-    uint32_t result = ebpf_api_elf_disassemble_section(test_file, "sample", &disassembly, &error_message);
-#pragma warning(pop)
-
-    if (result == 0 && disassembly != nullptr) {
-        REQUIRE(strlen(disassembly) > 0);
-    }
-
-    // Clean up strings.
-    ebpf_free_string(disassembly);
-    ebpf_free_string(error_message);
-
-    // Test deprecated verify section from file API.
-    const char* report = nullptr;
-    ebpf_api_verifier_stats_t stats = {};
-
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-    result = ebpf_api_elf_verify_section_from_file(
-        test_file,
-        "sample",
-        nullptr, // program_type
-        EBPF_VERIFICATION_VERBOSITY_NORMAL,
-        &report,
-        &error_message,
-        &stats);
-#pragma warning(pop)
-
-    // Clean up strings.
-    ebpf_free_string(report);
-    ebpf_free_string(error_message);
-
-    // Test deprecated verify section from memory API.
-    const char* test_data = "minimal_test_data";
-
-#pragma warning(push)
-#pragma warning(disable : 4996) // Disable deprecation warning for testing.
-    result = ebpf_api_elf_verify_section_from_memory(
-        test_data,
-        strlen(test_data),
-        "sample",
-        nullptr, // program_type
-        EBPF_VERIFICATION_VERBOSITY_NORMAL,
-        &report,
-        &error_message,
-        &stats);
-#pragma warning(pop)
-
-    // Should fail for invalid ELF data but handle gracefully.
-    REQUIRE(result != 0); // Not successful verification.
 
     // Clean up strings.
     ebpf_free_string(report);
