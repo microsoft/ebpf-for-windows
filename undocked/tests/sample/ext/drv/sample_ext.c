@@ -8,6 +8,8 @@
 
 #define INITGUID
 
+#define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
+
 #include "cxplat.h"
 #include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
@@ -15,6 +17,9 @@
 #include "ebpf_structs.h"
 #include "sample_ext.h"
 #include "sample_ext_ioctls.h"
+
+uint32_t map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
+#include "sample_ext_maps.h"
 #include "sample_ext_program_info.h"
 
 #include <netioddk.h>
@@ -24,8 +29,6 @@
 
 #define SAMPLE_PID_TGID_VALUE 9999
 
-#define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
-
 #define CXPLAT_FREE(x) cxplat_free(x, CXPLAT_POOL_FLAG_NON_PAGED, SAMPLE_EXT_POOL_TAG_DEFAULT)
 
 #define MAP_TYPE(map) (((sample_map_t*)(map))->map_type)
@@ -34,15 +37,9 @@
 #define BPF_MAP_TYPE_SAMPLE_ARRAY_MAP 0xF000
 #define BPF_MAP_TYPE_SAMPLE_HASH_MAP 0xF001
 
-#define EBPF_MAP_SAMPLE_GUID                                                           \
-    {                                                                                  \
-        0xf788ef4b, 0x207d, 0x4dc4, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
-    }
-
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, EBPF_MAP_SAMPLE_GUID};
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
 
-// ebpf_map_client_dispatch_table_t table = {0};
 static uint64_t _map_context_offset = 0;
 
 // Sample Extension helper function addresses table.
@@ -97,42 +94,16 @@ static const ebpf_helper_function_addresses_t _sample_global_helper_function_add
 //
 // Sample Map Provider Implementation
 //
-
-// Hash bucket entry in array format
-typedef struct _sample_hash_bucket_entry
-{
-    uint8_t* key_value_data; // Key followed by value in contiguous memory
-} sample_hash_bucket_entry_t;
-
-typedef struct _sample_hash_bucket
-{
-    EX_SPIN_LOCK lock;                   // Reader-writer lock for this bucket
-    sample_hash_bucket_entry_t* entries; // Array of entries
-    uint32_t capacity;                   // Current capacity of entries array
-    uint32_t count;                      // Number of entries currently stored
-} sample_hash_bucket_t;
-
-typedef struct _sample_map
-{
-    uint32_t map_type;
-    uint32_t key_size;
-    uint32_t value_size;
-    uint32_t max_entries;
-    ebpf_map_client_dispatch_table_t* client_dispatch;
-} sample_map_t;
-
 typedef struct _sample_hash_map
 {
-    sample_map_t base;
-    uint32_t entry_count;
-    sample_hash_bucket_t* buckets; // Array of hash buckets
-    uint32_t bucket_count;
+    sample_base_hash_map_t base;
+    ebpf_map_client_dispatch_table_t* client_dispatch;
 } sample_hash_map_t;
 
 typedef struct _sample_array_map
 {
-    sample_map_t base;
-    uint8_t* entries;
+    sample_base_array_map_t base;
+    ebpf_map_client_dispatch_table_t* client_dispatch;
 } sample_array_map_t;
 
 // Map provider function declarations
@@ -150,7 +121,7 @@ _sample_map_delete(_In_ _Post_invalid_ void* map);
 
 static ebpf_result_t
 _sample_map_find_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     _Outptr_ uint8_t** value,
@@ -158,7 +129,7 @@ _sample_map_find_entry(
 
 static ebpf_result_t
 _sample_map_update_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_opt_ const uint8_t* key,
     size_t value_size,
@@ -167,12 +138,11 @@ _sample_map_update_entry(
     uint32_t flags);
 
 static ebpf_result_t
-_sample_map_delete_entry(
-    _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
+_sample_map_delete_entry(_In_ void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
 
 static ebpf_result_t
 _sample_map_get_next_key_and_value(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key,
@@ -732,15 +702,9 @@ _sample_ebpf_extension_map_provider_attach_client(
         client_data->dispatch_table,
         min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
 
-    // memcpy(
-    //     &table,
-    //     client_data->dispatch_table,
-    //     min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
-
     // As per contract, map context offset is same for all the map instances created by the client.
     // Save it in a global variable.
     WriteULong64NoFence((volatile uint64_t*)&_map_context_offset, client_data->map_context_offset);
-    // _map_context_offset = client_data->map_context_offset;
 
     *provider_binding_context = local_provider_context;
     *provider_dispatch = NULL;
@@ -1032,18 +996,6 @@ _sample_ebpf_extension_helper_implicit_2(
 //
 // Sample Map Implementation Functions
 //
-
-// Simple hash function for demonstration
-static uint32_t
-_sample_map_hash(const uint8_t* key, uint32_t key_size, uint32_t bucket_count)
-{
-    uint32_t hash = 0;
-    for (uint32_t i = 0; i < key_size; i++) {
-        hash = hash * 31 + key[i];
-    }
-    return hash % bucket_count;
-}
-
 static ebpf_result_t
 _sample_hash_map_create(
     _In_ void* binding_context,
@@ -1075,25 +1027,25 @@ _sample_hash_map_create(
     }
     memset(sample_map, 0, sizeof(sample_hash_map_t));
 
-    sample_map->base.map_type = BPF_MAP_TYPE_SAMPLE_HASH_MAP;
-    sample_map->base.key_size = key_size;
-    sample_map->base.value_size = value_size;
-    sample_map->base.max_entries = max_entries;
-    sample_map->bucket_count = 16; // Simple fixed bucket count for demonstration
-    sample_map->entry_count = 0;
-    sample_map->base.client_dispatch = client_dispatch_table;
+    sample_map->base.core.map_type = BPF_MAP_TYPE_SAMPLE_HASH_MAP;
+    sample_map->base.core.key_size = key_size;
+    sample_map->base.core.value_size = value_size;
+    sample_map->base.core.max_entries = max_entries;
+    sample_map->base.bucket_count = 16; // Simple fixed bucket count for demonstration
+    sample_map->base.entry_count = 0;
+    sample_map->client_dispatch = client_dispatch_table;
 
     // Allocate array of hash buckets
-    sample_map->buckets = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
-        sizeof(sample_hash_bucket_t) * sample_map->bucket_count, SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (sample_map->buckets == NULL) {
+    sample_map->base.buckets = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
+        sizeof(sample_hash_bucket_t) * sample_map->base.bucket_count, SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (sample_map->base.buckets == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
     // Initialize each bucket
-    for (uint32_t i = 0; i < sample_map->bucket_count; i++) {
-        sample_hash_bucket_t* bucket = &sample_map->buckets[i];
+    for (uint32_t i = 0; i < sample_map->base.bucket_count; i++) {
+        sample_hash_bucket_t* bucket = &sample_map->base.buckets[i];
         bucket->lock = 0;
         bucket->entries = NULL;
         bucket->capacity = 0;
@@ -1104,8 +1056,8 @@ _sample_hash_map_create(
 
 Exit:
     if (result != EBPF_SUCCESS && sample_map != NULL) {
-        if (sample_map->buckets != NULL) {
-            client_dispatch_table->epoch_free_cache_aligned(sample_map->buckets);
+        if (sample_map->base.buckets != NULL) {
+            client_dispatch_table->epoch_free_cache_aligned(sample_map->base.buckets);
         }
         client_dispatch_table->epoch_free_cache_aligned(sample_map);
     }
@@ -1120,11 +1072,11 @@ _sample_hash_map_delete(_In_ _Post_invalid_ void* map)
         return;
     }
 
-    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->base.client_dispatch;
+    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
     // Free all bucket arrays
-    for (uint32_t i = 0; i < sample_map->bucket_count; i++) {
-        sample_hash_bucket_t* bucket = &sample_map->buckets[i];
+    for (uint32_t i = 0; i < sample_map->base.bucket_count; i++) {
+        sample_hash_bucket_t* bucket = &sample_map->base.buckets[i];
         if (bucket->entries != NULL) {
             // Free each entry's key-value data
             for (uint32_t j = 0; j < bucket->count; j++) {
@@ -1137,66 +1089,25 @@ _sample_hash_map_delete(_In_ _Post_invalid_ void* map)
         }
     }
 
-    if (sample_map->buckets != NULL) {
-        client_dispatch_table->epoch_free_cache_aligned(sample_map->buckets);
+    if (sample_map->base.buckets != NULL) {
+        client_dispatch_table->epoch_free_cache_aligned(sample_map->base.buckets);
     }
     client_dispatch_table->epoch_free_cache_aligned(sample_map);
 }
 
-static int32_t
-_sample_hash_map_find_entry_index_internal(sample_hash_bucket_t* bucket, const uint8_t* key, uint32_t key_size)
-{
-    // Assumes bucket is already locked (shared or exclusive)
-    for (uint32_t i = 0; i < bucket->count; i++) {
-        if (bucket->entries[i].key_value_data != NULL &&
-            memcmp(bucket->entries[i].key_value_data, key, key_size) == 0) {
-            return (int32_t)i;
-        }
-    }
-    return -1; // Not found
-}
-
 static ebpf_result_t
 _sample_hash_map_find_entry(
-    _In_ const void* map,
-    size_t key_size,
-    _In_reads_(key_size) const uint8_t* key,
-    _Outptr_ uint8_t** value,
-    uint32_t flags)
+    _In_ void* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, _Outptr_ uint8_t** value, uint32_t flags)
 {
     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
-    ebpf_result_t result = EBPF_KEY_NOT_FOUND;
-    uint32_t hash;
-    sample_hash_bucket_t* bucket;
-    int32_t entry_index;
-    KIRQL old_irql;
+    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
-    *value = NULL;
-
-    hash = _sample_map_hash(key, sample_map->base.key_size, sample_map->bucket_count);
-    bucket = &sample_map->buckets[hash];
-
-    // Acquire shared lock for read access
-    old_irql = ExAcquireSpinLockShared(&bucket->lock);
-
-    entry_index = _sample_hash_map_find_entry_index_internal(bucket, key, sample_map->base.key_size);
-    if (entry_index >= 0) {
-        *value = bucket->entries[entry_index].key_value_data + sample_map->base.key_size; // Value follows key
-        result = EBPF_SUCCESS;
-    }
-
-    ExReleaseSpinLockShared(&bucket->lock, old_irql);
-
-    if (result == EBPF_SUCCESS && (flags & EBPF_MAP_FIND_FLAG_DELETE)) {
-        return _sample_map_delete_entry(map, key_size, key, flags);
-    }
-
-    return result;
+    return _sample_hash_map_find_entry_common(client_dispatch_table, &sample_map->base, key_size, key, value, flags);
 }
 
 static ebpf_result_t
 _sample_hash_map_update_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* key,
     size_t value_size,
@@ -1205,187 +1116,32 @@ _sample_hash_map_update_entry(
     uint32_t flags)
 {
     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
-    ebpf_result_t result = EBPF_SUCCESS;
-    uint32_t hash;
-    sample_hash_bucket_t* bucket;
-    int32_t entry_index;
-    KIRQL old_irql;
-    uint32_t entry_size;
-    uint8_t* key_value_data = NULL;
+    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
-    UNREFERENCED_PARAMETER(flags);
-    UNREFERENCED_PARAMETER(value_size);
-    UNREFERENCED_PARAMETER(key_size);
-
-    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->base.client_dispatch;
-    hash = _sample_map_hash(key, sample_map->base.key_size, sample_map->bucket_count);
-    bucket = &sample_map->buckets[hash];
-    entry_size = sample_map->base.key_size + sample_map->base.value_size;
-
-    // Acquire exclusive lock for write access
-    old_irql = ExAcquireSpinLockExclusive(&bucket->lock);
-
-    entry_index = _sample_hash_map_find_entry_index_internal(bucket, key, sample_map->base.key_size);
-
-    // Check option constraints
-    if (option == EBPF_NOEXIST && entry_index >= 0) {
-        result = EBPF_KEY_ALREADY_EXISTS;
-        goto Exit;
-    }
-    if (option == EBPF_EXIST && entry_index < 0) {
-        result = EBPF_KEY_NOT_FOUND;
-        goto Exit;
-    }
-
-    if (entry_index >= 0) {
-        // Update existing entry in place
-        memcpy(
-            bucket->entries[entry_index].key_value_data + sample_map->base.key_size,
-            value,
-            sample_map->base.value_size);
-        goto Exit;
-    }
-
-    // Create new entry
-    if (sample_map->entry_count >= sample_map->base.max_entries) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-    // Allocate key-value data
-    key_value_data = client_dispatch_table->epoch_allocate_with_tag(entry_size, SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (key_value_data == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-    // Copy key and value
-    memcpy(key_value_data, key, sample_map->base.key_size);
-    memcpy(key_value_data + sample_map->base.key_size, value, sample_map->base.value_size);
-
-    // Check if bucket needs expansion
-    if (bucket->count >= bucket->capacity) {
-        // Need to expand the bucket array
-        uint32_t new_capacity = bucket->capacity + 10;
-        sample_hash_bucket_entry_t* new_entries = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
-            sizeof(sample_hash_bucket_entry_t) * new_capacity, SAMPLE_EXT_POOL_TAG_DEFAULT);
-
-        if (new_entries == NULL) {
-            client_dispatch_table->epoch_free(key_value_data);
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        // Copy old entries to new array
-        if (bucket->entries != NULL && bucket->count > 0) {
-            memcpy(new_entries, bucket->entries, sizeof(sample_hash_bucket_entry_t) * bucket->count);
-            client_dispatch_table->epoch_free_cache_aligned(bucket->entries);
-        }
-
-        bucket->entries = new_entries;
-        bucket->capacity = new_capacity;
-    }
-
-    // Add new entry at the end
-    bucket->entries[bucket->count].key_value_data = key_value_data;
-    bucket->count++;
-    sample_map->entry_count++;
-    key_value_data = NULL; // Don't free on exit
-
-Exit:
-    ExReleaseSpinLockExclusive(&bucket->lock, old_irql);
-
-    if (key_value_data != NULL) {
-        client_dispatch_table->epoch_free(key_value_data);
-    }
-
-    return result;
+    return _sample_hash_map_update_entry_common(
+        client_dispatch_table, &sample_map->base, key_size, key, value_size, value, option, flags);
 }
 
 static ebpf_result_t
-_sample_hash_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
+_sample_hash_map_delete_entry(_In_ void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
 {
     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
-    uint32_t hash;
-    sample_hash_bucket_t* bucket;
-    int32_t entry_index;
-    KIRQL old_irql;
-    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
-    UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(flags);
-
-    ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->base.client_dispatch;
-    hash = _sample_map_hash(key, sample_map->base.key_size, sample_map->bucket_count);
-    bucket = &sample_map->buckets[hash];
-
-    // Acquire exclusive lock for write access
-    old_irql = ExAcquireSpinLockExclusive(&bucket->lock);
-
-    entry_index = _sample_hash_map_find_entry_index_internal(bucket, key, sample_map->base.key_size);
-
-    if (entry_index >= 0) {
-        // Free the key-value data
-        client_dispatch_table->epoch_free(bucket->entries[entry_index].key_value_data);
-
-        // Move the last entry to fill the gap (if not already the last entry)
-        if (entry_index < (int32_t)(bucket->count - 1)) {
-            bucket->entries[entry_index] = bucket->entries[bucket->count - 1];
-        }
-
-        // Clear the last entry and decrement count
-        bucket->entries[bucket->count - 1].key_value_data = NULL;
-        bucket->count--;
-        sample_map->entry_count--;
-    }
-
-    ExReleaseSpinLockExclusive(&bucket->lock, old_irql);
-    return result;
+    return _sample_hash_map_delete_entry_common(client_dispatch_table, &sample_map->base, key_size, key, flags);
 }
 
 static ebpf_result_t
 _sample_hash_map_get_next_key_and_value(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key,
     _Outptr_opt_ uint8_t** next_value)
 {
     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
-    bool found_previous = (previous_key == NULL);
-    KIRQL old_irql;
-
-    UNREFERENCED_PARAMETER(key_size);
-
-    // Iterate through all buckets and their entries
-    for (uint32_t i = 0; i < sample_map->bucket_count; i++) {
-        sample_hash_bucket_t* bucket = &sample_map->buckets[i];
-
-        // Acquire shared lock for read access
-        old_irql = ExAcquireSpinLockShared(&bucket->lock);
-
-        for (uint32_t j = 0; j < bucket->count; j++) {
-            if (bucket->entries[j].key_value_data != NULL) {
-                if (found_previous) {
-                    // Return the first entry after previous_key
-                    memcpy(next_key, bucket->entries[j].key_value_data, sample_map->base.key_size);
-                    if (next_value != NULL) {
-                        *next_value = bucket->entries[j].key_value_data + sample_map->base.key_size;
-                    }
-                    ExReleaseSpinLockShared(&bucket->lock, old_irql);
-                    return EBPF_SUCCESS;
-                }
-                if (previous_key != NULL &&
-                    memcmp(bucket->entries[j].key_value_data, previous_key, sample_map->base.key_size) == 0) {
-                    found_previous = true;
-                }
-            }
-        }
-
-        ExReleaseSpinLockShared(&bucket->lock, old_irql);
-    }
-
-    return EBPF_NO_MORE_KEYS;
+    return _sample_hash_map_get_next_key_and_value_common(
+        &sample_map->base, key_size, previous_key, next_key, next_value);
 }
 
 static void*
@@ -1409,18 +1165,6 @@ _sample_ext_helper_map_lookup_element(
 
     return value;
 }
-
-// static ebpf_result_t
-// _sample_hash_map_associate_program(_In_ const void* map_context, _In_ const ebpf_program_type_t* program_type)
-// {
-//     UNREFERENCED_PARAMETER(map_context);
-
-//     // Check that the program type is supported.
-//     if (memcmp(program_type, &EBPF_PROGRAM_TYPE_SAMPLE, sizeof(ebpf_program_type_t)) != 0) {
-//         return EBPF_OPERATION_NOT_SUPPORTED;
-//     }
-//     return EBPF_SUCCESS;
-// }
 
 // Sample Array Map Implementation
 static ebpf_result_t
@@ -1453,38 +1197,26 @@ _sample_array_map_create(
     }
     memset(sample_map, 0, sizeof(sample_array_map_t));
 
-    sample_map->base.map_type = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP;
-    sample_map->base.key_size = key_size;
-    sample_map->base.value_size = value_size;
-    sample_map->base.max_entries = max_entries;
-    sample_map->base.client_dispatch = client_dispatch_table;
+    sample_map->base.core.map_type = BPF_MAP_TYPE_SAMPLE_ARRAY_MAP;
+    sample_map->base.core.key_size = key_size;
+    sample_map->base.core.value_size = value_size;
+    sample_map->base.core.max_entries = max_entries;
+    sample_map->client_dispatch = client_dispatch_table;
 
     // Allocate array of values (not entries)
-    sample_map->entries = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
+    sample_map->base.data = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
         (size_t)value_size * max_entries, SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (sample_map->entries == NULL) {
+    if (sample_map->base.data == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-
-    // for (uint32_t i = 0; i < max_entries; i++) {
-    //     sample_map_entry_t* entry = client_dispatch_table->epoch_allocate_with_tag(entry_size,
-    //     SAMPLE_EXT_POOL_TAG_DEFAULT); if (entry == NULL) {
-    //         result = EBPF_NO_MEMORY;
-    //         goto Exit;
-    //     }
-    //     memset(entry, 0, entry_size);
-    //     entry->next = NULL;
-    //     *(uint32_t*)(entry->key) = i;
-    //     sample_map->entries[i] = entry;
-    // }
 
     *map_context = (void*)sample_map;
 
 Exit:
     if (result != EBPF_SUCCESS && sample_map != NULL) {
-        if (sample_map->entries != NULL) {
-            client_dispatch_table->epoch_free_cache_aligned(sample_map->entries);
+        if (sample_map->base.data != NULL) {
+            client_dispatch_table->epoch_free_cache_aligned(sample_map->base.data);
         }
         client_dispatch_table->epoch_free_cache_aligned(sample_map);
     }
@@ -1495,47 +1227,26 @@ static void
 _sample_array_map_delete(_In_ _Post_invalid_ void* map)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
-    ebpf_map_client_dispatch_table_t* client_dispatch_table = array_map->base.client_dispatch;
+    ebpf_map_client_dispatch_table_t* client_dispatch_table = array_map->client_dispatch;
 
-    if (array_map->entries != NULL) {
-        client_dispatch_table->epoch_free_cache_aligned(array_map->entries);
+    if (array_map->base.data != NULL) {
+        client_dispatch_table->epoch_free_cache_aligned(array_map->base.data);
     }
     client_dispatch_table->epoch_free_cache_aligned(array_map);
 }
 
 static ebpf_result_t
 _sample_array_map_find_entry(
-    _In_ const void* map,
-    size_t key_size,
-    _In_reads_(key_size) const uint8_t* key,
-    _Outptr_ uint8_t** value,
-    uint32_t flags)
+    _In_ void* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, _Outptr_ uint8_t** value, uint32_t flags)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
-    uint32_t index;
 
-    UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(flags);
-
-    *value = NULL;
-
-    if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
-        // Deletion is not supported for array map.
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    index = *(uint32_t*)key;
-    if (index >= array_map->base.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    *value = array_map->entries + ((size_t)index * array_map->base.value_size);
-    return EBPF_SUCCESS;
+    return _sample_array_map_find_entry_common(&array_map->base, key_size, key, value, flags);
 }
 
 static ebpf_result_t
 _sample_array_map_update_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* key,
     size_t value_size,
@@ -1544,72 +1255,30 @@ _sample_array_map_update_entry(
     uint32_t flags)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
-    uint32_t index;
 
-    UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(value_size);
-    UNREFERENCED_PARAMETER(option);
-    UNREFERENCED_PARAMETER(flags);
-
-    index = *(uint32_t*)key;
-    if (index >= array_map->base.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    uint8_t* entry_value = array_map->entries + ((size_t)index * array_map->base.value_size);
-    memcpy(entry_value, value, array_map->base.value_size);
-    return EBPF_SUCCESS;
+    return _sample_array_map_update_entry_common(&array_map->base, key_size, key, value_size, value, option, flags);
 }
 
 static ebpf_result_t
-_sample_array_map_delete_entry(_In_ const void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
+_sample_array_map_delete_entry(_In_ void* map, size_t key_size, _In_ const uint8_t* key, uint32_t flags)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
-    uint32_t index;
 
-    UNREFERENCED_PARAMETER(flags);
-    UNREFERENCED_PARAMETER(key_size);
-
-    index = *(uint32_t*)key;
-    if (index >= array_map->base.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    // Set the entry to all zeroes
-    uint8_t* entry_value = array_map->entries + ((size_t)index * array_map->base.value_size);
-    memset(entry_value, 0, array_map->base.value_size);
-
-    return EBPF_SUCCESS;
+    return _sample_array_map_delete_entry_common(&array_map->base, key_size, key, flags);
 }
 
 static ebpf_result_t
 _sample_array_map_get_next_key_and_value(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key,
     _Outptr_opt_ uint8_t** next_value)
 {
     sample_array_map_t* array_map = (sample_array_map_t*)map;
-    uint32_t index;
 
-    UNREFERENCED_PARAMETER(key_size);
-
-    if (previous_key == NULL) {
-        index = 0;
-    } else {
-        index = *(uint32_t*)previous_key + 1;
-    }
-
-    if (index >= array_map->base.max_entries) {
-        return EBPF_NO_MORE_KEYS;
-    }
-
-    *(uint32_t*)next_key = index;
-    if (next_value != NULL) {
-        *next_value = array_map->entries + ((size_t)index * array_map->base.value_size);
-    }
-    return EBPF_SUCCESS;
+    return _sample_array_map_get_next_key_and_value_common(
+        &array_map->base, key_size, previous_key, next_key, next_value);
 }
 
 static ebpf_result_t
@@ -1645,7 +1314,7 @@ _sample_map_delete(_In_ _Post_invalid_ void* map)
 
 static ebpf_result_t
 _sample_map_find_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     _Outptr_ uint8_t** value,
@@ -1674,7 +1343,7 @@ _sample_map_find_entry(
 
 static ebpf_result_t
 _sample_map_update_entry(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_opt_ const uint8_t* key,
     size_t value_size,
@@ -1702,8 +1371,7 @@ _sample_map_update_entry(
 }
 
 static ebpf_result_t
-_sample_map_delete_entry(
-    _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags)
+_sample_map_delete_entry(_In_ void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags)
 {
     if (key == NULL) {
         return EBPF_INVALID_ARGUMENT;
@@ -1724,7 +1392,7 @@ _sample_map_delete_entry(
 
 static ebpf_result_t
 _sample_map_get_next_key_and_value(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_ const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key,

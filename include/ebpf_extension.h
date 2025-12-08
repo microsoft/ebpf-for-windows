@@ -176,7 +176,7 @@ typedef void (*ebpf_map_delete_t)(_In_ _Post_invalid_ void* map_context);
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  */
 typedef ebpf_result_t (*ebpf_map_find_element_t)(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     _Outptr_ uint8_t** value,
@@ -199,7 +199,7 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
 typedef ebpf_result_t (*ebpf_map_update_element_t)(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     size_t value_size,
@@ -220,7 +220,7 @@ typedef ebpf_result_t (*ebpf_map_update_element_t)(
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
 typedef ebpf_result_t (*ebpf_map_delete_element_t)(
-    _In_ const void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
+    _In_ void* map, size_t key_size, _In_reads_opt_(key_size) const uint8_t* key, uint32_t flags);
 
 /**
  * @brief Get the next key and value in the eBPF map.
@@ -234,7 +234,7 @@ typedef ebpf_result_t (*ebpf_map_delete_element_t)(
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
 typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
-    _In_ const void* map,
+    _In_ void* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key,
@@ -250,7 +250,7 @@ typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  */
 typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
-    _In_ const void* map, _In_ const ebpf_program_type_t* program_type);
+    _In_ void* map, _In_ const ebpf_program_type_t* program_type);
 
 /**
  * Dispatch table implemented by the eBPF extension to provide map operations.
@@ -308,7 +308,6 @@ typedef struct _ebpf_map_client_dispatch_table
     epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
     epoch_free_t epoch_free;
     epoch_free_cache_aligned_t epoch_free_cache_aligned;
-    // ebpf_get_map_context_t get_map_context;
 } ebpf_map_client_dispatch_table_t;
 
 /**
