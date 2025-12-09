@@ -26,7 +26,7 @@ typedef fuzz_helper_function<bpf_sock_ops_t> fuzz_helper_function_sock_ops_t;
 std::unique_ptr<fuzz_helper_function_sock_ops_t> _fuzz_helper_function_sock_ops;
 
 int selected_program_type = 0;
-FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int *argc, char ***argv)
+FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int* argc, char*** argv)
 {
     for (int i = 1; i < *argc; i++) {
         if (strcmp((*argv)[i], "-helper") == 0  && i + 1 < *argc) {

@@ -778,7 +778,9 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
-    _xdp_test_ebpf_extension_helper_function_prototype};
+    _xdp_test_ebpf_extension_helper_function_prototype,
+    0,
+    NULL};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
     EBPF_PROGRAM_DATA_HEADER,
