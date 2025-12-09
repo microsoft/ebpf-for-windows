@@ -23,15 +23,15 @@ jobs:
               console.log('Workflow not triggered by a pull request event. Skipping check.');
               return;
             }
-            
+
             const pr_number = context.payload.pull_request.number;
             const repo_owner = context.repo.owner;
             const repo_name = context.repo.repo;
-            
+
             // Get the PR body and check for issue references
             const pr = context.payload.pull_request;
             const prBody = pr.body || '';
-            
+
             // Common patterns for issue references:
             // - Closes #123, Fixes #123, Resolves #123
             // - #123 (at start of line or after whitespace)
@@ -39,9 +39,9 @@ jobs:
             const issuePatterns = [
               /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s*#(\d+)/gi,
               /(?:^|\s)#(\d+)/gm,
-              new RegExp(`https?://github\\.com/${repo_owner}/${repo_name}/issues/(\\d+)`, 'gi')
+              new RegExp(`https?://github\.\\com/${repo_owner}/${repo_name}/issues/(\\d+)`, 'gi')
             ];
-            
+
             // Extract all referenced issue numbers
             const referencedIssues = new Set();
             for (const pattern of issuePatterns) {
@@ -53,12 +53,12 @@ jobs:
                 }
               }
             }
-            
+
             // Validate that at least one referenced issue exists
             let hasValidIssue = false;
             const validIssues = [];
             const invalidIssues = [];
-            
+
             for (const issueNum of referencedIssues) {
               try {
                 const issue = await github.rest.issues.get({
@@ -79,7 +79,7 @@ jobs:
                 }
               }
             }
-            
+
             // Also check timeline events for linked issues via GitHub's UI
             try {
               const timeline = await github.rest.issues.listEventsForTimeline({
@@ -87,7 +87,7 @@ jobs:
                 repo: repo_name,
                 issue_number: pr_number,
               });
-              
+
               // Check for 'connected' events and validate those issues exist
               for (const event of timeline.data) {
                 if (event.event === 'connected' && event.source?.issue) {
@@ -111,21 +111,21 @@ jobs:
             } catch (error) {
               console.log('Could not fetch timeline:', error.message);
             }
-            
+
             const isLinked = hasValidIssue;
-            
+
             // Get existing comments from the bot
             const comments = await github.rest.issues.listComments({
               owner: repo_owner,
               repo: repo_name,
               issue_number: pr_number,
             });
-            
-            const botComment = comments.data.find(comment => 
-              comment.user.type === 'Bot' && 
+
+            const botComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
               comment.body.includes('This pull request must be linked to an issue')
             );
-            
+
             if (!isLinked) {
               // Add comment if not already present
               if (!botComment) {
@@ -134,11 +134,11 @@ jobs:
                       '- Adding "Closes #issue_number", "Fixes #issue_number", or "Resolves #issue_number" to the PR description, or\n' +
                       '- Using the "Development" section in the sidebar to link an issue\n\n' +
                       'This helps track the context and reasoning behind changes.';
-                
+
                 if (invalidIssues.length > 0) {
                   commentBody += `\n\n**Note:** The following referenced issues do not exist: ${invalidIssues.map(n => `#${n}`).join(', ')}`;
                 }
-                
+
                 await github.rest.issues.createComment({
                   owner: repo_owner,
                   repo: repo_name,
