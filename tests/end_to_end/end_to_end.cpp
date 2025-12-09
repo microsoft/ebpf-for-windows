@@ -153,6 +153,125 @@ ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const ch
     return result;
 }
 
+void
+droppacket_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "dropped_packet_map");
+
+    // Tell the program which interface to filter on.
+    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "interface_index_map");
+    uint32_t key = 0;
+    uint32_t if_index = TEST_IFINDEX;
+    REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Attach only to the single interface being tested.
+    REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+
+    // Create a 0-byte UDP packet.
+    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+
+    uint64_t value = 1000;
+    REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Test that we drop the packet and increment the map
+    xdp_md_header_t ctx0_header{{0}, {packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX}};
+    xdp_md_t* ctx0 = &ctx0_header.context;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx0, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == XDP_DROP);
+
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1001);
+
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 0);
+
+    // Create a normal (not 0-byte) UDP packet.
+    auto packet10 = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
+    xdp_md_header_t ctx10_header{{0}, {packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX}};
+    xdp_md_t* ctx10 = &ctx10_header.context;
+
+    // Test that we don't drop the normal packet.
+    REQUIRE(hook.fire(ctx10, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == XDP_PASS);
+
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 0);
+
+    // Reattach to all interfaces so we can test the ingress_ifindex field passed to the program.
+    hook.detach_and_close_link(&link);
+    if_index = 0;
+    REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+
+    // Fire a 0-length UDP packet on the interface index in the map, which should be dropped.
+    REQUIRE(hook.fire(ctx0, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == XDP_DROP);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1);
+
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
+    {
+        // Negative test: State is too small.
+        uint8_t state[sizeof(ebpf_execution_context_state_t) - 1] = {0};
+        REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_INVALID_ARGUMENT);
+    }
+
+    // Fire a 0-length UDP packet on the interface index in the map, using batch mode, which should be dropped.
+    uint8_t state[sizeof(ebpf_execution_context_state_t)] = {0};
+    REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);
+    // Process 10 packets in batch mode.
+    for (int i = 0; i < 10; i++) {
+        REQUIRE(hook.batch_invoke(ctx0, &hook_result, state) == EBPF_SUCCESS);
+        REQUIRE(hook_result == XDP_DROP);
+    }
+    REQUIRE(hook.batch_end(state) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 10);
+
+    // Reset the count of dropped packets.
+    REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+
+    // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
+    xdp_md_header_t ctx4_header{{0}, {packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1}};
+    xdp_md_t* ctx4 = &ctx4_header.context;
+    REQUIRE(hook.fire(ctx4, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == XDP_PASS);
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 0);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
 // See also divide_by_zero_test_km in api_test.cpp for the kernel-mode equivalent.
 void
 divide_by_zero_test_um(ebpf_execution_type_t execution_type)
@@ -881,6 +1000,7 @@ global_variable_and_map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
