@@ -1,0 +1,102 @@
+name: Require Linked Issue
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  issues: read
+
+jobs:
+  check-linked-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for linked issue
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        with:
+          script: |
+            const pr_number = context.payload.pull_request.number;
+            const repo_owner = context.repo.owner;
+            const repo_name = context.repo.repo;
+            
+            // Get the PR body and check for issue references
+            const pr = context.payload.pull_request;
+            const prBody = pr.body || '';
+            
+            // Common patterns for issue references:
+            // - Closes #123, Fixes #123, Resolves #123
+            // - #123 (at start of line or after whitespace)
+            // - Full URL to issue
+            const issuePatterns = [
+              /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?):?\s*#(\d+)/gi,
+              /(?:^|\s)#(\d+)/g,
+              new RegExp(`https?://github\\.com/${repo_owner}/${repo_name}/issues/(\\d+)`, 'gi')
+            ];
+            
+            let hasIssueReference = false;
+            for (const pattern of issuePatterns) {
+              if (pattern.test(prBody)) {
+                hasIssueReference = true;
+                break;
+              }
+            }
+            
+            // Also check timeline events for linked issues via GitHub's UI
+            let hasLinkedIssue = false;
+            try {
+              const timeline = await github.rest.issues.listEventsForTimeline({
+                owner: repo_owner,
+                repo: repo_name,
+                issue_number: pr_number,
+              });
+              
+              // Check for 'connected' or 'cross-referenced' events
+              hasLinkedIssue = timeline.data.some(event => 
+                event.event === 'connected' || 
+                (event.event === 'cross-referenced' && event.source?.issue)
+              );
+            } catch (error) {
+              console.log('Could not fetch timeline:', error.message);
+            }
+            
+            const isLinked = hasIssueReference || hasLinkedIssue;
+            
+            // Get existing comments from the bot
+            const comments = await github.rest.issues.listComments({
+              owner: repo_owner,
+              repo: repo_name,
+              issue_number: pr_number,
+            });
+            
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('This pull request must be linked to an issue')
+            );
+            
+            if (!isLinked) {
+              // Add comment if not already present
+              if (!botComment) {
+                await github.rest.issues.createComment({
+                  owner: repo_owner,
+                  repo: repo_name,
+                  issue_number: pr_number,
+                  body: '⚠️ **This pull request must be linked to an issue to be able to merge.**\n\n' +
+                        'Please link this PR to an issue by:\n' +
+                        '- Adding "Closes #issue_number", "Fixes #issue_number", or "Resolves #issue_number" to the PR description, or\n' +
+                        '- Using the "Development" section in the sidebar to link an issue\n\n' +
+                        'This helps track the context and reasoning behind changes.'
+                });
+              }
+              core.setFailed('Pull request is not linked to an issue.');
+            } else {
+              // Remove comment if PR is now linked
+              if (botComment) {
+                await github.rest.issues.deleteComment({
+                  owner: repo_owner,
+                  repo: repo_name,
+                  comment_id: botComment.id,
+                });
+              }
+              console.log('Pull request is linked to an issue.');
+            }
