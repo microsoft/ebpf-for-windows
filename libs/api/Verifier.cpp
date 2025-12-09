@@ -148,7 +148,7 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             .key_size = map.key_size,
             .value_size = map.value_size,
             .max_entries = map.max_entries,
-            .inner_map_fd = map.inner_map_type_id != static_cast<libbtf::btf_type_id>(0 ? map.inner_map_type_id : -1),
+            .inner_map_fd = map.inner_map_type_id != 0 ? static_cast<int>(map.inner_map_type_id) : -1,
         });
     }
     btf_map_name_to_index = map_offsets;

@@ -190,12 +190,17 @@ ebpf_verify_program(
         if (options.verbosity_opts.print_failures) {
             prevail::thread_local_options.verbosity_opts.print_line_info = true;
             if (auto verification_error = analysis_result.find_first_error()) {
-                print_error(std::cout, *verification_error);
+                print_error(os, *verification_error);
             }
-            // Warnings are produced during unmarshal; not available from AnalysisResult here.
-            stats->total_warnings = 0;
             // Count unreachable labels reported by the analysis result.
             stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
+        }
+        // Get the warning count by counting invariants with errors.
+        stats->total_warnings = 0;
+        for (const auto& invariant : analysis_result.invariants) {
+            if (invariant.second.error.has_value()) {
+                stats->total_warnings++;
+            }
         }
         stats->max_loop_count = analysis_result.max_loop_count;
         return pass;
