@@ -87,43 +87,6 @@ test_ioctl_map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) con
     return error;
 }
 
-// uint32_t
-// test_ioctl_map_async_query(
-//     ebpf_handle_t map_handle,
-//     uint32_t index,
-//     size_t consumer_offset,
-//     _Out_ size_t* producer,
-//     _Out_ size_t* consumer,
-//     _Out_ size_t* lost_count)
-// {
-//     uint32_t error = ERROR_SUCCESS;
-//     ebpf_operation_map_async_query_request_t request;
-//     ebpf_operation_map_async_query_reply_t reply;
-
-//     if (map_handle == ebpf_handle_invalid || producer == nullptr || consumer == nullptr || lost_count == nullptr) {
-//         return ERROR_INVALID_PARAMETER;
-//     }
-
-//     // Initialize the request
-//     request.header.id = EBPF_OPERATION_MAP_ASYNC_QUERY;
-//     request.header.length = sizeof(ebpf_operation_map_async_query_request_t);
-//     request.map_handle = map_handle;
-//     request.index = index;
-//     request.consumer_offset = consumer_offset;
-
-//     // Initialize the reply
-//     memset(&reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
-
-//     error = invoke_ioctl(request, reply);
-//     if (error == ERROR_SUCCESS) {
-//         *producer = reply.async_query_result.producer;
-//         *consumer = reply.async_query_result.consumer;
-//         *lost_count = reply.async_query_result.lost_count;
-//     }
-
-//     return error;
-// }
-
 uint32_t
 test_ioctl_load_native_programs(
     _In_ const GUID* module_id,

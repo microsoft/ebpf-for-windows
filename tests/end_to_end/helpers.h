@@ -28,8 +28,6 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #endif
 #include <vector>
 
-#define EBPF_TEST_POOL_TAG 'tPsE'
-
 #define CONCAT(s1, s2) s1 s2
 #define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
     TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }

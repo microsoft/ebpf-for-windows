@@ -622,7 +622,7 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_map_find_element_t find_element_function;
     ebpf_map_update_element_t update_element_function;
     ebpf_map_delete_element_t delete_element_function;
-    ebpf_map_get_next_key_t get_next_key_function;
+    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
 } ebpf_map_provider_dispatch_table_t;
 ```
 This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
@@ -632,7 +632,7 @@ This the dispatch table that the extension needs to implement and provide to eBP
 4. `find_element_function` - Function to find an entry.
 5. `update_element_function` - Function to update an entry.
 5. `delete_element_function` - Function to delete an entry.
-6. `get_next_key_function` - Function to get the next key.
+6. `get_next_key_and_value_function` - Function to get the next key and value.
 
 When `create_map_function` is invoked, the extension will allocate a map, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
 

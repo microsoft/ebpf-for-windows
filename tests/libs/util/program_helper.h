@@ -9,7 +9,6 @@
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "hook_helper.h"
-// #include "helpers.h"
 
 typedef class _program_load_attach_helper
 {

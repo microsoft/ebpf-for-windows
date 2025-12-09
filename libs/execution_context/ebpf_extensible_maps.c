@@ -26,8 +26,6 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_extensible_map
     ebpf_lock_t lock;                                      // Synchronization lock
     ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
     void* provider_context;                                // Provider context returned during attach
-
-    // NMR client components (similar to ebpf_program_t and ebpf_link_t)
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
@@ -66,18 +64,6 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_extensible_map_client_characterist
         &_ebpf_extensible_map_client_data,
     },
 };
-
-// // Helper function to check if a map type is supported by provider
-// static bool
-// _is_map_type_supported(uint32_t map_type, size_t supported_map_type_count, const uint32_t* supported_map_types)
-// {
-//     for (uint32_t i = 0; i < supported_map_type_count; i++) {
-//         if (supported_map_types[i] == map_type) {
-//             return true;
-//         }
-//     }
-//     return false;
-// }
 
 static void
 _ebpf_extensible_map_delete(_In_ _Post_ptr_invalid_ ebpf_extensible_map_t* map)
@@ -344,31 +330,6 @@ _ebpf_extensible_map_client_detach_provider(_In_ void* client_binding_context)
 
     return STATUS_SUCCESS;
 }
-
-// Map operation context structures
-typedef struct _map_lookup_context
-{
-    const uint8_t* key;
-    uint8_t** data;
-} map_lookup_context_t;
-
-typedef struct _map_update_context
-{
-    const uint8_t* key;
-    const uint8_t* value;
-    uint64_t flags;
-} map_update_context_t;
-
-typedef struct _map_delete_context
-{
-    const uint8_t* key;
-} map_delete_context_t;
-
-typedef struct _map_next_key_context
-{
-    const uint8_t* previous_key;
-    uint8_t* next_key;
-} map_next_key_context_t;
 
 static ebpf_result_t
 _ebpf_extensible_map_update_element_with_handle(
