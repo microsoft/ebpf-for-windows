@@ -1,79 +1,149 @@
 # Introduction
 
-Extensible maps are program type specific maps that will be implemented by the extension that is implementing the program type (program info provider). This document contains the proposal for implementing support for extensible / program type specific maps in eBPF-for-Windows. The below sections describe all the scenarios / areas that will need to be updated or tested for this new map type.
+Extensible maps are custom map types that can be implemented by eBPF extensions (e.g. BPF_MAP_TYPE_XSKMAP) through a new
+NMR (Network Module Registrar) provider interface. This document contains the design for adding support for extensible
+maps in eBPF-for-Windows. Extensible maps enable extensions to register and manage their own map types beyond those
+provided by the core eBPF runtime.
 
-## Map Id partitioning
-Global maps get an ID for their map types from a global namespace. There are two possible options for how we can allocate IDs for map types for extensible maps.
+## NMR Interface for Extensions
+A new NMR interface is added and extensions register as map info providers using NMR, similar to existing program and
+hook providers.
 
-**Option 1: Global Map IDs**
-- The map type IDs are allocated from a global namespace. This will be disjoint from the namespace for global maps. Global maps will use IDs from 1 to 4095. Extensible maps will use IDs 4096 onwards.
-- Each program info provider that implements a extensible map will need to register / reserve the MAP ID / enum in the eBPF repo by creating a PR.
+**New NMR Provider Interface**: `EBPF_MAP_INFO_EXTENSION_IID`
 
-**Option 2: Per-program map ID space**
-- Just like program type specific helper functions, each program type can define map type IDs, and these can be overlapping.
-- This has a problem though -- Existing user mode APIs to create a map can then not be used, as program type for the map cannot be disambiguated by just the map type. This will require a new eBPF map create API that will also take the corresponding program type (GUID or ID)
+**Provider Registration Data**:
+```c
+typedef struct _ebpf_map_provider_data {
+    ebpf_extension_header_t header;
+    uint32_t map_type;  // Single map type per provider
+    ebpf_map_provider_dispatch_table_t* dispatch_table;
+} ebpf_map_provider_data_t;
+```
 
-**Proposal**
-Use option 1 as it allows keeping the user mode API for map creation same as on Linux, only adding a one-time step for extension developers to reserve the map ID in the global namespace (by creating a PR in eBPF repo).
+**Provider Dispatch Table**:
+```c
+typedef struct _ebpf_map_provider_dispatch_table {
+    ebpf_extension_header_t header;
+    _Notnull_ ebpf_map_create_t create_map_function;
+    _Notnull_ ebpf_map_delete_t delete_map_function;
+    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
+    ebpf_map_find_element_t find_element_function;
+    ebpf_map_update_element_t update_element_function;
+    ebpf_map_delete_element_t delete_element_function;
+    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
+} ebpf_map_provider_dispatch_table_t;
+```
 
-## NMR interface for extensions
-The NMR interface for program info provider will extended (non-breaking) and extensions will provide below information:
- - List of extensible map types it is supporting
- - APIs for
-   - Map creation / map deletion
-   - Map lookup, update, delete.
+**Client Services** (provided by eBPF core):
+```c
+typedef struct _ebpf_map_client_dispatch_table {
+    ebpf_extension_header_t header;
+    epoch_allocate_with_tag_t epoch_allocate_with_tag;
+    epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
+    epoch_free_t epoch_free;
+    epoch_free_cache_aligned_t epoch_free_cache_aligned;
+} ebpf_map_client_dispatch_table_t;
+```
 
-## eBPF Store
-- Program info providers will now include the map types they are going to support when updating eBPF store. This should include the map type string, and the map type ID.
-- eBPF store APIs will be updated to populate this information also in the registry.
-- ebpfapi when loading will read the extensible map type information and create a in-memory map for `map-type : program type`.
-- This will be used when explicitly creating map from user mode.
+## Map Type Enum Partitioning
+Currently map type IDs are allocated from a global namespace. With extensible maps, global map type ID space is
+partitioned into 2 disjoint sets: for global maps (implemented in eBPFCore) and for the extensible maps.
+Global maps will use IDs from 1 to 4095. Extensible maps will use IDs 4096 onwards.
 
-## Verfication
-- No impact on verfication (online or offline), as the verifier only cares about the actual map definitions.
+- **Global Maps (1-4095)**: Reserved for core eBPF runtime map types (hash, array, etc.)
+- **Extensible Maps (4096+)**: Available for extension-implemented custom map types
 
-## Map lifecycle
-Even though the extensible map will be created by and reside in the extension, ebpfcore will also create a corresponding map entry, as it does for the global maps. The difference being, in case of extensible maps, the map CRUD APIs will be supplied by the extension, and map entry in ebpfcore will contain these function pointers provided by the extension.
+Extensions *can* reserve unique map type IDs by submitting PRs to update the enum in the eBPF repository.
 
-Map lifetime will also be maintained by eBPFcore, and it will invoke extension's map delete API when the map needs to be finally deleted.
-Similarly, map pinning will also be handled by eBPFcore as that impacts map lifetime.
+## Map Discovery and Creation
 
-Another thing to note is that once an extensible map is created, the corresponding extension **cannot be allowed to unload / restart**, as that will delete the map and its entries. This will be a limitation / restriction for the extension that is implementing extensible maps, and may impact their servicing flow.
+**Dynamic Provider Discovery**: Uses NMR's built-in discovery mechanism
+- No central registry required - providers are discovered on-demand during map creation
+- When a map is created with an extensible type (>= 4096), eBPF core:
+  1. Creates an `ebpf_extensible_map_t` structure with NMR client characteristics
+  2. Calls `NmrRegisterClient()` to find a provider for the specific map type
+  3. On successful provider attachment, delegates map creation to the provider
+  4. Returns map handle to user application
 
-## Map creation
-Assuming option 1 for `Map ID partitioning`, below is the expected flow for map creation.
+**Map Creation Flow**:
+```
+User calls bpf_create_map(BPF_MAP_TYPE_CUSTOM, ...)
+    ↓
+ebpfapi validates parameters
+    ↓
+ebpfcore checks if map_type >= 4096
+    ↓
+ebpfcore creates extensible map with NMR client
+    ↓
+NMR finds and attaches to provider
+    ↓
+Provider creates actual map instance
+    ↓
+Map handle returned to user
+```
 
-### Explicit map creation
-- App uses the existing map create APIs, and internally ebpfapi tries to find the corresponding program type from the eBPF store.
-- Once it finds the program info provider, it makes a (new) ioctl call to create the extensible map, and also pass the program type.
-- eBPFcore will first attach (NMR) to this provider, and check if the actual provider supports this map type. If yes, proceed to create map in the extension.
+## Verification
+- No impact on verification (online or offline), as the verifier only cares about the actual map definitions.
 
-Implicit map creation flow will also be similar. ebpf runtime will have similar flow for map creation, automatic map pinning, and map reuse.
+## Map Lifecycle
+**Provider Binding**: eBPF core maintains map lifecycle and coordinates with extensions for map creation, deletion,
+and othr map operations.
+- eBPF core creates a corresponding map entry for each extensible map.
+- Map CRUD operations are delegated to the extension via dispatch table function pointers.
+- Map lifetime managed by eBPF core, including proper cleanup coordination.
+- Map pinning handled by eBPF core as it impacts map lifetime.
+
+**Note**: Extensions with active maps cannot unload / restart until the map is deleted.
 
 ## Map CRUD APIs
 
-### Usermode CRUD APIs
-Assuming option 1 for `Map ID partitioning`, all existing APIs should be applicable for extensible maps too.
+### User-mode APIs
+**Transparent Compatibility**: All existing libbpf APIs work unchanged with extensible maps
+- `bpf_create_map()` / `bpf_map_create()` - Creates extensible maps when type >= 4096
+- `bpf_map_lookup_elem()` - Lookup operations routed to provider
+- `bpf_map_update_elem()` - Update operations routed to provider
+- `bpf_map_delete_elem()` - Delete operations routed to provider
+- `bpf_map_get_next_key()` - Iteration routed to provider
 
-### Map helper functions
-The existing map helper functions implemented by ebpfcore will be used by the BPF programs for extensible maps also. For extensible maps, ebpfcore will redirect the calls to the extension.
+### eBPF Helper Functions
+**Transparent Helper Routing**: Map helpers automatically work with extensible maps
+- `bpf_map_lookup_elem()` helper detects extensible maps and routes to provider
+- `bpf_map_update_elem()` helper routes update operations to provider
+- `bpf_map_delete_elem()` helper routes delete operations to provider
 
-## Exposing RCU semantics to extensions
-For extensions to implement maps, they will need RCU support, and eBPF needs to expose RCU / epoch logic to extensions.
+### Batch Operations
+**Advanced Features** (implemented in test scenarios):
+- `update_batch()` - Batch update operations
+- `delete_batch()` - Batch delete operations
+- `lookup_and_delete_batch()` - Atomic lookup and delete operations
 
-There are two options for this:
+## Memory Management and RCU Semantics
 
-**Export RCU as lib**
-- This will simplify logic in eBPFCore
-- Extensions will have their own RCU "runtime"
-- This approach will require recompilation and release from extension if there is a bug in RCU lib.
+Extensions require RCU support to implement a performant map. For this, eBPFCore exports epoch-based memory allocation
+APIs to the extensions via NMR client dispatch table.
+**Implemented Approach**: Epoch-based APIs exposed via NMR client dispatch table
 
-**Export RCU APIs via NMR interface**
-- Probably adds more complexity to ebpfcore.
-- Does not require new release from extensions wheenver there is a bugfix in RCU logic.
+**Available Epoch APIs**:
+```c
+// Memory allocation with epoch tracking
+epoch_allocate_with_tag_t epoch_allocate_with_tag;
+epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
 
-**Proposal**
-Proposal here is to export RCU as lib.
+// Safe memory deallocation
+epoch_free_t epoch_free;
+epoch_free_cache_aligned_t epoch_free_cache_aligned;
+```
 
-## Perf Consideration
-Since map APIs for extensible maps will have logner path length, we should measure perf for extensible map operations.
+**Benefits of this approach**:
+- **Centralized RCU Management**: Single epoch system across core and extensions.
+- **Automatic Updates**: Extensions benefit from eBPF core RCU improvements without recompilation.
+
+**Usage Example**:
+```c
+// In extension map implementation
+void* map_entry = client_dispatch->epoch_allocate_with_tag(
+    sizeof(my_map_entry_t), EBPF_POOL_TAG_EXTENSION);
+
+// Safe deallocation
+client_dispatch->epoch_free(map_entry);
+```
