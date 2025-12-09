@@ -28,11 +28,11 @@ typedef struct _sample_core_map
     uint32_t key_size;
     uint32_t value_size;
     uint32_t max_entries;
-} sample_map_t;
+} sample_core_map_t;
 
 typedef struct _sample_base_array_map
 {
-    sample_map_t core;
+    sample_core_map_t core;
     uint8_t* data;
 } sample_base_array_map_t;
 
@@ -81,7 +81,7 @@ _sample_array_map_update_entry_common(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(option);
 
-    if (map == NULL || key == NULL || value == NULL || option == EBPF_NOEXIST) {
+    if (key == NULL || value == NULL || option == EBPF_NOEXIST) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -181,7 +181,7 @@ typedef struct _sample_hash_bucket
 
 typedef struct _sample_base_hash_map
 {
-    sample_map_t core;
+    sample_core_map_t core;
     uint32_t entry_count;
     sample_hash_bucket_t* buckets; // Array of hash buckets
     uint32_t bucket_count;
@@ -315,6 +315,10 @@ _sample_hash_map_find_entry_common(
 
     *value = NULL;
 
+    if (key == NULL || value == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     hash = _sample_map_hash(key, map->core.key_size, map->bucket_count);
     bucket = &map->buckets[hash];
 
@@ -358,6 +362,10 @@ _sample_hash_map_update_entry_common(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(value_size);
     UNREFERENCED_PARAMETER(key_size);
+
+    if (key == NULL || value == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     hash = _sample_map_hash(key, map->core.key_size, map->bucket_count);
     bucket = &map->buckets[hash];

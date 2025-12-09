@@ -433,6 +433,7 @@ _test_sample_array_map_create(
         return EBPF_NO_MEMORY;
     }
     memset(sample_map, 0, sizeof(test_sample_array_map_t));
+    sample_map->base.core.map_type = map_type;
     sample_map->base.core.key_size = key_size;
     sample_map->base.core.value_size = value_size;
     sample_map->base.core.max_entries = max_entries;
@@ -492,6 +493,7 @@ _test_sample_hash_map_create(
     }
 
     memset(sample_map, 0, sizeof(test_sample_hash_map_t));
+    sample_map->base.core.map_type = map_type;
     sample_map->base.core.key_size = key_size;
     sample_map->base.core.value_size = value_size;
     sample_map->base.core.max_entries = max_entries;
@@ -680,16 +682,26 @@ typedef class _test_sample_helper
         UNREFERENCED_PARAMETER(dummy_param2);
         UNREFERENCED_PARAMETER(dummy_param3);
 
-        test_sample_array_map_t** sample_map =
-            (test_sample_array_map_t**)MAP_CONTEXT(map, test_sample_map_provider_t::get_map_context_offset());
+        sample_core_map_t** sample_map =
+            (sample_core_map_t**)MAP_CONTEXT(map, test_sample_map_provider_t::get_map_context_offset());
         if (*sample_map == NULL) {
             return NULL;
         }
         uint8_t* value = NULL;
 
-        ebpf_result_t result =
-            _test_sample_array_map_find_entry(*sample_map, (*sample_map)->base.core.key_size, key, &value, 0);
-        if (result != EBPF_SUCCESS) {
+        if ((*sample_map)->map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
+            ebpf_result_t result =
+                _test_sample_array_map_find_entry(*sample_map, (*sample_map)->key_size, key, &value, 0);
+            if (result != EBPF_SUCCESS) {
+                return NULL;
+            }
+        } else if ((*sample_map)->map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+            ebpf_result_t result =
+                _test_sample_hash_map_find_entry(*sample_map, (*sample_map)->key_size, key, &value, 0);
+            if (result != EBPF_SUCCESS) {
+                return NULL;
+            }
+        } else {
             return NULL;
         }
 

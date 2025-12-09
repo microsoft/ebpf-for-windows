@@ -9,6 +9,7 @@
 #define INITGUID
 
 #define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
+unsigned int map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 
 #include "cxplat.h"
 #include "ebpf_extension.h"
@@ -17,8 +18,6 @@
 #include "ebpf_structs.h"
 #include "sample_ext.h"
 #include "sample_ext_ioctls.h"
-
-uint32_t map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 #include "sample_ext_maps.h"
 #include "sample_ext_program_info.h"
 
@@ -31,7 +30,7 @@ uint32_t map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 
 #define CXPLAT_FREE(x) cxplat_free(x, CXPLAT_POOL_FLAG_NON_PAGED, SAMPLE_EXT_POOL_TAG_DEFAULT)
 
-#define MAP_TYPE(map) (((sample_map_t*)(map))->map_type)
+#define MAP_TYPE(map) (((sample_core_map_t*)(map))->map_type)
 
 // Define the sample map type
 #define BPF_MAP_TYPE_SAMPLE_ARRAY_MAP 0xF000
@@ -164,8 +163,11 @@ static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .get_next_key_and_value_function = _sample_map_get_next_key_and_value,
     .associate_program_function = _sample_map_associate_program};
 
-static ebpf_map_provider_data_t _sample_map_provider_data = {
+static ebpf_map_provider_data_t _sample_array_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER, BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, &_sample_map_dispatch_table};
+
+static ebpf_map_provider_data_t _sample_hash_map_provider_data = {
+    EBPF_MAP_PROVIDER_DATA_HEADER, BPF_MAP_TYPE_SAMPLE_HASH_MAP, &_sample_map_dispatch_table};
 
 // Map provider context structure
 typedef struct _sample_ebpf_extension_map_provider
@@ -173,7 +175,8 @@ typedef struct _sample_ebpf_extension_map_provider
     HANDLE nmr_provider_handle;
 } sample_ebpf_extension_map_provider_t;
 
-static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_map_provider_context = {NULL};
+static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_array_map_provider_context = {NULL};
+static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_hash_map_provider_context = {NULL};
 
 typedef struct _sample_extension_map_provider_binding_context
 {
@@ -198,7 +201,7 @@ static void
 _sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
 // Map provider characteristics
-static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_characteristics = {
+static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_array_map_provider_characteristics = {
     0,                                    // Version
     sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length
     _sample_ebpf_extension_map_provider_attach_client,
@@ -210,7 +213,22 @@ static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_map_provider_ch
         &EBPF_MAP_INFO_EXTENSION_IID,
         &_sample_ebpf_extension_map_provider_moduleid, // Module ID.
         0,                                             // Number
-        &_sample_map_provider_data                     // Module context (extension data)
+        &_sample_array_map_provider_data               // Module context (extension data)
+    }};
+
+static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hash_map_provider_characteristics = {
+    0,                                    // Version
+    sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length
+    _sample_ebpf_extension_map_provider_attach_client,
+    _sample_ebpf_extension_map_provider_detach_client,
+    _sample_ebpf_extension_map_provider_cleanup_binding_context,
+    {
+        0,                                 // Version
+        sizeof(NPI_REGISTRATION_INSTANCE), // Length
+        &EBPF_MAP_INFO_EXTENSION_IID,
+        &_sample_ebpf_extension_map_provider_moduleid, // Module ID.
+        0,                                             // Number
+        &_sample_hash_map_provider_data                // Module context (extension data)
     }};
 
 static ebpf_result_t
@@ -730,18 +748,25 @@ _sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* pr
 void
 sample_ebpf_extension_map_provider_unregister()
 {
-    sample_ebpf_extension_map_provider_t* provider_context = &_sample_ebpf_extension_map_provider_context;
+    NTSTATUS status;
 
-    if (provider_context->nmr_provider_handle == NULL) {
-        return;
+    if (_sample_ebpf_extension_array_map_provider_context.nmr_provider_handle != NULL) {
+        status = NmrDeregisterProvider(_sample_ebpf_extension_array_map_provider_context.nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            // Wait for clients to detach.
+            NmrWaitForProviderDeregisterComplete(_sample_ebpf_extension_array_map_provider_context.nmr_provider_handle);
+        }
+        _sample_ebpf_extension_array_map_provider_context.nmr_provider_handle = NULL;
     }
 
-    NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-    if (status == STATUS_PENDING) {
-        // Wait for clients to detach.
-        NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    if (_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle != NULL) {
+        status = NmrDeregisterProvider(_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            // Wait for clients to detach.
+            NmrWaitForProviderDeregisterComplete(_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
+        }
+        _sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle = NULL;
     }
-    provider_context->nmr_provider_handle = NULL;
 }
 
 NTSTATUS
@@ -750,15 +775,21 @@ sample_ebpf_extension_map_provider_register()
     sample_ebpf_extension_map_provider_t* local_provider_context;
     NTSTATUS status = STATUS_SUCCESS;
 
-    local_provider_context = &_sample_ebpf_extension_map_provider_context;
-
+    // Register provider for array map type.
     status = NmrRegisterProvider(
-        &_sample_ebpf_extension_map_provider_characteristics,
-        local_provider_context,
-        &local_provider_context->nmr_provider_handle);
+        &_sample_ebpf_extension_array_map_provider_characteristics,
+        &_sample_ebpf_extension_array_map_provider_context,
+        &_sample_ebpf_extension_array_map_provider_context.nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
         goto Exit;
     }
+
+    // Register provider for hash map type.
+    local_provider_context = &_sample_ebpf_extension_hash_map_provider_context;
+    status = NmrRegisterProvider(
+        &_sample_ebpf_extension_hash_map_provider_characteristics,
+        &_sample_ebpf_extension_hash_map_provider_context,
+        &_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
 
 Exit:
     if (!NT_SUCCESS(status)) {
@@ -1152,7 +1183,7 @@ _sample_ext_helper_map_lookup_element(
     UNREFERENCED_PARAMETER(dummy_param2);
     UNREFERENCED_PARAMETER(dummy_param3);
 
-    sample_map_t** sample_map = (sample_map_t**)MAP_CONTEXT(map, _map_context_offset);
+    sample_core_map_t** sample_map = (sample_core_map_t**)MAP_CONTEXT(map, _map_context_offset);
     if (*sample_map == NULL) {
         return NULL;
     }
@@ -1325,7 +1356,7 @@ _sample_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_core_map_t* sample_map = (sample_core_map_t*)map;
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != sample_map->key_size) {
         return EBPF_INVALID_ARGUMENT;
@@ -1354,7 +1385,7 @@ _sample_map_update_entry(
     if (key == NULL || value == NULL) {
         return EBPF_INVALID_ARGUMENT;
     }
-    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_core_map_t* sample_map = (sample_core_map_t*)map;
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != sample_map->key_size || value_size != sample_map->value_size)) {
         return EBPF_INVALID_ARGUMENT;
@@ -1376,7 +1407,7 @@ _sample_map_delete_entry(_In_ void* map, size_t key_size, _In_reads_opt_(key_siz
     if (key == NULL) {
         return EBPF_INVALID_ARGUMENT;
     }
-    sample_map_t* sample_map = (sample_map_t*)map;
+    sample_core_map_t* sample_map = (sample_core_map_t*)map;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != sample_map->key_size) {
         return EBPF_INVALID_ARGUMENT;
     }

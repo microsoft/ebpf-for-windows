@@ -1751,28 +1751,29 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 }
 
 void
-_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+_test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
 {
     bpf_object_ptr unique_object{nullptr};
     int result;
-    // const char* error_message = nullptr;
     fd_t program_fd;
     bpf_link_ptr link;
     int iteration = 10;
     bpf_object* object = nullptr;
 
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_basic.sys" : "extensible_map_basic.o";
+    native_module_helper_t test_sample_ebpf_helper;
+    test_sample_ebpf_helper.initialize("extensible_map_basic", execution_type);
 
-    result = program_load_helper(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd);
+    result = program_load_helper(
+        test_sample_ebpf_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd);
     REQUIRE(result == 0);
 
     unique_object.reset(object);
 
+    const char* map_name = (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) ? "sample_array_map" : "sample_hash_map";
     fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
     REQUIRE(result_map_fd > 0);
 
-    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "sample_map");
+    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), map_name);
     REQUIRE(sample_map_fd > 0);
 
     auto validate_result_map = [&](uint32_t expected_value) {
@@ -1782,14 +1783,26 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
         REQUIRE(result_value == expected_value);
     };
 
-    auto validate_sample_map_value = [&](uint32_t expected_value) {
+    auto validate_sample_map_value = [&](uint32_t expected_value, bool expect_lookup_to_fail = false) {
         uint32_t key = 0;
         uint32_t map_value = 0;
-        REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
-        REQUIRE(map_value == expected_value);
+        if (expect_lookup_to_fail) {
+            REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) != 0);
+            return;
+        } else {
+            REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
+            REQUIRE(map_value == expected_value);
+        }
     };
 
-    // Set value in the map.
+    // Set config map.
+    fd_t config_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "config_map");
+    REQUIRE(config_map_fd > 0);
+    uint32_t config_key = 0;
+    uint32_t config_value = type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP ? 1 : 2;
+    REQUIRE((bpf_map_update_elem(config_map_fd, &config_key, &config_value, 0) == 0));
+
+    // Set initial value in the map.
     uint32_t key = 0;
     uint32_t value = 1234;
     REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
@@ -1858,7 +1871,11 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     REQUIRE(result == 0);
 
     // Lookup the sample map value and validate it is set to 0.
-    validate_sample_map_value(0);
+    if (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
+        validate_sample_map_value(0);
+    } else {
+        validate_sample_map_value(0, true);
+    }
     validate_result_map(1);
 
     // Set map value to 200.
@@ -1872,10 +1889,15 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // find_and_delete is not supported for array maps, so value should remain unchanged.
-    validate_sample_map_value(200);
-    // Validate that result map value is 1.
-    validate_result_map(1);
+    if (type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        // find_and_delete is supported for hash maps, validate that the value is deleted.
+        validate_sample_map_value(0, true);
+        validate_result_map(1);
+    } else {
+        // find_and_delete is not supported for array maps, so value should remain unchanged.
+        validate_sample_map_value(200);
+        validate_result_map(0);
+    }
 
     // Invoke "test_map_push_elem" program.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
@@ -1883,7 +1905,7 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // push_elem is not supported for array maps, validate that the call failed.
+    // push_elem is not supported for array or hash maps, validate that the call failed.
     validate_result_map(0);
 
     // Invoke "test_map_pop_elem" program.
@@ -1892,7 +1914,7 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // pop_elem is not supported for array maps, validate that the call failed.
+    // pop_elem is not supported for array or hash maps, validate that the call failed.
     validate_result_map(0);
 
     // Invoke "test_map_peek_elem" program.
@@ -1901,10 +1923,17 @@ _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // peek_elem is not supported for array maps, validate that the call failed.
+    // peek_elem is not supported for array or hash maps, validate that the call failed.
     validate_result_map(0);
 
     bpf_object__close(unique_object.release());
+}
+
+void
+_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+{
+    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, execution_type);
+    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
