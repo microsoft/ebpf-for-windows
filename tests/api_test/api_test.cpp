@@ -1640,3 +1640,68 @@ TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }
+
+TEST_CASE("native_load_retry_after_insufficient_buffers", "[native_tests]")
+{
+    native_module_helper_t native_helper;
+    native_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
+
+    std::vector<fd_t> map_fds(3, ebpf_fd_invalid);
+    std::vector<fd_t> program_fds(1, ebpf_fd_invalid);
+    size_t count_of_maps = 0;
+    size_t count_of_programs = 0;
+
+    ebpf_result_t result = ebpf_object_load_native_by_fds(
+        native_helper.get_file_name().c_str(), &count_of_maps, nullptr, &count_of_programs, nullptr);
+
+    REQUIRE(result == EBPF_NO_MEMORY);
+    REQUIRE(count_of_maps == map_fds.size());
+    REQUIRE(count_of_programs == program_fds.size());
+
+    result = ebpf_object_load_native_by_fds(
+        native_helper.get_file_name().c_str(), &count_of_maps, map_fds.data(), &count_of_programs, program_fds.data());
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(count_of_maps == map_fds.size());
+    REQUIRE(count_of_programs == program_fds.size());
+
+    for (auto fd : map_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
+    for (auto fd : program_fds) {
+        REQUIRE(fd != ebpf_fd_invalid);
+        _close(fd);
+    }
+}
+
+TEST_CASE("load_all_sample_programs", "[native_tests][!mayfail]")
+{
+    struct _ebpf_program_load_test_parameters test_parameters[] = {
+        {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_bpf2bpf.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_mt_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_ringbuf.sys", BPF_PROG_TYPE_UNSPEC},
+        {"bindmonitor_tailcall.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_count_connect4.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_count_connect6.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_mt_connect4.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_mt_connect6.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_sock_addr.sys", BPF_PROG_TYPE_UNSPEC},
+        {"cgroup_sock_addr2.sys", BPF_PROG_TYPE_UNSPEC},
+        {"multiple_programs.sys", BPF_PROG_TYPE_UNSPEC},
+        {"pidtgid.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk.sys", BPF_PROG_TYPE_UNSPEC},
+        {"printk_legacy.sys", BPF_PROG_TYPE_UNSPEC},
+        {"process_start_key.sys", BPF_PROG_TYPE_UNSPEC},
+        {"sockops.sys", BPF_PROG_TYPE_UNSPEC},
+        {"strings.sys", BPF_PROG_TYPE_UNSPEC},
+        {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
+        {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}
+    };
+
+    _test_multiple_programs_load(
+        _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+}

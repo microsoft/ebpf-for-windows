@@ -242,35 +242,21 @@ function Invoke-ConnectRedirectTestHelper
         $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
     }
 
-    if ($script:TestMode -eq "Regression") {
-        # Previous versions of tcp_udp_listener did not suport the local_address parameter, use old parameter sets.
-        $TcpServerParameters = "--protocol tcp --local-port $DestinationPort"
-        $TcpProxyParameters = "--protocol tcp --local-port $ProxyPort"
-        $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
-        $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
+    # Build array of all IP addresses from all interfaces
+    $IPAddresses = @()
+    foreach ($Interface in $Interfaces) {
+        $IPAddresses += $Interface.V4Address
+        $IPAddresses += $Interface.V6Address
+    }
 
-        $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
-        foreach ($parameter in $ParameterArray)
-        {
-            Start-BackgroundProcess -ProgramName $ProgramName -Parameters $parameter
-        }
-    } else {
-        # Build array of all IP addresses from all interfaces
-        $IPAddresses = @()
-        foreach ($Interface in $Interfaces) {
-            $IPAddresses += $Interface.V4Address
-            $IPAddresses += $Interface.V6Address
-        }
+    # Start TCP and UDP listeners
+    $Ports = @($DestinationPort, $ProxyPort)
+    $Protocols = @("tcp", "udp")
 
-        # Start TCP and UDP listeners
-        $Ports = @($DestinationPort, $ProxyPort)
-        $Protocols = @("tcp", "udp")
-
-        foreach ($IPAddress in $IPAddresses) {
-            foreach ($Protocol in $Protocols) {
-                foreach ($Port in $Ports) {
-                    Start-BackgroundProcess -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
-                }
+    foreach ($IPAddress in $IPAddresses) {
+        foreach ($Protocol in $Protocols) {
+            foreach ($Port in $Ports) {
+                Start-BackgroundProcess -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
             }
         }
     }
