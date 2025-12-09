@@ -10,27 +10,13 @@
 #include "ebpf_program_types.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_shared_framework.h"
-
+#include "xdp_hooks.h"
 #include <iostream>
 #include <stdexcept>
 
 #define SAMPLE_PATH ""
 #define CILIUM_XDP_SECTIONS_SNAT 10
 #define CILIUM_XDP_SECTIONS_DSR 12
-
-// XDP context structure for mock registration
-typedef struct xdp_md_
-{
-    void* data;               ///< Pointer to start of packet data.
-    void* data_end;           ///< Pointer to end of packet data.
-    uint64_t data_meta;       ///< Packet metadata.
-    uint32_t ingress_ifindex; ///< Ingress interface index.
-} xdp_md_t;
-
-#define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
-#define FALSE 0
-#define TRUE 1
-#define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
 
 // XDP helper function prototype descriptors
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {

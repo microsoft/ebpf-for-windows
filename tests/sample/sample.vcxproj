@@ -228,7 +228,7 @@
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -249,7 +249,7 @@
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
@@ -274,7 +274,7 @@
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -301,7 +301,7 @@
     <CustomBuild Include="undocked\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
@@ -316,7 +316,7 @@
     <CustomBuild Include="undocked\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -329,7 +329,7 @@
       <FileType>CppCode</FileType>
       <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
@@ -339,7 +339,7 @@
       <FileType>CppCode</FileType>
       <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
@@ -349,7 +349,7 @@
       <FileType>CppCode</FileType>
       <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
     </CustomBuild>
@@ -359,7 +359,7 @@
       <FileType>CppCode</FileType>
       <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <BuildInParallel>true</BuildInParallel>
@@ -370,7 +370,7 @@
       <FileType>CppCode</FileType>
       <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <BuildInParallel>true</BuildInParallel>
@@ -381,7 +381,7 @@
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(SolutionDir)\scripts
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelConfiguration $(KernelConfiguration)
         popd
@@ -395,7 +395,7 @@
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -406,7 +406,7 @@
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->

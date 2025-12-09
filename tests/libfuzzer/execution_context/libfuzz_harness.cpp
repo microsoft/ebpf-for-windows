@@ -38,6 +38,10 @@ extern "C" size_t cxplat_fuzzing_memory_limit;
 
 static std::vector<std::pair<GUID, GUID>> _program_types = {
     {
+        EBPF_PROGRAM_TYPE_XDP,
+        EBPF_ATTACH_TYPE_XDP,
+    },
+    {
         EBPF_PROGRAM_TYPE_BIND,
         EBPF_ATTACH_TYPE_BIND,
     },
