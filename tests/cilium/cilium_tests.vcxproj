@@ -60,7 +60,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;SKIP_VERIFICATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\tests\include;$(SolutionDir)include;$(SolutionDir)libs\api_common;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\include;$(SolutionDir)include;$(SolutionDir)libs\api_common;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -74,7 +74,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;SKIP_VERIFICATION;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\tests\include;$(SolutionDir)include;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\include;$(SolutionDir)include;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -88,7 +88,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)\tests\include;$(SolutionDir)include;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\include;$(SolutionDir)include;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\libs\util;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\libs\api_common;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
