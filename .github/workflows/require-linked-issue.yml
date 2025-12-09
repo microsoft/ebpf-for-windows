@@ -1,6 +1,8 @@
+# GitHub Actions workflow to ensure pull requests are linked to issues
 name: Require Linked Issue
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
@@ -9,13 +11,20 @@ permissions:
   issues: read
 
 jobs:
-  check-linked-issue:
+  require-linked-issue:
     runs-on: ubuntu-latest
     steps:
       - name: Check for linked issue
+        id: check
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         with:
           script: |
+            // Exit early if not triggered by a pull request
+            if (!context.payload.pull_request) {
+              console.log('Workflow not triggered by a pull request event. Skipping check.');
+              return;
+            }
+            
             const pr_number = context.payload.pull_request.number;
             const repo_owner = context.repo.owner;
             const repo_name = context.repo.repo;
