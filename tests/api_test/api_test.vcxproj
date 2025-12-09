@@ -162,9 +162,6 @@
     <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
       <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\external\usersim\src\usersim.vcxproj">
-      <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
     </ProjectReference>
