@@ -44,12 +44,17 @@
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <Order>1</Order>
-                    <CommandLine>cmd /c wmic useraccount where name="Administrator" set PasswordExpires=false</CommandLine>
-                    <Description>Disable password expiration for Administrator</Description>
+                    <CommandLine>net accounts /maxpwage:unlimited</CommandLine>
+                    <Description>Set system-wide password expiration to unlimited</Description>
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>2</Order>
-                    <CommandLine>cmd /c wmic useraccount where name="VMStandardUser" set PasswordExpires=false</CommandLine>
+                    <CommandLine>powershell.exe -Command "Set-LocalUser -Name 'Administrator' -PasswordNeverExpires $true"</CommandLine>
+                    <Description>Disable password expiration for Administrator</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <CommandLine>powershell.exe -Command "Set-LocalUser -Name 'VMStandardUser' -PasswordNeverExpires $true"</CommandLine>
                     <Description>Disable password expiration for VMStandardUser</Description>
                 </SynchronousCommand>
             </FirstLogonCommands>
