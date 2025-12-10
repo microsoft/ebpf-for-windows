@@ -147,6 +147,9 @@
     <ProjectReference Include="..\..\..\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\export_program_info_test\export_program_info_test.vcxproj">
+      <Project>{8b2f1f1a-3c4d-4e5f-9a6b-1c2d3e4f5a6b}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="header.h" />
