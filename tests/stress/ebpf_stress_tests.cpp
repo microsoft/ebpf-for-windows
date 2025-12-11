@@ -19,6 +19,7 @@ constexpr uint32_t DEFAULT_EXTENSION_RESTART_DELAY{1000}; // 1 second.
 
 // Command line option: '-tp' or '--test-programs'.
 // Usage: -tp="droppacket, bindmonitor_tailcall" OR --test-programs="droppacket, bindmonitor_tailcall".
+// For Kernel Mode tests, droppacket is not suppported.
 // This option specifies a comma separated list programs to load.
 // Note that these programs must be from the list of supported programs. The currently supported programs are listed in
 // the _jit_program_info std::map variable declaration further down.
