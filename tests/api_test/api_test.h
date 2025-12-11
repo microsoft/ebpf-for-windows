@@ -11,6 +11,18 @@
 #include "native_helper.hpp"
 #include "service_helper.h"
 
+static bool
+_is_native_program(_In_z_ const char* file_name)
+{
+    std::string file_name_string(file_name);
+    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    if (file_extension == "sys") {
+        return true;
+    }
+
+    return false;
+}
+
 static std::string
 _get_file_name_without_extension(_In_z_ const char* file_name)
 {
@@ -40,7 +52,7 @@ inline _Success_(return == 0) int program_load_helper(
     std::string actual_file_name_string;
     const char* actual_file_name = nullptr;
 
-    if (copy_file) {
+    if (copy_file && _is_native_program(file_name)) {
         std::string file_name_without_extension = _get_file_name_without_extension(file_name);
         _native_helper.initialize(file_name_without_extension.c_str(), execution_type);
         actual_file_name_string = _native_helper.get_file_name();
