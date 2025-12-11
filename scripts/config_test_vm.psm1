@@ -507,7 +507,7 @@ function Import-ResultsFromVM
         }
 
         # Copy tracing ETL files from Test VM (if any).
-        Write-Log ("Copy ETL files from eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
+        Write-Log ("Copy ETL files from $VMSystemDrive\eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
 
         # First, compress the ETL files on the VM
         Invoke-Command -Session $VMSession -ScriptBlock {
@@ -532,7 +532,7 @@ function Import-ResultsFromVM
                     Write-Log "Successfully compressed ETL files to traces.zip"
                 }
             }
-        } -ArgumentList ("eBPF") -ErrorAction Ignore
+        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 
         # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
         $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
