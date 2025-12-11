@@ -8,18 +8,48 @@
 #include "ebpf_api.h"
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
+#include "native_helper.hpp"
 #include "service_helper.h"
+
+static std::string
+_get_file_name_without_extension(_In_z_ const char* file_name)
+{
+    std::string file_name_without_extension = file_name;
+    size_t last_dot = file_name_without_extension.find_last_of('.');
+    if (last_dot != std::string::npos) {
+        file_name_without_extension = file_name_without_extension.substr(0, last_dot);
+    }
+    size_t last_slash = file_name_without_extension.find_last_of("/\\");
+    if (last_slash != std::string::npos) {
+        file_name_without_extension = file_name_without_extension.substr(last_slash + 1);
+    }
+    return file_name_without_extension;
+}
 
 inline _Success_(return == 0) int program_load_helper(
     _In_z_ const char* file_name,
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
     _Outptr_ struct bpf_object** object,
-    _Out_ fd_t* program_fd) // File descriptor of first program in the object.
+    _Out_ fd_t* program_fd, // File descriptor of first program in the object.
+    bool copy_file = true)
 {
     *program_fd = ebpf_fd_invalid;
     *object = nullptr;
-    struct bpf_object* new_object = bpf_object__open(file_name);
+    native_module_helper_t _native_helper;
+    std::string actual_file_name_string;
+    const char* actual_file_name = nullptr;
+
+    if (copy_file) {
+        std::string file_name_without_extension = _get_file_name_without_extension(file_name);
+        _native_helper.initialize(file_name_without_extension.c_str(), execution_type);
+        actual_file_name_string = _native_helper.get_file_name();
+        actual_file_name = actual_file_name_string.c_str();
+    } else {
+        actual_file_name = file_name;
+    }
+
+    struct bpf_object* new_object = bpf_object__open(actual_file_name);
     if (new_object == nullptr) {
         return -EINVAL;
     }

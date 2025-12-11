@@ -224,24 +224,14 @@ TEST_CASE("test_ebpf_multiple_programs_load_interpret")
 
 TEST_CASE("test_ebpf_program_next_previous_native", "[test_ebpf_program_next_previous]")
 {
-    native_module_helper_t test_sample_ebpf_helper;
-    test_sample_ebpf_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
-    test_program_next_previous(test_sample_ebpf_helper.get_file_name().c_str(), SAMPLE_PROGRAM_COUNT);
-
-    native_module_helper_t bindmonitor_helper;
-    bindmonitor_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
-    test_program_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_PROGRAM_COUNT);
+    test_program_next_previous("test_sample_ebpf.sys", SAMPLE_PROGRAM_COUNT);
+    test_program_next_previous("bindmonitor.sys", BIND_MONITOR_PROGRAM_COUNT);
 }
 
 TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 {
-    native_module_helper_t test_sample_ebpf_helper;
-    test_sample_ebpf_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
-    test_map_next_previous(test_sample_ebpf_helper.get_file_name().c_str(), SAMPLE_MAP_COUNT);
-
-    native_module_helper_t bindmonitor_helper;
-    bindmonitor_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
-    test_map_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_MAP_COUNT);
+    test_map_next_previous("test_sample_ebpf.sys", SAMPLE_MAP_COUNT);
+    test_map_next_previous("bindmonitor.sys", BIND_MONITOR_MAP_COUNT);
 }
 
 TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
@@ -875,14 +865,12 @@ TEST_CASE("bpf_get_thread_start_time_tcp_ipv6", "[helpers]") { run_thread_start_
 TEST_CASE("native_module_handle_test", "[native_tests]")
 {
     int result;
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
     struct bpf_object* object = nullptr;
     struct bpf_object* object2 = nullptr;
     fd_t program_fd;
+    const char* file_name = "bindmonitor.sys";
 
-    result = program_load_helper(
-        _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd, false);
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
@@ -910,8 +898,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     program->fd = ebpf_fd_invalid;
 
     // Try to load the same native module again, which should fail.
-    result = program_load_helper(
-        _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
     REQUIRE(result == -ENOENT);
 
     // Close the native module handle. That should result in the module to be unloaded.
@@ -923,8 +910,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
 
     // Try to load the same native module again. It should succeed this time.
     object2 = nullptr;
-    result = program_load_helper(
-        _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
+    result = program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd, false);
     REQUIRE(result == 0);
 
     bpf_object__close(object);
@@ -1055,12 +1041,9 @@ TEST_CASE("ioctl_stress", "[stress]")
     struct bpf_object* object = nullptr;
     fd_t program_fd;
 
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("bindmonitor_ringbuf", EBPF_EXECUTION_NATIVE);
     REQUIRE(
         program_load_helper(
-            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
-        0);
+            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Create a test array map to provide target for the ioctl stress test.
     fd_t test_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
@@ -1227,13 +1210,10 @@ TEST_CASE("test_ringbuffer_concurrent_wraparound", "[stress][ring_buffer]")
     fd_t program_fd = ebpf_fd_invalid;
     ring_buffer_test_context_t context;
     std::string app_id = "api_test.exe";
-    native_module_helper_t native_helper;
-    native_helper.initialize("bindmonitor_ringbuf", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         program_load_helper(
-            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
-        0);
+            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -1331,13 +1311,10 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     uint32_t cpu_count = libbpf_num_possible_cpus();
     CAPTURE(cpu_count);
     context.cpu_count = cpu_count;
-    native_module_helper_t native_helper;
-    native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         program_load_helper(
-            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
-        0);
+            "bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -1406,15 +1383,9 @@ TEST_CASE("Test program order", "[native_tests]")
     uint32_t program_count = 4;
     int result;
 
-    native_module_helper_t _native_helper;
-    _native_helper.initialize("multiple_programs", EBPF_EXECUTION_NATIVE);
     REQUIRE(
         program_load_helper(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SAMPLE,
-            EBPF_EXECUTION_NATIVE,
-            &object,
-            &program_fd) == 0);
+            "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Get all 4 programs in the native object, and invoke them using bpf_prog_test_run.
     //
@@ -1699,9 +1670,7 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
         {"strings.sys", BPF_PROG_TYPE_UNSPEC},
         {"tail_call_max_exceed.sys", BPF_PROG_TYPE_UNSPEC},
         {"thread_start_time.sys", BPF_PROG_TYPE_UNSPEC},
-        {"utility.sys", BPF_PROG_TYPE_UNSPEC}
-    };
+        {"utility.sys", BPF_PROG_TYPE_UNSPEC}};
 
-    _test_multiple_programs_load(
-        _countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
+    _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
