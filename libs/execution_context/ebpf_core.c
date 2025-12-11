@@ -1556,6 +1556,7 @@ _ebpf_core_protocol_get_program_info(
     ebpf_program_info_t* program_info = NULL;
     size_t serialization_buffer_size;
     size_t required_length;
+    bool program_provider_referenced = false;
 
     program_parameters.program_type = request->program_type;
 
@@ -1571,6 +1572,13 @@ _ebpf_core_protocol_get_program_info(
             goto Done;
         }
     }
+
+    retval = ebpf_program_reference_providers(program);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    program_provider_referenced = true;
 
     retval = ebpf_program_get_program_info(program, &program_info);
     if (retval != EBPF_SUCCESS) {
@@ -1593,6 +1601,10 @@ _ebpf_core_protocol_get_program_info(
 
 Done:
     ebpf_program_free_program_info(program_info);
+    if (program_provider_referenced) {
+        ebpf_program_dereference_providers(program);
+    }
+
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(retval);
 }
