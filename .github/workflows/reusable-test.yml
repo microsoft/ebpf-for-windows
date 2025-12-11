@@ -229,6 +229,14 @@ jobs:
           .\export_program_info.exe --clear
           .\export_program_info.exe
 
+      - name: Configure eBPF store for test programs
+        if: steps.skip_check.outputs.should_skip != 'true'
+        id: configure_ebpf_store_test
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        run: |
+          .\export_program_info_test.exe --clear
+          .\export_program_info_test.exe
+
       - name: Configure eBPF store (undocked)
         if: (steps.skip_check.outputs.should_skip != 'true') && (matrix.configurations != 'FuzzerDebug')
         id: configure_ebpf_store_undocked

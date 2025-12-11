@@ -462,6 +462,107 @@ TEST_CASE("show verification bindmonitor_bpf2bpf.o", "[netsh][verification]")
                   "Program terminates within 0 loop iterations\n");
 }
 
+TEST_CASE("show verification droppacket.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "Verification succeeded\n"
+                  "Program terminates within 0 loop iterations\n");
+}
+
+TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_adjust_head_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:43\n"
+                  ";     ethernet_header->Type = 0x0800;\n"
+                  "\n"
+                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
+                  "\n"
+                  "1 errors\n"
+                  "\n");
+}
+
+TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"droppacket_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:42\n"
+                  ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
+                  "\n"
+                  "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1) for read)\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/droppacket_unsafe.c:43\n"
+                  ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
+                  "\n"
+                  "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
+                  "\n"
+                  "2 errors\n"
+                  "\n");
+}
+
+TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_datasize_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+
+    // Perform a line by line comparison to detect any differences.
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "\n"
+                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
+
+    // Split both output and expected_output into lines.
+    std::istringstream output_stream(output);
+    std::istringstream expected_output_stream(expected_output);
+
+    std::string output_line;
+    std::string expected_output_line;
+    while (std::getline(output_stream, output_line) && std::getline(expected_output_stream, expected_output_line)) {
+        REQUIRE(output_line == expected_output_line);
+    }
+}
+
 TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
 {
     _test_helper_netsh test_helper;
@@ -863,6 +964,86 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
     // Verify the program ID doesn't exist any more.
     verify_no_programs_exist();
+}
+
+TEST_CASE("xdp interface parameter", "[netsh][programs]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    // Load a program pinned.
+    int result;
+
+    // Load program with pinpath and loopback interface alias.
+    std::string output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\n");
+    verify_no_programs_exist();
+
+    // Load program with pinpath and loopback interface name.
+    output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 10 from BPF:\\mypinpath\n");
+    verify_no_programs_exist();
+
+    // Load program with loopback interface index.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 15 from BPF:\\DropPacket\n");
+    verify_no_programs_exist();
+
+    // (Negative) Load program with incorrect interface name.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
+    REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    // (Negative) Load program with program type that does not support the interface parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
+    REQUIRE(
+        strcmp(
+            output.c_str(), "Interface parameter is not allowed for program types that don't support interfaces.\n") ==
+        0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    // Add program with no interface parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 29\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Detach the program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", L"", nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Type           Name\n"
+                  "======  ====  =====  =========  =============  ====================\n"
+                  "    29     1      0  JIT        xdp            DropPacket\n");
+
+    // Re-attach the program with interface index parameter.
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
