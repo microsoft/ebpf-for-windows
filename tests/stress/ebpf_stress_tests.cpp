@@ -51,7 +51,7 @@ bool _extension_restart_arg{false};
 uint32_t _extension_restart_delay_arg{DEFAULT_EXTENSION_RESTART_DELAY};
 
 // Parsed vector of programs specified on the command line.  We load 'droppacket.o' by default if no programs were
-// specified on the command-line.
+// specified on the command-line for user mode tests. For kernel Mode tests cgroup_sock_addr.o is the default.
 static std::vector<std::string> _jit_programs{};
 
 // Logging level trigger - logs at this level and below are printed.
