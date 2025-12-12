@@ -90,7 +90,7 @@ extension.
 
 **Dynamic Provider Discovery**: Uses NMR's built-in discovery mechanism
 - No central registry required - providers are discovered on-demand during map creation
-- When a map is created with an custom type (>= 4096), eBPF core:
+- When a map is created with a custom type (>= 4096), eBPF core:
   1. Creates an `ebpf_custom_map_t` structure with NMR client characteristics
   2. Calls `NmrRegisterClient()` to find a provider for the specific map type
   3. On successful provider attachment, creates the custom map with the provided base map type.
