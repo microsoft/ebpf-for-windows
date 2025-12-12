@@ -6,6 +6,7 @@
 #include "ebpf_async.h"
 #include "ebpf_bitmap.h"
 #include "ebpf_epoch.h"
+#include "ebpf_extensible_maps.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_maps.h"
@@ -20,15 +21,6 @@
 #define IS_NESTED_HASH_MAP(x) ((x) == BPF_MAP_TYPE_HASH_OF_MAPS)
 
 #define ACTUAL_VALUE_SIZE(x) (IS_NESTED_MAP((x)->type) ? sizeof(ebpf_core_object_t*) : (x)->value_size)
-
-typedef struct _ebpf_core_map
-{
-    ebpf_core_object_t object;
-    cxplat_utf8_string_t name;
-    ebpf_map_definition_in_memory_t ebpf_map_definition;
-    uint32_t original_value_size;
-    uint8_t* data;
-} ebpf_core_map_t;
 
 typedef struct _ebpf_core_object_map
 {
@@ -184,8 +176,7 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map; //< Core map structure.
     size_t partition_count;   //< Number of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
-    uint8_t padding[8];       //< Required to ensure partitions are cache aligned.
-    ebpf_lru_partition_t
+    __declspec(align(EBPF_CACHE_LINE_SIZE)) ebpf_lru_partition_t
         partitions[1]; //< Array of LRU partitions. Limited to a maximum of EBPF_LRU_MAXIMUM_PARTITIONS.
 } ebpf_core_lru_map_t;
 
@@ -459,12 +450,15 @@ typedef struct _ebpf_map_metadata_table
 
 const ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
 
-// ebpf_map_get_table(type) - get the metadata table for the given map type.
+// _ebpf_map_get_table(type) - get the metadata table for the given map type.
 //
 // type is checked on map creation and not user writeable, so in release mode we don't need to check it.
 // In debug mode, we assert that the type is within the table bounds.
 static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
-ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
+_ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
+
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(const ebpf_map_type_t type);
 
 static void
 _clean_up_object_array_map(_Inout_ ebpf_core_map_t* map, ebpf_object_type_t value_type);
@@ -3149,15 +3143,28 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
 };
 
+// Catch-all metadata table for operations on extensible maps.
+const ebpf_map_metadata_table_t _ebpf_extensible_map_metadata_table = {0};
+
 // ebpf_map_get_table(type) - get the metadata table for the given map type.
 //
 // type is checked on map creation and not user writeable, so in release mode we don't need to check it.
 // In debug mode, we assert that the type is within the table bounds.
 static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
-ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type)
+_ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type)
 {
     ebpf_assert(type < EBPF_COUNT_OF(ebpf_map_metadata_tables));
     return &ebpf_map_metadata_tables[type];
+}
+
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(const ebpf_map_type_t type)
+{
+    if (ebpf_map_type_is_extensible(type)) {
+        return &_ebpf_extensible_map_metadata_table;
+    }
+
+    return _ebpf_map_get_table(type);
 }
 
 static void
@@ -3165,6 +3172,11 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = (ebpf_map_t*)object;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_extensible_map_delete(map);
+        EBPF_RETURN_VOID();
+    }
 
     ebpf_free(map->name.value);
     ebpf_map_get_table(map->ebpf_map_definition.type)->delete_map(map);
@@ -3186,6 +3198,19 @@ ebpf_map_create(
     cpu_count = ebpf_get_cpu_count();
     ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
     ebpf_notify_user_reference_count_zeroed_t zero_user_function = NULL;
+
+    // Check if this is an extensible map type first
+    if (ebpf_map_type_is_extensible(type)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_MAP, "Creating extensible map of type", type);
+
+        result = ebpf_extensible_map_create(ebpf_map_definition, inner_map_handle, &local_map);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        goto Initialize;
+    }
 
     if (type < 0 || type >= EBPF_COUNT_OF(ebpf_map_metadata_tables)) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
@@ -3238,6 +3263,7 @@ ebpf_map_create(
     }
     ebpf_assert(type == local_map->ebpf_map_definition.type);
 
+Initialize:
     local_map->original_value_size = ebpf_map_definition->value_size;
 
     result = ebpf_duplicate_utf8_string(&local_map->name, map_name);
@@ -3274,6 +3300,21 @@ ebpf_map_find_entry(
 {
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
+    ebpf_result_t result;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        result = ebpf_extensible_map_find_entry(map, key_size, key, &return_value, flags);
+
+        if (result == EBPF_SUCCESS) {
+            if (flags & EBPF_MAP_FLAG_HELPER) {
+                *(uint8_t**)value = return_value;
+            } else {
+                memcpy(value, return_value, map->ebpf_map_definition.value_size);
+            }
+        }
+
+        return result;
+    }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
@@ -3313,7 +3354,7 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    ebpf_result_t result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+    result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3341,6 +3382,11 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        EBPF_RETURN_RESULT(ebpf_extensible_map_associate_program(map, program));
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     if (table->associate_program != NULL) {
         return table->associate_program(map, program);
@@ -3389,6 +3435,10 @@ ebpf_map_update_entry(
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_update_entry(map, key_size, key, value_size, value, option, flags);
+    }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
@@ -3479,6 +3529,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_delete_entry(map, key_size, key, flags);
+    }
+
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -3513,6 +3567,10 @@ ebpf_map_next_key(
     _In_reads_opt_(key_size) const uint8_t* previous_key,
     _Out_writes_(key_size) uint8_t* next_key)
 {
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_get_next_key_and_value(map, key_size, previous_key, next_key, NULL);
+    }
+
     // High volume call - Skip entry/exit logging.
     if (key_size != map->ebpf_map_definition.key_size) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
@@ -3595,6 +3653,10 @@ ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        return ebpf_extensible_map_update_entry(map, 0, NULL, value_size, value, 0, flags);
+    }
+
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
     if (table->update_entry == NULL) {
@@ -3615,6 +3677,17 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_result_t result = ebpf_extensible_map_find_entry(map, 0, NULL, &return_value, EBPF_MAP_FIND_FLAG_DELETE);
+
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        memcpy(value, return_value, map->ebpf_map_definition.value_size);
+        return EBPF_SUCCESS;
     }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -3643,6 +3716,17 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
     uint8_t* return_value;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_map_type_is_extensible(map->ebpf_map_definition.type)) {
+        ebpf_result_t result = ebpf_extensible_map_find_entry(map, 0, NULL, &return_value, 0);
+
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        memcpy(value, return_value, map->ebpf_map_definition.value_size);
+        return EBPF_SUCCESS;
     }
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);

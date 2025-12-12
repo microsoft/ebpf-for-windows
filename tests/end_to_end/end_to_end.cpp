@@ -2621,10 +2621,12 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_helper_function_prototype_t helper_function_prototypes[5];
+        ebpf_helper_function_prototype_t
+            helper_function_prototypes[EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype)];
         std::copy(
             _sample_ebpf_extension_helper_function_prototype,
-            _sample_ebpf_extension_helper_function_prototype + 5,
+            _sample_ebpf_extension_helper_function_prototype +
+                EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
             helper_function_prototypes);
         // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
         // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.
@@ -3575,3 +3577,572 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES(
     "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
+
+// This test validates extensible map user APIs.
+void
+_test_extensible_maps_user_apis(ebpf_map_type_t map_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    uint32_t map_size = 10;
+
+    REQUIRE((map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP));
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+
+    {
+        // Try to create extensible map without initializing the map provider.
+        // This should fail.
+        fd_t invalid_map_fd =
+            bpf_map_create(map_type, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+        REQUIRE(invalid_map_fd < 0);
+    }
+
+    // Create a map with invalid map types. This should fail.
+    fd_t invalid_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_MAX, "invalid_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(invalid_map_fd < 0);
+
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize(map_type) == EBPF_SUCCESS);
+
+    fd_t extensible_map_fd =
+        bpf_map_create(map_type, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(extensible_map_fd > 0);
+
+    auto require_and_close = [](bool condition, fd_t fd) {
+        if (condition == false) {
+            Platform::_close(fd);
+        }
+        REQUIRE(condition);
+    };
+
+    // Add entries up to the map size.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = i + 100;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        require_and_close((result == 0), extensible_map_fd);
+    }
+    // Try updating an element beyond the current map size.
+    {
+        uint32_t key = map_size + 10;
+        uint32_t value = 999;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        require_and_close((result != 0), extensible_map_fd);
+    }
+
+    // Lookup elements and validate values.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((value == i + 100), extensible_map_fd);
+    }
+    // Lookup an invalid key
+    {
+        uint32_t key = map_size + 20;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        require_and_close((result != 0), extensible_map_fd);
+    }
+
+    // Delete all elements.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        int result = bpf_map_delete_elem(extensible_map_fd, &key);
+        require_and_close((result == 0), extensible_map_fd);
+    }
+
+    // Validate deleted elements are no longer present.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
+            // For array maps, lookup succeeds but value is zero after deletion
+            require_and_close((result == 0), extensible_map_fd);
+            require_and_close((value == 0), extensible_map_fd);
+        } else {
+            // For hash maps, lookup fails after deletion
+            require_and_close((result != 0), extensible_map_fd);
+        }
+    }
+
+    // Re-insert the elements.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = i + 100;
+        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        require_and_close((result == 0), extensible_map_fd);
+    }
+
+    // Test bpf_map_get_next_key on extensible map.
+    uint32_t next_key = 0;
+    uint32_t count = 0;
+    uint32_t* prev_key = nullptr;
+
+    // First call with nullptr should return key 0.
+    int result = bpf_map_get_next_key(extensible_map_fd, nullptr, &next_key);
+    require_and_close((result == 0), extensible_map_fd);
+    require_and_close((next_key == 0), extensible_map_fd);
+
+    // Iterate through all keys in the map.
+    prev_key = nullptr;
+    count = 0;
+    while (bpf_map_get_next_key(extensible_map_fd, prev_key, &next_key) == 0) {
+        require_and_close((next_key == count), extensible_map_fd);
+        count++;
+        prev_key = &next_key;
+    }
+    // Should have iterated through all map_size entries.
+    require_and_close((count == map_size), extensible_map_fd);
+
+    // Test bpf_map_update_batch on extensible map.
+    {
+        // Clear the map first for batch testing.
+        for (uint32_t i = 0; i < map_size; i++) {
+            uint32_t key = i;
+            result = bpf_map_delete_elem(extensible_map_fd, &key);
+            require_and_close((result == 0), extensible_map_fd);
+        }
+
+        // Prepare batch data.
+        std::vector<uint32_t> batch_keys(map_size);
+        std::vector<uint32_t> batch_values(map_size);
+        for (uint32_t i = 0; i < map_size; i++) {
+            batch_keys[i] = i;
+            batch_values[i] = i + 500; // Different values to distinguish from previous tests
+        }
+
+        // Test batch update.
+        bpf_map_batch_opts opts = {};
+        uint32_t batch_count = map_size;
+        result = bpf_map_update_batch(extensible_map_fd, batch_keys.data(), batch_values.data(), &batch_count, &opts);
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((batch_count == map_size), extensible_map_fd);
+
+        // Validate batch updated values.
+        for (uint32_t i = 0; i < map_size; i++) {
+            uint32_t key = i;
+            uint32_t value = 0;
+            result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+            require_and_close((result == 0), extensible_map_fd);
+            require_and_close((value == i + 500), extensible_map_fd);
+        }
+
+        // Test batch update with BPF_NOEXIST flag on existing keys (should fail).
+        opts.elem_flags = BPF_NOEXIST;
+        batch_count = map_size;
+        for (uint32_t i = 0; i < map_size; i++) {
+            batch_values[i] = i + 600; // New values
+        }
+        result = bpf_map_update_batch(extensible_map_fd, batch_keys.data(), batch_values.data(), &batch_count, &opts);
+        require_and_close((result != 0), extensible_map_fd); // Should fail due to existing keys
+
+        // Test batch update with BPF_EXIST flag on existing keys (should succeed).
+        opts.elem_flags = BPF_EXIST;
+        batch_count = map_size;
+        result = bpf_map_update_batch(extensible_map_fd, batch_keys.data(), batch_values.data(), &batch_count, &opts);
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((batch_count == map_size), extensible_map_fd);
+
+        // Validate updated values.
+        for (uint32_t i = 0; i < map_size; i++) {
+            uint32_t key = i;
+            uint32_t value = 0;
+            result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+            require_and_close((result == 0), extensible_map_fd);
+            require_and_close((value == i + 600), extensible_map_fd);
+        }
+    }
+
+    // Test bpf_map_delete_batch on extensible map.
+    {
+        // Prepare data for delete batch test (map should still have data from previous test).
+        std::vector<uint32_t> delete_keys(map_size / 2); // Delete half the entries
+        for (uint32_t i = 0; i < map_size / 2; i++) {
+            delete_keys[i] = i;
+        }
+
+        // Test batch delete.
+        bpf_map_batch_opts delete_opts = {};
+        uint32_t delete_count = map_size / 2;
+        result = bpf_map_delete_batch(extensible_map_fd, delete_keys.data(), &delete_count, &delete_opts);
+        require_and_close((result == 0), extensible_map_fd);
+        require_and_close((delete_count == map_size / 2), extensible_map_fd);
+
+        // Validate that deleted keys are no longer present, but remaining keys still exist.
+        for (uint32_t i = 0; i < map_size; i++) {
+            uint32_t key = i;
+            uint32_t value = 0;
+            result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+            if (i < map_size / 2) {
+                if (map_type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
+                    // For array maps, lookup succeeds but value is zero after deletion
+                    require_and_close((result == 0), extensible_map_fd);
+                    require_and_close((value == 0), extensible_map_fd);
+                } else {
+                    // For hash maps, lookup fails after deletion
+                    require_and_close((result != 0), extensible_map_fd);
+                }
+            } else {
+                // Remaining keys should still exist with their values
+                require_and_close((result == 0), extensible_map_fd);
+                require_and_close((value == i + 600), extensible_map_fd);
+            }
+        }
+    }
+
+    // Test bpf_map_lookup_and_delete_batch on extensible map.
+    {
+        // Re-populate the map with fresh data for lookup_and_delete test.
+        for (uint32_t i = 0; i < map_size; i++) {
+            uint32_t key = i;
+            uint32_t value = i + 700; // New values to distinguish from previous tests
+            result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+            require_and_close((result == 0), extensible_map_fd);
+        }
+
+        // Prepare data for lookup and delete batch.
+        std::vector<uint32_t> lookup_delete_keys(map_size);
+        std::vector<uint32_t> lookup_delete_values(map_size);
+        void* in_batch = nullptr;  // Start from beginning
+        void* out_batch = nullptr; // Not used for iteration
+
+        // Test batch lookup and delete.
+        bpf_map_batch_opts lookup_delete_opts = {};
+        uint32_t lookup_delete_count = map_size;
+        result = bpf_map_lookup_and_delete_batch(
+            extensible_map_fd,
+            in_batch,
+            out_batch,
+            lookup_delete_keys.data(),
+            lookup_delete_values.data(),
+            &lookup_delete_count,
+            &lookup_delete_opts);
+
+        // bpf_map_lookup_and_delete_batch is not supported on extensible maps.
+        // This should fail with EBPF_NOT_SUPPORTED.
+        require_and_close((result != 0), extensible_map_fd);
+    }
+
+    // Clean up
+    Platform::_close(extensible_map_fd);
+}
+
+TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
+{
+    _test_extensible_maps_user_apis(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP);
+    _test_extensible_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP);
+}
+
+TEST_CASE("extensible_maps_user_apis_negative", "[extensible_maps]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    ebpf_result result;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
+
+    // 1. create an extensible map.
+    fd_t extensible_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 10, nullptr);
+    REQUIRE(extensible_map_fd > 0);
+
+    // 2. Invoke test_ioctl_map_write for the map. This should fail.
+    ebpf_handle_t map_handle = (ebpf_handle_t)Platform::_get_osfhandle(extensible_map_fd);
+    uint32_t data = 42;
+    REQUIRE(test_ioctl_map_write(map_handle, &data, sizeof(data)) != EBPF_SUCCESS);
+
+    // Test ebpf_map_set_wait_handle API. This should fail.
+    {
+        // Create wait handle for notifications.
+        HANDLE wait_handle = CreateEvent(nullptr, false, false, nullptr);
+        REQUIRE(wait_handle != NULL);
+
+        // Set map wait handle. This should fail.
+        result = ebpf_map_set_wait_handle(extensible_map_fd, 0, (ebpf_handle_t)wait_handle);
+        REQUIRE(result != EBPF_SUCCESS);
+
+        CloseHandle(wait_handle);
+    }
+
+    // Test ebpf_map_update_element_with_handle API. This should fail for extensible maps.
+    {
+        // Create a new array map.
+        fd_t array_map_fd =
+            bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_array", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(array_map_fd > 0);
+
+        // Get the handle from the array map fd.
+        ebpf_handle_t array_map_handle = (ebpf_handle_t)Platform::_get_osfhandle(array_map_fd);
+
+        // Try to update the extensible map with the array map handle. This should fail.
+        uint32_t key = 0;
+        REQUIRE(
+            test_ioctl_map_update_element_with_handle(map_handle, sizeof(key), (uint8_t*)&key, array_map_handle) !=
+            EBPF_SUCCESS);
+
+        Platform::_close(array_map_fd);
+    }
+
+    Platform::_close(extensible_map_fd);
+}
+
+void
+_test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    bpf_object_ptr unique_object;
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+    bpf_link_ptr link;
+    int iteration = 10;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_basic_um.dll" : "extensible_map_basic.o";
+
+    // Try to load the program without initializing the map provider. This should fail.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    REQUIRE(result != 0);
+
+    // Initialize providers for both the map types, as the BPF program has both the map types.
+    test_sample_map_provider_t sample_array_map_provider;
+    test_sample_map_provider_t sample_hash_map_provider;
+    REQUIRE(sample_array_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
+    REQUIRE(sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP) == EBPF_SUCCESS);
+
+    auto require_and_close_object = [&](bool condition) {
+        if (!condition) {
+            bpf_object__close(unique_object.release());
+        }
+        REQUIRE(condition);
+    };
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    const char* map_name = (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) ? "sample_array_map" : "sample_hash_map";
+    fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
+    require_and_close_object(result_map_fd > 0);
+
+    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), map_name);
+    require_and_close_object(sample_map_fd > 0);
+
+    auto validate_result_map = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t result_value = 0;
+        require_and_close_object(bpf_map_lookup_elem(result_map_fd, &key, &result_value) == 0);
+        require_and_close_object(result_value == expected_value);
+    };
+
+    auto validate_sample_map_value = [&](uint32_t expected_value, bool expect_lookup_to_fail = false) {
+        uint32_t key = 0;
+        uint32_t map_value = 0;
+        if (expect_lookup_to_fail) {
+            require_and_close_object(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) != 0);
+            return;
+        } else {
+            require_and_close_object(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
+            require_and_close_object(map_value == expected_value);
+        }
+    };
+
+    // Set config map.
+    fd_t config_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "config_map");
+    require_and_close_object(config_map_fd > 0);
+    uint32_t config_key = 0;
+    uint32_t config_value = type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP ? 1 : 2;
+    require_and_close_object((bpf_map_update_elem(config_map_fd, &config_key, &config_value, 0) == 0));
+
+    // Set initial value in the map.
+    uint32_t key = 0;
+    uint32_t value = 1234;
+    require_and_close_object((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
+
+    // First invoke "test_map_read_increment" program. The map value should be incremented by 1 by the program for each
+    // iteration.
+    bpf_test_run_opts opts = {};
+    sample_program_context_t ctx = {};
+    opts.batch_size = 1;
+    opts.repeat = iteration;
+    opts.ctx_in = &ctx;
+    opts.ctx_size_in = sizeof(sample_program_context_t);
+    opts.ctx_out = &ctx;
+    opts.ctx_size_out = sizeof(sample_program_context_t);
+
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_increment"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    // Now invoke "test_map_read_helper_increment" program. The map value should be incremented by 1 by the program for
+    // each iteration.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is updated.
+    validate_sample_map_value(value + iteration);
+    validate_result_map(1);
+    value += iteration;
+
+    // Set iteration to 1 for the remaining tests.
+    opts.repeat = 1;
+
+    // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
+    program_fd = bpf_program__fd(
+        bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment_invalid"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Validate that the program failed by checking the result map.
+    validate_result_map(0);
+
+    // Now invoke "test_map_update_element" program. The value should be set to 42.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is set to 42.
+    validate_sample_map_value(42);
+    validate_result_map(1);
+
+    // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // Lookup the sample map value and validate it is set to 0.
+    if (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
+        validate_sample_map_value(0);
+    } else {
+        validate_sample_map_value(0, true);
+    }
+    validate_result_map(1);
+
+    // Set map value to 200.
+    value = 200;
+    require_and_close_object((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
+
+    // Invoke "test_map_find_and_delete_element" program.
+    program_fd =
+        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    if (type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        // find_and_delete is supported for hash maps, validate that the value is deleted.
+        validate_sample_map_value(0, true);
+        validate_result_map(1);
+    } else {
+        // find_and_delete is not supported for array maps, so value should remain unchanged.
+        validate_sample_map_value(200);
+        validate_result_map(0);
+    }
+
+    // Invoke "test_map_push_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // push_elem is not supported for array or hash maps, validate that the call failed.
+    validate_result_map(0);
+
+    // Invoke "test_map_pop_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_pop_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // pop_elem is not supported for array or hash maps, validate that the call failed.
+    validate_result_map(0);
+
+    // Invoke "test_map_peek_elem" program.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_peek_elem"));
+    require_and_close_object(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    require_and_close_object(result == 0);
+
+    // peek_elem is not supported for array or hash maps, validate that the call failed.
+    validate_result_map(0);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+{
+    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, execution_type);
+    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
+}
+
+DECLARE_ALL_TEST_CASES(
+    "extensible_maps_program_load", "[end_to_end][extensible_maps]", _test_extensible_maps_program_load);
+
+static void
+_test_extensible_maps_invalid(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    bpf_object_ptr unique_object;
+    int result;
+    const char* error_message = nullptr;
+    fd_t program_fd;
+
+    program_info_provider_t sock_addr_program_info;
+    REQUIRE(sock_addr_program_info.initialize(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE) ? "extensible_map_invalid_um.dll" : "extensible_map_invalid.o";
+
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
+
+    // Try to load the program with invalid extensible map usage.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result != 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES(
+    "extensible_maps_invalid", "[end_to_end][extensible_maps][!mayfail]", _test_extensible_maps_invalid);

@@ -1,8 +1,8 @@
 # eBPF extensions
 
 ## 1 Overview
-An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks or helper functions. The design
-of eBPF for Windows is such that an extension providing an implementation for hooks and helper functions can be
+An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks, helper functions and extensible maps. The design
+of eBPF for Windows is such that an extension providing an implementation for hooks, helper functions and maps can be
 developed and deployed without the need to modify either the eBPF execution context or the eBPF verifier.
 
 ## 1.1 Windows Network Module Registrar
@@ -24,9 +24,10 @@ and the various aspects of developing NMR modules as described in
 [NMR documentation](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-registrar2).
 
 ## 1.3 NPI Contracts for eBPF Extensions
-eBPF Extensions need to implement *provider modules* for two types of NPIs. They are the **Program Information NPI**
-provider and the **Hook NPI** provider. The following section explains when an extension must implement these
-providers.
+eBPF Extensions need to implement *provider modules* for three types of NPIs. They are the **Program Information NPI**
+provider, **Hook NPI** provider and **Map Information NPI**.
+**Map Information NPI** is optional and only needs to be implemented if an extension want to add support for a
+program type specific map. The following section explains when an extension must implement these providers.
 
 ### 1.3.1 eBPF Program Information NPI Provider
 The eBPF Program Information NPI contract is used to provide information about an eBPF program type. Program types
@@ -44,12 +45,19 @@ several attach types. The eBPF extension must register a separate Hook NPI provi
 supports for an eBPF hook. Note that, there can be more than one attach types for a given program type. If an extension
 is adding a new attach type for an existing program type, then it only needs to implement the Hook NPI Provider.
 
+### 1.3.3 eBPF Map Information NPI Provider
+The Map Info NPI contract is used by extension to provide an implementation for a map type that is not already
+implemented by the eBPF runtime. An example for this can be *BPF_MAP_TYPE_XSKMAP*. The eBPF extension must register
+a separate Map Info NPI provider module for each map type it implements.
+
 ## 2 Authoring an eBPF Extension
 The steps for authoring an eBPF extension are:
 1. Register the NPI provider.
 2. Author any program type specific Helper Functions.
+3. Author any extensible maps.
 3. Invoke eBPF programs from hook(s).
 4. Register program and attach types.
+5. Register extensible map types, if any.
 
 The following sections describe these steps in detail.
 
@@ -571,7 +579,95 @@ of time a batch is open and must not change IRQL between calling batch begin and
 the number of times the program has been invoked, so callers should limit the number of calls within a batch to
 prevent long delays in batch end.
 
-### 2.7 Authoring Helper Functions
+### 2.7 Map Information NPI Provider Registration
+When registering itself to the NMR, the Map Info NPI provider should have the
+[`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance)
+initialized as follows:
+* `NpiId`: This should be set to `EBPF_MAP_INFO_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
+* `ModuleId`: This can be set to any provider chosen GUID.
+* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_map_provider_data_t`.
+
+typedef struct _ebpf_map_provider_data
+{
+    ebpf_extension_header_t header;
+    size_t supported_map_type_count;                                            // Number of supported map types
+    _Field_size_(supported_map_type_count) const uint32_t* supported_map_types; // Array of supported map types
+    ebpf_map_provider_dispatch_table_t* dispatch_table;
+} ebpf_map_provider_data_t;
+
+#### `ebpf_map_provider_data_t` Struct
+This structure is used to specify all the extensible map types that the extension supports. It contains the following fields:
+* `supported_map_type_count`
+* `supported_map_types`
+* `dispatch_table`
+
+The `supported_map_type_count` field contains the number of extensible maps that the extension supports.
+The `supported_map_types` is a pointer to an array containing the map types of the extensible maps that the extension supports.
+The `dispatch_table` is a pointer to the provider dispatch table that the extension provides for operations on the supported maps.
+
+#### Map ID
+eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4095 (BPF_MAP_TYPE_MAX) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_MAX for any extensible map they implement.
+
+Note: Though this is not required, extensions *can* register their map types by creating a pull request to eBPF-for-Windows
+repo and updating `ebpf_map_type_t` enum in ebpf_structs.h. This helps in any map type collision with another extension.
+
+#### `ebpf_map_provider_dispatch_table_t` Struct
+```
+typedef struct _ebpf_map_provider_dispatch_table
+{
+    ebpf_extension_header_t header;
+    _Notnull_ ebpf_map_create_t create_map_function;
+    _Notnull_ ebpf_map_delete_t delete_map_function;
+    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
+    ebpf_map_find_element_t find_element_function;
+    ebpf_map_update_element_t update_element_function;
+    ebpf_map_delete_element_t delete_element_function;
+    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
+} ebpf_map_provider_dispatch_table_t;
+```
+This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
+1. `create_map_function` - Called by eBPF runtime to create the map.
+2. `delete_map_function` - Called by eBPF runtime to delete the map.
+3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an extensible map is associated with a program.
+4. `find_element_function` - Function to find an entry.
+5. `update_element_function` - Function to update an entry.
+5. `delete_element_function` - Function to delete an entry.
+6. `get_next_key_and_value_function` - Function to get the next key and value.
+
+When `create_map_function` is invoked, the extension will allocate a map, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
+
+#### `ebpf_map_client_data_t` Struct
+`ebpf_map_client_data_t` is the client data that is provided by eBPFCore to the extension when it attaches to the NMR provider. It is defined as below:
+
+```
+typedef struct _ebpf_map_client_data
+{
+    ebpf_extension_header_t header; ///< Standard extension header containing version and size information.
+    uint64_t map_context_offset;    ///< Offset within the map structure where the provider context data is stored.
+    ebpf_map_client_dispatch_table_t* dispatch_table; ///< Pointer to client dispatch table.
+} ebpf_map_client_data_t;
+```
+
+`map_context_offset` is provided by eBPFCore to the extension to get to the extension specific map context when the
+extensible map is being used in a helper function. This value is constant for all the bindings from eBPFCore to the
+extension for all extensible map types and instances.
+
+`dispatch_table` is the client dispatch table provided by eBPFCore to the extension. It is defined as below:
+```
+typedef struct _ebpf_map_client_dispatch_table
+{
+    ebpf_extension_header_t header;
+    epoch_allocate_with_tag_t epoch_allocate_with_tag;
+    epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
+    epoch_free_t epoch_free;
+    epoch_free_cache_aligned_t epoch_free_cache_aligned;
+} ebpf_map_client_dispatch_table_t;
+```
+The client dispatch table provides *epoch based memory management* APIs that extension can use for allocating
+memory when implementing extensible maps.
+See [Epoch based memory management](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/EpochBasedMemoryManagement.md) for more details on this topic.
+
+### 2.8 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper
 functions can be of two types:
 1. Program-Type specific: These helper functions can only be invoked by eBPF programs of a given program type. Usually,
@@ -597,7 +693,15 @@ The helper function ID for a general helper function must be in the range 0 - 65
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and
 `ebpf_return_type_t` enums.
 
-### 2.8 Registering Program Types and Attach Types - eBPF Store
+### 2.9 Helper functions that use extensible maps.
+If the extension is implementing a helper function that takes an extensible map as input, when the helper function is
+invoked, it will **not** get the map context that it had passed earlier to eBPFCore. It will instead get a pointer to
+a separate map structure that eBPFCore maintains. Using this pointer, and the `map_context_offset` provided in the
+`map_client_data`, extensions will need to get their map context. `MAP_CONTEXT()` macro is provied in `ebpf_extensions.h`
+for extensions to get their map context. Extensions should validate that the map context they got back is NULL or not,
+and handle it appropriately.
+
+### 2.9 Registering Program Types and Attach Types - eBPF Store
 The eBPF execution context loads an eBPF program from an ELF file that has program section(s) with section names. The
 prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding
 program type is `BPF_PROG_TYPE_XDP`.
@@ -622,9 +726,10 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
     ```
 
-### 2.9 eBPF Sample Driver
+### 2.10 eBPF Sample Driver
 The eBPF for Windows project provides a
 [sample extension driver](https://github.com/microsoft/ebpf-for-windows/tree/8f46b4020f79c32f994d3a59671ce8782e4b4cf0/tests/sample/ext)
 as an example for how to implement an extension. This simple extension exposes a new program type, and implements a
 hook for it with a single attach type. It implements simple NPI provider modules for the two NPIs. It also implements
 three program-type specific helper functions.
+The extension also implements two extensible maps, and implements a provider module for the two maps that it implements.

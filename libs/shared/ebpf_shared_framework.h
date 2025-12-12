@@ -56,8 +56,8 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_RANDOM = 'gnre',
     EBPF_POOL_TAG_RING_BUFFER = 'fbre',
     EBPF_POOL_TAG_STATE = 'atse',
+    EBPF_POOL_TAG_EXTENSIBLE_MAP = 'pmxe'
 } ebpf_pool_tag_t;
-
 
 __forceinline void
 ebpf_free(_Frees_ptr_opt_ void* pointer)
@@ -221,5 +221,8 @@ ebpf_duplicate_program_data(
  */
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input);
+
+bool
+ebpf_validate_map_provider_data(_In_ const ebpf_map_provider_data_t* map_provider_data);
 
 CXPLAT_EXTERN_C_END

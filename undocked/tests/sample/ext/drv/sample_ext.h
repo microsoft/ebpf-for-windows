@@ -53,6 +53,22 @@ void
 sample_ebpf_extension_hook_provider_unregister();
 
 /**
+ * @brief Register map NPI provider.
+ *
+ * @retval STATUS_SUCCESS Operation succeeded.
+ * @retval STATUS_UNSUCCESSFUL Operation failed.
+ */
+NTSTATUS
+sample_ebpf_extension_map_provider_register();
+
+/**
+ * @brief Unregister map NPI provider.
+ *
+ */
+void
+sample_ebpf_extension_map_provider_unregister();
+
+/**
  * @brief Invoke eBPF program attached to a hook provider instance.
  *
  * @param[in] context Pointer to eBPF program context.

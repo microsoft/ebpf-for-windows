@@ -17,6 +17,10 @@ enum _extension_object_type
     EBPF_HELPER_FUNCTION_ADDRESSES,
     EBPF_PROGRAM_DATA,
     EBPF_PROGRAM_SECTION,
+    EBPF_MAP_PROVIDER_DATA,
+    EBPF_MAP_CLIENT_DATA,
+    EBPF_MAP_PROVIDER_DISPATCH_TABLE,
+    EBPF_MAP_CLIENT_DISPATCH_TABLE,
 
     // eBPF native module object types.
     EBPF_NATIVE_HELPER_FUNCTION_ENTRY,
@@ -41,6 +45,10 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,
     EBPF_PROGRAM_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
+    EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION,
+    EBPF_MAP_CLIENT_DATA_CURRENT_VERSION,
+    EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION,
+    EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION,
 
     // eBPF native module object versions.
     EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,
@@ -113,6 +121,20 @@ size_t _ebpf_native_global_variable_section_info_supported_size[] = {EBPF_NATIVE
     EBPF_SIZE_INCLUDING_FIELD(global_variable_section_data_t, address_of_map_value)
 size_t _ebpf_native_global_variable_section_data_supported_size[] = {EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_SIZE_0};
 
+#define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, dispatch_table)
+size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0};
+
+#define EBPF_MAP_CLIENT_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_data_t, dispatch_table)
+size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
+
+#define EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, get_next_key_and_value_function)
+size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
+
+#define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, epoch_free_cache_aligned)
+size_t _ebpf_map_client_dispatch_table_supported_size[] = {EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0};
+
 struct _ebpf_extension_data_structure_supported_sizes
 {
     size_t* supported_sizes;
@@ -126,6 +148,10 @@ struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_suppo
     {_ebpf_helper_function_addresses_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_addresses_supported_size)},
     {_ebpf_program_data_supported_size, EBPF_COUNT_OF(_ebpf_program_data_supported_size)},
     {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
+    {_ebpf_map_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_data_supported_size)},
+    {_ebpf_map_client_data_supported_size, EBPF_COUNT_OF(_ebpf_map_client_data_supported_size)},
+    {_ebpf_map_provider_dispatch_table_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_dispatch_table_supported_size)},
+    {_ebpf_map_client_dispatch_table_supported_size, EBPF_COUNT_OF(_ebpf_map_client_dispatch_table_supported_size)},
     {_ebpf_native_helper_function_entry_supported_size,
      EBPF_COUNT_OF(_ebpf_native_helper_function_entry_supported_size)},
     {_ebpf_native_helper_function_data_supported_size, EBPF_COUNT_OF(_ebpf_native_helper_function_data_supported_size)},
@@ -347,8 +373,8 @@ _duplicate_program_descriptor(
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
     ebpf_context_descriptor_t* context_descriptor_copy = NULL;
 
-    program_type_descriptor_copy =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (program_type_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -368,7 +394,8 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
-    context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    context_descriptor_copy =
+        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -406,8 +433,8 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -546,8 +573,8 @@ _duplicate_helper_function_addresses(
 
     *new_helper_function_addresses = NULL;
 
-    helper_function_addresses_copy =
-        (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -558,8 +585,8 @@ _duplicate_helper_function_addresses(
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
     helper_function_addresses_copy->header.total_size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE;
 
-    helper_function_addresses_copy->helper_function_address =
-        (uint64_t*)ebpf_allocate_with_tag(helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy->helper_function_address = (uint64_t*)ebpf_allocate_with_tag(
+        helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy->helper_function_address == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -603,7 +630,8 @@ ebpf_duplicate_program_data(
 
     EBPF_LOG_ENTRY();
 
-    program_data_copy = (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
+    program_data_copy =
+        (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
     if (program_data_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -733,4 +761,44 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
     }
 
     return EBPF_SUCCESS;
+}
+
+static bool
+_ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch_table_t* dispatch_table)
+{
+    if (dispatch_table == NULL ||
+        !_ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DISPATCH_TABLE, &dispatch_table->header)) {
+        return false;
+    }
+
+    // Create a local copy of the dispatch table.
+    ebpf_map_provider_dispatch_table_t local_dispatch_table = {0};
+    memcpy(
+        &local_dispatch_table,
+        dispatch_table,
+        min(dispatch_table->header.size, sizeof(ebpf_map_provider_dispatch_table_t)));
+
+    if (local_dispatch_table.header.version == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
+        if (local_dispatch_table.header.size == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
+            if (local_dispatch_table.create_map_function == NULL || local_dispatch_table.delete_map_function == NULL ||
+                local_dispatch_table.associate_program_function == NULL) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+
+    return true;
+}
+
+bool
+ebpf_validate_map_provider_data(_In_ const ebpf_map_provider_data_t* map_provider_data)
+{
+    return (
+        (map_provider_data != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DATA, &map_provider_data->header) &&
+        (_ebpf_validate_map_provider_dispatch_table(map_provider_data->dispatch_table)));
 }

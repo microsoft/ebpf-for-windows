@@ -13,6 +13,7 @@
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
+#include "hook_helper.h"
 #include "mock.h"
 #include "test_helper.hpp"
 
