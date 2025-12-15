@@ -153,6 +153,7 @@ ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const ch
     return result;
 }
 
+// This test validates the User Mode Mock Test XDP Provider. 
 void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
