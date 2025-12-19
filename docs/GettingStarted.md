@@ -144,7 +144,7 @@ This will build the following binaries:
                 and EbpfCore and NetEbpfExt drivers to be loaded.
 - `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 - `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-- `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
+- `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types for both outbound connections (connect) and inbound connections (recv_accept).
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -333,7 +333,7 @@ Other useful options include:
 ### socket_tests.exe
 
 This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations.
- Currently it tests authorizing ingress and egress connections based on entries in a map passed to the program.
+It tests authorizing both outbound connections (connect) and inbound connections (recv_accept) based on entries in policy maps passed to the program.
 
 ### Using tracing
 
