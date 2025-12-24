@@ -256,6 +256,28 @@ _net_ebpf_ext_resource_validate_and_truncate_appid(bind_md_t* ctx, size_t app_id
     return EBPF_SUCCESS;
 }
 
+/**
+ * @brief WFP classify function for IPv4 bind operations at the ALE Resource Assignment layer.
+ *
+ * This function is called by the Windows Filtering Platform (WFP) when a socket bind operation
+ * occurs on IPv4. It extracts the bind information, invokes attached eBPF programs, and
+ * translates the eBPF program's decision into appropriate WFP actions and rights.
+ *
+ * The function implements the hard/soft permit logic through the FWPS_RIGHT_ACTION_WRITE flag:
+ * - Soft permits preserve the flag, allowing lower-priority filters to override
+ * - Hard permits and denies clear the flag, making the decision final
+ *
+ * This ensures that eBPF programs can implement flexible bind policies that either integrate
+ * with other security layers (soft) or provide definitive decisions (hard).
+ *
+ * @param[in] incoming_fixed_values WFP fixed field values containing bind details (address, port, etc.)
+ * @param[in] incoming_metadata_values WFP metadata containing process ID and other context
+ * @param[in,out] layer_data Layer-specific data (unused for bind operations)
+ * @param[in] classify_context WFP classification context (unused for bind operations)
+ * @param[in] filter The WFP filter that triggered this classification
+ * @param[in] flow_context Flow-specific context (unused for bind operations)
+ * @param[out] classify_output WFP classification result containing action type and rights
+ */
 void
 net_ebpf_ext_resource_allocation_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -336,17 +358,63 @@ net_ebpf_ext_resource_allocation_classify(
             program_result);
         goto Exit;
     } else {
+        //
+        // Convert eBPF program result to WFP action and rights configuration.
+        // The FWPS_RIGHT_ACTION_WRITE flag controls whether lower-priority WFP filters
+        // can override this decision. Clearing it implements "hard" enforcement where
+        // the eBPF program's decision is final.
+        //
         switch (result) {
-        case BIND_PERMIT:
+        case BIND_PERMIT_SOFT:
+            //
+            // Soft permit: Allow the operation but preserve FWPS_RIGHT_ACTION_WRITE.
+            // This enables lower-priority WFP filters (firewall rules, security policies,
+            // etc.) to still block the bind operation if they determine it should be denied.
+            // Use when the eBPF program approves the operation but wants to allow other
+            // security layers to make the final decision.
+            //
+            classify_output->actionType = FWP_ACTION_PERMIT;
+            // Don't clear FWPS_RIGHT_ACTION_WRITE - allows lower-priority filters to override
+            break;
+
+        case BIND_PERMIT_HARD:
+            //
+            // Hard permit: Allow the operation and clear FWPS_RIGHT_ACTION_WRITE.
+            // This prevents lower-priority WFP filters from overriding the decision.
+            // The bind operation will succeed unless blocked by higher-priority filters.
+            // Use when the eBPF program has high confidence the operation should be allowed.
+            //
+            classify_output->actionType = FWP_ACTION_PERMIT;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            break;
+
         case BIND_REDIRECT:
+            //
+            // Redirect: Allow the operation, potentially with modified socket address.
+            // The eBPF program may have updated the socket_address in the context to
+            // redirect the bind to a different address/port. WFP processing continues
+            // with the potentially modified address.
+            //
             classify_output->actionType = FWP_ACTION_PERMIT;
             break;
+
         case BIND_DENY:
+            //
+            // Deny: Block the operation and clear FWPS_RIGHT_ACTION_WRITE.
+            // This is a hard block - lower-priority filters cannot override the denial.
+            // The bind operation will fail with an access denied error.
+            //
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
+
         // If the program returns any other value, we will block the bind.
         default:
+            //
+            // Invalid return value: Treat as a hard deny for security.
+            // Any unexpected return value from the eBPF program results in blocking
+            // the bind operation to maintain secure default behavior.
+            //
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;

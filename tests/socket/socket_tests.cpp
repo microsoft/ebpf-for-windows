@@ -27,6 +27,9 @@
 #include <chrono>
 #include <future>
 #include <iostream>
+#include <memory>
+#include <tuple>
+#include <variant>
 using namespace std::chrono_literals;
 #include <mstcpip.h>
 
@@ -56,74 +59,159 @@ _change_egress_policy_test_ingress_block(
 }
 
 /**
- * @brief Test connection with given parameters.
+ * @brief Sock_addr policy configuration for connection tests.
+ */
+struct sock_addr_policy
+{
+    std::optional<uint32_t> egress_verdict{};  // For connect hook
+    std::optional<uint32_t> ingress_verdict{}; // For recv_accept hook
+};
+
+/**
+ * @brief Bind policy configuration for bind tests.
+ */
+struct bind_policy
+{
+    uint64_t process_id{0};
+    uint16_t port{0};
+    uint8_t protocol{0};
+    uint32_t action{0}; // bind_action_t values
+};
+
+/**
+ * @brief No policy (used for detach/reattach tests without map updates).
+ */
+struct no_policy
+{};
+
+/**
+ * @brief Expected test result.
+ */
+enum class connection_test_result
+{
+    allow,
+    block,
+};
+
+/**
+ * @brief Test parameters for individual connection test.
+ */
+struct connection_test_params
+{
+    std::string_view description;
+
+    // Expected bind error for server socket (0 = expect success)
+    std::optional<int> expected_server_bind_error{};
+
+    // Expected outcome
+    connection_test_result expected_result{connection_test_result::block};
+
+    // Whether to detach/reattach programs before this test
+    bool detach_before = false;
+    bool reattach_after_detach = false;
+
+    std::optional<uint32_t> egress_verdict{};
+    std::optional<uint32_t> ingress_verdict{};
+    std::optional<bind_policy> bind_policy{};
+    std::optional<uint32_t> bind_verdict{}; // Simplified bind action (uses current process, test port, test protocol)
+};
+
+/**
+ * @brief Program specification for attaching.
+ */
+struct program_spec
+{
+    std::string_view program_name;
+    bpf_attach_type attach_type;
+};
+
+/**
+ * @brief Module specification containing object file and programs to load.
+ */
+struct module_spec
+{
+    std::string_view object_file; // e.g., "cgroup_sock_addr", "bind_policy"
+    std::vector<program_spec> programs;
+};
+
+/**
+ * @brief Complete test case specification.
+ */
+struct connection_test_case
+{
+    std::string_view name{};
+
+    // Network parameters
+    ADDRESS_FAMILY address_family{AF_INET}; // AF_INET or AF_INET6
+    uint16_t protocol{IPPROTO_TCP};         // IPPROTO_TCP or IPPROTO_UDP
+
+    // Modules to load (each containing object file + programs)
+    std::vector<module_spec> modules{};
+
+    // WFP filters to apply
+    std::vector<wfp_test_filter_spec> wfp_filters{};
+
+    // Test parameters to execute
+    std::vector<connection_test_params> tests{};
+};
+
+/**
+ * @brief Expected result types for bind operation testing.
+ */
+typedef enum _bind_test_result
+{
+    BIND_TEST_ALLOW,   ///< Bind should succeed without modification
+    BIND_TEST_DENY,    ///< Bind should be denied/blocked
+    BIND_TEST_REDIRECT ///< Bind should succeed but be redirected to a different port
+} bind_test_result_t;
+
+/**
+ * @brief Update or delete an entry in the bind policy map for testing.
  *
- * @param address_family Address family (AF_INET or AF_INET6).
- * @param protocol Protocol (IPPROTO_TCP or IPPROTO_UDP).
- * @param sender_socket Client socket.
- * @param receiver_socket Server socket.
+ * This helper function manages bind policy entries in the eBPF map used by test programs.
+ * It supports adding new policies, updating existing ones, and removing policies for
+ * cleanup. This enables precise control over bind behavior during testing.
+ *
+ * @param[in] map_fd File descriptor of the bind policy map
+ * @param[in] process_id Process ID for the policy (0 = wildcard)
+ * @param[in] port Port number for the policy (0 = wildcard)
+ * @param[in] protocol IP protocol for the policy (0 = wildcard)
+ * @param[in] action Bind action to take (PERMIT_SOFT, PERMIT_HARD, DENY, REDIRECT)
+ * @param[in] add True to add/update entry, false to delete entry
  */
 void
-connection_test(
-    ADDRESS_FAMILY address_family,
-    IPPROTO protocol,
-    _Inout_ client_socket_t& sender_socket,
-    _Inout_ receiver_socket_t& receiver_socket)
+_update_bind_policy_map_entry(
+    fd_t map_fd, uint64_t process_id, uint16_t port, uint8_t protocol, uint32_t action, bool add = true)
 {
-    native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr", _is_main_thread);
+    bind_policy_key_t key = {0};
+    bind_policy_value_t value = {0};
 
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    bpf_object_ptr object_ptr(object);
+    key.process_id = process_id;
+    key.port = port;
+    key.protocol = protocol;
 
-    SAFE_REQUIRE(object != nullptr);
-    // Load the programs.
-    SAFE_REQUIRE(bpf_object__load(object) == 0);
-    const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
-    bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
-    SAFE_REQUIRE(connect_program != nullptr);
+    value.action = action;
+    value.flags = 0;
 
-    const char* recv_accept_program_name =
-        (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
-    bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, recv_accept_program_name);
-    SAFE_REQUIRE(recv_accept_program != nullptr);
-
-    PSOCKADDR local_address = nullptr;
-    int local_address_length = 0;
-    sender_socket.get_local_address(local_address, local_address_length);
-
-    connection_tuple_t tuple = {0};
-    if (address_family == AF_INET) {
-        tuple.remote_ip.ipv4 = htonl(INADDR_LOOPBACK);
-        printf("tuple.remote_ip.ipv4 = %x\n", tuple.remote_ip.ipv4);
+    if (add) {
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
-        memcpy(tuple.remote_ip.ipv6, &in6addr_loopback, sizeof(tuple.remote_ip.ipv6));
+        bpf_map_delete_elem(map_fd, &key);
     }
-    tuple.remote_port = htons(SOCKET_TEST_PORT);
-    printf("tuple.remote_port = %x\n", tuple.remote_port);
-    tuple.protocol = protocol;
+}
 
-    bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
-    SAFE_REQUIRE(ingress_connection_policy_map != nullptr);
-    bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(object, "egress_connection_policy_map");
-    SAFE_REQUIRE(egress_connection_policy_map != nullptr);
-
-    // Update ingress and egress policy to block loopback packet on test port.
-    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-
-    // Post an asynchronous receive on the receiver socket.
-    receiver_socket.post_async_receive();
-
-    // Attach the connect program at BPF_CGROUP_INET4_CONNECT.
-    bpf_attach_type connect_attach_type =
-        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
-    int result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, connect_attach_type, 0);
-    SAFE_REQUIRE(result == 0);
-
-    // Send loopback message to test port.
+/**
+ * @brief Execute a connection attempt and validate the result.
+ */
+static void
+execute_connection_attempt(
+    std::unique_ptr<client_socket_t>& client,
+    std::unique_ptr<receiver_socket_t>& server,
+    ADDRESS_FAMILY address_family,
+    connection_test_result expected_result,
+    uint16_t target_port)
+{
+    // Send loopback message to test port
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET) {
@@ -131,73 +219,501 @@ connection_test(
     } else {
         IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
     }
-    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-    // The packet should be blocked by the connect program.
-    receiver_socket.complete_async_receive(true);
-    // Cancel send operation.
-    sender_socket.cancel_send_message();
+    client->send_message_to_remote_host(message, destination_address, target_port);
 
-    // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
-    bpf_attach_type recv_accept_attach_type =
-        (address_family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT;
-    result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
-    SAFE_REQUIRE(result == 0);
-
-    // Update egress policy to allow packet.
-    // Test both hard and soft permit.
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-    _change_egress_policy_test_ingress_block(
-        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
-
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-    _change_egress_policy_test_ingress_block(
-        egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
-
-    sender_socket.cancel_send_message();
-
-    { // Test soft permit with default ingress block filter.
-        filter_helper default_block(false, SOCKET_TEST_PORT, address_family, protocol);
-
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-
-        // Resend the packet, should be blocked due to default ingress block filter.
-        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-        receiver_socket.complete_async_receive(true);
-        sender_socket.cancel_send_message();
-
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-
-        // Resend the packet, should be allowed due to hard permit overriding.
-        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-        sender_socket.complete_async_send(1000, expected_result_t::SUCCESS);
-        receiver_socket.complete_async_receive(false);
-    }
-}
-
-void
-connection_test(ADDRESS_FAMILY address_family, IPPROTO protocol)
-{
-    if (protocol == IPPROTO_TCP) {
-        stream_client_socket_t client_socket(SOCK_STREAM, protocol, 0);
-        stream_server_socket_t server_socket(SOCK_STREAM, protocol, SOCKET_TEST_PORT);
-        connection_test(address_family, protocol, client_socket, server_socket);
-    } else if (protocol == IPPROTO_UDP) {
-        datagram_client_socket_t client_socket(SOCK_DGRAM, protocol, 0);
-        datagram_server_socket_t server_socket(SOCK_DGRAM, protocol, SOCKET_TEST_PORT);
-        connection_test(address_family, protocol, client_socket, server_socket);
+    if (expected_result == connection_test_result::block) {
+        server->complete_async_receive(true);
+        client->cancel_send_message();
+    } else if (expected_result == connection_test_result::allow) {
+        client->complete_async_send(1000, expected_result_t::SUCCESS);
+        server->complete_async_receive(false);
     } else {
-        FAIL("Unsupported protocol");
+        FAIL("Unsupported expected result");
     }
 }
 
-TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_TCP); }
-TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_TCP); }
-TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_UDP); }
-TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_UDP); }
+/**
+ * @brief Execute a connection test case.
+ */
+static void
+execute_connection_test(const connection_test_case& test_case)
+{
+    // Load modules (object files + programs).
+    struct loaded_program
+    {
+        bpf_program* program;
+        program_spec spec;
+        bpf_link* link;
+    };
+    struct loaded_module
+    {
+        native_module_helper_t helper;
+        bpf_object_ptr object;
+        std::vector<loaded_program> programs;
+    };
+    std::vector<loaded_module> loaded_modules;
+
+    for (const auto& module : test_case.modules) {
+        loaded_module mod;
+        mod.helper.initialize(module.object_file.data(), _is_main_thread);
+
+        struct bpf_object* obj = bpf_object__open(mod.helper.get_file_name().c_str());
+        SAFE_REQUIRE(obj != nullptr);
+        SAFE_REQUIRE(bpf_object__load(obj) == 0);
+        mod.object = bpf_object_ptr(obj);
+
+        for (const auto& prog_spec : module.programs) {
+            auto* prog = bpf_object__find_program_by_name(obj, prog_spec.program_name.data());
+            SAFE_REQUIRE(prog != nullptr);
+            mod.programs.push_back({prog, prog_spec, nullptr});
+        }
+
+        loaded_modules.push_back(std::move(mod));
+    }
+
+    // Create WFP filters if specified.
+    std::unique_ptr<filter_helper> filter;
+    if (!test_case.wfp_filters.empty()) {
+        try {
+            filter = std::make_unique<filter_helper>(test_case.wfp_filters);
+        } catch (const std::exception& ex) {
+            FAIL("Filter helper initialization failed: " << ex.what());
+        }
+    }
+
+    // Get policy maps (sock_addr or bind).
+    bpf_map* ingress_map = nullptr;
+    bpf_map* egress_map = nullptr;
+    bpf_map* bind_policy_map = nullptr;
+
+    for (const auto& mod : loaded_modules) {
+        if (!ingress_map) {
+            ingress_map = bpf_object__find_map_by_name(mod.object.get(), "ingress_connection_policy_map");
+        }
+        if (!egress_map) {
+            egress_map = bpf_object__find_map_by_name(mod.object.get(), "egress_connection_policy_map");
+        }
+        if (!bind_policy_map) {
+            bind_policy_map = bpf_object__find_map_by_name(mod.object.get(), "bind_policy_map");
+        }
+    }
+
+    // Setup connection tuple for sock_addr tests.
+    connection_tuple_t tuple{0};
+    if (test_case.address_family == AF_INET) {
+        tuple.remote_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    } else {
+        memcpy(tuple.remote_ip.ipv6, &in6addr_loopback, sizeof(tuple.remote_ip.ipv6));
+    }
+    tuple.remote_port = htons(SOCKET_TEST_PORT);
+    tuple.protocol = test_case.protocol;
+
+    // Initialize verdict maps to REJECT.
+    uint32_t reject_verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    if (ingress_map) {
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &reject_verdict, EBPF_ANY) == 0);
+    }
+    if (egress_map) {
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &reject_verdict, EBPF_ANY) == 0);
+    }
+
+    // Attach all programs before executing tests.
+    for (auto& mod : loaded_modules) {
+        CAPTURE(mod.helper.get_file_name());
+        for (auto& loaded_program : mod.programs) {
+            // bpf_attach_type attach_type = mod.program_specs[i].attach_type;
+            bpf_program* program = loaded_program.program;
+            CAPTURE(
+                std::string(loaded_program.spec.program_name),
+                loaded_program.spec.attach_type,
+                bpf_program__fd(loaded_program.program));
+            // int result = bpf_prog_attach(bpf_program__fd(mod.programs[i]), UNSPECIFIED_COMPARTMENT_ID,
+            // mod.program_specs[i].attach_type, 0); SAFE_REQUIRE(result == 0);
+            ebpf_attach_type_t attach_type_guid{};
+            ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid);
+            // ebpf_result_t res = ebpf_program_attach(program, &attach_type_guid, nullptr, 0, &loaded_program.link);
+            ebpf_result_t res = ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr);
+            SAFE_REQUIRE(res == EBPF_SUCCESS);
+        }
+    }
+
+    // Execute tests.
+    std::unique_ptr<client_socket_t> client;
+    std::unique_ptr<receiver_socket_t> server;
+    int test_index = 0;
+
+    for (const auto& test : test_case.tests) {
+        INFO("test " << test_index << ": " << test.description);
+        CAPTURE(test.expected_result);
+
+        // Update policy maps based on test policy.
+        if (test.egress_verdict) {
+            SAFE_REQUIRE(egress_map != nullptr);
+            SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &(*test.egress_verdict), EBPF_ANY) == 0);
+        }
+        if (test.ingress_verdict) {
+            SAFE_REQUIRE(ingress_map != nullptr);
+            SAFE_REQUIRE(
+                bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &(*test.ingress_verdict), EBPF_ANY) == 0);
+        }
+        if (test.bind_policy) {
+            SAFE_REQUIRE(bind_policy_map != nullptr);
+            _update_bind_policy_map_entry(
+                bpf_map__fd(bind_policy_map),
+                test.bind_policy->process_id,
+                test.bind_policy->port,
+                test.bind_policy->protocol,
+                test.bind_policy->action);
+        }
+        if (test.bind_verdict) {
+            SAFE_REQUIRE(bind_policy_map != nullptr);
+            _update_bind_policy_map_entry(
+                bpf_map__fd(bind_policy_map),
+                0, // process_id = 0 (wildcard)
+                static_cast<uint16_t>(SOCKET_TEST_PORT),
+                static_cast<uint8_t>(test_case.protocol),
+                *test.bind_verdict);
+        }
+
+        // Handle detach/reattach.
+        if (test.detach_before) {
+            for (const auto& mod : loaded_modules) {
+                for (auto& loaded_program : mod.programs) {
+                    bpf_prog_detach2(bpf_program__fd(loaded_program.program), 0, loaded_program.spec.attach_type);
+                }
+            }
+        }
+        if (test.reattach_after_detach) {
+            for (const auto& mod : loaded_modules) {
+                for (auto& loaded_program : mod.programs) {
+                    int result =
+                        bpf_prog_attach(bpf_program__fd(loaded_program.program), 0, loaded_program.spec.attach_type, 0);
+                    SAFE_REQUIRE(result == 0);
+                }
+            }
+        }
+
+        // Create sockets on init or after reset.
+        if (!server) {
+            int server_bind_error = test.expected_server_bind_error.value_or(0);
+
+            if (test_case.protocol == IPPROTO_TCP) {
+                server = std::make_unique<stream_server_socket_t>(
+                    static_cast<uint16_t>(SOCK_STREAM),
+                    IPPROTO_TCP,
+                    static_cast<uint16_t>(SOCKET_TEST_PORT),
+                    sockaddr_storage{},
+                    server_bind_error);
+            } else if (test_case.protocol == IPPROTO_UDP) {
+                server = std::make_unique<datagram_server_socket_t>(
+                    static_cast<uint16_t>(SOCK_DGRAM),
+                    IPPROTO_UDP,
+                    static_cast<uint16_t>(SOCKET_TEST_PORT),
+                    sockaddr_storage{},
+                    server_bind_error);
+            }
+
+            // If bind was expected to fail, skip connection testing
+            if (server_bind_error != 0) {
+                server.reset();
+                client.reset();
+                continue;
+            }
+            SAFE_REQUIRE(server != nullptr);
+
+            server->post_async_receive();
+        }
+
+        if (!client) {
+            if (test_case.protocol == IPPROTO_TCP) {
+                client = std::make_unique<stream_client_socket_t>(
+                    static_cast<uint16_t>(SOCK_STREAM), IPPROTO_TCP, static_cast<uint16_t>(0));
+            } else if (test_case.protocol == IPPROTO_UDP) {
+                client = std::make_unique<datagram_client_socket_t>(
+                    static_cast<uint16_t>(SOCK_DGRAM), IPPROTO_UDP, static_cast<uint16_t>(0));
+            }
+            SAFE_REQUIRE(client != nullptr);
+        }
+
+        // Connection test (sock_addr).
+        execute_connection_attempt(client, server, test_case.address_family, test.expected_result, SOCKET_TEST_PORT);
+
+        if (test.expected_result == connection_test_result::allow) {
+            // Reset sockets for next test after allow.
+            client.reset();
+            server.reset();
+        }
+
+        ++test_index;
+    }
+}
+
+// Type tuples for TEMPLATE_TEST_CASE: (address_family, protocol)
+using tcp_v4_params =
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<uint16_t, IPPROTO_TCP>>;
+using tcp_v6_params =
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<uint16_t, IPPROTO_TCP>>;
+using udp_v4_params =
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<uint16_t, IPPROTO_UDP>>;
+using udp_v6_params =
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<uint16_t, IPPROTO_UDP>>;
+
+#define ALL_CONNECTION_TEST_PARAMS tcp_v4_params, tcp_v6_params, udp_v4_params, udp_v6_params
+
+TEST_CASE("connection_test_attach_all", "[attach]")
+{
+    execute_connection_test({
+        .name = "attach_all_programs",
+        .address_family = AF_INET,
+        .protocol = IPPROTO_TCP,
+        .modules{
+            {{
+                 .object_file = "sockops",
+                 .programs{{"connection_monitor", BPF_CGROUP_SOCK_OPS}},
+             },
+             {
+                 .object_file = "bind_policy",
+                 .programs{{"authorize_bind", BPF_ATTACH_TYPE_BIND}},
+             },
+             {
+                 .object_file = "cgroup_sock_addr",
+                 .programs{
+                     {"authorize_connect4", BPF_CGROUP_INET4_CONNECT},
+                     {"authorize_connect6", BPF_CGROUP_INET6_CONNECT},
+                     {"authorize_recv_accept4", BPF_CGROUP_INET4_RECV_ACCEPT},
+                     {"authorize_recv_accept6", BPF_CGROUP_INET6_RECV_ACCEPT},
+                 },
+             }}},
+    });
+}
+
+TEMPLATE_TEST_CASE("connection_test_recv_accept", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_recv_accept",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {.object_file = "cgroup_sock_addr",
+              .programs{
+                  {.program_name = (family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6",
+                   .attach_type = (family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT}}}},
+         .tests{
+             {
+                 .description = "recv_accept blocked with reject verdict",
+             },
+             {
+                 .description = "recv_accept allowed with proceed verdict",
+                 .expected_result = connection_test_result::allow,
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "recv_accept allowed with hard proceed verdict",
+                 .expected_result = connection_test_result::allow,
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+         }});
+}
+
+// Block/allow test with only connect program attached.
+TEMPLATE_TEST_CASE("connection_test_connect", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{{{
+             .object_file = "cgroup_sock_addr",
+             .programs{
+                 {(family == AF_INET) ? "authorize_connect4" : "authorize_connect6",
+                  (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT},
+             },
+         }}},
+         .tests{
+             {
+                 .description = "connect blocked with reject verdict",
+             },
+             {
+                 .description = "connect allowed with soft proceed verdict",
+                 .expected_result = connection_test_result::allow,
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "connect allowed with hard proceed verdict",
+                 .expected_result = connection_test_result::allow,
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+         }});
+}
+
+// sock_addr ingress/egress policy tests
+TEMPLATE_TEST_CASE("connection_test_sock_addr", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_sock_addr",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_sock_addr",
+               .programs{
+                   {{(family == AF_INET) ? "authorize_connect4" : "authorize_connect6",
+                     (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT},
+                    {(family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6",
+                     (family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT}}}}}},
+         .tests{
+             {
+                 .description = "Initial reject egress+ingress",
+             },
+             {
+                 .description = "Hard permit egress, reject ingress",
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+             {
+                 .description = "Soft permit egress, reject ingress",
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "Soft permit egress+ingress",
+                 .expected_result = connection_test_result::allow,
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+         }});
+}
+
+TEMPLATE_TEST_CASE("connection_test_recv_accept_hard_permit", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_recv_accept_hard_permit",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_sock_addr",
+               .programs{
+                   {(family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6",
+                    (family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT}}}}},
+         .wfp_filters{
+             {
+                 .layer = (family == AF_INET) ? FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4 : FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
+                 .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+             },
+         },
+         .tests{
+             {
+                 .description = "Soft permit blocked by WFP",
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "Hard permit overrides WFP",
+                 .expected_result = connection_test_result::allow,
+                 .ingress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+         }});
+}
+
+TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_hard_permit",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_sock_addr",
+               .programs{
+                   {(family == AF_INET) ? "authorize_connect4" : "authorize_connect6",
+                    (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT}}}}},
+         .wfp_filters{
+             {
+                 .layer = (family == AF_INET) ? FWPM_LAYER_ALE_AUTH_CONNECT_V4 : FWPM_LAYER_ALE_AUTH_CONNECT_V6,
+                 .remote_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+             },
+         },
+         .tests{
+             {
+                 .description = "Soft permit blocked by WFP",
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+             },
+             {
+                 .description = "Hard permit overrides WFP",
+                 .expected_result = connection_test_result::allow,
+                 .egress_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+             },
+         }});
+}
+
+// Bind policy basic functionality tests
+TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "bind_policy_basic",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{
+            .object_file = "bind_policy",
+            .programs{{"authorize_bind", BPF_ATTACH_TYPE_BIND}},
+        }}},
+        .tests{
+            {
+                .description = "Bind denied with deny policy",
+                .expected_server_bind_error = WSAEACCES,
+                .bind_verdict = BIND_DENY,
+            },
+            {
+                .description = "Bind allowed with soft permit",
+                .expected_result = connection_test_result::allow,
+                .bind_verdict = BIND_PERMIT_SOFT,
+            },
+            {
+                .description = "Bind allowed with hard permit",
+                .expected_result = connection_test_result::allow,
+                .bind_verdict = BIND_PERMIT_HARD,
+            },
+        },
+    });
+}
+
+// Bind policy hard permit with WFP filter
+TEMPLATE_TEST_CASE("bind_policy_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "bind_policy_hard_permit_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{.object_file = "bind_policy", .programs{{"authorize_bind", BPF_ATTACH_TYPE_BIND}}}}},
+        .wfp_filters{
+            {
+                .layer = FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+                .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+            },
+        },
+        .tests{
+            {
+                .description = "Soft permit blocked by WFP filter",
+                .expected_server_bind_error = WSAEACCES,
+                .bind_verdict = BIND_PERMIT_SOFT,
+            },
+            {
+                .description = "Hard permit overrides WFP filter",
+                .expected_result = connection_test_result::allow,
+                .bind_verdict = BIND_PERMIT_HARD,
+            },
+        },
+    });
+}
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {

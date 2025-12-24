@@ -261,6 +261,40 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.protocol == IPPROTO_UDP);
 }
 
+TEST_CASE("bind_hard_soft_permit", "[netebpfext][bind]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_bind_client_context_header_t client_context_header = {0};
+    test_bind_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test BIND_PERMIT_SOFT (should allow override by lower-priority filters)
+    client_context->bind_action = BIND_PERMIT_SOFT;
+    FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+    // Note: We can't directly test FWPS_RIGHT_ACTION_WRITE in unit tests as that's internal WFP state
+
+    // Test BIND_PERMIT_HARD (should block lower-priority filters)
+    client_context->bind_action = BIND_PERMIT_HARD;
+    result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+    // Note: BIND_PERMIT_HARD should clear FWPS_RIGHT_ACTION_WRITE but we can't test that directly
+
+    // Test backward compatibility: BIND_PERMIT should behave like BIND_PERMIT_SOFT
+    client_context->bind_action = BIND_PERMIT;
+    result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+}
+
 #pragma endregion bind
 #pragma region cgroup_sock_addr
 

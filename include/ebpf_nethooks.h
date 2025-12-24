@@ -30,20 +30,83 @@ typedef struct _bind_md
     uint8_t protocol;              ///< Protocol number (e.g., IPPROTO_TCP).
 } bind_md_t;
 
+/**
+ * @brief Actions that can be returned by a bind hook program.
+ *
+ * This enum defines the possible return values for eBPF programs attached to the bind hook.
+ * The actions control how the Windows Filtering Platform (WFP) processes the bind operation
+ * and whether lower-priority filters can override the decision.
+ */
 typedef enum _bind_action
 {
-    BIND_PERMIT,   ///< Permit the bind operation.
-    BIND_DENY,     ///< Deny the bind operation.
-    BIND_REDIRECT, ///< Change the bind endpoint.
+    /**
+     * @brief Deny the bind operation.
+     *
+     * The bind operation will be blocked. In WFP terms, this sets FWP_ACTION_BLOCK
+     * and clears FWPS_RIGHT_ACTION_WRITE to prevent lower-priority filters from
+     * overriding this decision.
+     */
+    BIND_DENY,
+
+    /**
+     * @brief Permit the bind operation (soft permit).
+     *
+     * The bind operation is allowed, but lower-priority WFP filters can still
+     * override this decision. In WFP terms, this sets FWP_ACTION_PERMIT while
+     * preserving FWPS_RIGHT_ACTION_WRITE.
+     *
+     * Use this when you want to allow the operation but still permit other
+     * security policies or filters to make the final decision.
+     */
+    BIND_PERMIT_SOFT,
+
+    /**
+     * @brief Permit the bind operation (hard permit).
+     *
+     * The bind operation is definitively allowed and lower-priority WFP filters
+     * cannot override this decision. In WFP terms, this sets FWP_ACTION_PERMIT
+     * and clears FWPS_RIGHT_ACTION_WRITE.
+     *
+     * Use this when you have high confidence that the operation should be allowed
+     * and want to prevent other filters from blocking it.
+     */
+    BIND_PERMIT_HARD,
+
+    /**
+     * @brief Change the bind endpoint.
+     *
+     * The bind operation is allowed but the target address/port may be modified
+     * by the eBPF program. The program should update the socket_address field
+     * in the bind_md_t context to specify the new target.
+     */
+    BIND_REDIRECT,
+
+    /**
+     * @brief Backward compatibility alias for BIND_PERMIT_SOFT.
+     * @deprecated Use BIND_PERMIT_SOFT instead for clarity about the permit behavior.
+     */
+    BIND_PERMIT = BIND_PERMIT_SOFT,
 } bind_action_t;
 
 /**
- * @brief Handle an AF_INET socket bind() request.
+ * @brief Handle IPv4 and IPv6 socket bind() requests.
+ *
+ * This function type defines the signature for eBPF programs that handle socket bind operations.
+ * The program is called before the bind operation completes and can inspect the socket metadata
+ * to make policy decisions about whether to allow, deny, or redirect the bind request.
+ *
+ * The program can examine details such as the process ID, socket address, protocol, and
+ * interface information to implement custom bind policies. For redirect operations, the
+ * program can modify the socket_address field in the context to change the bind target.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_BIND
  *
+ * @note The function must return one of the defined bind_action_t values. Any other return
+ *       value may result in undefined behavior.
+ *
  * @param[in] context Socket metadata.
- * @retval BIND_PERMIT Permit the bind operation.
+ * @retval BIND_PERMIT_SOFT Permit the bind operation (soft permit - allows lower-priority filters to override).
+ * @retval BIND_PERMIT_HARD Permit the bind operation (hard permit - blocks lower-priority filters).
  * @retval BIND_DENY Deny the bind operation.
  * @retval BIND_REDIRECT Change the bind endpoint.
  */
@@ -58,7 +121,8 @@ typedef enum _ebpf_sock_addr_verdict
 {
     BPF_SOCK_ADDR_VERDICT_REJECT,
     BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
-    BPF_SOCK_ADDR_VERDICT_PROCEED_HARD
+    BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+    BPF_SOCK_ADDR_VERDICT_PROCEED = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
 } ebpf_sock_addr_verdict_t;
 
 #ifdef _MSC_VER
@@ -141,10 +205,11 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation. Maps to a hard block in WFP.
  * @retval BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT Allow the socket operation. Maps to a soft permit in WFP.
  * @retval BPF_SOCK_ADDR_VERDICT_PROCEED_HARD Allow the socket operation. Maps to a hard permit in WFP.
+ * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Maps to BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT.
  *
  * Any return value other than the ones mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
  */
-typedef ebpf_sock_addr_verdict_t
+typedef int
 sock_addr_hook_t(bpf_sock_addr_t* context);
 
 typedef enum _bpf_sock_op_type

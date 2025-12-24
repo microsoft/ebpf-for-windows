@@ -53,12 +53,22 @@ typedef enum _expected_result
 typedef class _base_socket
 {
   public:
+    /**
+     * @brief Construct a socket and bind it to the specified address.
+     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM, SOCK_RAW)
+     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP, etc.)
+     * @param[in] port Port to bind to
+     * @param[in] family Socket family (IPv4, IPv6, or Dual)
+     * @param[in] source_address Source address to bind to (optional)
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success)
+     */
     _base_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         socket_family_t family,
-        const sockaddr_storage& source_address = {});
+        const sockaddr_storage& source_address = {},
+        int expected_bind_error = 0);
     virtual ~_base_socket();
 
     void
@@ -66,6 +76,26 @@ typedef class _base_socket
 
     void
     get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
+
+    /**
+     * @brief Get the actual error code from the bind operation.
+     * @return Error code (0 = success)
+     */
+    int
+    get_bind_error() const
+    {
+        return _actual_bind_error;
+    }
+
+    /**
+     * @brief Check if the bind operation succeeded.
+     * @return true if bind succeeded, false otherwise
+     */
+    bool
+    bind_succeeded() const
+    {
+        return _bind_succeeded;
+    }
 
   protected:
     SOCKET socket;
@@ -78,6 +108,8 @@ typedef class _base_socket
     uint32_t bytes_received = 0;
     sockaddr_storage local_address;
     mutable int local_address_size;
+    int _actual_bind_error{0};
+    bool _bind_succeeded{false};
 } base_socket_t;
 
 /**
@@ -91,7 +123,8 @@ typedef class _client_socket : public _base_socket
         int _protocol,
         uint16_t port,
         socket_family_t family,
-        const sockaddr_storage& source_address = {});
+        const sockaddr_storage& source_address = {},
+        int expected_bind_error = 0);
     virtual void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port) = 0;
@@ -123,7 +156,8 @@ typedef class _datagram_client_socket : public _client_socket
         uint16_t port,
         socket_family_t family = Dual,
         bool connected_udp = false,
-        const sockaddr_storage& source_address = {});
+        const sockaddr_storage& source_address = {},
+        int expected_bind_error = 0);
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -151,7 +185,8 @@ typedef class _stream_client_socket : public _client_socket
         int _protocol,
         uint16_t port,
         socket_family_t family = Dual,
-        const sockaddr_storage& source_address = {});
+        const sockaddr_storage& source_address = {},
+        int expected_bind_error = 0);
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -176,7 +211,12 @@ typedef class _server_socket : public _base_socket
         MODE_NO_TIMEOUT,
         MODE_DONT_CARE
     };
-    _server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
+    _server_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        const sockaddr_storage& local_address = {},
+        int expected_bind_error = 0);
     ~_server_socket();
     void
     complete_async_receive(bool timeout_expected = false);
@@ -209,7 +249,12 @@ typedef class _server_socket : public _base_socket
 typedef class _datagram_server_socket : public _server_socket
 {
   public:
-    _datagram_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
+    _datagram_server_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        const sockaddr_storage& local_address = {},
+        int expected_bind_error = 0);
     void
     post_async_receive();
     void
@@ -236,7 +281,12 @@ typedef class _datagram_server_socket : public _server_socket
 typedef class _stream_server_socket : public _server_socket
 {
   public:
-    _stream_server_socket(int _sock_type, int _protocol, uint16_t port, const sockaddr_storage& local_address = {});
+    _stream_server_socket(
+        int _sock_type,
+        int _protocol,
+        uint16_t port,
+        const sockaddr_storage& local_address = {},
+        int expected_bind_error = 0);
     ~_stream_server_socket();
     void
     post_async_receive();
@@ -273,8 +323,7 @@ typedef class _wsa_helper
     }
     ~_wsa_helper()
     {
-        if (startup_result != -1)
-        {
+        if (startup_result != -1) {
             WSACleanup();
         }
     }
@@ -284,9 +333,8 @@ typedef class _wsa_helper
     {
         WSADATA data{};
         startup_result = WSAStartup(WINSOCK_VERSION, &data);
-        if (startup_result != 0)
-        {
-          FAIL("WSAStartup failed with error: " << WSAGetLastError());
+        if (startup_result != 0) {
+            FAIL("WSAStartup failed with error: " << WSAGetLastError());
         }
         return startup_result;
     }
