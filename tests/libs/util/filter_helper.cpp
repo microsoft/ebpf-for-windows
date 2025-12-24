@@ -10,8 +10,7 @@ const GUID filter_helper::provider_guid = {
 const GUID filter_helper::sublayer_guid = {
     0x7f9e2a1c, 0x5b3d, 0x4e8f, {0xa2, 0x6c, 0x1d, 0x4b, 0x7e, 0x3a, 0x9f, 0x5c}};
 
-filter_helper::filter_helper(bool egress, uint16_t test_port, ADDRESS_FAMILY address_family, IPPROTO protocol)
-    : egress(egress), test_port(test_port), address_family(address_family), protocol(protocol)
+filter_helper::filter_helper(const std::vector<wfp_test_filter_spec>& filters)
 {
     REQUIRE(FwpmEngineOpen(nullptr, RPC_C_AUTHN_DEFAULT, nullptr, nullptr, &wfp_engine) == ERROR_SUCCESS);
 
@@ -20,39 +19,39 @@ filter_helper::filter_helper(bool egress, uint16_t test_port, ADDRESS_FAMILY add
         [&](void*) { cleanup(); });
 
     REQUIRE(FwpmTransactionBegin(wfp_engine, 0) == ERROR_SUCCESS);
-    {
-        auto abort_on_failure = std::unique_ptr<void, std::function<void(void*)>>(
-            reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
-            [&](void*) { FwpmTransactionAbort(wfp_engine); });
-        // Add provider
-        FWPM_PROVIDER provider = {};
-        provider.providerKey = provider_guid;
-        provider.displayData.name = const_cast<wchar_t*>(L"eBPF Test Provider");
-        provider.flags = 0;
+    auto abort_on_failure = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) { FwpmTransactionAbort(wfp_engine); });
+    // Add provider
+    FWPM_PROVIDER provider = {};
+    provider.providerKey = provider_guid;
+    provider.displayData.name = const_cast<wchar_t*>(L"eBPF Test Provider");
+    provider.flags = 0;
 
-        DWORD result = FwpmProviderAdd(wfp_engine, &provider, nullptr);
-        bool success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
-        REQUIRE(success_or_exists);
+    DWORD result = FwpmProviderAdd(wfp_engine, &provider, nullptr);
+    bool success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
+    REQUIRE(success_or_exists);
 
-        // Add sublayer
-        FWPM_SUBLAYER sublayer = {};
-        sublayer.subLayerKey = sublayer_guid;
-        sublayer.displayData.name = const_cast<wchar_t*>(L"eBPF Test Sublayer");
-        sublayer.providerKey = const_cast<GUID*>(&provider_guid);
-        sublayer.weight = 0x8000;
+    // Add sublayer
+    FWPM_SUBLAYER sublayer = {};
+    sublayer.subLayerKey = sublayer_guid;
+    sublayer.displayData.name = const_cast<wchar_t*>(L"eBPF Test Sublayer");
+    sublayer.providerKey = const_cast<GUID*>(&provider_guid);
+    sublayer.weight = 0x8000;
 
-        result = FwpmSubLayerAdd(wfp_engine, &sublayer, nullptr);
-        success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
-        REQUIRE(success_or_exists);
+    result = FwpmSubLayerAdd(wfp_engine, &sublayer, nullptr);
+    success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
+    REQUIRE(success_or_exists);
 
-        // Add the block filter
-        REQUIRE(add_block_filter() == ERROR_SUCCESS);
-
-        [[maybe_unused]] auto _ = abort_on_failure.release();
-        REQUIRE(FwpmTransactionCommit(wfp_engine) == ERROR_SUCCESS);
+    // Add all specified filters
+    for (const auto& filter_spec : filters) {
+        REQUIRE(add_filter(filter_spec) == ERROR_SUCCESS);
     }
 
-    [[maybe_unused]] auto _ = cleanup_on_failure.release();
+    (void)abort_on_failure.release();
+    REQUIRE(FwpmTransactionCommit(wfp_engine) == ERROR_SUCCESS);
+    (void)cleanup_on_failure.release();
+
     initialized = true;
 }
 
@@ -95,33 +94,61 @@ filter_helper::cleanup()
 }
 
 DWORD
-filter_helper::add_block_filter()
+filter_helper::add_filter(const wfp_test_filter_spec& filter_spec)
 {
     FWPM_FILTER filter = {};
     uint64_t filter_id = 0;
 
-    filter.layerKey = (address_family == AF_INET)
-                          ? ((egress) ? FWPM_LAYER_ALE_AUTH_CONNECT_V4 : FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4)
-                          : ((egress) ? FWPM_LAYER_ALE_AUTH_CONNECT_V6 : FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6);
-
-    filter.displayData.name = const_cast<wchar_t*>(L"eBPF Test Soft Block Filter");
+    filter.layerKey = filter_spec.layer;
+    filter.displayData.name = const_cast<wchar_t*>(L"eBPF Test Filter");
     filter.providerKey = const_cast<GUID*>(&provider_guid);
     filter.subLayerKey = sublayer_guid;
-    filter.action.type = FWP_ACTION_BLOCK;
+
+    // Map wfp_filter_action to FWP action type
+    switch (filter_spec.action) {
+    case wfp_filter_action::block:
+        filter.action.type = FWP_ACTION_BLOCK;
+        break;
+    case wfp_filter_action::permit:
+        filter.action.type = FWP_ACTION_PERMIT;
+        break;
+    }
+
     filter.weight.type = FWP_UINT8;
-    filter.weight.uint8 = 1; // Low priority so hard permits can override
+    filter.weight.uint8 = filter_spec.weight;
 
-    FWPM_FILTER_CONDITION condition = {};
-    condition.fieldKey = FWPM_CONDITION_IP_LOCAL_PORT;
-    condition.matchType = FWP_MATCH_EQUAL;
-    condition.conditionValue.type = FWP_UINT16;
-    condition.conditionValue.uint16 = test_port;
+    // Require at least one port to be specified
+    if (!filter_spec.local_port.has_value() && !filter_spec.remote_port.has_value()) {
+        return ERROR_INVALID_PARAMETER;
+    }
 
-    filter.filterCondition = &condition;
-    filter.numFilterConditions = 1;
+    // Build conditions array for local and/or remote port
+    FWPM_FILTER_CONDITION conditions[2] = {};
+    UINT32 condition_count = 0;
 
-    REQUIRE(FwpmFilterAdd(wfp_engine, &filter, nullptr, &filter_id) == ERROR_SUCCESS);
-    filter_ids.push_back(filter_id);
+    if (filter_spec.local_port.has_value()) {
+        conditions[condition_count].fieldKey = FWPM_CONDITION_IP_LOCAL_PORT;
+        conditions[condition_count].matchType = FWP_MATCH_EQUAL;
+        conditions[condition_count].conditionValue.type = FWP_UINT16;
+        conditions[condition_count].conditionValue.uint16 = filter_spec.local_port.value();
+        condition_count++;
+    }
 
-    return ERROR_SUCCESS;
+    if (filter_spec.remote_port.has_value()) {
+        conditions[condition_count].fieldKey = FWPM_CONDITION_IP_REMOTE_PORT;
+        conditions[condition_count].matchType = FWP_MATCH_EQUAL;
+        conditions[condition_count].conditionValue.type = FWP_UINT16;
+        conditions[condition_count].conditionValue.uint16 = filter_spec.remote_port.value();
+        condition_count++;
+    }
+
+    filter.filterCondition = conditions;
+    filter.numFilterConditions = condition_count;
+
+    auto result = FwpmFilterAdd(wfp_engine, &filter, nullptr, &filter_id);
+    if (result == ERROR_SUCCESS) {
+        filter_ids.push_back(filter_id);
+    }
+
+    return result;
 }
