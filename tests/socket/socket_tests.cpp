@@ -17,6 +17,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "filter_helper.h"
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "socket_helper.h"
@@ -54,12 +55,20 @@ _change_egress_policy_test_ingress_block(
     sender_socket.cancel_send_message();
 }
 
+/**
+ * @brief Test connection with given parameters.
+ *
+ * @param address_family Address family (AF_INET or AF_INET6).
+ * @param protocol Protocol (IPPROTO_TCP or IPPROTO_UDP).
+ * @param sender_socket Client socket.
+ * @param receiver_socket Server socket.
+ */
 void
 connection_test(
     ADDRESS_FAMILY address_family,
+    IPPROTO protocol,
     _Inout_ client_socket_t& sender_socket,
-    _Inout_ receiver_socket_t& receiver_socket,
-    uint32_t protocol)
+    _Inout_ receiver_socket_t& receiver_socket)
 {
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr", _is_main_thread);
@@ -146,45 +155,49 @@ connection_test(
     _change_egress_policy_test_ingress_block(
         egress_connection_policy_map, tuple, sender_socket, receiver_socket, message, destination_address, verdict);
 
-    // Update ingress policy to allow packet.
-    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    sender_socket.cancel_send_message();
 
-    // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
-    // destination.
-    sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
-    receiver_socket.complete_async_receive();
+    { // Test soft permit with default ingress block filter.
+        filter_helper default_block(false, SOCKET_TEST_PORT, address_family, protocol);
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+        // Resend the packet, should be blocked due to default ingress block filter.
+        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        receiver_socket.complete_async_receive(true);
+        sender_socket.cancel_send_message();
+
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+        // Resend the packet, should be allowed due to hard permit overriding.
+        sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+        sender_socket.complete_async_send(1000, expected_result_t::SUCCESS);
+        receiver_socket.complete_async_receive(false);
+    }
 }
 
-TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]")
+void
+connection_test(ADDRESS_FAMILY address_family, IPPROTO protocol)
 {
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
+    if (protocol == IPPROTO_TCP) {
+        stream_client_socket_t client_socket(SOCK_STREAM, protocol, 0);
+        stream_server_socket_t server_socket(SOCK_STREAM, protocol, SOCKET_TEST_PORT);
+        connection_test(address_family, protocol, client_socket, server_socket);
+    } else if (protocol == IPPROTO_UDP) {
+        datagram_client_socket_t client_socket(SOCK_DGRAM, protocol, 0);
+        datagram_server_socket_t server_socket(SOCK_DGRAM, protocol, SOCKET_TEST_PORT);
+        connection_test(address_family, protocol, client_socket, server_socket);
+    } else {
+        FAIL("Unsupported protocol");
+    }
 }
-TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]")
-{
-    datagram_client_socket_t datagram_client_socket(SOCK_DGRAM, IPPROTO_UDP, 0);
-    datagram_server_socket_t datagram_server_socket(SOCK_DGRAM, IPPROTO_UDP, SOCKET_TEST_PORT);
 
-    connection_test(AF_INET6, datagram_client_socket, datagram_server_socket, IPPROTO_UDP);
-}
-
-TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]")
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
-}
-TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]")
-{
-    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
-    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
-
-    connection_test(AF_INET6, stream_client_socket, stream_server_socket, IPPROTO_TCP);
-}
+TEST_CASE("connection_test_tcp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_TCP); }
+TEST_CASE("connection_test_tcp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_TCP); }
+TEST_CASE("connection_test_udp_v4", "[sock_addr_tests]") { connection_test(AF_INET, IPPROTO_UDP); }
+TEST_CASE("connection_test_udp_v6", "[sock_addr_tests]") { connection_test(AF_INET6, IPPROTO_UDP); }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
