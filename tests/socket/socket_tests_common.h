@@ -67,3 +67,28 @@ typedef struct _sock_addr_audit_entry
     uint16_t local_port;
     uint64_t socket_cookie;
 } sock_addr_audit_entry_t;
+
+// Bind policy structures for bind_policy.c sample program
+typedef struct _bind_policy_key
+{
+    uint64_t process_id; // 0 means apply to all processes
+    uint16_t port;       // 0 means apply to all ports
+    uint8_t protocol;    // 0 means apply to all protocols
+} bind_policy_key_t;
+
+typedef struct _bind_policy_value
+{
+    uint32_t action;        // bind_action_t values: BIND_PERMIT_SOFT, BIND_PERMIT_HARD, BIND_DENY, BIND_REDIRECT
+    uint16_t redirect_port; // Used if action is BIND_REDIRECT
+    uint32_t flags;         // Future extensibility
+} bind_policy_value_t;
+
+typedef struct _bind_audit_entry
+{
+    uint64_t process_id;
+    uint16_t port;
+    uint8_t protocol;
+    uint32_t operation;    // bind_operation_t values
+    uint32_t action_taken; // bind_action_t values
+    uint64_t timestamp;
+} bind_audit_entry_t;
