@@ -199,14 +199,23 @@ _update_bind_policy_map_entry(
 
 /**
  * @brief Execute a connection attempt and validate the result.
+ *
+ * This function sends a test message from the client to the server on the specified port
+ * and validates that the connection behaves according to the expected result (allow or block).
+ *
+ * @param[in,out] client Client socket that sends the test message.
+ * @param[in,out] server Server socket that receives the test message.
+ * @param[in] address_family Address family (AF_INET or AF_INET6) for the connection.
+ * @param[in] expected_result Expected outcome of the connection attempt (allow or block).
+ * @param[in] target_port Port number to connect to.
  */
 static void
 execute_connection_attempt(
-    std::unique_ptr<client_socket_t>& client,
-    std::unique_ptr<receiver_socket_t>& server,
-    ADDRESS_FAMILY address_family,
-    connection_test_result expected_result,
-    uint16_t target_port)
+    _Inout_ std::unique_ptr<client_socket_t>& client,
+    _Inout_ std::unique_ptr<receiver_socket_t>& server,
+    _In_ ADDRESS_FAMILY address_family,
+    _In_ connection_test_result expected_result,
+    _In_ uint16_t target_port)
 {
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
@@ -232,9 +241,24 @@ execute_connection_attempt(
 
 /**
  * @brief Execute a connection test case.
+ *
+ * This function orchestrates a complete connection test scenario including:
+ * - Loading eBPF modules and programs from object files
+ * - Creating WFP filters if specified
+ * - Retrieving policy maps (sock_addr and bind)
+ * - Attaching eBPF programs to their respective attach points
+ * - Creating and managing client/server socket pairs
+ * - Executing individual test steps with configured policies
+ * - Validating connection behavior against expected results
+ *
+ * The function handles both TCP and UDP protocols across IPv4 and IPv6 address families,
+ * and supports testing connect (ingress and or egress) and bind policies.
+ *
+ * @param[in] test_case Test case specification containing modules, programs, filters,
+ *                      and individual test configurations to execute.
  */
 static void
-execute_connection_test(const connection_test_case& test_case)
+execute_connection_test(_In_ const connection_test_case& test_case)
 {
     // Load modules (object files + programs).
     struct loaded_program
