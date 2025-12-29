@@ -125,15 +125,15 @@ _base_socket::_base_socket(
 
         _actual_bind_error = WSAGetLastError();
 
-        // If expecting a bind error, capture it and validate later
+        // If expecting a bind error, capture it and validate later.
         if (expected_bind_error != 0) {
             _bind_succeeded = false;
-            // Still retry on WSAENOBUFS as it may be transient
+            // Still retry on WSAENOBUFS as it may be transient.
             if (_actual_bind_error != WSAENOBUFS) {
                 break;
             }
         } else {
-            // Default behavior: FAIL on non-transient errors
+            // Default behavior: FAIL on non-transient errors.
             if (_actual_bind_error != WSAENOBUFS) {
                 FAIL("Failed to bind socket with error: " << _actual_bind_error);
             }
@@ -141,7 +141,7 @@ _base_socket::_base_socket(
         Sleep(1000);
     }
 
-    // Validate expected bind error
+    // Validate expected bind error.
     if (expected_bind_error != 0) {
         if (_bind_succeeded) {
             FAIL("Expected bind to fail with error " << expected_bind_error << " but it succeeded");

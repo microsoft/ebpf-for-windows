@@ -55,25 +55,41 @@ typedef class _base_socket
   public:
     /**
      * @brief Construct a socket and bind it to the specified address.
-     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM, SOCK_RAW)
-     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP, etc.)
-     * @param[in] port Port to bind to
-     * @param[in] family Socket family (IPv4, IPv6, or Dual)
-     * @param[in] source_address Source address to bind to (optional)
-     * @param[in] expected_bind_error Expected bind error code (0 = expect success)
+     *
+     * Creates a socket with the specified type and protocol, then binds it to the given
+     * port and address. The actual bind error can be retrieved via get_bind_error().
+     *
+     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM, SOCK_RAW).
+     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP, etc.).
+     * @param[in] port Port to bind to.
+     * @param[in] family Socket family (IPv4, IPv6, or Dual).
+     * @param[in] source_address Source address to bind to (optional, defaults to wildcard).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
      */
     _base_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         socket_family_t family,
-        const sockaddr_storage& source_address = {},
+        _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
     virtual ~_base_socket();
 
+    /**
+     * @brief Get the local address of the socket.
+     *
+     * @param[out] address Pointer to the local address structure.
+     * @param[out] address_length Length of the address structure.
+     */
     void
     get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const;
 
+    /**
+     * @brief Get the received message from the socket.
+     *
+     * @param[out] message_size Size of the received message in bytes.
+     * @param[out] message Pointer to the received message buffer.
+     */
     void
     get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
 
@@ -89,7 +105,7 @@ typedef class _base_socket
 
     /**
      * @brief Check if the bind operation succeeded.
-     * @return true if bind succeeded, false otherwise
+     * @return true if bind succeeded, false otherwise.
      */
     bool
     bind_succeeded() const
@@ -118,12 +134,22 @@ typedef class _base_socket
 typedef class _client_socket : public _base_socket
 {
   public:
+    /**
+     * @brief Construct a client socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM).
+     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP).
+     * @param[in] port Port to bind to.
+     * @param[in] family Socket family (IPv4, IPv6, or Dual).
+     * @param[in] source_address Source address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _client_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         socket_family_t family,
-        const sockaddr_storage& source_address = {},
+        _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
     virtual void
     send_message_to_remote_host(
@@ -150,13 +176,24 @@ typedef class _client_socket : public _base_socket
 typedef class _datagram_client_socket : public _client_socket
 {
   public:
+    /**
+     * @brief Construct a datagram client socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_DGRAM or SOCK_RAW).
+     * @param[in] _protocol Protocol (IPPROTO_UDP, etc.).
+     * @param[in] port Port to bind to.
+     * @param[in] family Socket family (IPv4, IPv6, or Dual).
+     * @param[in] connected_udp Whether to use connected UDP mode.
+     * @param[in] source_address Source address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _datagram_client_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         socket_family_t family = Dual,
         bool connected_udp = false,
-        const sockaddr_storage& source_address = {},
+        _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
     void
     send_message_to_remote_host(
@@ -180,12 +217,22 @@ typedef class _datagram_client_socket : public _client_socket
 typedef class _stream_client_socket : public _client_socket
 {
   public:
+    /**
+     * @brief Construct a stream client socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_STREAM).
+     * @param[in] _protocol Protocol (IPPROTO_TCP).
+     * @param[in] port Port to bind to.
+     * @param[in] family Socket family (IPv4, IPv6, or Dual).
+     * @param[in] source_address Source address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _stream_client_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         socket_family_t family = Dual,
-        const sockaddr_storage& source_address = {},
+        _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
     void
     send_message_to_remote_host(
@@ -205,36 +252,103 @@ typedef class _stream_client_socket : public _client_socket
 typedef class _server_socket : public _base_socket
 {
   public:
+    /**
+     * @brief Receiver operation mode for timeout handling.
+     */
     enum receiver_mode
     {
-        MODE_TIMEOUT,
-        MODE_NO_TIMEOUT,
-        MODE_DONT_CARE
+        MODE_TIMEOUT,    ///< Timeout is expected.
+        MODE_NO_TIMEOUT, ///< No timeout expected.
+        MODE_DONT_CARE   ///< Timeout status doesn't matter.
     };
+
+    /**
+     * @brief Construct a server socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM).
+     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP).
+     * @param[in] port Port to bind to.
+     * @param[in] local_address Local address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _server_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
-        const sockaddr_storage& local_address = {},
+        _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0);
     ~_server_socket();
+
+    /**
+     * @brief Complete an asynchronous receive operation.
+     *
+     * @param[in] timeout_expected Whether a timeout is expected.
+     */
     void
     complete_async_receive(bool timeout_expected = false);
+
+    /**
+     * @brief Complete an asynchronous send operation.
+     *
+     * @param[in] timeout_in_ms Timeout in milliseconds.
+     */
     virtual void
     complete_async_send(int timeout_in_ms) = 0;
+
+    /**
+     * @brief Complete an asynchronous receive operation with timeout.
+     *
+     * @param[in] timeout_in_ms Timeout in milliseconds.
+     * @param[in] timeout_expected Whether a timeout is expected.
+     */
     void
     complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
+
+    /**
+     * @brief Complete an asynchronous receive operation with mode.
+     *
+     * @param[in] timeout_in_ms Timeout in milliseconds.
+     * @param[in] mode Receiver mode for timeout handling.
+     */
     void
     complete_async_receive(int timeout_in_ms, receiver_mode mode);
 
+    /**
+     * @brief Post an asynchronous receive operation.
+     */
     virtual void
     post_async_receive() = 0;
+
+    /**
+     * @brief Send an asynchronous response message.
+     *
+     * @param[in] message Null-terminated message string to send.
+     */
     virtual void
     send_async_response(_In_z_ const char* message) = 0;
+
+    /**
+     * @brief Get the sender's address.
+     *
+     * @param[out] from Pointer to the sender's address structure.
+     * @param[out] from_length Length of the address structure.
+     */
     virtual void
     get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from_length) = 0;
+
+    /**
+     * @brief Close the socket.
+     */
     virtual void
     close() = 0;
+
+    /**
+     * @brief Query the redirect context for the received packet.
+     *
+     * @param[in,out] buffer Buffer to receive the redirect context.
+     * @param[in] buffer_size Size of the buffer in bytes.
+     * @return 0 on success, or Windows error code on failure.
+     */
     virtual int
     query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size) = 0;
 
@@ -249,11 +363,20 @@ typedef class _server_socket : public _base_socket
 typedef class _datagram_server_socket : public _server_socket
 {
   public:
+    /**
+     * @brief Construct a datagram server socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_DGRAM or SOCK_RAW).
+     * @param[in] _protocol Protocol (IPPROTO_UDP, etc.).
+     * @param[in] port Port to bind to.
+     * @param[in] local_address Local address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _datagram_server_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
-        const sockaddr_storage& local_address = {},
+        _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0);
     void
     post_async_receive();
@@ -281,11 +404,20 @@ typedef class _datagram_server_socket : public _server_socket
 typedef class _stream_server_socket : public _server_socket
 {
   public:
+    /**
+     * @brief Construct a stream server socket.
+     *
+     * @param[in] _sock_type Socket type (SOCK_STREAM).
+     * @param[in] _protocol Protocol (IPPROTO_TCP).
+     * @param[in] port Port to bind to.
+     * @param[in] local_address Local address to bind to (optional).
+     * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     */
     _stream_server_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
-        const sockaddr_storage& local_address = {},
+        _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0);
     ~_stream_server_socket();
     void

@@ -35,9 +35,9 @@
  */
 typedef struct _bind_policy_key
 {
-    uint64_t process_id; ///< Target process ID (0 = wildcard, applies to all processes)
-    uint16_t port;       ///< Target port number (0 = wildcard, applies to all ports)
-    uint8_t protocol;    ///< IP protocol (0 = wildcard, applies to all protocols)
+    uint64_t process_id; ///< Target process ID (0 = wildcard, applies to all processes).
+    uint16_t port;       ///< Target port number (0 = wildcard, applies to all ports).
+    uint8_t protocol;    ///< IP protocol (0 = wildcard, applies to all protocols).
 } bind_policy_key_t;
 
 /**
@@ -48,7 +48,7 @@ typedef struct _bind_policy_key
  */
 typedef struct _bind_policy_value
 {
-    bind_action_t action; ///< Action to take: BIND_PERMIT_SOFT, BIND_PERMIT_HARD, BIND_DENY
+    bind_action_t action; ///< Action to take: BIND_PERMIT_SOFT, BIND_PERMIT_HARD, BIND_DENY.
 } bind_policy_value_t;
 
 /**
@@ -63,8 +63,8 @@ typedef struct _bind_policy_value
  */
 typedef struct _bind_audit_entry
 {
-    uint16_t port;         ///< Port number that was being bound
-    uint32_t action_taken; ///< Action taken (maps to bind_action_t values)
+    uint16_t port;         ///< Port number that was being bound.
+    uint32_t action_taken; ///< Action taken (maps to bind_action_t values).
 } bind_audit_entry_t;
 
 /**
@@ -74,9 +74,9 @@ typedef struct _bind_audit_entry
  * or denied. Policies are looked up using the hierarchical key structure
  * with fallback logic from specific to general matching rules.
  *
- * Key: bind_policy_key_t (process_id, port, protocol combination)
- * Value: bind_policy_value_t (action to take)
- * Max entries: 100 policy rules
+ * Key: bind_policy_key_t (process_id, port, protocol combination).
+ * Value: bind_policy_value_t (action to take).
+ * Max entries: 100 policy rules.
  */
 struct
 {
@@ -93,9 +93,9 @@ struct
  * by the policy engine. Each entry is keyed by timestamp to provide chronological
  * ordering of events for security analysis and compliance monitoring.
  *
- * Key: uint64_t (timestamp from bpf_ktime_get_ns())
- * Value: bind_audit_entry_t (port and action taken)
- * Max entries: 1000 audit records (LRU eviction for older entries)
+ * Key: uint64_t (timestamp from bpf_ktime_get_ns()).
+ * Value: bind_audit_entry_t (port and action taken).
+ * Max entries: 1000 audit records (LRU eviction for older entries).
  */
 struct
 {
@@ -109,26 +109,23 @@ struct
  * @brief Record a bind operation in the audit log.
  *
  * This function creates an audit trail entry for the bind operation, recording
- * the port number and the action taken by the policy engine. The entry is stored
+ * the port number and the action taken by the policy engine.
  * with a nanosecond timestamp as the key to maintain chronological ordering.
  *
- * This audit functionality demonstrates how eBPF programs can provide security
- * monitoring and compliance logging for network operations.
- *
- * @param[in] ctx Bind operation context containing socket address information
- * @param[in] action_taken The policy decision made for this bind operation
+ * @param[in] ctx Bind operation context containing socket address information.
+ * @param[in] action_taken The policy decision made for this bind operation.
  */
 __inline void
 update_audit_entry(bind_md_t* ctx, bind_action_t action_taken)
 {
-    uint64_t key = bpf_ktime_get_ns(); // Use nanosecond timestamp as unique key
+    uint64_t key = bpf_ktime_get_ns(); // Use nanosecond timestamp as unique key.
     bind_audit_entry_t entry = {0};
 
-    // Extract port from sockaddr_in structure (port is at offset 2)
+    // Extract port from sockaddr_in structure (port is at offset 2).
     entry.port = *(uint16_t*)&ctx->socket_address[2];
     entry.action_taken = (uint32_t)action_taken;
 
-    // Store in audit map (BPF_ANY flag allows overwrite if timestamp collision occurs)
+    // Store in audit map (BPF_ANY flag allows overwrite if timestamp collision occurs).
     bpf_map_update_elem(&bind_audit_map, &key, &entry, 0);
 }
 
@@ -138,33 +135,29 @@ update_audit_entry(bind_md_t* ctx, bind_action_t action_taken)
  * This function implements a comprehensive policy lookup system with fallback logic
  * that searches from most specific to most general policy rules:
  *
- * 1. Exact match: process_id + port + protocol (most specific)
- * 2. Port-based: port + protocol, any process
- * 3. Process-based: process_id only, any port/protocol
- * 4. Global fallback: wildcard policy for all operations
+ * 1. Exact match: process_id + port + protocol (most specific).
+ * 2. Port-based: port + protocol, any process.
+ * 3. Process-based: process_id only, any port/protocol.
+ * 4. Global fallback: wildcard policy for all operations.
  *
- * The hierarchical approach allows administrators to define granular policies
- * (e.g., "deny process X from binding to port Y") while providing reasonable
- * defaults through broader rules.
- *
- * @param[in,out] ctx Bind operation context; socket_address may be modified for redirects
- * @return bind_action_t Action to take (PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT)
+ * @param[in,out] ctx Bind operation context; socket_address may be modified for redirects.
+ * @return bind_action_t Action to take (PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT).
  */
 __inline __attribute__((always_inline)) bind_action_t
 lookup_bind_policy(bind_md_t* ctx)
 {
     bind_policy_key_t key = {0};
     bind_policy_value_t* policy_value = NULL;
-    bind_action_t result = BIND_PERMIT_SOFT; // Default: soft permit allows other security layers to decide
+    bind_action_t result = BIND_PERMIT_SOFT; // Default: soft permit allows other security layers to decide.
 
-    // Extract port from sockaddr_in structure (assumes IPv4; port at offset 2)
+    // Extract port from sockaddr_in structure (assumes IPv4; port at offset 2).
     uint16_t port = *(uint16_t*)&ctx->socket_address[2];
 
     //
-    // Policy lookup hierarchy: most specific to most general
+    // Policy lookup hierarchy: most specific to most general.
     //
 
-    // Level 1: Try exact match policy (process_id + port + protocol)
+    // Level 1: Try exact match policy (process_id + port + protocol).
     key.process_id = ctx->process_id;
     key.port = port;
     key.protocol = ctx->protocol;
@@ -178,9 +171,9 @@ lookup_bind_policy(bind_md_t* ctx)
         goto exit;
     }
 
-    // Level 2: Try port + protocol policy (any process)
-    // This allows port-based policies that apply to any application
-    key.process_id = 0; // Wildcard for process
+    // Level 2: Try port + protocol policy (any process).
+    // This allows port-based policies that apply to any application.
+    key.process_id = 0; // Wildcard for process.
     policy_value = bpf_map_lookup_elem(&bind_policy_map, &key);
     if (policy_value) {
         bpf_printk("Found port-based bind policy: Action=%u\n", policy_value->action);
@@ -188,11 +181,11 @@ lookup_bind_policy(bind_md_t* ctx)
         goto exit;
     }
 
-    // Level 3: Try process-only policy (any port, any protocol)
-    // This allows application-wide policies regardless of port/protocol
+    // Level 3: Try process-only policy (any port, any protocol).
+    // This allows application-wide policies regardless of port/protocol.
     key.process_id = ctx->process_id;
-    key.port = 0;     // Wildcard for port
-    key.protocol = 0; // Wildcard for protocol
+    key.port = 0;     // Wildcard for port.
+    key.protocol = 0; // Wildcard for protocol.
     policy_value = bpf_map_lookup_elem(&bind_policy_map, &key);
     if (policy_value) {
         bpf_printk("Found process-based bind policy: Action=%u\n", policy_value->action);
@@ -200,21 +193,20 @@ lookup_bind_policy(bind_md_t* ctx)
         goto exit;
     }
 
-    // Level 4: Try global wildcard policy (any process, any port, any protocol)
-    // This provides the system-wide default policy when no specific rules match
-    key.process_id = 0; // Already set, but explicit for clarity
+    // Level 4: Try global wildcard policy (any process, any port, any protocol).
+    // This provides the system-wide default policy when no specific rules match.
+    key.process_id = 0;
     policy_value = bpf_map_lookup_elem(&bind_policy_map, &key);
     if (policy_value) {
         result = policy_value->action;
         goto exit;
     }
 
-    // If no policies match, use the default action (BIND_PERMIT_SOFT)
-    // This provides a secure default that allows the operation but permits
-    // other security layers to make the final decision
+    // If no policies match, use the default action (BIND_PERMIT_SOFT).
+    // This allows the operation but permits other security layers to make the final decision.
 
 exit:
-    // Log all policy decisions for security auditing and compliance
+    // Log all policy decisions for security auditing and compliance.
     update_audit_entry(ctx, result);
     return result;
 }
@@ -223,28 +215,22 @@ exit:
  * @brief Main entry point for bind policy enforcement.
  *
  * This is the primary eBPF program function that gets called by the eBPF runtime
- * when a bind operation occurs. It demonstrates a complete bind hook implementation
- * including operation filtering, hierarchical policy lookup, and audit logging.
+ * when a bind operation occurs.
+ * Bind operations are written to the audit log and filtered according to the bind policy map.
  *
- * The function showcases key bind hook capabilities:
- * - Selective processing (only BIND_OPERATION_BIND operations)
- * - Policy-based access control with multiple enforcement levels
- * - Hard vs soft permit enforcement for integration with other security layers
- * - Comprehensive audit logging for security monitoring
- *
- * @param[in,out] ctx Bind operation metadata and context
- * @return bind_action_t Policy decision: PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT
+ * @param[in,out] ctx Bind operation metadata and context.
+ * @return Policy decision: PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT.
  */
 SEC("bind")
 bind_action_t
 authorize_bind(bind_md_t* ctx)
 {
-    // Filter: Only process actual bind operations, allow others (like unbind) to proceed
+    // Filter: Only process actual bind operations, allow others (like unbind) to proceed.
     if (ctx->operation != BIND_OPERATION_BIND) {
         update_audit_entry(ctx, BIND_PERMIT_SOFT);
-        return BIND_PERMIT_SOFT; // Soft permit allows other layers to potentially override
+        return BIND_PERMIT_SOFT; // Soft permit allows other layers to potentially override.
     }
 
-    // Perform hierarchical policy lookup and enforcement
+    // Perform hierarchical policy lookup and enforcement.
     return lookup_bind_policy(ctx);
 }

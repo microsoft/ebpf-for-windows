@@ -68,27 +68,42 @@ typedef struct _sock_addr_audit_entry
     uint64_t socket_cookie;
 } sock_addr_audit_entry_t;
 
-// Bind policy structures for bind_policy.c sample program
+/**
+ * @brief Policy lookup key for bind operations.
+ *
+ * Maps to the bind_policy_key_t structure used in bind_policy.c sample program.
+ */
 typedef struct _bind_policy_key
 {
-    uint64_t process_id; // 0 means apply to all processes
-    uint16_t port;       // 0 means apply to all ports
-    uint8_t protocol;    // 0 means apply to all protocols
+    uint64_t process_id; ///< Target process ID (0 = wildcard).
+    uint16_t port;       ///< Target port number (0 = wildcard).
+    uint8_t protocol;    ///< IP protocol (0 = wildcard).
 } bind_policy_key_t;
 
+/**
+ * @brief Policy action configuration for bind operations.
+ *
+ * Maps to the bind_policy_value_t structure used in bind_policy.c sample program.
+ */
 typedef struct _bind_policy_value
 {
-    uint32_t action;        // bind_action_t values: BIND_PERMIT_SOFT, BIND_PERMIT_HARD, BIND_DENY, BIND_REDIRECT
-    uint16_t redirect_port; // Used if action is BIND_REDIRECT
-    uint32_t flags;         // Future extensibility
+    uint32_t action;        ///< Action to take (bind_action_t values: BIND_PERMIT_SOFT, BIND_PERMIT_HARD, BIND_DENY,
+                            ///< BIND_REDIRECT).
+    uint16_t redirect_port; ///< Port to redirect to if action is BIND_REDIRECT.
+    uint32_t flags;         ///< Reserved for future use.
 } bind_policy_value_t;
 
+/**
+ * @brief Audit log entry for bind operations.
+ *
+ * Maps to the bind_audit_entry_t structure used in bind_policy.c sample program.
+ */
 typedef struct _bind_audit_entry
 {
-    uint64_t process_id;
-    uint16_t port;
-    uint8_t protocol;
-    uint32_t operation;    // bind_operation_t values
-    uint32_t action_taken; // bind_action_t values
-    uint64_t timestamp;
+    uint64_t process_id;   ///< Process ID that attempted the bind.
+    uint16_t port;         ///< Port that was being bound.
+    uint8_t protocol;      ///< IP protocol (IPPROTO_TCP, IPPROTO_UDP, etc.).
+    uint32_t operation;    ///< Operation type (bind_operation_t values).
+    uint32_t action_taken; ///< Action taken (bind_action_t values).
+    uint64_t timestamp;    ///< Timestamp from bpf_ktime_get_ns().
 } bind_audit_entry_t;

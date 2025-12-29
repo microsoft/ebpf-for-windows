@@ -22,7 +22,7 @@ filter_helper::filter_helper(const std::vector<wfp_test_filter_spec>& filters)
     auto abort_on_failure = std::unique_ptr<void, std::function<void(void*)>>(
         reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) { FwpmTransactionAbort(wfp_engine); });
-    // Add provider
+    // Add provider.
     FWPM_PROVIDER provider = {};
     provider.providerKey = provider_guid;
     provider.displayData.name = const_cast<wchar_t*>(L"eBPF Test Provider");
@@ -32,7 +32,7 @@ filter_helper::filter_helper(const std::vector<wfp_test_filter_spec>& filters)
     bool success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
     REQUIRE(success_or_exists);
 
-    // Add sublayer
+    // Add sublayer.
     FWPM_SUBLAYER sublayer = {};
     sublayer.subLayerKey = sublayer_guid;
     sublayer.displayData.name = const_cast<wchar_t*>(L"eBPF Test Sublayer");
@@ -43,7 +43,7 @@ filter_helper::filter_helper(const std::vector<wfp_test_filter_spec>& filters)
     success_or_exists = (result == ERROR_SUCCESS || result == FWP_E_ALREADY_EXISTS);
     REQUIRE(success_or_exists);
 
-    // Add all specified filters
+    // Add all specified filters.
     for (const auto& filter_spec : filters) {
         REQUIRE(add_filter(filter_spec) == ERROR_SUCCESS);
     }
@@ -104,7 +104,7 @@ filter_helper::add_filter(const wfp_test_filter_spec& filter_spec)
     filter.providerKey = const_cast<GUID*>(&provider_guid);
     filter.subLayerKey = sublayer_guid;
 
-    // Map wfp_filter_action to FWP action type
+    // Map wfp_filter_action to FWP action type.
     switch (filter_spec.action) {
     case wfp_filter_action::block:
         filter.action.type = FWP_ACTION_BLOCK;
@@ -117,13 +117,13 @@ filter_helper::add_filter(const wfp_test_filter_spec& filter_spec)
     filter.weight.type = FWP_UINT8;
     filter.weight.uint8 = filter_spec.weight;
 
-    // Require at least one port to be specified
+    // Require at least one port to be specified.
     if (!filter_spec.local_port.has_value() && !filter_spec.remote_port.has_value()) {
         return ERROR_INVALID_PARAMETER;
     }
 
-    // Build conditions array for local and/or remote port
-    FWPM_FILTER_CONDITION conditions[2] = {};
+    // Build conditions array for local and/or remote port.
+    FWPM_FILTER_CONDITION conditions[2] = {}; // Max 2 conditions: local and remote port.
     UINT32 condition_count = 0;
 
     if (filter_spec.local_port.has_value()) {

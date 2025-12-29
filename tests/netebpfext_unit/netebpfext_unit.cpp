@@ -277,19 +277,19 @@ TEST_CASE("bind_hard_soft_permit", "[netebpfext][bind]")
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
-    // Test BIND_PERMIT_SOFT (should allow override by lower-priority filters)
+    // Test BIND_PERMIT_SOFT (should allow override by lower-priority filters).
     client_context->bind_action = BIND_PERMIT_SOFT;
     FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
-    // Note: We can't directly test FWPS_RIGHT_ACTION_WRITE in unit tests as that's internal WFP state
+    // Note: We can't directly test FWPS_RIGHT_ACTION_WRITE in unit tests as that's internal WFP state.
 
-    // Test BIND_PERMIT_HARD (should block lower-priority filters)
+    // Test BIND_PERMIT_HARD (should block lower-priority filters).
     client_context->bind_action = BIND_PERMIT_HARD;
     result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
-    // Note: BIND_PERMIT_HARD should clear FWPS_RIGHT_ACTION_WRITE but we can't test that directly
+    // Note: BIND_PERMIT_HARD should clear FWPS_RIGHT_ACTION_WRITE but we can't test that directly.
 
-    // Test backward compatibility: BIND_PERMIT should behave like BIND_PERMIT_SOFT
+    // Test backward compatibility: BIND_PERMIT should behave like BIND_PERMIT_SOFT.
     client_context->bind_action = BIND_PERMIT;
     result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);

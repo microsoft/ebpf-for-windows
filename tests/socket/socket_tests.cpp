@@ -63,8 +63,8 @@ _change_egress_policy_test_ingress_block(
  */
 struct sock_addr_policy
 {
-    std::optional<uint32_t> egress_verdict{};  // For connect hook
-    std::optional<uint32_t> ingress_verdict{}; // For recv_accept hook
+    std::optional<uint32_t> egress_verdict{};  // For connect hook.
+    std::optional<uint32_t> ingress_verdict{}; // For recv_accept hook.
 };
 
 /**
@@ -72,10 +72,10 @@ struct sock_addr_policy
  */
 struct bind_policy
 {
-    uint64_t process_id{0};
-    uint16_t port{0};
-    uint8_t protocol{0};
-    uint32_t action{0}; // bind_action_t values
+    uint64_t process_id{0};          ///< Process ID (0 = wildcard).
+    uint16_t port{0};                ///< Port number (in host byte order).
+    uint8_t protocol{0};             ///< IP protocol (e.g., IPPROTO_TCP).
+    bind_action_t action{BIND_DENY}; ///< Action to take for this bind policy.
 };
 
 /**
@@ -100,20 +100,17 @@ struct connection_test_params
 {
     std::string_view description;
 
-    // Expected bind error for server socket (0 = expect success)
+    // Expected bind error for server socket (0 = expect success).
     std::optional<int> expected_server_bind_error{};
 
-    // Expected outcome
+    // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
-    // Whether to detach/reattach programs before this test
-    bool detach_before = false;
-    bool reattach_after_detach = false;
-
-    std::optional<uint32_t> egress_verdict{};
-    std::optional<uint32_t> ingress_verdict{};
-    std::optional<bind_policy> bind_policy{};
-    std::optional<uint32_t> bind_verdict{}; // Simplified bind action (uses current process, test port, test protocol)
+    std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
+    std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
+    std::optional<bind_policy> bind_policy{};  ///< Bind policy to apply for this test.
+    std::optional<bind_action_t>
+        bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
 };
 
 /**
@@ -121,8 +118,8 @@ struct connection_test_params
  */
 struct program_spec
 {
-    std::string_view program_name;
-    bpf_attach_type attach_type;
+    std::string_view program_name; ///< Name of the program.
+    bpf_attach_type attach_type;   ///< Attach type for the program.
 };
 
 /**
@@ -130,29 +127,29 @@ struct program_spec
  */
 struct module_spec
 {
-    std::string_view object_file; // e.g., "cgroup_sock_addr", "bind_policy"
-    std::vector<program_spec> programs;
+    std::string_view object_file;         ///< Object file name, e.g., "cgroup_sock_addr", "bind_policy".
+    std::vector<program_spec> programs{}; ///< Programs to load from the object file.
 };
 
 /**
- * @brief Complete test case specification.
+ * @brief Connection test case specification.
+ *
+ * Filters will be applied before test execution and removed after.
+ *
+ * @note currently hardcodes the expected ingress/egress/bind policy map names.
  */
 struct connection_test_case
 {
-    std::string_view name{};
+    std::string_view name{}; ///< Test case name.
 
-    // Network parameters
-    ADDRESS_FAMILY address_family{AF_INET}; // AF_INET or AF_INET6
-    uint16_t protocol{IPPROTO_TCP};         // IPPROTO_TCP or IPPROTO_UDP
+    // Network parameters.
+    ADDRESS_FAMILY address_family{AF_INET}; ///< AF_INET or AF_INET6.
+    uint16_t protocol{IPPROTO_TCP};         ///< IPPROTO_TCP or IPPROTO_UDP.
 
-    // Modules to load (each containing object file + programs)
-    std::vector<module_spec> modules{};
+    std::vector<module_spec> modules{}; ///< Modules to load.
 
-    // WFP filters to apply
-    std::vector<wfp_test_filter_spec> wfp_filters{};
-
-    // Test parameters to execute
-    std::vector<connection_test_params> tests{};
+    std::vector<wfp_test_filter_spec> wfp_filters{}; ///< WFP filters to apply before the tests.
+    std::vector<connection_test_params> tests{};     ///< Individual test parameters to execute in order.
 };
 
 /**
@@ -160,9 +157,9 @@ struct connection_test_case
  */
 typedef enum _bind_test_result
 {
-    BIND_TEST_ALLOW,   ///< Bind should succeed without modification
-    BIND_TEST_DENY,    ///< Bind should be denied/blocked
-    BIND_TEST_REDIRECT ///< Bind should succeed but be redirected to a different port
+    BIND_TEST_ALLOW,   ///< Bind should succeed without modification.
+    BIND_TEST_DENY,    ///< Bind should be denied/blocked.
+    BIND_TEST_REDIRECT ///< Bind should succeed but be redirected to a different port.
 } bind_test_result_t;
 
 /**
@@ -172,16 +169,16 @@ typedef enum _bind_test_result
  * It supports adding new policies, updating existing ones, and removing policies for
  * cleanup. This enables precise control over bind behavior during testing.
  *
- * @param[in] map_fd File descriptor of the bind policy map
- * @param[in] process_id Process ID for the policy (0 = wildcard)
- * @param[in] port Port number for the policy (0 = wildcard)
- * @param[in] protocol IP protocol for the policy (0 = wildcard)
- * @param[in] action Bind action to take (PERMIT_SOFT, PERMIT_HARD, DENY, REDIRECT)
- * @param[in] add True to add/update entry, false to delete entry
+ * @param[in] map_fd File descriptor of the bind policy map.
+ * @param[in] process_id Process ID for the policy (0 = wildcard).
+ * @param[in] port Port number for the policy (0 = wildcard).
+ * @param[in] protocol IP protocol for the policy (0 = wildcard).
+ * @param[in] action Bind action to take (PERMIT_SOFT, PERMIT_HARD, DENY, REDIRECT).
+ * @param[in] add True to add/update entry, false to delete entry.
  */
 void
 _update_bind_policy_map_entry(
-    fd_t map_fd, uint64_t process_id, uint16_t port, uint8_t protocol, uint32_t action, bool add = true)
+    fd_t map_fd, uint64_t process_id, uint16_t port, uint8_t protocol, bind_action_t action, bool add = true)
 {
     bind_policy_key_t key = {0};
     bind_policy_value_t value = {0};
@@ -211,7 +208,7 @@ execute_connection_attempt(
     connection_test_result expected_result,
     uint16_t target_port)
 {
-    // Send loopback message to test port
+    // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET) {
@@ -310,7 +307,7 @@ execute_connection_test(const connection_test_case& test_case)
     tuple.protocol = test_case.protocol;
 
     // Initialize verdict maps to REJECT.
-    uint32_t reject_verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    bind_action_t reject_verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     if (ingress_map) {
         SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &reject_verdict, EBPF_ANY) == 0);
     }
@@ -322,19 +319,14 @@ execute_connection_test(const connection_test_case& test_case)
     for (auto& mod : loaded_modules) {
         CAPTURE(mod.helper.get_file_name());
         for (auto& loaded_program : mod.programs) {
-            // bpf_attach_type attach_type = mod.program_specs[i].attach_type;
             bpf_program* program = loaded_program.program;
             CAPTURE(
                 std::string(loaded_program.spec.program_name),
                 loaded_program.spec.attach_type,
                 bpf_program__fd(loaded_program.program));
-            // int result = bpf_prog_attach(bpf_program__fd(mod.programs[i]), UNSPECIFIED_COMPARTMENT_ID,
-            // mod.program_specs[i].attach_type, 0); SAFE_REQUIRE(result == 0);
             ebpf_attach_type_t attach_type_guid{};
-            ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid);
-            // ebpf_result_t res = ebpf_program_attach(program, &attach_type_guid, nullptr, 0, &loaded_program.link);
-            ebpf_result_t res = ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr);
-            SAFE_REQUIRE(res == EBPF_SUCCESS);
+            SAFE_REQUIRE(ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
+            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
         }
     }
 
@@ -370,28 +362,10 @@ execute_connection_test(const connection_test_case& test_case)
             SAFE_REQUIRE(bind_policy_map != nullptr);
             _update_bind_policy_map_entry(
                 bpf_map__fd(bind_policy_map),
-                0, // process_id = 0 (wildcard)
+                0, // process_id = 0 (wildcard).
                 static_cast<uint16_t>(SOCKET_TEST_PORT),
                 static_cast<uint8_t>(test_case.protocol),
                 *test.bind_verdict);
-        }
-
-        // Handle detach/reattach.
-        if (test.detach_before) {
-            for (const auto& mod : loaded_modules) {
-                for (auto& loaded_program : mod.programs) {
-                    bpf_prog_detach2(bpf_program__fd(loaded_program.program), 0, loaded_program.spec.attach_type);
-                }
-            }
-        }
-        if (test.reattach_after_detach) {
-            for (const auto& mod : loaded_modules) {
-                for (auto& loaded_program : mod.programs) {
-                    int result =
-                        bpf_prog_attach(bpf_program__fd(loaded_program.program), 0, loaded_program.spec.attach_type, 0);
-                    SAFE_REQUIRE(result == 0);
-                }
-            }
         }
 
         // Create sockets on init or after reset.
@@ -414,7 +388,7 @@ execute_connection_test(const connection_test_case& test_case)
                     server_bind_error);
             }
 
-            // If bind was expected to fail, skip connection testing
+            // If bind was expected to fail, skip connection testing.
             if (server_bind_error != 0) {
                 server.reset();
                 client.reset();
@@ -449,7 +423,7 @@ execute_connection_test(const connection_test_case& test_case)
     }
 }
 
-// Type tuples for TEMPLATE_TEST_CASE: (address_family, protocol)
+// Type tuples for TEMPLATE_TEST_CASE: (address_family, protocol).
 using tcp_v4_params =
     std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<uint16_t, IPPROTO_TCP>>;
 using tcp_v6_params =
@@ -551,7 +525,7 @@ TEMPLATE_TEST_CASE("connection_test_connect", "[sock_addr_tests]", ALL_CONNECTIO
          }});
 }
 
-// sock_addr ingress/egress policy tests
+// sock_addr ingress/egress policy tests.
 TEMPLATE_TEST_CASE("connection_test_sock_addr", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -651,7 +625,7 @@ TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", A
          }});
 }
 
-// Bind policy basic functionality tests
+// Bind policy basic functionality tests.
 TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -684,7 +658,7 @@ TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARA
     });
 }
 
-// Bind policy hard permit with WFP filter
+// Bind policy hard permit with WFP filter.
 TEMPLATE_TEST_CASE("bind_policy_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
