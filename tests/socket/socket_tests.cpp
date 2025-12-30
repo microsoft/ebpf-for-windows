@@ -331,12 +331,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     tuple.protocol = test_case.protocol;
 
     // Initialize verdict maps to REJECT.
-    bind_action_t reject_verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    ebpf_sock_addr_verdict_t sock_addr_reject_verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     if (ingress_map) {
-        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &reject_verdict, EBPF_ANY) == 0);
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &sock_addr_reject_verdict, EBPF_ANY) == 0);
     }
     if (egress_map) {
-        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &reject_verdict, EBPF_ANY) == 0);
+        SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &sock_addr_reject_verdict, EBPF_ANY) == 0);
     }
 
     // Attach all programs before executing tests.

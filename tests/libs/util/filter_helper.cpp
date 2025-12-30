@@ -10,7 +10,7 @@ const GUID filter_helper::provider_guid = {
 const GUID filter_helper::sublayer_guid = {
     0x7f9e2a1c, 0x5b3d, 0x4e8f, {0xa2, 0x6c, 0x1d, 0x4b, 0x7e, 0x3a, 0x9f, 0x5c}};
 
-filter_helper::filter_helper(const std::vector<wfp_test_filter_spec>& filters)
+filter_helper::filter_helper(_In_ const std::vector<wfp_test_filter_spec>& filters)
 {
     REQUIRE(FwpmEngineOpen(nullptr, RPC_C_AUTHN_DEFAULT, nullptr, nullptr, &wfp_engine) == ERROR_SUCCESS);
 
@@ -94,7 +94,7 @@ filter_helper::cleanup()
 }
 
 DWORD
-filter_helper::add_filter(const wfp_test_filter_spec& filter_spec)
+filter_helper::add_filter(_In_ const wfp_test_filter_spec& filter_spec)
 {
     FWPM_FILTER filter = {};
     uint64_t filter_id = 0;
