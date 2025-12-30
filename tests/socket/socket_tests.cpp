@@ -144,7 +144,7 @@ struct connection_test_case
 
     // Network parameters.
     ADDRESS_FAMILY address_family{AF_INET}; ///< AF_INET or AF_INET6.
-    uint16_t protocol{IPPROTO_TCP};         ///< IPPROTO_TCP or IPPROTO_UDP.
+    IPPROTO protocol{IPPROTO_TCP};          ///< IPPROTO_TCP or IPPROTO_UDP.
 
     std::vector<module_spec> modules{}; ///< Modules to load.
 
@@ -449,13 +449,13 @@ execute_connection_test(_In_ const connection_test_case& test_case)
 
 // Type tuples for TEMPLATE_TEST_CASE: (address_family, protocol).
 using tcp_v4_params =
-    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<uint16_t, IPPROTO_TCP>>;
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<IPPROTO, IPPROTO_TCP>>;
 using tcp_v6_params =
-    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<uint16_t, IPPROTO_TCP>>;
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<IPPROTO, IPPROTO_TCP>>;
 using udp_v4_params =
-    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<uint16_t, IPPROTO_UDP>>;
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET>, std::integral_constant<IPPROTO, IPPROTO_UDP>>;
 using udp_v6_params =
-    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<uint16_t, IPPROTO_UDP>>;
+    std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<IPPROTO, IPPROTO_UDP>>;
 
 #define ALL_CONNECTION_TEST_PARAMS tcp_v4_params, tcp_v6_params, udp_v4_params, udp_v6_params
 
@@ -489,7 +489,7 @@ TEST_CASE("connection_test_attach_all", "[attach]")
 TEMPLATE_TEST_CASE("connection_test_recv_accept", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test(
         {.name = "connection_test_recv_accept",
          .address_family = family,
@@ -520,7 +520,7 @@ TEMPLATE_TEST_CASE("connection_test_recv_accept", "[sock_addr_tests]", ALL_CONNE
 TEMPLATE_TEST_CASE("connection_test_connect", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test(
         {.name = "connection_test_connect",
          .address_family = family,
@@ -553,7 +553,7 @@ TEMPLATE_TEST_CASE("connection_test_connect", "[sock_addr_tests]", ALL_CONNECTIO
 TEMPLATE_TEST_CASE("connection_test_sock_addr", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test(
         {.name = "connection_test_sock_addr",
          .address_family = family,
@@ -588,7 +588,7 @@ TEMPLATE_TEST_CASE("connection_test_sock_addr", "[sock_addr_tests]", ALL_CONNECT
 TEMPLATE_TEST_CASE("connection_test_recv_accept_hard_permit", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test(
         {.name = "connection_test_recv_accept_hard_permit",
          .address_family = family,
@@ -620,7 +620,7 @@ TEMPLATE_TEST_CASE("connection_test_recv_accept_hard_permit", "[sock_addr_tests]
 TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test(
         {.name = "connection_test_connect_hard_permit",
          .address_family = family,
@@ -653,7 +653,7 @@ TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", A
 TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test({
         .name = "bind_policy_basic",
         .address_family = family,
@@ -686,7 +686,7 @@ TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARA
 TEMPLATE_TEST_CASE("bind_policy_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
-    constexpr uint16_t protocol = std::tuple_element_t<1, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
     execute_connection_test({
         .name = "bind_policy_hard_permit_wfp",
         .address_family = family,
