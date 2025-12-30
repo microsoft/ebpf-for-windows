@@ -180,7 +180,7 @@ _client_socket::_client_socket(
     int _protocol,
     uint16_t _port,
     socket_family_t _family,
-    const sockaddr_storage& _source_address,
+    _In_ const sockaddr_storage& _source_address,
     int expected_bind_error)
     : _base_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error}, overlapped{},
       receive_posted(false)
