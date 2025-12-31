@@ -409,9 +409,9 @@ bind_test_callee0(void* context, const program_runtime_context_t* runtime_contex
 #line 85 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     return r0;
@@ -622,9 +622,9 @@ bind_test_callee1(void* context, const program_runtime_context_t* runtime_contex
 #line 86 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     return r0;
@@ -835,9 +835,9 @@ bind_test_callee10(void* context, const program_runtime_context_t* runtime_conte
 #line 95 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1048,9 +1048,9 @@ bind_test_callee11(void* context, const program_runtime_context_t* runtime_conte
 #line 96 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1261,9 +1261,9 @@ bind_test_callee12(void* context, const program_runtime_context_t* runtime_conte
 #line 97 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1474,9 +1474,9 @@ bind_test_callee13(void* context, const program_runtime_context_t* runtime_conte
 #line 98 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1687,9 +1687,9 @@ bind_test_callee14(void* context, const program_runtime_context_t* runtime_conte
 #line 99 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     return r0;
@@ -1900,9 +1900,9 @@ bind_test_callee15(void* context, const program_runtime_context_t* runtime_conte
 #line 100 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2113,9 +2113,9 @@ bind_test_callee16(void* context, const program_runtime_context_t* runtime_conte
 #line 101 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2326,9 +2326,9 @@ bind_test_callee17(void* context, const program_runtime_context_t* runtime_conte
 #line 102 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2539,9 +2539,9 @@ bind_test_callee18(void* context, const program_runtime_context_t* runtime_conte
 #line 103 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2752,9 +2752,9 @@ bind_test_callee19(void* context, const program_runtime_context_t* runtime_conte
 #line 104 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     return r0;
@@ -2965,9 +2965,9 @@ bind_test_callee2(void* context, const program_runtime_context_t* runtime_contex
 #line 87 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3178,9 +3178,9 @@ bind_test_callee20(void* context, const program_runtime_context_t* runtime_conte
 #line 105 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3391,9 +3391,9 @@ bind_test_callee21(void* context, const program_runtime_context_t* runtime_conte
 #line 106 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3604,9 +3604,9 @@ bind_test_callee22(void* context, const program_runtime_context_t* runtime_conte
 #line 107 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     return r0;
@@ -3817,9 +3817,9 @@ bind_test_callee23(void* context, const program_runtime_context_t* runtime_conte
 #line 108 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4030,9 +4030,9 @@ bind_test_callee24(void* context, const program_runtime_context_t* runtime_conte
 #line 109 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4243,9 +4243,9 @@ bind_test_callee25(void* context, const program_runtime_context_t* runtime_conte
 #line 110 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4456,9 +4456,9 @@ bind_test_callee26(void* context, const program_runtime_context_t* runtime_conte
 #line 111 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4669,9 +4669,9 @@ bind_test_callee27(void* context, const program_runtime_context_t* runtime_conte
 #line 112 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     return r0;
@@ -4882,9 +4882,9 @@ bind_test_callee28(void* context, const program_runtime_context_t* runtime_conte
 #line 113 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5095,9 +5095,9 @@ bind_test_callee29(void* context, const program_runtime_context_t* runtime_conte
 #line 114 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5308,9 +5308,9 @@ bind_test_callee3(void* context, const program_runtime_context_t* runtime_contex
 #line 88 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5521,9 +5521,9 @@ bind_test_callee30(void* context, const program_runtime_context_t* runtime_conte
 #line 115 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5734,9 +5734,9 @@ bind_test_callee31(void* context, const program_runtime_context_t* runtime_conte
 #line 116 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     return r0;
@@ -5947,9 +5947,9 @@ bind_test_callee32(void* context, const program_runtime_context_t* runtime_conte
 #line 117 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6160,9 +6160,9 @@ bind_test_callee33(void* context, const program_runtime_context_t* runtime_conte
 #line 118 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6266,9 +6266,9 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
         return 0;
 #line 138 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=1
 #line 141 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(0);
+    r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6479,9 +6479,9 @@ bind_test_callee4(void* context, const program_runtime_context_t* runtime_contex
 #line 89 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6692,9 +6692,9 @@ bind_test_callee5(void* context, const program_runtime_context_t* runtime_contex
 #line 90 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     return r0;
@@ -6905,9 +6905,9 @@ bind_test_callee6(void* context, const program_runtime_context_t* runtime_contex
 #line 91 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7118,9 +7118,9 @@ bind_test_callee7(void* context, const program_runtime_context_t* runtime_contex
 #line 92 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7331,9 +7331,9 @@ bind_test_callee8(void* context, const program_runtime_context_t* runtime_contex
 #line 93 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7544,9 +7544,9 @@ bind_test_callee9(void* context, const program_runtime_context_t* runtime_contex
 #line 94 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     return r0;
@@ -7748,9 +7748,9 @@ bind_test_caller(void* context, const program_runtime_context_t* runtime_context
 #line 128 "sample/tail_call_max_exceed.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/tail_call_max_exceed.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/tail_call_max_exceed.c"
     return r0;
