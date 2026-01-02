@@ -207,9 +207,9 @@ static void
 execute_connection_attempt(
     _Inout_ std::unique_ptr<client_socket_t>& client,
     _Inout_ std::unique_ptr<receiver_socket_t>& server,
-    _In_ ADDRESS_FAMILY address_family,
-    _In_ connection_test_result expected_result,
-    _In_ uint16_t target_port)
+    ADDRESS_FAMILY address_family,
+    connection_test_result expected_result,
+    uint16_t target_port)
 {
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;

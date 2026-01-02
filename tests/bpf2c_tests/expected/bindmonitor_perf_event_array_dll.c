@@ -178,9 +178,9 @@ bind_monitor(void* context, const program_runtime_context_t* runtime_context)
 #line 31 "sample/bindmonitor_perf_event_array.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=14 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=14 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/bindmonitor_perf_event_array.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/bindmonitor_perf_event_array.c"
     return r0;

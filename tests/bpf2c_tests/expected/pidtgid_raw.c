@@ -217,9 +217,9 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 51 "sample/pidtgid.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=22 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"
-    r0 = IMMEDIATE(1);
+    r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=23 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"
     return r0;
