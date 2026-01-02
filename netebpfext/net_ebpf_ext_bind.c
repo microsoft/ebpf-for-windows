@@ -364,9 +364,12 @@ net_ebpf_ext_resource_allocation_classify(
         //
         switch (result) {
         case BIND_PERMIT_SOFT:
+        case BIND_REDIRECT:
             //
-            // Soft permit: Allow the operation but preserve FWPS_RIGHT_ACTION_WRITE.
-            // This enables lower-priority WFP filters to override the decision.
+            // Soft permit: Allow the operation but preserve FWPS_RIGHT_ACTION_WRITE to allow override.
+            // Redirect: Allow the operation, potentially with modified socket address.
+            //  - The eBPF program may have updated the socket_address in the context to
+            //    redirect the bind to a different address/port.
             //
             classify_output->actionType = FWP_ACTION_PERMIT;
             break;
@@ -380,16 +383,6 @@ net_ebpf_ext_resource_allocation_classify(
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
 
-        case BIND_REDIRECT:
-            //
-            // Redirect: Allow the operation, potentially with modified socket address.
-            // The eBPF program may have updated the socket_address in the context to
-            // redirect the bind to a different address/port. WFP processing continues
-            // with the potentially modified address.
-            //
-            classify_output->actionType = FWP_ACTION_PERMIT;
-            break;
-
         case BIND_DENY:
         default: // If the program returns any other value, we will block the bind.
             //
@@ -400,10 +393,6 @@ net_ebpf_ext_resource_allocation_classify(
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
             break;
-
-            //
-            // Invalid return value: Treat as a hard deny.
-            //
         }
     }
 

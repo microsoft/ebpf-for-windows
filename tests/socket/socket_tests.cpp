@@ -79,12 +79,6 @@ struct bind_policy
 };
 
 /**
- * @brief No policy (used for detach/reattach tests without map updates).
- */
-struct no_policy
-{};
-
-/**
  * @brief Expected test result.
  */
 enum class connection_test_result

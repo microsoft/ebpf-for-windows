@@ -36,13 +36,6 @@ typedef struct _bind_md
 typedef enum _bind_action
 {
     /**
-     * @brief Deny the bind operation.
-     *
-     * The bind operation will be blocked.
-     */
-    BIND_DENY,
-
-    /**
      * @brief Permit the bind operation (soft permit).
      *
      * Use this when you want to allow the operation but still permit other
@@ -51,12 +44,11 @@ typedef enum _bind_action
     BIND_PERMIT_SOFT,
 
     /**
-     * @brief Permit the bind operation (hard permit).
+     * @brief Deny the bind operation.
      *
-     * The bind operation is allowed and lower-priority filters or security policies
-     * cannot override this decision.
+     * The bind operation will be blocked.
      */
-    BIND_PERMIT_HARD,
+    BIND_DENY,
 
     /**
      * @brief Change the bind endpoint.
@@ -66,6 +58,14 @@ typedef enum _bind_action
      * in the bind_md_t context to specify the new target.
      */
     BIND_REDIRECT,
+
+    /**
+     * @brief Permit the bind operation (hard permit).
+     *
+     * The bind operation is allowed and lower-priority filters or security policies
+     * cannot override this decision.
+     */
+    BIND_PERMIT_HARD,
 
     /**
      * @brief Backward compatibility alias for BIND_PERMIT_SOFT.
