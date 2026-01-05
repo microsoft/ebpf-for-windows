@@ -196,6 +196,9 @@ popd
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{231ee32b-eba4-4fe5-a55b-db18f539d403}</ProjectGuid>
     <RootNamespace>setupbuild</RootNamespace>
+    <!-- Required for PackageReference in Utility projects -->
+    <NuGetProjectStyle>PackageReference</NuGetProjectStyle>
+    <TargetFramework>native</TargetFramework>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
