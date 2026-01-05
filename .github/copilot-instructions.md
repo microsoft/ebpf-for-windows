@@ -30,11 +30,7 @@ int hash = calculate_hash(key);
 ## Coding Conventions
 
 ### Naming Conventions
-- Use `lower_snake_case` for variable, member/field, and function names.
-- Use `UPPER_SNAKE_CASE` for macro names and constants.
-- Prefix eBPF specific names in the global namespace with `ebpf_` (e.g., `ebpf_result_t`).
-- Prefix names with `_` to indicate internal and private fields or methods.
-- Prefix struct definitions with `_` and always create a typedef with the suffix `_t`.
+Follow the naming conventions documented in [docs/DevelopmentGuide.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/DevelopmentGuide.md#naming-conventions)
 
 ### Type Usage
 - Use fixed length types from `stdint.h` (e.g., `int64_t`, `uint8_t`) instead of language keywords.
