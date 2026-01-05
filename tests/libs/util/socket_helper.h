@@ -95,7 +95,7 @@ typedef class _base_socket
 
     /**
      * @brief Get the actual error code from the bind operation.
-     * @return Error code (0 = success)
+     * @return Winsock error code from WSAGetLastError().
      */
     int
     get_bind_error() const

@@ -82,7 +82,7 @@ struct
  * 4. Global fallback: wildcard policy for all operations.
  *
  * @param[in,out] ctx Bind operation context; socket_address may be modified for redirects.
- * @return bind_action_t Action to take (PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT).
+ * @return Action to take (PERMIT_SOFT, PERMIT_HARD, DENY, or REDIRECT).
  */
 __inline __attribute__((always_inline)) bind_action_t
 lookup_bind_policy(bind_md_t* ctx)
