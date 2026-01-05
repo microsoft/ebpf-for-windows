@@ -689,11 +689,6 @@ and mapped twice sequentially in memory directly after the header pages.
 - The consumer reads records in order starting at the consumer offset and stopping at the first locked record or on reaching the producer offset.
 - Double-mapping the memory automatically handles reading and writing records that wrap around.
 
-_Note:_ the 3-page header is not yet implemented - currently the ring buffer metadata is stored in a kernel data structure.
-This will affect the structure layouts below when [#4163](https://github.com/microsoft/ebpf-for-windows/issues/4163)
-is implemented, but has no impact on the below agorithm.
-
-
 ### Ring buffer structure
 
 ```c
@@ -792,7 +787,7 @@ To serialize reservations, producers use an interlocked compare-exchange on the 
 
 - Compare-exchange is used to atomically reserve space for the record after confirming there is space available.
 - Producers busy-wait (at dispatch) for earlier concurrent reservations before advancing the next producer offset.
-- See [Producer reserve](#producer-reserve) below for the full algorithm.
+- See [Producer reserve algorithm](#reserve-algorithm) below for the full algorithm.
 
 ### Producer Algorithm
 
