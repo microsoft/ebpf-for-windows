@@ -16,3 +16,5 @@ jobs:
     uses: ./.github/workflows/check-pr.yml
     with:
       run_on_fork: true
+    secrets: inherit
+    permissions: inherit
