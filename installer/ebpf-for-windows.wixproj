@@ -150,9 +150,7 @@ SPDX-License-Identifier: MIT
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="WiX">
-      <Version>3.14.1</Version>
-    </PackageReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="res\eBPF logo png  150px.png" />
