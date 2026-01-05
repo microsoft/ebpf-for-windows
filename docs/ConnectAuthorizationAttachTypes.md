@@ -8,10 +8,12 @@ This document explains the purpose and rationale behind the `BPF_CGROUP_INET4_CO
 
 eBPF for Windows already supports several attach types for socket address operations:
 
-- `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT` - Invoked at the redirect layer for outbound connections
+- `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT` - Inspect outbound connections, with the capability to modify the destination address or port (redirection). Invoked at the redirect layer before route selection.
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT` - For incoming connections
 
 However, there was a gap in functionality that required the addition of new attach points.
+
+**Implementation Note:** CONNECT and CONNECT_AUTHORIZATION attach types are implemented as WFP callouts in the connect-redirect and auth_connect layers, respectively, providing deep integration with the Windows Filtering Platform.
 
 ## Problem Statement
 
@@ -21,9 +23,17 @@ The existing `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` attach ty
 
 At the redirect layer, certain critical outbound connection properties are not yet available, including:
 
-- **Interface information** - Which network interface will be used for the outbound connection
-- **Tunnel type** - Whether the outbound connection will use tunneling protocols
-- **Route-dependent metadata** - Information that depends on the selected route
+- **Interface information** - Which network interface will be used for the outbound connection.
+- **Tunnel type** - Whether the outbound connection will use tunneling protocols.
+- **Route-dependent metadata** - Information that depends on the selected route.
+
+Additionally, the redirect layer is **not invoked during WFP reauthorization (reauth) events**. When WFP triggers a reauth cycle for an existing connection (e.g., due to policy changes, network transitions, or security updates), the redirect-layer eBPF programs are bypassed. This means:
+
+- Programs cannot re-evaluate or re-redirect established connections during reauth
+- Authorization decisions made at the redirect layer are not re-evaluated on reauth
+- **Reauth support is required** for eBPF-based solutions to handle policy enforcement across connection lifecycle events
+
+The CONNECT_AUTHORIZATION attach types are invoked during both initial connection establishment **and** reauth cycles, providing comprehensive authorization coverage throughout the connection lifecycle.
 
 ### Use Cases Requiring Route Information
 
@@ -52,17 +62,17 @@ The new `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_A
 ## When to Use Each Attach Type
 
 ### Use CONNECT Attach Types When:
-- You need to **redirect** outbound connections to different destinations (**redirection is only supported at these layers**)
-- You only need basic outbound connection information (source/destination IP/port)
-- Interface and route information is not relevant to your use case
+- Program needs to **redirect** outbound connections to different destinations (**redirection is only supported at these layers**).
+- Program only needs basic outbound connection information (source/destination IP/port).
+- Interface and route information is not relevant to the program's use case.
 
 ### Use CONNECT_AUTHORIZATION Attach Types When:
-- You need **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`)
-- You need **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`)
-- You need **next-hop interface** details (via `bpf_sock_addr_get_next_hop_interface_luid()`)
-- You need **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`)
-- You want to **authorize or deny** outbound connections based on complete network context (**no redirection support**)
-- Your policy depends on route-dependent metadata
+- Program needs **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`).
+- Program needs **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`).
+- Program needs **next-hop interface** details (via `bpf_sock_addr_get_next_hop_interface_luid()`).
+- Program needs **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`).
+- Program wants to **authorize or deny** outbound connections based on complete network context (**no redirection support**).
+- Program policy depends on route-dependent metadata.
 
 ## Implementation Details
 
@@ -71,55 +81,108 @@ Both CONNECT_AUTHORIZATION attach types use the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR`
 
 ### Verdict Handling
 CONNECT_AUTHORIZATION programs can return:
-- `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the outbound connection and skip further authorization checks
-- `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the outbound connection but continue with additional authorization checks
-- `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the outbound connection
+- `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the outbound connection. Maps to hard permit in WFP.
+- `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the outbound connection. Maps to soft permit in WFP.
+- `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the outbound connection.
 
-#### Verdict Types Explained
+**Important Details:**
 
-**PROCEED_HARD vs PROCEED_SOFT:**
-- `PROCEED_HARD` provides an optimization by signaling to the WFP layer that no further authorization checks are needed for this outbound connection, potentially improving performance for trusted outbound connections
-- `PROCEED_SOFT` allows the outbound connection but ensures that other WFP filters and authorization mechanisms continue to evaluate the outbound connection normally
-- `PROCEED` (standard) behaves the same as `PROCEED_SOFT` - allows the outbound connection with normal authorization flow
+`PROCEED_HARD` will tell WFP it does not need to verify any more filters **at this sublayer**. It will still process the outbound request at other sublayers. Additionally, `PROCEED_HARD` will override soft-block settings (e.g., default Windows Firewall allow/block settings are soft-block settings; this will allow the connection even if the Windows Firewall policy is to block by default).
 
-**Use Cases:**
-- Use `PROCEED_HARD` for outbound connections that have been thoroughly validated and are known to be safe, where bypassing additional checks improves performance
-- Use `PROCEED_SOFT` or `PROCEED` for outbound connections that should be allowed but may still need evaluation by other security mechanisms
-- Use `REJECT` to block outbound connections that violate security policies
+`PROCEED_SOFT` allows the outbound connection while respecting soft-block settings and continuing evaluations.
+
+For detailed information on how WFP evaluates and arbitrates filters across multiple layers and callouts, see [Filter Arbitration](https://learn.microsoft.com/en-us/windows/win32/fwp/filter-arbitration).
 
 **Important:** Redirect functionality is **not supported** at the CONNECT_AUTHORIZATION layer since route selection has already occurred. Outbound connection redirection can only be performed at the `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` layers.
 
+### Context Modification Restrictions
+
+The `bpf_sock_addr` context is **read-only** for CONNECT_AUTHORIZATION attach types. Programs must not attempt to modify the source or destination IP address and port fields at this layer.
+
+**Rationale:**
+- Route selection has already completed at the authorization layer, making any IP/port modifications ineffective
+- Context modifications would violate the semantic contract of read-only authorization at this layer
+- Silently ignoring modifications would lead to confusing program behavior and difficult-to-diagnose bugs
+
+**Expected Behavior:**
+The extension will **reject** the verdict of a program at this attach layer that changed the sock_addr context by modifying the source or destination IP/port. Programs that modify these fields will have their verdict rejected and the outbound connection will be blocked for security.
+
+**Contrast with CONNECT Layer:**
+Unlike CONNECT_AUTHORIZATION, the CONNECT layer (operating at the redirect layer) fully supports `bpf_sock_addr` context modifications for redirection purposes, since route selection has not yet occurred.
+
 ### Additional Helper Functions
-CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through specialized helper functions:
 
-#### `bpf_sock_addr_get_interface_type(ctx)`
-Returns the network interface type for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Interface type value, or -1 if not available
-- **Use case**: Distinguish between different interface types (e.g., Ethernet, WiFi, VPN)
-- **Note**: Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `IF_TYPE_ETHERNET_CSMACD` (6) (ethernetCsmacd), `IF_TYPE_IEEE80211` (71) (ieee80211 for WiFi), `IF_TYPE_TUNNEL` (131) (tunnel), etc. These constants are defined in the Windows SDK header `ipifcons.h`.
+CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through a single versioned helper function that returns a struct containing all relevant network context information.
 
-#### `bpf_sock_addr_get_tunnel_type(ctx)`
-Returns the tunnel type information for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Tunnel type value, 0 if not a tunnel, or -1 if not available
-- **Use case**: Apply different policies for tunneled vs. non-tunneled traffic
-- **Note**: Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc.
+#### `int bpf_sock_addr_get_network_context(ctx, context_ptr, context_size)`
 
-#### `bpf_sock_addr_get_next_hop_interface_luid(ctx)`
-Returns the next-hop interface LUID for the outbound connection. Available for CONNECT_AUTHORIZATION hooks only.
-- **Returns**: Next-hop interface LUID, or -1 if not available
-- **Use case**: Route-dependent access control decisions
+Returns a struct containing network layer information for the connection. This is a versioned helper that supports future extensibility.
 
-#### `bpf_sock_addr_get_sub_interface_index(ctx)`
-Returns the sub-interface index for the connection. Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks.
-- **Returns**: Sub-interface index, or -1 if not available
-- **Use case**: Granular interface-based policies
+**Parameters:**
+- `ctx` - The socket address context
+- `context_ptr` - Pointer to the `bpf_sock_addr_network_context_t` struct to be filled
+- `context_size` - Size of the struct (used for version management)
 
-### Selective Program Invocation
-The implementation includes a filtering mechanism to ensure that:
-- CONNECT_AUTHORIZATION programs are only invoked for CONNECT_AUTHORIZATION attach points
-- CONNECT programs are only invoked for CONNECT attach points
+**Returns:** 
+- 0 on success
+- -1 on error (e.g., not available at this attach layer)
 
-This prevents cross-invocation and ensures programs run at the appropriate layer.
+**Struct Definition:**
+```c
+// Version 1 of the network context struct
+typedef struct {
+    __u32 version;                    // Struct version (currently 1)
+    __u32 interface_type;             // IANA interface type, or -1 if not available
+    __u32 tunnel_type;                // IANA tunnel type value, 0 if not a tunnel, or -1 if not available
+    __u64 next_hop_interface_luid;    // Next-hop interface LUID, or -1 if not available. This is same as `NET_LUID` defined in `ifdef.h`.
+    __u32 sub_interface_index;        // Sub-interface index, or -1 if not available
+} bpf_sock_addr_network_context_t;
+```
+
+**Availability:**
+- `interface_type` - Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks
+- `tunnel_type` - Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks
+- `next_hop_interface_luid` - Available for CONNECT_AUTHORIZATION hooks only
+- `sub_interface_index` - Available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT hooks
+
+**Benefits of Versioned Struct Approach:**
+- **Single helper call** - Reduces overhead of multiple helper invocations
+- **Forward compatible** - New fields can be added in future versions without breaking existing programs
+- **Version awareness** - Programs can check the `version` field to know which fields are populated
+- **Extensible** - Future versions (e.g., version 2) can add new fields while maintaining backward compatibility
+
+**Usage Example:**
+```c
+SEC("cgroup/connect_authorization4")
+int interface_aware_authorization(struct bpf_sock_addr *ctx)
+{
+    bpf_sock_addr_network_context_t net_ctx = {};
+    
+    // Retrieve network context
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
+    
+    // Use the retrieved information
+    if (net_ctx.interface_type == IF_TYPE_IEEE80211) { // WiFi
+        // Apply WiFi-specific policy
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+    
+    if (net_ctx.tunnel_type != 0) {
+        // Handle tunneled traffic
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
+    }
+    
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+}
+```
+
+**Reference Notes:**
+- Interface type values are assigned by IANA as defined in the [Interface Types (ifType) registry](https://www.iana.org/assignments/ianaiftype-mib/ianaiftype-mib). Common values include `IF_TYPE_ETHERNET_CSMACD` (6), `IF_TYPE_IEEE80211` (71), `IF_TYPE_TUNNEL` (131), etc. These constants are defined in `ipifcons.h`.
+- Tunnel type values are also assigned by IANA in the same registry. Common values include `3` (gre), `19` (ipsectunnelmode), `5` (l2tp), etc. defined in `ifdef.h`.
+
+
 
 ## Program Interaction: CONNECT and CONNECT_AUTHORIZATION Together
 
@@ -197,21 +260,10 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 }
 ```
 
-### Benefits of Layered Approach
-
-1. **Performance Optimization**: PROCEED_HARD verdicts skip unnecessary CONNECT_AUTHORIZATION processing for trusted outbound connections
-2. **Comprehensive Control**: CONNECT handles redirection + basic filtering, CONNECT_AUTHORIZATION adds interface-aware policies
-3. **Separation of Concerns**: Network topology changes (CONNECT) vs. authorization policies (CONNECT_AUTHORIZATION)
-4. **Flexibility**: Each layer can be independently updated without affecting the other
-
-### Important Considerations
-
-- **Redirection must happen at CONNECT layer**: Once CONNECT_AUTHORIZATION runs, route selection is complete
-- **Context preservation**: Outbound connection context from CONNECT layer is available to CONNECT_AUTHORIZATION programs
-- **Verdict precedence**: REJECT verdicts are final; PROCEED_HARD optimizes by skipping CONNECT_AUTHORIZATION
-- **Error handling**: Failures in either layer result in outbound connection blocking for security
 
 ## Example Scenarios
+
+The following are reference implementations demonstrating eBPF-based CONNECT_AUTHORIZATION programs. Sample test programs can cover these scenarios in the actual test suite.
 
 ### Scenario 1: Interface-Based Access Control
 ```c
@@ -222,7 +274,7 @@ int connect_authorization_interface_policy(struct bpf_sock_addr *ctx)
     uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
 
     // Apply interface-specific policy with appropriate verdict types.
-    if (interface_type == IF_TYPE_TUNNEL) { // tunnel(131) - VPN/tunnel interfaces.
+    if (interface_type == IF_TYPE_TUNNEL) { // tunnel(131) - IPv6/IPv4 tunnels (IPHTTPS, Teredo, 6to4, etc.).
         // VPN connections are highly trusted - skip additional authorization.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     } else if (interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi interfaces.
@@ -360,21 +412,30 @@ int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
 }
 ```
 
+### Important Note on VPN Detection
+
+**VPNs do not have a specific interface type.** Sadly, VPNs don't have an iftype. Some will use type `IF_TYPE_PPP`, some type `IF_TYPE_VIRTUAL_INTERFACE`, and some will just be type Ethernet.
+
+To identify VPN traffic in your programs, you may need to:
+- Correlate with `tunnel_type` information (IPSec, L2TP, etc.)
+- Use other connection context signals available in the network context
+- Maintain a database of known VPN application behaviors
+
+Do not rely solely on `interface_type` to detect VPNs.
+
 ## Migration Considerations
 
 ### Existing Programs
 Existing programs using `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` will continue to work unchanged. The new CONNECT_AUTHORIZATION attach types are additional, not replacements.
 
 ### Choosing the Right Attach Type
-When developing new programs, consider:
-
-1. **Do you need to redirect outbound connections?** → Use CONNECT attach types
-2. **Do you need enhanced network context (interface type, tunnel info, routing details)?** → Use CONNECT_AUTHORIZATION attach types with the new helper functions
-3. **Do you only need basic outbound connection info for authorization?** → Either type works, but CONNECT_AUTHORIZATION provides significantly more context
+When developing new programs, consider whether you need:
+- Redirection capability → Use CONNECT attach types
+- Enhanced network context information → Use CONNECT_AUTHORIZATION attach types
 
 ### Backward Compatibility
 The new helper functions are designed to be backward compatible:
-- They return -1 when information is not available (e.g., on CONNECT_REDIRECT layers)
+- They return -1 when information is not available
 - Existing programs that don't use these helpers continue to function normally
 - The `bpf_sock_addr_t` context structure remains unchanged to maintain ABI compatibility
 
