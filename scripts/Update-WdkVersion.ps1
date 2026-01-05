@@ -11,7 +11,7 @@ This script updates the WDK version in all relevant files. It queries the NuGet 
 - wdk.props
 - tools\bpf2c\templates\kernel_mode_bpf2c.vcxproj
 - tools\bpf2c\templates\user_mode_bpf2c.vcxproj
-- scripts\setup_build\setup_build.vcxproj
+- scripts\setup_build\packages.config (generated from template)
 
 The script creates a backup of each file before updating it. If an error occurs during the update, the script rolls back
 all changes.
@@ -169,11 +169,11 @@ rolls back the changes.
             Copy-Item $output_file_path $backup_path -Force
         }
 
-        # Read the contents of the file
-        $template_file_content = Get-Content $output_file_path
-        # Replace the version number in the file
-        $template_file_content = $template_file_content -replace "<Version>[\d\.]+</Version>", "<Version>$version_number</Version>"
-        # Write the updated contents back to the file
+        # Read the contents of the template file
+        $template_file_content = Get-Content $template_file_path
+        # Replace the version number in the template
+        $template_file_content = $template_file_content -replace "\{\{WDK_VERSION\}\}", $version_number
+        # Write the updated contents to the output file
         Set-Content $output_file_path $template_file_content
         # Print success message
         Write-Output "Updated WDK version in $output_file_path to $version_number"
@@ -213,11 +213,12 @@ try {
         $files_updated += $vs_file
     }
 
-    # Update the PackageReference versions in setup_build.vcxproj
-    Write-Host "Updating WDK PackageReference versions in setup_build.vcxproj"
-    $setup_build_vcxproj = "$PSScriptRoot\..\scripts\setup_build\setup_build.vcxproj"
-    Update-TemplateFile -template_file_path $setup_build_vcxproj -output_file_path $setup_build_vcxproj -version_number $wdk_version_number
-    $files_updated += $setup_build_vcxproj
+    # Generate packages.config from template
+    Write-Host "Generating packages.config for setup_build"
+    $template_file = "$PSScriptRoot\setup_build\packages.config.template"
+    $output_file = "$PSScriptRoot\setup_build\packages.config"
+    Update-TemplateFile -template_file_path $template_file -output_file_path $output_file -version_number $wdk_version_number
+    $files_updated += $output_file
 
     # Print success message
     Write-Output "Updated WDK version in all files"

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<packages>
+  <package id="Microsoft.Windows.SDK.CPP" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.arm64" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.x64" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.x86" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.ARM64" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.x64" version="{{WDK_VERSION}}" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.x86" version="{{WDK_VERSION}}" targetFramework="native" />
+</packages>

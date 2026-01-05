@@ -192,8 +192,8 @@ jobs:
         env:
           cache-name: cache-nuget-modules
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/*.vcxproj', '**/*.wixproj') }}-${{env.msvc_tools_version}}
+          path: packages
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
 
       - name: Cache verifier project
         # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.

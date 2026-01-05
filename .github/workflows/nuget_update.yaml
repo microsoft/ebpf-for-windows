@@ -48,8 +48,8 @@ jobs:
         env:
           cache-name: cache-nuget-modules
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/*.vcxproj', '**/*.wixproj') }}
+          path: packages
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
 
       - name: Restore NuGet packages
         working-directory: ${{env.GITHUB_WORKSPACE}}
