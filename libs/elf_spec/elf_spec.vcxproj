@@ -19,18 +19,14 @@
       <FileType>Document</FileType>
       <Command>
          pushd $(OutDir)
-         "$(PkgEverParse)\lib\native\win-x86_64\everparse.cmd" $(ProjectDir)Elf.3d
+         $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)Elf.3d
          popd
        </Command>
       <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="EverParse">
-      <Version>2022.6.13</Version>
-      <GeneratePathProperty>true</GeneratePathProperty>
-      <ExcludeAssets>contentFiles;analyzers</ExcludeAssets>
-    </PackageReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
