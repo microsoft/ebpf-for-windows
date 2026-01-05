@@ -33,7 +33,7 @@ const uint8_t _elf_hash[] = { /* hash bytes */ };
 
 ### 2. New API for Hash Extraction
 
-A new API function `ebpf_api_get_data_section()` has been added to extract data from named sections in both PE and ELF files:
+A new API function `ebpf_api_get_data_section()` has been added to extract data from named sections in PE files. ELF files may also contain a hash section if they were compiled with hash embedding enabled:
 
 ```cpp
 _Must_inspect_result_ ebpf_result_t
@@ -51,15 +51,15 @@ This API:
 
 ### 3. NetSh Command Line Interface
 
-A new `netsh ebpf show hash` command has been implemented to extract and display the embedded hash:
+A new `netsh ebpf show hash` command has been implemented to extract and display the embedded hash from PE images:
 
 **Command Syntax:**
 ```
-netsh ebpf show hash filename=<path> [hashonly]
+netsh ebpf show hash [filename=]<path> [hashonly]
 ```
 
 **Parameters:**
-- `filename`: Required path to the PE or ELF file
+- `filename`: Required path to the PE file
 - `hashonly`: Optional flag to output only the hash value (compatible with PowerShell Get-FileHash format)
 
 **Example Output:**
@@ -67,7 +67,7 @@ netsh ebpf show hash filename=<path> [hashonly]
 Without `hashonly` flag:
 ```
 Hash for example.sys:
-Size: 32 bytes
+Size: 64 bytes
 Data: a1b2c3d4e5f6789a bcdef012345678ab cdef0123456789ab cdef0123456789ab
       cdef0123456789ab cdef0123456789ab cdef0123456789ab cdef0123456789ab
 ```
@@ -81,7 +81,7 @@ A1B2C3D4E5F6789ABCDEF012345678ABCDEF0123456789ABCDEF0123456789AB
 
 ### 1. Integrity Verification
 Users can verify that a deployed PE file corresponds to a specific ELF source:
-```bash
+```powershell
 # Get hash from compiled PE
 netsh ebpf show hash filename=program.sys hashonly
 
@@ -91,7 +91,7 @@ Get-FileHash program.o -Algorithm SHA256
 
 ### 2. Debugging and Troubleshooting
 When investigating issues with deployed eBPF programs, developers can verify they are working with the expected version:
-```bash
+```powershell
 netsh ebpf show hash filename=C:\Windows\System32\drivers\myprogram.sys
 ```
 
@@ -100,39 +100,6 @@ Build systems can automatically verify that compilation produces consistent resu
 
 ### 4. Security Auditing
 Security teams can trace deployed eBPF drivers back to their original source files for compliance and audit purposes.
-
-## Implementation Details
-
-### Files Modified
-
-1. **Core Implementation:**
-   - `tools/bpf2c/bpf_code_generator.cpp`: Hash embedding logic
-   - `libs/api/ebpf_api.cpp`: New section extraction API
-   - `include/ebpf_api.h`: API declarations
-
-2. **NetSh Integration:**
-   - `libs/ebpfnetsh/netsh_hash.cpp`: New command implementation
-   - `libs/ebpfnetsh/netsh_hash.h`: Header definitions
-   - `libs/ebpfnetsh/tokens.h`: Command tokens
-   - `tools/netsh/dllmain.c`: Command registration
-
-3. **Testing:**
-   - `tests/end_to_end/netsh_test.cpp`: Comprehensive test cases
-   - `tests/end_to_end/end_to_end.cpp`: Integration tests
-
-### Error Handling
-
-The implementation provides robust error handling for:
-- **File not found**: Clear error message when the specified file doesn't exist
-- **Invalid file format**: Appropriate error when file is not a valid PE/ELF
-- **Missing hash section**: Informative message when no hash section is present
-- **Corrupted data**: Validation of section data integrity
-
-### Backward Compatibility
-
-- Existing PE files without hash sections will display "No hash section found"
-- The new API is additive and doesn't break existing functionality
-- NetSh commands are new and don't conflict with existing commands
 
 ## Testing Strategy
 
