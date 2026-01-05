@@ -2,18 +2,44 @@
 
 ## Summary
 
-This proposal introduces a new helper function `bpf_sock_ops_get_flow_id()` that allows eBPF socket operations (sock_ops) programs to access the Windows Filtering Platform (WFP) flow ID associated with network connections. This enhancement enables eBPF programs to correlate network events with WFP flow tracking for advanced network monitoring, security analysis, and troubleshooting scenarios.
+This proposal introduces a new helper function `bpf_sock_ops_get_flow_id()` that allows eBPF 
+socket operations (sock_ops) programs to access a unique flow identifier associated with network 
+connections. This enhancement enables eBPF programs to correlate network events with flow tracking 
+for advanced network monitoring, security analysis, and troubleshooting scenarios.
+
+Unlike the 5-tuple (source IP, source port, destination IP, destination port, protocol) which can 
+be reused as connections end and are recycled, this flow identifier guarantees uniqueness throughout 
+the flow's lifetime. Additionally, this identifier is used internally by the Windows networking stack 
+for operations like direct connection termination (via FwpsFlowAbort), making it essential for full 
+integration with Windows network management APIs.
 
 ## Background
 
-The Windows Filtering Platform (WFP) is the foundational networking API in Windows that provides deep packet inspection and filtering capabilities. WFP assigns unique flow IDs to network connections, which are used internally for tracking and managing network flows throughout their lifetime.
+Network connections in Windows are managed by the Windows Filtering Platform (WFP), which assigns 
+unique flow identifiers to each network connection. These identifiers are fundamental to the Windows 
+networking stack and are used for operations such as:
 
-Currently, eBPF socket operations programs can observe connection events and extract connection metadata (IP addresses, ports, protocol, etc.), but they cannot access the WFP flow ID. This limitation prevents eBPF programs from:
+- Direct connection termination via `FwpsFlowAbort()`
+- Flow statistics and telemetry collection
+- Network policy enforcement and filtering
+- Connection tracking across multiple layers of the networking stack
 
-- Correlating eBPF events with WFP-based security tools
-- Implementing advanced flow tracking that spans multiple network layers
-- Integrating with existing Windows network monitoring infrastructure
-- Performing deep packet inspection correlation across different hook points
+Currently, eBPF socket operations programs can observe connection events and extract connection 
+metadata (IP addresses, ports, protocol, etc.), but they cannot access the flow identifier. This 
+limitation prevents eBPF programs from integrating with Windows network management tools such as:
+
+- Network diagnostic and troubleshooting utilities
+- Performance monitoring and analytics platforms
+- Security analysis and intrusion detection systems
+- Network policy compliance and enforcement tools
+- Connection-level QoS and bandwidth management applications
+
+Without access to the flow identifier, eBPF programs cannot:
+
+- Correlate eBPF events with other Windows networking tools and infrastructure
+- Implement flow-based tracking that integrates with system networking operations
+- Perform operations requiring the flow identifier (like direct connection termination)
+- Enable user-space applications to act on flow-specific information discovered by eBPF programs
 
 ## Proposed Changes
 
@@ -23,11 +49,11 @@ A new program-type specific helper function has been introduced for sock_ops pro
 
 ```c
 /**
- * @brief Get the WFP flow ID associated with the current sock_ops context.
+ * @brief Get the flow ID associated with the current sock_ops context.
  *
  * @param[in] ctx Pointer to bpf_sock_ops_t context.
  *
- * @return The WFP flow ID as a 64-bit unsigned integer.
+ * @return The flow ID as a 64-bit unsigned integer, or 0 if not available.
  */
 EBPF_HELPER(uint64_t, bpf_sock_ops_get_flow_id, (bpf_sock_ops_t * ctx));
 ```
@@ -69,103 +95,22 @@ This ensures the helper is only available to sock_ops programs and maintains pro
 
 ## Use Cases
 
-### 1. Network Security Monitoring
+The flow ID identifier enables several important scenarios:
 
-Security applications can correlate eBPF-observed connection events with WFP-based security policies:
+1. **Network Security Monitoring** - Correlate eBPF-observed connection events with other security 
+tools for comprehensive threat detection and response.
 
-```c
-SEC("sockops")
-int security_monitor(bpf_sock_ops_t* ctx)
-{
-    if (ctx->op == BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB) {
-        uint64_t flow_id = bpf_sock_ops_get_flow_id(ctx);
+2. **Performance Analysis** - Track connections across multiple observation points to diagnose 
+network performance issues and bottlenecks.
 
-        // Log security event with flow correlation
-        security_event_t event = {
-            .flow_id = flow_id,
-            .process_id = bpf_get_current_pid_tgid() >> 32,
-            .remote_ip = ctx->remote_ip4,
-            .remote_port = ctx->remote_port
-        };
+3. **Policy Compliance Monitoring** - Verify that connections follow organizational policies and 
+enable enforcement of network policies at the connection level.
 
-        bpf_ringbuf_output(&security_events, &event, sizeof(event), 0);
-    }
-    return 0;
-}
-```
+4. **Connection Termination** - Enable user-space applications to terminate specific connections 
+using the flow ID with system APIs like `FwpsFlowAbort()`.
 
-### 2. Performance Analysis and Troubleshooting
-
-Network performance tools can track connection flows across multiple observation points:
-
-```c
-SEC("sockops")
-int performance_tracker(bpf_sock_ops_t* ctx)
-{
-    uint64_t flow_id = bpf_sock_ops_get_flow_id(ctx);
-
-    switch (ctx->op) {
-    case BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB:
-        // Track connection establishment time
-        bpf_map_update_elem(&flow_start_times, &flow_id, &timestamp, BPF_ANY);
-        break;
-    case BPF_SOCK_OPS_CONNECTION_DELETED_CB:
-        // Calculate connection duration
-        calculate_connection_duration(flow_id);
-        break;
-    }
-    return 0;
-}
-```
-
-### 3. Network Policy Compliance
-
-Compliance monitoring can verify that connections follow organizational policies using flow correlation:
-
-```c
-SEC("sockops")
-int compliance_monitor(bpf_sock_ops_t* ctx)
-{
-    uint64_t flow_id = bpf_sock_ops_get_flow_id(ctx);
-
-    if (is_sensitive_destination(ctx->remote_ip4)) {
-        // Record policy-relevant connection
-        policy_event_t event = {
-            .flow_id = flow_id,
-            .process_id = bpf_get_current_pid_tgid() >> 32,
-            .destination = ctx->remote_ip4,
-            .timestamp = bpf_ktime_get_ns()
-        };
-
-        bpf_ringbuf_output(&policy_events, &event, sizeof(event), 0);
-    }
-    return 0;
-}
-```
-
-### 4. Advanced Network Analytics
-
-Data analytics platforms can perform sophisticated flow analysis by correlating eBPF data with WFP flow information:
-
-```c
-SEC("sockops")
-int analytics_collector(bpf_sock_ops_t* ctx)
-{
-    uint64_t flow_id = bpf_sock_ops_get_flow_id(ctx);
-
-    // Create comprehensive flow record
-    flow_analytics_t record = {
-        .flow_id = flow_id,
-        .tuple = extract_connection_tuple(ctx),
-        .process_info = get_process_context(),
-        .operation = ctx->op,
-        .timestamp = bpf_ktime_get_ns()
-    };
-
-    bpf_map_update_elem(&analytics_data, &flow_id, &record, BPF_ANY);
-    return 0;
-}
-```
+5. **Advanced Network Analytics** - Correlate eBPF-collected data with flow-level information for 
+sophisticated network analysis and anomaly detection.
 
 ## Implementation Details
 
@@ -312,8 +257,16 @@ This foundation enables several potential future improvements:
 
 ## Conclusion
 
-The BPF socket operations flow ID access feature provides essential correlation capabilities between eBPF programs and the Windows Filtering Platform. This enhancement enables sophisticated network monitoring, security analysis, and troubleshooting scenarios while maintaining the performance and security characteristics of the eBPF for Windows platform.
+The BPF socket operations flow ID access feature provides essential correlation capabilities 
+between eBPF programs and the Windows Filtering Platform. This enhancement enables sophisticated 
+network monitoring, security analysis, and troubleshooting scenarios while maintaining the 
+performance and security characteristics of the eBPF for Windows platform.
 
-The implementation is minimal, efficient, and well-tested, providing immediate value for network monitoring applications while establishing a foundation for future WFP integration enhancements. The program-type specific helper approach ensures proper isolation and security while maximizing utility for sock_ops programs.
+The implementation is minimal, efficient, and well-tested, providing immediate value for network 
+monitoring applications while establishing a foundation for future WFP integration enhancements. 
+The program-type specific helper approach ensures proper isolation and security while maximizing 
+utility for sock_ops programs.
 
-This feature bridges a critical gap between eBPF observability and Windows networking infrastructure, enabling new classes of network analysis and security applications on the Windows platform.
+This feature bridges a critical gap between eBPF observability and Windows networking 
+infrastructure, enabling new classes of network analysis and security applications on the Windows 
+platform.
