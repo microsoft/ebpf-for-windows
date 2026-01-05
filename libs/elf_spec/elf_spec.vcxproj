@@ -28,9 +28,8 @@
   <ItemGroup>
     <PackageReference Include="EverParse">
       <Version>2022.6.13</Version>
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>none</IncludeAssets>
       <GeneratePathProperty>true</GeneratePathProperty>
+      <ExcludeAssets>contentFiles;analyzers</ExcludeAssets>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(SolutionDir)wdk.props" />
