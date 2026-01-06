@@ -53,6 +53,32 @@ static service_install_helper
 static service_install_helper
     _ebpf_extension_driver_helper(EBPF_EXTENSION_DRIVER_NAME, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
 
+using jit_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_JIT>;
+using native_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_NATIVE>;
+using interpret_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_INTERPRET>;
+
+#if defined(CONFIG_BPF_JIT_DISABLED) && defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t
+#elif defined(CONFIG_BPF_JIT_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t, interpret_t
+#elif defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t, jit_t
+#else
+#define ENABLED_EXECUTION_TYPES native_t, jit_t, interpret_t
+#endif
+
+static std::string
+_get_program_file_name(_In_z_ const char* base_file_name, ebpf_execution_type_t execution_type)
+{
+    std::string file_name = base_file_name;
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        file_name += EBPF_PROGRAM_FILE_EXTENSION_NATIVE;
+    } else {
+        file_name += EBPF_PROGRAM_FILE_EXTENSION_JIT;
+    }
+    return file_name;
+}
+
 static void
 _test_program_load(
     const char* file_name, bpf_prog_type program_type, ebpf_execution_type_t execution_type, int expected_load_result)
@@ -252,14 +278,15 @@ TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 }
 
 // Synchronous ring buffer API test function.
-void
-ring_buffer_sync_api_test(ebpf_execution_type_t execution_type)
+TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TYPES)
 {
+    ebpf_execution_type_t execution_type = TestType::value;
+    std::string file_name = _get_program_file_name("bindmonitor_ringbuf", execution_type);
     const uint16_t base_test_port = 12300;
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper;
-    _helper.initialize("bindmonitor_ringbuf.o", BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
     object = _helper.get_object();
 
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -329,8 +356,7 @@ ring_buffer_sync_api_test(ebpf_execution_type_t execution_type)
 }
 
 // Test synchronous ring buffer consume API.
-void
-ring_buffer_sync_consume_test()
+TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
 {
     // Create a ring buffer map for testing.
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_ringbuf", 0, 0, 64 * 1024, nullptr);
@@ -397,24 +423,8 @@ ring_buffer_sync_consume_test()
     _close(map_fd);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("ringbuf_sync_api_jit", "[test_ringbuf_sync_api][ring_buffer]")
-{
-    ring_buffer_sync_api_test(EBPF_EXECUTION_JIT);
-}
-#endif
-
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("ringbuf_sync_api_interpret", "[test_ringbuf_sync_api][ring_buffer]")
-{
-    ring_buffer_sync_api_test(EBPF_EXECUTION_INTERPRET);
-}
-#endif
-
-TEST_CASE("ringbuf_sync_consume", "[ring_buffer]") { ring_buffer_sync_consume_test(); }
-
 // Test synchronous ring buffer with multiple maps.
-TEST_CASE("ringbuf_sync_multiple_maps", "[ring_buffer]")
+TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
 {
     fd_t map_fd1;
     fd_t map_fd2;
