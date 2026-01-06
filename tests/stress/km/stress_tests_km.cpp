@@ -31,9 +31,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
+    _Guarded_by_(lock) bool available { true };
+    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
+    _Guarded_by_(lock) bool loaded { false };
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -2236,16 +2236,7 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
     LOG_VERBOSE("Spawning child process: {}", command_line);
 
     if (!CreateProcessA(
-            nullptr,
-            const_cast<char*>(command_line.c_str()),
-            nullptr,
-            nullptr,
-            FALSE,
-            0,
-            nullptr,
-            nullptr,
-            &si,
-            &pi)) {
+            nullptr, const_cast<char*>(command_line.c_str()), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         LOG_ERROR("Failed to spawn child process, error: {}", GetLastError());
         return nullptr;
     }
@@ -2391,8 +2382,7 @@ TEST_CASE("ebpfcore_restart_with_open_handles_test", "[driver_restart_stress_tes
         // We expect the stop to fail (non-zero result)
         // Common error codes: ERROR_DEPENDENT_SERVICES_RUNNING, ERROR_SERVICE_CANNOT_ACCEPT_CTRL, etc.
         if (stop_result == 0) {
-            LOG_WARN(
-                "ebpfcore stopped successfully despite open handles - this may indicate a regression!");
+            LOG_WARN("ebpfcore stopped successfully despite open handles - this may indicate a regression!");
             // Don't fail the test immediately, but warn about unexpected behavior
         } else {
             LOG_INFO("Stop correctly failed with error code: {}", stop_result);
@@ -2421,9 +2411,8 @@ TEST_CASE("ebpfcore_restart_with_open_handles_test", "[driver_restart_stress_tes
         if (stop_result != 0) {
             LOG_ERROR("Failed to stop ebpfcore after child exited, error: {}", stop_result);
             // This is acceptable if there are other processes using ebpfapi.dll
-            LOG_INFO(
-                "Note: This may be expected if other processes (like the eBPF service) are holding references to "
-                "ebpfcore");
+            LOG_INFO("Note: This may be expected if other processes (like the eBPF service) are holding references to "
+                     "ebpfcore");
         } else {
             LOG_INFO("ebpfcore stopped successfully after child exit");
 
@@ -2499,7 +2488,8 @@ TEST_CASE("ebpfcore_restart_with_open_handles_test", "[driver_restart_stress_tes
                 LOG_INFO("ebpfcore restarted successfully");
                 Sleep(2000);
             } else {
-                LOG_INFO("Note: ebpfcore still cannot be stopped (error: {}), likely due to other processes", stop_result2);
+                LOG_INFO(
+                    "Note: ebpfcore still cannot be stopped (error: {}), likely due to other processes", stop_result2);
             }
         }
     }
