@@ -1720,6 +1720,7 @@ _find_lru_hash_map_entry(
         _insert_into_hot_list(lru_map, partition, entry);
     }
 
+    *data = value;
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
