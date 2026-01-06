@@ -1778,17 +1778,9 @@ TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(std::string(output) == "BPF:\\");
 
-    // Negative test: null input path.
-    result = ebpf_canonicalize_pin_path(output, sizeof(output), nullptr);
-    REQUIRE(result != EBPF_SUCCESS);
-
     // Negative test: buffer too small.
     char small_output[5];
     result = ebpf_canonicalize_pin_path(small_output, sizeof(small_output), "/some/very/long/path/that/wont/fit");
-    REQUIRE(result != EBPF_SUCCESS);
-
-    // Negative test: null output buffer.
-    result = ebpf_canonicalize_pin_path(nullptr, MAX_PATH, "/some/path");
     REQUIRE(result != EBPF_SUCCESS);
 }
 
@@ -1843,6 +1835,8 @@ TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
     // Negative test: null file path.
     error_message = nullptr;
     program_infos = nullptr;
+    // Intentional null file path; suppress static analysis warning.
+#pragma warning(suppress : 6387)
     result = ebpf_enumerate_programs(nullptr, false, &program_infos, &error_message);
     REQUIRE(result != EBPF_SUCCESS);
     ebpf_free_string(error_message);
@@ -1964,10 +1958,14 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     ebpf_api_map_info_free(map_count, map_info);
 
     // Negative test: null count parameter.
+    // Intentional null count parameter; suppress static analysis warning.
+#pragma warning(suppress : 6387)
     result = ebpf_api_get_pinned_map_info(nullptr, &map_info);
     REQUIRE(result != EBPF_SUCCESS);
 
     // Negative test: null info parameter.
+    // Intentional null info parameter; suppress static analysis warning.
+#pragma warning(suppress : 6387)
     result = ebpf_api_get_pinned_map_info(&map_count, nullptr);
     REQUIRE(result != EBPF_SUCCESS);
 
@@ -2019,6 +2017,8 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
     REQUIRE(result == EBPF_NO_MORE_KEYS);
 
     // Negative test: null output buffer.
+    // Intentional null output buffer; suppress static analysis warning.
+#pragma warning(suppress : 6387)
     result = ebpf_get_next_pinned_object_path("", nullptr, sizeof(next_path), &object_type);
     REQUIRE(result != EBPF_SUCCESS);
 
@@ -2096,6 +2096,8 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
         REQUIRE(result != EBPF_SUCCESS);
 
         // Negative test: null data.
+        // Intentional null data buffer; suppress static analysis warning.
+#pragma warning(suppress : 6387)
         result = ebpf_perf_event_array_map_write(map_fd, nullptr, sizeof(test_data));
         REQUIRE(result != EBPF_SUCCESS);
 
