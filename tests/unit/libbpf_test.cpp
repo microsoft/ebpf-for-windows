@@ -1325,7 +1325,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Test with various null parameters (need to disabled warnings since these violate SAL annotations).
+        // Test with various null parameters (need to disable warnings since these violate SAL annotations).
 #pragma warning(push)
 #pragma warning(disable : 6387)
         ebpf_result_t result = ebpf_ring_buffer_get_buffer(nullptr, 0, nullptr, nullptr, nullptr, nullptr);
@@ -2300,7 +2300,7 @@ _test_enumerate_link_IDs_with_bpf(ebpf_execution_type_t execution_type)
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.pathname = (uintptr_t)"MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -2690,7 +2690,7 @@ TEST_CASE("libbpf_prog_type_by_name_test", "[libbpf]")
     bpf_prog_type prog_type;
     bpf_attach_type expected_attach_type;
 
-     // Try a cross-platform type.
+    // Try a cross-platform type.
     REQUIRE(libbpf_prog_type_by_name("sockops", &prog_type, &expected_attach_type) == 0);
     REQUIRE(prog_type == BPF_PROG_TYPE_SOCK_OPS);
     REQUIRE(expected_attach_type == BPF_CGROUP_SOCK_OPS);

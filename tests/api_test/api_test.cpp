@@ -255,6 +255,7 @@ TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
 void
 ring_buffer_sync_api_test(ebpf_execution_type_t execution_type)
 {
+    const uint16_t base_test_port = 12300;
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper;
@@ -268,7 +269,7 @@ ring_buffer_sync_api_test(ebpf_execution_type_t execution_type)
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = 0};
 
     uint32_t event_count = 0;
-    const uint32_t expected_events = 5;
+    const uint32_t expected_events = 10;
 
     auto ring = ebpf_ring_buffer__new(
         process_map_fd,
@@ -285,19 +286,21 @@ ring_buffer_sync_api_test(ebpf_execution_type_t execution_type)
     ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
     REQUIRE(wait_handle != ebpf_handle_invalid);
 
-    // Generate some events by triggering socket binds.
-    for (int i = 0; i < expected_events; i++) {
-        const uint16_t test_port = 12300 + static_cast<uint16_t>(i);
-        perform_socket_bind(test_port, true);
-    }
+    // Generate event to consume by triggering socket bind.
+    perform_socket_bind(base_test_port, true);
 
     // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
     DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000); // 5 second timeout.
     REQUIRE(wait_result == WAIT_OBJECT_0);
 
     int consume_result = ring_buffer__consume(ring);
-    REQUIRE(consume_result >= 0);
+    REQUIRE(consume_result > 0);
     REQUIRE(event_count > 0);
+
+    // Generate some additional events.
+    for (uint16_t i = 1; i < expected_events; i++) {
+        perform_socket_bind(base_test_port + i, true);
+    }
 
     // Test 2: Use poll API in a loop until we get all expected events.
     int total_events_polled = 0;
@@ -585,7 +588,7 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     REQUIRE(have_data == true);
 
     // Wait for notification.
-    DWORD wait_status = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 1000);
+    DWORD wait_status = WaitForSingleObject(wait_handle, 1000);
     REQUIRE(wait_status == WAIT_OBJECT_0);
 
     // Consumer loop to read records.
