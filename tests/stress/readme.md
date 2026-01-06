@@ -156,3 +156,25 @@ Sample command line invocations:
 - Uses `droppacket` and `bindmonitor_tailcall` programs.
 - creates 32 test threads.
 - Runs the test for 30 minutes.
+
+## 1.7. ebpfcore_restart_with_open_handles_test
+
+This test validates the eBPF core driver's restart behavior under different scenarios involving open handles and pinned objects. The test ensures that:
+
+1. **ebpfcore cannot be stopped while child processes hold open handles** - Validates that the driver correctly prevents unload when user-mode processes have active references.
+2. **ebpfcore can be stopped after processes exit** - Confirms proper cleanup and driver unload when all handles are released.
+3. **ebpfcore behavior with pinned objects** - Tests and documents the driver's behavior when objects are pinned in the kernel namespace but no process holds handles.
+4. **ebpfcore restarts and operates normally** - Verifies basic functionality after a driver restart cycle.
+
+This test uses a helper process (`ebpf_restart_test_helper.exe`) that operates in three modes:
+- **open-handles**: Creates eBPF objects and keeps handles open, blocking until signaled by the controller
+- **pin-objects**: Creates objects, pins them to the kernel namespace, releases handles, and exits
+- **unpin-objects**: Unpins previously pinned objects and exits
+
+The test coordinates with the helper process using named events for IPC synchronization.
+
+### 1.7.1. `ebpf_stress_test_km ebpfcore_restart_with_open_handles_test`
+- Runs the complete driver restart stress test sequence
+- Tests all scenarios: open handles, pinned objects, and restart verification
+
+**Note**: This test may not fully stop and restart the driver if other processes (such as the eBPF service) are holding references to ebpfcore. This is expected behavior and the test will log appropriate messages in such cases.
