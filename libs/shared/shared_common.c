@@ -653,6 +653,27 @@ ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
 {
     const int DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+
+    // Validate buffer size upfront to avoid assertions in debug builds.
+    size_t input_length = strlen(input);
+    size_t required_size = DEVICE_PREFIX_SIZE + 1; // "BPF:" + null terminator
+
+    // Add space for leading backslash if path is relative.
+    if (input[0] != '/' && input[0] != '\\') {
+        required_size++;
+    }
+
+    // Add space for input path (minus "BPF:" prefix if present).
+    if (_strnicmp(input, "BPF:", DEVICE_PREFIX_SIZE) == 0) {
+        required_size += input_length - DEVICE_PREFIX_SIZE;
+    } else {
+        required_size += input_length;
+    }
+
+    if (output_size < required_size) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
     if (strcpy_s(output, output_size, "BPF:") != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
