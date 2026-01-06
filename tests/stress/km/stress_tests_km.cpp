@@ -2391,7 +2391,7 @@ TEST_CASE("ebpfcore_restart_with_open_handles_test", "[driver_restart_stress_tes
         // We expect the stop to fail (non-zero result)
         // Common error codes: ERROR_DEPENDENT_SERVICES_RUNNING, ERROR_SERVICE_CANNOT_ACCEPT_CTRL, etc.
         if (stop_result == 0) {
-            LOG_WARNING(
+            LOG_WARN(
                 "ebpfcore stopped successfully despite open handles - this may indicate a regression!");
             // Don't fail the test immediately, but warn about unexpected behavior
         } else {
