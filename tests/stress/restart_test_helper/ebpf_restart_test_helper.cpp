@@ -11,6 +11,7 @@
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include <windows.h>
+#include <io.h>
 #include <iostream>
 #include <string>
 
