@@ -13,6 +13,7 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
+#include <windows.h>
 #include <io.h>
 
 // Note: The 'program' and 'execution' types are not required for km tests.
