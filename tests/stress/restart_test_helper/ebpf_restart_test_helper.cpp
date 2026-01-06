@@ -189,8 +189,8 @@ mode_unpin_objects()
     std::cout << "Mode: UNPIN_OBJECTS - Unpinning objects" << std::endl;
 
     // Unpin the map
-    int result = bpf_obj_unpin(PIN_PATH_MAP);
-    if (result < 0) {
+    ebpf_result_t result = ebpf_object_unpin(PIN_PATH_MAP);
+    if (result != EBPF_SUCCESS) {
         std::cerr << "Failed to unpin map at " << PIN_PATH_MAP << ", error: " << result << std::endl;
         // Continue anyway to try unpinning program
     } else {
@@ -198,8 +198,8 @@ mode_unpin_objects()
     }
 
     // Unpin the program
-    result = bpf_obj_unpin(PIN_PATH_PROGRAM);
-    if (result < 0) {
+    result = ebpf_object_unpin(PIN_PATH_PROGRAM);
+    if (result != EBPF_SUCCESS) {
         std::cerr << "Failed to unpin program at " << PIN_PATH_PROGRAM << ", error: " << result << std::endl;
     } else {
         std::cout << "Unpinned program at: " << PIN_PATH_PROGRAM << std::endl;
