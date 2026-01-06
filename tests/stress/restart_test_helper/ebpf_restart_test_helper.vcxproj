@@ -8,7 +8,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{B5E8A9F3-1234-4567-89AB-CDEF01234567}</ProjectGuid>
+    <ProjectGuid>{25725C06-3335-4CBA-AB16-6FE5E51BE842}</ProjectGuid>
     <RootNamespace>ebpf_restart_test_helper</RootNamespace>
     <ProjectName>ebpf_restart_test_helper</ProjectName>
   </PropertyGroup>
