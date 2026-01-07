@@ -1091,8 +1091,8 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
         auto* consumer_page = static_cast<volatile uint64_t*>(consumer);
         auto* producer_page = static_cast<const volatile uint64_t*>(producer);
 
-        uint64_t consumer_offset = *consumer_page;
-        uint64_t producer_offset = *producer_page;
+        uint64_t consumer_offset = ReadULong64Acquire(consumer_page);
+        uint64_t producer_offset = ReadULong64Acquire(producer_page);
 
         // Initial offsets should be 0
         REQUIRE(consumer_offset == 0);

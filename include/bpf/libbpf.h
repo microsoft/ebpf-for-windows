@@ -950,6 +950,8 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
 /**
  * @brief Poll ring buffer for available data and consume records by calling sample_cb.
  *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
+ *
  * @param[in] rb Ring buffer manager.
  * @param[in] timeout_ms Maximum time to wait for data (in milliseconds), or -1 to wait indefinitely, or 0 to not wait.
  *
@@ -960,6 +962,8 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms);
 
 /**
  * @brief Consume all available records without waiting.
+ *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
  *
  * @param[in] rb Ring buffer manager.
  *

@@ -636,6 +636,7 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
         &map_info.data,
         &map_info.data_size);
     if (result != EBPF_SUCCESS) {
+        (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
         return -ebpf_result_to_errno(result);
     }
 
@@ -643,6 +644,7 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
         rb->sync_maps.push_back(map_info);
         return 0;
     } catch (const std::bad_alloc&) {
+        (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
         (void)ebpf_ring_buffer_map_unmap_buffer(map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
         return -ENOMEM;
     }

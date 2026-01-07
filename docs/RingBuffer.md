@@ -139,8 +139,6 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, _Inout_ void *ctx,
 /**
  * @brief Creates a new ring buffer manager (Windows-specific with flags).
  *
- * @note This currently returns NULL because the synchronous API is not implemented yet.
- *
  * Only one consumer can be attached at a time, so it should not be called multiple times on an fd.
  *
  * If the return value is NULL the error will be returned in errno.
@@ -178,6 +176,8 @@ int ring_buffer__add(struct ring_buffer *rb, int map_fd, ring_buffer_sample_fn s
  *
  * This function is only supported when automatic callbacks are disabled.
  *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
+ *
  * @param[in] rb Pointer to ring buffer manager.
  * @param[in] timeout_ms Maximum time to wait for (in milliseconds).
  *
@@ -189,6 +189,8 @@ int ring_buffer__poll(_In_ struct ring_buffer *rb, int timeout_ms);
  * @brief consume available records without waiting
  *
  * Equivalent to ring_buffer__poll() with timeout_ms=0.
+ *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
  *
  * @param[in] rb Pointer to ring buffer manager.
  *

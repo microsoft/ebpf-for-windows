@@ -426,8 +426,8 @@ TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
 // Test synchronous ring buffer with multiple maps.
 TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
 {
-    fd_t map_fd1;
-    fd_t map_fd2;
+    fd_t map_fd1 = -1;
+    fd_t map_fd2 = -1;
     ring_buffer* ring = nullptr;
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
         reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
