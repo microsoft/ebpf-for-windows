@@ -238,6 +238,7 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
     return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run.
 }
 ```
+```c
 // CONNECT_AUTHORIZATION layer program - handles interface-aware authorization.
 SEC("cgroup/connect_authorization4")
 int interface_aware_authorization(struct bpf_sock_addr *ctx)
