@@ -158,19 +158,19 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 {
     bpf_sock_addr_network_context_t net_ctx = {};
     
-    // Retrieve network context
+    // Retrieve network context.
     if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
     
-    // Use the retrieved information
-    if (net_ctx.interface_type == IF_TYPE_IEEE80211) { // WiFi
-        // Apply WiFi-specific policy
+    // Use the retrieved information.
+    if (net_ctx.interface_type == IF_TYPE_IEEE80211) { // IEEE 802.11 (WiFi).
+        // Apply WiFi-specific policy.
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
     
     if (net_ctx.tunnel_type != 0) {
-        // Handle tunneled traffic
+        // Handle tunneled traffic.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     }
     
@@ -261,7 +261,6 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
     return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
-
 
 ## Example Scenarios
 
