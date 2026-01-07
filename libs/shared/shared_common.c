@@ -347,8 +347,8 @@ _duplicate_program_descriptor(
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
     ebpf_context_descriptor_t* context_descriptor_copy = NULL;
 
-    program_type_descriptor_copy =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (program_type_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -368,7 +368,8 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
-    context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    context_descriptor_copy =
+        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -406,8 +407,8 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -546,8 +547,8 @@ _duplicate_helper_function_addresses(
 
     *new_helper_function_addresses = NULL;
 
-    helper_function_addresses_copy =
-        (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -558,8 +559,8 @@ _duplicate_helper_function_addresses(
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
     helper_function_addresses_copy->header.total_size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE;
 
-    helper_function_addresses_copy->helper_function_address =
-        (uint64_t*)ebpf_allocate_with_tag(helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
+    helper_function_addresses_copy->helper_function_address = (uint64_t*)ebpf_allocate_with_tag(
+        helper_function_addresses->helper_function_count * sizeof(uint64_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_function_addresses_copy->helper_function_address == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -603,7 +604,8 @@ ebpf_duplicate_program_data(
 
     EBPF_LOG_ENTRY();
 
-    program_data_copy = (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
+    program_data_copy =
+        (ebpf_program_data_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_data_t), EBPF_POOL_TAG_DEFAULT);
     if (program_data_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -652,7 +654,7 @@ Exit:
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
 {
-    const int DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+    const size_t DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
 
     // Validate buffer size upfront to avoid assertions in debug builds.
     size_t input_length = strlen(input);
@@ -695,7 +697,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
         }
     }
 
-    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
+    for (size_t i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
         if (output[i] == '/') {
             // Convert slashes to backslashes.
             output[i] = '\\';
@@ -711,7 +713,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
         memmove(output + DEVICE_PREFIX_SIZE + 1, next, strlen(next) + 1);
     }
 
-    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
+    for (size_t i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
         if (strncmp(output + i, "\\\\", 2) == 0) {
             char* next = output + i + 2;
             memmove(output + i + 1, next, strlen(next) + 1);
@@ -721,7 +723,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             char* next = output + i + 3;
             memmove(output + i + 1, next, strlen(next) + 1);
         } else if (strncmp(output + i, "\\..\\", 4) == 0) {
-            int previous_index = i - 1;
+            size_t previous_index = i - 1;
             for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
                 if (output[previous_index] == '\\') {
                     // Back up to the previous separator.
@@ -735,7 +737,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
                 return EBPF_INVALID_ARGUMENT;
             }
         } else if (strcmp(output + i, "\\..") == 0) {
-            int previous_index = i - 1;
+            size_t previous_index = i - 1;
             for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
                 if (output[previous_index] == '\\') {
                     // Terminate the string at the previous separator.
