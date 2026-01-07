@@ -157,9 +157,13 @@ Sample command line invocations:
 - creates 32 test threads.
 - Runs the test for 30 minutes.
 
-## 1.7. ebpfcore_restart_with_open_handles_test
+## 1.7. ebpfcore_restart_test_controller.exe - eBPF Core Driver Restart Test
 
-This test validates the eBPF core driver's restart behavior under different scenarios involving open handles and pinned objects. The test ensures that:
+This standalone test controller validates the eBPF core driver's restart behavior under different scenarios involving open handles and pinned objects. 
+
+**Important**: This test is implemented as a standalone executable (`ebpf_restart_test_controller.exe`) that does NOT load `ebpfapi.dll`, allowing it to test driver restart scenarios without holding a reference to the driver itself. This architectural design is critical to avoid test interference.
+
+The test ensures that:
 
 1. **ebpfcore cannot be stopped while child processes hold open handles** - Validates that the driver correctly prevents unload when user-mode processes have active references.
 2. **ebpfcore can be stopped after processes exit** - Confirms proper cleanup and driver unload when all handles are released.
@@ -171,10 +175,13 @@ This test uses a helper process (`ebpf_restart_test_helper.exe`) that operates i
 - **pin-objects**: Creates objects, pins them to the kernel namespace, releases handles, and exits
 - **unpin-objects**: Unpins previously pinned objects and exits
 
-The test coordinates with the helper process using named events for IPC synchronization.
+The controller coordinates with the helper process using named events for IPC synchronization.
 
-### 1.7.1. `ebpf_stress_test_km ebpfcore_restart_with_open_handles_test`
-- Runs the complete driver restart stress test sequence
+### 1.7.1. `ebpf_restart_test_controller.exe`
+- Runs the complete driver restart stress test sequence as a standalone executable
 - Tests all scenarios: open handles, pinned objects, and restart verification
+- Exit code 0 indicates success, non-zero indicates test failure
 
 **Note**: This test may not fully stop and restart the driver if other processes (such as the eBPF service) are holding references to ebpfcore. This is expected behavior and the test will log appropriate messages in such cases.
+
+**Why a Standalone Controller?** The previous implementation had a fundamental architectural flaw where the test process itself held a reference to ebpfcore (via loading ebpfapi.dll), preventing it from testing driver restart scenarios accurately. The standalone controller avoids this issue by never loading ebpfapi.dll directly.
