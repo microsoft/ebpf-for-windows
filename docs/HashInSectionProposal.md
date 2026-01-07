@@ -68,8 +68,7 @@ Without `hashonly` flag:
 ```
 Hash for example.sys:
 Size: 32 bytes
-Data: a1b2c3d4e5f6789a bcdef012345678ab
-    cdef0123456789ab cdef0123456789ab
+Data: a1b2c3d4e5f6789a bcdef012345678ab cdef0123456789ab cdef0123456789ab
 ```
 
 With `hashonly` flag:
