@@ -67,10 +67,10 @@ The new `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_A
 - Interface and route information is not relevant to the program's use case.
 
 ### Use CONNECT_AUTHORIZATION Attach Types When:
-- Program needs **interface information** for authorization decisions (via `bpf_sock_addr_get_interface_type()`).
-- Program needs **tunnel type** information (via `bpf_sock_addr_get_tunnel_type()`).
-- Program needs **next-hop interface** details (via `bpf_sock_addr_get_next_hop_interface_luid()`).
-- Program needs **sub-interface** granularity (via `bpf_sock_addr_get_sub_interface_index()`).
+- Program needs **interface information** for authorization decisions via `bpf_sock_addr_get_network_context()` (field: `interface_type`).
+- Program needs **tunnel type** information via `bpf_sock_addr_get_network_context()` (field: `tunnel_type`).
+- Program needs **next-hop interface** details via `bpf_sock_addr_get_network_context()` (field: `next_hop_interface_luid`).
+- Program needs **sub-interface** granularity via `bpf_sock_addr_get_network_context()` (field: `sub_interface_index`).
 - Program wants to **authorize or deny** outbound connections based on complete network context (**no redirection support**).
 - Program policy depends on route-dependent metadata.
 
@@ -112,7 +112,7 @@ Unlike CONNECT_AUTHORIZATION, the CONNECT layer (operating at the redirect layer
 
 ### Additional Helper Functions
 
-CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT attach types provide access to additional network layer properties through a single versioned helper function that returns a struct containing all relevant network context information.
+CONNECT_AUTHORIZATION and RECV_ACCEPT attach types provide access to additional network layer properties through a single versioned helper function that returns a struct containing all relevant network context information.
 
 #### `int bpf_sock_addr_get_network_context(ctx, context_ptr, context_size)`
 
@@ -132,18 +132,20 @@ Returns a struct containing network layer information for the connection. This i
 // Version 1 of the network context struct
 typedef struct {
     __u32 version;                    // Struct version (currently 1)
-    __u32 interface_type;             // IANA interface type, or -1 if not available
-    __u32 tunnel_type;                // IANA tunnel type value, 0 if not a tunnel, or -1 if not available
-    __u64 next_hop_interface_luid;    // Next-hop interface LUID, or -1 if not available. This is same as `NET_LUID` defined in `ifdef.h`.
-    __u32 sub_interface_index;        // Sub-interface index, or -1 if not available
+    __u32 interface_type;             // IANA interface type, or UINT32_MAX (0xFFFFFFFF) if not available.
+    __u32 tunnel_type;                // IANA tunnel type value; 0 if not a tunnel, or UINT32_MAX (0xFFFFFFFF) if not available.
+    __u64 next_hop_interface_luid;    // Next-hop interface LUID, or UINT64_MAX (0xFFFFFFFFFFFFFFFF) if not available. This is the same as `NET_LUID` defined in `ifdef.h`.
+    __u32 sub_interface_index;        // Sub-interface index, or UINT32_MAX (0xFFFFFFFF) if not available.
 } bpf_sock_addr_network_context_t;
 ```
 
+Note on sentinel values: The fields above are unsigned types and use a "not available" sentinel represented by casting -1 to the corresponding width (for example, `(uint32_t)-1` or `(uint64_t)-1`). For clarity, this equals `UINT32_MAX` (0xFFFFFFFF) for 32-bit fields and `UINT64_MAX` (0xFFFFFFFFFFFFFFFF) for 64-bit fields. When checking these values in C, compare against the correctly sized constant or use an explicit cast to match the field width.
+
 **Availability:**
-- `interface_type` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and AUTH_RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
-- `tunnel_type` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and AUTH_RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
+- `interface_type` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
+- `tunnel_type` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
 - `next_hop_interface_luid` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) hooks only
-- `sub_interface_index` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and AUTH_RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
+- `sub_interface_index` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
 
 **Benefits of Versioned Struct Approach:**
 - **Single helper call** - Reduces overhead of multiple helper invocations
@@ -245,16 +247,18 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 {
     // This program only runs for PROCEED_SOFT verdicts from CONNECT layer.
 
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
     // Block outbound connections on public WiFi to sensitive destinations.
-    if (interface_type == IF_TYPE_IEEE80211 && is_sensitive_destination(ctx->user_ip4)) { // IEEE 802.11 (WiFi).
+    if (net_ctx.interface_type == IF_TYPE_IEEE80211 && is_sensitive_destination(ctx->user_ip4)) { // IEEE 802.11 (WiFi).
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
     // Require VPN for external outbound connections.
-    if (!is_internal_network(ctx->user_ip4) && tunnel_type == 0) {
+    if (!is_internal_network(ctx->user_ip4) && net_ctx.tunnel_type == 0) {
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -262,30 +266,33 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 }
 ```
 
-> Note: The example functions `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, and `is_sensitive_destination()` are illustrative placeholders and are not eBPF helper functions. Program authors should implement equivalent logic using appropriate data structures and policies (for example, BPF maps).
+> Note: The example functions `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, `is_sensitive_destination()`, `is_internal_network()`, `is_approved_interface()`, `is_restricted_sub_interface()`, `is_high_bandwidth_destination()`, and `validate_tunnel_route()` are illustrative placeholders and are not eBPF helper functions. Program authors should implement equivalent logic using appropriate data structures and policies (for example, BPF maps, configuration maps, and policy engines).
 
 ## Example Scenarios
 
 The following are reference implementations demonstrating eBPF-based CONNECT_AUTHORIZATION programs. Sample test programs can cover these scenarios in the actual test suite.
 
-Note: Helper functions like `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, `is_sensitive_destination()`, and similar are illustrative placeholders to show policy logic. They are not eBPF helpers and should be implemented by program authors using appropriate data structures (e.g., maps) and logic.
+Note: Helper functions like `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, `is_sensitive_destination()`, `is_internal_network()`, `is_approved_interface()`, `is_restricted_sub_interface()`, `is_high_bandwidth_destination()`, and `validate_tunnel_route()` are illustrative placeholders to show policy logic. They are not eBPF helper functions and should be implemented by program authors using appropriate data structures (for example, BPF maps), configuration, or external policy logic.
 
 ### Scenario 1: Interface-Based Access Control
 ```c
 SEC("cgroup/connect_authorization4")
 int connect_authorization_interface_policy(struct bpf_sock_addr *ctx)
 {
-    // Get interface type using helper function.
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
+    // Get network context using helper function.
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
     // Apply interface-specific policy with appropriate verdict types.
-    if (interface_type == IF_TYPE_TUNNEL) { // tunnel(131) - IPv6/IPv4 tunnels (IPHTTPS, Teredo, 6to4, etc.).
+    if (net_ctx.interface_type == IF_TYPE_TUNNEL) { // tunnel(131) - IPv6/IPv4 tunnels (IPHTTPS, Teredo, 6to4, etc.).
         // VPN connections are highly trusted - skip additional authorization.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
-    } else if (interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi interfaces.
+    } else if (net_ctx.interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi interfaces.
         // Block outbound connections on public WiFi for sensitive applications.
         return BPF_SOCK_ADDR_VERDICT_REJECT;
-    } else if (interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet interfaces.
+    } else if (net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet interfaces.
         // Corporate wired network - allow but continue with normal authorization flow.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
@@ -301,14 +308,17 @@ SEC("cgroup/connect_authorization4")
 int connect_authorization_tunnel_policy(struct bpf_sock_addr *ctx)
 {
     // Check if outbound connection will use tunneling.
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
-    if (tunnel_type != 0) {
+    if (net_ctx.tunnel_type != 0) {
         // This is a tunneled outbound connection.
         // Apply tunnel-specific security policy.
-        if (tunnel_type == 19) { // ipsectunnelmode(19) - IPSec tunnel mode.
+        if (net_ctx.tunnel_type == 19) { // ipsectunnelmode(19) - IPSec tunnel mode.
             return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        } else if (tunnel_type == 3) { // gre(3) - GRE encapsulation.
+        } else if (net_ctx.tunnel_type == 3) { // gre(3) - GRE encapsulation.
             return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         } else {
             // Unknown or unsupported tunnel type.
@@ -325,19 +335,21 @@ int connect_authorization_tunnel_policy(struct bpf_sock_addr *ctx)
 SEC("cgroup/connect_authorization4")
 int connect_authorization_route_policy(struct bpf_sock_addr *ctx)
 {
-    // Get next-hop interface information.
-    uint64_t next_hop_interface = bpf_sock_addr_get_next_hop_interface_luid(ctx);
+    // Get network context for route information.
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
-    if (next_hop_interface != (uint64_t)-1) {
+    if (net_ctx.next_hop_interface_luid != (uint64_t)-1) {
         // Check if the next-hop interface is approved for this type of traffic.
-        if (!is_approved_interface(next_hop_interface)) {
+        if (!is_approved_interface(net_ctx.next_hop_interface_luid)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
     }
 
     // Get sub-interface details for fine-grained control.
-    uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
-    if (sub_interface != (uint32_t)-1 && is_restricted_sub_interface(sub_interface)) {
+    if (net_ctx.sub_interface_index != (uint32_t)-1 && is_restricted_sub_interface(net_ctx.sub_interface_index)) {
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
@@ -351,11 +363,13 @@ SEC("cgroup/connect_authorization4")
 int connect_authorization_verdict_demo(struct bpf_sock_addr *ctx)
 {
     uint32_t dest_ip = ctx->user_ip4;
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
     // Trusted internal network with VPN - maximum trust.
-    if (is_internal_network(dest_ip) && tunnel_type == 19) { // ipsectunnelmode(19).
+    if (is_internal_network(dest_ip) && net_ctx.tunnel_type == 19) { // ipsectunnelmode(19).
         // Skip all further authorization checks for performance.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     }
@@ -366,13 +380,13 @@ int connect_authorization_verdict_demo(struct bpf_sock_addr *ctx)
     }
 
     // Corporate wired network - allow but let other filters validate.
-    if (interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet interfaces.
+    if (net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD) { // ethernetCsmacd(6) - Ethernet interfaces.
         // Continue with normal authorization flow.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
     // External destinations on public WiFi networks - proceed with caution.
-    if (interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi.
+    if (net_ctx.interface_type == IF_TYPE_IEEE80211) { // ieee80211(71) - WiFi.
         // Allow but ensure other security mechanisms evaluate this.
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
@@ -388,13 +402,13 @@ SEC("cgroup/connect_authorization4")
 int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
 {
     // Gather all available network context.
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t next_hop_interface = bpf_sock_addr_get_next_hop_interface_luid(ctx);
-    uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
 
     // Create a comprehensive security decision based on all available context.
-    if (interface_type == IF_TYPE_WWANPP && tunnel_type == 0) { // WWANPP(243) - cellular without tunnel.
+    if (net_ctx.interface_type == IF_TYPE_WWANPP && net_ctx.tunnel_type == 0) { // WWANPP(243) - cellular without tunnel.
         // On cellular without tunnel - apply data usage restrictions.
         if (is_high_bandwidth_destination(ctx->user_ip4)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
@@ -403,9 +417,9 @@ int connect_authorization_comprehensive_policy(struct bpf_sock_addr *ctx)
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    if (tunnel_type != 0 && next_hop_interface != (uint64_t)-1) {
+    if (net_ctx.tunnel_type != 0 && net_ctx.next_hop_interface_luid != (uint64_t)-1) {
         // Tunneled traffic with specific next-hop - enhanced validation.
-        if (!validate_tunnel_route(tunnel_type, next_hop_interface)) {
+        if (!validate_tunnel_route(net_ctx.tunnel_type, net_ctx.next_hop_interface_luid)) {
             return BPF_SOCK_ADDR_VERDICT_REJECT;
         }
         // Validated tunnel outbound connections can skip additional checks.
