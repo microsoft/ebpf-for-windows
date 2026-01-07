@@ -93,6 +93,9 @@ connection_monitor(bpf_sock_ops_t* ctx)
         outbound = false;
         connected = false;
         break;
+    case BPF_SOCK_OPS_TCP_LISTEN_CB:
+        outbound = false;
+        connected = false;
     default:
         result = -1;
     }
