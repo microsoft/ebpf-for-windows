@@ -262,6 +262,8 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
 }
 ```
 
+> Note: The example functions `is_blacklisted_destination()`, `needs_proxy_inspection()`, `is_highly_trusted_destination()`, and `is_sensitive_destination()` are illustrative placeholders and are not eBPF helper functions. Program authors should implement equivalent logic using appropriate data structures and policies (for example, BPF maps).
+
 ## Example Scenarios
 
 The following are reference implementations demonstrating eBPF-based CONNECT_AUTHORIZATION programs. Sample test programs can cover these scenarios in the actual test suite.
