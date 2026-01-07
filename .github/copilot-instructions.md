@@ -25,7 +25,7 @@ int hash = calculate_hash(key);
 ### Comment Content
 - Comments should be clear, concise, and add value to understanding the code.
 - Avoid stating the obvious; focus on explaining why, not what.
-- Use doxygen comments with `\[in,out\]` direction annotations for all public API headers.
+- Use doxygen comments with `@param[in]`, `@param[out]`, or `@param[in,out]` direction annotations for all public API headers.
 
 ## Coding Conventions
 

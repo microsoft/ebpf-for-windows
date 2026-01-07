@@ -30,9 +30,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available { true };
-    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
-    _Guarded_by_(lock) bool loaded { false };
+    _Guarded_by_(lock) bool available{true};
+    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
+    _Guarded_by_(lock) bool loaded{false};
     bool attach{false};
 
     // The following fields are for debugging this test itself.
