@@ -170,11 +170,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                             // Current Version.
+         80,                            // Struct size up to the last field.
+         80,                            // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERF_EVENT_ARRAY, // Type of map.
@@ -208,9 +209,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t test_program_entry_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        32,
-        "helper_id_32",
+     {1, 40, 40}, // Version header.
+     32,
+     "helper_id_32",
     },
 };
 
@@ -253,10 +254,10 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
 
     // EBPF_OP_LDXDW pc=0 dst=r4 src=r1 offset=0 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
-    r4 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    READ_ONCE_64(r4, r1, OFFSET(0));
     // EBPF_OP_LDXDW pc=1 dst=r5 src=r1 offset=8 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
-    r5 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
+    READ_ONCE_64(r5, r1, OFFSET(8));
     // EBPF_OP_JGE_REG pc=2 dst=r4 src=r5 offset=9 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     if (r4 >= r5) {
@@ -333,8 +334,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 21;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 

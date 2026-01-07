@@ -7,6 +7,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_error.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -91,7 +92,6 @@ typedef struct _ebpf_program
     // Lock protecting the fields below.
     ebpf_lock_t lock;
 
-    _Guarded_by_(lock) ebpf_list_entry_t links;
     _Guarded_by_(lock) uint32_t link_count;
     _Guarded_by_(lock) ebpf_map_t** maps;
     _Guarded_by_(lock) uint32_t count_of_maps;
@@ -203,29 +203,6 @@ ebpf_program_initiate()
 void
 ebpf_program_terminate()
 {
-}
-
-_Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_lock_state_t state;
-    state = ebpf_lock_lock(&program->lock);
-    while (!ebpf_list_is_empty(&program->links)) {
-        ebpf_list_entry_t* entry = program->links.Flink;
-        ebpf_core_object_t* object = CONTAINING_RECORD(entry, ebpf_core_object_t, object_list_entry);
-        // Acquire a reference on the object to prevent it from going away.
-        EBPF_OBJECT_ACQUIRE_REFERENCE(object);
-
-        // Release the lock before calling detach.
-        ebpf_lock_unlock(&program->lock, state);
-        ebpf_link_detach_program((ebpf_link_t*)object);
-
-        EBPF_OBJECT_RELEASE_REFERENCE(object);
-        state = ebpf_lock_lock(&program->lock);
-    }
-    ebpf_lock_unlock(&program->lock, state);
-
-    EBPF_RETURN_VOID();
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
@@ -658,10 +635,6 @@ _ebpf_program_notify_reference_count_zeroed(_In_opt_ _Post_invalid_ ebpf_core_ob
         EBPF_RETURN_VOID();
     }
 
-    // Detach from all the attach points.
-    _ebpf_program_detach_links(program);
-    ebpf_assert(ebpf_list_is_empty(&program->links));
-
     for (index = 0; index < program->count_of_maps; index++) {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
     }
@@ -808,7 +781,6 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         goto Done;
     }
 
-    ebpf_list_initialize(&local_program->links);
     ebpf_lock_create(&local_program->lock);
 
     local_program->bpf_prog_type = BPF_PROG_TYPE_UNSPEC;
@@ -930,6 +902,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         EBPF_OBJECT_PROGRAM,
         _ebpf_program_free,
         _ebpf_program_notify_reference_count_zeroed,
+        NULL,
         _ebpf_program_get_program_type);
 
     if (retval != EBPF_SUCCESS) {
@@ -1265,14 +1238,14 @@ _ebpf_program_update_jit_helpers(
         }
 
         total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
+            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
         }
         total_helper_function_addresses->helper_function_count = (uint32_t)total_helper_count;
         total_helper_function_addresses->helper_function_address =
-            (uint64_t*)ebpf_allocate(sizeof(uint64_t) * total_helper_count);
+            (uint64_t*)ebpf_allocate_with_tag(sizeof(uint64_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses->helper_function_address == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1287,7 +1260,7 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate(sizeof(uint32_t) * total_helper_count);
+        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1961,21 +1934,10 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     ebpf_program_info_t* local_program_info = NULL;
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
-    bool provider_data_referenced = false;
 
     ebpf_assert(program_info);
     *program_info = NULL;
 
-    if (ebpf_program_reference_providers((ebpf_program_t*)program) != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "The extension is not loaded for program type",
-            &program->parameters.program_type);
-        result = EBPF_EXTENSION_FAILED_TO_LOAD;
-        goto Exit;
-    }
-    provider_data_referenced = true;
     program_data = program->extension_program_data;
     ebpf_assert_assume(program_data != NULL);
 
@@ -2041,10 +2003,6 @@ Exit:
         ebpf_program_free_program_info(local_program_info);
     }
 
-    if (provider_data_referenced) {
-        ebpf_program_dereference_providers((ebpf_program_t*)program);
-    }
-
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2059,34 +2017,28 @@ ebpf_program_free_program_info(_In_opt_ _Post_invalid_ ebpf_program_info_t* prog
 }
 
 void
-ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+ebpf_program_attach_link(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
-    // Acquire "attach" reference on the link object.
-    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)link);
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program);
 
-    // Insert the link in the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->lock);
-    ebpf_list_insert_tail(&program->links, &((ebpf_core_object_t*)link)->object_list_entry);
     program->link_count++;
     ebpf_lock_unlock(&program->lock, state);
     EBPF_RETURN_VOID();
 }
 
 void
-ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link)
+ebpf_program_detach_link(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
-    // Remove the link from the attach list.
     ebpf_lock_state_t state;
     state = ebpf_lock_lock(&program->lock);
-    ebpf_list_remove_entry(&((ebpf_core_object_t*)link)->object_list_entry);
     program->link_count--;
     ebpf_lock_unlock(&program->lock, state);
 
-    // Release the "attach" reference.
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link);
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_VOID();
 }
 
@@ -2415,7 +2367,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         goto Exit;
     }
 
-    *hash = (uint8_t*)ebpf_allocate(*hash_length);
+    *hash = (uint8_t*)ebpf_allocate_with_tag(*hash_length, EBPF_POOL_TAG_DEFAULT);
     if (*hash == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;

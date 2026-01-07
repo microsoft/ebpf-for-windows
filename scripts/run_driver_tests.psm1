@@ -263,7 +263,8 @@ function Invoke-Test
           [Parameter(Mandatory = $False)][string] $TraceFileName = "",
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
-          [Parameter(Mandatory = $False)][switch] $SkipTracing)
+          [Parameter(Mandatory = $False)][switch] $SkipTracing,
+          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking")
 
     try {
         # Initialize arguments.
@@ -281,7 +282,7 @@ function Invoke-Test
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
         $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
         if (-not $SkipTracing) {
-            Start-WPRTrace
+            Start-WPRTrace -TracingProfileName $TracingProfileName
         }
         if ($ArgumentsList) {
             $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
@@ -372,32 +373,6 @@ function Invoke-CICDTests
     Pop-Location
 }
 
-function Invoke-XDPTest
-{
-    param([parameter(Mandatory = $true)][string] $RemoteIPV4Address,
-          [parameter(Mandatory = $true)][string] $RemoteIPV6Address,
-          [parameter(Mandatory = $true)][string] $XDPTestName,
-          [parameter(Mandatory = $true)][string] $WorkingDirectory,
-          [parameter(Mandatory = $true)][string] $TraceFileName)
-
-    Push-Location $WorkingDirectory
-
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V4"
-
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "$($TraceFileName)_V6"
-
-    Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
-    Write-Log "`n`n"
-
-    Pop-Location
-}
-
 function Invoke-ConnectRedirectTest
 {
     param([parameter(Mandatory = $true)][string] $LocalIPv4Address,
@@ -472,7 +447,7 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = (60*60),
+          [parameter(Mandatory = $false)][int] $TestHangTimeout = (120*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
@@ -492,7 +467,7 @@ function Invoke-CICDStressTests
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
 
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     Pop-Location
 }

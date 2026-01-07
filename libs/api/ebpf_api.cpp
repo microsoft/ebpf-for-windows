@@ -38,6 +38,7 @@ typedef unsigned char boolean;
 
 #include <algorithm>
 #include <codecvt>
+#include <cstdint>
 #include <fcntl.h>
 #include <io.h>
 #include <mutex>
@@ -139,6 +140,9 @@ _ebpf_get_section_string(
     uintptr_t address,
     _In_ const image_section_header& section_header,
     _In_ const bounded_buffer* buffer) noexcept;
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_link_mark_as_legacy_mode(ebpf_handle_t link_handle) noexcept;
 
 static fd_t
 _create_file_descriptor_for_handle(ebpf_handle_t handle) NO_EXCEPT_TRY
@@ -1483,8 +1487,10 @@ ebpf_program_query_info(
 
     size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
     size_t section_name_length = reply->header.length - reply->section_name_offset;
-    char* local_file_name = reinterpret_cast<char*>(ebpf_allocate(file_name_length + 1));
-    char* local_section_name = reinterpret_cast<char*>(ebpf_allocate(section_name_length + 1));
+    char* local_file_name =
+        reinterpret_cast<char*>(ebpf_allocate_with_tag(file_name_length + 1, EBPF_POOL_TAG_DEFAULT));
+    char* local_section_name =
+        reinterpret_cast<char*>(ebpf_allocate_with_tag(section_name_length + 1, EBPF_POOL_TAG_DEFAULT));
 
     if (!local_file_name || !local_section_name) {
         ebpf_free(local_file_name);
@@ -1607,14 +1613,17 @@ _ebpf_program_attach(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
-    _Out_ ebpf_handle_t* link_handle,
+    _Out_opt_ ebpf_handle_t* link_handle,
     _Out_opt_ fd_t* link_fd) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(attach_parameters || !attach_parameters_size);
-    ebpf_assert(link_handle);
 
-    *link_handle = ebpf_handle_invalid;
+    ebpf_handle_t local_link_handle = ebpf_handle_invalid;
+
+    if (link_handle != nullptr) {
+        *link_handle = ebpf_handle_invalid;
+    }
 
     if (attach_type == nullptr) {
         // Unspecified attach_type is allowed only if we can find an ebpf_program_t.
@@ -1626,17 +1635,31 @@ _ebpf_program_attach(
     }
 
     ebpf_result_t result = _link_ebpf_program(
-        program_handle, attach_type, link_handle, (uint8_t*)attach_parameters, attach_parameters_size);
+        program_handle, attach_type, &local_link_handle, (uint8_t*)attach_parameters, attach_parameters_size);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
 
-    if (link_fd != nullptr) {
-        *link_fd = _create_file_descriptor_for_handle(*link_handle);
-        if (*link_fd == ebpf_fd_invalid) {
-            Platform::CloseHandle(*link_handle);
-            *link_handle = ebpf_handle_invalid;
-            EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    if (link_handle == nullptr && link_fd == nullptr) {
+        result = _ebpf_link_mark_as_legacy_mode(local_link_handle);
+        Platform::CloseHandle(local_link_handle);
+        local_link_handle = ebpf_handle_invalid;
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+
+    } else {
+        if (link_fd != nullptr) {
+            *link_fd = _create_file_descriptor_for_handle(local_link_handle);
+            if (*link_fd == ebpf_fd_invalid) {
+                Platform::CloseHandle(local_link_handle);
+                local_link_handle = ebpf_handle_invalid;
+                EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+            }
+        }
+        if (link_handle != nullptr) {
+            *link_handle = local_link_handle;
+            local_link_handle = ebpf_handle_invalid;
         }
     }
 
@@ -1650,26 +1673,39 @@ ebpf_program_attach(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
     size_t attach_params_size,
-    _Outptr_ struct bpf_link** link) NO_EXCEPT_TRY
+    _Outptr_opt_ struct bpf_link** link) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
 
     ebpf_assert(program);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate(sizeof(ebpf_link_t));
-    if (new_link == nullptr) {
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    ebpf_link_t* new_link = nullptr;
+
+    if (link != nullptr) {
+        new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
+        if (new_link == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+        }
     }
 
     ebpf_result_t result = _ebpf_program_attach(
-        program->handle, program, attach_type, attach_parameters, attach_params_size, &new_link->handle, &new_link->fd);
+        program->handle,
+        program,
+        attach_type,
+        attach_parameters,
+        attach_params_size,
+        new_link ? &new_link->handle : nullptr,
+        new_link ? &new_link->fd : nullptr);
 
     if (result != EBPF_SUCCESS) {
         ebpf_free(new_link);
         EBPF_RETURN_RESULT(result);
     }
 
-    *link = new_link;
+    if (link != nullptr) {
+        *link = new_link;
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -1680,10 +1716,9 @@ ebpf_program_attach_by_fds(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
-    _Out_ fd_t* link) NO_EXCEPT_TRY
+    _Out_opt_ fd_t* link) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(link);
 
     ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
     if (program_handle == ebpf_handle_invalid) {
@@ -1695,9 +1730,8 @@ ebpf_program_attach_by_fds(
         program = _get_ebpf_program_from_handle(program_handle);
     }
 
-    ebpf_handle_t link_handle;
     EBPF_RETURN_RESULT(_ebpf_program_attach(
-        program_handle, program, attach_type, attach_parameters, attach_parameters_size, &link_handle, link));
+        program_handle, program, attach_type, attach_parameters, attach_parameters_size, nullptr, link));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -1707,25 +1741,29 @@ ebpf_program_attach_by_fd(
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
     size_t attach_parameters_size,
-    _Outptr_ struct bpf_link** link) NO_EXCEPT_TRY
+    _Outptr_opt_ struct bpf_link** link) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(link);
 
-    ebpf_link_t* new_link = (ebpf_link_t*)ebpf_allocate(sizeof(ebpf_link_t));
-    if (new_link == nullptr) {
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    ebpf_link_t* new_link = nullptr;
+    if (link != nullptr) {
+        new_link = (ebpf_link_t*)ebpf_allocate_with_tag(sizeof(ebpf_link_t), EBPF_POOL_TAG_DEFAULT);
+        if (new_link == nullptr) {
+            EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+        }
     }
 
-    ebpf_result_t result =
-        ebpf_program_attach_by_fds(program_fd, attach_type, attach_parameters, attach_parameters_size, &new_link->fd);
+    ebpf_result_t result = ebpf_program_attach_by_fds(
+        program_fd, attach_type, attach_parameters, attach_parameters_size, new_link ? &new_link->fd : nullptr);
     if (result != EBPF_SUCCESS) {
         ebpf_free(new_link);
         EBPF_RETURN_RESULT(result);
     }
 
-    new_link->handle = _get_handle_from_file_descriptor(new_link->fd);
-    *link = new_link;
+    if (new_link != nullptr && link != nullptr) {
+        new_link->handle = _get_handle_from_file_descriptor(new_link->fd);
+        *link = new_link;
+    }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -2286,7 +2324,7 @@ _initialize_ebpf_object_from_native_file(
     object.execution_type = EBPF_EXECUTION_NATIVE;
 
     for (ebpf_api_program_info_t* info = infos; info; info = info->next) {
-        program = (ebpf_program_t*)ebpf_allocate(sizeof(ebpf_program_t));
+        program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_DEFAULT);
         if (program == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -2580,7 +2618,7 @@ _ebpf_pe_get_map_definitions(
                     break;
                 }
 
-                map = (ebpf_map_t*)ebpf_allocate(sizeof(ebpf_map_t));
+                map = (ebpf_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_map_t), EBPF_POOL_TAG_DEFAULT);
                 if (map == nullptr) {
                     goto Error;
                 }
@@ -2759,7 +2797,8 @@ _ebpf_pe_add_section(
     std::string elf_section_name = pe_context->section_names[pe_section_name];
     std::string program_name = pe_context->program_names[pe_section_name];
 
-    ebpf_api_program_info_t* info = (ebpf_api_program_info_t*)ebpf_allocate(sizeof(*info));
+    ebpf_api_program_info_t* info =
+        (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
     if (info == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
@@ -2785,7 +2824,7 @@ _ebpf_pe_add_section(
     info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
 
     info->raw_data_size = section_header.Misc.VirtualSize;
-    info->raw_data = (char*)ebpf_allocate(section_header.Misc.VirtualSize);
+    info->raw_data = (char*)ebpf_allocate_with_tag(section_header.Misc.VirtualSize, EBPF_POOL_TAG_DEFAULT);
     if (info->raw_data == nullptr || info->section_name == nullptr) {
         pe_context->result = EBPF_NO_MEMORY;
         return_value = 1;
@@ -3633,7 +3672,7 @@ _load_native_programs(
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
 
     if (count_of_maps > 0) {
-        *map_handles = (ebpf_handle_t*)ebpf_allocate(map_handles_size);
+        *map_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(map_handles_size, EBPF_POOL_TAG_DEFAULT);
         if (*map_handles == nullptr) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3645,7 +3684,7 @@ _load_native_programs(
     }
 
     if (count_of_programs > 0) {
-        *program_handles = (ebpf_handle_t*)ebpf_allocate(program_handles_size);
+        *program_handles = (ebpf_handle_t*)ebpf_allocate_with_tag(program_handles_size, EBPF_POOL_TAG_DEFAULT);
         if (*program_handles == nullptr) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3717,9 +3756,9 @@ _Must_inspect_result_ ebpf_result_t
 _ebpf_object_load_native(
     _In_z_ const char* file_name,
     _Out_ ebpf_handle_t* native_module_handle,
-    _Out_ size_t* count_of_maps,
+    _Inout_ size_t* count_of_maps,
     _Outptr_result_buffer_all_maybenull_(*count_of_maps) ebpf_handle_t** map_handles,
-    _Out_ size_t* count_of_programs,
+    _Inout_ size_t* count_of_programs,
     _Outptr_result_buffer_all_maybenull_(*count_of_programs) ebpf_handle_t** program_handles) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -3741,11 +3780,11 @@ _ebpf_object_load_native(
     std::wstring service_path(SERVICE_PATH_PREFIX);
     std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
     ebpf_protocol_buffer_t request_buffer;
+    size_t real_count_of_maps = 0;
+    size_t real_count_of_programs = 0;
 
     *native_module_handle = ebpf_handle_invalid;
-    *count_of_maps = 0;
     *map_handles = nullptr;
-    *count_of_programs = 0;
     *program_handles = nullptr;
 
     if (UuidCreate(&service_name_guid) != RPC_S_OK) {
@@ -3814,7 +3853,7 @@ _ebpf_object_load_native(
 
         service_path = service_path + service_name.c_str();
         result = _load_native_module(
-            service_path, &provider_module_id, native_module_handle, count_of_maps, count_of_programs);
+            service_path, &provider_module_id, native_module_handle, &real_count_of_maps, &real_count_of_programs);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_WSTRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3824,8 +3863,19 @@ _ebpf_object_load_native(
             goto Done;
         }
 
+        if (*count_of_maps < real_count_of_maps || *count_of_programs < real_count_of_programs) {
+            result = EBPF_NO_MEMORY;
+        }
+
+        *count_of_maps = real_count_of_maps;
+        *count_of_programs = real_count_of_programs;
+
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         result = _load_native_programs(
-            &provider_module_id, *count_of_maps, map_handles, *count_of_programs, program_handles);
+            &provider_module_id, real_count_of_maps, map_handles, real_count_of_programs, program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3844,14 +3894,15 @@ _ebpf_object_load_native(
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_free_handles(*count_of_maps, *map_handles);
-        _ebpf_free_handles(*count_of_programs, *program_handles);
+        _ebpf_free_handles(real_count_of_maps, *map_handles);
+        _ebpf_free_handles(real_count_of_programs, *program_handles);
 
         if (*native_module_handle != ebpf_handle_invalid) {
             Platform::CloseHandle(*native_module_handle);
         }
 
-        Platform::_stop_service(service_handle);
+        Platform::_stop_and_delete_service(service_handle, service_name.c_str());
+        EBPF_RETURN_RESULT(result);
     }
 
     // Workaround: Querying service status hydrates service reference count in SCM.
@@ -3881,36 +3932,24 @@ ebpf_object_load_native_by_fds(
     EBPF_LOG_ENTRY();
 
     ebpf_assert(count_of_maps);
-    ebpf_assert(*count_of_maps > 0 && map_fds);
+    ebpf_assert(*count_of_maps == 0 || map_fds);
     ebpf_assert(count_of_programs);
-    ebpf_assert(*count_of_programs > 0 && program_fds);
+    ebpf_assert(*count_of_programs == 0 || program_fds);
 
     ebpf_handle_t native_module_handle;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-    size_t real_count_of_maps = 0;
-    size_t real_count_of_programs = 0;
 
     ebpf_result_t result = _ebpf_object_load_native(
-        file_name, &native_module_handle, &real_count_of_maps, &map_handles, &real_count_of_programs, &program_handles);
+        file_name, &native_module_handle, count_of_maps, &map_handles, count_of_programs, &program_handles);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
 
     Platform::CloseHandle(native_module_handle);
 
-    if (*count_of_maps < real_count_of_maps || *count_of_programs < real_count_of_programs) {
-        *count_of_maps = real_count_of_maps;
-        *count_of_programs = real_count_of_programs;
-        _ebpf_free_handles(real_count_of_maps, map_handles);
-        _ebpf_free_handles(real_count_of_programs, program_handles);
-        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
-    }
-
-    *count_of_maps = real_count_of_maps;
-    *count_of_programs = real_count_of_programs;
-
-    for (int i = 0; i < real_count_of_maps; i++) {
+    __analysis_assume(*count_of_maps == 0 || map_handles != nullptr);
+    for (int i = 0; i < *count_of_maps; i++) {
         map_fds[i] = _create_file_descriptor_for_handle(map_handles[i]);
         if (map_fds[i] == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
@@ -3919,7 +3958,8 @@ ebpf_object_load_native_by_fds(
         }
     }
 
-    for (int i = 0; i < real_count_of_programs; i++) {
+    __analysis_assume(*count_of_programs == 0 || program_handles != nullptr);
+    for (int i = 0; i < *count_of_programs; i++) {
         program_fds[i] = _create_file_descriptor_for_handle(program_handles[i]);
         if (program_fds[i] == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
@@ -3930,7 +3970,7 @@ ebpf_object_load_native_by_fds(
 
     if (result != EBPF_SUCCESS) {
         if (map_fds != nullptr) {
-            for (int i = 0; i < real_count_of_maps; i++) {
+            for (int i = 0; i < *count_of_maps; i++) {
                 if (map_fds[i] != ebpf_fd_invalid) {
                     Platform::_close(map_fds[i]);
                     map_fds[i] = ebpf_fd_invalid;
@@ -3939,7 +3979,7 @@ ebpf_object_load_native_by_fds(
         }
 
         if (program_fds != nullptr) {
-            for (int i = 0; i < real_count_of_programs; i++) {
+            for (int i = 0; i < *count_of_programs; i++) {
                 if (program_fds[i] != ebpf_fd_invalid) {
                     Platform::_close(program_fds[i]);
                     program_fds[i] = ebpf_fd_invalid;
@@ -3948,8 +3988,8 @@ ebpf_object_load_native_by_fds(
         }
     }
 
-    _ebpf_free_handles(real_count_of_maps, map_handles);
-    _ebpf_free_handles(real_count_of_programs, program_handles);
+    _ebpf_free_handles(*count_of_maps, map_handles);
+    _ebpf_free_handles(*count_of_programs, program_handles);
 
     EBPF_RETURN_RESULT(result);
 }
@@ -3968,8 +4008,8 @@ _ebpf_program_load_native(
     ebpf_handle_t native_module_handle = ebpf_handle_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
-    size_t count_of_maps = 0;
-    size_t count_of_programs = 0;
+    size_t count_of_maps = SIZE_MAX;
+    size_t count_of_programs = SIZE_MAX;
 
     try {
         result = _ebpf_object_load_native(
@@ -4205,15 +4245,6 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
     EBPF_LOG_ENTRY();
     ebpf_assert(fd);
     EBPF_RETURN_RESULT(_get_fd_by_id(ebpf_operation_id_t::EBPF_OPERATION_GET_LINK_HANDLE_BY_ID, id, fd));
-}
-CATCH_NO_MEMORY_EBPF_RESULT
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_get_next_pinned_program_path(
-    _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) NO_EXCEPT_TRY
-{
-    ebpf_object_type_t type = EBPF_OBJECT_PROGRAM;
-    return ebpf_get_next_pinned_object_path(start_path, next_path, EBPF_MAX_PIN_PATH_LENGTH, &type);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -5218,6 +5249,18 @@ ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_E
     ebpf_operation_map_set_wait_handle_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_MAP_SET_WAIT_HANDLE, map_handle, handle, index, 0};
 
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_link_mark_as_legacy_mode(ebpf_handle_t link_handle) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_operation_link_set_legacy_mode_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LINK_SET_LEGACY_MODE, link_handle};
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
     EBPF_RETURN_RESULT(result);
 }

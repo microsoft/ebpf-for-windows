@@ -9,6 +9,7 @@
 #include "cxplat_fault_injection.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
+#include "ebpf_error.h"
 #include "ebpf_platform.h"
 #include "hash.h"
 #include "helpers.h"
@@ -771,9 +772,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         // Run down duplicate handles, if any.
         _duplicate_handles.rundown();
 
-        // Detach all the native module clients.
-        _unload_all_native_modules();
-
         clear_program_info_cache();
 
         {
@@ -788,6 +786,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
             ebpf_core_terminate();
         }
 
+        // Detach all the native module clients.
+        _unload_all_native_modules();
+
         device_io_control_handler = nullptr;
         cancel_io_ex_handler = nullptr;
         create_file_handler = nullptr;
@@ -800,9 +801,9 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 }
 
 _test_helper_libbpf::_test_helper_libbpf()
-    : xdp_program_info(nullptr), xdp_hook(nullptr), bind_program_info(nullptr), bind_hook(nullptr),
-      cgroup_sock_addr_program_info(nullptr), cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr),
-      sample_hook(nullptr), xdp_test_program_info(nullptr), xdp_test_hook(nullptr)
+    : bind_program_info(nullptr), bind_hook(nullptr), cgroup_sock_addr_program_info(nullptr),
+      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr),
+      xdp_program_info(nullptr), xdp_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
 }
@@ -832,12 +833,6 @@ _test_helper_libbpf::initialize()
     REQUIRE(sample_program_info->initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     sample_hook = new single_instance_hook_t(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_PLAIN);
     REQUIRE(sample_hook->initialize() == EBPF_SUCCESS);
-
-    xdp_test_program_info = new program_info_provider_t();
-    REQUIRE(xdp_test_program_info->initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
-    xdp_test_hook =
-        new single_instance_hook_t(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST, BPF_LINK_TYPE_XDP);
-    REQUIRE(xdp_test_hook->initialize() == EBPF_SUCCESS);
 }
 
 _test_helper_libbpf::~_test_helper_libbpf()
@@ -853,9 +848,6 @@ _test_helper_libbpf::~_test_helper_libbpf()
 
     delete sample_hook;
     delete sample_program_info;
-
-    delete xdp_test_hook;
-    delete xdp_test_program_info;
 }
 
 void

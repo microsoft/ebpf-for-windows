@@ -14,6 +14,7 @@
 #include "common_tests.h"
 #include "ebpf_core.h"
 #include "ebpf_tracelog.h"
+#include "end_to_end_jit.h"
 #include "helpers.h"
 #include "ioctl_helper.h"
 #include "mock.h"
@@ -24,12 +25,10 @@ namespace ebpf {
 }; // namespace ebpf
 #include "cxplat_passed_test_log.h"
 #include "platform.h"
-#include "program_helper.h"
 #include "sample_test_common.h"
 #include "test_helper.hpp"
 #include "usersim/ke.h"
 #include "watchdog.h"
-#include "xdp_tests_common.h"
 
 #include <WinSock2.h>
 #include <in6addr.h>
@@ -57,24 +56,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define BPF_PROG_TYPE_INVALID 100
 #define BPF_ATTACH_TYPE_INVALID 100
 
-#define CONCAT(s1, s2) s1 s2
-#define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
-    TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }
-#define DECLARE_NATIVE_TEST(_name, _group, _function) \
-    DECLARE_TEST_CASE(_name, _group, _function, "-native", EBPF_EXECUTION_NATIVE)
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-#define DECLARE_JIT_TEST(_name, _group, _function) \
-    DECLARE_TEST_CASE(_name, _group, _function, "-jit", EBPF_EXECUTION_JIT)
-#else
-#define DECLARE_JIT_TEST(_name, _group, _function)
-#endif
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define DECLARE_INTERPRET_TEST(_name, _group, _function) \
-    DECLARE_TEST_CASE(_name, _group, _function, "-interpret", EBPF_EXECUTION_INTERPRET)
-#else
-#define DECLARE_INTERPRET_TEST(_name, _group, _function)
-#endif
-
 #define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
     DECLARE_JIT_TEST(_name, _group, _function)           \
     DECLARE_NATIVE_TEST(_name, _group, _function)        \
@@ -83,22 +64,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define DECLARE_JIT_TEST_CASES(_name, _group, _function) \
     DECLARE_JIT_TEST(_name, _group, _function)           \
     DECLARE_NATIVE_TEST(_name, _group, _function)
-
-std::vector<uint8_t>
-prepare_ip_packet(uint16_t ethernet_type)
-{
-    std::vector<uint8_t> packet(
-        sizeof(ebpf::ETHERNET_HEADER) +
-        ((ethernet_type == ETHERNET_TYPE_IPV4) ? sizeof(ebpf::IPV4_HEADER) : sizeof(ebpf::IPV6_HEADER)));
-    auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(packet.data());
-    if (ethernet_type == ETHERNET_TYPE_IPV4) {
-        auto ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-        ipv4_header->HeaderLength = sizeof(ebpf::IPV4_HEADER) / sizeof(uint32_t);
-    }
-    ethernet_header->Type = ntohs(ethernet_type);
-
-    return packet;
-}
 
 void
 append_udp_header(uint16_t udp_length, std::vector<uint8_t>& ip_packet)
@@ -125,123 +90,6 @@ prepare_udp_packet(uint16_t udp_length, uint16_t ethernet_type)
     append_udp_header(udp_length, packet);
     return packet;
 }
-
-static inline int
-_get_total_map_count()
-{
-    ebpf_id_t start_id = 0;
-    ebpf_id_t end_id = 0;
-    int map_count = 0;
-    while (bpf_map_get_next_id(start_id, &end_id) == 0) {
-        map_count++;
-        start_id = end_id;
-    }
-
-    return map_count;
-}
-
-const std::array<uint8_t, 6> _test_source_mac = {0, 1, 2, 3, 4, 5};
-const std::array<uint8_t, 6> _test_destination_mac = {0xa, 0xb, 0xc, 0xd, 0xe, 0xf};
-
-struct _ipv4_address_pair
-{
-    const in_addr& source;
-    const in_addr& destination;
-};
-
-struct _ipv6_address_pair
-{
-    const in6_addr& source;
-    const in6_addr& destination;
-};
-
-const in_addr _test_source_ipv4 = {10, 0, 0, 1};
-const in_addr _test_destination_ipv4 = {20, 0, 0, 1};
-const struct _ipv4_address_pair _test_ipv4_addrs = {_test_source_ipv4, _test_destination_ipv4};
-
-const in_addr _test2_source_ipv4 = {30, 0, 0, 1};
-const in_addr _test2_destination_ipv4 = {40, 0, 0, 1};
-const struct _ipv4_address_pair _test2_ipv4_addrs = {_test2_source_ipv4, _test2_destination_ipv4};
-
-const in6_addr _test_source_ipv6 = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfe, 0x12, 0x34};
-const in6_addr _test_destination_ipv6 = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfe, 0x56, 0x78};
-const struct _ipv6_address_pair _test_ipv6_addrs = {_test_source_ipv6, _test_destination_ipv6};
-
-const in6_addr _test2_source_ipv6 = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfe, 0x9a, 0xbc};
-const in6_addr _test2_destination_ipv6 = {0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2e, 0xfe, 0xde, 0xf0};
-const struct _ipv6_address_pair _test2_ipv6_addrs = {_test2_source_ipv6, _test2_destination_ipv6};
-
-typedef class _ip_packet
-{
-  public:
-    _ip_packet(
-        ADDRESS_FAMILY address_family,
-        _In_ const std::array<uint8_t, 6>& source_mac,
-        _In_ const std::array<uint8_t, 6>& destination_mac,
-        _In_opt_ const void* ip_addresses)
-        : _address_family(address_family)
-    {
-        _packet = prepare_ip_packet((address_family == AF_INET) ? ETHERNET_TYPE_IPV4 : ETHERNET_TYPE_IPV6);
-        set_mac_addresses(source_mac, destination_mac);
-        if (_address_family == AF_INET) {
-            (ip_addresses == nullptr) ? set_ipv4_addresses(&_test_ipv4_addrs.source, &_test_ipv4_addrs.destination)
-                                      : set_ipv4_addresses(
-                                            &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->source,
-                                            &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->destination);
-        } else {
-            (ip_addresses == nullptr) ? set_ipv6_addresses(&_test_ipv6_addrs.source, &_test_ipv6_addrs.destination)
-                                      : set_ipv6_addresses(
-                                            &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->source,
-                                            &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->destination);
-        }
-    }
-    uint8_t*
-    data()
-    {
-        return _packet.data();
-    }
-    size_t
-    size()
-    {
-        return _packet.size();
-    }
-
-    std::vector<uint8_t>&
-    packet()
-    {
-        return _packet;
-    }
-
-    void
-    set_mac_addresses(_In_ const std::array<uint8_t, 6>& source_mac, _In_ const std::array<uint8_t, 6>& destination_mac)
-    {
-        auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
-        memcpy(ethernet_header->Source, source_mac.data(), sizeof(ethernet_header->Source));
-        memcpy(ethernet_header->Destination, destination_mac.data(), sizeof(ethernet_header->Destination));
-    }
-    void
-    set_ipv4_addresses(_In_ const in_addr* source_address, _In_ const in_addr* destination_address)
-    {
-        auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
-        auto ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-
-        ipv4_header->SourceAddress = source_address->s_addr;
-        ipv4_header->DestinationAddress = destination_address->s_addr;
-    }
-    void
-    set_ipv6_addresses(_In_ const in6_addr* source_address, _In_ const in6_addr* destination_address)
-    {
-        auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
-        auto ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
-
-        memcpy(ipv6->SourceAddress, source_address, sizeof(ebpf::ipv6_address_t));
-        memcpy(ipv6->DestinationAddress, destination_address, sizeof(ebpf::ipv6_address_t));
-    }
-
-    ADDRESS_FAMILY _address_family;
-    std::vector<uint8_t> _packet;
-
-} ip_packet_t;
 
 typedef class _udp_packet : public ip_packet_t
 {
@@ -289,61 +137,6 @@ typedef class _udp_packet : public ip_packet_t
 
 } udp_packet_t;
 
-typedef class _ip_in_ip_packet : public ip_packet_t
-{
-  public:
-    _ip_in_ip_packet(
-        ADDRESS_FAMILY address_family,
-        _In_ const std::array<uint8_t, 6>& source_mac = _test_source_mac,
-        _In_ const std::array<uint8_t, 6>& destination_mac = _test_destination_mac,
-        _In_opt_ const void* outer_ip_addresses = nullptr,
-        _In_opt_ const void* inner_ip_addresses = nullptr)
-        : ip_packet_t{address_family, source_mac, destination_mac, outer_ip_addresses}
-    {
-        if (_address_family == AF_INET) {
-            _packet.resize(_packet.size() + sizeof(ebpf::IPV4_HEADER));
-
-            (inner_ip_addresses == nullptr)
-                ? set_inner_ipv4_addresses(&_test2_ipv4_addrs.source, &_test2_ipv4_addrs.destination)
-                : set_inner_ipv4_addresses(
-                      &(reinterpret_cast<const _ipv4_address_pair*>(inner_ip_addresses))->source,
-                      &(reinterpret_cast<const _ipv4_address_pair*>(inner_ip_addresses))->destination);
-        } else {
-            _packet.resize(_packet.size() + sizeof(ebpf::IPV6_HEADER));
-
-            (inner_ip_addresses == nullptr)
-                ? set_inner_ipv6_addresses(&_test2_ipv6_addrs.source, &_test2_ipv6_addrs.destination)
-                : set_inner_ipv6_addresses(
-                      &(reinterpret_cast<const _ipv6_address_pair*>(inner_ip_addresses))->source,
-                      &(reinterpret_cast<const _ipv6_address_pair*>(inner_ip_addresses))->destination);
-        }
-    }
-
-    void
-    set_inner_ipv4_addresses(_In_ const in_addr* source_address, _In_ const in_addr* destination_address)
-    {
-        auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
-        auto outer_ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-        outer_ipv4_header->Protocol = IPPROTO_IPV4;
-        // Test code assumes length of IP header = sizeof(IPV4_HEADER).
-        auto inner_ipv4_header = outer_ipv4_header + 1;
-        inner_ipv4_header->SourceAddress = source_address->s_addr;
-        inner_ipv4_header->DestinationAddress = destination_address->s_addr;
-    }
-    void
-    set_inner_ipv6_addresses(_In_ const in6_addr* source_address, _In_ const in6_addr* destination_address)
-    {
-        auto ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(_packet.data());
-        auto outer_ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
-        outer_ipv6->NextHeader = IPPROTO_IPV6;
-        auto inner_ipv6 = outer_ipv6 + 1;
-        memcpy(inner_ipv6->SourceAddress, source_address, sizeof(ebpf::ipv6_address_t));
-        memcpy(inner_ipv6->DestinationAddress, destination_address, sizeof(ebpf::ipv6_address_t));
-    }
-
-} ip_in_ip_packet_t;
-
-#define SAMPLE_PATH ""
 #define TEST_IFINDEX 17
 
 static ebpf_result_t
@@ -360,55 +153,7 @@ ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const ch
     return result;
 }
 
-int
-ebpf_program_load(
-    _In_z_ const char* file_name,
-    bpf_prog_type prog_type,
-    ebpf_execution_type_t execution_type,
-    _Out_ bpf_object_ptr* unique_object,
-    _Out_ fd_t* program_fd, // File descriptor of first program in the object.
-    _Outptr_opt_result_maybenull_z_ const char** log_buffer)
-{
-    *program_fd = ebpf_fd_invalid;
-    if (log_buffer) {
-        *log_buffer = nullptr;
-    }
-
-    unique_object->reset(nullptr);
-
-    bpf_object* new_object = bpf_object__open(file_name);
-    if (new_object == nullptr) {
-        return -errno;
-    }
-    REQUIRE(ebpf_object_set_execution_type(new_object, execution_type) == EBPF_SUCCESS);
-    bpf_program* program = bpf_object__next_program(new_object, nullptr);
-    if (prog_type != BPF_PROG_TYPE_UNSPEC) {
-        bpf_program__set_type(program, prog_type);
-    }
-    int error = bpf_object__load(new_object);
-    if (error < 0) {
-        if (log_buffer) {
-            size_t log_buffer_size;
-            if (program != nullptr) {
-                const char* log_buffer_str = bpf_program__log_buf(program, &log_buffer_size);
-                if (log_buffer_str != nullptr) {
-                    *log_buffer = cxplat_duplicate_string(log_buffer_str);
-                }
-            }
-        }
-        bpf_object__close(new_object);
-        // Add delay to permit the native module handle cleanup to complete.
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        return error;
-    }
-
-    if (program != nullptr) {
-        *program_fd = bpf_program__fd(program);
-    }
-    unique_object->reset(new_object);
-    return 0;
-}
-
+// This test validates the User Mode Mock Test XDP Provider. 
 void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
@@ -953,7 +698,8 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd > 0);
 
     // Calls to ring buffer APIs on this map (array_map) must fail.
-    REQUIRE(ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+    REQUIRE(ebpf_ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
@@ -1291,35 +1037,6 @@ TEST_CASE("enum programs", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
-TEST_CASE("verify section", "[end_to_end][deprecated]")
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* error_message = nullptr;
-    const char* report = nullptr;
-    uint32_t result;
-    program_info_provider_t sample_test_program_info;
-    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    ebpf_api_verifier_stats_t stats;
-#pragma warning(suppress : 4996) // deprecated
-    REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o",
-             "sample_ext",
-             nullptr,
-             EBPF_VERIFICATION_VERBOSITY_NORMAL,
-             &report,
-             &error_message,
-             &stats),
-         ebpf_free_string(error_message),
-         error_message = nullptr,
-         result == 0));
-    REQUIRE(report != nullptr);
-    ebpf_free_string(report);
-}
-
 TEST_CASE("verify program", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -1376,71 +1093,6 @@ TEST_CASE("verify program with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
-static void
-_cgroup_load_test(
-    _In_z_ const char* file,
-    _In_z_ const char* name,
-    ebpf_program_type_t& program_type,
-    ebpf_attach_type_t& attach_type,
-    ebpf_execution_type_t execution_type)
-{
-    int result;
-    const char* error_message = nullptr;
-    fd_t program_fd;
-
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(program_type, attach_type);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t program_info;
-    REQUIRE(program_info.initialize(program_type) == EBPF_SUCCESS);
-    bpf_object_ptr unique_object;
-
-    result = ebpf_program_load(file, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-
-    REQUIRE(result == 0);
-
-    bpf_program* program = bpf_object__find_program_by_name(unique_object.get(), name);
-    REQUIRE(program != nullptr);
-
-    uint32_t compartment_id = 0;
-    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-    REQUIRE(hook.detach(ebpf_fd_invalid, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-
-    compartment_id = 1;
-    REQUIRE(hook.attach(program, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-    REQUIRE(hook.detach(program_fd, &compartment_id, sizeof(compartment_id)) == EBPF_SUCCESS);
-
-    bpf_object__close(unique_object.release());
-}
-static void
-_cgroup_sock_addr_load_test(
-    _In_z_ const char* file,
-    _In_z_ const char* name,
-    ebpf_attach_type_t& attach_type,
-    ebpf_execution_type_t execution_type)
-{
-    _cgroup_load_test(file, name, EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR, attach_type, execution_type);
-}
-
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, name_suffix, file_suffix, execution_type) \
-    TEST_CASE("cgroup_sockaddr_load_test_" name "_" #attach_type "_" name_suffix, "[cgroup_sock_addr]")        \
-    {                                                                                                          \
-        _cgroup_sock_addr_load_test(file file_suffix, name, attach_type, execution_type);                      \
-    }
-
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_JIT_TEST(file, name, attach_type) \
-    DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "jit", ".o", EBPF_EXECUTION_JIT)
-#else
-#define DECLARE_CGROUP_SOCK_ADDR_LOAD_JIT_TEST(file, name, attach_type)
-#endif
-
 #define DECLARE_CGROUP_SOCK_ADDR_LOAD_NATIVE_TEST(file, name, attach_type) \
     DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, "native", "_um.dll", EBPF_EXECUTION_NATIVE)
 
@@ -1456,18 +1108,6 @@ DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept4", EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT);
 DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST(
     SAMPLE_PATH "cgroup_sock_addr", "authorize_recv_accept6", EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT);
-
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("cgroup_sockops_load_test", "[cgroup_sockops]")
-{
-    _cgroup_load_test(
-        "sockops.o",
-        "connection_monitor",
-        EBPF_PROGRAM_TYPE_SOCK_OPS,
-        EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
-        EBPF_EXECUTION_JIT);
-}
-#endif
 
 TEST_CASE("verify_test0", "[sample_extension]")
 {
@@ -1596,90 +1236,6 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
 }
 #endif
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("enumerate_and_query_programs", "[end_to_end]")
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    uint32_t program_id;
-    uint32_t next_program_id;
-    const char* error_message = nullptr;
-    int result;
-    const char* file_name = nullptr;
-    const char* section_name = nullptr;
-    bpf_object_ptr unique_object[2];
-    fd_t program_fds[2] = {0};
-
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_JIT,
-        &unique_object[0],
-        &program_fds[0],
-        &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_INTERPRET,
-        &unique_object[1],
-        &program_fds[1],
-        &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    ebpf_execution_type_t type;
-    program_id = 0;
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
-    program_id = next_program_id;
-    fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
-    REQUIRE(program_fd > 0);
-    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
-    Platform::_close(program_fd);
-    REQUIRE(type == EBPF_EXECUTION_JIT);
-    REQUIRE(strcmp(file_name, SAMPLE_PATH "test_sample_ebpf.o") == 0);
-    ebpf_free_string(file_name);
-    file_name = nullptr;
-    REQUIRE(strcmp(section_name, "sample_ext") == 0);
-    ebpf_free_string(section_name);
-    section_name = nullptr;
-
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == 0);
-    program_id = next_program_id;
-    program_fd = bpf_prog_get_fd_by_id(program_id);
-    REQUIRE(program_fd > 0);
-    REQUIRE(ebpf_program_query_info(program_fd, &type, &file_name, &section_name) == EBPF_SUCCESS);
-    Platform::_close(program_fd);
-    REQUIRE(type == EBPF_EXECUTION_INTERPRET);
-    REQUIRE(strcmp(file_name, SAMPLE_PATH "test_sample_ebpf.o") == 0);
-    REQUIRE(strcmp(section_name, "sample_ext") == 0);
-    ebpf_free_string(file_name);
-    ebpf_free_string(section_name);
-    file_name = nullptr;
-    section_name = nullptr;
-
-    REQUIRE(bpf_prog_get_next_id(program_id, &next_program_id) == -ENOENT);
-
-    for (int i = 0; i < _countof(unique_object); i++) {
-        bpf_object__close(unique_object[i].release());
-    }
-}
-#endif
-
 TEST_CASE("pinned_map_enum", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -1711,14 +1267,13 @@ _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const ch
     REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
 
     // Look up id for the fd.
-    bpf_prog_info info = {};
+    bpf_map_info info = {};
     uint32_t info_size = sizeof(info);
     int result = bpf_obj_get_info_by_fd(fd, &info, &info_size);
     REQUIRE(result == 0);
     ebpf_id_t id = info.id;
 
-    // TODO(#4273): Verify it has exactly one path pinned.
-    // REQUIRE(info.pinned_path_count == 1);
+    REQUIRE(info.pinned_path_count == 1);
 
     // Look up the actual path pinned.
     ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
@@ -1906,112 +1461,6 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     bpf_object__close(unique_object.release());
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-// This test uses ebpf_link_close() to test implicit detach.
-TEST_CASE("implicit_detach", "[end_to_end]")
-{
-    // This test case does the following:
-    // 1. Close program handle. An implicit detach should happen and program
-    //    object should be deleted.
-    // 2. Close link handle. The link object should be deleted.
-
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    int result = 0;
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-    const char* error_message = nullptr;
-    bpf_link* link = nullptr;
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_JIT,
-        &unique_object,
-        &program_fd,
-        &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-
-    // Call bpf_object__close() which will close the program fd. That should
-    // detach the program from the hook and unload the program.
-    bpf_object__close(unique_object.release());
-
-    uint32_t program_id;
-    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
-
-    // Close link handle (without detaching). This should delete the link
-    // object. ebpf_object_tracking_terminate() which is called when the test
-    // exits checks if all the objects in EC have been deleted.
-    hook.close_link(link);
-}
-
-// This test uses bpf_link__disconnect() and bpf_link__destroy() to test
-// implicit detach.
-TEST_CASE("implicit_detach_2", "[end_to_end]")
-{
-    // This test case does the following:
-    // 1. Close program handle. An implicit detach should happen and the program
-    //    object should be deleted.
-    // 2. Close link handle. The link object should be deleted.
-
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    int result = 0;
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-    const char* error_message = nullptr;
-    bpf_link* link = nullptr;
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    result = ebpf_program_load(
-        SAMPLE_PATH "test_sample_ebpf.o",
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_JIT,
-        &unique_object,
-        &program_fd,
-        &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-
-    // Call bpf_object__close() which will close the program fd. That should
-    // detach the program from the hook and unload the program.
-    bpf_object__close(unique_object.release());
-
-    uint32_t program_id;
-    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
-
-    // Close link handle (without detaching). This should delete the link
-    // object. ebpf_object_tracking_terminate() which is called when the test
-    // exits checks if all the objects in the execution context have been deleted.
-    bpf_link__disconnect(link);
-    REQUIRE(bpf_link__destroy(link) == 0);
-}
-#endif
-
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("explicit_detach", "[end_to_end]")
 {
@@ -2055,9 +1504,12 @@ TEST_CASE("explicit_detach", "[end_to_end]")
     // exits checks if all the objects in EC have been deleted.
     hook.detach_and_close_link(&link);
 
+    // Program should still be loaded.
+    uint32_t program_id;
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
+
     // Close program handle.
     bpf_object__close(unique_object.release());
-    uint32_t program_id;
     REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
@@ -2098,58 +1550,22 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
 
-    // Close program handle. That should detach the program from the hook
-    // and unload the program.
+    // Close program handle. That should not detach the program from the hook
+    // and should not unload the program.
     bpf_object__close(unique_object.release());
     uint32_t program_id;
-    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == 0);
 
     // Detach and close link handle.
     // ebpf_object_tracking_terminate() which is called when the test
     // exits checks if all the objects in EC have been deleted.
     hook.detach_and_close_link(&link);
-}
-#endif
 
-static void
-ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? SAMPLE_PATH "test_sample_ebpf_um.dll"
-                                                                      : SAMPLE_PATH "test_sample_ebpf.o";
-    const char* error_message = nullptr;
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-    int result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    fd_t link_fd;
-    REQUIRE(ebpf_program_attach_by_fds(program_fd, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link_fd) == EBPF_SUCCESS);
-    REQUIRE(link_fd > 0);
-    REQUIRE(ebpf_close_fd(link_fd) == EBPF_SUCCESS);
-
-    bpf_object__close(unique_object.release());
+    // Program should be unloaded.
+    REQUIRE(bpf_prog_get_next_id(0, &program_id) == -ENOENT);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("ebpf_program_attach_by_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
 #endif
-
-TEST_CASE("ebpf_program_attach_by_fds-native", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_NATIVE); }
 
 TEST_CASE("create_map", "[end_to_end]")
 {
@@ -2270,122 +1686,6 @@ TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
     Platform::_close(outer_map_fd);
 }
 
-static void
-_xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
-    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "reflect_packet_um.dll" : "reflect_packet.o");
-    program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_XDP_TEST, "reflect_packet", execution_type, &ifindex, sizeof(ifindex), hook);
-
-    // Dummy UDP datagram with fake IP and MAC addresses.
-    udp_packet_t packet(address_family);
-    packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
-
-    xdp_md_header_t ctx_header{{0}, {packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX}};
-    xdp_md_t* ctx = &ctx_header.context;
-
-    uint32_t hook_result = 0;
-    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == XDP_TX);
-
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx->data);
-    REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
-    REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
-
-    if (address_family == AF_INET) {
-        ebpf::IPV4_HEADER* ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-        REQUIRE(ipv4_header->SourceAddress == _test_destination_ipv4.s_addr);
-        REQUIRE(ipv4_header->DestinationAddress == _test_source_ipv4.s_addr);
-    } else {
-        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
-        REQUIRE(memcmp(ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-        REQUIRE(memcmp(ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-    }
-}
-
-static void
-_xdp_reflect_packet_test_v4(ebpf_execution_type_t execution_type)
-{
-    _xdp_reflect_packet_test(execution_type, AF_INET);
-}
-
-static void
-_xdp_reflect_packet_test_v6(ebpf_execution_type_t execution_type)
-{
-    _xdp_reflect_packet_test(execution_type, AF_INET6);
-}
-
-static void
-_xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "encap_reflect_packet_um.dll" : "encap_reflect_packet.o");
-    program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        file_name, BPF_PROG_TYPE_XDP_TEST, "encap_reflect_packet", execution_type, &ifindex, sizeof(ifindex), hook);
-
-    // Dummy UDP datagram with fake IP and MAC addresses.
-    udp_packet_t packet(address_family);
-    packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
-
-    // Dummy context (not used by the eBPF program).
-    xdp_md_helper_t ctx(packet.packet());
-
-    uint32_t hook_result = 0;
-    REQUIRE(hook.fire(ctx.get_ctx(), &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == XDP_TX);
-
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.context.data);
-    REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
-    REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
-
-    if (address_family == AF_INET) {
-        ebpf::IPV4_HEADER* ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-        REQUIRE(ipv4_header->SourceAddress == _test_destination_ipv4.s_addr);
-        REQUIRE(ipv4_header->DestinationAddress == _test_source_ipv4.s_addr);
-        REQUIRE(ipv4_header->Protocol == IPPROTO_IPV4);
-        ebpf::IPV4_HEADER* inner_ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(
-            reinterpret_cast<uint8_t*>(ipv4_header) + (ipv4_header->HeaderLength * sizeof(uint32_t)));
-        REQUIRE(inner_ipv4_header->SourceAddress == _test_destination_ipv4.s_addr);
-        REQUIRE(inner_ipv4_header->DestinationAddress == _test_source_ipv4.s_addr);
-    } else {
-        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
-        REQUIRE(memcmp(ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-        REQUIRE(memcmp(ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-        REQUIRE(ipv6->NextHeader == IPPROTO_IPV6);
-        ebpf::IPV6_HEADER* inner_ipv6 = ipv6 + 1;
-        REQUIRE(memcmp(inner_ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-        REQUIRE(memcmp(inner_ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
-    }
-}
-
-static void
-_xdp_encap_reflect_packet_test_v4(ebpf_execution_type_t execution_type)
-{
-    _xdp_encap_reflect_packet_test(execution_type, AF_INET);
-}
-
-static void
-_xdp_encap_reflect_packet_test_v6(ebpf_execution_type_t execution_type)
-{
-    _xdp_encap_reflect_packet_test(execution_type, AF_INET6);
-}
-
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("printk", "[end_to_end]")
 {
@@ -2444,77 +1744,7 @@ TEST_CASE("printk", "[end_to_end]")
 }
 #endif
 
-DECLARE_ALL_TEST_CASES("xdp-reflect-v4", "[xdp_tests]", _xdp_reflect_packet_test_v4);
-DECLARE_ALL_TEST_CASES("xdp-reflect-v6", "[xdp_tests]", _xdp_reflect_packet_test_v6);
-DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v4", "[xdp_tests]", _xdp_encap_reflect_packet_test_v4);
-DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v6", "[xdp_tests]", _xdp_encap_reflect_packet_test_v6);
-
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED) || !defined(CONFIG_BPF_JIT_DISABLED)
-static void
-_xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
-    uint32_t ifindex = 0;
-    program_load_attach_helper_t program_helper;
-    program_helper.initialize(
-        SAMPLE_PATH "decap_permit_packet.o",
-        BPF_PROG_TYPE_XDP_TEST,
-        "decapsulate_permit_packet",
-        execution_type,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
-
-    // Dummy IP in IP packet with fake IP and MAC addresses.
-    ip_in_ip_packet_t packet(address_family);
-
-    size_t offset = sizeof(ebpf::ETHERNET_HEADER);
-    offset += (address_family == AF_INET) ? sizeof(ebpf::IPV4_HEADER) : sizeof(ebpf::IPV6_HEADER);
-    uint8_t* inner_ip_header = packet.packet().data() + offset;
-    std::vector<uint8_t> inner_ip_datagram(inner_ip_header, packet.packet().data() + packet.packet().size());
-
-    uint32_t hook_result = 0;
-    xdp_md_helper_t ctx(packet.packet());
-    REQUIRE(hook.fire(ctx.get_ctx(), &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == XDP_PASS);
-
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.context.data);
-
-    if (address_family == AF_INET) {
-        ebpf::IPV4_HEADER* ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
-        REQUIRE(memcmp(ipv4_header, inner_ip_datagram.data(), inner_ip_datagram.size()) == 0);
-    } else {
-        ebpf::IPV6_HEADER* ipv6 = reinterpret_cast<ebpf::IPV6_HEADER*>(ethernet_header + 1);
-        REQUIRE(memcmp(ipv6, inner_ip_datagram.data(), inner_ip_datagram.size()) == 0);
-    }
-}
-#endif
-
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("xdp-decapsulate-permit-v4-jit", "[xdp_tests]")
-{
-    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET);
-}
-TEST_CASE("xdp-decapsulate-permit-v6-jit", "[xdp_tests]")
-{
-    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_JIT, AF_INET6);
-}
-#endif
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("xdp-decapsulate-permit-v4-interpret", "[xdp_tests]")
-{
-    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
-}
-TEST_CASE("xdp-decapsulate-permit-v6-interpret", "[xdp_tests]")
-{
-    _xdp_decapsulate_permit_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
-}
-
 TEST_CASE("link_tests", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -2609,7 +1839,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
     REQUIRE(port_map_value == 200);
 
-    REQUIRE(_get_total_map_count() == 4);
+    REQUIRE(get_total_map_count() == 4);
 
     Platform::_close(outer_map_fd);
     Platform::_close(inner_map_fd);
@@ -2729,80 +1959,6 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
 
 DECLARE_JIT_TEST_CASES("auto_pinned_maps", "[end_to_end]", _auto_pinned_maps_test);
 
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    struct bpf_object_open_opts opts = {0};
-    opts.pin_root_path = "/custompath/global";
-    bpf_object_ptr object;
-    {
-        struct bpf_object* local_object = bpf_object__open_file("map_reuse.o", &opts);
-        REQUIRE(local_object != nullptr);
-        object.reset(local_object);
-    }
-
-    // Load the program.
-    REQUIRE(bpf_object__load(object.get()) == 0);
-
-    struct bpf_program* program = bpf_object__find_program_by_name(object.get(), "lookup_update");
-    REQUIRE(program != nullptr);
-
-    // Attach should now succeed.
-    bpf_link_ptr link;
-    {
-        struct bpf_link* local_link = bpf_program__attach(program);
-        REQUIRE(local_link != nullptr);
-        link.reset(local_link);
-    }
-
-    fd_t outer_map_fd = bpf_obj_get("/custompath/global/outer_map");
-    REQUIRE(outer_map_fd > 0);
-
-    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(__u32), sizeof(__u32), 1, nullptr);
-    REQUIRE(inner_map_fd > 0);
-
-    __u32 outer_key = 0;
-    int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
-    REQUIRE(error == 0);
-
-    // Add an entry in the inner map.
-    __u32 key = 0;
-    __u32 value = 200;
-    error = bpf_map_update_elem(inner_map_fd, &key, &value, BPF_ANY);
-    REQUIRE(error == 0);
-
-    fd_t port_map_fd = bpf_obj_get("/custompath/global/port_map");
-    REQUIRE(port_map_fd > 0);
-
-    INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result = 0;
-
-    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == 200);
-
-    key = 0;
-    __u32 port_map_value;
-    REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
-    REQUIRE(port_map_value == 200);
-
-    REQUIRE(_get_total_map_count() == 4);
-
-    Platform::_close(outer_map_fd);
-    Platform::_close(inner_map_fd);
-    Platform::_close(port_map_fd);
-
-    REQUIRE(ebpf_object_unpin("/custompath/global/outer_map") == EBPF_SUCCESS);
-    REQUIRE(ebpf_object_unpin("/custompath/global/port_map") == EBPF_SUCCESS);
-}
-#endif
-
 static void
 _map_reuse_invalid_test(ebpf_execution_type_t execution_type)
 {
@@ -2903,7 +2059,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
     REQUIRE(port_map_value == 200);
 
-    REQUIRE(_get_total_map_count() == 4);
+    REQUIRE(get_total_map_count() == 4);
 
     Platform::_close(outer_map_fd);
     Platform::_close(inner_map_fd);
@@ -2979,7 +2135,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(port_map_fd, &key, &port_map_value) == EBPF_SUCCESS);
     REQUIRE(port_map_value == 200);
 
-    REQUIRE(_get_total_map_count() == 3);
+    REQUIRE(get_total_map_count() == 3);
 
     Platform::_close(outer_map_fd);
     Platform::_close(inner_map_fd);
@@ -3011,63 +2167,6 @@ _create_service_helper(
             HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
         ERROR_SUCCESS);
 }
-
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-
-TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-
-    // Try with a valid set of instructions.
-    prevail::EbpfInst instructions[] = {
-        {0xb7, prevail::R0_RETURN_VALUE, 0}, // r0 = 0
-        {prevail::INST_OP_EXIT},             // return r0
-    };
-    uint32_t insn_cnt = _countof(instructions);
-    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;
-    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
-
-    REQUIRE(program_type != nullptr);
-    REQUIRE(insn_cnt != 0);
-
-    fd_t program_fd;
-#pragma warning(suppress : 28193) // result is examined
-    ebpf_result_t result = ebpf_program_load_bytes(
-        program_type,
-        nullptr,
-        EBPF_EXECUTION_ANY,
-        reinterpret_cast<const ebpf_inst*>(instructions),
-        insn_cnt,
-        nullptr,
-        0,
-        &program_fd,
-        nullptr);
-
-    REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(program_fd >= 0);
-
-    // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info = {};
-    uint32_t program_info_size = sizeof(program_info);
-    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
-    REQUIRE(program_info_size == sizeof(program_info));
-    REQUIRE(program_info.nr_map_ids == 0);
-    REQUIRE(program_info.map_ids == 0);
-    REQUIRE(program_info.name != NULL);
-    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN).
-    REQUIRE(strlen(program_info.name) == 63);
-
-    REQUIRE(program_info.type == prog_type);
-
-    Platform::_close(program_fd);
-}
-#endif
 
 // Load a native module with non-existing driver.
 TEST_CASE("load_native_program_negative", "[end-to-end]")
@@ -3553,6 +2652,7 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
+    bpf_link_ptr link;
     int program_fd = -1;
     const char* error_message = nullptr;
     int result;
@@ -3590,11 +2690,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         }
         REQUIRE(result == 0);
 
-        bpf_link* link = nullptr;
+        bpf_link* raw_link = nullptr;
         // Attach only to the single interface being tested.
-        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-        bpf_link__disconnect(link);
-        bpf_link__destroy(link);
+        REQUIRE(hook.attach_link(program_fd, nullptr, 0, &raw_link) == EBPF_SUCCESS);
+        link.reset(raw_link);
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
@@ -4018,46 +3117,6 @@ TEST_CASE("test_map_entries_limit", "[end_to_end]")
     test_no_limit_map_entries(BPF_MAP_TYPE_LRU_PERCPU_HASH, true);
 }
 
-// This test validates that a different program type (XDP in this case) cannot call
-// a helper function that is not implemented for that program type. Program load should
-// fail for such a program.
-void
-test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    int result;
-    const char* error_message = nullptr;
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-
-    program_info_provider_t xdp_program_info;
-    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "xdp_invalid_socket_cookie_um.dll" : "xdp_invalid_socket_cookie.o");
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == -22);
-}
-
-TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
-{
-#if !defined(CONFIG_BPF_JIT_DISABLED)
-    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_JIT);
-#endif
-#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
-#endif
-    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
-}
-
 static void
 _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 {
@@ -4079,6 +3138,7 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
+    bpf_link_ptr link;
     int program_fd = -1;
     const char* error_message = nullptr;
     int result;
@@ -4092,11 +3152,8 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
     }
     REQUIRE(result == 0);
 
-    bpf_link* link = nullptr;
     // Attach only to the single interface being tested.
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-    bpf_link__disconnect(link);
-    bpf_link__destroy(link);
 
     // Program should run.
     uint32_t hook_result = MAXUINT32;
@@ -4145,14 +3202,15 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(map_fd > 0);
 
     // Calls to perf buffer APIs on this map (array_map) must fail.
+    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
     REQUIRE(
-        perf_buffer__new(
+        ebpf_perf_buffer__new(
             map_fd,
             0,
             [](void*, int, void*, uint32_t) { return; },
             [](void*, int, uint64_t) { return; },
             nullptr,
-            nullptr) == nullptr);
+            &perf_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_perf_event_array_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
@@ -4455,3 +3513,186 @@ test_map_synchronized_update(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("test_map_synchronized_update", "[end_to_end]", test_map_synchronized_update);
+
+/**
+ * @brief This function tests that reference from outer map to inner map is maintained
+ * even when the inner map FD is closed. Also, when the outer map FD id closed, the inner
+ * map reference is released.
+ *
+ * @param map_type The type of the outer map.
+ */
+void
+_test_nested_maps_user_reference(bpf_map_type map_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    const int num_inner_maps = 5;
+    fd_t inner_map_fds[num_inner_maps];
+    uint32_t map_id = 0;
+
+    for (int i = 0; i < num_inner_maps; ++i) {
+        std::string name = "inner_map" + std::to_string(i + 1);
+        inner_map_fds[i] =
+            bpf_map_create(BPF_MAP_TYPE_ARRAY, name.c_str(), sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+        REQUIRE(inner_map_fds[i] > 0);
+    }
+
+    // Create outer map with the inner map handle in options.
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    fd_t outer_map_fd =
+        bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Close outer map FD so that it is deleted. Validates that empty outer map is deleted.
+    Platform::_close(outer_map_fd);
+
+    // Create outer map again with the inner map handle in options.
+    opts = {.inner_map_fd = (uint32_t)inner_map_fds[0]};
+    outer_map_fd = bpf_map_create(map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 2 * num_inner_maps, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Insert all inner maps in outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fds[i], 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // For each inner map, add a value to it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = 0;
+        uint32_t value = 100 + i;
+        uint32_t result = bpf_map_update_elem(inner_map_fds[i], &key, &value, 0);
+        REQUIRE(result == ERROR_SUCCESS);
+    }
+
+    // Close FDs for the inner maps. The maps should still exist and can be queried from the outer map.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        Platform::_close(inner_map_fds[i]);
+    }
+
+    // For each inner map, get the inner map ID from outer map and query the value from it.
+    for (int i = 0; i < num_inner_maps; ++i) {
+        uint32_t key = i;
+        uint32_t inner_map_id = 0;
+        uint32_t result = bpf_map_lookup_elem(outer_map_fd, &key, &inner_map_id);
+        REQUIRE(result == 0);
+        REQUIRE(inner_map_id > 0);
+        fd_t inner_map_fd = bpf_map_get_fd_by_id(inner_map_id);
+        REQUIRE(inner_map_fd > 0);
+        // Query value from inner_map
+        key = 0;
+        uint32_t value = 0;
+        result = bpf_map_lookup_elem(inner_map_fd, &key, &value);
+        REQUIRE(result == ERROR_SUCCESS);
+        REQUIRE(value == static_cast<uint32_t>(100 + i));
+        Platform::_close(inner_map_fd);
+    }
+
+    Platform::_close(outer_map_fd);
+
+    // Now all the maps should be closed.
+    REQUIRE(bpf_map_get_next_id(0, &map_id) < 0);
+}
+
+TEST_CASE("array_map_of_maps_user_reference", "[libbpf]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_ARRAY_OF_MAPS);
+}
+TEST_CASE("hash_map_of_maps_user_reference", "[libbpf]")
+{
+    _test_nested_maps_user_reference(BPF_MAP_TYPE_HASH_OF_MAPS);
+}
+
+/**
+ * @brief This function tests that reference from prog array map to programs is maintained
+ * even when the program FD is closed. Also, when the outer map FD is closed, the program
+ * references are also released.
+ *
+ * @param execution_type The type of execution for the eBPF programs.
+ */
+void
+_test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_tailcall_um.dll" : "bindmonitor_tailcall.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    // Create a new prog_array_map with 3 entries.
+    fd_t prog_array_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, "prog_array_map", sizeof(uint32_t), sizeof(fd_t), 3, nullptr);
+    REQUIRE(prog_array_map_fd > 0);
+
+    // Get FDs for the three programs.
+    fd_t program0_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor"));
+    REQUIRE(program0_fd > 0);
+
+    fd_t program1_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee0"));
+    REQUIRE(program1_fd > 0);
+
+    fd_t program2_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "BindMonitor_Callee1"));
+    REQUIRE(program2_fd > 0);
+
+    // Insert the program FDs into the prog_array_map.
+    uint32_t index = 0;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program0_fd, 0) == 0);
+    index = 1;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program1_fd, 0) == 0);
+    index = 2;
+    REQUIRE(bpf_map_update_elem(prog_array_map_fd, &index, &program2_fd, 0) == 0);
+
+    // Close the program FDs. The programs should still exist and can be queried from the prog_array_map.
+    bpf_object__close(unique_object.release());
+
+    // Create an array of program FDs and get the program FDs from the prog_array_map in a loop.
+    fd_t program_fds[3];
+    for (uint32_t i = 0; i < 3; i++) {
+        uint32_t program_id = 0;
+        result = bpf_map_lookup_elem(prog_array_map_fd, &i, &program_id);
+
+        REQUIRE(result == 0);
+        REQUIRE(program_id > 0);
+        program_fds[i] = bpf_prog_get_fd_by_id(program_id);
+        REQUIRE(program_fds[i] > 0);
+    }
+
+    // Query object info for each program.
+    for (uint32_t i = 0; i < 3; i++) {
+        bpf_prog_info program_info = {};
+        uint32_t program_info_size = sizeof(program_info);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fds[i], &program_info, &program_info_size) == 0);
+    }
+
+    // Close the program FDs, followed by the prog_array_map FD.
+    for (uint32_t i = 0; i < 3; i++) {
+        Platform::_close(program_fds[i]);
+    }
+    Platform::_close(prog_array_map_fd);
+
+    // All programs and maps should be closed now.
+    uint32_t start_id = 0;
+    REQUIRE(bpf_map_get_next_id(0, &start_id) < 0);
+    REQUIRE(bpf_prog_get_next_id(0, &start_id) < 0);
+}
+
+DECLARE_JIT_TEST_CASES(
+    "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);

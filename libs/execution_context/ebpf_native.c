@@ -4,6 +4,7 @@
 #define EBPF_FILE_ID EBPF_FILE_ID_NATIVE
 
 #include "ebpf_core.h"
+#include "ebpf_error.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_native.h"
@@ -673,15 +674,17 @@ void
 ebpf_object_update_reference_history(void* object, bool acquire, uint32_t file_id, uint32_t line);
 
 static void
-_ebpf_native_acquire_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+_ebpf_native_acquire_reference_internal(void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
 {
+    UNREFERENCED_PARAMETER(user_reference);
     ebpf_object_update_reference_history(base_object, true, file_id, line);
     _ebpf_native_acquire_reference(base_object);
 }
 
 static void
-_ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_id, uint32_t line)
+_ebpf_native_release_reference_internal(void* base_object, bool user_reference, ebpf_file_id_t file_id, uint32_t line)
 {
+    UNREFERENCED_PARAMETER(user_reference);
     ebpf_object_update_reference_history(base_object, false, file_id, line);
     _ebpf_native_release_reference(base_object);
 }
@@ -1927,8 +1930,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 
         ebpf_native_helper_address_changed_context_t* context = NULL;
 
-        context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate(
-            sizeof(ebpf_native_helper_address_changed_context_t));
+        context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_native_helper_address_changed_context_t), EBPF_POOL_TAG_DEFAULT);
 
         if (context == NULL) {
             result = EBPF_NO_MEMORY;

@@ -145,7 +145,7 @@ function Stop-DriverWithTimeout {
 }
 
 # This function specifically tests that all eBPF drivers and services can be stopped.
-function Stop-eBPFComponents {
+function Stop-eBPFServiceAndDrivers {
     param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
     if ($GranularTracing) {
@@ -231,8 +231,8 @@ function Install-eBPFComponents
     }
 
     # Install the MSI package.
-    $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*v msi-install.log"
-    Write-Log("Installing the eBPF MSI package: 'msiexec.exe $arguments'...")
+    $arguments = @("/i", $MsiPath, "ADDLOCAL=ALL", "/qn", "/norestart", "/l*v", "msi-install.log")
+    Write-Log("Installing the eBPF MSI package: 'msiexec.exe $($arguments -join ' ')'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -ne 0) {
         Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode).") -ForegroundColor Red
@@ -348,11 +348,11 @@ function Install-eBPFComponents
     if (Test-Path -Path "export_program_info_sample.exe") {
         $TestCommand = "$pwd\PsExec64.exe"
         $Arguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\export_program_info_sample.exe`""
-        Start-Process -NoNewWindow -Wait "$TestCommand" -ArgumentList "$Arguments"
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to run 'export_program_info_sample.exe as SYSTEM'.");
+        $PsExecProc = Start-Process -Wait -PassThru -FilePath "$TestCommand" -ArgumentList $Arguments
+        if ($PsExecProc.ExitCode -ne 0) {
+            throw ("Running 'export_program_info_sample.exe' as SYSTEM failed with exit code $($PsExecProc.ExitCode).");
         } else {
-            Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
+            Write-Log "Running 'export_program_info_sample.exe' as SYSTEM succeeded." -ForegroundColor Green
         }
     }
 
@@ -430,8 +430,8 @@ function Uninstall-eBPFComponents
     Write-Log("Clearing export program info for the sample driver completed successfully!") -ForegroundColor Green
 
     # Uninstall the MSI package.
-    $arguments = "/x $MsiPath /qn /norestart /l*v msi-uninstall.log"
-    Write-Log("Uninstalling eBPF MSI package at 'msiexec.exe $arguments'...")
+    $arguments = @("/x", $MsiPath, "/qn", "/norestart", "/l*v", "msi-uninstall.log")
+    Write-Log("Uninstalling eBPF MSI package at 'msiexec.exe $($arguments -join ' ')'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Log("Uninstallation successful!") -ForegroundColor Green

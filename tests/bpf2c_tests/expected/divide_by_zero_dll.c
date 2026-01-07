@@ -134,7 +134,7 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
 #line 34 "sample/undocked/divide_by_zero.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r6;
+    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
 #line 34 "sample/undocked/divide_by_zero.c"
     r2 = r10;
@@ -162,7 +162,7 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
     }
     // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
-    r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
+    READ_ONCE_32(r1, r0, OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
 #line 37 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(100000);
@@ -211,8 +211,8 @@ _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ s
 static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
-    version->major = 0;
-    version->minor = 22;
+    version->major = 1;
+    version->minor = 1;
     version->revision = 0;
 }
 

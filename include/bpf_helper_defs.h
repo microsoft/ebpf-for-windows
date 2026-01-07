@@ -14,7 +14,7 @@
  * @param[in] key Key to use when searching map.
  * @return Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, void* key));
+EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_lookup_elem ((bpf_map_lookup_elem_t)BPF_FUNC_map_lookup_elem)
 #endif
@@ -30,7 +30,7 @@ EBPF_HELPER(void*, bpf_map_lookup_elem, (void* map, void* key));
  * @retval -EBPF_NO_MEMORY Unable to allocate resources for this
  *  entry.
  */
-EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, void* key, void* value, uint64_t flags));
+EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, const void* key, const void* value, uint64_t flags));
 #ifndef __doxygen
 #define bpf_map_update_elem ((bpf_map_update_elem_t)BPF_FUNC_map_update_elem)
 #endif
@@ -43,7 +43,7 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (void* map, void* key, void* value, ui
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval -EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  */
-EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, void* key));
+EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_delete_elem ((bpf_map_delete_elem_t)BPF_FUNC_map_delete_elem)
 #endif
@@ -55,7 +55,7 @@ EBPF_HELPER(int64_t, bpf_map_delete_elem, (void* map, void* key));
  * @param[in] key Key to use when searching map.
  * @return Pointer to the value if found or NULL.
  */
-EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, void* key));
+EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, const void* key));
 #ifndef __doxygen
 #define bpf_map_lookup_and_delete_elem ((bpf_map_lookup_and_delete_elem_t)BPF_FUNC_map_lookup_and_delete_elem)
 #endif
@@ -69,7 +69,7 @@ EBPF_HELPER(void*, bpf_map_lookup_and_delete_elem, (void* map, void* key));
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval -EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  */
-EBPF_HELPER(int64_t, bpf_tail_call, (void* ctx, void* prog_array_map, uint32_t index));
+EBPF_HELPER(int64_t, bpf_tail_call, (const void* ctx, const void* prog_array_map, uint32_t index));
 #ifndef __doxygen
 #define bpf_tail_call ((bpf_tail_call_t)BPF_FUNC_tail_call)
 #endif
@@ -126,7 +126,7 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ns, ());
  *
  * @returns The checksum delta on success, or <0 on failure.
  */
-EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_size, int seed));
+EBPF_HELPER(int, bpf_csum_diff, (const void* from, int from_size, const void* to, int to_size, int seed));
 #ifndef __doxygen
 #define bpf_csum_diff ((bpf_csum_diff_t)BPF_FUNC_csum_diff)
 #endif
@@ -140,7 +140,7 @@ EBPF_HELPER(int, bpf_csum_diff, (void* from, int from_size, void* to, int to_siz
  * @param[in] flags Flags indicating if notification for new data availability should be sent.
  * @returns 0 on success and a negative value on error.
  */
-EBPF_HELPER(int, bpf_ringbuf_output, (void* ring_buffer, void* data, uint64_t size, uint64_t flags));
+EBPF_HELPER(int, bpf_ringbuf_output, (void* ring_buffer, const void* data, uint64_t size, uint64_t flags));
 #ifndef __doxygen
 #define bpf_ringbuf_output ((bpf_ringbuf_output_t)BPF_FUNC_ringbuf_output)
 #endif
@@ -264,7 +264,7 @@ bpf_printk(const char* fmt, ...);
  *  entry.
  * @retval -EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
  */
-EBPF_HELPER(int64_t, bpf_map_push_elem, (void* map, void* value, uint64_t flags));
+EBPF_HELPER(int64_t, bpf_map_push_elem, (void* map, const void* value, uint64_t flags));
 #ifndef __doxygen
 #define bpf_map_push_elem ((bpf_map_push_elem_t)BPF_FUNC_map_push_elem)
 #endif
@@ -526,7 +526,34 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
  *  entry.
  * @retval -EBPF_OUT_OF_SPACE Map is full.
  */
-EBPF_HELPER(int, bpf_perf_event_output, (void* ctx, void* perf_event_array, uint64_t flags, void* data, uint64_t size));
+EBPF_HELPER(
+    int,
+    bpf_perf_event_output,
+    (const void* ctx, void* perf_event_array, uint64_t flags, const void* data, uint64_t size));
 #ifndef __doxygen
 #define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)
+#endif
+
+/**
+ * @brief Get the current process start key.
+ *
+ * @returns A 64-bit integer containing the current process
+ * start key.
+ */
+EBPF_HELPER(uint64_t, bpf_get_current_process_start_key, ());
+#ifndef __doxygen
+#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)
+#endif
+
+/**
+ * @brief Get the current thread create time.
+ *
+ * @returns A 64-bit integer containing the current thread's
+ * create time. It represents the thread's creation time in 100-nanosecond
+ * intervals since January 1, 1601.
+ */
+EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
+#ifndef __doxygen
+#define bpf_get_current_thread_create_time \
+    ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
 #endif

@@ -10,6 +10,7 @@ To try out this tutorial yourself, you will need:
   - Follow the [VM install instructions](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/vm-setup.md) to get started quickly.
 - [eBPF installed](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md) on the VM. Using the MSI installer from a release is the fastest way to get started.
 - ebpf-for-windows nuget package: `nuget install eBPF-for-Windows`
+- install the eBPF netsh provider: `netsh add helper <path>\ebpfnetsh.dll`. Provide the absolute <path> for ebpfnetsh.dll.
 
 We'll start by understanding the basic structure of eBPF programs and then walk through how to
 apply them in a real use case.
@@ -475,8 +476,8 @@ Hook points are callouts exposed by the system to which eBPF programs can
 attach.  By convention, the section name of the eBPF program in an ELF file
 is commonly used to designate which hook point the eBPF program is designed
 for.  Specifically, a set of prefix strings are typically used to match against the
-section name.  For example, any section name starting with "xdp_test" is meant
-as an XDP_TEST layer program.  This is a convenient default, but can be
+section name.  For example, any section name starting with "xdp" is meant
+as an XDP layer program.  This is a convenient default, but can be
 overridden by an app asking to load an eBPF program, such as when the eBPF program is simply in the
 ".text" section.
 
@@ -491,7 +492,7 @@ structure which contains an arbitrary amount of data.  (Tail calls to
 programs can have more than one argument, but hooks put all the info in a
 hook-specific context structure passed as one argument.)
 
-The "xdp_test" hook point has the following prototype in `net_ebpf_ext_xdp_hooks.h`:
+The BPF_XDP hook point has the following prototype in `net_ebpf_ext_xdp_hooks.h`:
 
 ```c
 typedef struct xdp_md
@@ -519,10 +520,10 @@ A sample eBPF program might look like this:
 #include "ebpf_nethooks.h"
 #include "net_ebpf_ext_xdp_hooks.h"
 
-// Put "xdp_test" in the section name to specify XDP_TEST as the hook.
+// Put "xdp" in the section name to specify XDP as the hook.
 // The SEC macro below has the same effect as the
 // clang pragma used in section 2 of this tutorial.
-SEC("xdp_test")
+SEC("xdp")
 int my_xdp_parser(xdp_md_t* ctx)
 {
     int length = (char *)ctx->data_end - (char *)ctx->data;
@@ -576,10 +577,10 @@ sockops                        ProgramType   : {77, 34, 251, 67...}
                                AttachType    : {205, 2, 125, 131...}
                                BpfProgType   : 4
                                BpfAttachType : 7
-xdp_test                       ProgramType   : {248, 206, 140, 206...}
-                               AttachType    : {93, 193, 204, 13...}
-                               BpfProgType   : 5
-                               BpfAttachType : 9
+xdp                            ProgramType   : {133, 42, 131, 241...}
+                               AttachType    : {239, 216, 224, 133...}
+                               BpfProgType   : 1
+                               BpfAttachType : 1
 ```
 
 With the above, our sample program will pass verification:
@@ -594,7 +595,7 @@ Program terminates within 30 instructions
 ```
 
 What would have happened had the prototype not matched?  Let's say the
-verifier is the same as above but XDP_TEST instead had a different struct
+verifier is the same as above but XDP instead had a different struct
 definition:
 
 ```c

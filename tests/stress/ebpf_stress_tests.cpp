@@ -19,6 +19,7 @@ constexpr uint32_t DEFAULT_EXTENSION_RESTART_DELAY{1000}; // 1 second.
 
 // Command line option: '-tp' or '--test-programs'.
 // Usage: -tp="droppacket, bindmonitor_tailcall" OR --test-programs="droppacket, bindmonitor_tailcall".
+// For Kernel Mode tests, droppacket is not suppported.
 // This option specifies a comma separated list programs to load.
 // Note that these programs must be from the list of supported programs. The currently supported programs are listed in
 // the _jit_program_info std::map variable declaration further down.
@@ -50,7 +51,7 @@ bool _extension_restart_arg{false};
 uint32_t _extension_restart_delay_arg{DEFAULT_EXTENSION_RESTART_DELAY};
 
 // Parsed vector of programs specified on the command line.  We load 'droppacket.o' by default if no programs were
-// specified on the command-line.
+// specified on the command-line for user mode tests. For kernel Mode tests cgroup_sock_addr.o is the default.
 static std::vector<std::string> _jit_programs{};
 
 // Logging level trigger - logs at this level and below are printed.

@@ -50,10 +50,13 @@ static TOKEN_VALUE _ebpf_pinned_type_enum[] = {
 
 std::vector<struct bpf_object*> _ebpf_netsh_objects;
 
+int // errno value
+_ebpf_program_detach_by_id(ebpf_id_t program_id);
+
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
 {
-    return (prog_type == BPF_PROG_TYPE_XDP) || (prog_type == BPF_PROG_TYPE_XDP_TEST);
+    return (prog_type == BPF_PROG_TYPE_XDP);
 }
 
 bool
@@ -104,17 +107,6 @@ struct _program_unloader
 {
     struct bpf_object* object;
     ~_program_unloader() { bpf_object__close(object); }
-};
-
-struct _link_deleter
-{
-    struct bpf_link* link;
-    ~_link_deleter()
-    {
-        if (link != nullptr) {
-            ebpf_link_close(link);
-        }
-    }
 };
 
 // The following function uses windows specific input type to match
@@ -260,16 +252,11 @@ handle_ebpf_add_program(
         }
     }
 
-    struct bpf_link* link;
-    result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, &link);
+    result = ebpf_program_attach(program, nullptr, attach_parameters, attach_parameters_size, nullptr);
     if (result != EBPF_SUCCESS) {
         std::cerr << "error " << result << ": could not attach program" << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
-
-    // Link attached. Populate the deleter with link pointer, such that link
-    // object is closed when the function returns.
-    struct _link_deleter link_deleter = {link};
 
     if (pinned_type == PT_FIRST) {
         // The pinpath specified is like a "file" under which to pin programs.
@@ -343,6 +330,13 @@ _unpin_program_by_id(ebpf_id_t id)
         }
         Platform::_close(fd);
     }
+
+    status = _ebpf_program_detach_by_id(id);
+    if (status == ERROR_NOT_FOUND) {
+        // If there was no link to detach, that's OK.
+        status = NO_ERROR;
+    }
+
     return status;
 }
 
@@ -458,13 +452,9 @@ _ebpf_program_attach_by_id(
         }
     }
 
-    struct bpf_link* link;
     if (result == EBPF_SUCCESS) {
-        ebpf_result_t local_result =
-            ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, &link);
-        if (local_result == EBPF_SUCCESS) {
-            ebpf_link_close(link);
-        }
+        result =
+            ebpf_program_attach_by_fd(program_fd, &attach_type, attach_parameters, attach_parameters_size, nullptr);
     }
 
     Platform::_close(program_fd);

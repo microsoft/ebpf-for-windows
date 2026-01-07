@@ -1,0 +1,8 @@
+schemaVersion: 0.0.1
+isProduction: true
+accountableOwners:
+  service: d052f00b-0864-4f5d-a8e5-2cf44efcce1c
+routing:
+  defaultAreaPath:
+    org: microsoft
+    path: OS\Core\IO Fabrics\Transports Security and SDN\eBPF

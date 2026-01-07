@@ -22,7 +22,13 @@
     <ClCompile Include="..\end_to_end\end_to_end.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\end_to_end\end_to_end_jit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test_jit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\libs\runtime\unit\platform_unit_test.cpp">
@@ -49,15 +55,27 @@
     <ClCompile Include="ebpfcore_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="libbpf_test_jit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\end_to_end\end_to_end_jit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\end_to_end\helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\end_to_end\test_helper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\libs\execution_context\unit\execution_context_unit_test_jit.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClInclude Include="..\..\libs\thunk\mock\mock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libbpf_test_jit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

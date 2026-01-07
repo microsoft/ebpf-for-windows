@@ -9,9 +9,9 @@
 #include "ebpf_program_types.h"
 #include "ebpf_windows.h"
 #include "net_ebpf_ext_program_info.h"
-#include "net_ebpf_ext_xdp_hooks.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
+#include "xdp_hooks.h"
 
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
@@ -21,6 +21,24 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #include <ndis/nbl.h>
 #endif
 #include <vector>
+
+#define CONCAT(s1, s2) s1 s2
+#define DECLARE_TEST_CASE(_name, _group, _function, _suffix, _execution_type) \
+    TEST_CASE(CONCAT(_name, _suffix), _group) { _function(_execution_type); }
+#define DECLARE_NATIVE_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-native", EBPF_EXECUTION_NATIVE)
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define DECLARE_INTERPRET_TEST(_name, _group, _function) \
+    DECLARE_TEST_CASE(_name, _group, _function, "-interpret", EBPF_EXECUTION_INTERPRET)
+#else
+#define DECLARE_INTERPRET_TEST(_name, _group, _function)
+#endif
+
+#define DECLARE_CGROUP_SOCK_ADDR_LOAD_TEST2(file, name, attach_type, name_suffix, file_suffix, execution_type) \
+    TEST_CASE("cgroup_sockaddr_load_test_" name "_" #attach_type "_" name_suffix, "[cgroup_sock_addr]")        \
+    {                                                                                                          \
+        cgroup_sock_addr_load_test(file file_suffix, name, attach_type, execution_type);                       \
+    }
 
 typedef struct _sample_program_context_header
 {
@@ -68,17 +86,16 @@ typedef struct _ebpf_free_memory
 
 typedef std::unique_ptr<uint8_t, ebpf_free_memory_t> ebpf_memory_t;
 
+// Prototype added as the libbpf headers cause conflicts with the execution context headers.
+int
+bpf_link__destroy(bpf_link* link);
+
 typedef struct _close_bpf_link
 {
     void
     operator()(_In_opt_ _Post_invalid_ bpf_link* link)
     {
-        if (link != nullptr) {
-            if (ebpf_link_detach(link) != EBPF_SUCCESS) {
-                throw std::runtime_error("ebpf_link_detach failed");
-            }
-            ebpf_link_close(link);
-        }
+        bpf_link__destroy(link);
     }
 } close_bpf_link_t;
 
@@ -374,6 +391,13 @@ typedef class _single_instance_hook : public _hook_helper
     HANDLE nmr_binding_handle = nullptr;
     bpf_link* link_object = nullptr;
 } single_instance_hook_t;
+
+// XDP program information.
+static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
+    sizeof(xdp_md_t),
+    EBPF_OFFSET_OF(xdp_md_t, data),
+    EBPF_OFFSET_OF(xdp_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 
 typedef struct _xdp_md_header
 {
@@ -727,6 +751,17 @@ _sample_test_context_destroy(
 // Mock implementation of XDP.
 static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
+// XDP_TEST helper function prototype descriptors.
+static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     XDP_EXT_HELPER_FUNCTION_START + 1,
+     "bpf_xdp_adjust_head",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
+     // Flags.
+     {HELPER_FUNCTION_REALLOCATE_PACKET}}};
+
+
 static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_mock_xdp_helper_functions),
@@ -743,23 +778,13 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
-    _xdp_test_ebpf_extension_helper_function_prototype};
+    _xdp_test_ebpf_extension_helper_function_prototype,
+    0,
+    NULL};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
     EBPF_PROGRAM_DATA_HEADER,
     &_mock_xdp_program_info,
-    &_mock_xdp_helper_function_address_table,
-    nullptr,
-    _xdp_context_create,
-    _xdp_context_destroy,
-    0,
-    {0},
-};
-
-// XDP_TEST.
-static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    EBPF_PROGRAM_DATA_HEADER,
-    &_ebpf_xdp_test_program_info,
     &_mock_xdp_helper_function_address_table,
     nullptr,
     _xdp_context_create,
@@ -781,7 +806,7 @@ _ebpf_bind_context_create(
     *context = nullptr;
     bind_md_t* bind_context = nullptr;
     bind_context_header_t* bind_context_header =
-        reinterpret_cast<bind_context_header_t*>(ebpf_allocate(sizeof(bind_context_header_t)));
+        reinterpret_cast<bind_context_header_t*>(ebpf_allocate_with_tag(sizeof(bind_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (bind_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -916,7 +941,7 @@ _ebpf_sock_addr_context_create(
 
     bpf_sock_addr_t* sock_addr_context = nullptr;
     sock_addr_context_header_t* sock_addr_context_header =
-        reinterpret_cast<sock_addr_context_header_t*>(ebpf_allocate(sizeof(sock_addr_context_header_t)));
+        reinterpret_cast<sock_addr_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_addr_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_addr_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -1041,7 +1066,7 @@ _ebpf_sock_ops_context_create(
 
     bpf_sock_ops_t* sock_ops_context = nullptr;
     sock_ops_context_header_t* sock_ops_context_header =
-        reinterpret_cast<sock_ops_context_header_t*>(ebpf_allocate(sizeof(sock_ops_context_header_t)));
+        reinterpret_cast<sock_ops_context_header_t*>(ebpf_allocate_with_tag(sizeof(sock_ops_context_header_t), EBPF_POOL_TAG_DEFAULT));
     if (sock_ops_context_header == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -1156,8 +1181,6 @@ typedef class _program_info_provider
             program_data = custom_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
             program_data = &_mock_xdp_program_data;
-        } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            program_data = &_ebpf_xdp_test_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
             program_data = &_ebpf_bind_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {

@@ -7,8 +7,14 @@ name: Fork PR Checks
 on:
   pull_request_target:
 
+permissions:
+  contents: read  # Required by actions/checkout to fetch code.
+  issues: write  # Required to comment on PRs.
+
 jobs:
   call-common:
-    uses: ./.github/workflows/check_pr.yml
+    uses: ./.github/workflows/check-pr.yml
     with:
       run_on_fork: true
+    secrets: inherit
+    permissions: inherit

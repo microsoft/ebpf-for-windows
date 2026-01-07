@@ -48,9 +48,6 @@
     <CustomBuild Include="droppacket.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="droppacket_unsafe.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="tail_call.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
@@ -72,13 +69,7 @@
     <CustomBuild Include="test_sample_implicit_helpers.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="reflect_packet.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="test_utility_helpers.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="encap_reflect_packet.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="map_reuse.c">
@@ -88,9 +79,6 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="map_in_map_v2.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="decap_permit_packet.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="printk.c">

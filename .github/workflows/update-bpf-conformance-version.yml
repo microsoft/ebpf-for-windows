@@ -1,0 +1,46 @@
+---
+name: Update bpf_conformance Version
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # every Monday at 6am UTC
+  workflow_dispatch:
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6.0.1
+
+      - name: Fetch latest release tag from GitHub API
+        id: get_latest
+        run: |
+          curl -s https://api.github.com/repos/Alan-Jowett/bpf_conformance/releases/latest \
+            | jq -r '.tag_name' > latest.txt
+
+      - name: Compare with current version
+        id: compare
+        run: |
+          current=$(cat .github/bpf-conformance-version.txt)
+          latest=$(cat latest.txt)
+          echo "Current version: $current"
+          echo "Latest version: $latest"
+          if [ "$current" != "$latest" ]; then
+            echo "Updating version file..."
+            echo "$latest" > .github/bpf-conformance-version.txt
+            echo "updated=true" >> $GITHUB_OUTPUT
+            echo "latest_version=$latest" >> $GITHUB_OUTPUT
+          else
+            echo "No update needed."
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.compare.outputs.updated == 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .github/bpf-conformance-version.txt
+          git commit -m "Update bpf_conformance to ${{ steps.compare.outputs.latest_version }}"
+          git push

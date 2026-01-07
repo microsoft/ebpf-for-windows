@@ -40,9 +40,6 @@
     <ClCompile Include="..\net_ebpf_ext_tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\net_ebpf_ext_xdp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\guid.c">
       <Filter>Source Files</Filter>
     </ClCompile>

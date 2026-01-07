@@ -15,19 +15,6 @@
 
 #include "ebpf_general_helpers.c"
 
-// Export XDP program information to allow for our unit tests to mock the XDP API surface.
-static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
-    "xdp",
-    &_ebpf_xdp_test_context_descriptor,
-    EBPF_PROGRAM_TYPE_XDP_GUID,
-    BPF_PROG_TYPE_XDP};
-static const ebpf_program_info_t _mock_xdp_program_info = {
-    EBPF_PROGRAM_INFORMATION_HEADER,
-    &_mock_xdp_program_type_descriptor,
-    EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
-    _xdp_test_ebpf_extension_helper_function_prototype};
-
 typedef struct _ebpf_program_section_info_with_count
 {
     _Field_size_(section_info_count) const ebpf_program_section_info_t* section_info;
@@ -35,26 +22,12 @@ typedef struct _ebpf_program_section_info_with_count
 } ebpf_program_section_info_with_count_t;
 
 static const ebpf_program_info_t* _program_information_array[] = {
-    &_ebpf_bind_program_info,
-    &_ebpf_sock_addr_program_info,
-    &_ebpf_sock_ops_program_info,
-    &_mock_xdp_program_info,
-    &_ebpf_xdp_test_program_info};
-
-ebpf_program_section_info_t _mock_xdp_section_info[] = {
-    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
-     L"xdp",
-     &EBPF_PROGRAM_TYPE_XDP,
-     &EBPF_ATTACH_TYPE_XDP,
-     BPF_PROG_TYPE_XDP,
-     BPF_XDP}};
+    &_ebpf_bind_program_info, &_ebpf_sock_addr_program_info, &_ebpf_sock_ops_program_info};
 
 static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
     {&_ebpf_bind_section_info[0], _countof(_ebpf_bind_section_info)},
-    {&_mock_xdp_section_info[0], _countof(_mock_xdp_section_info)},
     {&_ebpf_sock_addr_section_info[0], _countof(_ebpf_sock_addr_section_info)},
     {&_ebpf_sock_ops_section_info[0], _countof(_ebpf_sock_ops_section_info)},
-    {&_ebpf_xdp_test_section_info[0], _countof(_ebpf_xdp_test_section_info)},
 };
 
 uint32_t

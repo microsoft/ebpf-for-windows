@@ -127,7 +127,6 @@
     <ClCompile Include="..\net_ebpf_ext_sock_addr.c" />
     <ClCompile Include="..\net_ebpf_ext_sock_ops.c" />
     <ClCompile Include="..\net_ebpf_ext_tracelog.c" />
-    <ClCompile Include="..\net_ebpf_ext_xdp.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h" />
@@ -139,7 +138,6 @@
     <ClInclude Include="..\net_ebpf_ext_sock_ops.h" />
     <ClInclude Include="..\net_ebpf_ext_structs.h" />
     <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
-    <ClInclude Include="..\net_ebpf_ext_xdp.h" />
     <ClInclude Include="netebpfext_platform.h" />
   </ItemGroup>
   <ItemGroup>

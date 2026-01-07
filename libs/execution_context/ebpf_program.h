@@ -131,7 +131,7 @@ extern "C"
      *
      * @param[in] program Program that loaded the extension.
      * @param[out] program_info Pointer to the output allocated program info. Must be freed by caller by calling
-     * ebpf_program_free_program_info().
+     * ebpf_program_free_program_info(). Must hold a reference on the program information provider.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT One or more arguments are invalid.
      * @retval EBPF_ARITHMETIC_OVERFLOW An arithmetic overflow has occurred.
@@ -271,22 +271,20 @@ extern "C"
     ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program);
 
     /**
-     * @brief Attach a link object to an eBPF program.
+     * @brief Notify the program that a link object has been attached to it.
      *
      * @param[in, out] program Program to attach to the link object.
-     * @param[in, out] link The link object.
      */
     void
-    ebpf_program_attach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+    ebpf_program_attach_link(_Inout_ ebpf_program_t* program);
 
     /**
-     * @brief Detach a link object from the eBPF program it is attached to.
+     * @brief Notify the program that a link object has been detached from it.
      *
-     * @param[in, out] program Program to detach to the link object from.
-     * @param[in, out] link The link object.
+     * @param[in, out] program Program to detach from the link object.
      */
     void
-    ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* link);
+    ebpf_program_detach_link(_Inout_ ebpf_program_t* program);
 
     /**
      * @brief Store the pointer to the program to execute on tail call.

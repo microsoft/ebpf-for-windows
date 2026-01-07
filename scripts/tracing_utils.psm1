@@ -27,20 +27,15 @@ function Start-WPRTrace {
     param(
         [Parameter(Mandatory=$false)] [string] $TraceType = "file",
         [Parameter(Mandatory=$false)] [string] $WprpFileName = "ebpfforwindows.wprp",
-        [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
+        [Parameter(Mandatory=$false)] [string] $TracingProfileName = "EbpfForWindows-Networking",
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 60
     )
 
     try {
         Write-Log "Start-WPRTrace called with TraceType: $TraceType, WorkingDirectory: $WorkingDirectory"
 
         # Quick cleanup of any orphaned sessions
-        try {
-            Write-Log "Attempting to cancel any existing WPR sessions..."
-            $null = wpr.exe -cancel 2>&1
-            Write-Log "WPR cancel completed (exit code: $LASTEXITCODE)"
-        } catch {
-            Write-Log "WPR cancel failed. This may be expected if no WPR session was in progress. Error: $_"
-        }
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList @("-cancel") -TimeoutSeconds $TimeoutSeconds
 
         # Build profile path and check if it exists
         $wprpProfilePath = Join-Path $WorkingDirectory $WprpFileName
@@ -50,25 +45,20 @@ function Start-WPRTrace {
         }
 
         Write-Log "Starting WPR trace with TraceType: $TraceType WprpFileName: $WprpFileName TracingProfileName: $TracingProfileName"
+
+        # Prepare arguments
+        $profileName = if ($TraceType -eq "file") { "$TracingProfileName-File" } else { "$TracingProfileName-Memory" }
+        $arguments = @("-start", "$wprpProfilePath!$profileName")
         if ($TraceType -eq "file") {
-            $profileName = "$TracingProfileName-File"
-            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`" -filemode"
-            wpr.exe -start "$wprpProfilePath!$profileName" -filemode
-            $exitCode = $LASTEXITCODE
+            $arguments += "-filemode"
+        }
+
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList $arguments -TimeoutSeconds $TimeoutSeconds
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully started trace"
         } else {
-            $profileName = "$TracingProfileName-Memory"
-            Write-Log "Executing: wpr.exe -start `"$wprpProfilePath!$profileName`""
-            wpr.exe -start "$wprpProfilePath!$profileName"
-            $exitCode = $LASTEXITCODE
+            Write-Log "Failed to start trace with exit code $exitCode"
         }
-
-        Write-Log "WPR command completed with exit code: $exitCode"
-
-        if ($exitCode -ne 0) {
-            throw "Failed to start trace with exit code $exitCode"
-        }
-
-        Write-Log "Successfully started trace"
     } catch {
         Write-Log "Exception starting WPR trace: $_" -ForegroundColor Red
     }
@@ -83,7 +73,8 @@ function Start-WPRTrace {
 #>
 function Stop-WPRTrace {
     param(
-        [Parameter(Mandatory=$true)] [string] $FileName
+        [Parameter(Mandatory=$true)] [string] $FileName,
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 600
     )
 
     try {
@@ -98,16 +89,12 @@ function Stop-WPRTrace {
         $etlFileName = "${FileName}_${timestamp}.etl"
         $traceFile = Join-Path $outputDir $etlFileName
 
-        Write-Log "Stopping WPR trace" -ForegroundColor Cyan
-
-        $null = wpr.exe -stop "$traceFile" 2>&1
-        $exitCode = $LASTEXITCODE
-
-        if ($exitCode -ne 0) {
-            throw "Failed to stop WPR trace with exit code $exitCode"
+        $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList @("-stop", "`"$traceFile`"") -TimeoutSeconds $TimeoutSeconds
+        if ($exitCode -eq 0) {
+            Write-Log "Successfully stopped WPR trace: $traceFile"
+        } else {
+            Write-Log "Failed to stop WPR trace with exit code $exitCode (This may be expected if no trace session was in progress)"
         }
-
-        Write-Log "Successfully stopped WPR trace: $traceFile"
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
     }

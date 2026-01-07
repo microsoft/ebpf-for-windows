@@ -27,7 +27,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     EBPF_LOG_ENTRY();
     NTSTATUS status;
 
-    ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
+    ebpf_ring_descriptor_t* ring_descriptor =
+        ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     MDL* source_mdl = NULL;
     MDL* kernel_mdl = NULL;
 
@@ -361,6 +362,90 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     return EBPF_SUCCESS;
 }
 
+// Function to convert a UTF-8 string to a UTF-16LE string.
+static ebpf_result_t
+_convert_utf8_string_to_unicode_string(
+    _Out_ PUNICODE_STRING destination_string, _In_ PCSZ source_string, BOOLEAN allocate_destination_string)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    NTSTATUS status;
+    ULONG bytes_in_unicode_string = 0;
+
+    ebpf_assert(destination_string);
+    ebpf_assert(source_string);
+
+    destination_string->Buffer = NULL;
+    destination_string->Length = 0;
+    destination_string->MaximumLength = 0;
+
+    ULONG source_length = (ULONG)strlen(source_string);
+    ebpf_assert(source_length < USHORT_MAX);
+
+    // First pass: Calculate how many bytes are needed for the UTF-16LE string.
+    status = RtlUTF8ToUnicodeN(
+        NULL,                     // No destination buffer, just calculate size.
+        0,                        // No destination buffer size.
+        &bytes_in_unicode_string, // Receives the required size.
+        source_string,            // Source UTF-8 string.
+        source_length);           // Source length in bytes.
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8ToUnicodeN, status);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Add space for null terminator.
+    ULONG required_bytes = bytes_in_unicode_string + sizeof(wchar_t);
+    if (required_bytes > USHORT_MAX) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "_convert_utf8_string_to_unicode_string: File path too long");
+        goto Done;
+    }
+
+    // Allocate buffer if needed.
+    if (allocate_destination_string) {
+        destination_string->Buffer = ebpf_allocate_with_tag(required_bytes, EBPF_POOL_TAG_DEFAULT);
+        if (!destination_string->Buffer) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+        destination_string->MaximumLength = (USHORT)required_bytes;
+    } else if (!destination_string->Buffer || destination_string->MaximumLength < required_bytes) {
+        result = EBPF_INSUFFICIENT_BUFFER;
+        goto Done;
+    }
+
+    // Second pass: Perform the actual conversion.
+    status = RtlUTF8ToUnicodeN(
+        destination_string->Buffer, // Destination buffer.
+        bytes_in_unicode_string,    // Destination buffer size (excluding null terminator).
+        &bytes_in_unicode_string,   // Receives actual bytes written.
+        source_string,              // Source UTF-8 string.
+        source_length);             // Source length in bytes.
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8ToUnicodeN, status);
+        if (allocate_destination_string) {
+            ebpf_free(destination_string->Buffer);
+            destination_string->Buffer = NULL;
+        }
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Add null terminator.
+    destination_string->Buffer[bytes_in_unicode_string / sizeof(wchar_t)] = L'\0';
+    destination_string->Length = (USHORT)bytes_in_unicode_string;
+
+Done:
+    EBPF_RETURN_RESULT(result);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_open_readonly_file_mapping(
     _In_ const cxplat_utf8_string_t* file_name,
@@ -378,27 +463,38 @@ ebpf_open_readonly_file_mapping(
     size_t file_size = 0;
     size_t view_size = 0;
     NTSTATUS status;
-    UTF8_STRING utf8_string = {
-        .Buffer = (char*)file_name->value,
-        .Length = (USHORT)file_name->length,
-        .MaximumLength = (USHORT)file_name->length};
     UNICODE_STRING file_name_unicode = {0};
     OBJECT_ATTRIBUTES object_attributes = {0};
     IO_STATUS_BLOCK io_status_block = {0};
     FILE_STANDARD_INFORMATION file_standard_information = {0};
 
-    // Convert from UTF-8 string to wide string.
-    status = RtlUTF8StringToUnicodeString(&file_name_unicode, &utf8_string, TRUE); // AllocateDestinationString = TRUE
-    if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8StringToUnicodeString, status);
+    // If file path size is more than USHORT_MAX, fail the call.
+    if (file_name->length >= USHORT_MAX) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "ebpf_open_readonly_file_mapping: File path too long");
+        goto Done;
+    }
+
+    UTF8_STRING utf8_string = {
+        .Buffer = (char*)file_name->value,
+        .Length = (USHORT)file_name->length,
+        .MaximumLength = (USHORT)file_name->length};
+
+    // Convert from UTF-8 string to UTF-16LE string.
+    result = _convert_utf8_string_to_unicode_string(&file_name_unicode, utf8_string.Buffer, TRUE);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "_convert_utf8_string_to_unicode_string failed");
         goto Done;
     }
 
     // If the last character is a null terminator, remove it.
     if (file_name_unicode.Length > 0 &&
-        file_name_unicode.Buffer[file_name_unicode.Length / sizeof(WCHAR) - 1] == L'\0') {
-        file_name_unicode.Length -= sizeof(WCHAR);
+        file_name_unicode.Buffer[file_name_unicode.Length / sizeof(wchar_t) - 1] == L'\0') {
+        file_name_unicode.Length -= sizeof(wchar_t);
     }
 
     InitializeObjectAttributes(

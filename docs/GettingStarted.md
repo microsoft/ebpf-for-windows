@@ -18,14 +18,15 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Community 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=17) (free)
    - [Download Visual Studio Professional 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=17)
    - [Download Visual Studio Enterprise 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=17)
-
+   
 Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
 first time.
+1. Install [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**). The latest version of clang that ships with the Visual Studio installer does not support `bpf` as a target.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
 
-Alternative install steps (for *basic* Visual Studio Community edition):
+**Alternative install steps to install Visual Studio and the required dependencies (for *basic* Visual Studio Community edition):**
 
 1. Launch an administrative PowerShell session.
 1. Install [Chocolatey Package Manager for Windows](https://chocolatey.org/install) by running the following commands in the PowerShell session:
@@ -38,7 +39,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '36C16D8455E8867E64EFA1D1AF5223CEF9CDB4394C3B76B6AA09B46F3F26E7A8') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq 'B12416D3C84660BE33C88772B3E7D3571A10899A57BC9DDFE218DB751483FD71') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
 
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
@@ -143,9 +144,7 @@ This will build the following binaries:
                 and EbpfCore and NetEbpfExt drivers to be loaded.
 - `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 - `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-- `xdp_tests.exe`: Application for testing various XDP_TEST functionalities. This requires the EbpfSvc service to be running,
-                and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
-- `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
+- `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types for both outbound connections (connect) and inbound connections (recv_accept).
 
 and a few binaries just used for demo'ing eBPF functionality, as in the demo walkthrough discussed below:
 
@@ -331,94 +330,10 @@ Other useful options include:
 1. `-l` to list test cases
 1. `Test_name` to run a single test
 
-### xdp_tests.exe
-
-This application tests various XDP_TEST functionalities. These tests require two hosts to run. There are three variations of the XDP_TEST tests.
-
-#### Reflection Test
-
-This tests the XDP_TX functionality.
-
-1. On the first host:
-   1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-   1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
-
-      ```cmd
-      netsh ebpf add program reflect_packet.o xdp_test
-      ```
-
-1. On the second host:
-   1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   1. Run (see **Note 2** below):
-
-      ```cmd
-      xdp_tests.exe xdp_reflect_test --remote-ip <IP on the first host>
-      ```
-
-#### Encapsulation Test
-
-This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP header to a packet.
-
-1. On the first host:
-   1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-   1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
-
-      ```cmd
-      netsh ebpf add program encap_reflect_packet.o xdp_test
-      ```
-
-1. On the second host:
-   1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   1. Run  (see **Note 3** below):
-
-      ```cmd
-      xdp_tests.exe xdp_encap_reflect_test --remote-ip <IP on the first host>
-      ```
-
-#### Decapsulation Test
-
-This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP header from a packet.
-
-1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
-1. On the first host load the first test eBPF program by running the following command. and note the ID (see **Note 3** below):
-
-   ```cmd
-   netsh ebpf add program encap_reflect_packet.o xdp_test
-   ```
-
-1. On the second host:
-   1. Load the second test eBPF program by running the following command, and note the ID (see **Note 3** below):
-
-      ```cmd
-      netsh ebpf add program decap_permit_packet.o xdp_test
-      ```
-
-   2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
-   3. Run the following command (see **Note 3** below):
-
-      ```cmd
-      xdp_tests.exe xdp_reflect_test --remote-ip <IP on the first host>
-      ```
-
-      **Note 1:** To allow inbound traffic to `xdp_tests.exe`, in a Windows Powershell with administrative privilege, run:
-
-      ```cmd
-      New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow
-      ```
-
-      **Note 2:** For the `--remote-ip` parameter to `xdp_tests.exe` program that is run on the second host,
-       pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.
-
-      **Note 3:** After completion of each test variation, unload the eBPF programs from both host machines by running
-       `delete program <id>` on the netsh prompt, where `<id>` is the ID noted when the eBPF programs were loaded.
-
-      ***Advanced:*** The eBPF program can be attached to a specific interface by passing `interface=<IfIndex>`
- parameter either to the netsh `add program` or `set program` commands.
-
 ### socket_tests.exe
 
 This application loads the `cgroup_sock_addr.o` eBPF program and attaches to hooks to handle various socket operations.
- Currently it tests authorizing ingress and egress connections based on entries in a map passed to the program.
+It tests authorizing both outbound connections (connect) and inbound connections (recv_accept) based on entries in policy maps passed to the program.
 
 ### Using tracing
 

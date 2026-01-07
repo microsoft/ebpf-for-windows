@@ -10,6 +10,7 @@
 
 #include <specstrings.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -65,18 +66,14 @@ extern "C"
         size_t offset_in_section; // Byte offset of program in section.
     } ebpf_api_program_info_t;
 
-// The type ebpf_section_info_t was replaced by ebpf_api_program_info_t
-// which also added the offset_in_section field at the end.
-#define ebpf_section_info_t ebpf_api_program_info_t
-
     /**
--     * @brief Get list of programs and stats in an eBPF file.
--     * @param[in] file Name of file containing eBPF programs.
--     * @param[in] verbose Obtain additional info about the programs.
--     * @param[out] infos On success points to a list of eBPF programs.
+      * @brief Get list of programs and stats in an eBPF file.
+      * @param[in] file Name of file containing eBPF programs.
+      * @param[in] verbose Obtain additional info about the programs.
+      * @param[out] infos On success points to a list of eBPF programs.
       * The caller is responsible for freeing the list via ebpf_free_programs().
--     * @param[out] error_message On failure points to a text description of
--     *  the error.
+      * @param[out] error_message On failure points to a text description of
+      *  the error.
       */
     _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_programs(
@@ -86,36 +83,11 @@ extern "C"
         _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
 
     /**
-     * @brief Get list of sections and stats in an eBPF file.
-     * @param[in] file Name of file containing eBPF program sections.
-     * @param[in] verbose Obtain additional info about the program sections.
-     * @param[out] infos On success points to a list of eBPF program sections.
-     * The caller is responsible for freeing the list via ebpf_free_sections().
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     * @deprecated Use ebpf_enumerate_programs() instead.
-     */
-    __declspec(deprecated("Use ebpf_enumerate_programs() instead.")) _Must_inspect_result_ ebpf_result_t
-    ebpf_enumerate_sections(
-        _In_z_ const char* file,
-        bool verbose,
-        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-        _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
-
-    /**
      * @brief Free memory returned from \ref ebpf_enumerate_programs.
      * @param[in] data Memory to free.
      */
     void
     ebpf_free_programs(_In_opt_ _Post_invalid_ ebpf_api_program_info_t* infos) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Free memory returned from \ref ebpf_enumerate_sections.
-     * @param[in] data Memory to free.
-     * @deprecated Use ebpf_free_programs() instead.
-     */
-    __declspec(deprecated("Use ebpf_free_programs() instead.")) void
-    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -133,21 +105,6 @@ extern "C"
         _In_z_ const char* file,
         _In_opt_z_ const char* section_name,
         _In_opt_z_ const char* program_name,
-        _Outptr_result_maybenull_z_ const char** disassembly,
-        _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Convert an eBPF program to human readable byte code.
-     * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section The name of the section to disassemble.
-     * @param[out] disassembly On success points text version of the program.
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     */
-    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t
-    ebpf_api_elf_disassemble_section(
-        _In_z_ const char* file,
-        _In_z_ const char* section,
         _Outptr_result_maybenull_z_ const char** disassembly,
         _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
 
@@ -195,31 +152,6 @@ extern "C"
 
     /**
      * @brief Verify that the program is safe to execute.
-     * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section The name of the section to verify.
-     * @param[in] program_type Optional program type.
-     *  If NULL, the program type is derived from the section name.
-     * @param[in] verbosity How much additional info about the programs to obtain.
-     * @param[out] report Points to a text section describing why the program
-     *  failed verification.
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     * @param[out] stats If non-NULL, returns verification statistics.
-     * @retval 0 Verification succeeded.
-     * @retval 1 Verification failed.
-     */
-    __declspec(deprecated("Use ebpf_api_elf_verify_program_from_file() instead.")) _Success_(return == 0) uint32_t
-        ebpf_api_elf_verify_section_from_file(
-            _In_z_ const char* file,
-            _In_z_ const char* section,
-            _In_opt_ const ebpf_program_type_t* program_type,
-            ebpf_verification_verbosity_t verbosity,
-            _Outptr_result_maybenull_z_ const char** report,
-            _Outptr_result_maybenull_z_ const char** error_message,
-            _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Verify that the program is safe to execute.
      * @param[in] data Memory containing the ELF file containing eBPF program.
      * @param[in] data_length Length of data.
      * @param[in] section_name The name of the section in which the program exists.
@@ -247,33 +179,6 @@ extern "C"
         _Outptr_result_maybenull_z_ const char** report,
         _Outptr_result_maybenull_z_ const char** error_message,
         _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Verify that the program is safe to execute.
-     * @param[in] data Memory containing the ELF file containing eBPF program.
-     * @param[in] data_length Length of data.
-     * @param[in] section_name The name of the section to verify.
-     * @param[in] program_type Optional program type.
-     *  If NULL, the program type is derived from the section name.
-     * @param[in] verbosity How much additional info about the programs to obtain.
-     * @param[out] report Points to a text section describing why the program
-     *  failed verification.
-     * @param[out] error_message On failure points to a text description of
-     *  the error.
-     * @param[out] stats If non-NULL, returns verification statistics.
-     * @retval 0 Verification succeeded.
-     * @retval 1 Verification failed.
-     */
-    __declspec(deprecated("Use ebpf_api_elf_verify_program_from_memory() instead.")) _Success_(return == 0) uint32_t
-        ebpf_api_elf_verify_section_from_memory(
-            _In_reads_(data_length) const char* data,
-            size_t data_length,
-            _In_z_ const char* section_name,
-            _In_opt_ const ebpf_program_type_t* program_type,
-            ebpf_verification_verbosity_t verbosity,
-            _Outptr_result_maybenull_z_ const char** report,
-            _Outptr_result_maybenull_z_ const char** error_message,
-            _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
 
     /**
      * @brief Free memory for a string returned from an eBPF API.
@@ -432,7 +337,8 @@ extern "C"
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
      *  by the extension provider.
-     * @param[out] link Pointer to ebpf_link structure.
+     * @param[out] link Pointer to ebpf_link structure or NULL if the caller is not
+     * interested in the link.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
@@ -442,7 +348,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_params_size) void* attach_parameters,
         size_t attach_params_size,
-        _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
+        _Outptr_opt_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program by program file descriptor.
@@ -456,7 +362,8 @@ extern "C"
      * @param[in] attach_parameters Optionally, attach parameters. This is an
      *  opaque flat buffer containing the attach parameters which is interpreted
      *  by the extension provider.
-     * @param[out] link Pointer to ebpf_link structure.
+     * @param[out] link Pointer to ebpf_link structure or NULL if the caller is not
+     * interested in the link.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      */
@@ -466,7 +373,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         size_t attach_parameters_size,
-        _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
+        _Outptr_opt_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program by program file descriptor and return
@@ -482,7 +389,7 @@ extern "C"
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
         size_t attach_parameters_size,
-        _Out_ fd_t* link) EBPF_NO_EXCEPT;
+        _Out_opt_ fd_t* link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Detach an eBPF program from an attach point represented by
@@ -585,20 +492,6 @@ extern "C"
      */
     _Ret_maybenull_z_ const char*
     ebpf_get_attach_type_name(_In_ const ebpf_attach_type_t* attach_type) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Gets the next pinned program after a given path.
-     *
-     * @param[in] start_path Path to look for an entry greater than.
-     * @param[out] next_path Returns the next path, if one exists.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MORE_KEYS No more entries found.
-     * @deprecated Use ebpf_get_next_pinned_object_path() instead.
-     */
-    __declspec(deprecated("Use ebpf_get_next_pinned_object_path() instead.")) _Must_inspect_result_ ebpf_result_t
-    ebpf_get_next_pinned_program_path(
-        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
 
     /**
      * @brief Retrieve the next pinned path of an eBPF object.
@@ -809,6 +702,101 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_synchronize() EBPF_NO_EXCEPT;
+
+    //
+    // Windows-specific Ring Buffer APIs
+    //
+
+    // Forward declarations and types needed for ring buffer APIs.
+    struct ring_buffer;
+
+    /**
+     * @brief Ring buffer sample callback function type.
+     * @param[in] ctx User-provided context.
+     * @param[in] data Pointer to sample data.
+     * @param[in] size Size of sample data.
+     * @returns 0 on success, negative value on error.
+     */
+    typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
+
+    /**
+     * @brief Windows-specific ring buffer options structure.
+     *
+     * This structure extends ring_buffer_opts with Windows-specific fields.
+     * The first field(s) must match ring_buffer_opts exactly for compatibility.
+     */
+    struct ebpf_ring_buffer_opts
+    {
+        size_t sz;      /* Size of this struct, for forward/backward compatibility (must match ring_buffer_opts). */
+        uint64_t flags; /* Windows-specific ring buffer option flags. */
+    };
+
+    /* Ring buffer option flags. */
+    enum ebpf_ring_buffer_flags
+    {
+        EBPF_RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record. */
+    };
+
+    /**
+     * @brief Creates a new ring buffer manager (Windows-specific with flags support).
+     *
+     * @param[in] map_fd File descriptor to ring buffer map.
+     * @param[in] sample_cb Pointer to ring buffer notification callback function.
+     * @param[in] ctx Pointer to sample_cb callback function context.
+     * @param[in] opts Ring buffer options with flags support.
+     *
+     * @returns Pointer to ring buffer manager, or NULL on error.
+     */
+    _Ret_maybenull_ struct ring_buffer*
+    ebpf_ring_buffer__new(
+        int map_fd,
+        ring_buffer_sample_fn sample_cb,
+        _In_opt_ void* ctx,
+        _In_opt_ const struct ebpf_ring_buffer_opts* opts) EBPF_NO_EXCEPT;
+
+    //
+    // Windows-specific Perf Buffer APIs
+    //
+
+    /**
+     * @brief Windows-specific perf buffer options structure.
+     */
+    struct ebpf_perf_buffer_opts
+    {
+        size_t sz;      /* size of this struct, for forward/backward compatibility */
+        uint64_t flags; /* perf buffer option flags */
+    };
+
+    /**
+     * @brief Perf buffer option flags (Windows-specific).
+     */
+    enum ebpf_perf_buffer_flags
+    {
+        EBPF_PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0, /* Automatically invoke callback for each record */
+    };
+    typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+    typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+    /**
+     * @brief Create a new perf buffer manager with Windows-specific options.
+     *
+     * @param[in] map_fd File descriptor of BPF_MAP_TYPE_PERF_EVENT_ARRAY map.
+     * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. Should be set to 0.
+     * @param[in] sample_cb Function called on each received data record.
+     * @param[in] lost_cb Function called when record loss has occurred.
+     * @param[in] ctx User-provided context passed into sample_cb and lost_cb.
+     * @param[in] opts Windows-specific perf buffer manager options.
+     *
+     * @returns Pointer to perf buffer manager on success, null on error.
+     */
+    _Ret_maybenull_ struct perf_buffer*
+    ebpf_perf_buffer__new(
+        int map_fd,
+        size_t page_cnt,
+        perf_buffer_sample_fn sample_cb,
+        perf_buffer_lost_fn lost_cb,
+        _In_opt_ void* ctx,
+        _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }
