@@ -67,9 +67,9 @@ netsh ebpf show hash [filename=]<path> [hashonly]
 Without `hashonly` flag:
 ```
 Hash for example.sys:
-Size: 64 bytes
-Data: a1b2c3d4e5f6789a bcdef012345678ab cdef0123456789ab cdef0123456789ab
-      cdef0123456789ab cdef0123456789ab cdef0123456789ab cdef0123456789ab
+Size: 32 bytes
+Data: a1b2c3d4e5f6789a bcdef012345678ab
+    cdef0123456789ab cdef0123456789ab
 ```
 
 With `hashonly` flag:
