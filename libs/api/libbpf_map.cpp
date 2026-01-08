@@ -648,22 +648,22 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
         return -EINVAL;
     }
 
-    // First, try to consume any immediately available data.
+    // First we reset the event and process any immediately available records.
+    // If the first consume doesn't return anything, we will wait for a new record and try again (or timeout).
+
+    ResetEvent(reinterpret_cast<HANDLE>(rb->wait_handle));
     int result = ring_buffer__consume(rb);
-    if (result != 0 || timeout_ms == 0) {                      // Return records found or error.
-        ResetEvent(reinterpret_cast<HANDLE>(rb->wait_handle)); // Reset event for next poll.
-        return result;
+    if (result != 0 || timeout_ms == 0) {
+        return result; // Return records found or error.
     }
 
-    // Wait for notification or timeout.
     DWORD wait_result = WaitForSingleObject(
         reinterpret_cast<HANDLE>(rb->wait_handle), timeout_ms < 0 ? INFINITE : static_cast<DWORD>(timeout_ms));
     if (wait_result == WAIT_OBJECT_0) {
         result = ring_buffer__consume(rb);
-        ResetEvent(reinterpret_cast<HANDLE>(rb->wait_handle)); // Reset event for next poll.
     } else if (wait_result != WAIT_TIMEOUT) {
         result = -EINVAL; // Failed to wait, return error.
-    } // Else timeout occurred, return 0.
+    } // Else timeout occurred and we will return 0 (no records).
 
     return result;
 }
