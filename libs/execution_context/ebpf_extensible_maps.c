@@ -16,6 +16,8 @@ static ebpf_map_client_dispatch_table_t _ebpf_extensible_map_client_dispatch_tab
     ebpf_epoch_free,
     ebpf_epoch_free_cache_aligned};
 
+static ebpf_map_type_t _supported_base_map_types[] = {BPF_MAP_TYPE_HASH};
+
 /**
  * @brief Extensible map structure with NMR client components.
  */
@@ -167,21 +169,31 @@ ebpf_extensible_map_create(
         goto Done;
     }
 
-    // Create extension map
-    result = extensible_map->provider_dispatch->create_map_function(
+    // Invoke extension to validate map parameters and get actual value size.
+    result = extensible_map->provider_dispatch->process_map_create(
         extensible_map->provider_context,
         extensible_map->core_map.ebpf_map_definition.type,
         extensible_map->core_map.ebpf_map_definition.key_size,
         extensible_map->core_map.ebpf_map_definition.value_size,
         extensible_map->core_map.ebpf_map_definition.max_entries,
-        // &extensible_map->core_map.ebpf_map_definition,
+        &extensible_map->core_map.original_value_size,
         &extensible_map->core_map.extensible_map_data);
+
+    // // Create extension map
+    // result = extensible_map->provider_dispatch->process_map_create(
+    //     extensible_map->provider_context,
+    //     extensible_map->core_map.ebpf_map_definition.type,
+    //     extensible_map->core_map.ebpf_map_definition.key_size,
+    //     extensible_map->core_map.ebpf_map_definition.value_size,
+    //     extensible_map->core_map.ebpf_map_definition.max_entries,
+    //     // &extensible_map->core_map.ebpf_map_definition,
+    //     &extensible_map->core_map.extensible_map_data);
 
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "Failed to create extension map for extensible map type",
+            "process_map_create failed for custom map type",
             extensible_map->core_map.ebpf_map_definition.type);
 
         // Release rundown.
@@ -248,8 +260,25 @@ _ebpf_extensible_map_client_attach_provider(
         goto Done;
     }
 
-    // Provider supports the requested map type.
+    // Validate that the base map type is one of the supported map types.
+    bool base_map_type_supported = false;
+    for (size_t i = 0; i < sizeof(_supported_base_map_types) / sizeof(_supported_base_map_types[0]); i++) {
+        if (provider_data->base_map_type == _supported_base_map_types[i]) {
+            base_map_type_supported = true;
+            break;
+        }
+    }
+    if (!base_map_type_supported) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Base map type not supported",
+            provider_data->base_map_type);
+        status = STATUS_NOT_SUPPORTED;
+        goto Done;
+    }
 
+    // Provider supports the requested map type.
     // Create a cache-aligned copy of the dispatch table for hot path performance.
     provider_dispatch_table = (ebpf_map_provider_dispatch_table_t*)ebpf_allocate_cache_aligned_with_tag(
         sizeof(ebpf_map_provider_dispatch_table_t), EBPF_POOL_TAG_EXTENSIBLE_MAP);

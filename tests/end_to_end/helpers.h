@@ -226,7 +226,7 @@ _test_sample_array_map_delete(_In_ _Post_invalid_ void* map_context);
 
 static ebpf_map_provider_dispatch_table_t _test_sample_array_map_dispatch_table = {
     .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
-    .create_map_function = _test_sample_array_map_create,
+    .process_map_create = _test_sample_array_map_create,
     .delete_map_function = _test_sample_array_map_delete,
     .associate_program_function = _test_sample_map_associate_program,
     .find_element_function = _test_sample_array_map_find_entry,
@@ -273,7 +273,7 @@ _test_sample_hash_map_get_next_key_and_value(
 
 static ebpf_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table = {
     .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
-    .create_map_function = _test_sample_hash_map_create,
+    .process_map_create = _test_sample_hash_map_create,
     .delete_map_function = _test_sample_hash_map_delete,
     .associate_program_function = _test_sample_map_associate_program,
     .find_element_function = _test_sample_hash_map_find_entry,

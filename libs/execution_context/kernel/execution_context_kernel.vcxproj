@@ -7,7 +7,7 @@
   <ItemGroup>
     <ClCompile Include="..\ebpf_core.c" />
     <ClCompile Include="..\ebpf_core_jit.c" />
-    <ClCompile Include="..\ebpf_extensible_maps.c" />
+    <!-- <ClCompile Include="..\ebpf_extensible_maps.c" /> -->
     <ClCompile Include="..\ebpf_general_helpers.c" />
     <ClCompile Include="..\ebpf_link.c" />
     <ClCompile Include="..\ebpf_maps.c" />

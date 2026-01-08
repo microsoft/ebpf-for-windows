@@ -616,7 +616,7 @@ repo and updating `ebpf_map_type_t` enum in ebpf_structs.h. This helps in any ma
 typedef struct _ebpf_map_provider_dispatch_table
 {
     ebpf_extension_header_t header;
-    _Notnull_ ebpf_map_create_t create_map_function;
+    _Notnull_ ebpf_process_map_create_t process_map_create;
     _Notnull_ ebpf_map_delete_t delete_map_function;
     _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
     ebpf_map_find_element_t find_element_function;
@@ -626,7 +626,7 @@ typedef struct _ebpf_map_provider_dispatch_table
 } ebpf_map_provider_dispatch_table_t;
 ```
 This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
-1. `create_map_function` - Called by eBPF runtime to create the map.
+1. `process_map_create` - Called by eBPF runtime to create the map.
 2. `delete_map_function` - Called by eBPF runtime to delete the map.
 3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an extensible map is associated with a program.
 4. `find_element_function` - Function to find an entry.
@@ -634,7 +634,7 @@ This the dispatch table that the extension needs to implement and provide to eBP
 5. `delete_element_function` - Function to delete an entry.
 6. `get_next_key_and_value_function` - Function to get the next key and value.
 
-When `create_map_function` is invoked, the extension will allocate a map, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
+When `process_map_create` is invoked, the extension will allocate a map, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
 
 #### `ebpf_map_client_data_t` Struct
 `ebpf_map_client_data_t` is the client data that is provided by eBPFCore to the extension when it attaches to the NMR provider. It is defined as below:

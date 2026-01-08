@@ -155,7 +155,7 @@ _sample_map_associate_program(_In_ const void* map_context, _In_ const ebpf_prog
 // Sample map extension data
 static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
-    .create_map_function = _sample_map_create,
+    .process_map_create = _sample_map_create,
     .delete_map_function = _sample_map_delete,
     .find_element_function = _sample_map_find_entry,
     .update_element_function = _sample_map_update_entry,
