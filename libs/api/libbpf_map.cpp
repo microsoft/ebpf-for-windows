@@ -404,25 +404,24 @@ _convert_to_ebpf_perf_opts(_In_ const struct perf_buffer_opts* linux_opts)
 
 // Helper function to process ring buffer records from memory pages.
 static int
-_process_ring_records(_In_ const ebpf_ring_mapping& mapping, bool consume_all)
+_process_ring_records(_In_ const ebpf_ring_mapping& mapping)
 {
     if (!mapping.consumer_page || !mapping.producer_page || !mapping.data || !mapping.sample_fn) {
         return -EINVAL;
     }
 
     // Get current consumer and producer offsets from shared pages.
-    int records_processed = 0;
     uint64_t consumer_offset = ReadULong64Acquire(&mapping.consumer_page->consumer_offset);
     uint64_t producer_offset = ReadULong64Acquire(&mapping.producer_page->producer_offset);
 
+    int records_processed = 0;
     const ebpf_ring_buffer_record_t* record{};
     // Process available records.
     while (nullptr !=
            (record = ebpf_ring_buffer_next_record(mapping.data, mapping.data_size, consumer_offset, producer_offset))) {
         // Check if record is locked (still being written by producer).
         if (ebpf_ring_buffer_record_is_locked(record)) {
-            // Records must be read in order, so we stop here.
-            break;
+            break; // Records must be read in order, so we stop here.
         }
 
         // Total bytes in record (including header + padding).
@@ -437,12 +436,8 @@ _process_ring_records(_In_ const ebpf_ring_mapping& mapping, bool consume_all)
             uint32_t data_length = ebpf_ring_buffer_record_length(record);
 
             // Call the user callback with the record data.
-            int callback_result = ((ring_buffer_sample_fn)mapping.sample_fn)(
-                mapping.ctx,
-                (void*)record->data, // Point to data portion of record.
-                data_length);
-
-            if (callback_result < 0) {
+            int result = ((ring_buffer_sample_fn)mapping.sample_fn)(mapping.ctx, (void*)record->data, data_length);
+            if (result < 0) {
                 // User callback requested to stop processing.
                 break;
             }
@@ -451,11 +446,6 @@ _process_ring_records(_In_ const ebpf_ring_mapping& mapping, bool consume_all)
             consumer_offset += record_size;
             WriteULong64Release(&mapping.consumer_page->consumer_offset, consumer_offset);
             records_processed++;
-
-            if (!consume_all) {
-                // For polling mode, process one record at a time.
-                break;
-            }
         }
 
         if (consumer_offset >= producer_offset) {
@@ -516,7 +506,7 @@ ebpf_ring_buffer__new(
             }
         } else {
             // Set up for synchronous mode - create shared wait handle for all maps
-            HANDLE wait_handle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
             if (wait_handle == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
@@ -653,70 +643,45 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
 int
 ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
 {
-    if (!rb) {
+    // For async mode, polling doesn't make sense since callbacks are automatic.
+    if (!rb || rb->sync_maps.empty() || rb->is_async_mode) {
         return -EINVAL;
     }
 
-    if (rb->is_async_mode) {
-        // For async mode, polling doesn't make sense since callbacks are automatic
-        return 0; // Return success to indicate the ring buffer is operational
+    // First, try to consume any immediately available data.
+    int result = ring_buffer__consume(rb);
+    if (result != 0 || timeout_ms == 0) {                      // Return records found or error.
+        ResetEvent(reinterpret_cast<HANDLE>(rb->wait_handle)); // Reset event for next poll.
+        return result;
     }
 
-    if (rb->sync_maps.empty()) {
-        return -EINVAL;
-    }
-
-    // First a non-blocking wait to clear the auto-reset event if already set.
-    DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(rb->wait_handle), 0);
-
-    // Next, try to consume any immediately available data.
-    int total_records = ring_buffer__consume(rb);
-    if (total_records != 0) {
-        return total_records; // Return records found or error.
-    }
-
-    // No data is immediately available, so wait if timeout allows.
-    if (timeout_ms == 0) {
-        return 0; // Non-blocking, return immediately with no data.
-    }
-
-    // Wait on the shared handle until data becomes available or timeout.
-    wait_result = WaitForSingleObject(
+    // Wait for notification or timeout.
+    DWORD wait_result = WaitForSingleObject(
         reinterpret_cast<HANDLE>(rb->wait_handle), timeout_ms < 0 ? INFINITE : static_cast<DWORD>(timeout_ms));
-
-    if (wait_result == WAIT_TIMEOUT) {
-        return 0; // Timeout with no data.
-    }
-
     if (wait_result == WAIT_OBJECT_0) {
-        // Data is now available, consume all available data.
-        return ring_buffer__consume(rb);
-    }
+        result = ring_buffer__consume(rb);
+        ResetEvent(reinterpret_cast<HANDLE>(rb->wait_handle)); // Reset event for next poll.
+    } else if (wait_result != WAIT_TIMEOUT) {
+        result = -EINVAL; // Failed to wait, return error.
+    } // Else timeout occurred, return 0.
 
-    return -EINVAL; // Wait failed
+    return result;
 }
 
 int
 ring_buffer__consume(struct ring_buffer* rb)
 {
-    if (!rb) {
+    if (!rb || rb->sync_maps.empty() || rb->is_async_mode) {
         return -EINVAL;
     }
 
-    if (rb->is_async_mode) {
-        return -ENOTSUP; // Not currently supported.
-    }
-
     int total_records = 0;
-
     // Process all available data from all ring buffers
     for (const auto& map_info : rb->sync_maps) {
-        int result = _process_ring_records(map_info, true); // Process all records
-
+        int result = _process_ring_records(map_info); // Process all records
         if (result < 0) {
             return result; // Return error
         }
-
         total_records += result;
     }
 
