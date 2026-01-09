@@ -606,19 +606,30 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
         return -ENOTSUP;
     }
 
-    // Add to sync mode - use the shared wait handle
+    // Add to sync mode - use the shared wait handle.
     ebpf_ring_mapping map_info{};
     map_info.map_fd = map_fd;
     map_info.sample_fn = (void*)sample_cb;
     map_info.ctx = ctx;
 
-    // Set the shared wait handle for this map to receive notifications
+    // Create cleanup guard to unmap buffer and clear wait handle on failure.
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
+            if (map_info.consumer_page) {
+                (void)ebpf_ring_buffer_map_unmap_buffer(
+                    map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
+            }
+        });
+
+    // Set the ring to use the shared wait handle.
     ebpf_result_t result = ebpf_map_set_wait_handle(map_fd, 0, rb->wait_handle);
     if (result != EBPF_SUCCESS) {
         return -ebpf_result_to_errno(result);
     }
 
-    // Get direct memory access to the ring buffer map
+    // Map the ring buffer memory.
     result = ebpf_ring_buffer_map_map_buffer(
         map_fd,
         reinterpret_cast<void**>(&map_info.consumer_page),
@@ -626,16 +637,14 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
         &map_info.data,
         &map_info.data_size);
     if (result != EBPF_SUCCESS) {
-        (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
         return -ebpf_result_to_errno(result);
     }
 
     try {
         rb->sync_maps.push_back(map_info);
+        cleanup.release(); // Success - release cleanup guard.
         return 0;
     } catch (const std::bad_alloc&) {
-        (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
-        (void)ebpf_ring_buffer_map_unmap_buffer(map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
         return -ENOMEM;
     }
 }
