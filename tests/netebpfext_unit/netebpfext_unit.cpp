@@ -105,7 +105,7 @@ TEST_CASE("bind_invoke", "[netebpfext]")
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify a bind that should be allowed.
-    client_context->bind_action = BIND_PERMIT;
+    client_context->bind_action = BIND_PERMIT_SOFT;
     FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters); // TODO(issue #526): support IPv6.
     REQUIRE(result == FWP_ACTION_PERMIT);
 
