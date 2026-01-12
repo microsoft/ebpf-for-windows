@@ -10,7 +10,9 @@
 #include "bpf/bpf.h"
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
+
 #include <windows.h>
+#include <cstdlib>
 #include <io.h>
 #include <iostream>
 #include <string>
@@ -25,9 +27,9 @@
 
 enum class OperationMode
 {
-    OPEN_HANDLES,    // Create objects, keep handles open, wait for signal
-    PIN_OBJECTS,     // Create objects, pin them, release handles, exit
-    UNPIN_OBJECTS    // Unpin objects and exit
+    OPEN_HANDLES, // Create objects, keep handles open, wait for signal
+    PIN_OBJECTS,  // Create objects, pin them, release handles, exit
+    UNPIN_OBJECTS // Unpin objects and exit
 };
 
 static void
@@ -45,12 +47,35 @@ signal_controller(const char* signal_name)
 static void
 wait_for_controller()
 {
-    HANDLE event = CreateEventA(nullptr, TRUE, FALSE, SIGNAL_CONTROLLER_DONE);
-    if (event == nullptr) {
-        std::cerr << "Failed to create event for waiting, error: " << GetLastError() << std::endl;
+    DWORD start_tick = GetTickCount();
+    HANDLE event = nullptr;
+
+    while (true) {
+        event = OpenEventA(SYNCHRONIZE, FALSE, SIGNAL_CONTROLLER_DONE);
+        if (event != nullptr) {
+            break;
+        }
+
+        DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
+            DWORD elapsed = GetTickCount() - start_tick;
+            if (elapsed >= 30000) {
+                std::cerr << "Timeout waiting for controller event" << std::endl;
+                return;
+            }
+            Sleep(100);
+            continue;
+        }
+
+        std::cerr << "Failed to open event for waiting, error: " << error << std::endl;
         return;
     }
-    WaitForSingleObject(event, INFINITE);
+
+    DWORD wait_result = WaitForSingleObject(event, INFINITE);
+    if (wait_result != WAIT_OBJECT_0) {
+        std::cerr << "Error waiting for controller event, result: " << wait_result << ", error: " << GetLastError()
+                  << std::endl;
+    }
     CloseHandle(event);
 }
 
@@ -62,9 +87,19 @@ create_test_map()
 }
 
 static int
-load_test_program(int& program_fd)
+load_test_program(int& program_fd, bpf_object*& object_out)
 {
-    const char* program_path = "cgroup_sock_addr.o";
+    const char* program_path = std::getenv("EBPF_TEST_PROGRAM_PATH");
+    if (program_path == nullptr || program_path[0] == '\0') {
+        program_path = "cgroup_sock_addr.o";
+    }
+
+    // Verify program path exists for optional program load.
+    if (_access(program_path, 0) != 0) {
+        std::cerr << "eBPF test program not found at path: " << program_path << std::endl;
+        return -1;
+    }
+
     struct bpf_object* object = nullptr;
     struct bpf_program* program = nullptr;
     int result;
@@ -98,7 +133,8 @@ load_test_program(int& program_fd)
         return -1;
     }
 
-    // Don't close the object yet - keep it alive
+    // Don't close the object yet - keep it alive for caller to manage.
+    object_out = object;
     return 0;
 }
 
@@ -118,7 +154,8 @@ mode_open_handles()
 
     // Try to load a program (optional - may not be available)
     int program_fd = -1;
-    load_test_program(program_fd);
+    bpf_object* program_object = nullptr;
+    load_test_program(program_fd, program_object);
     if (program_fd > 0) {
         std::cout << "Loaded program with fd: " << program_fd << std::endl;
     }
@@ -132,6 +169,9 @@ mode_open_handles()
     wait_for_controller();
 
     std::cout << "Controller signaled, exiting..." << std::endl;
+    if (program_object != nullptr) {
+        bpf_object__close(program_object);
+    }
     // Handles will be automatically closed on process exit
     return 0;
 }
@@ -162,7 +202,8 @@ mode_pin_objects()
 
     // Try to load and pin a program (optional)
     int program_fd = -1;
-    if (load_test_program(program_fd) == 0 && program_fd > 0) {
+    bpf_object* program_object = nullptr;
+    if (load_test_program(program_fd, program_object) == 0 && program_fd > 0) {
         result = bpf_obj_pin(program_fd, PIN_PATH_PROGRAM);
         if (result < 0) {
             std::cerr << "Failed to pin program, error: " << result << std::endl;
@@ -170,6 +211,9 @@ mode_pin_objects()
             std::cout << "Pinned program at: " << PIN_PATH_PROGRAM << std::endl;
         }
         _close(program_fd);
+        if (program_object != nullptr) {
+            bpf_object__close(program_object);
+        }
     }
 
     // Close the map handle

@@ -23,13 +23,35 @@
 static bool
 wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
 {
-    HANDLE event = CreateEventA(nullptr, TRUE, FALSE, signal_name);
-    if (event == nullptr) {
-        std::cerr << "Failed to create event: " << signal_name << ", error: " << GetLastError() << std::endl;
+    DWORD start_tick = GetTickCount();
+    HANDLE event = nullptr;
+
+    // Retry until the controller-created event exists or timeout expires.
+    while (true) {
+        event = OpenEventA(SYNCHRONIZE, FALSE, signal_name);
+        if (event != nullptr) {
+            break;
+        }
+
+        DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
+            DWORD elapsed = GetTickCount() - start_tick;
+            if (elapsed >= timeout_ms) {
+                std::cerr << "Timeout waiting for event to be created: " << signal_name << std::endl;
+                return false;
+            }
+            Sleep(100);
+            continue;
+        }
+
+        std::cerr << "Failed to open event: " << signal_name << ", error: " << error << std::endl;
         return false;
     }
 
-    DWORD result = WaitForSingleObject(event, timeout_ms);
+    DWORD elapsed = GetTickCount() - start_tick;
+    DWORD remaining_timeout = (elapsed >= timeout_ms) ? 0 : (timeout_ms - elapsed);
+
+    DWORD result = WaitForSingleObject(event, remaining_timeout);
     CloseHandle(event);
 
     if (result == WAIT_OBJECT_0) {
@@ -87,18 +109,19 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
 }
 
 // Helper function to attempt to stop the ebpfcore driver
-static int
+static DWORD
 attempt_stop_ebpfcore()
 {
     SC_HANDLE scm = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
     if (scm == nullptr) {
-        std::cerr << "Failed to open SCM, error: " << GetLastError() << std::endl;
-        return -1;
+        DWORD error = GetLastError();
+        std::cerr << "Failed to open SCM, error: " << error << std::endl;
+        return error;
     }
 
     SC_HANDLE service = OpenServiceW(scm, L"ebpfcore", SERVICE_STOP | SERVICE_QUERY_STATUS);
     if (service == nullptr) {
-        int error = GetLastError();
+        DWORD error = GetLastError();
         std::cerr << "Failed to open ebpfcore service, error: " << error << std::endl;
         CloseServiceHandle(scm);
         return error;
@@ -106,7 +129,7 @@ attempt_stop_ebpfcore()
 
     SERVICE_STATUS status;
     if (!ControlService(service, SERVICE_CONTROL_STOP, &status)) {
-        int error = GetLastError();
+        DWORD error = GetLastError();
         std::cout << "Failed to stop ebpfcore service, error: " << error << std::endl;
         CloseServiceHandle(service);
         CloseServiceHandle(scm);
@@ -116,7 +139,7 @@ attempt_stop_ebpfcore()
     // Wait for service to stop
     for (int i = 0; i < 10; i++) {
         if (!QueryServiceStatus(service, &status)) {
-            int error = GetLastError();
+            DWORD error = GetLastError();
             std::cerr << "Failed to query service status, error: " << error << std::endl;
             CloseServiceHandle(service);
             CloseServiceHandle(scm);
@@ -140,25 +163,26 @@ attempt_stop_ebpfcore()
 }
 
 // Helper function to start the ebpfcore driver
-static int
+static DWORD
 start_ebpfcore()
 {
     SC_HANDLE scm = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
     if (scm == nullptr) {
-        std::cerr << "Failed to open SCM, error: " << GetLastError() << std::endl;
-        return -1;
+        DWORD error = GetLastError();
+        std::cerr << "Failed to open SCM, error: " << error << std::endl;
+        return error;
     }
 
     SC_HANDLE service = OpenServiceW(scm, L"ebpfcore", SERVICE_START | SERVICE_QUERY_STATUS);
     if (service == nullptr) {
-        int error = GetLastError();
+        DWORD error = GetLastError();
         std::cerr << "Failed to open ebpfcore service, error: " << error << std::endl;
         CloseServiceHandle(scm);
         return error;
     }
 
     if (!StartService(service, 0, nullptr)) {
-        int error = GetLastError();
+        DWORD error = GetLastError();
         if (error != ERROR_SERVICE_ALREADY_RUNNING) {
             std::cerr << "Failed to start ebpfcore service, error: " << error << std::endl;
             CloseServiceHandle(service);
@@ -171,7 +195,7 @@ start_ebpfcore()
     SERVICE_STATUS status;
     for (int i = 0; i < 10; i++) {
         if (!QueryServiceStatus(service, &status)) {
-            int error = GetLastError();
+            DWORD error = GetLastError();
             std::cerr << "Failed to query service status, error: " << error << std::endl;
             CloseServiceHandle(service);
             CloseServiceHandle(scm);
@@ -230,7 +254,7 @@ main(int argc, char* argv[])
         }
 
         // Try to stop ebpfcore - this should fail because the child has open handles
-        int stop_result = attempt_stop_ebpfcore();
+        DWORD stop_result = attempt_stop_ebpfcore();
         std::cout << "Stop result with open handles: " << stop_result << std::endl;
 
         // We expect the stop to fail (non-zero result)
@@ -246,15 +270,24 @@ main(int argc, char* argv[])
         signal_child_done();
 
         // Wait for child to exit
-        WaitForSingleObject(child_process, 5000);
+        DWORD wait_result = WaitForSingleObject(child_process, 5000);
+        if (wait_result == WAIT_OBJECT_0) {
+            std::cout << "Child process exited" << std::endl;
+        } else if (wait_result == WAIT_TIMEOUT) {
+            std::cerr << "WARNING: Child process did not exit within timeout; terminating" << std::endl;
+            TerminateProcess(child_process, 1);
+            WaitForSingleObject(child_process, INFINITE);
+        } else if (wait_result == WAIT_FAILED) {
+            std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
+        } else {
+            std::cerr << "WARNING: Unexpected wait result for child process: " << wait_result << std::endl;
+        }
         if (pi.hProcess != nullptr) {
             CloseHandle(pi.hProcess);
         }
         if (pi.hThread != nullptr) {
             CloseHandle(pi.hThread);
         }
-
-        std::cout << "Child process exited" << std::endl;
     }
 
     // Test 2: Stop after child exits (should succeed or fail gracefully)
@@ -264,7 +297,7 @@ main(int argc, char* argv[])
         // Sleep briefly to ensure handles are fully released
         Sleep(1000);
 
-        int stop_result = attempt_stop_ebpfcore();
+        DWORD stop_result = attempt_stop_ebpfcore();
         std::cout << "Stop result after child exit: " << stop_result << std::endl;
 
         if (stop_result != 0) {
@@ -276,7 +309,7 @@ main(int argc, char* argv[])
             std::cout << "PASS: ebpfcore stopped successfully after child exit" << std::endl;
 
             // Restart ebpfcore
-            int start_result = start_ebpfcore();
+            DWORD start_result = start_ebpfcore();
             if (start_result != 0) {
                 std::cerr << "FAIL: Could not restart ebpfcore, error: " << start_result << std::endl;
                 return 1;
@@ -312,7 +345,18 @@ main(int argc, char* argv[])
         }
 
         // Wait for child to exit (it exits immediately after pinning)
-        WaitForSingleObject(child_process, 5000);
+        DWORD wait_result = WaitForSingleObject(child_process, 5000);
+        if (wait_result == WAIT_OBJECT_0) {
+            std::cout << "Child process exited" << std::endl;
+        } else if (wait_result == WAIT_TIMEOUT) {
+            std::cerr << "WARNING: Child process did not exit within timeout; terminating" << std::endl;
+            TerminateProcess(child_process, 1);
+            WaitForSingleObject(child_process, INFINITE);
+        } else if (wait_result == WAIT_FAILED) {
+            std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
+        } else {
+            std::cerr << "WARNING: Unexpected wait result for child process: " << wait_result << std::endl;
+        }
         if (pi.hProcess != nullptr) {
             CloseHandle(pi.hProcess);
         }
@@ -326,7 +370,7 @@ main(int argc, char* argv[])
         Sleep(1000);
 
         // Try to stop ebpfcore with pinned objects present
-        int stop_result = attempt_stop_ebpfcore();
+        DWORD stop_result = attempt_stop_ebpfcore();
         std::cout << "Stop result with pinned objects: " << stop_result << std::endl;
 
         // The behavior here is implementation-defined:
@@ -338,7 +382,7 @@ main(int argc, char* argv[])
                       << std::endl;
 
             // Restart
-            int start_result = start_ebpfcore();
+            DWORD start_result = start_ebpfcore();
             if (start_result != 0) {
                 std::cerr << "FAIL: Could not restart ebpfcore, error: " << start_result << std::endl;
                 return 1;
@@ -357,7 +401,19 @@ main(int argc, char* argv[])
                 return 1;
             }
 
-            WaitForSingleObject(unpin_process, 10000);
+            DWORD wait_result_unpin = WaitForSingleObject(unpin_process, 10000);
+            if (wait_result_unpin == WAIT_OBJECT_0) {
+                // Success path; nothing else to do.
+            } else if (wait_result_unpin == WAIT_TIMEOUT) {
+                std::cerr << "FAIL: Timeout waiting for unpin process to exit" << std::endl;
+                return 1;
+            } else if (wait_result_unpin == WAIT_FAILED) {
+                std::cerr << "FAIL: Error waiting for unpin process, error: " << GetLastError() << std::endl;
+                return 1;
+            } else {
+                std::cerr << "FAIL: Unexpected wait result for unpin process: " << wait_result_unpin << std::endl;
+                return 1;
+            }
             if (pi2.hProcess != nullptr) {
                 CloseHandle(pi2.hProcess);
             }
@@ -369,12 +425,12 @@ main(int argc, char* argv[])
             Sleep(1000);
 
             // Try to stop again
-            int stop_result2 = attempt_stop_ebpfcore();
+            DWORD stop_result2 = attempt_stop_ebpfcore();
             if (stop_result2 == 0) {
                 std::cout << "PASS: ebpfcore stopped successfully after unpinning objects" << std::endl;
 
                 // Restart
-                int start_result = start_ebpfcore();
+                DWORD start_result = start_ebpfcore();
                 if (start_result != 0) {
                     std::cerr << "FAIL: Could not restart ebpfcore, error: " << start_result << std::endl;
                     return 1;
