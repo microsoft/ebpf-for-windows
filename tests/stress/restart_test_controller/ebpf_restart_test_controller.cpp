@@ -220,8 +220,12 @@ main(int argc, char* argv[])
         if (!wait_for_child_signal(SIGNAL_READY_HANDLES_OPEN)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
             TerminateProcess(child_process, 1);
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
+            if (pi.hProcess != nullptr) {
+                CloseHandle(pi.hProcess);
+            }
+            if (pi.hThread != nullptr) {
+                CloseHandle(pi.hThread);
+            }
             return 1;
         }
 
@@ -243,8 +247,12 @@ main(int argc, char* argv[])
 
         // Wait for child to exit
         WaitForSingleObject(child_process, 5000);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        if (pi.hProcess != nullptr) {
+            CloseHandle(pi.hProcess);
+        }
+        if (pi.hThread != nullptr) {
+            CloseHandle(pi.hThread);
+        }
 
         std::cout << "Child process exited" << std::endl;
     }
@@ -294,15 +302,23 @@ main(int argc, char* argv[])
         if (!wait_for_child_signal(SIGNAL_READY_PINNED_OBJECTS)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
             TerminateProcess(child_process, 1);
-            CloseHandle(pi.hProcess);
-            CloseHandle(pi.hThread);
+            if (pi.hProcess != nullptr) {
+                CloseHandle(pi.hProcess);
+            }
+            if (pi.hThread != nullptr) {
+                CloseHandle(pi.hThread);
+            }
             return 1;
         }
 
         // Wait for child to exit (it exits immediately after pinning)
         WaitForSingleObject(child_process, 5000);
-        CloseHandle(pi.hProcess);
-        CloseHandle(pi.hThread);
+        if (pi.hProcess != nullptr) {
+            CloseHandle(pi.hProcess);
+        }
+        if (pi.hThread != nullptr) {
+            CloseHandle(pi.hThread);
+        }
 
         std::cout << "Child process exited with pinned objects remaining" << std::endl;
 
@@ -342,8 +358,12 @@ main(int argc, char* argv[])
             }
 
             WaitForSingleObject(unpin_process, 10000);
-            CloseHandle(pi2.hProcess);
-            CloseHandle(pi2.hThread);
+            if (pi2.hProcess != nullptr) {
+                CloseHandle(pi2.hProcess);
+            }
+            if (pi2.hThread != nullptr) {
+                CloseHandle(pi2.hThread);
+            }
 
             std::cout << "Objects unpinned" << std::endl;
             Sleep(1000);
