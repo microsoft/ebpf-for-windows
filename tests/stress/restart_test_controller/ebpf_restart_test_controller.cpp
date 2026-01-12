@@ -4,7 +4,7 @@
 /**
  * @file
  * @brief Standalone controller for eBPF core restart stress test.
- * 
+ *
  * This executable does NOT load ebpfapi.dll, allowing it to test driver restart scenarios
  * without holding a reference to the driver itself. It coordinates child processes that
  * do load ebpfapi.dll to create test conditions.
@@ -77,16 +77,7 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
     std::cout << "Spawning child process: " << command_line << std::endl;
 
     if (!CreateProcessA(
-            nullptr,
-            const_cast<char*>(command_line.c_str()),
-            nullptr,
-            nullptr,
-            FALSE,
-            0,
-            nullptr,
-            nullptr,
-            &si,
-            &pi)) {
+            nullptr, const_cast<char*>(command_line.c_str()), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         std::cerr << "Failed to spawn child process, error: " << GetLastError() << std::endl;
         return nullptr;
     }
@@ -206,6 +197,9 @@ start_ebpfcore()
 int
 main(int argc, char* argv[])
 {
+    UNREFERENCED_PARAMETER(argc);
+    UNREFERENCED_PARAMETER(argv);
+
     std::cout << "===== eBPF Core Restart Stress Test Controller =====" << std::endl;
     std::cout << "This controller does NOT load ebpfapi.dll to avoid holding driver references." << std::endl;
     std::cout << std::endl;
@@ -237,7 +231,8 @@ main(int argc, char* argv[])
 
         // We expect the stop to fail (non-zero result)
         if (stop_result == 0) {
-            std::cerr << "WARNING: ebpfcore stopped successfully despite open handles - this may indicate a regression!" << std::endl;
+            std::cerr << "WARNING: ebpfcore stopped successfully despite open handles - this may indicate a regression!"
+                      << std::endl;
             exit_code = 1;
         } else {
             std::cout << "PASS: Stop correctly failed with error code: " << stop_result << std::endl;
@@ -255,7 +250,8 @@ main(int argc, char* argv[])
     }
 
     // Test 2: Stop after child exits (should succeed or fail gracefully)
-    std::cout << std::endl << "Test 2: Attempting to stop ebpfcore after child exits with no pinned objects..." << std::endl;
+    std::cout << std::endl
+              << "Test 2: Attempting to stop ebpfcore after child exits with no pinned objects..." << std::endl;
     {
         // Sleep briefly to ensure handles are fully released
         Sleep(1000);
@@ -265,7 +261,9 @@ main(int argc, char* argv[])
 
         if (stop_result != 0) {
             std::cout << "INFO: Failed to stop ebpfcore after child exited, error: " << stop_result << std::endl;
-            std::cout << "Note: This may be expected if other processes (like the eBPF service) are holding references to ebpfcore" << std::endl;
+            std::cout << "Note: This may be expected if other processes (like the eBPF service) are holding references "
+                         "to ebpfcore"
+                      << std::endl;
         } else {
             std::cout << "PASS: ebpfcore stopped successfully after child exit" << std::endl;
 
@@ -320,7 +318,8 @@ main(int argc, char* argv[])
         // - If stop fails, pinned objects are preventing driver unload
         // Both behaviors are acceptable and should be documented
         if (stop_result == 0) {
-            std::cout << "INFO: ebpfcore stopped successfully with pinned objects (objects may have been cleaned up)" << std::endl;
+            std::cout << "INFO: ebpfcore stopped successfully with pinned objects (objects may have been cleaned up)"
+                      << std::endl;
 
             // Restart
             int start_result = start_ebpfcore();
@@ -331,7 +330,8 @@ main(int argc, char* argv[])
             std::cout << "PASS: ebpfcore restarted successfully" << std::endl;
             Sleep(2000);
         } else {
-            std::cout << "INFO: ebpfcore cannot be stopped with pinned objects present (error: " << stop_result << ")" << std::endl;
+            std::cout << "INFO: ebpfcore cannot be stopped with pinned objects present (error: " << stop_result << ")"
+                      << std::endl;
 
             // Unpin the objects
             PROCESS_INFORMATION pi2 = {0};
@@ -362,7 +362,8 @@ main(int argc, char* argv[])
                 std::cout << "PASS: ebpfcore restarted successfully" << std::endl;
                 Sleep(2000);
             } else {
-                std::cout << "INFO: ebpfcore still cannot be stopped (error: " << stop_result2 << "), likely due to other processes" << std::endl;
+                std::cout << "INFO: ebpfcore still cannot be stopped (error: " << stop_result2
+                          << "), likely due to other processes" << std::endl;
             }
         }
     }
