@@ -17,7 +17,7 @@ When eBPF programs are compiled from ELF format to native Windows executables (P
 
 ### 1. Hash Embedding in PE Images
 
-The bpf2c code generator has been modified to:
+The bpf2c code generator will be modified to:
 
 - Calculate the SHA-256 hash of the input ELF file during compilation
 - Embed this hash as binary data in a dedicated "hash" section of the generated PE image
@@ -39,7 +39,7 @@ const uint8_t _elf_hash[] = {
 
 ### 2. New API for Hash Extraction
 
-A new API function `ebpf_api_get_data_section()` has been added to extract data from named sections in PE files. ELF files may also contain a hash section if they were compiled with hash embedding enabled:
+A new API function `ebpf_api_get_data_section()` will be added to extract data from named sections in PE files. ELF files may also contain a hash section if they were compiled with hash embedding enabled:
 
 ```cpp
 _Must_inspect_result_ ebpf_result_t
@@ -57,7 +57,7 @@ This API:
 
 ### 3. NetSh Command Line Interface
 
-A new `netsh ebpf show hash` command has been implemented to extract and display the embedded hash from PE images:
+A new `netsh ebpf show hash` command will be added to extract and display the embedded hash from PE images:
 
 **Command Syntax:**
 ```
@@ -110,7 +110,7 @@ Security teams can trace deployed eBPF drivers back to their original source fil
 
 ## Testing Strategy
 
-The implementation includes comprehensive test coverage:
+The implementation will include comprehensive test coverage:
 
 1. **Unit Tests**: API function testing with various file formats and edge cases
 2. **Integration Tests**: End-to-end testing of the compilation and hash extraction process
@@ -141,6 +141,6 @@ This foundation enables several potential future improvements:
 
 ## Conclusion
 
-The ELF file hash embedding feature provides essential traceability and integrity verification capabilities for the eBPF for Windows ecosystem. It enables secure, auditable deployment of eBPF programs while maintaining backward compatibility and providing a user-friendly command-line interface for hash extraction and verification.
+The ELF file hash embedding feature will provide essential traceability and integrity verification capabilities for the eBPF for Windows ecosystem. It will enable secure, auditable deployment of eBPF programs while maintaining backward compatibility and providing a user-friendly command-line interface for hash extraction and verification.
 
-The implementation is robust, well-tested, and ready for production use, providing immediate value for debugging, security auditing, and compliance requirements.
+Once implemented, this feature is intended to be robust, well-tested, and suitable for production use, providing immediate value for debugging, security auditing, and compliance requirements.
