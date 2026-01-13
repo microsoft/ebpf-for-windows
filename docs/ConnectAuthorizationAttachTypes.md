@@ -9,7 +9,7 @@ This document explains the purpose and rationale behind the `BPF_CGROUP_INET4_CO
 eBPF for Windows already supports several attach types for socket address operations:
 
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT` - Inspect outbound connections, with the capability to modify the destination address or port (redirection). Invoked at the redirect layer before route selection.
-- `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT` - For incoming connections
+- `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT` - Inspect inbound connections on receive/accept and allow or reject them.
 
 However, there was a gap in functionality that required the addition of new attach points.
 
@@ -105,7 +105,7 @@ The `bpf_sock_addr` context is **read-only** for CONNECT_AUTHORIZATION attach ty
 - Silently ignoring modifications would lead to confusing program behavior and difficult-to-diagnose bugs
 
 **Expected Behavior:**
-The extension will **reject** the verdict of a program at this attach layer that changed the sock_addr context by modifying the source or destination IP/port. Programs that modify these fields will have their verdict rejected and the outbound connection will be blocked for security.
+The extension will **reject** the verdict of a program at this attach layer that changed the sock_addr context by modifying the source or destination IP/port. Programs that modify these fields will have their verdict rejected and the outbound connection will be blocked for security. Writes that leave the fields unchanged (for example, writing back the same value) are effectively no-ops, but are discouraged; programs should treat the context as read-only and avoid writes entirely.
 
 **Contrast with CONNECT Layer:**
 Unlike CONNECT_AUTHORIZATION, the CONNECT layer (operating at the redirect layer) fully supports `bpf_sock_addr` context modifications for redirection purposes, since route selection has not yet occurred.
@@ -114,7 +114,7 @@ Unlike CONNECT_AUTHORIZATION, the CONNECT layer (operating at the redirect layer
 
 CONNECT_AUTHORIZATION and RECV_ACCEPT attach types provide access to additional network layer properties through a single versioned helper function that returns a struct containing all relevant network context information.
 
-#### `int bpf_sock_addr_get_network_context(ctx, context_ptr, context_size)`
+#### `int bpf_sock_addr_get_network_context()`
 
 Returns a struct containing network layer information for the connection. This is a versioned helper that supports future extensibility.
 
@@ -125,7 +125,7 @@ Returns a struct containing network layer information for the connection. This i
 
 **Returns:** 
 - 0 on success
-- -1 on error (e.g., not available at this attach layer)
+- A negative value on error. Currently this helper returns `-1` as a generic error when network context is unavailable at the current attach layer. Callers should treat any value `< 0` as an error to remain forward compatible with potential errno-style codes (for example, `-EINVAL`, `-ENOTSUP`).
 
 **Struct Definition:**
 ```c
@@ -211,6 +211,10 @@ The verdict from the CONNECT layer determines whether CONNECT_AUTHORIZATION prog
 - **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** from CONNECT → Outbound connection authorized, CONNECT_AUTHORIZATION programs **not invoked** (optimization)
 - **`BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`** from CONNECT → CONNECT_AUTHORIZATION programs **are invoked** for additional authorization
 
+#### Behavior When No CONNECT Program Is Attached
+
+If no CONNECT program is attached for a given cgroup, outbound connections that reach the authorization layer will still invoke any attached CONNECT_AUTHORIZATION programs. For the purposes of determining whether CONNECT_AUTHORIZATION runs, the absence of a CONNECT program is equivalent to the CONNECT layer returning `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`.
+
 ### Use Case: Layered Security Policy
 
 ```c
@@ -218,6 +222,8 @@ The verdict from the CONNECT layer determines whether CONNECT_AUTHORIZATION prog
 SEC("cgroup/connect4")
 int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
 {
+    // Example uses IPv4 (`connect4`). Adapt to IPv6 with the appropriate attach
+    // type and IP fields (for example, `user_ip6`).
     // Block known malicious destinations immediately.
     if (is_blacklisted_destination(ctx->user_ip4)) {
         return BPF_SOCK_ADDR_VERDICT_REJECT; // CONNECT_AUTHORIZATION will NOT run.
@@ -226,7 +232,9 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
     // Redirect to local proxy for inspection.
     if (needs_proxy_inspection(ctx->user_ip4)) {
         // In CONNECT programs, the context is writable; use a helper to update
-        // the destination for redirection.
+        // the destination for redirection. `redirect_to_proxy` is a placeholder
+        // wrapper around the helper logic. Replace `PROXY_SERVER_IP` and
+        // `PROXY_SERVER_PORT` with real values or configuration.
         redirect_to_proxy(ctx, PROXY_SERVER_IP, PROXY_SERVER_PORT);
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run.
     }
