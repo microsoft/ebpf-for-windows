@@ -94,7 +94,8 @@ The helper function will be registered as a program-type specific helper:
 ```c
 enum _sock_ops_program_specific_helper_functions
 {
-    SOCK_OPS_PROGRAM_SPECIFIC_HELPER_GET_FLOW_ID,
+    // Function ID reserved for bpf_sock_ops_get_flow_id() helper.
+    SOCK_OPS_PROGRAM_SPECIFIC_HELPER_GET_FLOW_ID = 0x10000,
 };
 ```
 
@@ -136,8 +137,8 @@ sophisticated network analysis and anomaly detection.
 ### Technical Implementation
 
 **Flow ID Storage (planned):**
-- The WFP flow ID will be captured during the `net_ebpf_extension_sock_ops_flow_established_classify` function
-- The flow ID will be stored in the `incoming_metadata_values->flowHandle` and copied to the sock_ops context
+- The WFP flow ID will be captured from the existing `incoming_metadata_values->flowHandle` metadata field during the `net_ebpf_extension_sock_ops_flow_established_classify` function
+- The flow ID will be read from this existing field (no new WFP metadata fields are introduced by this proposal) and copied to the sock_ops context
 - The flow ID will remain valid for the lifetime of the network connection
 
 **Helper Function Implementation (proposed):**
@@ -151,10 +152,17 @@ _ebpf_sock_ops_get_flow_id(
     uint64_t dummy_param5,
     _In_ const bpf_sock_ops_t* ctx)
 {
-    net_ebpf_sock_ops_t* sock_ops_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_ops_t, context);
+    // Use CONTAINING_RECORD (Windows macro similar to Linux container_of)
+    // to get the extended context from the public context pointer.
+    const net_ebpf_sock_ops_t* sock_ops_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_ops_t, context);
     return sock_ops_ctx->flow_id;
 }
 ```
+
+**Implementation Notes:**
+- The five dummy parameters are part of the internal eBPF helper function dispatch mechanism, which reserves slots for up to 5 arguments before the context parameter
+- The public API (line 58) shows the logical single-parameter interface that programs use
+- `CONTAINING_RECORD` is a Windows macro (similar to Linux `container_of`) used to retrieve the extended context structure from the embedded public context
 **Program-Type Specificity:**
 - The helper will be registered as program-type specific with ID `0x10000`
 - This will prevent other program types from accessing sock_ops specific functionality
