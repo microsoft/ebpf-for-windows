@@ -39,11 +39,11 @@ const uint8_t _elf_hash[] = {
 
 ### 2. New API for Hash Extraction
 
-A new API function `ebpf_api_get_data_section()` will be added to extract data from named sections in PE and ELF files. In the context of this proposal, the hash is embedded into the generated PE image, and this API is used to retrieve that embedded hash:
+A new API function `ebpf_api_read_file_section()` will be added to extract data from named sections in PE and ELF files. In the context of this proposal, the hash is embedded into the generated PE image, and this API is used to retrieve that embedded hash:
 
 ```cpp
 _Must_inspect_result_ ebpf_result_t
-ebpf_api_get_data_section(
+ebpf_api_read_file_section(
     _In_z_ const char* file_path,
     _In_z_ const char* section_name,
     _Out_writes_bytes_opt_(*data_size) uint8_t* data,
