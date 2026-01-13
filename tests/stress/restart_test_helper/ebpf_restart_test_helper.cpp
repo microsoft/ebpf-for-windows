@@ -89,14 +89,18 @@ create_test_map()
 static int
 load_test_program(int& program_fd, bpf_object*& object_out)
 {
-    const char* program_path = std::getenv("EBPF_TEST_PROGRAM_PATH");
-    if (program_path == nullptr || program_path[0] == '\0') {
-        program_path = "cgroup_sock_addr.o";
-    }
+    char* program_path_env = nullptr;
+    size_t program_path_len = 0;
+    errno_t env_error = _dupenv_s(&program_path_env, &program_path_len, "EBPF_TEST_PROGRAM_PATH");
+
+    const char* program_path = (env_error == 0 && program_path_env != nullptr && program_path_env[0] != '\0')
+                                   ? program_path_env
+                                   : "cgroup_sock_addr.o";
 
     // Verify program path exists for optional program load.
     if (_access(program_path, 0) != 0) {
         std::cerr << "eBPF test program not found at path: " << program_path << std::endl;
+        free(program_path_env);
         return -1;
     }
 
@@ -108,6 +112,7 @@ load_test_program(int& program_fd, bpf_object*& object_out)
     object = bpf_object__open(program_path);
     if (object == nullptr) {
         std::cerr << "Failed to open program: " << program_path << std::endl;
+        free(program_path_env);
         return -1;
     }
 
@@ -115,6 +120,7 @@ load_test_program(int& program_fd, bpf_object*& object_out)
     if (result < 0) {
         std::cerr << "Failed to load program: " << program_path << ", error: " << result << std::endl;
         bpf_object__close(object);
+        free(program_path_env);
         return result;
     }
 
@@ -135,6 +141,7 @@ load_test_program(int& program_fd, bpf_object*& object_out)
 
     // Don't close the object yet - keep it alive for caller to manage.
     object_out = object;
+    free(program_path_env);
     return 0;
 }
 
