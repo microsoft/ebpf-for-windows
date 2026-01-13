@@ -49,5 +49,5 @@ SEC("bind")
 bind_action_t
 BindMonitor(bind_md_t* ctx)
 {
-    return BIND_PERMIT;
+    return BIND_PERMIT_SOFT;
 }

@@ -153,7 +153,7 @@ ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const ch
     return result;
 }
 
-// This test validates the User Mode Mock Test XDP Provider. 
+// This test validates the User Mode Mock Test XDP Provider.
 void
 droppacket_test(ebpf_execution_type_t execution_type)
 {
@@ -473,12 +473,12 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
     _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
     _validate_bind_audit_entry(audit_map_fd, process_id);
 
@@ -498,12 +498,12 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     _validate_bind_audit_entry(audit_map_fd, process_id);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
     _validate_bind_audit_entry(audit_map_fd, process_id);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
     _validate_bind_audit_entry(audit_map_fd, process_id);
 
@@ -542,7 +542,7 @@ _bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
 
     REQUIRE(emulate_bind(invoke, 0, "fake_app_0") == BIND_DENY);
     REQUIRE(emulate_bind(invoke, 1, "fake_app_1") == BIND_REDIRECT);
-    REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT_SOFT);
 }
 
 void
@@ -623,11 +623,11 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
     // Bind first port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     // Bind second port - success
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 2);
 
     // Bind third port - blocked
@@ -643,11 +643,11 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 0);
 
     // Bind from two apps to test enumeration
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     fake_pid = 54321;
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
     REQUIRE(get_bind_count_for_pid(process_map_fd, fake_pid) == 1);
 
     uint64_t pid;
@@ -763,7 +763,7 @@ bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
             // Emulate bind operation.
             std::vector<char> fake_app_id = fake_app_ids[i];
             fake_app_id.push_back('\0');
-            REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+            REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT_SOFT);
         });
     }
 
@@ -3276,7 +3276,7 @@ bindmonitor_perf_buffer_test(ebpf_execution_type_t execution_type)
                 // Emulate bind operation.
                 std::vector<char> fake_app_id = fake_app_ids[i];
                 fake_app_id.push_back('\0');
-                REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+                REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT_SOFT);
             },
             true);
     }

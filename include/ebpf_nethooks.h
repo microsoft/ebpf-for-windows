@@ -30,20 +30,68 @@ typedef struct _bind_md
     uint8_t protocol;              ///< Protocol number (e.g., IPPROTO_TCP).
 } bind_md_t;
 
+/**
+ * @brief Actions that can be returned by a bind hook program.
+ */
 typedef enum _bind_action
 {
-    BIND_PERMIT,   ///< Permit the bind operation.
-    BIND_DENY,     ///< Deny the bind operation.
-    BIND_REDIRECT, ///< Change the bind endpoint.
+    /**
+     * @brief Permit the bind operation (soft permit).
+     *
+     * Use this when you want to allow the operation but still permit other
+     * security policies or filters to make the final decision.
+     */
+    BIND_PERMIT_SOFT,
+
+    /**
+     * @brief Deny the bind operation.
+     *
+     * The bind operation will be blocked.
+     */
+    BIND_DENY,
+
+    /**
+     * @brief Change the bind endpoint.
+     *
+     * The bind operation is allowed but the target address/port may be modified
+     * by the eBPF program. The program should update the socket_address field
+     * in the bind_md_t context to specify the new target.
+     */
+    BIND_REDIRECT,
+
+    /**
+     * @brief Permit the bind operation (hard permit).
+     *
+     * The bind operation is allowed and lower-priority filters or security policies
+     * cannot override this decision.
+     */
+    BIND_PERMIT_HARD,
+
+    /**
+     * @brief Backward compatibility alias for BIND_PERMIT_SOFT.
+     * @deprecated Use BIND_PERMIT_SOFT instead for clarity about the permit behavior.
+     */
+    BIND_PERMIT = BIND_PERMIT_SOFT,
 } bind_action_t;
 
 /**
- * @brief Handle an AF_INET socket bind() request.
+ * @brief Handle IPv4 and IPv6 socket bind() requests.
+ *
+ * This function type defines the signature for eBPF programs that handle socket bind operations.
+ * The program is called before the bind operation completes and can inspect the socket metadata
+ * to make policy decisions about whether to allow, deny, or redirect the bind request.
+ *
+ * The program can examine details such as the process ID, socket address, protocol, and
+ * interface information to implement custom bind policies. For redirect operations, the
+ * program can modify the socket_address field in the context to change the bind target.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_BIND
  *
+ * @note The function must return one of the defined bind_action_t values.
+ *
  * @param[in] context Socket metadata.
- * @retval BIND_PERMIT Permit the bind operation.
+ * @retval BIND_PERMIT_SOFT Permit the bind operation (soft permit - allows lower-priority filters to override).
+ * @retval BIND_PERMIT_HARD Permit the bind operation (hard permit - blocks lower-priority filters).
  * @retval BIND_DENY Deny the bind operation.
  * @retval BIND_REDIRECT Change the bind endpoint.
  */
