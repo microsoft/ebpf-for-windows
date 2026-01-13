@@ -26,7 +26,13 @@ The bpf2c code generator has been modified to:
 **Technical Implementation:**
 ```cpp
 #pragma const_seg(push, "hash")
-const uint8_t _elf_hash[] = { /* hash bytes */ };
+// bpf2c emits the full 32-byte SHA-256 array; values below illustrate the layout.
+const uint8_t _elf_hash[] = {
+    0xa1, 0xb2, 0xc3, 0xd4, 0xe5, 0xf6, 0x07, 0x18,
+    0x29, 0x3a, 0x4b, 0x5c, 0x6d, 0x7e, 0x8f, 0x90,
+    0x01, 0x12, 0x23, 0x34, 0x45, 0x56, 0x67, 0x78,
+    0x89, 0x9a, 0xab, 0xbc, 0xcd, 0xde, 0xef, 0xf0,
+};
 #pragma const_seg(pop)
 #pragma comment(linker, "/INCLUDE:_elf_hash")
 ```
@@ -60,7 +66,7 @@ netsh ebpf show hash [filename=]<path> [hashonly]
 
 **Parameters:**
 - `filename`: Required path to the PE file
-- `hashonly`: Optional flag to output only the hash value (compatible with PowerShell Get-FileHash format)
+- `hashonly`: Optional flag to output only the hash value as a hexadecimal string (compatible with the `Hash` value from PowerShell `Get-FileHash`, but not its full formatted output)
 
 **Example Output:**
 
@@ -75,6 +81,8 @@ With `hashonly` flag:
 ```
 A1B2C3D4E5F6789ABCDEF012345678ABCDEF0123456789ABCDEF0123456789AB
 ```
+
+Note: The `netsh` output without `hashonly` groups bytes in lowercase hex with spaces for readability; `hashonly` emits an uppercase, contiguous hex string matching the `Hash` value from `Get-FileHash`.
 
 ## Use Cases
 
