@@ -47,7 +47,7 @@ signal_controller(const char* signal_name)
 static void
 wait_for_controller()
 {
-    DWORD start_tick = GetTickCount();
+    ULONGLONG start_tick = GetTickCount64();
     HANDLE event = nullptr;
 
     while (true) {
@@ -58,7 +58,7 @@ wait_for_controller()
 
         DWORD error = GetLastError();
         if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
-            DWORD elapsed = GetTickCount() - start_tick;
+            ULONGLONG elapsed = GetTickCount64() - start_tick;
             if (elapsed >= 30000) {
                 std::cerr << "Timeout waiting for controller event" << std::endl;
                 return;
@@ -179,7 +179,9 @@ mode_open_handles()
     if (program_object != nullptr) {
         bpf_object__close(program_object);
     }
-    // Handles will be automatically closed on process exit
+    if (map_fd >= 0) {
+        _close(map_fd);
+    }
     return 0;
 }
 

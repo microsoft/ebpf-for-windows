@@ -23,7 +23,7 @@
 static bool
 wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
 {
-    DWORD start_tick = GetTickCount();
+    ULONGLONG start_tick = GetTickCount64();
     HANDLE event = nullptr;
 
     // Retry until the controller-created event exists or timeout expires.
@@ -35,7 +35,7 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
 
         DWORD error = GetLastError();
         if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
-            DWORD elapsed = GetTickCount() - start_tick;
+            ULONGLONG elapsed = GetTickCount64() - start_tick;
             if (elapsed >= timeout_ms) {
                 std::cerr << "Timeout waiting for event to be created: " << signal_name << std::endl;
                 return false;
@@ -48,8 +48,8 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
         return false;
     }
 
-    DWORD elapsed = GetTickCount() - start_tick;
-    DWORD remaining_timeout = (elapsed >= timeout_ms) ? 0 : (timeout_ms - elapsed);
+    ULONGLONG elapsed = GetTickCount64() - start_tick;
+    DWORD remaining_timeout = (elapsed >= timeout_ms) ? 0 : (DWORD)(timeout_ms - elapsed);
 
     DWORD result = WaitForSingleObject(event, remaining_timeout);
     CloseHandle(event);
@@ -406,12 +406,18 @@ main(int argc, char* argv[])
                 // Success path; nothing else to do.
             } else if (wait_result_unpin == WAIT_TIMEOUT) {
                 std::cerr << "FAIL: Timeout waiting for unpin process to exit" << std::endl;
+                CloseHandle(pi2.hProcess);
+                CloseHandle(pi2.hThread);
                 return 1;
             } else if (wait_result_unpin == WAIT_FAILED) {
                 std::cerr << "FAIL: Error waiting for unpin process, error: " << GetLastError() << std::endl;
+                CloseHandle(pi2.hProcess);
+                CloseHandle(pi2.hThread);
                 return 1;
             } else {
                 std::cerr << "FAIL: Unexpected wait result for unpin process: " << wait_result_unpin << std::endl;
+                CloseHandle(pi2.hProcess);
+                CloseHandle(pi2.hThread);
                 return 1;
             }
             if (pi2.hProcess != nullptr) {
