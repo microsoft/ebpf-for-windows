@@ -1721,6 +1721,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
 
     // Test 2: EBPF_RINGBUF_FLAG_FORCE_WAKEUP - should always signal event.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
 
@@ -1735,6 +1736,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
 
     // Test 3: Default behavior (flags = 0) - adaptive notification.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
 
@@ -1749,6 +1751,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
 
     // Test 4: Discard with different flags.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
 
@@ -1761,6 +1764,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     REQUIRE(record == nullptr);
 
     // Test 5: Discard with FORCE_WAKEUP flag.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
 
@@ -1775,14 +1779,17 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
 
     // Test 6: Mixed submit and discard with different flags.
     // Submit a record with NO_WAKEUP.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
     REQUIRE(ebpf_ring_buffer_submit(reserved_data, EBPF_RINGBUF_FLAG_NO_WAKEUP) == EBPF_SUCCESS);
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
 
     // Discard a record with FORCE_WAKEUP.
+    reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
+#pragma warning(suppress : 6001) // False positive: reserved_data is initialized by ebpf_ring_buffer_reserve
     REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
     KeClearEvent(&event);
@@ -1790,7 +1797,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     // Consume the submitted record (discarded one should be skipped).
     record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
     REQUIRE(record != nullptr);
-    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, &next_offset) == EBPF_SUCCESS);
 
     // Verify no more records.
     record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
@@ -2131,4 +2138,3 @@ TEST_CASE("hash_of_file", "[platform]")
 
     // Clean up the test file.
     std::remove(file_name);
-}
