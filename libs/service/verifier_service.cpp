@@ -22,7 +22,8 @@ _analyze(prevail::RawProgram& raw_prog, const char** error_message, uint32_t* er
     // First try optimized for the success case.
     prevail::ebpf_verifier_options_t options = ebpf_get_default_verifier_options();
 
-    std::variant<prevail::InstructionSeq, std::string> prog_or_error = prevail::unmarshal(raw_prog, options);
+    std::vector<std::vector<std::string>> notes;
+    std::variant<prevail::InstructionSeq, std::string> prog_or_error = prevail::unmarshal(raw_prog, notes, options);
     if (!std::holds_alternative<prevail::InstructionSeq>(prog_or_error)) {
         *error_message = allocate_string(std::get<std::string>(prog_or_error), error_message_size);
         return EBPF_VERIFICATION_FAILED; // Error;

@@ -213,7 +213,7 @@ ebpf_verify_program(
 prevail::ebpf_verifier_options_t
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 {
-    prevail::ebpf_verifier_options_t verifier_options;
+    prevail::ebpf_verifier_options_t verifier_options{};
     verifier_options.cfg_opts.check_for_termination = true;
     verifier_options.cfg_opts.must_have_exit = true;
     verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
