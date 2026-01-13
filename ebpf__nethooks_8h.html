@@ -108,9 +108,10 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ad95b98d2e80f69aeb949bbd2f76197c2" id="r_ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bind__md.html">_bind_md</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a></td></tr>
 <tr class="separator:ad95b98d2e80f69aeb949bbd2f76197c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad76a0927c7e31a4b67e34a7d34d278a2" id="r_ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a></td></tr>
+<tr class="memdesc:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actions that can be returned by a bind hook program.  <br /></td></tr>
 <tr class="separator:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2020fd040b86a3b9b29a31303dabc5b" id="r_ab2020fd040b86a3b9b29a31303dabc5b"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a> *context)</td></tr>
-<tr class="memdesc:ab2020fd040b86a3b9b29a31303dabc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle an AF_INET socket bind() request.  <br /></td></tr>
+<tr class="memdesc:ab2020fd040b86a3b9b29a31303dabc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle IPv4 and IPv6 socket bind() requests.  <br /></td></tr>
 <tr class="separator:ab2020fd040b86a3b9b29a31303dabc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d05c64df48bba1476f7e3f500826ac2" id="r_a2d05c64df48bba1476f7e3f500826ac2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a></td></tr>
 <tr class="separator:a2d05c64df48bba1476f7e3f500826ac2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -135,10 +136,16 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fca831fe936535d0c3c26d5b47484c3ac7e">BIND_OPERATION_UNBIND</a>
  }</td></tr>
 <tr class="separator:a814187ca47e221594a21bde5324d86fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9e5d69be705b1f7503ab2fd752c41d02" id="r_a9e5d69be705b1f7503ab2fd752c41d02"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a> { <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a">BIND_PERMIT</a>
+<tr class="memitem:a9e5d69be705b1f7503ab2fd752c41d02" id="r_a9e5d69be705b1f7503ab2fd752c41d02"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">_bind_action</a> { <br />
+&#160;&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe">BIND_PERMIT_SOFT</a>
 , <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02ab57b58fd32e931163238d3ca5afb9f49">BIND_DENY</a>
 , <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a">BIND_REDIRECT</a>
+, <a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a81080bfae9004022465439d4755b1513">BIND_PERMIT_HARD</a>
+, <br />
+&#160;&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a">BIND_PERMIT</a> = BIND_PERMIT_SOFT
+<br />
  }</td></tr>
+<tr class="memdesc:a9e5d69be705b1f7503ab2fd752c41d02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actions that can be returned by a bind hook program.  <a href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02">More...</a><br /></td></tr>
 <tr class="separator:a9e5d69be705b1f7503ab2fd752c41d02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca35b18b041302a7387d62fbacaca164" id="r_aca35b18b041302a7387d62fbacaca164"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a> { <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164a4b6a1f5d4c2b3e75bd0bcd0998046786">BPF_SOCK_ADDR_VERDICT_REJECT</a>
 , <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164a83913efda7e57397cff735b7d18cd751">BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT</a>
@@ -189,6 +196,8 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Actions that can be returned by a bind hook program. </p>
+
 </div>
 </div>
 <a id="ab2020fd040b86a3b9b29a31303dabc5b" name="ab2020fd040b86a3b9b29a31303dabc5b"></a>
@@ -203,8 +212,11 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Handle an AF_INET socket bind() request. </p>
+<p>Handle IPv4 and IPv6 socket bind() requests. </p>
+<p>This function type defines the signature for eBPF programs that handle socket bind operations. The program is called before the bind operation completes and can inspect the socket metadata to make policy decisions about whether to allow, deny, or redirect the bind request.</p>
+<p>The program can examine details such as the process ID, socket address, protocol, and interface information to implement custom bind policies. For redirect operations, the program can modify the socket_address field in the context to change the bind target.</p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a></p>
+<dl class="section note"><dt>Note</dt><dd>The function must return one of the defined bind_action_t values.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td>Socket metadata. </td></tr>
@@ -213,7 +225,8 @@ Functions</h2></td></tr>
 </dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
-    <tr><td class="paramname">BIND_PERMIT</td><td>Permit the bind operation. </td></tr>
+    <tr><td class="paramname">BIND_PERMIT_SOFT</td><td>Permit the bind operation (soft permit - allows lower-priority filters to override). </td></tr>
+    <tr><td class="paramname">BIND_PERMIT_HARD</td><td>Permit the bind operation (hard permit - blocks lower-priority filters). </td></tr>
     <tr><td class="paramname">BIND_DENY</td><td>Deny the bind operation. </td></tr>
     <tr><td class="paramname">BIND_REDIRECT</td><td>Change the bind endpoint. </td></tr>
   </table>
@@ -378,12 +391,23 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+<p>Actions that can be returned by a bind hook program. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a" name="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a"></a>BIND_PERMIT&#160;</td><td class="fielddoc"><p>Permit the bind operation. </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe" name="a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe"></a>BIND_PERMIT_SOFT&#160;</td><td class="fielddoc"><p>Permit the bind operation (soft permit). </p>
+<p>Use this when you want to allow the operation but still permit other security policies or filters to make the final decision. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02ab57b58fd32e931163238d3ca5afb9f49" name="a9e5d69be705b1f7503ab2fd752c41d02ab57b58fd32e931163238d3ca5afb9f49"></a>BIND_DENY&#160;</td><td class="fielddoc"><p>Deny the bind operation. </p>
+<p>The bind operation will be blocked. </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a" name="a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a"></a>BIND_REDIRECT&#160;</td><td class="fielddoc"><p>Change the bind endpoint. </p>
+<p>The bind operation is allowed but the target address/port may be modified by the eBPF program. The program should update the socket_address field in the bind_md_t context to specify the new target. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a81080bfae9004022465439d4755b1513" name="a9e5d69be705b1f7503ab2fd752c41d02a81080bfae9004022465439d4755b1513"></a>BIND_PERMIT_HARD&#160;</td><td class="fielddoc"><p>Permit the bind operation (hard permit). </p>
+<p>The bind operation is allowed and lower-priority filters or security policies cannot override this decision. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a" name="a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a"></a>BIND_PERMIT&#160;</td><td class="fielddoc"><p>Backward compatibility alias for BIND_PERMIT_SOFT. </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000017">Deprecated:</a></b></dt><dd>Use BIND_PERMIT_SOFT instead for clarity about the permit behavior. </dd></dl>
 </td></tr>
 </table>
 

@@ -81,6 +81,8 @@ $(function() {
 <li>bind_operation_t&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a02ae42f0379561fed4edf984bebd5649">ebpf_nethooks.h</a></li>
 <li>BIND_OPERATION_UNBIND&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a814187ca47e221594a21bde5324d86fca831fe936535d0c3c26d5b47484c3ac7e">ebpf_nethooks.h</a></li>
 <li>BIND_PERMIT&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a">ebpf_nethooks.h</a></li>
+<li>BIND_PERMIT_HARD&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a81080bfae9004022465439d4755b1513">ebpf_nethooks.h</a></li>
+<li>BIND_PERMIT_SOFT&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a0d05f7f142cecae8ae4a7e9ba9268efe">ebpf_nethooks.h</a></li>
 <li>BIND_REDIRECT&#160;:&#160;<a class="el" href="ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a">ebpf_nethooks.h</a></li>
 <li>bpf()&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4">bpf.h</a></li>
 <li>bpf2c_version_t&#160;:&#160;<a class="el" href="bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869">bpf2c.h</a></li>
@@ -163,12 +165,12 @@ $(function() {
 <li>bpf_link__fd()&#160;:&#160;<a class="el" href="libbpf_8h.html#a9f97601056235fa408121237feb92aa6">libbpf.h</a></li>
 <li>bpf_link__pin()&#160;:&#160;<a class="el" href="libbpf_8h.html#acbb4641bef142d23ffcd8a349715a394">libbpf.h</a></li>
 <li>bpf_link__unpin()&#160;:&#160;<a class="el" href="libbpf_8h.html#a9fc9d9683d5d3a17ab5e741c4f15f24a">libbpf.h</a></li>
-<li>bpf_link_detach()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1">bpf.h</a></li>
 <li>BPF_LINK_DETACH&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a89ad9c6e03007dd9310da8f5b49498dc">bpf.h</a></li>
-<li>BPF_LINK_GET_FD_BY_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aba1b82aca4e658fdbabca289f5128eba">bpf.h</a></li>
+<li>bpf_link_detach()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a9bd017a4caa22bd9d57426e43b3390e1">bpf.h</a></li>
 <li>bpf_link_get_fd_by_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#ab7b9a2be5b70b133483ac17b921c3dff">bpf.h</a></li>
-<li>bpf_link_get_next_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a22b6c612a8c54fff0dd93f163bfadf22">bpf.h</a></li>
+<li>BPF_LINK_GET_FD_BY_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aba1b82aca4e658fdbabca289f5128eba">bpf.h</a></li>
 <li>BPF_LINK_GET_NEXT_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a83a22d9bd7cab247e1ced4d5811ab978">bpf.h</a></li>
+<li>bpf_link_get_next_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a22b6c612a8c54fff0dd93f163bfadf22">bpf.h</a></li>
 <li>bpf_link_type&#160;:&#160;<a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eaf">ebpf_structs.h</a></li>
 <li>BPF_LINK_TYPE_CGROUP&#160;:&#160;<a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafacd79d977ac13114b03c559c64e9596ac">ebpf_structs.h</a></li>
 <li>BPF_LINK_TYPE_MAX&#160;:&#160;<a class="el" href="ebpf__structs_8h.html#a354e84389719f1a5541fbca272618eafafc15c16c44bf127217d9929be3fd31e9">ebpf_structs.h</a></li>
@@ -197,17 +199,16 @@ $(function() {
 <li>bpf_map_delete_elem()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#ad0ed6a975a6d623155c61de44e55e484">bpf.h</a>, <a class="el" href="bpf__helper__defs_8h.html#a74c75cff4a480327ba6f760f2bf2a136">bpf_helper_defs.h</a></li>
 <li>BPF_MAP_GET_FD_BY_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a7bde4b21c9f5532e54d14d83037b5945">bpf.h</a></li>
 <li>bpf_map_get_fd_by_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a9f3cba31a46fe9a4115ba4fc1c3a358f">bpf.h</a></li>
-<li>bpf_map_get_next_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a144e3d9cf90d9e515e550b0f1608ba07">bpf.h</a></li>
 <li>BPF_MAP_GET_NEXT_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ace8b69c9b85d6110c435e43af257580f">bpf.h</a></li>
+<li>bpf_map_get_next_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a144e3d9cf90d9e515e550b0f1608ba07">bpf.h</a></li>
 <li>BPF_MAP_GET_NEXT_KEY&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aa64737ec5dbeaebadbe10c55cb3dbadb">bpf.h</a></li>
 <li>bpf_map_get_next_key()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a0331c5fc14dade8fdf12824da742f67e">bpf.h</a></li>
 <li>bpf_map_lookup_and_delete_batch()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a15a2a5a55afd94da8ee2e202e1d76703">bpf.h</a></li>
 <li>BPF_MAP_LOOKUP_AND_DELETE_ELEM&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a03bb881134718e15ecd9d01c13f43e12">bpf.h</a></li>
 <li>bpf_map_lookup_and_delete_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#a8ebf67a51199c0a4e6fccde59d8ad170">bpf_helper_defs.h</a></li>
 <li>bpf_map_lookup_batch()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726">bpf.h</a></li>
-<li>bpf_map_lookup_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#acfb81f5cda17b4e92c4eac33df7b2545">bpf_helper_defs.h</a></li>
+<li>bpf_map_lookup_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#acfb81f5cda17b4e92c4eac33df7b2545">bpf_helper_defs.h</a>, <a class="el" href="bpf_2bpf_8h.html#a95579ca07cccfd0f756a361c2da12ad5">bpf.h</a></li>
 <li>BPF_MAP_LOOKUP_ELEM&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09aeda0d0507e3a0f6cedc59bb34dd8eef8">bpf.h</a></li>
-<li>bpf_map_lookup_elem()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a95579ca07cccfd0f756a361c2da12ad5">bpf.h</a></li>
 <li>bpf_map_peek_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#af19660acfb8574c59f214621ee3dddaa">bpf_helper_defs.h</a></li>
 <li>bpf_map_pop_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#a7afba40def49ec09dc8f77e6ae40b172">bpf_helper_defs.h</a></li>
 <li>bpf_map_push_elem()&#160;:&#160;<a class="el" href="bpf__helper__defs_8h.html#a20a0ad0628ef04ddb136c480e77c132b">bpf_helper_defs.h</a></li>
@@ -240,11 +241,11 @@ $(function() {
 <li>bpf_ntohs&#160;:&#160;<a class="el" href="bpf__endian_8h.html#a809ca78691cdb5e0fd36b7b313f98cda">bpf_endian.h</a></li>
 <li>BPF_OBJ_GET&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a1c4511c9d4655065ab745612a7d5916a">bpf.h</a></li>
 <li>bpf_obj_get()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf.h</a></li>
-<li>BPF_OBJ_GET_INFO_BY_FD&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ac91812af05cb4bd71159c8d2659b8784">bpf.h</a></li>
 <li>bpf_obj_get_info_by_fd()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a23ca7dd3889db2e7fc97e063c727c17f">bpf.h</a></li>
+<li>BPF_OBJ_GET_INFO_BY_FD&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09ac91812af05cb4bd71159c8d2659b8784">bpf.h</a></li>
 <li>BPF_OBJ_NAME_LEN&#160;:&#160;<a class="el" href="ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e">ebpf_structs.h</a></li>
-<li>bpf_obj_pin()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf.h</a></li>
 <li>BPF_OBJ_PIN&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a6abdc7140f3c0faf9adde20d6f01ac2d">bpf.h</a></li>
+<li>bpf_obj_pin()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a9f5eaf959fde6143ec1d94617362f5f1">bpf.h</a></li>
 <li>bpf_object__close()&#160;:&#160;<a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a">libbpf.h</a></li>
 <li>bpf_object__find_map_by_name()&#160;:&#160;<a class="el" href="libbpf_8h.html#a72b67f6c7dc1ec49224ba9c2c60ca175">libbpf.h</a></li>
 <li>bpf_object__find_map_fd_by_name()&#160;:&#160;<a class="el" href="libbpf_8h.html#a751c311d3c0ee870aadac9386574aad2">libbpf.h</a></li>
@@ -275,12 +276,12 @@ $(function() {
 <li>BPF_PROG_DETACH&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a39368e1308fd10a8e95810d4a82a8b6b">bpf.h</a></li>
 <li>bpf_prog_detach()&#160;:&#160;<a class="el" href="libbpf_8h.html#a05c653e93f2a6e2e421bbecfaeb624db">libbpf.h</a></li>
 <li>bpf_prog_detach2()&#160;:&#160;<a class="el" href="libbpf_8h.html#a8e167aa907a4d732b42b8a3bb889cd41">libbpf.h</a></li>
-<li>bpf_prog_get_fd_by_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf.h</a></li>
 <li>BPF_PROG_GET_FD_BY_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09abf5b1ac5c2f65bb56412fc478cfed02a">bpf.h</a></li>
+<li>bpf_prog_get_fd_by_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#af4a69e7174078629e3f20dade5e6743d">bpf.h</a></li>
 <li>bpf_prog_get_next_id()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#a08fd6fe439bbd700f63a5cf95324be90">bpf.h</a></li>
 <li>BPF_PROG_GET_NEXT_ID&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a5e5d7957df15c05673e76c3b3302ac09">bpf.h</a></li>
-<li>bpf_prog_load()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa">bpf.h</a></li>
 <li>BPF_PROG_LOAD&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a326d2ede2c46021fa4f4e465cbc0ea18">bpf.h</a></li>
+<li>bpf_prog_load()&#160;:&#160;<a class="el" href="bpf_2bpf_8h.html#ac3c199aafea072c96c7d8c79dcc70ffa">bpf.h</a></li>
 <li>bpf_prog_load_deprecated()&#160;:&#160;<a class="el" href="libbpf__legacy_8h.html#a485d38a20dd27d81e569fde97268a4c0">libbpf_legacy.h</a></li>
 <li>BPF_PROG_RUN&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a0750063028ec1757d0b724960be1588e">bpf.h</a></li>
 <li>BPF_PROG_TEST_RUN&#160;:&#160;<a class="el" href="linux_2bpf_8h.html#a9cd4b69e2bbb3202f71b8b2b0eeede09a93ba9b8aa828fe01c9d6836f23fab155">bpf.h</a></li>
