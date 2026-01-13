@@ -59,7 +59,7 @@ EBPF_HELPER(uint64_t, bpf_sock_ops_get_flow_id, (bpf_sock_ops_t * ctx));
 ```
 
 **Key characteristics:**
-- **Function ID**: `BPF_FUNC_sock_ops_get_flow_id` (0xFFFF + 1)
+- **Function ID**: `BPF_FUNC_sock_ops_get_flow_id` (0x10000)
 - **Program Type**: Exclusive to `BPF_PROG_TYPE_SOCK_OPS`
 - **Return Value**: 64-bit flow identifier (implementation may use the WFP flow ID)
 - **Context**: Requires valid `bpf_sock_ops_t` context pointer
@@ -84,7 +84,7 @@ typedef struct _net_ebpf_bpf_sock_ops
 } net_ebpf_sock_ops_t;
 ```
 
-**Note:** This shows the proposed structure after implementation. The `flow_id` field does not currently exist.
+**Note:** This shows the proposed structure to be implemented. The `flow_id` field does not currently exist.
 The flow ID will be populated during the flow establishment phase when WFP metadata is available.
 
 ### 3. Helper Function Registration
@@ -156,7 +156,7 @@ _ebpf_sock_ops_get_flow_id(
 }
 ```
 **Program-Type Specificity:**
-- The helper will be registered as program-type specific with ID `0xFFFF + 1`
+- The helper will be registered as program-type specific with ID `0x10000`
 - This will prevent other program types from accessing sock_ops specific functionality
 - This will maintain the eBPF security model and program isolation
 
@@ -186,7 +186,7 @@ The implementation will include comprehensive test coverage:
 
 ### 2. Integration Tests
 - End-to-end flow ID tracking through connection lifecycle
-- It will support both IPv4 and IPv6 connections
+- Tests will support both IPv4 and IPv6 connections
 - Multiple connection types (TCP, UDP where applicable)
 - Process correlation validation
 
