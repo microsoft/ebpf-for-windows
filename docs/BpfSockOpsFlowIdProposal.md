@@ -58,17 +58,15 @@ A new program-type specific helper function will be introduced for sock_ops prog
 EBPF_HELPER(uint64_t, bpf_sock_ops_get_flow_id, (bpf_sock_ops_t * ctx));
 ```
 
-**Key characteristics:**
+**Key characteristics**
 - **Function ID**: `BPF_FUNC_sock_ops_get_flow_id` (0x10000)
 - **Program Type**: Exclusive to `BPF_PROG_TYPE_SOCK_OPS`
 - **Return Value**: 64-bit flow identifier (implementation may use the WFP flow ID)
 - **Context**: Requires valid `bpf_sock_ops_t` context pointer
 
-**Flow identifier semantics:**
+**Flow identifier semantics**
 - The helper returns an opaque 64-bit value that uniquely identifies the flow for its lifetime.
-- The current implementation will derive this value from the WFP flow handle to allow interoperability
-    with APIs such as `FwpsFlowAbort()`, but callers should treat it as an opaque identifier rather
-    than a raw WFP handle.
+- The current implementation will derive this value from the WFP flow handle to allow interoperability with APIs such as `FwpsFlowAbort()`, but callers should treat it as an opaque identifier rather than a raw WFP handle.
 
 ### 2. Context Enhancement
 
@@ -84,8 +82,7 @@ typedef struct _net_ebpf_bpf_sock_ops
 } net_ebpf_sock_ops_t;
 ```
 
-**Note:** This shows the proposed structure to be implemented. The `flow_id` field does not currently exist.
-The flow ID will be populated during the flow establishment phase when WFP metadata is available.
+**Note:** This shows the proposed structure to be implemented. The `flow_id` field does not currently exist and will be populated during the flow establishment phase when WFP metadata is available.
 
 ### 3. Helper Function Registration
 
@@ -163,10 +160,11 @@ _ebpf_sock_ops_get_flow_id(
 - The five dummy parameters are part of the internal eBPF helper function dispatch mechanism, which reserves slots for up to 5 arguments before the context parameter
 - The public API (line 58) shows the logical single-parameter interface that programs use
 - `CONTAINING_RECORD` is a Windows macro (similar to Linux `container_of`) used to retrieve the extended context structure from the embedded public context
+
 **Program-Type Specificity:**
 - The helper will be registered as program-type specific with ID `0x10000`
 - This will prevent other program types from accessing sock_ops specific functionality
-- This will maintain the eBPF security model and program isolation
+- Maintains the eBPF security model and program isolation
 
 ### Error Handling
 
@@ -177,10 +175,10 @@ The implementation will provide robust error handling:
 
 ### Backward Compatibility
 
-- The change will be fully backward compatible with existing sock_ops programs
-- Programs not using the new helper function will continue to work unchanged
-- The additional context field will not affect existing functionality
-- A new helper function ID will be allocated from the program-specific range to avoid conflicts
+- This change preserves full backward compatibility with existing sock_ops programs
+- Existing sock_ops programs that do not use the new helper function will continue to work unchanged
+- Adding an extra context field leaves current functionality unaffected
+- A dedicated helper function ID, drawn from the program-specific range, avoids conflicts with existing helpers
 
 ## Testing Strategy
 
@@ -194,7 +192,7 @@ The implementation will include comprehensive test coverage:
 
 ### 2. Integration Tests
 - End-to-end flow ID tracking through connection lifecycle
-- Tests will support both IPv4 and IPv6 connections
+- Support for both IPv4 and IPv6 connections
 - Multiple connection types (TCP, UDP where applicable)
 - Process correlation validation
 
