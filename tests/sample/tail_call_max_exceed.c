@@ -137,6 +137,6 @@ bind_test_callee34(bind_md_t* ctx)
 {
     bpf_printk("Last tail call index: bind_test_callee34\n");
     // This function is the last tail call function for the bind hook.
-    // This function returns BIND_PERMIT to allow the bind request to proceed.
-    return BIND_PERMIT;
+    // This function returns BIND_PERMIT_SOFT to allow the bind request to proceed.
+    return BIND_PERMIT_SOFT;
 }
