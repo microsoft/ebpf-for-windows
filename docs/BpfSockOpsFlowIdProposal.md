@@ -2,9 +2,9 @@
 
 ## Summary
 
-This proposal introduces a new helper function `bpf_sock_ops_get_flow_id()` that allows eBPF 
-socket operations (sock_ops) programs to access a unique flow identifier associated with network 
-connections. This enhancement enables eBPF programs to correlate network events with flow tracking 
+This proposal introduces a new helper function `bpf_sock_ops_get_flow_id()` that will allow eBPF
+socket operations (sock_ops) programs to access a unique flow identifier associated with network
+connections. This enhancement enables eBPF programs to correlate network events with flow tracking
 for advanced network monitoring, security analysis, and troubleshooting scenarios.
 
 Unlike the 5-tuple (source IP, source port, destination IP, destination port, protocol) which can 
@@ -61,8 +61,14 @@ EBPF_HELPER(uint64_t, bpf_sock_ops_get_flow_id, (bpf_sock_ops_t * ctx));
 **Key characteristics:**
 - **Function ID**: `BPF_FUNC_sock_ops_get_flow_id` (0xFFFF + 1)
 - **Program Type**: Exclusive to `BPF_PROG_TYPE_SOCK_OPS`
-- **Return Value**: 64-bit WFP flow ID
+- **Return Value**: 64-bit flow identifier (implementation may use the WFP flow ID)
 - **Context**: Requires valid `bpf_sock_ops_t` context pointer
+
+**Flow identifier semantics:**
+- The helper returns an opaque 64-bit value that uniquely identifies the flow for its lifetime.
+- The current implementation will derive this value from the WFP flow handle to allow interoperability
+    with APIs such as `FwpsFlowAbort()`, but callers should treat it as an opaque identifier rather
+    than a raw WFP handle.
 
 ### 2. Context Enhancement
 
@@ -74,12 +80,11 @@ typedef struct _net_ebpf_bpf_sock_ops
     EBPF_CONTEXT_HEADER;
     bpf_sock_ops_t context;
     uint64_t process_id;
-    uint64_t flow_id; ///< WFP flow ID associated with this connection.
+    uint64_t flow_id; ///< Flow identifier (implemented using the WFP flow handle).
 } net_ebpf_sock_ops_t;
 ```
 
 **Note:** This shows the proposed structure after implementation. The `flow_id` field does not currently exist.
-
 The flow ID will be populated during the flow establishment phase when WFP metadata is available.
 
 ### 3. Helper Function Registration
@@ -93,7 +98,7 @@ enum _sock_ops_program_specific_helper_functions
 };
 ```
 
-This will ensure the helper is only available to sock_ops programs and will maintain proper isolation between program types.
+This ensures the helper will only be available to sock_ops programs and maintains proper isolation between program types.
 
 ## Use Cases
 
@@ -118,24 +123,24 @@ sophisticated network analysis and anomaly detection.
 
 ### Files Modified
 
-1. **Core API Changes:**
-   - `include/ebpf_nethooks.h`: Helper function declaration and ID definition
-   - `netebpfext/net_ebpf_ext_program_info.h`: Helper function registration
-   - `netebpfext/net_ebpf_ext_sock_ops.c`: Helper function implementation and context enhancement
+1. **Core API Changes (planned):**
+    - `include/ebpf_nethooks.h`: Helper function declaration and ID definition
+    - `netebpfext/net_ebpf_ext_program_info.h`: Helper function registration
+    - `netebpfext/net_ebpf_ext_sock_ops.c`: Helper function implementation and context enhancement
 
-2. **Testing Infrastructure (planned additions as part of this proposal):**
-   - `tests/sample/sockops_flow_id.c`: Proposed new comprehensive test program demonstrating usage
-   - `tests/socket/socket_tests.cpp`: Integration tests for flow ID functionality
-   - `tests/end_to_end/helpers.h`: Proposed new test helper utilities
+2. **Testing Infrastructure (planned additions):**
+    - `tests/sample/sockops_flow_id.c`: Proposed comprehensive test program demonstrating usage
+    - `tests/socket/socket_tests.cpp`: Integration tests for flow ID functionality
+    - `tests/end_to_end/helpers.h`: Proposed test helper utilities
 
 ### Technical Implementation
 
-**Flow ID Storage:**
+**Flow ID Storage (planned):**
 - The WFP flow ID will be captured during the `net_ebpf_extension_sock_ops_flow_established_classify` function
 - The flow ID will be stored in the `incoming_metadata_values->flowHandle` and copied to the sock_ops context
 - The flow ID will remain valid for the lifetime of the network connection
 
-**Helper Function Implementation:**
+**Helper Function Implementation (proposed):**
 ```c
 static uint64_t
 _ebpf_sock_ops_get_flow_id(
@@ -150,7 +155,6 @@ _ebpf_sock_ops_get_flow_id(
     return sock_ops_ctx->flow_id;
 }
 ```
-
 **Program-Type Specificity:**
 - The helper will be registered as program-type specific with ID `0xFFFF + 1`
 - This will prevent other program types from accessing sock_ops specific functionality
@@ -193,7 +197,7 @@ The implementation will include comprehensive test coverage:
 - Flow establishment and deletion tracking
 
 ### Test Program Structure
-The test program (`sockops_flow_id.c`) will demonstrate:
+The proposed test program (`sockops_flow_id.c`) will demonstrate:
 - Flow ID extraction during different sock_ops events
 - Storage in hash maps for later verification
 - Ring buffer logging for event correlation
@@ -202,36 +206,39 @@ The test program (`sockops_flow_id.c`) will demonstrate:
 ## Security Considerations
 
 ### Access Control
-- Flow IDs are only accessible to sock_ops programs running in kernel context
-- The helper function validates the program context before returning flow information
-- No sensitive information beyond the flow ID is exposed
+
+- Flow IDs will only be accessible to sock_ops programs running in kernel context
+- The helper function will validate the program context before returning flow information
+- No sensitive information beyond the flow ID will be exposed
 
 ### Information Disclosure
+
 - WFP flow IDs are system-internal identifiers and do not expose sensitive user data
 - Flow IDs can be used for correlation but do not reveal packet contents or user credentials
 - The information available through this helper is already accessible through other WFP APIs
 
 ### Privilege Requirements
-- Programs using this helper must have the same privileges as other sock_ops programs
-- No additional permissions or capabilities are required
-- Standard eBPF program loading and verification apply
+
+- Programs using this helper will need the same privileges as other sock_ops programs
+- No additional permissions or capabilities will be required
+- Standard eBPF program loading and verification will apply
 
 ## Performance Impact
 
 ### Runtime Performance
-- **Helper Call Overhead**: Minimal - simple memory access to pre-stored flow ID
+- **Helper Call Overhead**: Minimal—simple memory access to a pre-stored flow ID
 - **Context Storage**: 8 additional bytes per sock_ops context (negligible impact)
-- **Flow Establishment**: No additional overhead - flow ID is captured from existing WFP metadata
+- **Flow Establishment**: No additional overhead—flow ID will be captured from existing WFP metadata
 
 ### Memory Impact
 - **Context Size**: Increased by 8 bytes per active sock_ops context
 - **Helper Registration**: Minimal static memory for helper function tables
-- **No Dynamic Allocation**: All changes use existing memory allocation patterns
+- **No Dynamic Allocation**: All changes will use existing memory allocation patterns
 
 ### Scalability
-- Flow ID access scales linearly with connection volume
-- No global locks or shared resources introduced
-- Performance characteristics identical to other sock_ops helpers
+- Flow ID access will scale linearly with connection volume
+- No new global locks or shared resources will be introduced
+- Performance characteristics will remain aligned with other sock_ops helpers
 
 ## Future Enhancements
 
@@ -264,7 +271,7 @@ between eBPF programs and the Windows Filtering Platform. This enhancement will 
 network monitoring, security analysis, and troubleshooting scenarios while maintaining the
 performance and security characteristics of the eBPF for Windows platform.
 
-The implementation will be minimal, efficient, and well-tested, and will provide immediate value for network
+The implementation will be minimal, efficient, and well-tested, providing value for network
 monitoring applications while establishing a foundation for future WFP integration enhancements.
 The program-type specific helper approach will ensure proper isolation and security while maximizing
 utility for sock_ops programs.
