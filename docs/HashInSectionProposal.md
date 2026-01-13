@@ -69,7 +69,7 @@ netsh ebpf show hash [filename=]<path> [hashonly]
 
 **Parameters:**
 - `filename`: Required path to the PE file
-- `hashonly`: Optional flag to output only the embedded ELF hash value as a hexadecimal string. The format of this string matches the `Hash` field from PowerShell `Get-FileHash`, but the value itself is the hash of the original ELF file (for example, `program.o`), not the PE file (for example, `program.sys`). To verify integrity, compare this value against `Get-FileHash` of the original ELF file
+- `hashonly`: Optional keyword parameter (specified without any prefix) to output only the embedded ELF hash value as a hexadecimal string. The format of this string matches the `Hash` field from PowerShell `Get-FileHash`, but the value itself is the hash of the original ELF file (for example, `program.o`), not the PE file (for example, `program.sys`). To verify integrity, compare this value against `Get-FileHash` of the original ELF file
 
 **Example Output:**
 
@@ -85,7 +85,7 @@ Data: a1 b2 c3 d4 e5 f6 07 18
 
 With `hashonly` flag:
 ```
-A1B2C3D4E5F6789ABCDEF012345678ABCDEF0123456789ABCDEF0123456789AB
+A1B2C3D4E5F60718293A4B5C6D7E8F90011223344556677889AABBCCDDEEFF0
 ```
 
 Note: The `netsh` output without `hashonly` groups bytes in lowercase hex with spaces for readability; `hashonly` emits an uppercase, contiguous hex string matching the `Hash` value from `Get-FileHash`.
