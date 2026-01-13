@@ -129,6 +129,7 @@ load_test_program(int& program_fd, bpf_object*& object_out)
     if (program == nullptr) {
         std::cerr << "Failed to get program from object" << std::endl;
         bpf_object__close(object);
+        free(program_path_env);
         return -1;
     }
 
@@ -136,10 +137,11 @@ load_test_program(int& program_fd, bpf_object*& object_out)
     if (program_fd < 0) {
         std::cerr << "Failed to get program fd" << std::endl;
         bpf_object__close(object);
+        free(program_path_env);
         return -1;
     }
 
-    // Don't close the object yet - keep it alive for caller to manage.
+    // Keep the object alive for caller to manage.
     object_out = object;
     free(program_path_env);
     return 0;
@@ -219,14 +221,18 @@ mode_pin_objects()
         } else {
             std::cout << "Pinned program at: " << PIN_PATH_PROGRAM << std::endl;
         }
-        _close(program_fd);
+        if (program_fd >= 0) {
+            _close(program_fd);
+        }
         if (program_object != nullptr) {
             bpf_object__close(program_object);
         }
     }
 
     // Close the map handle
-    _close(map_fd);
+    if (map_fd >= 0) {
+        _close(map_fd);
+    }
     std::cout << "Released handles" << std::endl;
 
     // Signal that we're ready with pinned objects

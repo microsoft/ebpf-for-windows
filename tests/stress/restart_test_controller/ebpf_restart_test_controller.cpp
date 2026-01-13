@@ -26,7 +26,7 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
     ULONGLONG start_tick = GetTickCount64();
     HANDLE event = nullptr;
 
-    // Retry until the controller-created event exists or timeout expires.
+    // Retry until the helper-created event exists or timeout expires.
     while (true) {
         event = OpenEventA(SYNCHRONIZE, FALSE, signal_name);
         if (event != nullptr) {
@@ -279,8 +279,6 @@ main(int argc, char* argv[])
             WaitForSingleObject(child_process, INFINITE);
         } else if (wait_result == WAIT_FAILED) {
             std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
-        } else {
-            std::cerr << "WARNING: Unexpected wait result for child process: " << wait_result << std::endl;
         }
         if (pi.hProcess != nullptr) {
             CloseHandle(pi.hProcess);
@@ -345,6 +343,7 @@ main(int argc, char* argv[])
         }
 
         // Wait for child to exit (it exits immediately after pinning)
+        // Wait for child to exit (it exits immediately after pinning)
         DWORD wait_result = WaitForSingleObject(child_process, 5000);
         if (wait_result == WAIT_OBJECT_0) {
             std::cout << "Child process exited" << std::endl;
@@ -354,8 +353,6 @@ main(int argc, char* argv[])
             WaitForSingleObject(child_process, INFINITE);
         } else if (wait_result == WAIT_FAILED) {
             std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
-        } else {
-            std::cerr << "WARNING: Unexpected wait result for child process: " << wait_result << std::endl;
         }
         if (pi.hProcess != nullptr) {
             CloseHandle(pi.hProcess);
@@ -406,18 +403,30 @@ main(int argc, char* argv[])
                 // Success path; nothing else to do.
             } else if (wait_result_unpin == WAIT_TIMEOUT) {
                 std::cerr << "FAIL: Timeout waiting for unpin process to exit" << std::endl;
-                CloseHandle(pi2.hProcess);
-                CloseHandle(pi2.hThread);
+                if (pi2.hProcess != nullptr) {
+                    CloseHandle(pi2.hProcess);
+                }
+                if (pi2.hThread != nullptr) {
+                    CloseHandle(pi2.hThread);
+                }
                 return 1;
             } else if (wait_result_unpin == WAIT_FAILED) {
                 std::cerr << "FAIL: Error waiting for unpin process, error: " << GetLastError() << std::endl;
-                CloseHandle(pi2.hProcess);
-                CloseHandle(pi2.hThread);
+                if (pi2.hProcess != nullptr) {
+                    CloseHandle(pi2.hProcess);
+                }
+                if (pi2.hThread != nullptr) {
+                    CloseHandle(pi2.hThread);
+                }
                 return 1;
             } else {
                 std::cerr << "FAIL: Unexpected wait result for unpin process: " << wait_result_unpin << std::endl;
-                CloseHandle(pi2.hProcess);
-                CloseHandle(pi2.hThread);
+                if (pi2.hProcess != nullptr) {
+                    CloseHandle(pi2.hProcess);
+                }
+                if (pi2.hThread != nullptr) {
+                    CloseHandle(pi2.hThread);
+                }
                 return 1;
             }
             if (pi2.hProcess != nullptr) {

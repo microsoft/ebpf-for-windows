@@ -157,7 +157,7 @@ Sample command line invocations:
 - creates 32 test threads.
 - Runs the test for 30 minutes.
 
-## 2.2. ebpfcore_restart_test_controller.exe - eBPF Core Driver Restart Test
+## 2.2. ebpf_restart_test_controller.exe - eBPF Core Driver Restart Test
 
 This standalone test controller validates the eBPF core driver's restart behavior under different scenarios involving open handles and pinned objects. 
 
