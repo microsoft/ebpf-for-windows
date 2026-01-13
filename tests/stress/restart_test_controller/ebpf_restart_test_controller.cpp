@@ -343,7 +343,6 @@ main(int argc, char* argv[])
         }
 
         // Wait for child to exit (it exits immediately after pinning)
-        // Wait for child to exit (it exits immediately after pinning)
         DWORD wait_result = WaitForSingleObject(child_process, 5000);
         if (wait_result == WAIT_OBJECT_0) {
             std::cout << "Child process exited" << std::endl;
