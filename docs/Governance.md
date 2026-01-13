@@ -135,7 +135,7 @@ This label represents highest priority. This label should ONLY be applied to bug
 ### P2:
 This label is used for the next level of priority. Issues marked as `P2` will be set future milestones (preferred).
 ### P3:
-This label is used for low priority issues. Issues marked as `P3` can be set to future milestones beyond 3 month or the `Backlog` milestone.
+This label is used for low priority issues. Issues marked as `P3` can be set to future milestones beyond 3 months or the `Backlog` milestone.
 
 ## Closing Active Issues
 
