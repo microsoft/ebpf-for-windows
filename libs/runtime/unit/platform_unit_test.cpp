@@ -1797,7 +1797,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     // Consume the submitted record (discarded one should be skipped).
     record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
     REQUIRE(record != nullptr);
-    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, &next_offset) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_offset) == EBPF_SUCCESS);
 
     // Verify no more records.
     record = ebpf_ring_buffer_next_consumer_record(ring_buffer, &next_offset);
@@ -2138,3 +2138,4 @@ TEST_CASE("hash_of_file", "[platform]")
 
     // Clean up the test file.
     std::remove(file_name);
+}
