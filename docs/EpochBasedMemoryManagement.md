@@ -54,6 +54,13 @@ epoch). This is implemented as a special entry in the free list that
 causes a callback to be invoked instead of freeing the memory. The callback
 can then perform additional cleanup of state as needed.
 
+**Important:** Work item callbacks run **outside of any epoch** by default.
+If a work item callback needs to access epoch-managed data structures
+(such as hash tables created with `ebpf_hash_table_create` using the default
+epoch-based allocator), the callback must explicitly call `ebpf_epoch_enter()`
+and `ebpf_epoch_exit()` to ensure proper epoch protection and avoid
+use-after-free issues.
+
 ## Future investigations
 The use of a common clock leads to contention when the memory state changes
 (i.e., when memory is freed). One possible work around might be to move from a
