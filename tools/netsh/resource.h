@@ -36,7 +36,7 @@
 #define EBPF_FILE_DESCRIPTION "eBPF for Windows Netsh Helper"
 #define EBPF_FILE_NAME "ebpfnetsh.dll"
 
-// Next default values for new objects
+// Next default values for new objects.
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS

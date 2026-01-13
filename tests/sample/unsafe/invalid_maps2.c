@@ -149,7 +149,7 @@ BindMonitor(bind_md_t* ctx)
     uint32_t* dummy_value = bpf_map_lookup_elem(&dummy_map, &dummy_key);
 
     if (!dummy_value) {
-        // Callee0 is at index 0
+        // Callee0 is at index 0.
         int index = 0;
         bpf_tail_call(ctx, &prog_array_map, index);
     }
@@ -165,7 +165,7 @@ BindMonitor_Callee0(bind_md_t* ctx)
     uint32_t* dummy_value = bpf_map_lookup_elem(&dummy_map, &dummy_key);
 
     if (!dummy_value) {
-        // Callee1 is at index 1
+        // Callee1 is at index 1.
         int index = 1;
         bpf_tail_call(ctx, &prog_array_map, index);
     }
