@@ -39,7 +39,7 @@ const uint8_t _elf_hash[] = {
 
 ### 2. New API for Hash Extraction
 
-A new API function `ebpf_api_get_data_section()` will be added to extract data from named sections in PE files. ELF files may also contain a hash section if they were compiled with hash embedding enabled:
+A new API function `ebpf_api_get_data_section()` will be added to extract data from named sections in PE and ELF files. In the context of this proposal, the hash is embedded into the generated PE image, and this API is used to retrieve that embedded hash:
 
 ```cpp
 _Must_inspect_result_ ebpf_result_t
@@ -50,10 +50,13 @@ ebpf_api_get_data_section(
     _Inout_ size_t* data_size) EBPF_NO_EXCEPT;
 ```
 
-This API:
+This API follows a two-call pattern similar to many Windows APIs:
 - Supports both PE and ELF file formats
-- Returns section size when called with NULL data pointer
+- When `data` is `NULL`, `data_size` must be a valid pointer; on return, `*data_size` contains the required buffer size in bytes for the named section, and no data is written
+- When `data` is non-`NULL`, the caller must set `*data_size` to the size in bytes of the `data` buffer on input; on successful return, `*data_size` contains the number of bytes written
+- If the provided buffer is too small, the function fails with an appropriate error code, sets `*data_size` to the required size, and does not modify the buffer
 - Provides appropriate error codes for missing files or sections
+- The expected section name for hash retrieval is "hash"
 
 ### 3. NetSh Command Line Interface
 
@@ -66,7 +69,7 @@ netsh ebpf show hash [filename=]<path> [hashonly]
 
 **Parameters:**
 - `filename`: Required path to the PE file
-- `hashonly`: Optional flag to output only the hash value as a hexadecimal string (compatible with the `Hash` value from PowerShell `Get-FileHash`, but not its full formatted output)
+- `hashonly`: Optional flag to output only the embedded ELF hash value as a hexadecimal string. The format of this string matches the `Hash` field from PowerShell `Get-FileHash`, but the value itself is the hash of the original ELF file (for example, `program.o`), not the PE file (for example, `program.sys`). To verify integrity, compare this value against `Get-FileHash` of the original ELF file
 
 **Example Output:**
 
@@ -74,7 +77,10 @@ Without `hashonly` flag:
 ```
 Hash for example.sys:
 Size: 32 bytes
-Data: a1b2c3d4e5f6789a bcdef012345678ab cdef0123456789ab cdef0123456789ab
+Data: a1 b2 c3 d4 e5 f6 07 18
+      29 3a 4b 5c 6d 7e 8f 90
+      01 12 23 34 45 56 67 78
+      89 9a ab bc cd de ef f0
 ```
 
 With `hashonly` flag:
@@ -120,7 +126,7 @@ The implementation will include comprehensive test coverage:
 ## Security Considerations
 
 - Hash verification is cryptographically strong (SHA-256)
-- The embedded hash is read-only and cannot be modified without rebuilding
+- The hash is embedded as read-only data in the PE at compile time; integrity verification succeeds only if this embedded hash matches the original ELF, although an attacker with sufficient access could still modify the PE file (including the embedded hash) on disk
 - Hash extraction API validates file format before processing
 - No sensitive information is exposed through the hash mechanism
 
