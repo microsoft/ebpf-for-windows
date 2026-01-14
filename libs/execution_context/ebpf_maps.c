@@ -2791,7 +2791,7 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
     uint32_t ring_count = perf_event_array_map->ring_count;
 
-    // Cancel any outstanting contexts and free each ring.
+    // Cancel any outstanding contexts and free each ring.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
         // Snap the async context list.
