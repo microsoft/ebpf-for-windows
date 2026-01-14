@@ -157,6 +157,10 @@ TEST_CASE("wer_report_fatal_exception", "[wer_report]")
 {
     _EXCEPTION_RECORD exception_record{};
     CONTEXT exception_context{};
+    // Initialize context more completely to avoid security check failures
+    // when exception filters chain
+    RtlCaptureContext(&exception_context);
+    exception_context.ContextFlags = CONTEXT_CONTROL;
     _EXCEPTION_POINTERS exception_pointers{&exception_record, &exception_context};
     exception_pointers.ExceptionRecord->ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
 
@@ -178,6 +182,10 @@ TEST_CASE("wer_report_non_fatal_exception", "[wer_report]")
 {
     _EXCEPTION_RECORD exception_record{};
     CONTEXT exception_context{};
+    // Initialize context more completely to avoid security check failures
+    // when exception filters chain
+    RtlCaptureContext(&exception_context);
+    exception_context.ContextFlags = CONTEXT_CONTROL;
     _EXCEPTION_POINTERS exception_pointers{&exception_record, &exception_context};
     exception_pointers.ExceptionRecord->ExceptionCode = 0x12345678;
 
@@ -199,6 +207,10 @@ TEST_CASE("wer_report_failure", "[wer_report]")
 {
     _EXCEPTION_RECORD exception_record{};
     CONTEXT exception_context{};
+    // Initialize context more completely to avoid security check failures
+    // when exception filters chain
+    RtlCaptureContext(&exception_context);
+    exception_context.ContextFlags = CONTEXT_CONTROL;
     _EXCEPTION_POINTERS exception_pointers{&exception_record, &exception_context};
     exception_pointers.ExceptionRecord->ExceptionCode = EXCEPTION_ACCESS_VIOLATION;
 
