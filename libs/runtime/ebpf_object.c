@@ -183,15 +183,7 @@ _ebpf_object_epoch_free(_Inout_ void* context)
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
 
     object->base.marker = ~object->base.marker;
-
-    // Enter epoch to ensure any code in free_object() that accesses epoch-managed
-    // data structures (e.g., ebpf_async_complete accessing the async tracker hash table)
-    // has proper epoch protection against use-after-free.
-    ebpf_epoch_state_t epoch_state = {0};
-    ebpf_epoch_enter(&epoch_state);
     object->free_object(object);
-    ebpf_epoch_exit(&epoch_state);
-
     cxplat_release_rundown_protection(&_ebpf_object_rundown_ref);
 }
 
