@@ -11,7 +11,7 @@
 #include "common_tests.h"
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
-#include "ebpf_vm_isa.hpp"
+#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
 #include "platform.h"
@@ -23,7 +23,7 @@
 #include <stop_token>
 #include <thread>
 
-// Pulling in the prevail namespace to get the definitions in ebpf_vm_isa.h.
+// Pulling in the prevail namespace to get the definitions in spec/vm_isa.hpp.
 // See: https://github.com/vbpf/prevail/issues/876
 using namespace prevail;
 

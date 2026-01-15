@@ -7,6 +7,7 @@
 #include "config.hpp"
 #include "ebpf_program_types.h"
 #include "ebpf_result.h"
+#include "ebpf_verifier_wrapper.hpp"
 #include "platform.hpp"
 
 #include <variant>

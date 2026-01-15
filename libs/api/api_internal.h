@@ -5,7 +5,6 @@
 
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#include "spec_type_descriptors.hpp"
 
 #if !defined(EBPF_API_LOCKING)
 #define EBPF_API_LOCKING

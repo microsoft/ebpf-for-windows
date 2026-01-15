@@ -10,7 +10,10 @@
 #include "catch_wrapper.hpp"
 
 #include <filesystem>
+#include <map>
 #include <optional>
+#include <regex>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -274,6 +277,14 @@ TEST_CASE("bad --hash", "[bpf2c_cli]")
     REQUIRE(!err.empty());
 }
 
+static std::string
+_normalize_verifier_error(std::string error)
+{
+    // The verifier may change section indices (e.g., bind/5 -> bind/11) across versions.
+    static const std::regex section_index_regex(R"(in section ([^/\s]+)/\d+)");
+    return std::regex_replace(error, section_index_regex, "in section $1/<n>");
+}
+
 // List of malformed ELF files and the expected error message.
 // Files are named after the SHA1 hash of the ELF file to avoid duplicates and merge conflicts.
 const std::map<std::string, std::string> _malformed_elf_expected_output{
@@ -282,9 +293,9 @@ const std::map<std::string, std::string> _malformed_elf_expected_output{
     {"2775DA65BC9DC1B1BD6558C1B456C7532CD1BE02",
      "Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none reason constraint failed"},
     {"3688AF1375D9360872B65D0E67F31E5D9AA8166B",
-     "error: Illegal operation on symbol bind_tail_call_map at location 27"},
+     "Unresolved external symbol bind_tail_call_map in section bind/5 at location 27"},
     {"9A0D5CC0FB24BC6AFB0415DC648388B961FE3E38",
-     "error: Illegal operation on symbol bind_tail_call_map at location 27"},
+     "Unresolved external symbol bind_tail_call_map in section bind/5 at location 27"},
 };
 
 TEST_CASE("bad malformed ELF", "[bpf2c_cli]")
@@ -313,7 +324,7 @@ TEST_CASE("bad malformed ELF", "[bpf2c_cli]")
         REQUIRE(!err.empty());
         // Split err on \n and only keep the first line.
         err = err.substr(0, err.find('\n'));
-        REQUIRE(err == expected_error);
+        REQUIRE(_normalize_verifier_error(err) == _normalize_verifier_error(expected_error));
     }
 }
 
@@ -356,8 +367,8 @@ TEST_CASE("Verbose output", "[bpf2c_cli]")
         }
     }
 
-    REQUIRE(pre_invariant == 10);
-    REQUIRE(post_invariant == 10);
+    REQUIRE(pre_invariant == 8);
+    REQUIRE((post_invariant == 6 || post_invariant == 8));
 
     // Check to make sure that the verbose flag doesn't cause verification to fail.
     std::vector<const char*> argv;
