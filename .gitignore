@@ -65,3 +65,6 @@ artifacts/
 
 # Visual Code.
 **/.vscode/**/*
+
+states/**
+models/**/states/**
