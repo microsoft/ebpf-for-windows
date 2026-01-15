@@ -51,7 +51,7 @@ This corresponds to the intent that callers run hash-table reads under epoch pro
 - No allocation failure paths (`EBPF_NO_MEMORY`), no notification callbacks, and no `supplemental_value_size` behavior.
 - No modeling of `backup_bucket` reuse; deletes/updates are represented as “allocate new bucket object”.
 - Not a full behavioral model of `ebpf_hash_table_iterate` / `*_next_key_*` APIs.
-- Bucket hashing is abstracted by the constant function `BucketOf`.
+- Bucket hashing is abstracted by the constant function `BucketOfKey`.
 - Writers are modeled as a single atomic action per operation; the real implementation uses an explicit per-bucket lock plus acquire/release pointer operations.
 
 ## Key assumptions to keep in sync
