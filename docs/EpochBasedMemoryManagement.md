@@ -87,12 +87,7 @@ using that memory.
 
 In the implementation, an allocation/work item is stamped with `freed_epoch` at the moment it is queued,
 using the globally published epoch value (so retirements are never stamped with an epoch older than a
-concurrent reader may have observed).
-
-and it becomes eligible for reclamation when:
-
-- `freed_epoch <= released_epoch`
-
+concurrent reader may have observed), and it becomes eligible for reclamation when `freed_epoch <= released_epoch`,
 where `released_epoch` is computed via the propose/commit epoch computation described below.
 
 ## Epoch computation (propose/commit)

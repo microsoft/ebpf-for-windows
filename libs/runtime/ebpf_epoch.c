@@ -17,7 +17,7 @@ static volatile int64_t _ebpf_epoch_published_current_epoch = 1;
 static __forceinline uint64_t
 _ebpf_epoch_get_published_epoch()
 {
-    // InterlockedCompareExchange64 provides an atomic read with ordering.
+    // InterlockedCompareExchange64 provides a sequentially consistent (acquire-release) atomic read.
     return (uint64_t)InterlockedCompareExchange64(&_ebpf_epoch_published_current_epoch, 0, 0);
 }
 
