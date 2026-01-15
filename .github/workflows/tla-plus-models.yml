@@ -52,8 +52,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x scripts/generate_tlatex.sh
-          TLA2TOOLS_JAR=./tla2tools.jar scripts/generate_tlatex.sh
+          TLA2TOOLS_JAR=./tla2tools.jar bash scripts/generate_tlatex.sh
 
       - name: Verify TLATeX outputs are up to date
         shell: bash

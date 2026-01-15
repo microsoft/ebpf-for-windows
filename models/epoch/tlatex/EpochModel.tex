@@ -936,282 +936,378 @@
 
 \begin{document}
 \tlatex
-\fl{}\moduleLeftDash\cl{ {\MODULE} EpochModel}\moduleRightDash\cl{}
-\fl{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\CONSTANTS}}
-\fl{ NCPUS ,\,}\al{24}{2}{%
+\@x{}\moduleLeftDash\@xx{ {\MODULE} EpochModel}\moduleRightDash\@xx{}%
+\@x{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}%
+\@x{}%
+\@y{\@s{0}%
+ Copyright (\ensuremath{c}) \ensuremath{eBPF} for Windows contributors
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ SPDX-License-Identifier: \ensuremath{MIT
+}}%
+\@xx{}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+A small model of the eBPF-for-Windows epoch reclamation protocol focused on
+ safety (no reclamation while a reader may still hold a reference).
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+This model is intentionally simple\ensuremath{\.{:}
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} One shared object transitions \ensuremath{Reachable
+ \.{\rightarrow} Retired \.{\rightarrow} Reclaimed}.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ - Each \ensuremath{CPU} has a cached epoch (\ensuremath{cpu\_epoch[c]}) that
+ may lag \ensuremath{published\_epoch}.
+\end{cpar}%
+\begin{cpar}{0}{T}{T}{0}{2.5}{%
+-}%
+Readers capture an epoch on entry and may ``hold'' the object if it was
+ reachable when they read it.
+\end{cpar}%
+\begin{cpar}{1}{T}{T}{0}{2.5}{%
+-}%
+ Retirement stamps \ensuremath{obj\_freed\_epoch} either from
+ \ensuremath{cpu\_epoch} (buggy) or using
+ the globally published epoch (fixed), mirroring the published-epoch fix.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{T}{F}{0}{5.0}{}%
+The key safety invariant is:
+ \ensuremath{obj\_state \.{=} \@w{Reclaimed} \.{\implies}} no
+ \ensuremath{reader\_holds[c]
+}%
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Tune constants in the \ensuremath{.cfg} files in this folder.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\CONSTANTS}}%
+\@x{\@s{16.4} NCPUS ,\,\@s{93.03}}%
 \@y{\@s{0}%
  number of \ensuremath{CPUs} (\ensuremath{\.{\geq} 2} is interesting)
 }%
-}
-\fl{ MaxEpoch ,\,}\al{25}{2}{%
+\@xx{}%
+\@x{\@s{16.4} MaxEpoch ,\,\@s{83.48}}%
 \@y{\@s{0}%
  bound on epoch increments for finite state
 }%
-}
-\fl{ UsePublishedEpochForReader ,\,}\al{26}{2}{%
+\@xx{}%
+\@x{\@s{16.4} UsePublishedEpochForReader ,\,}%
 \@y{\@s{0}%
  if \ensuremath{{\TRUE}}: reader captures \ensuremath{published\_epoch
 }}%
-}
-\fl{ UsePublishedEpochForRetire}\al{27}{1}{%
+\@xx{}%
+\@x{\@s{16.4} UsePublishedEpochForRetire\@s{10.26}}%
 \@y{\@s{0}%
  if \ensuremath{{\TRUE}}: retire stamps \ensuremath{Max(published,\, cpu)
 }}%
-}
-\fl{}
-\fl{ CPUS \.{\defeq} 0 \.{\dotdot} ( NCPUS \.{-} 1 )}
-\fl{}
- \fl{ ObjStates \.{\defeq} \{\@w{Reachable} ,\,\@w{Retired} ,\,\@w{Reclaimed}
- \}}
-\fl{}
-\fl{ {\VARIABLES}}
-\fl{ published\_epoch ,\,}\al{34}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ CPUS \.{\defeq} 0 \.{\dotdot} ( NCPUS \.{-} 1 )}%
+\@pvspace{8.0pt}%
+ \@x{ ObjStates \.{\defeq} \{\@w{Reachable} ,\,\@w{Retired} ,\,\@w{Reclaimed}
+ \}}%
+\@pvspace{8.0pt}%
+\@x{ {\VARIABLES}}%
+\@x{\@s{16.4} published\_epoch ,\,\@s{4.1}}%
 \@y{\@s{0}%
  global single source of truth epoch (monotonic)
 }%
-}
-\fl{ cpu\_epoch ,\,}\al{35}{2}{%
+\@xx{}%
+\@x{\@s{16.4} cpu\_epoch ,\,\@s{28.38}}%
 \@y{\@s{0}%
  per-CPU cached epoch (may lag)
 }%
-}
-\fl{ released\_epoch ,\,}\al{36}{2}{%
+\@xx{}%
+\@x{\@s{16.4} released\_epoch ,\,\@s{9.85}}%
 \@y{\@s{0}%
  globally computed safe-to-reclaim threshold
 }%
-}
-\fl{}
-\fl{ reader\_active ,\,}\al{38}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{\@s{16.4} reader\_active ,\,\@s{14.55}}%
 \@y{\@s{0}%
  \ensuremath{reader\_active[c]} is \ensuremath{{\TRUE}} if a reader is in
  epoch on cpu \ensuremath{c
 }}%
-}
-\fl{ reader\_epoch ,\,}\al{39}{2}{%
+\@xx{}%
+\@x{\@s{16.4} reader\_epoch ,\,\@s{16.32}}%
 \@y{\@s{0}%
  \ensuremath{reader\_epoch[c]} is the epoch captured on entry
 }%
-}
-\fl{ reader\_holds ,\,}\al{40}{2}{%
+\@xx{}%
+\@x{\@s{16.4} reader\_holds ,\,\@s{17.80}}%
 \@y{\@s{0}%
  \ensuremath{reader\_holds[c]} indicates the reader still holds the object
 }%
-}
-\fl{}
-\fl{ obj\_state ,\,}\al{42}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{\@s{16.4} obj\_state ,\,\@s{33.09}}%
 \@y{\@s{0}%
  Reachable / \ensuremath{Retired} / \ensuremath{Reclaimed
 }}%
-}
-\fl{ obj\_freed\_epoch}\al{43}{1}{%
+\@xx{}%
+\@x{\@s{16.4} obj\_freed\_epoch\@s{10.52}}%
 \@y{\@s{0}%
  epoch stamped at retirement
 }%
-}
-\fl{}
-\fl{ vars \.{\defeq} {\langle}}
-\fl{ published\_epoch ,\,}
-\fl{ cpu\_epoch ,\,}
-\fl{ released\_epoch ,\,}
-\fl{ reader\_active ,\,}
-\fl{ reader\_epoch ,\,}
-\fl{ reader\_holds ,\,}
-\fl{ obj\_state ,\,}
-\fl{ obj\_freed\_epoch}
-\fl{ {\rangle}}
-\fl{}
- \fl{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a}\al{56}{9}{ \.{\geq} b \.{\THEN} a
- \.{\ELSE} b}
-\fl{}
- \fl{ Min ( S ) \.{\defeq} {\CHOOSE} m}\al{58}{7}{ \.{\in} S \.{:} \A\, x
- \.{\in} S \.{:} m \.{\leq} x}
-\fl{}
-\fl{ ActiveCPUs \.{\defeq} \{ c \.{\in} CPUS \.{:} reader\_active [ c ] \}}
-\fl{}
- \fl{ ActiveReaderEpochs \.{\defeq} \{ reader\_epoch [ c ] \.{:} c \.{\in}
- ActiveCPUs \}}
-\fl{}
-\fl{ TypeOK}\al{64}{1}{ \.{\defeq}}
-\fl{ \.{\land}}\al{65}{1}{ published\_epoch \.{\in} 1 \.{\dotdot} MaxEpoch}
-\fl{ \.{\land}}\al{66}{1}{ released\_epoch \.{\in} 0 \.{\dotdot} MaxEpoch}
- \fl{ \.{\land}}\al{67}{1}{ cpu\_epoch \.{\in} [ CPUS \.{\rightarrow} 1
- \.{\dotdot} MaxEpoch ]}
- \fl{ \.{\land}}\al{68}{1}{ reader\_active \.{\in} [ CPUS \.{\rightarrow}
- {\BOOLEAN} ]}
- \fl{ \.{\land}}\al{69}{1}{ reader\_epoch}\al{69}{2}{ \.{\in}}\al{69}{3}{ [
- CPUS}\al{69}{5}{ \.{\rightarrow}}\al{69}{6}{ 0 \.{\dotdot} MaxEpoch ]}
- \fl{ \.{\land}}\al{70}{1}{ reader\_holds}\al{70}{2}{ \.{\in}}\al{70}{3}{ [
- CPUS}\al{70}{5}{ \.{\rightarrow}}\al{70}{6}{ {\BOOLEAN} ]}
-\fl{ \.{\land}}\al{71}{1}{ obj\_state \.{\in} ObjStates}
-\fl{ \.{\land}}\al{72}{1}{ obj\_freed\_epoch \.{\in} 0 \.{\dotdot} MaxEpoch}
-\fl{}
-\fl{ Init \.{\defeq}}
-\fl{ \.{\land}}\al{75}{1}{ published\_epoch \.{=} 1}
- \fl{ \.{\land}}\al{76}{1}{ cpu\_epoch \.{=} [ c}\al{76}{5}{ \.{\in} CPUS
- \.{\mapsto} 1 ]}
-\fl{ \.{\land}}\al{77}{1}{ released\_epoch}\al{77}{2}{ \.{=} 0}
-\fl{}
- \fl{ \.{\land}}\al{79}{1}{ reader\_active \.{=} [ c \.{\in} CPUS \.{\mapsto}
- {\FALSE} ]}
- \fl{ \.{\land}}\al{80}{1}{ reader\_epoch}\al{80}{2}{ \.{=}}\al{80}{3}{ [
- c}\al{80}{5}{ \.{\in}}\al{80}{6}{ CPUS}\al{80}{7}{ \.{\mapsto}}\al{80}{8}{ 0
- ]}
- \fl{ \.{\land}}\al{81}{1}{ reader\_holds}\al{81}{2}{ \.{=}}\al{81}{3}{ [
- c}\al{81}{5}{ \.{\in}}\al{81}{6}{ CPUS}\al{81}{7}{ \.{\mapsto}}\al{81}{8}{
- {\FALSE} ]}
-\fl{}
-\fl{ \.{\land}}\al{83}{1}{ obj\_state \.{=}\@w{Reachable}}
-\fl{ \.{\land}}\al{84}{1}{ obj\_freed\_epoch \.{=} 0}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ AdvanceEpoch \.{\defeq}}
-\fl{ \.{\land}}\al{92}{1}{ published\_epoch \.{<} MaxEpoch}
- \fl{ \.{\land}}\al{93}{1}{ published\_epoch \.{'} \.{=} published\_epoch
- \.{+} 1}
- \fl{ \.{\land}}\al{94}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
- {\bang} [ 0 ] \.{=} published\_epoch \.{'} ]}
- \fl{ \.{\land}}\al{95}{1}{ {\UNCHANGED} {\langle} released\_epoch ,\,
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ vars \.{\defeq} {\langle}}%
+\@x{\@s{16.4} published\_epoch ,\,}%
+\@x{\@s{16.4} cpu\_epoch ,\,}%
+\@x{\@s{16.4} released\_epoch ,\,}%
+\@x{\@s{16.4} reader\_active ,\,}%
+\@x{\@s{16.4} reader\_epoch ,\,}%
+\@x{\@s{16.4} reader\_holds ,\,}%
+\@x{\@s{16.4} obj\_state ,\,}%
+\@x{\@s{16.4} obj\_freed\_epoch}%
+\@x{ {\rangle}}%
+\@pvspace{8.0pt}%
+ \@x{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a\@s{12.70} \.{\geq} b \.{\THEN} a
+ \.{\ELSE} b}%
+\@pvspace{8.0pt}%
+ \@x{ Min ( S ) \.{\defeq} {\CHOOSE} m \.{\in} S \.{:} \A\, x \.{\in} S \.{:}
+ m \.{\leq} x}%
+\@pvspace{8.0pt}%
+\@x{ ActiveCPUs \.{\defeq} \{ c \.{\in} CPUS \.{:} reader\_active [ c ] \}}%
+\@pvspace{8.0pt}%
+ \@x{ ActiveReaderEpochs \.{\defeq} \{ reader\_epoch [ c ] \.{:} c \.{\in}
+ ActiveCPUs \}}%
+\@pvspace{8.0pt}%
+\@x{ TypeOK \.{\defeq}}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} published\_epoch \.{\in} 1 \.{\dotdot}
+ MaxEpoch}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} released\_epoch \.{\in} 0 \.{\dotdot}
+ MaxEpoch}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} cpu\_epoch \.{\in} [ CPUS \.{\rightarrow} 1
+ \.{\dotdot} MaxEpoch ]}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} reader\_active \.{\in} [ CPUS
+ \.{\rightarrow} {\BOOLEAN} ]}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} reader\_epoch \.{\in} [ CPUS \.{\rightarrow}
+ 0 \.{\dotdot} MaxEpoch ]}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} reader\_holds\@s{1.47} \.{\in} [ CPUS
+ \.{\rightarrow} {\BOOLEAN} ]}%
+\@x{\@s{16.4} \.{\land}\@s{9.74} obj\_state \.{\in} ObjStates}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} obj\_freed\_epoch \.{\in} 0 \.{\dotdot}
+ MaxEpoch}%
+\@pvspace{8.0pt}%
+\@x{ Init \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} published\_epoch \.{=} 1}%
+\@x{\@s{16.4} \.{\land} cpu\_epoch \.{=} [ c \.{\in} CPUS \.{\mapsto} 1 ]}%
+\@x{\@s{16.4} \.{\land} released\_epoch\@s{2.73} \.{=} 0}%
+\@pvspace{8.0pt}%
+ \@x{\@s{16.4} \.{\land} reader\_active \.{=} [ c \.{\in} CPUS \.{\mapsto}
+ {\FALSE} ]}%
+\@x{\@s{16.4} \.{\land} reader\_epoch \.{=} [ c \.{\in} CPUS \.{\mapsto} 0 ]}%
+ \@x{\@s{16.4} \.{\land} reader\_holds\@s{1.47} \.{=} [ c \.{\in} CPUS
+ \.{\mapsto} {\FALSE} ]}%
+\@pvspace{8.0pt}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Reachable}}%
+\@x{\@s{16.4} \.{\land} obj\_freed\_epoch \.{=} 0}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Protocol steps
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{}%
+\@y{\@s{0}%
+ \ensuremath{CPU0} advances the global epoch; other \ensuremath{CPUs} lag
+ until they process an update.
+}%
+\@xx{}%
+\@x{ AdvanceEpoch \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} published\_epoch \.{<} MaxEpoch}%
+ \@x{\@s{16.4} \.{\land} published\_epoch \.{'} \.{=} published\_epoch \.{+}
+ 1}%
+ \@x{\@s{16.4} \.{\land} cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT} {\bang}
+ [ 0 ] \.{=} published\_epoch \.{'} ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} released\_epoch ,\,
  reader\_active ,\, reader\_epoch ,\, reader\_holds ,\, obj\_state ,\,
- obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ ProcessEpochUpdate ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{99}{1}{ c \.{\in} CPUS \.{\,\backslash\,} \{ 0 \}}
- \fl{ \.{\land}}\al{100}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
- {\bang} [ c ] \.{=} published\_epoch ]}
- \fl{ \.{\land}}\al{101}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ A non-CPU0 core learns the current published epoch (delayed message
+ processing).
+}%
+\@xx{}%
+\@x{ ProcessEpochUpdate ( c ) \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} c \.{\in} CPUS \.{\,\backslash\,} \{ 0 \}}%
+ \@x{\@s{16.4} \.{\land} cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT} {\bang}
+ [ c ] \.{=} published\_epoch ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  released\_epoch ,\, reader\_active ,\, reader\_epoch ,\, reader\_holds ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ ReaderEnter ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{105}{1}{ c \.{\in} CPUS}
-\fl{ \.{\land}}\al{106}{1}{ {\lnot} reader\_active [ c ]}
- \fl{ \.{\land}}\al{107}{1}{ reader\_active \.{'} \.{=} [ reader\_active
- {\EXCEPT} {\bang} [ c ] \.{=} {\TRUE} ]}
- \fl{ \.{\land}}\al{108}{1}{ reader\_epoch \.{'}}\al{108}{3}{
- \.{=}}\al{108}{4}{ [ reader\_epoch {\EXCEPT} {\bang} [ c ]}\al{108}{11}{
- \.{=}}\al{108}{12}{ {\IF} UsePublishedEpochForReader \.{\THEN}
- published\_epoch \.{\ELSE} cpu\_epoch [ c ] ]}
- \fl{ \.{\land}}\al{109}{1}{ reader\_holds \.{'}}\al{109}{3}{
- \.{=}}\al{109}{4}{ [ reader\_holds {\EXCEPT} {\bang} [ c ]}\al{109}{11}{
- \.{=}}\al{109}{12}{ {\FALSE} ]}
- \fl{ \.{\land}}\al{110}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Reader enters epoch on a \ensuremath{CPU} and captures an epoch value.
+}%
+\@xx{}%
+\@x{ ReaderEnter ( c ) \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} c \.{\in} CPUS}%
+\@x{\@s{16.4} \.{\land} {\lnot} reader\_active [ c ]}%
+ \@x{\@s{16.4} \.{\land} reader\_active \.{'} \.{=} [ reader\_active {\EXCEPT}
+ {\bang} [ c ] \.{=} {\TRUE} ]}%
+ \@x{\@s{16.4} \.{\land} reader\_epoch \.{'} \.{=} [ reader\_epoch {\EXCEPT}
+ {\bang} [ c ] \.{=} {\IF} UsePublishedEpochForReader \.{\THEN}
+ published\_epoch \.{\ELSE} cpu\_epoch [ c ] ]}%
+ \@x{\@s{16.4} \.{\land} reader\_holds \.{'}\@s{1.47} \.{=} [ reader\_holds
+ {\EXCEPT} {\bang} [ c ]\@s{1.47} \.{=} {\FALSE} ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, obj\_state ,\, obj\_freed\_epoch
- {\rangle}}
-\fl{}
-\fl{}
-\fl{ ReaderRead ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{114}{1}{ c \.{\in} CPUS}
-\fl{ \.{\land}}\al{115}{1}{ reader\_active [ c ]}
-\fl{ \.{\land}}\al{116}{1}{ obj\_state \.{=}\@w{Reachable}}
- \fl{ \.{\land}}\al{117}{1}{ reader\_holds \.{'} \.{=} [ reader\_holds
- {\EXCEPT} {\bang} [ c ] \.{=} {\TRUE} ]}
- \fl{ \.{\land}}\al{118}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ While inside epoch, a reader may load and hold the object if it is reachable.
+}%
+\@xx{}%
+\@x{ ReaderRead ( c ) \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} c \.{\in} CPUS}%
+\@x{\@s{16.4} \.{\land} reader\_active [ c ]}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Reachable}}%
+ \@x{\@s{16.4} \.{\land} reader\_holds \.{'} \.{=} [ reader\_holds {\EXCEPT}
+ {\bang} [ c ] \.{=} {\TRUE} ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_active ,\, reader\_epoch ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ ReaderExit ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{122}{1}{ c \.{\in} CPUS}
-\fl{ \.{\land}}\al{123}{1}{ reader\_active [ c ]}
- \fl{ \.{\land}}\al{124}{1}{ reader\_active \.{'} \.{=} [ reader\_active
- {\EXCEPT} {\bang} [ c ] \.{=} {\FALSE} ]}
- \fl{ \.{\land}}\al{125}{1}{ reader\_holds \.{'} \.{=} [ reader\_holds
- {\EXCEPT} {\bang} [ c ] \.{=} {\FALSE} ]}
- \fl{ \.{\land}}\al{126}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Reader exits epoch and drops any reference.
+}%
+\@xx{}%
+\@x{ ReaderExit ( c ) \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} c \.{\in} CPUS}%
+\@x{\@s{16.4} \.{\land} reader\_active [ c ]}%
+ \@x{\@s{16.4} \.{\land} reader\_active \.{'} \.{=} [ reader\_active {\EXCEPT}
+ {\bang} [ c ] \.{=} {\FALSE} ]}%
+ \@x{\@s{16.4} \.{\land} reader\_holds \.{'} \.{=} [ reader\_holds {\EXCEPT}
+ {\bang} [ c ] \.{=} {\FALSE} ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_epoch ,\, obj\_state ,\,
- obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ Retire ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{130}{1}{ c \.{\in} CPUS}
-\fl{ \.{\land}}\al{131}{1}{ obj\_state \.{=}\@w{Reachable}}
-\fl{ \.{\land}}\al{132}{1}{ obj\_state \.{'} \.{=}\@w{Retired}}
-\fl{ \.{\land}}\al{133}{1}{ obj\_freed\_epoch \.{'} \.{=}}
-\fl{ {\IF}}\al{134}{1}{ UsePublishedEpochForRetire}
-\fl{ \.{\THEN} Max2 ( published\_epoch ,\, cpu\_epoch [ c ] )}
-\fl{ \.{\ELSE} cpu\_epoch [ c ]}
- \fl{ \.{\land}}\al{137}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Retire the shared object on some \ensuremath{CPU}.
+}%
+\@xx{}%
+\@x{ Retire ( c ) \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} c \.{\in} CPUS}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Reachable}}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{'} \.{=}\@w{Retired}}%
+\@x{\@s{16.4} \.{\land} obj\_freed\_epoch \.{'} \.{=}}%
+\@x{\@s{31.61} {\IF} UsePublishedEpochForRetire}%
+\@x{\@s{47.86} \.{\THEN} Max2 ( published\_epoch ,\, cpu\_epoch [ c ] )}%
+\@x{\@s{47.86} \.{\ELSE} cpu\_epoch [ c ]}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_active ,\, reader\_epoch ,\,
- reader\_holds {\rangle}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ ComputeRelease \.{\defeq}}
-\fl{ \.{\land}}\al{143}{1}{ \.{\LET}}\al{143}{2}{ candidate \.{\defeq}}
-\fl{ {\IF}}\al{144}{1}{ ActiveReaderEpochs \.{=} \{ \}}
-\fl{ \.{\THEN} published\_epoch \.{-} 1}
-\fl{ \.{\ELSE} ( Min ( ActiveReaderEpochs ) \.{-} 1 )}
- \fl{ \.{\IN} released\_epoch \.{'} \.{=} Max2 ( released\_epoch ,\, candidate
- )}
- \fl{ \.{\land}}\al{148}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ reader\_holds {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ \ensuremath{CPU0} computes a safe release threshold.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ If there are active readers with captured epochs, we can only release epochs
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ strictly less than the minimum active reader epoch.
+}%
+\@xx{}%
+\@x{ ComputeRelease \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} \.{\LET} candidate \.{\defeq}}%
+\@x{\@s{52.01} {\IF} ActiveReaderEpochs \.{=} \{ \}}%
+\@x{\@s{68.26} \.{\THEN} published\_epoch \.{-} 1}%
+\@x{\@s{68.26} \.{\ELSE} ( Min ( ActiveReaderEpochs ) \.{-} 1 )}%
+ \@x{\@s{27.51} \.{\IN} released\_epoch \.{'} \.{=} Max2 ( released\_epoch ,\,
+ candidate )}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, reader\_active ,\, reader\_epoch ,\, reader\_holds ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ Reclaim \.{\defeq}}
-\fl{ \.{\land}}\al{152}{1}{ obj\_state \.{=}\@w{Retired}}
-\fl{ \.{\land}}\al{153}{1}{ obj\_freed\_epoch \.{\leq} released\_epoch}
-\fl{ \.{\land}}\al{154}{1}{ obj\_state \.{'} \.{=}\@w{Reclaimed}}
- \fl{ \.{\land}}\al{155}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Reclaim when the release threshold covers the object\mbox{'}s retirement
+ epoch.
+}%
+\@xx{}%
+\@x{ Reclaim \.{\defeq}}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Retired}}%
+\@x{\@s{16.4} \.{\land} obj\_freed\_epoch \.{\leq} released\_epoch}%
+\@x{\@s{16.4} \.{\land} obj\_state \.{'} \.{=}\@w{Reclaimed}}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_active ,\, reader\_epoch ,\,
- reader\_holds ,\, obj\_freed\_epoch {\rangle}}
-\fl{}
-\fl{ Next \.{\defeq}}
-\fl{ \.{\lor}}\al{158}{1}{ AdvanceEpoch}
- \fl{ \.{\lor}}\al{159}{1}{ \E\, c}\al{159}{3}{ \.{\in}}\al{159}{4}{ CPUS
- \.{\,\backslash\,} \{ 0 \} \.{:} ProcessEpochUpdate ( c )}
- \fl{ \.{\lor}}\al{160}{1}{ \E\, c}\al{160}{3}{ \.{\in}}\al{160}{4}{
- CPUS}\al{160}{5}{ \.{:}}\al{160}{6}{ ReaderEnter ( c )}
- \fl{ \.{\lor}}\al{161}{1}{ \E\, c}\al{161}{3}{ \.{\in} CPUS}\al{161}{5}{
- \.{:}}\al{161}{6}{ ReaderRead ( c )}
- \fl{ \.{\lor}}\al{162}{1}{ \E\, c}\al{162}{3}{ \.{\in} CPUS}\al{162}{5}{
- \.{:} ReaderExit ( c )}
- \fl{ \.{\lor}}\al{163}{1}{ \E\, c}\al{163}{3}{ \.{\in} CPUS}\al{163}{5}{
- \.{:} Retire ( c )}
-\fl{ \.{\lor}}\al{164}{1}{ ComputeRelease}
-\fl{ \.{\lor}}\al{165}{1}{ Reclaim}
-\fl{}
-\fl{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
- \fl{ Safety \.{\defeq} ( obj\_state \.{=}\@w{Reclaimed} ) \.{\implies} ( \A\,
- c \.{\in} CPUS \.{:} {\lnot} reader\_holds [ c ] )}
-\fl{}
-\fl{}
-\fl{ ReleaseNeverAhead \.{\defeq} released\_epoch \.{\leq} published\_epoch}
-\fl{}
-\fl{}\bottombar\cl{}
+ reader\_holds ,\, obj\_freed\_epoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Next \.{\defeq}}%
+\@x{\@s{16.4} \.{\lor} AdvanceEpoch}%
+ \@x{\@s{16.4} \.{\lor} \E\, c \.{\in} CPUS \.{\,\backslash\,} \{ 0 \} \.{:}
+ ProcessEpochUpdate ( c )}%
+\@x{\@s{16.4} \.{\lor} \E\, c \.{\in} CPUS \.{:} ReaderEnter ( c )}%
+\@x{\@s{16.4} \.{\lor} \E\, c \.{\in} CPUS \.{:} ReaderRead ( c )}%
+\@x{\@s{16.4} \.{\lor} \E\, c \.{\in} CPUS \.{:} ReaderExit ( c )}%
+\@x{\@s{16.4} \.{\lor} \E\, c \.{\in} CPUS \.{:} Retire ( c )}%
+\@x{\@s{16.4} \.{\lor} ComputeRelease}%
+\@x{\@s{16.4} \.{\lor} Reclaim}%
+\@pvspace{8.0pt}%
+\@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Properties to check with \ensuremath{TLC
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{}%
+\@y{\@s{0}%
+ ``No use-after-free'': once reclaimed, no reader can still be holding it.
+}%
+\@xx{}%
+ \@x{ Safety \.{\defeq} ( obj\_state \.{=}\@w{Reclaimed} ) \.{\implies} ( \A\,
+ c \.{\in} CPUS \.{:} {\lnot} reader\_holds [ c ] )}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Sanity: release should never exceed published.
+}%
+\@xx{}%
+\@x{ ReleaseNeverAhead \.{\defeq} released\_epoch \.{\leq} published\_epoch}%
+\@pvspace{8.0pt}%
+\@x{}\bottombar\@xx{}%
 \end{document}

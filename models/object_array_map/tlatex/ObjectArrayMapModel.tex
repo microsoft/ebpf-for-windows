@@ -936,210 +936,252 @@
 
 \begin{document}
 \tlatex
-\fl{}\moduleLeftDash\cl{ {\MODULE} ObjectArrayMapModel}\moduleRightDash\cl{}
-\fl{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\CONSTANTS}}
-\fl{ ObjIds ,\,}\al{30}{2}{%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{\,\backslash\,}}* Copyright (c) \ensuremath{eBPF} for Windows
+ contributors
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+\ensuremath{\.{\,\backslash\,}}* SPDX-License-Identifier: \ensuremath{MIT
+}%
+\end{cpar}%
+\end{lcom}%
+ \@x{}\moduleLeftDash\@xx{ {\MODULE}
+ ObjectArrayMapModel}\moduleRightDash\@xx{}%
+\@x{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Bounded, executable TLA+ model of the lock-free (no-lock) read of an
+ object pointer stored in an array map slot, as used by prog-array and
+ (map-in-map) array variants.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ Key implementation pattern
+ (libs/\ensuremath{execution\_context}/\ensuremath{ebpf\_maps.c}):
+ - Reader: atomically reads a pointer from a map slot with
+ \ensuremath{NoFence} and
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+then uses it without taking the map lock and without taking an extra
+ object reference.
+\end{cpar}%
+\begin{cpar}{1}{T}{T}{0}{2.5}{%
+-}%
+Writer: updates the slot under a lock, releases the old object
+ reference, and writes the new pointer.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Correctness relies on a lifetime rule:
+ - The reader must be executing inside an epoch (or equivalent guard)
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+such that objects whose refcount reaches zero are not actually freed
+ until after the epoch ends.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+This model checks a core safety property:
+ - A reader must never hold/use an object that has been \ensuremath{Freed}.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+It provides a buggy configuration that permits reads outside an epoch.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\CONSTANTS}}%
+\@x{\@s{8.2} ObjIds ,\,\@s{74.11}}%
 \@y{\@s{0}%
  Finite set of object identities.
 }%
-}
-\fl{ MaxEpoch ,\,}\al{31}{2}{%
+\@xx{}%
+\@x{\@s{8.2} MaxEpoch ,\,\@s{58.14}}%
 \@y{\@s{0}%
  \ensuremath{Nat}: upper bound for published epoch.
 }%
-}
-\fl{ AllowReadOutsideEpoch}\al{32}{1}{%
+\@xx{}%
+\@x{\@s{8.2} AllowReadOutsideEpoch\@s{4.09}}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}}: if \ensuremath{{\TRUE}}, allow reader to load
  without entering epoch.
 }%
-}
-\fl{}
-\fl{ {\ASSUME} ObjIds \.{\subseteq} Nat}
-\fl{ {\ASSUME} MaxEpoch \.{\in} Nat}
-\fl{ {\ASSUME} Cardinality ( ObjIds ) \.{\geq} 2}
-\fl{}
-\fl{ Epochs \.{\defeq} 0 \.{\dotdot} MaxEpoch}
-\fl{ NoEpoch \.{\defeq} MaxEpoch \.{+} 1}
-\fl{ AllEpochVals \.{\defeq} Epochs \.{\cup} \{ NoEpoch \}}
-\fl{}
-\fl{ ObjStates \.{\defeq} \{\@w{Live} ,\,\@w{Retired} ,\,\@w{Freed} \}}
-\fl{}
-\fl{ {\VARIABLES}}
-\fl{ publishedEpoch ,\,}\al{45}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ {\ASSUME} ObjIds \.{\subseteq} Nat}%
+\@x{ {\ASSUME} MaxEpoch \.{\in} Nat}%
+\@x{ {\ASSUME} Cardinality ( ObjIds ) \.{\geq} 2}%
+\@pvspace{8.0pt}%
+\@x{ Epochs \.{\defeq} 0 \.{\dotdot} MaxEpoch}%
+\@x{ NoEpoch \.{\defeq} MaxEpoch \.{+} 1}%
+\@x{ AllEpochVals \.{\defeq} Epochs \.{\cup} \{ NoEpoch \}}%
+\@pvspace{8.0pt}%
+\@x{ ObjStates \.{\defeq} \{\@w{Live} ,\,\@w{Retired} ,\,\@w{Freed} \}}%
+\@pvspace{8.0pt}%
+\@x{ {\VARIABLES}}%
+\@x{\@s{8.2} publishedEpoch ,\,\@s{8.2}}%
 \@y{\@s{0}%
  global/published epoch (monotonic).
 }%
-}
-\fl{ readerEpoch ,\,}\al{46}{2}{%
+\@xx{}%
+\@x{\@s{8.2} readerEpoch ,\,\@s{20.5}}%
 \@y{\@s{0}%
  reader\mbox{'}s current epoch, or \ensuremath{NoEpoch} if not in epoch.
 }%
-}
-\fl{ slot ,\,}\al{47}{2}{%
+\@xx{}%
+\@x{\@s{8.2} slot ,\,\@s{57.73}}%
 \@y{\@s{0}%
  array slot pointer: 0 (NULL) or an \ensuremath{ObjId}.
 }%
-}
-\fl{ objState ,\,}\al{48}{2}{%
+\@xx{}%
+\@x{\@s{8.2} objState ,\,\@s{38.25}}%
 \@y{\@s{0}%
  [\ensuremath{ObjIds \.{\rightarrow} ObjStates}]
 }%
-}
-\fl{ retireEpoch ,\,}\al{49}{2}{%
+\@xx{}%
+\@x{\@s{8.2} retireEpoch ,\,\@s{24.29}}%
 \@y{\@s{0}%
  [\ensuremath{ObjIds \.{\rightarrow} AllEpochVals}]
 }%
-}
-\fl{ held}\al{50}{1}{%
+\@xx{}%
+\@x{\@s{8.2} held\@s{61.46}}%
 \@y{\@s{0}%
  0 (none) or \ensuremath{ObjId} the reader is currently using.
 }%
-}
-\fl{}
-\fl{ TypeOK \.{\defeq}}
-\fl{ \.{\land}}\al{53}{1}{ publishedEpoch \.{\in} Epochs}
-\fl{ \.{\land}}\al{54}{1}{ readerEpoch \.{\in} AllEpochVals}
- \fl{ \.{\land}}\al{55}{1}{ slot}\al{55}{2}{ \.{\in}}\al{55}{3}{ (
- ObjIds}\al{55}{5}{ \.{\cup}}\al{55}{6}{ \{ 0 \} )}
- \fl{ \.{\land}}\al{56}{1}{ held}\al{56}{2}{ \.{\in}}\al{56}{3}{ (
- ObjIds}\al{56}{5}{ \.{\cup}}\al{56}{6}{ \{ 0 \} )}
- \fl{ \.{\land}}\al{57}{1}{ objState \.{\in} [ ObjIds \.{\rightarrow}
- ObjStates ]}
- \fl{ \.{\land}}\al{58}{1}{ retireEpoch \.{\in} [ ObjIds \.{\rightarrow}
- AllEpochVals ]}
-\fl{}
-\fl{ Safety \.{\defeq}}
-\fl{ \.{\land} held \.{=} 0 \.{\lor} objState [ held ] \.{\neq}\@w{Freed}}
-\fl{}
-\fl{ Init \.{\defeq}}
- \fl{ \.{\LET}}\al{64}{1}{ o1}\al{64}{2}{ \.{\defeq}}\al{64}{3}{ {\CHOOSE}
- o}\al{64}{5}{ \.{\in}}\al{64}{6}{ ObjIds \.{:} {\TRUE}}
- \fl{ o2}\al{65}{1}{ \.{\defeq}}\al{65}{2}{ {\CHOOSE} o}\al{65}{4}{
- \.{\in}}\al{65}{5}{ ( ObjIds \.{\,\backslash\,} \{ o1 \} ) \.{:} {\TRUE}}
-\fl{ \.{\IN}}
-\fl{ \.{\land}}\al{67}{1}{ publishedEpoch \.{=} 0}
-\fl{ \.{\land}}\al{68}{1}{ readerEpoch \.{=} NoEpoch}
-\fl{ \.{\land}}\al{69}{1}{ slot}\al{69}{2}{ \.{=}}\al{69}{3}{ o1}
-\fl{ \.{\land}}\al{70}{1}{ held}\al{70}{2}{ \.{=}}\al{70}{3}{ 0}
- \fl{ \.{\land}}\al{71}{1}{ objState \.{=} [ o \.{\in} ObjIds \.{\mapsto}
- {\IF} o \.{=} o1 \.{\THEN}\@w{Live} \.{\ELSE}\@w{Freed} ]}
- \fl{ \.{\land}}\al{72}{1}{ retireEpoch \.{=} [ o \.{\in} ObjIds \.{\mapsto}
- NoEpoch ]}
-\fl{}
-\fl{}
-\fl{ ReaderEnter \.{\defeq}}
-\fl{ \.{\land}}\al{76}{1}{ readerEpoch \.{=} NoEpoch}
-\fl{ \.{\land}}\al{77}{1}{ readerEpoch \.{'} \.{=} publishedEpoch}
- \fl{ \.{\land}}\al{78}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}
-\fl{}
-\fl{ ReaderExit \.{\defeq}}
-\fl{ \.{\land}}\al{81}{1}{ readerEpoch \.{\neq} NoEpoch}
-\fl{ \.{\land}}\al{82}{1}{ held \.{=} 0}
-\fl{ \.{\land}}\al{83}{1}{ readerEpoch \.{'} \.{=} NoEpoch}
- \fl{ \.{\land}}\al{84}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}
-\fl{}
-\fl{ ReaderLoad \.{\defeq}}
-\fl{ \.{\land}}\al{87}{1}{ held}\al{87}{2}{ \.{=}}\al{87}{3}{ 0}
-\fl{ \.{\land}}\al{88}{1}{ slot}\al{88}{2}{ \.{\neq}}\al{88}{3}{ 0}
- \fl{ \.{\land}}\al{89}{1}{ ( AllowReadOutsideEpoch \.{\lor} readerEpoch
- \.{\neq} NoEpoch )}
-\fl{ \.{\land}}\al{90}{1}{ held \.{'} \.{=} slot}
- \fl{ \.{\land}}\al{91}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, slot ,\, objState ,\, retireEpoch {\rangle}}
-\fl{}
-\fl{ ReaderDrop \.{\defeq}}
-\fl{ \.{\land}}\al{94}{1}{ held \.{\neq} 0}
-\fl{ \.{\land}}\al{95}{1}{ held \.{'} \.{=} 0}
- \fl{ \.{\land}}\al{96}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, slot ,\, objState ,\, retireEpoch {\rangle}}
-\fl{}
-\fl{}
-\fl{ AllocateNewLiveObject \.{\defeq}}
-\fl{ {\CHOOSE} o \.{\in} ObjIds \.{:} objState [ o ] \.{=}\@w{Freed}}
-\fl{}
-\fl{ WriterUpdate \.{\defeq}}
-\fl{ \.{\land}}\al{103}{1}{ slot \.{\neq} 0}
-\fl{ \.{\land}}\al{104}{1}{ \E\, new \.{\in} ObjIds \.{:}}
-\fl{ \.{\land}}\al{105}{1}{ objState [ new ] \.{=}\@w{Freed}}
-\fl{ \.{\land}}\al{106}{1}{ slot \.{'} \.{=} new}
- \fl{ \.{\land}}\al{107}{1}{ objState \.{'} \.{=} [}\al{107}{5}{ objState
- {\EXCEPT}}
-\fl{ {\bang}}\al{108}{1}{ [ slot ] \.{=}\@w{Retired} ,\,}
-\fl{ {\bang}}\al{109}{1}{ [ new ] \.{=}\@w{Live} ]}
- \fl{ \.{\land}}\al{110}{1}{ retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
- {\bang} [ slot ] \.{=} publishedEpoch ]}
- \fl{ \.{\land}}\al{111}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, held {\rangle}}
-\fl{}
-\fl{}
-\fl{ AdvanceEpoch \.{\defeq}}
-\fl{ \.{\land}}\al{115}{1}{ publishedEpoch \.{<} MaxEpoch}
-\fl{ \.{\land}}\al{116}{1}{ publishedEpoch \.{'} \.{=} publishedEpoch \.{+} 1}
- \fl{ \.{\land}}\al{117}{1}{ {\UNCHANGED} {\langle} readerEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}
-\fl{}
- \fl{ MinActiveEpoch \.{\defeq} {\IF} readerEpoch \.{=} NoEpoch \.{\THEN}
- NoEpoch \.{\ELSE} readerEpoch}
-\fl{}
-\fl{ CanReclaim ( o ) \.{\defeq}}
-\fl{ \.{\land}}\al{122}{1}{ objState [ o ] \.{=}\@w{Retired}}
-\fl{ \.{\land}}\al{123}{1}{ retireEpoch [ o ]}\al{123}{5}{ \.{\in} Epochs}
- \fl{ \.{\land}}\al{124}{1}{ retireEpoch [ o ]}\al{124}{5}{ \.{<}
- MinActiveEpoch}
-\fl{}
-\fl{ ReclaimOne \.{\defeq}}
-\fl{ \.{\land}}\al{127}{1}{ \E\, o \.{\in} ObjIds \.{:} CanReclaim ( o )}
- \fl{ \.{\land}}\al{128}{1}{ \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} ObjIds
- \.{:} CanReclaim ( x )}
-\fl{ \.{\IN}}
- \fl{ \.{\land}}\al{130}{1}{ objState \.{'} \.{=} [ objState {\EXCEPT} {\bang}
- [ o ] \.{=}\@w{Freed} ]}
- \fl{ \.{\land}}\al{131}{1}{ retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
- {\bang} [ o ] \.{=} NoEpoch ]}
- \fl{ \.{\land}}\al{132}{1}{ {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, slot ,\, held {\rangle}}
-\fl{}
- \fl{ vars}\al{134}{1}{ \.{\defeq} {\langle} publishedEpoch ,\, readerEpoch
- ,\, slot ,\, objState ,\, retireEpoch ,\, held {\rangle}}
-\fl{}
-\fl{ Next}\al{136}{1}{ \.{\defeq}}
-\fl{ ReaderEnter}
-\fl{ \.{\lor}}\al{138}{1}{ ReaderExit}
-\fl{ \.{\lor}}\al{139}{1}{ ReaderLoad}
-\fl{ \.{\lor}}\al{140}{1}{ ReaderDrop}
-\fl{ \.{\lor}}\al{141}{1}{ WriterUpdate}
-\fl{ \.{\lor}}\al{142}{1}{ AdvanceEpoch}
-\fl{ \.{\lor}}\al{143}{1}{ ReclaimOne}
-\fl{}
-\fl{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}
-\fl{}
-\fl{}\bottombar\cl{}
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ TypeOK \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} publishedEpoch \.{\in} Epochs}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{\in} AllEpochVals}%
+\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{\in} ( ObjIds \.{\cup} \{ 0 \} )}%
+\@x{\@s{8.2} \.{\land} held \.{\in} ( ObjIds \.{\cup} \{ 0 \} )}%
+\@x{\@s{8.2} \.{\land} objState \.{\in} [ ObjIds \.{\rightarrow} ObjStates ]}%
+ \@x{\@s{8.2} \.{\land} retireEpoch \.{\in} [ ObjIds \.{\rightarrow}
+ AllEpochVals ]}%
+\@pvspace{8.0pt}%
+\@x{ Safety \.{\defeq}}%
+ \@x{\@s{8.2} \.{\land} held \.{=} 0 \.{\lor} objState [ held ]
+ \.{\neq}\@w{Freed}}%
+\@pvspace{8.0pt}%
+\@x{ Init \.{\defeq}}%
+\@x{\@s{8.2} \.{\LET} o1 \.{\defeq} {\CHOOSE} o \.{\in} ObjIds \.{:} {\TRUE}}%
+ \@x{\@s{28.59} o2 \.{\defeq} {\CHOOSE} o \.{\in} ( ObjIds \.{\,\backslash\,}
+ \{ o1 \} ) \.{:} {\TRUE}}%
+\@x{\@s{8.2} \.{\IN}}%
+\@x{\@s{8.2} \.{\land} publishedEpoch \.{=} 0}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{=} NoEpoch}%
+\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{=} o1}%
+\@x{\@s{8.2} \.{\land} held \.{=} 0}%
+ \@x{\@s{8.2} \.{\land} objState \.{=} [ o \.{\in} ObjIds \.{\mapsto} {\IF} o
+ \.{=} o1 \.{\THEN}\@w{Live} \.{\ELSE}\@w{Freed} ]}%
+ \@x{\@s{8.2} \.{\land} retireEpoch \.{=} [ o \.{\in} ObjIds \.{\mapsto}
+ NoEpoch ]}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Reader operations
+}%
+\@xx{}%
+\@x{ ReaderEnter \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{=} NoEpoch}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{'} \.{=} publishedEpoch}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
+ objState ,\, retireEpoch ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderExit \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{\neq} NoEpoch}%
+\@x{\@s{8.2} \.{\land} held \.{=} 0}%
+\@x{\@s{8.2} \.{\land} readerEpoch \.{'} \.{=} NoEpoch}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
+ objState ,\, retireEpoch ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderLoad \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} held \.{=} 0}%
+\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{\neq} 0}%
+ \@x{\@s{8.2} \.{\land} ( AllowReadOutsideEpoch \.{\lor} readerEpoch \.{\neq}
+ NoEpoch )}%
+\@x{\@s{8.2} \.{\land} held \.{'} \.{=} slot}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, readerEpoch
+ ,\, slot ,\, objState ,\, retireEpoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderDrop \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} held \.{\neq} 0}%
+\@x{\@s{8.2} \.{\land} held \.{'} \.{=} 0}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, readerEpoch
+ ,\, slot ,\, objState ,\, retireEpoch {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Writer operations
+}%
+\@xx{}%
+\@x{ AllocateNewLiveObject \.{\defeq}}%
+\@x{\@s{8.2} {\CHOOSE} o \.{\in} ObjIds \.{:} objState [ o ] \.{=}\@w{Freed}}%
+\@pvspace{8.0pt}%
+\@x{ WriterUpdate \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} slot \.{\neq} 0}%
+\@x{\@s{8.2} \.{\land} \E\, new \.{\in} ObjIds \.{:}}%
+\@x{\@s{27.51} \.{\land} objState [ new ] \.{=}\@w{Freed}}%
+\@x{\@s{27.51} \.{\land} slot \.{'} \.{=} new}%
+\@x{\@s{27.51} \.{\land} objState \.{'} \.{=} [ objState {\EXCEPT}}%
+\@x{\@s{93.04} {\bang} [ slot ] \.{=}\@w{Retired} ,\,}%
+\@x{\@s{93.04} {\bang} [ new ] \.{=}\@w{Live} ]}%
+ \@x{\@s{27.51} \.{\land} retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
+ {\bang} [ slot ] \.{=} publishedEpoch ]}%
+ \@x{\@s{27.51} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\,
+ readerEpoch ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Epoch progression + reclamation
+}%
+\@xx{}%
+\@x{ AdvanceEpoch \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} publishedEpoch \.{<} MaxEpoch}%
+\@x{\@s{8.2} \.{\land} publishedEpoch \.{'} \.{=} publishedEpoch \.{+} 1}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} readerEpoch ,\, slot ,\,
+ objState ,\, retireEpoch ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+ \@x{ MinActiveEpoch \.{\defeq} {\IF} readerEpoch \.{=} NoEpoch \.{\THEN}
+ NoEpoch \.{\ELSE} readerEpoch}%
+\@pvspace{8.0pt}%
+\@x{ CanReclaim ( o ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} objState [ o ] \.{=}\@w{Retired}}%
+\@x{\@s{8.2} \.{\land} retireEpoch [ o ] \.{\in} Epochs}%
+\@x{\@s{8.2} \.{\land} retireEpoch [ o ] \.{<} MinActiveEpoch}%
+\@pvspace{8.0pt}%
+\@x{ ReclaimOne \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} \E\, o \.{\in} ObjIds \.{:} CanReclaim ( o )}%
+ \@x{\@s{8.2} \.{\land} \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} ObjIds \.{:}
+ CanReclaim ( x )}%
+\@x{\@s{19.31} \.{\IN}}%
+ \@x{\@s{19.31} \.{\land} objState \.{'} \.{=} [ objState {\EXCEPT} {\bang} [
+ o ] \.{=}\@w{Freed} ]}%
+ \@x{\@s{19.31} \.{\land} retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
+ {\bang} [ o ] \.{=} NoEpoch ]}%
+ \@x{\@s{19.31} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\,
+ readerEpoch ,\, slot ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+ \@x{ vars\@s{2.10} \.{\defeq} {\langle} publishedEpoch ,\, readerEpoch ,\,
+ slot ,\, objState ,\, retireEpoch ,\, held {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Next \.{\defeq}}%
+\@x{\@s{8.2} ReaderEnter}%
+\@x{\@s{8.2} \.{\lor} ReaderExit}%
+\@x{\@s{8.2} \.{\lor} ReaderLoad}%
+\@x{\@s{8.2} \.{\lor} ReaderDrop}%
+\@x{\@s{8.2} \.{\lor} WriterUpdate}%
+\@x{\@s{8.2} \.{\lor} AdvanceEpoch}%
+\@x{\@s{8.2} \.{\lor} ReclaimOne}%
+\@pvspace{8.0pt}%
+\@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}%
+\@pvspace{8.0pt}%
+\@x{}\bottombar\@xx{}%
 \end{document}

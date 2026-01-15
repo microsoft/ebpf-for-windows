@@ -37,7 +37,8 @@ for model_dir in models/*/ ; do
 
   tla="${tla_files[0]}"
   spec_root="$(basename "${tla}" .tla)"
-  out_dir="${model_dir%/}/tlatex"
+  model_dir_root="${model_dir%/}"
+  out_dir="${model_dir_root}/tlatex"
   mkdir -p "${out_dir}"
 
   echo "Generating TLATeX for ${tla} -> ${out_dir}/${spec_root}.tex"
@@ -60,16 +61,15 @@ for model_dir in models/*/ ; do
   sed -i -e 's/[[:space:]]\+$//' "${out_dir}/${spec_root}.tex"
 
   if [[ ${status} -ne 0 ]]; then
-    if grep -q 'Cannot run program "latex"' "${log_file}"; then
-      echo "Warning: LaTeX not found; generated .tex but skipping alignment run." >&2
-    else
-      echo "TLATeX failed for ${tla}" >&2
-      cat "${log_file}" >&2
-      exit 1
-    fi
+    echo "TLATeX failed for ${tla}" >&2
+    cat "${log_file}" >&2
+    exit 1
   fi
 
   # Keep the committed output clean: remove transient build artifacts if they exist.
   rm -f "${out_dir}/${spec_root}.aux" "${out_dir}/${spec_root}.log" "${out_dir}/${spec_root}.dvi" "${out_dir}/${spec_root}.ps" "${out_dir}/${spec_root}.pdf"
   rm -f "${log_file}"
+
+  # TLATeX may also copy LaTeX build artifacts next to the input module.
+  rm -f "${model_dir_root}/${spec_root}.aux" "${model_dir_root}/${spec_root}.log" "${model_dir_root}/${spec_root}.dvi" "${model_dir_root}/${spec_root}.ps" "${model_dir_root}/${spec_root}.pdf"
 done

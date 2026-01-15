@@ -47,11 +47,7 @@ function Invoke-TlaTex {
 
     if ($exitCode -ne 0) {
         $log = Get-Content -Raw -ErrorAction SilentlyContinue $logPath
-        if ($log -match 'Cannot run program\s+\"latex\"') {
-            Write-Warning "LaTeX not found; generated .tex but TLATeX alignment step was skipped."
-        } else {
-            Write-Error "TLATeX failed for $SpecPath`n$log"
-        }
+        Write-Error "TLATeX failed for $SpecPath`n$log"
     }
 
     Remove-Item -Force (Join-Path $OutDir ($specRoot + '.aux')) -ErrorAction SilentlyContinue
@@ -60,6 +56,14 @@ function Invoke-TlaTex {
     Remove-Item -Force (Join-Path $OutDir ($specRoot + '.ps')) -ErrorAction SilentlyContinue
     Remove-Item -Force (Join-Path $OutDir ($specRoot + '.pdf')) -ErrorAction SilentlyContinue
     Remove-Item -Force $logPath -ErrorAction SilentlyContinue
+
+    # TLATeX may also copy LaTeX build artifacts next to the input module.
+    $specDir = Split-Path -Parent $SpecPath
+    Remove-Item -Force (Join-Path $specDir ($specRoot + '.aux')) -ErrorAction SilentlyContinue
+    Remove-Item -Force (Join-Path $specDir ($specRoot + '.log')) -ErrorAction SilentlyContinue
+    Remove-Item -Force (Join-Path $specDir ($specRoot + '.dvi')) -ErrorAction SilentlyContinue
+    Remove-Item -Force (Join-Path $specDir ($specRoot + '.ps')) -ErrorAction SilentlyContinue
+    Remove-Item -Force (Join-Path $specDir ($specRoot + '.pdf')) -ErrorAction SilentlyContinue
 }
 
 if (-not (Test-Path $Tla2ToolsJar)) {
