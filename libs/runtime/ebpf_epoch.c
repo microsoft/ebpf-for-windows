@@ -5,6 +5,22 @@
 #include "ebpf_tracelog.h"
 #include "ebpf_work_queue.h"
 
+// A globally published epoch used as the source of truth for:
+// - ebpf_epoch_enter(): epoch recorded into ebpf_epoch_state_t
+// - Retirement stamping: freed_epoch recorded when inserting into free lists
+//
+// This prevents a class of hazards where a reader can observe a newer epoch on one CPU
+// while another CPU (that has not yet processed the epoch advance message) stamps a
+// retirement with an older epoch.
+static volatile int64_t _ebpf_epoch_published_current_epoch = 1;
+
+static __forceinline uint64_t
+_ebpf_epoch_get_published_epoch()
+{
+    // InterlockedCompareExchange64 provides an atomic read with ordering.
+    return (uint64_t)InterlockedCompareExchange64(&_ebpf_epoch_published_current_epoch, 0, 0);
+}
+
 /**
  * @brief Epoch Base Memory Reclamation.
  * Each thread that accesses memory that needs to be reclaimed is associated with an epoch via ebpf_epoch_enter() and
@@ -24,8 +40,6 @@
  * @brief Delay after the _ebpf_flush_timer is set before it runs.
  */
 #define EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS 1000000
-
-
 
 #define EBPF_EPOCH_FAIL_FAST(REASON, ASSERTION) \
     if (!(ASSERTION)) {                         \
@@ -257,6 +271,8 @@ ebpf_epoch_initiate()
         ebpf_list_initialize(&cpu_entry->free_list);
     }
 
+    _ebpf_epoch_published_current_epoch = 1;
+
     // Initialize the message queue.
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
@@ -341,7 +357,7 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
     epoch_state->cpu_id = ebpf_get_current_cpu();
 
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[epoch_state->cpu_id];
-    epoch_state->epoch = cpu_entry->current_epoch;
+    epoch_state->epoch = _ebpf_epoch_get_published_epoch();
     ebpf_list_insert_tail(&cpu_entry->epoch_state_list, &epoch_state->epoch_list_entry);
 
     ebpf_lower_irql_from_dispatch_if_needed(epoch_state->irql_at_enter);
@@ -679,7 +695,11 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
         return;
     }
 
-    header->freed_epoch = cpu_entry->current_epoch;
+    // Stamp with the globally published epoch to ensure retirements are never stamped
+    // with an epoch older than a concurrent reader may have observed.
+    uint64_t published_epoch = _ebpf_epoch_get_published_epoch();
+    uint64_t local_epoch = (uint64_t)cpu_entry->current_epoch;
+    header->freed_epoch = (int64_t)max(published_epoch, local_epoch);
 
     ebpf_list_insert_tail(&cpu_entry->free_list, &header->list_entry);
 
@@ -760,13 +780,14 @@ _ebpf_epoch_messenger_propose_release_epoch(
 
     // First CPU updates the current epoch and proposes the release epoch.
     if (current_cpu == 0) {
-        cpu_entry->current_epoch++;
-        message->message.propose_epoch.current_epoch = cpu_entry->current_epoch;
-        message->message.propose_epoch.proposed_release_epoch = cpu_entry->current_epoch;
+        int64_t new_epoch = InterlockedIncrement64(&_ebpf_epoch_published_current_epoch);
+        cpu_entry->current_epoch = new_epoch;
+        message->message.propose_epoch.current_epoch = (uint64_t)new_epoch;
+        message->message.propose_epoch.proposed_release_epoch = (uint64_t)new_epoch;
     }
     // Other CPUs update the current epoch.
     else {
-        cpu_entry->current_epoch = message->message.propose_epoch.current_epoch;
+        cpu_entry->current_epoch = (int64_t)message->message.propose_epoch.current_epoch;
     }
 
     // Put a memory barrier here to ensure that the write is not re-ordered.

@@ -703,6 +703,7 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
         std::atomic<bool> reader_entered_new_epoch{false};
         std::atomic<bool> callback_invoked{false};
         std::atomic<bool> callback_while_reader_active{false};
+        std::atomic<bool> work_item_scheduled{false};
         std::atomic<bool> thread_error{false};
         epoch_skew_test_callback_context_t callback_context = {
             &callback_invoked, &callback_while_reader_active, &reader_active};
@@ -747,6 +748,8 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
                     ebpf_epoch_schedule_work_item(work_item);
                     work_item = nullptr;
 
+                    work_item_scheduled.store(true, std::memory_order_release);
+
                     retire_done.store(true, std::memory_order_release);
                 }
 
@@ -763,6 +766,12 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
                 ebpf_epoch_free(memory_to_free);
             }
         });
+
+        // Trigger an epoch computation cycle asynchronously by inserting an item into the free list.
+        // This arms the epoch timer (targeted to CPU 0) without blocking the calling thread.
+        void* epoch_trigger_allocation = ebpf_epoch_allocate(8);
+        REQUIRE(epoch_trigger_allocation != nullptr);
+        ebpf_epoch_free(epoch_trigger_allocation);
 
         std::thread reader_thread([&]() {
             GROUP_AFFINITY old_thread_affinity;
@@ -783,11 +792,8 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
                 std::this_thread::yield();
             }
 
-            // Hold epoch until callback runs or until timeout triggers stop.
+            // Hold the epoch until the main test thread asks us to exit.
             while (!stop_reader.load(std::memory_order_acquire)) {
-                if (callback_invoked.load(std::memory_order_acquire)) {
-                    break;
-                }
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 
@@ -798,9 +804,6 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
             ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
         });
 
-        // Trigger an epoch computation cycle.
-        std::thread trigger_thread([&]() { ebpf_epoch_synchronize(); });
-
         // Wait until the reader is in a newer epoch on CPU 0 (bounded).
         for (size_t wait = 0; wait < 500 && !reader_entered_new_epoch.load(std::memory_order_acquire); wait++) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -808,7 +811,6 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
         if (!reader_entered_new_epoch.load(std::memory_order_acquire)) {
             stop_hog.store(true, std::memory_order_release);
             stop_reader.store(true, std::memory_order_release);
-            trigger_thread.join();
             reader_thread.join();
             hog_thread.join();
             ebpf_epoch_synchronize();
@@ -825,7 +827,6 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
         if (!retire_done.load(std::memory_order_acquire)) {
             stop_hog.store(true, std::memory_order_release);
             stop_reader.store(true, std::memory_order_release);
-            trigger_thread.join();
             reader_thread.join();
             hog_thread.join();
             ebpf_epoch_synchronize();
@@ -835,10 +836,15 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
         // Allow lagging CPU to process the propose/commit messages and complete the epoch computation.
         stop_hog.store(true, std::memory_order_release);
 
-        trigger_thread.join();
-
-        // Wait briefly for the work item callback to run.
-        for (size_t wait = 0; wait < 200 && !callback_invoked.load(std::memory_order_acquire); wait++) {
+        // Give the system some time to run the epoch computation. If the current implementation is unsafe,
+        // it may reclaim the work item while the reader is still inside the newer epoch.
+        for (size_t wait = 0; wait < 500; wait++) {
+            if (callback_while_reader_active.load(std::memory_order_acquire)) {
+                break;
+            }
+            if (callback_invoked.load(std::memory_order_acquire)) {
+                break;
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 
@@ -857,8 +863,20 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
             hazard_attempt = attempt;
         }
 
-        // Drain any pending work from this attempt.
-        ebpf_epoch_synchronize();
+        // Drain any pending work from this attempt. At this point the reader has exited its epoch,
+        // so it is safe to wait for synchronization.
+        if (work_item_scheduled.load(std::memory_order_acquire) && !thread_error.load(std::memory_order_acquire)) {
+            for (size_t wait = 0; wait < 2000 && !callback_invoked.load(std::memory_order_acquire); wait++) {
+                ebpf_epoch_synchronize();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            if (!callback_invoked.load(std::memory_order_acquire)) {
+                INFO("work item callback did not run after reader exited");
+            }
+            REQUIRE(callback_invoked.load(std::memory_order_acquire));
+        } else {
+            ebpf_epoch_synchronize();
+        }
     }
 
     // If the hazard is observed, the current implementation permits reclamation while a reader
