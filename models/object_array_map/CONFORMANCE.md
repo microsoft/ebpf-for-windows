@@ -36,8 +36,8 @@ The model abstracts away reference counts and focuses on the lifetime effect:
 ### Epoch rule / contract
 
 - Model variables `publishedEpoch` and `readerEpoch` approximate the epoch guard described in the codebase.
-- `AllowReadOutsideEpoch = FALSE` is the safe contract: the reader must be in an epoch before it loads the slot.
-- `AllowReadOutsideEpoch = FALSE` is the safe contract: the reader must be in an epoch before it loads the slot and must drop/stop using the pointer before it exits the epoch.
+- `AllowReadOutsideEpoch = FALSE` encodes the intended safe contract for readers.
+- Under this contract, the reader must enter an epoch before it loads the slot and must drop/stop using the pointer before it exits the epoch.
 - The buggy config sets `AllowReadOutsideEpoch = TRUE`, which allows a reader to hold an object while appearing "not in epoch" to the reclamation rule, permitting premature freeing.
 
 ## What this model is (and isn’t)
