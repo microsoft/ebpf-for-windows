@@ -36,6 +36,11 @@ What you should see:
 - PASS case ends with `Model checking completed. No error has been found.`
 - Buggy case ends with an invariant violation (Safety), plus a trace you can replay.
 
+Invariants checked:
+- `Safety`: no reader can still hold the object once reclaimed.
+- `ReleaseNeverAhead`: release epoch never exceeds published epoch.
+- `RetireStampIsMaxWhenEnabled`: when `UsePublishedEpochForRetire=TRUE`, retirement stamping is `Max(published_epoch, cpu_epoch[c])` (the model equivalent of `max(published_epoch, local_epoch)`).
+
 ## Run it (TLA+ Toolbox)
 
 1. Open TLA+ Toolbox.
@@ -45,7 +50,7 @@ What you should see:
    - **TLC Model Checker → New Model…**
 4. In the model:
    - Set **Model Parameters → Spec** to `Spec` (default if the file is open).
-   - Add invariants: `TypeOK`, `ReleaseNeverAhead`, `Safety`.
+  - Add invariants: `TypeOK`, `ReleaseNeverAhead`, `RetireStampIsMaxWhenEnabled`, `Safety`.
    - Set constants to match either config:
      - Fixed: `NCPUS=2`, `MaxEpoch=4`, `UsePublishedEpochForReader=TRUE`, `UsePublishedEpochForRetire=TRUE`
      - Buggy: same but both flags `FALSE`
