@@ -58,6 +58,18 @@ TLC writes state exploration artifacts into `states/` folders next to the model 
   - Models the runtime hash table’s immutable-bucket replacement pattern plus simplified epoch-based reclamation.
   - Includes a “safe usage” configuration and a deliberately unsafe “use-after-exit” configuration that demonstrates a safety violation.
 
+- `models/ring_buffer/`
+  - Models core ring buffer producer/consumer behavior plus map async-query completion.
+  - Includes a “safe” configuration and a deliberately buggy “publish-before-lock” configuration that demonstrates a safety violation.
+
+- `models/object_array_map/`
+  - Models lock-free reads of object pointers stored in array map slots (prog array / array-of-maps) and the epoch-based lifetime contract that makes them safe.
+  - Includes a “safe” configuration and a deliberately buggy “read outside epoch” configuration that demonstrates a safety violation.
+
+- `models/extension_invoke/`
+  - Models the lock-free "extension still loaded?" check in the invoke fast path (`ReadPointerNoFence` on `program->extension_program_data`) and the ordering assumption that makes it safe.
+  - Includes a “safe” configuration and a deliberately buggy “epoch enter is not a barrier” configuration that demonstrates a safety violation.
+
 ## Conformance to implementation
 
 Each model directory should include a short `CONFORMANCE.md` that maps model variables/actions to the corresponding implementation concepts and calls out simplifications.
