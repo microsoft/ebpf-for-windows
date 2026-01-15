@@ -1,0 +1,105 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+---
+name: TLA+ Models
+
+on:
+  pull_request:
+    paths:
+      - 'models/**'
+      - '.github/workflows/tla-plus-models.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'models/**'
+      - '.github/workflows/tla-plus-models.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    name: TLC model check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '21'
+
+      - name: Download tla2tools.jar
+        run: |
+          curl -fsSL -o tla2tools.jar \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+
+      - name: Run TLC for all models
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Convention:
+          # - any config named *_buggy*.cfg is expected to FAIL with an invariant violation
+          # - all other *.cfg are expected to PASS
+          # Each model directory under models/* (excluding the jar) should contain exactly one *.tla.
+
+          shopt -s nullglob
+
+          for model_dir in models/*/ ; do
+            tla_files=("${model_dir}"*.tla)
+            cfg_files=("${model_dir}"*.cfg)
+
+            if [ ${#tla_files[@]} -eq 0 ]; then
+              echo "Skipping ${model_dir}: no .tla files"
+              continue
+            fi
+            if [ ${#tla_files[@]} -ne 1 ]; then
+              echo "${model_dir}: expected exactly one .tla file, found ${#tla_files[@]}"
+              printf '  %s\n' "${tla_files[@]}"
+              exit 1
+            fi
+            if [ ${#cfg_files[@]} -eq 0 ]; then
+              echo "Skipping ${model_dir}: no .cfg files"
+              continue
+            fi
+
+            tla="${tla_files[0]}"
+            echo "=== Model: ${model_dir} (spec: ${tla}) ==="
+
+            for cfg in "${cfg_files[@]}" ; do
+              echo "--- Config: ${cfg} ---"
+              out="${cfg}.out"
+
+              set +e
+              java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
+                -config "${cfg}" \
+                "${tla}" \
+                >"${out}" 2>&1
+              status=$?
+              set -e
+
+              cat "${out}"
+
+              if [[ "${cfg}" == *"_buggy"*".cfg" ]]; then
+                if [ "$status" -eq 0 ]; then
+                  echo "Buggy config unexpectedly passed: ${cfg}"
+                  exit 1
+                fi
+                if ! grep -q "Invariant" "${out}"; then
+                  echo "Buggy config failed but did not report an invariant violation: ${cfg}"
+                  exit 1
+                fi
+              else
+                if [ "$status" -ne 0 ]; then
+                  echo "Config failed unexpectedly: ${cfg}"
+                  exit 1
+                fi
+              fi
+            done
+          done
