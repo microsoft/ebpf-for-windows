@@ -936,193 +936,283 @@
 
 \begin{document}
 \tlatex
-\fl{}\moduleLeftDash\cl{ {\MODULE} ExtensionInvokeModel}\moduleRightDash\cl{}
-\fl{ {\EXTENDS} Naturals ,\, TLC}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\CONSTANTS}}
-\fl{ EpochEnterIsBarrier%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{\,\backslash\,}}* Copyright (c) \ensuremath{eBPF} for Windows
+ contributors
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+\ensuremath{\.{\,\backslash\,}}* SPDX-License-Identifier: \ensuremath{MIT
+}%
+\end{cpar}%
+\end{lcom}%
+ \@x{}\moduleLeftDash\@xx{ {\MODULE}
+ ExtensionInvokeModel}\moduleRightDash\@xx{}%
+\@x{ {\EXTENDS} Naturals ,\, TLC}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Bounded, executable TLA+ model of the lock-free ``is the extension
+ still loaded\.{?}'' check in the invoke fast path.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Source motivation:
+ - \ensuremath{ebpf\_program\_invoke()} checks
+ program\ensuremath{\.{\rightarrow}extension\_program\_data} via
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+\ensuremath{ReadPointerNoFence()} and bails out if it\mbox{'}s NULL.
+\end{cpar}%
+\begin{cpar}{1}{T}{T}{0}{2.5}{%
+-}%
+ The caller (\ensuremath{e.g}., \ensuremath{ebpf\_link} invoke path) enters an
+ epoch before
+ invoking; \ensuremath{ebpf\_epoch\_enter} is documented as a full memory
+ barrier.
+\end{cpar}%
+\begin{cpar}{1}{T}{T}{0}{2.5}{%
+-}%
+Detach/unload clears \ensuremath{extension\_program\_data} under a lock/unlock
+ barrier and then synchronizes epochs before proceeding.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+What this model focuses on:
+ - Whether a \ensuremath{NoFence} pointer read is safe when ordered by an
+ epoch-enter
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+barrier.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+This model is intentionally small and does not model:
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ - \ensuremath{NMR} semantics, provider/client call ordering, or
+ \ensuremath{IRQL} constraints
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ - explicit rundown reference protection
+ (\ensuremath{ExAcquireRundownProtection})
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+- multiple concurrent invokers
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+- actual pointer values (uses 0/1) or program info contents
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\CONSTANTS}}%
+\@x{\@s{8.2} EpochEnterIsBarrier}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}}: if \ensuremath{{\TRUE}}, entering an epoch provides
  a full barrier.
 }%
-}
-\fl{}
-\fl{ {\ASSUME} EpochEnterIsBarrier \.{\in} {\BOOLEAN}}
-\fl{}
-\fl{ Ptr \.{\defeq} \{ 0 ,\, 1 \}}
-\fl{}
-\fl{ {\VARIABLES}}
-\fl{ ext\_ptr ,\,}\al{37}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ {\ASSUME} EpochEnterIsBarrier \.{\in} {\BOOLEAN}}%
+\@pvspace{8.0pt}%
+\@x{ Ptr \.{\defeq} \{ 0 ,\, 1 \}}%
+\@pvspace{8.0pt}%
+\@x{ {\VARIABLES}}%
+\@x{\@s{8.2} ext\_ptr ,\,\@s{32.96}}%
 \@y{\@s{0}%
  0 means NULL, 1 means non-NULL (loaded)
 }%
-}
-\fl{ stale\_ptr ,\,}\al{38}{2}{%
+\@xx{}%
+\@x{\@s{8.2} stale\_ptr ,\,\@s{26.04}}%
 \@y{\@s{0}%
  last seen value of \ensuremath{ext\_ptr} (models a potentially stale cached
  value)
 }%
-}
-\fl{ ext\_alive ,\,}\al{39}{2}{%
+\@xx{}%
+\@x{\@s{8.2} ext\_alive ,\,\@s{26.00}}%
 \@y{\@s{0}%
  \ensuremath{{\TRUE}} if the pointed-to data is still valid (not freed)
 }%
-}
-\fl{ inv\_in\_epoch ,\,}\al{40}{2}{%
+\@xx{}%
+\@x{\@s{8.2} inv\_in\_epoch ,\,\@s{7.60}}%
 \@y{\@s{0}%
  invoker is executing inside an epoch
 }%
-}
-\fl{ inv\_barrier ,\,}\al{41}{2}{%
+\@xx{}%
+\@x{\@s{8.2} inv\_barrier ,\,\@s{15.24}}%
 \@y{\@s{0}%
  whether the invoker has executed an ordering barrier
 }%
-}
-\fl{ inv\_loaded\_ptr ,\,}\al{42}{2}{%
+\@xx{}%
+\@x{\@s{8.2} inv\_loaded\_ptr ,\,}%
 \@y{\@s{0}%
  value read by \ensuremath{ReadPointerNoFence
 }}%
-}
-\fl{ inv\_using}\al{43}{1}{%
+\@xx{}%
+\@x{\@s{8.2} inv\_using\@s{28.31}}%
 \@y{\@s{0}%
  invoker is using the extension program data
 }%
-}
-\fl{}
- \fl{ Vars \.{\defeq} {\langle} ext\_ptr ,\, stale\_ptr ,\, ext\_alive ,\,
+\@xx{}%
+\@pvspace{8.0pt}%
+ \@x{ Vars \.{\defeq} {\langle} ext\_ptr ,\, stale\_ptr ,\, ext\_alive ,\,
  inv\_in\_epoch ,\, inv\_barrier ,\, inv\_loaded\_ptr ,\, inv\_using
- {\rangle}}
-\fl{}
-\fl{ TypeOK \.{\defeq}}
-\fl{ \.{\land}}\al{48}{1}{ ext\_ptr \.{\in} Ptr}
-\fl{ \.{\land}}\al{49}{1}{ stale\_ptr}\al{49}{2}{ \.{\in}}\al{49}{3}{ Ptr}
- \fl{ \.{\land}}\al{50}{1}{ ext\_alive}\al{50}{2}{ \.{\in}}\al{50}{3}{
- {\BOOLEAN}}
-\fl{ \.{\land}}\al{51}{1}{ inv\_in\_epoch \.{\in} {\BOOLEAN}}
-\fl{ \.{\land}}\al{52}{1}{ inv\_barrier \.{\in} {\BOOLEAN}}
-\fl{ \.{\land}}\al{53}{1}{ inv\_loaded\_ptr \.{\in} Ptr}
-\fl{ \.{\land}}\al{54}{1}{ inv\_using \.{\in} {\BOOLEAN}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Init}\al{59}{1}{ \.{\defeq}}
-\fl{ \.{\land}}\al{60}{1}{ ext\_ptr \.{=} 1}
-\fl{ \.{\land}}\al{61}{1}{ stale\_ptr}\al{61}{2}{ \.{=}}\al{61}{3}{ 1}
-\fl{ \.{\land}}\al{62}{1}{ ext\_alive}\al{62}{2}{ \.{=}}\al{62}{3}{ {\TRUE}}
-\fl{ \.{\land}}\al{63}{1}{ inv\_in\_epoch \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{64}{1}{ inv\_barrier \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{65}{1}{ inv\_loaded\_ptr \.{=} 0}
-\fl{ \.{\land}}\al{66}{1}{ inv\_using \.{=} {\FALSE}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ DetachClear \.{\defeq}}
-\fl{ \.{\land}}\al{76}{1}{ ext\_ptr \.{=} 1}
-\fl{ \.{\land}}\al{77}{1}{ ext\_ptr \.{'} \.{=} 0}
-\fl{ \.{\land}}\al{78}{1}{ stale\_ptr \.{'} \.{=} ext\_ptr}
- \fl{ \.{\land}}\al{79}{1}{ {\UNCHANGED} {\langle} ext\_alive ,\,
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ TypeOK \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} ext\_ptr \.{\in} Ptr}%
+\@x{\@s{8.2} \.{\land} stale\_ptr\@s{0.03} \.{\in} Ptr}%
+\@x{\@s{8.2} \.{\land} ext\_alive \.{\in} {\BOOLEAN}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{\in} {\BOOLEAN}}%
+\@x{\@s{8.2} \.{\land} inv\_barrier \.{\in} {\BOOLEAN}}%
+\@x{\@s{8.2} \.{\land} inv\_loaded\_ptr \.{\in} Ptr}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{\in} {\BOOLEAN}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Initialization: extension is loaded and its program data is alive.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Init \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} ext\_ptr \.{=} 1}%
+\@x{\@s{8.2} \.{\land} stale\_ptr\@s{0.03} \.{=} 1}%
+\@x{\@s{8.2} \.{\land} ext\_alive \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_barrier \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_loaded\_ptr \.{=} 0}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{=} {\FALSE}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Detach/unload actions.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+We model the ``clear pointer'' step and the ``free program data'' step.
+ The free step is gated by ``no invoker currently in an epoch'', which is
+ an abstraction of \ensuremath{ebpf\_epoch\_synchronize()}.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ DetachClear \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} ext\_ptr \.{=} 1}%
+\@x{\@s{8.2} \.{\land} ext\_ptr \.{'} \.{=} 0}%
+\@x{\@s{8.2} \.{\land} stale\_ptr \.{'} \.{=} ext\_ptr}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_alive ,\, inv\_in\_epoch
+ ,\, inv\_barrier ,\, inv\_loaded\_ptr ,\, inv\_using {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ DetachFree \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} ext\_ptr \.{=} 0}%
+\@x{\@s{8.2} \.{\land} ext\_alive \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} ext\_alive \.{'} \.{=} {\FALSE}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
  inv\_in\_epoch ,\, inv\_barrier ,\, inv\_loaded\_ptr ,\, inv\_using
- {\rangle}}
-\fl{}
-\fl{ DetachFree \.{\defeq}}
-\fl{ \.{\land}}\al{82}{1}{ ext\_ptr \.{=} 0}
-\fl{ \.{\land}}\al{83}{1}{ ext\_alive \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{84}{1}{ inv\_in\_epoch \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{85}{1}{ ext\_alive \.{'} \.{=} {\FALSE}}
- \fl{ \.{\land}}\al{86}{1}{ {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
- inv\_in\_epoch ,\, inv\_barrier ,\, inv\_loaded\_ptr ,\, inv\_using
- {\rangle}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ InvokerEnterEpoch \.{\defeq}}
-\fl{ \.{\land}}\al{100}{1}{ inv\_in\_epoch \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{101}{1}{ inv\_in\_epoch \.{'} \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{102}{1}{ inv\_barrier \.{'} \.{=} EpochEnterIsBarrier}
- \fl{ \.{\land}}\al{103}{1}{ {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr
- ,\, ext\_alive ,\, inv\_loaded\_ptr ,\, inv\_using {\rangle}}
-\fl{}
-\fl{ InvokerReadPointerNoFence \.{\defeq}}
-\fl{ \.{\land}}\al{106}{1}{ inv\_in\_epoch \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{107}{1}{ inv\_loaded\_ptr \.{=} 0}
-\fl{ \.{\land}}\al{108}{1}{ inv\_using \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{109}{1}{ {\IF}}\al{109}{2}{ inv\_barrier}
-\fl{ \.{\THEN} inv\_loaded\_ptr \.{'}}\al{110}{3}{ \.{=} ext\_ptr}
- \fl{ \.{\ELSE} inv\_loaded\_ptr \.{'}}\al{111}{3}{ \.{\in} \{ ext\_ptr ,\,
- stale\_ptr \}}
- \fl{ \.{\land}}\al{112}{1}{ {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr
- ,\, ext\_alive ,\, inv\_in\_epoch ,\, inv\_barrier ,\, inv\_using {\rangle}}
-\fl{}
-\fl{ InvokerUse \.{\defeq}}
-\fl{ \.{\land}}\al{115}{1}{ inv\_in\_epoch \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{116}{1}{ inv\_loaded\_ptr \.{=} 1}
-\fl{ \.{\land}}\al{117}{1}{ inv\_using \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{118}{1}{ inv\_using \.{'} \.{=} {\TRUE}}
- \fl{ \.{\land}}\al{119}{1}{ {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr
- ,\, ext\_alive ,\, inv\_in\_epoch ,\, inv\_barrier ,\, inv\_loaded\_ptr
- {\rangle}}
-\fl{}
-\fl{ InvokerFinish \.{\defeq}}
-\fl{ \.{\land}}\al{122}{1}{ inv\_in\_epoch \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{123}{1}{ inv\_using \.{'} \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{124}{1}{ inv\_loaded\_ptr \.{'} \.{=} 0}
-\fl{ \.{\land}}\al{125}{1}{ inv\_in\_epoch \.{'} \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{126}{1}{ inv\_barrier \.{'} \.{=} {\FALSE}}
- \fl{ \.{\land}}\al{127}{1}{ {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr
- ,\, ext\_alive {\rangle}}
-\fl{}
-\fl{ Next \.{\defeq}}
-\fl{ DetachClear}
-\fl{ \.{\lor}}\al{131}{1}{ DetachFree}
-\fl{ \.{\lor}}\al{132}{1}{ InvokerEnterEpoch}
-\fl{ \.{\lor}}\al{133}{1}{ InvokerReadPointerNoFence}
-\fl{ \.{\lor}}\al{134}{1}{ InvokerUse}
-\fl{ \.{\lor}}\al{135}{1}{ InvokerFinish}
-\fl{}
-\fl{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ Vars}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Safety \.{\defeq} inv\_using \.{\implies} ext\_alive}
-\fl{}
-\fl{}\bottombar\cl{}
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Invoker actions.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ The invoke fast path performs a \ensuremath{NoFence} read of
+ \ensuremath{ext\_ptr}.
+ - If the invoker has a barrier (\ensuremath{inv\_barrier \.{=} {\TRUE}}), it
+ must read the
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+current value of \ensuremath{ext\_ptr}.
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+- If the invoker does NOT have a barrier, it may read a stale value.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+The model then allows the invoker to ``use'' the data only if the loaded
+ pointer is non-NULL.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ InvokerEnterEpoch \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{'} \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_barrier \.{'} \.{=} EpochEnterIsBarrier}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
+ ext\_alive ,\, inv\_loaded\_ptr ,\, inv\_using {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ InvokerReadPointerNoFence \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_loaded\_ptr \.{=} 0}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} {\IF} inv\_barrier}%
+\@x{\@s{31.46} \.{\THEN} inv\_loaded\_ptr \.{'} \.{=} ext\_ptr}%
+ \@x{\@s{31.46} \.{\ELSE} inv\_loaded\_ptr \.{'} \.{\in} \{ ext\_ptr ,\,
+ stale\_ptr \}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
+ ext\_alive ,\, inv\_in\_epoch ,\, inv\_barrier ,\, inv\_using {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ InvokerUse \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_loaded\_ptr \.{=} 1}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{'} \.{=} {\TRUE}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
+ ext\_alive ,\, inv\_in\_epoch ,\, inv\_barrier ,\, inv\_loaded\_ptr
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ InvokerFinish \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} inv\_using \.{'} \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_loaded\_ptr \.{'} \.{=} 0}%
+\@x{\@s{8.2} \.{\land} inv\_in\_epoch \.{'} \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} inv\_barrier \.{'} \.{=} {\FALSE}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} ext\_ptr ,\, stale\_ptr ,\,
+ ext\_alive {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Next \.{\defeq}}%
+\@x{\@s{8.2} DetachClear}%
+\@x{\@s{8.2} \.{\lor} DetachFree}%
+\@x{\@s{8.2} \.{\lor} InvokerEnterEpoch}%
+\@x{\@s{8.2} \.{\lor} InvokerReadPointerNoFence}%
+\@x{\@s{8.2} \.{\lor} InvokerUse}%
+\@x{\@s{8.2} \.{\lor} InvokerFinish}%
+\@pvspace{8.0pt}%
+\@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ Vars}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Safety property: the invoker must never use freed extension data.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Safety \.{\defeq} inv\_using \.{\implies} ext\_alive}%
+\@pvspace{8.0pt}%
+\@x{}\bottombar\@xx{}%
 \end{document}

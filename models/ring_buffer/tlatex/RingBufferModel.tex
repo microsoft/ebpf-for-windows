@@ -936,319 +936,379 @@
 
 \begin{document}
 \tlatex
-\fl{}\moduleLeftDash\cl{ {\MODULE} RingBufferModel}\moduleRightDash\cl{}
-\fl{ {\EXTENDS} Naturals ,\, Sequences ,\, TLC}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\CONSTANTS}}
-\fl{ Capacity ,\,}\al{26}{2}{%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{\,\backslash\,}}* Copyright (c) \ensuremath{eBPF} for Windows
+ contributors
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+\ensuremath{\.{\,\backslash\,}}* SPDX-License-Identifier: \ensuremath{MIT
+}%
+\end{cpar}%
+\end{lcom}%
+\@x{}\moduleLeftDash\@xx{ {\MODULE} RingBufferModel}\moduleRightDash\@xx{}%
+\@x{ {\EXTENDS} Naturals ,\, Sequences ,\, TLC}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Bounded, executable TLA+ model of the core ring-buffer behaviors
+ that are exposed via
+ libs/\ensuremath{execution\_context}/\ensuremath{ebpf\_maps.c}.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Focus\ensuremath{\.{:}
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} Producer reserves space (publishes producer
+ offset)\ensuremath{.
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} Producer submits or discards a record (clears lock
+ bit)\ensuremath{.
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} Consumer reads the next record in order, skipping
+ discarded records\ensuremath{.
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} Consumer returns buffers by advancing consumer
+ offset\ensuremath{.
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-} Async} query is completed when producer has advanced beyond
+ consumer.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+This model is intentionally small and does not model\ensuremath{\.{:}
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{-}} actual byte contents, alignment details,
+ \ensuremath{page\_offset}, or mmap pages
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+- kernel wait handle semantics
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+- multiple producers / full reserve loop serialization
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+See \ensuremath{CONFORMANCE.md} for mapping to \ensuremath{C} sources.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\CONSTANTS}}%
+\@x{\@s{8.2} Capacity ,\,\@s{66.07}}%
 \@y{\@s{0}%
  \ensuremath{Nat}: ring capacity in abstract ``units''.
 }%
-}
-\fl{ Sizes ,\,}\al{27}{2}{%
+\@xx{}%
+\@x{\@s{8.2} Sizes ,\,\@s{82.49}}%
 \@y{\@s{0}%
  Finite set of \ensuremath{Nat} record sizes (in units).
 }%
-}
-\fl{ MaxOffset ,\,}\al{28}{2}{%
+\@xx{}%
+\@x{\@s{8.2} MaxOffset ,\,\@s{59.30}}%
 \@y{\@s{0}%
  \ensuremath{Nat}: max reserve/producer offset to keep \ensuremath{TLC}
  finite.
 }%
-}
-\fl{ MaxLiveRecords ,\,}\al{29}{2}{%
+\@xx{}%
+\@x{\@s{8.2} MaxLiveRecords ,\,\@s{33.72}}%
 \@y{\@s{0}%
  \ensuremath{Nat}: bound on number of live (unreturned) records.
 }%
-}
-\fl{ BuggyPublishBeforeLock}\al{30}{1}{%
+\@xx{}%
+\@x{\@s{8.2} BuggyPublishBeforeLock\@s{4.09}}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}}: if \ensuremath{{\TRUE}}, allow producer to publish
  offset before locking record.
 }%
-}
-\fl{}
-\fl{ {\ASSUME} Capacity \.{\in} Nat}
-\fl{ {\ASSUME} MaxOffset \.{\in} Nat}
-\fl{ {\ASSUME} MaxLiveRecords \.{\in} Nat}
-\fl{ {\ASSUME} Sizes \.{\subseteq} Nat}
-\fl{ {\ASSUME} \A\, s \.{\in} Sizes \.{:} s \.{>} 0}
-\fl{}
- \fl{ States}\al{38}{1}{ \.{\defeq}}\al{38}{2}{ \{\@w{Uninit} ,\,\@w{Locked}
- ,\,\@w{Submitted} ,\,\@w{Discarded} \}}
-\fl{}
- \fl{ Record}\al{40}{1}{ \.{\defeq}}\al{40}{2}{ [ size \.{:} Sizes ,\, state
- \.{:} States ]}
-\fl{}
-\fl{ {\VARIABLES}}
-\fl{ consumer ,\,}\al{43}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ {\ASSUME} Capacity \.{\in} Nat}%
+\@x{ {\ASSUME} MaxOffset \.{\in} Nat}%
+\@x{ {\ASSUME} MaxLiveRecords \.{\in} Nat}%
+\@x{ {\ASSUME} Sizes \.{\subseteq} Nat}%
+\@x{ {\ASSUME} \A\, s \.{\in} Sizes \.{:} s \.{>} 0}%
+\@pvspace{8.0pt}%
+ \@x{ States\@s{3.03} \.{\defeq} \{\@w{Uninit} ,\,\@w{Locked}
+ ,\,\@w{Submitted} ,\,\@w{Discarded} \}}%
+\@pvspace{8.0pt}%
+\@x{ Record \.{\defeq} [ size \.{:} Sizes ,\, state \.{:} States ]}%
+\@pvspace{8.0pt}%
+\@x{ {\VARIABLES}}%
+\@x{\@s{8.2} consumer ,\,\@s{32.29}}%
 \@y{\@s{0}%
  Consumer offset (monotonic).
 }%
-}
-\fl{ producer ,\,}\al{44}{2}{%
+\@xx{}%
+\@x{\@s{8.2} producer ,\,\@s{36.76}}%
 \@y{\@s{0}%
  Published producer offset.
 }%
-}
-\fl{ reserve ,\,}\al{45}{2}{%
+\@xx{}%
+\@x{\@s{8.2} reserve ,\,\@s{43.48}}%
 \@y{\@s{0}%
  Producer reserve offset (end of last reserved record).
 }%
-}
-\fl{ liveSize ,\,}\al{46}{2}{%
+\@xx{}%
+\@x{\@s{8.2} liveSize ,\,\@s{41.69}}%
 \@y{\@s{0}%
  \ensuremath{reserve \.{-} consumer
 }}%
-}
-\fl{ records ,\,}\al{47}{2}{%
+\@xx{}%
+\@x{\@s{8.2} records ,\,\@s{43.92}}%
 \@y{\@s{0}%
  Sequence of live records in order.
 }%
-}
-\fl{ held ,\,}\al{48}{2}{%
+\@xx{}%
+\@x{\@s{8.2} held ,\,\@s{56.23}}%
 \@y{\@s{0}%
  [active, size, state] representing a currently ``read'' record.
 }%
-}
-\fl{ asyncPending ,\,}\al{49}{2}{%
+\@xx{}%
+\@x{\@s{8.2} asyncPending ,\,\@s{14.07}}%
 \@y{\@s{0}%
  Whether an async query is queued.
 }%
-}
-\fl{ asyncCompleted ,\,}\al{50}{2}{%
+\@xx{}%
+\@x{\@s{8.2} asyncCompleted ,\,\@s{4.1}}%
 \@y{\@s{0}%
  Sticky flag: an async query completed at least once.
 }%
-}
-\fl{ asyncResult ,\,}\al{51}{2}{%
+\@xx{}%
+\@x{\@s{8.2} asyncResult ,\,\@s{22.70}}%
 \@y{\@s{0}%
  [consumer, producer] captured on completion.
 }%
-}
-\fl{ tripWire}\al{52}{1}{%
+\@xx{}%
+\@x{\@s{8.2} tripWire\@s{42.92}}%
 \@y{\@s{0}%
  Sticky: \ensuremath{{\TRUE}} after first async query is queued.
 }%
-}
-\fl{}
- \fl{ Held \.{\defeq} [ active \.{:} {\BOOLEAN} ,\, size \.{:} 0 \.{\dotdot}
- MaxOffset ,\, state \.{:} States ]}
-\fl{}
-\fl{ TypeOK \.{\defeq}}
- \fl{ \.{\land}}\al{57}{1}{ consumer}\al{57}{2}{ \.{\in}}\al{57}{3}{ 0
- \.{\dotdot} MaxOffset}
- \fl{ \.{\land}}\al{58}{1}{ producer}\al{58}{2}{ \.{\in}}\al{58}{3}{ 0
- \.{\dotdot} MaxOffset}
-\fl{ \.{\land}}\al{59}{1}{ reserve \.{\in} 0 \.{\dotdot} MaxOffset}
-\fl{ \.{\land}}\al{60}{1}{ liveSize \.{\in} 0 \.{\dotdot} Capacity}
-\fl{ \.{\land}}\al{61}{1}{ records \.{\in} Seq ( Record )}
-\fl{ \.{\land}}\al{62}{1}{ Len ( records ) \.{\leq} MaxLiveRecords}
-\fl{ \.{\land}}\al{63}{1}{ held \.{\in} Held}
-\fl{ \.{\land}}\al{64}{1}{ asyncPending \.{\in} {\BOOLEAN}}
-\fl{ \.{\land}}\al{65}{1}{ asyncCompleted \.{\in} {\BOOLEAN}}
- \fl{ \.{\land}}\al{66}{1}{ asyncResult \.{\in} [ consumer \.{:} 0 \.{\dotdot}
- MaxOffset ,\, producer \.{:} 0 \.{\dotdot} MaxOffset ]}
-\fl{ \.{\land}}\al{67}{1}{ tripWire \.{\in} {\BOOLEAN}}
-\fl{}
-\fl{ OffsetsConsistent \.{\defeq}}
-\fl{ \.{\land}}\al{70}{1}{ consumer \.{\leq} producer}
-\fl{ \.{\land}}\al{71}{1}{ producer \.{\leq} reserve}
-\fl{ \.{\land}}\al{72}{1}{ reserve \.{=} consumer \.{+} liveSize}
-\fl{ \.{\land}}\al{73}{1}{ liveSize \.{\leq} Capacity}
-\fl{}
-\fl{ Safety \.{\defeq}}
-\fl{}
-\fl{ held . active \.{\implies} held . state \.{=}\@w{Submitted}}
-\fl{}
-\fl{ Init}\al{79}{1}{ \.{\defeq}}
-\fl{ \.{\land}}\al{80}{1}{ consumer}\al{80}{2}{ \.{=}}\al{80}{3}{ 0}
-\fl{ \.{\land}}\al{81}{1}{ producer}\al{81}{2}{ \.{=}}\al{81}{3}{ 0}
-\fl{ \.{\land}}\al{82}{1}{ reserve \.{=} 0}
-\fl{ \.{\land}}\al{83}{1}{ liveSize \.{=} 0}
-\fl{ \.{\land}}\al{84}{1}{ records \.{=} {\langle} {\rangle}}
- \fl{ \.{\land}}\al{85}{1}{ held \.{=} [ active \.{\mapsto} {\FALSE} ,\, size
- \.{\mapsto} 0 ,\, state \.{\mapsto}\@w{Locked} ]}
-\fl{ \.{\land}}\al{86}{1}{ asyncPending \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{87}{1}{ asyncCompleted \.{=} {\FALSE}}
- \fl{ \.{\land}}\al{88}{1}{ asyncResult \.{=} [ consumer \.{\mapsto} 0 ,\,
- producer \.{\mapsto} 0 ]}
-\fl{ \.{\land}}\al{89}{1}{ tripWire \.{=} {\FALSE}}
-\fl{}
-\fl{ CanReserve ( sz ) \.{\defeq}}
-\fl{ \.{\land}}\al{92}{1}{ sz \.{\in} Sizes}
-\fl{ \.{\land}}\al{93}{1}{ liveSize \.{+} sz \.{\leq} Capacity}
-\fl{ \.{\land}}\al{94}{1}{ reserve \.{+} sz \.{\leq} MaxOffset}
-\fl{ \.{\land}}\al{95}{1}{ Len ( records ) \.{<} MaxLiveRecords}
-\fl{}
-\fl{ ProducerReserve \.{\defeq}}
-\fl{ \E\, sz \.{\in} Sizes \.{:}}
-\fl{ \.{\land}}\al{99}{1}{ CanReserve ( sz )}
-\fl{ \.{\land}}\al{100}{1}{ {\lnot} BuggyPublishBeforeLock}
- \fl{ \.{\land}}\al{101}{1}{ records \.{'}}\al{101}{3}{ \.{=}}\al{101}{4}{
- Append ( records ,\, [ size \.{\mapsto} sz ,\, state \.{\mapsto}\@w{Locked}
- ] )}
- \fl{ \.{\land}}\al{102}{1}{ reserve \.{'}}\al{102}{3}{ \.{=}}\al{102}{4}{
- reserve \.{+} sz}
- \fl{ \.{\land}}\al{103}{1}{ producer \.{'}}\al{103}{3}{ \.{=}}\al{103}{4}{
- reserve \.{'}}
- \fl{ \.{\land}}\al{104}{1}{ liveSize \.{'}}\al{104}{3}{ \.{=}}\al{104}{4}{
- liveSize \.{+} sz}
- \fl{ \.{\land}}\al{105}{1}{ {\UNCHANGED} {\langle} consumer ,\, held ,\,
- asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ProducerReserveBuggyPublish \.{\defeq}}
-\fl{ \E\, sz \.{\in} Sizes \.{:}}
-\fl{ \.{\land}}\al{109}{1}{ CanReserve ( sz )}
-\fl{ \.{\land}}\al{110}{1}{ BuggyPublishBeforeLock}
-\fl{}
- \fl{ \.{\land}}\al{112}{1}{ records \.{'}}\al{112}{3}{ \.{=}}\al{112}{4}{
- Append ( records ,\, [ size \.{\mapsto} sz ,\, state \.{\mapsto}\@w{Uninit}
- ] )}
- \fl{ \.{\land}}\al{113}{1}{ reserve \.{'}}\al{113}{3}{ \.{=}}\al{113}{4}{
- reserve \.{+} sz}
- \fl{ \.{\land}}\al{114}{1}{ producer \.{'}}\al{114}{3}{ \.{=}}\al{114}{4}{
- reserve \.{'}}
- \fl{ \.{\land}}\al{115}{1}{ liveSize \.{'}}\al{115}{3}{ \.{=}}\al{115}{4}{
- liveSize \.{+} sz}
- \fl{ \.{\land}}\al{116}{1}{ {\UNCHANGED} {\langle} consumer ,\, held ,\,
- asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ProducerFinalizeLock \.{\defeq}}
-\fl{ \.{\land}}\al{119}{1}{ BuggyPublishBeforeLock}
-\fl{ \.{\land}}\al{120}{1}{ Len ( records ) \.{>} 0}
-\fl{ \.{\land}}\al{121}{1}{ Head ( records ) . state \.{=}\@w{Uninit}}
- \fl{ \.{\land}}\al{122}{1}{ records \.{'} \.{=} {\langle} [ size \.{\mapsto}
- Head ( records ) . size ,\, state \.{\mapsto}\@w{Locked} ] {\rangle}
- \.{\circ} Tail ( records )}
- \fl{ \.{\land}}\al{123}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+\@xx{}%
+\@pvspace{8.0pt}%
+ \@x{ Held \.{\defeq} [ active \.{:} {\BOOLEAN} ,\, size \.{:} 0 \.{\dotdot}
+ MaxOffset ,\, state \.{:} States ]}%
+\@pvspace{8.0pt}%
+\@x{ TypeOK \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} consumer \.{\in} 0 \.{\dotdot} MaxOffset}%
+\@x{\@s{8.2} \.{\land} producer\@s{4.47} \.{\in} 0 \.{\dotdot} MaxOffset}%
+\@x{\@s{8.2} \.{\land} reserve \.{\in} 0 \.{\dotdot} MaxOffset}%
+\@x{\@s{8.2} \.{\land} liveSize \.{\in} 0 \.{\dotdot} Capacity}%
+\@x{\@s{8.2} \.{\land} records \.{\in} Seq ( Record )}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{\leq} MaxLiveRecords}%
+\@x{\@s{8.2} \.{\land} held \.{\in} Held}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{\in} {\BOOLEAN}}%
+\@x{\@s{8.2} \.{\land} asyncCompleted \.{\in} {\BOOLEAN}}%
+ \@x{\@s{8.2} \.{\land} asyncResult \.{\in} [ consumer \.{:} 0 \.{\dotdot}
+ MaxOffset ,\, producer \.{:} 0 \.{\dotdot} MaxOffset ]}%
+\@x{\@s{8.2} \.{\land} tripWire \.{\in} {\BOOLEAN}}%
+\@pvspace{8.0pt}%
+\@x{ OffsetsConsistent \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} consumer \.{\leq} producer}%
+\@x{\@s{8.2} \.{\land} producer \.{\leq} reserve}%
+\@x{\@s{8.2} \.{\land} reserve \.{=} consumer \.{+} liveSize}%
+\@x{\@s{8.2} \.{\land} liveSize \.{\leq} Capacity}%
+\@pvspace{8.0pt}%
+\@x{ Safety \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Consumer must never ``hold'' an unsubmitted record.
+}%
+\@xx{}%
+\@x{\@s{8.2} held . active \.{\implies} held . state \.{=}\@w{Submitted}}%
+\@pvspace{8.0pt}%
+\@x{ Init \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} consumer \.{=} 0}%
+\@x{\@s{8.2} \.{\land} producer\@s{4.47} \.{=} 0}%
+\@x{\@s{8.2} \.{\land} reserve \.{=} 0}%
+\@x{\@s{8.2} \.{\land} liveSize \.{=} 0}%
+\@x{\@s{8.2} \.{\land} records \.{=} {\langle} {\rangle}}%
+ \@x{\@s{8.2} \.{\land} held \.{=} [ active \.{\mapsto} {\FALSE} ,\, size
+ \.{\mapsto} 0 ,\, state \.{\mapsto}\@w{Locked} ]}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} asyncCompleted \.{=} {\FALSE}}%
+ \@x{\@s{8.2} \.{\land} asyncResult \.{=} [ consumer \.{\mapsto} 0 ,\,
+ producer \.{\mapsto} 0 ]}%
+\@x{\@s{8.2} \.{\land} tripWire \.{=} {\FALSE}}%
+\@pvspace{8.0pt}%
+\@x{ CanReserve ( sz ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} sz \.{\in} Sizes}%
+\@x{\@s{8.2} \.{\land} liveSize \.{+} sz \.{\leq} Capacity}%
+\@x{\@s{8.2} \.{\land} reserve \.{+} sz \.{\leq} MaxOffset}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{<} MaxLiveRecords}%
+\@pvspace{8.0pt}%
+\@x{ ProducerReserve \.{\defeq}}%
+\@x{\@s{8.2} \E\, sz \.{\in} Sizes \.{:}}%
+\@x{\@s{16.4} \.{\land} CanReserve ( sz )}%
+\@x{\@s{16.4} \.{\land} {\lnot} BuggyPublishBeforeLock}%
+ \@x{\@s{16.4} \.{\land} records \.{'}\@s{0.44} \.{=} Append ( records ,\, [
+ size \.{\mapsto} sz ,\, state \.{\mapsto}\@w{Locked} ] )}%
+\@x{\@s{16.4} \.{\land} reserve \.{'} \.{=} reserve \.{+} sz}%
+\@x{\@s{16.4} \.{\land} producer \.{'} \.{=} reserve \.{'}}%
+\@x{\@s{16.4} \.{\land} liveSize \.{'}\@s{4.92} \.{=} liveSize \.{+} sz}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} consumer ,\, held ,\,
+ asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ProducerReserveBuggyPublish \.{\defeq}}%
+\@x{\@s{8.2} \E\, sz \.{\in} Sizes \.{:}}%
+\@x{\@s{16.4} \.{\land} CanReserve ( sz )}%
+\@x{\@s{16.4} \.{\land} BuggyPublishBeforeLock}%
+\@x{\@s{16.4}}%
+\@y{\@s{0}%
+ Publish the offsets before the record is locked/initialized.
+}%
+\@xx{}%
+ \@x{\@s{16.4} \.{\land} records \.{'}\@s{0.44} \.{=} Append ( records ,\, [
+ size \.{\mapsto} sz ,\, state \.{\mapsto}\@w{Uninit} ] )}%
+\@x{\@s{16.4} \.{\land} reserve \.{'} \.{=} reserve \.{+} sz}%
+\@x{\@s{16.4} \.{\land} producer \.{'} \.{=} reserve \.{'}}%
+\@x{\@s{16.4} \.{\land} liveSize \.{'}\@s{4.92} \.{=} liveSize \.{+} sz}%
+ \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} consumer ,\, held ,\,
+ asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ProducerFinalizeLock \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} BuggyPublishBeforeLock}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{>} 0}%
+\@x{\@s{8.2} \.{\land} Head ( records ) . state \.{=}\@w{Uninit}}%
+ \@x{\@s{8.2} \.{\land} records \.{'} \.{=} {\langle} [ size \.{\mapsto} Head
+ ( records ) . size ,\, state \.{\mapsto}\@w{Locked} ] {\rangle} \.{\circ}
+ Tail ( records )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
- asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ProducerSubmit \.{\defeq}}
-\fl{ \.{\land}}\al{126}{1}{ Len ( records ) \.{>} 0}
-\fl{ \.{\land}}\al{127}{1}{ Head ( records ) . state \.{=}\@w{Locked}}
- \fl{ \.{\land}}\al{128}{1}{ records \.{'} \.{=} {\langle} [ size \.{\mapsto}
- Head ( records ) . size ,\, state \.{\mapsto}\@w{Submitted} ] {\rangle}
- \.{\circ} Tail ( records )}
- \fl{ \.{\land}}\al{129}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ProducerSubmit \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{>} 0}%
+\@x{\@s{8.2} \.{\land} Head ( records ) . state \.{=}\@w{Locked}}%
+ \@x{\@s{8.2} \.{\land} records \.{'} \.{=} {\langle} [ size \.{\mapsto} Head
+ ( records ) . size ,\, state \.{\mapsto}\@w{Submitted} ] {\rangle} \.{\circ}
+ Tail ( records )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
- asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ProducerDiscard \.{\defeq}}
-\fl{ \.{\land}}\al{132}{1}{ Len ( records ) \.{>} 0}
-\fl{ \.{\land}}\al{133}{1}{ Head ( records ) . state \.{=}\@w{Locked}}
- \fl{ \.{\land}}\al{134}{1}{ records \.{'} \.{=} {\langle} [ size \.{\mapsto}
- Head ( records ) . size ,\, state \.{\mapsto}\@w{Discarded} ] {\rangle}
- \.{\circ} Tail ( records )}
- \fl{ \.{\land}}\al{135}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ProducerDiscard \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{>} 0}%
+\@x{\@s{8.2} \.{\land} Head ( records ) . state \.{=}\@w{Locked}}%
+ \@x{\@s{8.2} \.{\land} records \.{'} \.{=} {\langle} [ size \.{\mapsto} Head
+ ( records ) . size ,\, state \.{\mapsto}\@w{Discarded} ] {\rangle} \.{\circ}
+ Tail ( records )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
- asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ConsumerNext \.{\defeq}}
-\fl{ \.{\land}}\al{138}{1}{ held . active \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{139}{1}{ Len ( records ) \.{>} 0}
- \fl{ \.{\land}}\al{140}{1}{ {\IF} Head ( records ) . state \.{=}\@w{Locked}
- \.{\THEN}}
-\fl{}
- \fl{ {\UNCHANGED} {\langle} consumer ,\, producer ,\, reserve ,\, liveSize
- ,\, records ,\, held ,\, asyncPending ,\, asyncCompleted ,\, asyncResult ,\,
- tripWire {\rangle}}
-\fl{ \.{\ELSE} {\IF} Head ( records ) . state \.{=}\@w{Discarded} \.{\THEN}}
-\fl{}
- \fl{ \.{\land}}\al{145}{1}{ consumer \.{'}}\al{145}{3}{ \.{=}}\al{145}{4}{
- consumer}\al{145}{5}{ \.{+}}\al{145}{6}{ Head ( records ) . size}
- \fl{ \.{\land}}\al{146}{1}{ liveSize \.{'}}\al{146}{3}{ \.{=}}\al{146}{4}{
- liveSize}\al{146}{5}{ \.{-}}\al{146}{6}{ Head ( records ) . size}
-\fl{ \.{\land}}\al{147}{1}{ records \.{'} \.{=} Tail ( records )}
- \fl{ \.{\land}}\al{148}{1}{ {\UNCHANGED} {\langle} producer ,\, reserve ,\,
- held ,\, asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire
- {\rangle}}
-\fl{ \.{\ELSE}}
-\fl{}
- \fl{ \.{\land}}\al{151}{1}{ held \.{'} \.{=} [ active \.{\mapsto} {\TRUE} ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ConsumerNext \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} held . active \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{>} 0}%
+ \@x{\@s{8.2} \.{\land} {\IF} Head ( records ) . state \.{=}\@w{Locked}
+ \.{\THEN}}%
+\@x{\@s{27.51}}%
+\@y{\@s{0}%
+ Cannot pass a locked record.
+}%
+\@xx{}%
+ \@x{\@s{27.51} {\UNCHANGED} {\langle} consumer ,\, producer ,\, reserve ,\,
+ liveSize ,\, records ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+ \@x{\@s{19.31} \.{\ELSE} {\IF} Head ( records ) . state \.{=}\@w{Discarded}
+ \.{\THEN}}%
+\@x{\@s{27.51}}%
+\@y{\@s{0}%
+ Skip discarded records and immediately return their space.
+}%
+\@xx{}%
+ \@x{\@s{27.51} \.{\land} consumer \.{'} \.{=} consumer \.{+} Head ( records )
+ . size}%
+ \@x{\@s{27.51} \.{\land} liveSize \.{'}\@s{9.39} \.{=} liveSize\@s{9.39}
+ \.{-} Head ( records ) . size}%
+\@x{\@s{27.51} \.{\land} records \.{'} \.{=} Tail ( records )}%
+ \@x{\@s{27.51} \.{\land} {\UNCHANGED} {\langle} producer ,\, reserve ,\, held
+ ,\, asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}%
+\@x{\@s{19.31} \.{\ELSE}}%
+\@x{\@s{27.51}}%
+\@y{\@s{0}%
+ Any unlocked record is treated as consumable.
+}%
+\@xx{}%
+ \@x{\@s{27.51} \.{\land} held \.{'} \.{=} [ active \.{\mapsto} {\TRUE} ,\,
  size \.{\mapsto} Head ( records ) . size ,\, state \.{\mapsto} Head (
- records ) . state ]}
- \fl{ \.{\land}}\al{152}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ records ) . state ]}%
+ \@x{\@s{27.51} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, records ,\, asyncPending ,\, asyncCompleted ,\,
- asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ ConsumerReturn \.{\defeq}}
-\fl{ \.{\land}}\al{155}{1}{ held . active \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{156}{1}{ Len ( records ) \.{>} 0}
-\fl{ \.{\land}}\al{157}{1}{ Head ( records ) . size \.{=} held . size}
-\fl{ \.{\land}}\al{158}{1}{ Head ( records ) . state \.{=} held . state}
- \fl{ \.{\land}}\al{159}{1}{ consumer \.{'}}\al{159}{3}{ \.{=}}\al{159}{4}{
- consumer}\al{159}{5}{ \.{+}}\al{159}{6}{ held . size}
- \fl{ \.{\land}}\al{160}{1}{ liveSize \.{'}}\al{160}{3}{ \.{=}}\al{160}{4}{
- liveSize}\al{160}{5}{ \.{-}}\al{160}{6}{ held . size}
-\fl{ \.{\land}}\al{161}{1}{ records \.{'} \.{=} Tail ( records )}
- \fl{ \.{\land}}\al{162}{1}{ held \.{'} \.{=} [ active \.{\mapsto} {\FALSE}
- ,\, size \.{\mapsto} 0 ,\, state \.{\mapsto}\@w{Locked} ]}
- \fl{ \.{\land}}\al{163}{1}{ {\UNCHANGED} {\langle} producer ,\, reserve ,\,
- asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ AsyncQuery \.{\defeq}}
-\fl{ \.{\land}}\al{166}{1}{ asyncPending \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{167}{1}{ asyncPending \.{'} \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{168}{1}{ tripWire \.{'} \.{=} {\TRUE}}
- \fl{ \.{\land}}\al{169}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ConsumerReturn \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} held . active \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} Len ( records ) \.{>} 0}%
+\@x{\@s{8.2} \.{\land} Head ( records ) . size \.{=} held . size}%
+\@x{\@s{8.2} \.{\land} Head ( records ) . state \.{=} held . state}%
+\@x{\@s{8.2} \.{\land} consumer \.{'} \.{=} consumer \.{+} held . size}%
+ \@x{\@s{8.2} \.{\land} liveSize \.{'}\@s{9.39} \.{=} liveSize\@s{9.39} \.{-}
+ held . size}%
+\@x{\@s{8.2} \.{\land} records \.{'} \.{=} Tail ( records )}%
+ \@x{\@s{8.2} \.{\land} held \.{'} \.{=} [ active \.{\mapsto} {\FALSE} ,\,
+ size \.{\mapsto} 0 ,\, state \.{\mapsto}\@w{Locked} ]}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} producer ,\, reserve ,\,
+ asyncPending ,\, asyncCompleted ,\, asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ AsyncQuery \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{'} \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} tripWire \.{'} \.{=} {\TRUE}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, records ,\, held ,\, asyncCompleted ,\, asyncResult
- {\rangle}}
-\fl{}
-\fl{ AsyncCancel \.{\defeq}}
-\fl{ \.{\land}}\al{172}{1}{ asyncPending \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{173}{1}{ asyncPending \.{'} \.{=} {\FALSE}}
- \fl{ \.{\land}}\al{174}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ AsyncCancel \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{'} \.{=} {\FALSE}}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
  reserve ,\, liveSize ,\, records ,\, held ,\, asyncCompleted ,\, asyncResult
- ,\, tripWire {\rangle}}
-\fl{}
-\fl{ AsyncComplete \.{\defeq}}
-\fl{ \.{\land}}\al{177}{1}{ asyncPending \.{=} {\TRUE}}
-\fl{ \.{\land}}\al{178}{1}{ producer \.{>} consumer}
-\fl{ \.{\land}}\al{179}{1}{ asyncPending \.{'} \.{=} {\FALSE}}
-\fl{ \.{\land}}\al{180}{1}{ asyncCompleted \.{'} \.{=} {\TRUE}}
- \fl{ \.{\land}}\al{181}{1}{ asyncResult \.{'} \.{=} [ consumer \.{\mapsto}
- consumer ,\, producer \.{\mapsto} producer ]}
- \fl{ \.{\land}}\al{182}{1}{ {\UNCHANGED} {\langle} consumer ,\, producer ,\,
- reserve ,\, liveSize ,\, records ,\, held ,\, tripWire {\rangle}}
-\fl{}
- \fl{ vars}\al{184}{1}{ \.{\defeq} {\langle} consumer ,\, producer ,\, reserve
- ,\, liveSize ,\, records ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
- asyncResult ,\, tripWire {\rangle}}
-\fl{}
-\fl{ Next}\al{186}{1}{ \.{\defeq}}
-\fl{ ProducerReserve}
-\fl{ \.{\lor}}\al{188}{1}{ ProducerReserveBuggyPublish}
-\fl{ \.{\lor}}\al{189}{1}{ ProducerFinalizeLock}
-\fl{ \.{\lor}}\al{190}{1}{ ProducerSubmit}
-\fl{ \.{\lor}}\al{191}{1}{ ProducerDiscard}
-\fl{ \.{\lor}}\al{192}{1}{ ConsumerNext}
-\fl{ \.{\lor}}\al{193}{1}{ ConsumerReturn}
-\fl{ \.{\lor}}\al{194}{1}{ AsyncQuery}
-\fl{ \.{\lor}}\al{195}{1}{ AsyncCancel}
-\fl{ \.{\lor}}\al{196}{1}{ AsyncComplete}
-\fl{}
-\fl{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}
-\fl{}
-\fl{}\bottombar\cl{}
+ ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ AsyncComplete \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{=} {\TRUE}}%
+\@x{\@s{8.2} \.{\land} producer \.{>} consumer}%
+\@x{\@s{8.2} \.{\land} asyncPending \.{'} \.{=} {\FALSE}}%
+\@x{\@s{8.2} \.{\land} asyncCompleted \.{'} \.{=} {\TRUE}}%
+ \@x{\@s{8.2} \.{\land} asyncResult \.{'} \.{=} [ consumer \.{\mapsto}
+ consumer ,\, producer \.{\mapsto} producer ]}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} consumer ,\, producer ,\,
+ reserve ,\, liveSize ,\, records ,\, held ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+ \@x{ vars\@s{2.10} \.{\defeq} {\langle} consumer ,\, producer ,\, reserve ,\,
+ liveSize ,\, records ,\, held ,\, asyncPending ,\, asyncCompleted ,\,
+ asyncResult ,\, tripWire {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ Next \.{\defeq}}%
+\@x{\@s{8.2} ProducerReserve}%
+\@x{\@s{8.2} \.{\lor} ProducerReserveBuggyPublish}%
+\@x{\@s{8.2} \.{\lor} ProducerFinalizeLock}%
+\@x{\@s{8.2} \.{\lor} ProducerSubmit}%
+\@x{\@s{8.2} \.{\lor} ProducerDiscard}%
+\@x{\@s{8.2} \.{\lor} ConsumerNext}%
+\@x{\@s{8.2} \.{\lor} ConsumerReturn}%
+\@x{\@s{8.2} \.{\lor} AsyncQuery}%
+\@x{\@s{8.2} \.{\lor} AsyncCancel}%
+\@x{\@s{8.2} \.{\lor} AsyncComplete}%
+\@pvspace{8.0pt}%
+\@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}%
+\@pvspace{8.0pt}%
+\@x{}\bottombar\@xx{}%
 \end{document}

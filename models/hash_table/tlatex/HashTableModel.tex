@@ -936,593 +936,721 @@
 
 \begin{document}
 \tlatex
-\fl{}\moduleLeftDash\cl{ {\MODULE} HashTableModel}\moduleRightDash\cl{}
-\fl{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\CONSTANTS}}
-\fl{ CPUs ,\,}\al{25}{2}{%
+\begin{lcom}{0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+ \ensuremath{\.{\,\backslash\,}}* Copyright (\ensuremath{c}) \ensuremath{eBPF}
+ for Windows contributors
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+\ensuremath{\.{\,\backslash\,}}* SPDX-License-Identifier: \ensuremath{MIT
+}%
+\end{cpar}%
+\end{lcom}%
+\@x{}\moduleLeftDash\@xx{ {\MODULE} HashTableModel}\moduleRightDash\@xx{}%
+\@x{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+This is a bounded, executable TLA+ model of the key concurrency and
+ lifetime aspects of libs/runtime/\ensuremath{ebpf\_hash\_table.c}.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+High-level intent\ensuremath{\.{:}
+}%
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+\ensuremath{\.{-}} Writers replace an immutable bucket by swapping a pointer.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+- Readers take a snapshot of the bucket pointer and then read entries.
+\end{cpar}%
+\begin{cpar}{0}{T}{T}{0}{2.5}{%
+-}%
+Old buckets and old values are ``retired'' and later ``reclaimed'' via a
+ simplified epoch-based reclamation scheme.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+The model checks a core safety property\ensuremath{\.{:}
+ \.{-}} While a reader is in an epoch, it must never observe a reclaimed
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+(Freed) bucket/value it is using.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+ This is NOT a full linearizability model of all \ensuremath{APIs}
+ (iterate/\ensuremath{next\_key},
+ notifications, allocator failures, etc.). See \ensuremath{CONFORMANCE.md}.
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\CONSTANTS}}%
+\@x{\@s{8.2} CPUs ,\,\@s{53.65}}%
 \@y{\@s{0}%
  Finite set of reader \ensuremath{CPUs}/threads.
 }%
-}
-\fl{ Keys ,\,}\al{26}{2}{%
+\@xx{}%
+\@x{\@s{8.2} Keys ,\,\@s{57.88}}%
 \@y{\@s{0}%
  Finite set of keys.
 }%
-}
-\fl{ Values ,\,}\al{27}{2}{%
+\@xx{}%
+\@x{\@s{8.2} Values ,\,\@s{50.72}}%
 \@y{\@s{0}%
  Finite set of values.
 }%
-}
-\fl{ BucketIds ,\,}\al{28}{2}{%
+\@xx{}%
+\@x{\@s{8.2} BucketIds ,\,\@s{36.53}}%
 \@y{\@s{0}%
  Finite set of bucket indices.
 }%
-}
-\fl{ ObjIds ,\,}\al{29}{2}{%
+\@xx{}%
+\@x{\@s{8.2} ObjIds ,\,\@s{50.72}}%
 \@y{\@s{0}%
  Finite set of value-object identifiers.
 }%
-}
-\fl{ BucketObjs ,\,}\al{30}{2}{%
+\@xx{}%
+\@x{\@s{8.2} BucketObjs ,\,\@s{30.16}}%
 \@y{\@s{0}%
  Finite set of bucket-object identifiers.
 }%
-}
-\fl{ MaxEntries ,\,}\al{31}{2}{%
+\@xx{}%
+\@x{\@s{8.2} MaxEntries ,\,\@s{28.7}}%
 \@y{\@s{0}%
  \ensuremath{Nat}, \ensuremath{max \.{\neq}}keys allowed in table.
 }%
-}
-\fl{ MaxEpoch ,\,}\al{32}{2}{%
+\@xx{}%
+\@x{\@s{8.2} MaxEpoch ,\,\@s{34.75}}%
 \@y{\@s{0}%
  \ensuremath{Nat}, upper bound to keep \ensuremath{TLC} finite.
 }%
-}
-\fl{}
-\fl{ ReadersUsePublishedEpoch ,\,}\al{34}{2}{%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} ReadersUsePublishedEpoch ,\,\@s{27.61}}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}
 }}%
-}
-\fl{ RetireStampUsesPublishedEpoch ,\,}\al{35}{2}{%
+\@xx{}%
+\@x{\@s{8.2} RetireStampUsesPublishedEpoch ,\,\@s{4.10}}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}
 }}%
-}
-\fl{ AllowUseAfterExit}\al{36}{1}{%
+\@xx{}%
+\@x{\@s{8.2} AllowUseAfterExit\@s{69.00}}%
 \@y{\@s{0}%
  \ensuremath{{\BOOLEAN}
 }}%
-}
-\fl{}
-\fl{ {\ASSUME} MaxEntries \.{\in} Nat}
-\fl{ {\ASSUME} MaxEpoch \.{\in} Nat}
-\fl{ {\ASSUME} ReadersUsePublishedEpoch \.{\in} {\BOOLEAN}}
-\fl{ {\ASSUME} RetireStampUsesPublishedEpoch \.{\in} {\BOOLEAN}}
-\fl{ {\ASSUME} AllowUseAfterExit \.{\in} {\BOOLEAN}}
-\fl{}
- \fl{ ObjStates \.{\defeq} \{\@w{Unused} ,\,\@w{Live} ,\,\@w{Retired}
- ,\,\@w{Freed} \}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a \.{\geq} b \.{\THEN} a \.{\ELSE} b}
-\fl{}
- \fl{ MinSet ( S ) \.{\defeq} {\CHOOSE} m \.{\in} S \.{:} \A\, x \.{\in} S
- \.{:} m \.{\leq} x}
-\fl{}
-\fl{ StampEpoch ( published\_epoch ) \.{\defeq}}
-\fl{ {\IF} RetireStampUsesPublishedEpoch}
-\fl{ \.{\THEN} published\_epoch}
- \fl{ \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
- published\_epoch \.{-} 1}
-\fl{}
-\fl{ EnterEpochValue ( published\_epoch ) \.{\defeq}}
-\fl{ {\IF} ReadersUsePublishedEpoch}
-\fl{ \.{\THEN} published\_epoch}
- \fl{ \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
- published\_epoch \.{-} 1}
-\fl{}
-\fl{ ActiveEpochs ( cpu\_epoch ) \.{\defeq}}
- \fl{ \{ e \.{\in} 0 \.{\dotdot} MaxEpoch \.{:} ( e \.{\neq} 0 ) \.{\land} (
- \E\, c \.{\in} CPUs \.{:} cpu\_epoch [ c ] \.{=} e ) \}}
-\fl{}
-\fl{}
-\fl{}
-\fl{ BucketOfKey ( k ) \.{\defeq} {\CHOOSE} b \.{\in} BucketIds \.{:} {\TRUE}}
-\fl{}
-\fl{ BucketKeyCount ( bucketPtr ,\, bucketContents ) \.{\defeq}}
- \fl{ Cardinality ( \{ k \.{\in} Keys \.{:} \.{\LET} b \.{\defeq} BucketOfKey
- ( k ) \.{\IN}}
-\fl{ \.{\land}}\al{73}{1}{ bucketPtr [ b ] \.{\neq} 0}
- \fl{ \.{\land}}\al{74}{1}{ bucketContents [ bucketPtr [ b ] ] [ k ] \.{\neq}
- 0 \} )}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ {\VARIABLES}}
-\fl{}
-\fl{ published\_epoch ,\,}
-\fl{ released\_epoch ,\,}
-\fl{ cpu\_epoch ,\,}
-\fl{}
-\fl{}
-\fl{ obj\_state ,\,}
-\fl{ obj\_key ,\,}
-\fl{ obj\_val ,\,}
-\fl{ obj\_freed\_epoch ,\,}
-\fl{}
-\fl{ bucket\_state ,\,}
-\fl{ bucket\_contents ,\,}
-\fl{ bucket\_freed\_epoch ,\,}
-\fl{ bucket\_ptr ,\,}
-\fl{}
-\fl{}
-\fl{ reader\_key ,\,}
-\fl{ snapshot\_bucket ,\,}
-\fl{ held\_bucket ,\,}
-\fl{ held\_obj ,\,}
-\fl{}
-\fl{}
-\fl{ bad}
-\fl{}
-\fl{ TypeOK \.{\defeq}}
-\fl{ \.{\land}}\al{107}{1}{ published\_epoch \.{\in} Nat}
-\fl{ \.{\land}}\al{108}{1}{ released\_epoch \.{\in} Nat}
- \fl{ \.{\land}}\al{109}{1}{ cpu\_epoch}\al{109}{2}{ \.{\in}}\al{109}{3}{ [
- CPUs \.{\rightarrow} Nat ]}
-\fl{}
- \fl{ \.{\land}}\al{111}{1}{ obj\_state}\al{111}{2}{ \.{\in}}\al{111}{3}{ [
- ObjIds \.{\rightarrow} ObjStates ]}
- \fl{ \.{\land}}\al{112}{1}{ obj\_key}\al{112}{2}{ \.{\in}}\al{112}{3}{ [
- ObjIds}\al{112}{5}{ \.{\rightarrow}}\al{112}{6}{ Keys ]}
- \fl{ \.{\land}}\al{113}{1}{ obj\_val}\al{113}{2}{ \.{\in}}\al{113}{3}{ [
- ObjIds}\al{113}{5}{ \.{\rightarrow}}\al{113}{6}{ Values ]}
- \fl{ \.{\land}}\al{114}{1}{ obj\_freed\_epoch \.{\in} [ ObjIds
- \.{\rightarrow} Nat ]}
-\fl{}
- \fl{ \.{\land}}\al{116}{1}{ bucket\_state \.{\in} [ BucketObjs
- \.{\rightarrow} ObjStates ]}
- \fl{ \.{\land}}\al{117}{1}{ bucket\_contents \.{\in} [ BucketObjs
- \.{\rightarrow} [ Keys \.{\rightarrow} ObjIds \.{\cup} \{ 0 \} ] ]}
- \fl{ \.{\land}}\al{118}{1}{ bucket\_freed\_epoch \.{\in} [ BucketObjs
- \.{\rightarrow} Nat ]}
- \fl{ \.{\land}}\al{119}{1}{ bucket\_ptr}\al{119}{2}{ \.{\in}}\al{119}{3}{ [
- BucketIds \.{\rightarrow} BucketObjs \.{\cup} \{ 0 \} ]}
-\fl{}
- \fl{ \.{\land}}\al{121}{1}{ reader\_key}\al{121}{2}{ \.{\in}}\al{121}{3}{ [
- CPUs \.{\rightarrow} Keys ]}
- \fl{ \.{\land}}\al{122}{1}{ snapshot\_bucket \.{\in} [ CPUs \.{\rightarrow}
- BucketObjs \.{\cup} \{ 0 \} ]}
- \fl{ \.{\land}}\al{123}{1}{ held\_bucket \.{\in} [ CPUs \.{\rightarrow}
- BucketObjs \.{\cup} \{ 0 \} ]}
- \fl{ \.{\land}}\al{124}{1}{ held\_obj \.{\in} [ CPUs \.{\rightarrow} ObjIds
- \.{\cup} \{ 0 \} ]}
-\fl{}
-\fl{ \.{\land}}\al{126}{1}{ bad \.{\in} {\BOOLEAN}}
-\fl{}
-\fl{ BucketContentsWellFormed \.{\defeq}}
-\fl{ \A\, bo \.{\in} BucketObjs \.{:}}
-\fl{ \A\, k \.{\in} Keys \.{:}}
-\fl{ \.{\LET} o \.{\defeq} bucket\_contents [ bo ] [ k ] \.{\IN}}
-\fl{ o \.{=} 0 \.{\lor} ( o \.{\in} ObjIds \.{\land} obj\_key [ o ] \.{=} k )}
-\fl{}
-\fl{ BucketPtrPointsToLiveOrEmpty \.{\defeq}}
- \fl{ \A\, b \.{\in} BucketIds \.{:} bucket\_ptr [ b ] \.{=} 0 \.{\lor}
- bucket\_state [ bucket\_ptr [ b ] ] \.{=}\@w{Live}}
-\fl{}
-\fl{ NoFreedBeforeRetired \.{\defeq}}
- \fl{ \A\, o \.{\in} ObjIds \.{:} ( obj\_state [ o ] \.{=}\@w{Freed} )
- \.{\implies} ( obj\_freed\_epoch [ o ] \.{\leq} released\_epoch )}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Init}\al{145}{1}{ \.{\defeq}}
-\fl{ \.{\land}}\al{146}{1}{ published\_epoch \.{=} 1}
-\fl{ \.{\land}}\al{147}{1}{ released\_epoch}\al{147}{2}{ \.{=} 0}
- \fl{ \.{\land}}\al{148}{1}{ cpu\_epoch}\al{148}{2}{ \.{=}}\al{148}{3}{ [
- c}\al{148}{5}{ \.{\in} CPUs \.{\mapsto} 0 ]}
-\fl{}
- \fl{ \.{\land}}\al{150}{1}{ obj\_state}\al{150}{2}{ \.{=}}\al{150}{3}{ [
- o}\al{150}{5}{ \.{\in} ObjIds \.{\mapsto}\@w{Unused} ]}
- \fl{ \.{\land}}\al{151}{1}{ obj\_key}\al{151}{2}{ \.{=}}\al{151}{3}{ [
- o}\al{151}{5}{ \.{\in}}\al{151}{6}{ ObjIds}\al{151}{7}{
- \.{\mapsto}}\al{151}{8}{ {\CHOOSE} k}\al{151}{10}{ \.{\in}}\al{151}{11}{
- Keys \.{:} {\TRUE} ]}
- \fl{ \.{\land}}\al{152}{1}{ obj\_val}\al{152}{2}{ \.{=}}\al{152}{3}{ [
- o}\al{152}{5}{ \.{\in}}\al{152}{6}{ ObjIds}\al{152}{7}{
- \.{\mapsto}}\al{152}{8}{ {\CHOOSE} v}\al{152}{10}{ \.{\in}}\al{152}{11}{
- Values \.{:} {\TRUE} ]}
- \fl{ \.{\land}}\al{153}{1}{ obj\_freed\_epoch \.{=} [ o \.{\in} ObjIds
- \.{\mapsto} 0 ]}
-\fl{}
- \fl{ \.{\land}}\al{155}{1}{ bucket\_state \.{=} [ bo \.{\in} BucketObjs
- \.{\mapsto}\@w{Unused} ]}
- \fl{ \.{\land}}\al{156}{1}{ bucket\_contents \.{=} [ bo \.{\in} BucketObjs
- \.{\mapsto} [ k \.{\in} Keys \.{\mapsto} 0 ] ]}
- \fl{ \.{\land}}\al{157}{1}{ bucket\_freed\_epoch \.{=} [ bo \.{\in}
- BucketObjs \.{\mapsto} 0 ]}
- \fl{ \.{\land}}\al{158}{1}{ bucket\_ptr}\al{158}{2}{ \.{=}}\al{158}{3}{ [
- b}\al{158}{5}{ \.{\in}}\al{158}{6}{ BucketIds \.{\mapsto} 0 ]}
-\fl{}
- \fl{ \.{\land}}\al{160}{1}{ reader\_key}\al{160}{2}{ \.{=}}\al{160}{3}{ [
- c}\al{160}{5}{ \.{\in}}\al{160}{6}{ CPUs \.{\mapsto} {\CHOOSE} k \.{\in}
- Keys \.{:} {\TRUE} ]}
- \fl{ \.{\land}}\al{161}{1}{ snapshot\_bucket}\al{161}{2}{ \.{=} [ c \.{\in}
- CPUs \.{\mapsto} 0 ]}
- \fl{ \.{\land}}\al{162}{1}{ held\_bucket \.{=} [ c \.{\in} CPUs \.{\mapsto} 0
- ]}
-\fl{ \.{\land}}\al{163}{1}{ held\_obj \.{=} [ c \.{\in} CPUs \.{\mapsto} 0 ]}
-\fl{}
-\fl{ \.{\land}}\al{165}{1}{ bad \.{=} {\FALSE}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ ReaderEnter ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{172}{1}{ cpu\_epoch [ c ] \.{=} 0}
- \fl{ \.{\land}}\al{173}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
- {\bang} [ c ] \.{=} EnterEpochValue ( published\_epoch ) ]}
- \fl{ \.{\land}}\al{174}{1}{ {\UNCHANGED}}\al{174}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ ReaderExit ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{181}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
- \fl{ \.{\land}}\al{182}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
- {\bang} [ c ] \.{=} 0 ]}
-\fl{ \.{\land}}\al{183}{1}{ {\IF} AllowUseAfterExit}
- \fl{ \.{\THEN} {\UNCHANGED} {\langle} snapshot\_bucket ,\, held\_bucket ,\,
- held\_obj {\rangle}}
- \fl{ \.{\ELSE}}\al{185}{1}{ \.{\land}}\al{185}{2}{ snapshot\_bucket \.{'}
- \.{=} [ snapshot\_bucket {\EXCEPT} {\bang} [ c ] \.{=} 0 ]}
- \fl{ \.{\land}}\al{186}{1}{ held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
- {\bang} [ c ] \.{=} 0 ]}
- \fl{ \.{\land}}\al{187}{1}{ held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT}
- {\bang} [ c ] \.{=} 0 ]}
- \fl{ \.{\land}}\al{188}{1}{ {\UNCHANGED}}\al{188}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ ReaderBeginFind ( c ,\, k ) \.{\defeq}}
-\fl{ \.{\land}}\al{195}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
- \fl{ \.{\land}}\al{196}{1}{ reader\_key \.{'} \.{=} [ reader\_key {\EXCEPT}
- {\bang} [ c ] \.{=} k ]}
-\fl{ \.{\land}}\al{197}{1}{ \.{\LET} b \.{\defeq} BucketOfKey ( k ) \.{\IN}}
- \fl{ snapshot\_bucket \.{'} \.{=} [ snapshot\_bucket {\EXCEPT} {\bang} [ c ]
- \.{=} bucket\_ptr [ b ] ]}
- \fl{ \.{\land}}\al{199}{1}{ {\UNCHANGED}}\al{199}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ ReaderFinishFind ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{206}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
- \fl{ \.{\land}}\al{207}{1}{ \.{\LET}}\al{207}{2}{ bo}\al{207}{3}{
- \.{\defeq}}\al{207}{4}{ snapshot\_bucket [ c ]}
-\fl{ k}\al{208}{1}{ \.{\defeq}}\al{208}{2}{ reader\_key [ c ]}
- \fl{ o}\al{209}{1}{ \.{\defeq} {\IF} bo \.{=} 0 \.{\THEN} 0 \.{\ELSE}
- bucket\_contents [ bo ] [ k ]}
-\fl{ \.{\IN}}
- \fl{ \.{\land}}\al{211}{1}{ held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
- {\bang} [ c ] \.{=} bo ]}
- \fl{ \.{\land}}\al{212}{1}{ held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT}
- {\bang} [ c ] \.{=} o ]}
-\fl{ \.{\land}}\al{213}{1}{ bad \.{'} \.{=} bad \.{\lor}}
- \fl{ ( ( bo}\al{214}{3}{ \.{\neq}}\al{214}{4}{ 0 )}\al{214}{6}{
- \.{\land}}\al{214}{7}{ bucket\_state [ bo ] \.{=}\@w{Freed} ) \.{\lor}}
- \fl{ ( ( o}\al{215}{3}{ \.{\neq}}\al{215}{4}{ 0 )}\al{215}{6}{
- \.{\land}}\al{215}{7}{ obj\_state [ o ] \.{=}\@w{Freed} )}
- \fl{ \.{\land}}\al{216}{1}{ {\UNCHANGED}}\al{216}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket {\rangle}}
-\fl{}
-\fl{ ReaderUseHeld ( c ) \.{\defeq}}
-\fl{ \.{\land}}\al{222}{1}{ held\_obj [ c ] \.{\neq} 0}
-\fl{ \.{\land}}\al{223}{1}{ bad \.{'} \.{=} bad \.{\lor}}
- \fl{ ( held\_bucket [ c ] \.{\neq} 0 \.{\land} bucket\_state [ held\_bucket [
- c ] ] \.{=}\@w{Freed} ) \.{\lor}}
-\fl{ ( obj\_state [ held\_obj [ c ] ] \.{=}\@w{Freed} )}
- \fl{ \.{\land}}\al{226}{1}{ {\UNCHANGED}}\al{226}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
- \fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj
- {\rangle}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ AllocateUnusedObj ( o ) \.{\defeq} obj\_state [ o ] \.{=}\@w{Unused}}
- \fl{ AllocateUnusedBucket ( bo ) \.{\defeq} bucket\_state [ bo ]
- \.{=}\@w{Unused}}
-\fl{}
- \fl{ HasUnusedObj \.{\defeq} \E\, o \.{\in} ObjIds \.{:} AllocateUnusedObj (
- o )}
- \fl{ HasUnusedBucket}\al{239}{1}{ \.{\defeq}}\al{239}{2}{ \E\, bo \.{\in}
- BucketObjs \.{:} AllocateUnusedBucket ( bo )}
-\fl{}
- \fl{ ChooseUnusedObj}\al{241}{1}{ \.{\defeq}}\al{241}{2}{ {\CHOOSE} o \.{\in}
- ObjIds \.{:} AllocateUnusedObj ( o )}
- \fl{ ChooseUnusedBucket \.{\defeq} {\CHOOSE} bo \.{\in} BucketObjs \.{:}
- AllocateUnusedBucket ( bo )}
-\fl{}
- \fl{ RetiredObjs \.{\defeq} \{ o \.{\in} ObjIds \.{:} obj\_state [ o ]
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{ {\ASSUME} MaxEntries \.{\in} Nat}%
+\@x{ {\ASSUME} MaxEpoch \.{\in} Nat}%
+\@x{ {\ASSUME} ReadersUsePublishedEpoch \.{\in} {\BOOLEAN}}%
+\@x{ {\ASSUME} RetireStampUsesPublishedEpoch \.{\in} {\BOOLEAN}}%
+\@x{ {\ASSUME} AllowUseAfterExit \.{\in} {\BOOLEAN}}%
+\@pvspace{8.0pt}%
+ \@x{ ObjStates \.{\defeq} \{\@w{Unused} ,\,\@w{Live} ,\,\@w{Retired}
+ ,\,\@w{Freed} \}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Helpers
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a \.{\geq} b \.{\THEN} a \.{\ELSE} b}%
+\@pvspace{8.0pt}%
+ \@x{ MinSet ( S ) \.{\defeq} {\CHOOSE} m \.{\in} S \.{:} \A\, x \.{\in} S
+ \.{:} m \.{\leq} x}%
+\@pvspace{8.0pt}%
+\@x{ StampEpoch ( published\_epoch ) \.{\defeq}}%
+\@x{\@s{8.2} {\IF} RetireStampUsesPublishedEpoch}%
+\@x{\@s{8.2} \.{\THEN} published\_epoch}%
+ \@x{\@s{8.2} \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}%
+\@pvspace{8.0pt}%
+\@x{ EnterEpochValue ( published\_epoch ) \.{\defeq}}%
+\@x{\@s{8.2} {\IF} ReadersUsePublishedEpoch}%
+\@x{\@s{8.2} \.{\THEN} published\_epoch}%
+ \@x{\@s{8.2} \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}%
+\@pvspace{8.0pt}%
+\@x{ ActiveEpochs ( cpu\_epoch ) \.{\defeq}}%
+ \@x{\@s{8.2} \{ e \.{\in} 0 \.{\dotdot} MaxEpoch \.{:} ( e \.{\neq} 0 )
+ \.{\land} ( \E\, c \.{\in} CPUs \.{:} cpu\_epoch [ c ] \.{=} e ) \}}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Map a key to a bucket index.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ Configs typically use a single bucket, making this deterministic.
+}%
+\@xx{}%
+ \@x{ BucketOfKey ( k ) \.{\defeq} {\CHOOSE} b \.{\in} BucketIds \.{:}
+ {\TRUE}}%
+\@pvspace{8.0pt}%
+\@x{ BucketKeyCount ( bucketPtr ,\, bucketContents ) \.{\defeq}}%
+ \@x{\@s{8.2} Cardinality ( \{ k \.{\in} Keys \.{:} \.{\LET} b \.{\defeq}
+ BucketOfKey ( k ) \.{\IN}}%
+\@x{\@s{24.59} \.{\land} bucketPtr [ b ] \.{\neq} 0}%
+ \@x{\@s{24.59} \.{\land} bucketContents [ bucketPtr [ b ] ] [ k ] \.{\neq} 0
+ \} )}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+State
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ {\VARIABLES}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Epoch state.
+}%
+\@xx{}%
+\@x{\@s{8.2} published\_epoch ,\,}%
+\@x{\@s{8.2} released\_epoch ,\,}%
+\@x{\@s{8.2} cpu\_epoch ,\,}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Heap objects.
+}%
+\@xx{}%
+\@x{\@s{8.2} obj\_state ,\,}%
+\@x{\@s{8.2} obj\_key ,\,}%
+\@x{\@s{8.2} obj\_val ,\,}%
+\@x{\@s{8.2} obj\_freed\_epoch ,\,}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} bucket\_state ,\,}%
+\@x{\@s{8.2} bucket\_contents ,\,}%
+\@x{\@s{8.2} bucket\_freed\_epoch ,\,}%
+\@x{\@s{8.2} bucket\_ptr ,\,}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Reader local state.
+}%
+\@xx{}%
+\@x{\@s{8.2} reader\_key ,\,}%
+\@x{\@s{8.2} snapshot\_bucket ,\,}%
+\@x{\@s{8.2} held\_bucket ,\,}%
+\@x{\@s{8.2} held\_obj ,\,}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Error latch.
+}%
+\@xx{}%
+\@x{\@s{8.2} bad}%
+\@pvspace{8.0pt}%
+\@x{ TypeOK \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} published\_epoch \.{\in} Nat}%
+\@x{\@s{8.2} \.{\land} released\_epoch \.{\in} Nat}%
+\@x{\@s{8.2} \.{\land} cpu\_epoch \.{\in} [ CPUs \.{\rightarrow} Nat ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\land} obj\_state\@s{4.70} \.{\in} [ ObjIds \.{\rightarrow}
+ ObjStates ]}%
+\@x{\@s{8.2} \.{\land} obj\_key \.{\in} [ ObjIds \.{\rightarrow} Keys ]}%
+ \@x{\@s{8.2} \.{\land} obj\_val\@s{1.64} \.{\in} [ ObjIds \.{\rightarrow}
+ Values ]}%
+ \@x{\@s{8.2} \.{\land} obj\_freed\_epoch \.{\in} [ ObjIds \.{\rightarrow} Nat
+ ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\land} bucket\_state \.{\in} [ BucketObjs \.{\rightarrow}
+ ObjStates ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_contents \.{\in} [ BucketObjs \.{\rightarrow}
+ [ Keys \.{\rightarrow} ObjIds \.{\cup} \{ 0 \} ] ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_freed\_epoch \.{\in} [ BucketObjs
+ \.{\rightarrow} Nat ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_ptr\@s{1.08} \.{\in} [ BucketIds
+ \.{\rightarrow} BucketObjs \.{\cup} \{ 0 \} ]}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} \.{\land} reader\_key \.{\in} [ CPUs \.{\rightarrow} Keys ]}%
+ \@x{\@s{8.2} \.{\land} snapshot\_bucket \.{\in} [ CPUs \.{\rightarrow}
+ BucketObjs \.{\cup} \{ 0 \} ]}%
+ \@x{\@s{8.2} \.{\land} held\_bucket \.{\in} [ CPUs \.{\rightarrow} BucketObjs
+ \.{\cup} \{ 0 \} ]}%
+ \@x{\@s{8.2} \.{\land} held\_obj \.{\in} [ CPUs \.{\rightarrow} ObjIds
+ \.{\cup} \{ 0 \} ]}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} \.{\land} bad \.{\in} {\BOOLEAN}}%
+\@pvspace{8.0pt}%
+\@x{ BucketContentsWellFormed \.{\defeq}}%
+\@x{\@s{8.2} \A\, bo \.{\in} BucketObjs \.{:}}%
+\@x{\@s{16.4} \A\, k \.{\in} Keys \.{:}}%
+\@x{\@s{24.59} \.{\LET} o \.{\defeq} bucket\_contents [ bo ] [ k ] \.{\IN}}%
+ \@x{\@s{32.8} o \.{=} 0 \.{\lor} ( o \.{\in} ObjIds \.{\land} obj\_key [ o ]
+ \.{=} k )}%
+\@pvspace{8.0pt}%
+\@x{ BucketPtrPointsToLiveOrEmpty \.{\defeq}}%
+ \@x{\@s{8.2} \A\, b \.{\in} BucketIds \.{:} bucket\_ptr [ b ] \.{=} 0
+ \.{\lor} bucket\_state [ bucket\_ptr [ b ] ] \.{=}\@w{Live}}%
+\@pvspace{8.0pt}%
+\@x{ NoFreedBeforeRetired \.{\defeq}}%
+ \@x{\@s{8.2} \A\, o \.{\in} ObjIds \.{:} ( obj\_state [ o ] \.{=}\@w{Freed} )
+ \.{\implies} ( obj\_freed\_epoch [ o ] \.{\leq} released\_epoch )}%
+\@pvspace{16.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Initialization
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Init \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} published\_epoch \.{=} 1}%
+\@x{\@s{8.2} \.{\land} released\_epoch\@s{3.31} \.{=} 0}%
+ \@x{\@s{8.2} \.{\land} cpu\_epoch \.{=} [ c\@s{0.57} \.{\in} CPUs \.{\mapsto}
+ 0 ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\land} obj\_state\@s{4.70} \.{=} [ o \.{\in} ObjIds
+ \.{\mapsto}\@w{Unused} ]}%
+ \@x{\@s{8.2} \.{\land} obj\_key \.{=} [ o \.{\in} ObjIds \.{\mapsto}
+ {\CHOOSE} k \.{\in} Keys \.{:} {\TRUE} ]}%
+ \@x{\@s{8.2} \.{\land} obj\_val\@s{1.64} \.{=} [ o \.{\in} ObjIds \.{\mapsto}
+ {\CHOOSE} v \.{\in} Values \.{:} {\TRUE} ]}%
+ \@x{\@s{8.2} \.{\land} obj\_freed\_epoch \.{=} [ o \.{\in} ObjIds \.{\mapsto}
+ 0 ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\land} bucket\_state \.{=} [ bo \.{\in} BucketObjs
+ \.{\mapsto}\@w{Unused} ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_contents \.{=} [ bo \.{\in} BucketObjs
+ \.{\mapsto} [ k \.{\in} Keys \.{\mapsto} 0 ] ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_freed\_epoch \.{=} [ bo \.{\in} BucketObjs
+ \.{\mapsto} 0 ]}%
+ \@x{\@s{8.2} \.{\land} bucket\_ptr\@s{1.08} \.{=} [ b\@s{2.36} \.{\in}
+ BucketIds \.{\mapsto} 0 ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\land} reader\_key \.{=} [ c\@s{2.42} \.{\in} CPUs
+ \.{\mapsto} {\CHOOSE} k \.{\in} Keys \.{:} {\TRUE} ]}%
+ \@x{\@s{8.2} \.{\land} snapshot\_bucket \.{=} [ c \.{\in} CPUs \.{\mapsto} 0
+ ]}%
+\@x{\@s{8.2} \.{\land} held\_bucket \.{=} [ c \.{\in} CPUs \.{\mapsto} 0 ]}%
+\@x{\@s{8.2} \.{\land} held\_obj \.{=} [ c \.{\in} CPUs \.{\mapsto} 0 ]}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} \.{\land} bad \.{=} {\FALSE}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+ Reader steps (modeling \ensuremath{ebpf\_hash\_table\_find} snapshot +
+ dereference)
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ ReaderEnter ( c ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} cpu\_epoch [ c ] \.{=} 0}%
+ \@x{\@s{8.2} \.{\land} cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT} {\bang}
+ [ c ] \.{=} EnterEpochValue ( published\_epoch ) ]}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{81.99} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{81.99} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderExit ( c ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} cpu\_epoch [ c ] \.{\neq} 0}%
+ \@x{\@s{8.2} \.{\land} cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT} {\bang}
+ [ c ] \.{=} 0 ]}%
+\@x{\@s{8.2} \.{\land} {\IF} AllowUseAfterExit}%
+ \@x{\@s{19.31} \.{\THEN} {\UNCHANGED} {\langle} snapshot\_bucket ,\,
+ held\_bucket ,\, held\_obj {\rangle}}%
+ \@x{\@s{19.31} \.{\ELSE} \.{\land} snapshot\_bucket \.{'} \.{=} [
+ snapshot\_bucket {\EXCEPT} {\bang} [ c ] \.{=} 0 ]}%
+ \@x{\@s{50.62} \.{\land} held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
+ {\bang} [ c ] \.{=} 0 ]}%
+ \@x{\@s{50.62} \.{\land} held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT} {\bang}
+ [ c ] \.{=} 0 ]}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+\@x{\@s{81.99} reader\_key ,\,}%
+\@x{\@s{81.99} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderBeginFind ( c ,\, k ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} cpu\_epoch [ c ] \.{\neq} 0}%
+ \@x{\@s{8.2} \.{\land} reader\_key \.{'} \.{=} [ reader\_key {\EXCEPT}
+ {\bang} [ c ] \.{=} k ]}%
+\@x{\@s{8.2} \.{\land} \.{\LET} b \.{\defeq} BucketOfKey ( k ) \.{\IN}}%
+ \@x{\@s{27.51} snapshot\_bucket \.{'} \.{=} [ snapshot\_bucket {\EXCEPT}
+ {\bang} [ c ] \.{=} bucket\_ptr [ b ] ]}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+\@x{\@s{81.99} held\_bucket ,\, held\_obj ,\,}%
+\@x{\@s{81.99} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderFinishFind ( c ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} cpu\_epoch [ c ] \.{\neq} 0}%
+\@x{\@s{8.2} \.{\land} \.{\LET} bo \.{\defeq} snapshot\_bucket [ c ]}%
+\@x{\@s{39.71} k\@s{4.16} \.{\defeq} reader\_key [ c ]}%
+ \@x{\@s{39.71} o\@s{4.08} \.{\defeq} {\IF} bo \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ bucket\_contents [ bo ] [ k ]}%
+\@x{\@s{19.31} \.{\IN}}%
+ \@x{\@s{19.31} \.{\land} held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
+ {\bang} [ c ] \.{=} bo ]}%
+ \@x{\@s{19.31} \.{\land} held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT} {\bang}
+ [ c ] \.{=} o ]}%
+\@x{\@s{19.31} \.{\land} bad \.{'} \.{=} bad \.{\lor}}%
+ \@x{\@s{34.52} ( ( bo \.{\neq} 0 ) \.{\land} bucket\_state [ bo ]
+ \.{=}\@w{Freed} ) \.{\lor}}%
+ \@x{\@s{34.52} ( ( o\@s{4.08} \.{\neq} 0 ) \.{\land} obj\_state [ o ]
+ \.{=}\@w{Freed} )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+\@x{\@s{81.99} reader\_key ,\, snapshot\_bucket {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReaderUseHeld ( c ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} held\_obj [ c ] \.{\neq} 0}%
+\@x{\@s{8.2} \.{\land} bad \.{'} \.{=} bad \.{\lor}}%
+ \@x{\@s{23.41} ( held\_bucket [ c ] \.{\neq} 0 \.{\land} bucket\_state [
+ held\_bucket [ c ] ] \.{=}\@w{Freed} ) \.{\lor}}%
+\@x{\@s{23.41} ( obj\_state [ held\_obj [ c ] ] \.{=}\@w{Freed} )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{81.99} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Writer step (modeling immutable bucket replacement + retiring old)
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ AllocateUnusedObj ( o ) \.{\defeq} obj\_state [ o ] \.{=}\@w{Unused}}%
+ \@x{ AllocateUnusedBucket ( bo ) \.{\defeq} bucket\_state [ bo ]
+ \.{=}\@w{Unused}}%
+\@pvspace{8.0pt}%
+ \@x{ HasUnusedObj \.{\defeq} \E\, o \.{\in} ObjIds \.{:} AllocateUnusedObj (
+ o )}%
+ \@x{ HasUnusedBucket\@s{0.33} \.{\defeq} \E\, bo \.{\in} BucketObjs \.{:}
+ AllocateUnusedBucket ( bo )}%
+\@pvspace{8.0pt}%
+ \@x{ ChooseUnusedObj \.{\defeq} {\CHOOSE} o \.{\in} ObjIds \.{:}
+ AllocateUnusedObj ( o )}%
+ \@x{ ChooseUnusedBucket \.{\defeq} {\CHOOSE} bo \.{\in} BucketObjs \.{:}
+ AllocateUnusedBucket ( bo )}%
+\@pvspace{8.0pt}%
+ \@x{ RetiredObjs \.{\defeq} \{ o \.{\in} ObjIds \.{:} obj\_state [ o ]
  \.{=}\@w{Retired} \.{\land} obj\_freed\_epoch [ o ] \.{\leq} released\_epoch
- \}}
- \fl{ RetiredBuckets \.{\defeq} \{ bo \.{\in} BucketObjs \.{:} bucket\_state [
+ \}}%
+ \@x{ RetiredBuckets \.{\defeq} \{ bo \.{\in} BucketObjs \.{:} bucket\_state [
  bo ] \.{=}\@w{Retired} \.{\land} bucket\_freed\_epoch [ bo ] \.{\leq}
- released\_epoch \}}
-\fl{}
-\fl{ WriterUpsert ( k ,\, v ) \.{\defeq}}
-\fl{ \.{\land}}\al{248}{1}{ HasUnusedObj}
-\fl{ \.{\land}}\al{249}{1}{ HasUnusedBucket}
- \fl{ \.{\land}}\al{250}{1}{ \.{\LET}}\al{250}{2}{ new\_obj}\al{250}{3}{
- \.{\defeq}}\al{250}{4}{ ChooseUnusedObj}
-\fl{ new\_bo}\al{251}{1}{ \.{\defeq}}\al{251}{2}{ ChooseUnusedBucket}
-\fl{ b \.{\defeq} BucketOfKey ( k )}
-\fl{ old\_bo \.{\defeq} bucket\_ptr [ b ]}
- \fl{ old\_obj \.{\defeq} {\IF} old\_bo \.{=} 0 \.{\THEN} 0 \.{\ELSE}
- bucket\_contents [ old\_bo ] [ k ]}
-\fl{ key\_is\_new}\al{255}{1}{ \.{\defeq}}\al{255}{2}{ ( old\_obj \.{=} 0 )}
- \fl{ can\_insert}\al{256}{1}{ \.{\defeq}}\al{256}{2}{ ( BucketKeyCount (
- bucket\_ptr ,\, bucket\_contents ) \.{<} MaxEntries )}
-\fl{ \.{\IN}}
-\fl{ \.{\land}}\al{258}{1}{ ( {\lnot} key\_is\_new ) \.{\lor} can\_insert}
-\fl{}
-\fl{ \.{\land}}\al{260}{1}{ \.{\LET}}
- \fl{ base\_obj\_state}\al{261}{1}{ \.{\defeq}}\al{261}{2}{ [ obj\_state
- {\EXCEPT} {\bang} [ new\_obj ] \.{=}\@w{Live} ]}
- \fl{ base\_obj\_freed}\al{262}{1}{ \.{\defeq}}\al{262}{2}{ [
- obj\_freed\_epoch {\EXCEPT} {\bang} [ new\_obj ] \.{=} 0 ]}
-\fl{ final\_obj\_state \.{\defeq}}
- \fl{ {\IF} old\_obj \.{=} 0 \.{\THEN} base\_obj\_state \.{\ELSE} [
- base\_obj\_state {\EXCEPT} {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}
-\fl{ final\_obj\_freed \.{\defeq}}
-\fl{ {\IF} old\_obj \.{=} 0}
-\fl{ \.{\THEN} base\_obj\_freed}
- \fl{ \.{\ELSE} [ base\_obj\_freed {\EXCEPT} {\bang} [ old\_obj ] \.{=}
- StampEpoch ( published\_epoch ) ]}
-\fl{}
- \fl{ base\_bucket\_state}\al{270}{1}{ \.{\defeq}}\al{270}{2}{ [ bucket\_state
- {\EXCEPT} {\bang} [ new\_bo ] \.{=}\@w{Live} ]}
- \fl{ base\_bucket\_freed}\al{271}{1}{ \.{\defeq}}\al{271}{2}{ [
- bucket\_freed\_epoch {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}
-\fl{ final\_bucket\_state \.{\defeq}}
- \fl{ {\IF} old\_bo \.{=} 0 \.{\THEN} base\_bucket\_state \.{\ELSE} [
- base\_bucket\_state {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}
-\fl{ final\_bucket\_freed \.{\defeq}}
-\fl{ {\IF} old\_bo \.{=} 0}
-\fl{ \.{\THEN} base\_bucket\_freed}
- \fl{ \.{\ELSE} [ base\_bucket\_freed {\EXCEPT} {\bang} [ old\_bo ] \.{=}
- StampEpoch ( published\_epoch ) ]}
-\fl{ \.{\IN}}
-\fl{ \.{\land}}\al{279}{1}{ obj\_state \.{'} \.{=} final\_obj\_state}
- \fl{ \.{\land}}\al{280}{1}{ obj\_key \.{'}}\al{280}{3}{ \.{=}}\al{280}{4}{ [
- obj\_key {\EXCEPT} {\bang} [ new\_obj ]}\al{280}{11}{ \.{=}}\al{280}{12}{ k
- ]}
- \fl{ \.{\land}}\al{281}{1}{ obj\_val \.{'}}\al{281}{3}{ \.{=}}\al{281}{4}{ [
- obj\_val {\EXCEPT} {\bang} [ new\_obj ]}\al{281}{11}{ \.{=}}\al{281}{12}{ v
- ]}
-\fl{ \.{\land}}\al{282}{1}{ obj\_freed\_epoch \.{'} \.{=} final\_obj\_freed}
-\fl{}
-\fl{ \.{\land}}\al{284}{1}{ bucket\_state \.{'} \.{=} final\_bucket\_state}
- \fl{ \.{\land}}\al{285}{1}{ bucket\_freed\_epoch \.{'} \.{=}
- final\_bucket\_freed}
-\fl{ \.{\land}}\al{286}{1}{ bucket\_contents \.{'} \.{=}}
-\fl{ [}\al{287}{1}{ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}
-\fl{ {\IF} old\_bo \.{=} 0}
- \fl{ \.{\THEN} [ x}\al{289}{3}{ \.{\in}}\al{289}{4}{ Keys}\al{289}{5}{
- \.{\mapsto}}\al{289}{6}{ {\IF} x}\al{289}{8}{ \.{=}}\al{289}{9}{
- k}\al{289}{10}{ \.{\THEN}}\al{289}{11}{ new\_obj}\al{289}{12}{
- \.{\ELSE}}\al{289}{13}{ 0 ]}
- \fl{ \.{\ELSE} [ x}\al{290}{3}{ \.{\in}}\al{290}{4}{ Keys}\al{290}{5}{
- \.{\mapsto}}\al{290}{6}{ {\IF} x}\al{290}{8}{ \.{=}}\al{290}{9}{
- k}\al{290}{10}{ \.{\THEN}}\al{290}{11}{ new\_obj}\al{290}{12}{
- \.{\ELSE}}\al{290}{13}{ bucket\_contents [ old\_bo ] [ x ] ] ]}
-\fl{}
- \fl{ \.{\land}}\al{292}{1}{ bucket\_ptr \.{'}}\al{292}{3}{ \.{=} [
- bucket\_ptr {\EXCEPT} {\bang} [ b ] \.{=} new\_bo ]}
-\fl{}
- \fl{ \.{\land}}\al{294}{1}{ {\UNCHANGED}}\al{294}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ WriterDelete ( k ) \.{\defeq}}
-\fl{ \.{\land}}\al{299}{1}{ HasUnusedBucket}
- \fl{ \.{\land}}\al{300}{1}{ \.{\LET}}\al{300}{2}{ new\_bo \.{\defeq}
- ChooseUnusedBucket}
-\fl{ b \.{\defeq} BucketOfKey ( k )}
-\fl{ old\_bo \.{\defeq} bucket\_ptr [ b ]}
-\fl{ \.{\IN}}
-\fl{ \.{\land}}\al{304}{1}{ old\_bo \.{\neq} 0}
- \fl{ \.{\land}}\al{305}{1}{ \.{\LET} old\_obj \.{\defeq} bucket\_contents [
- old\_bo ] [ k ] \.{\IN}}
-\fl{ \.{\land} old\_obj \.{\neq} 0}
-\fl{}
-\fl{}
- \fl{ \.{\land}}\al{309}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state
- {\EXCEPT} {\bang} [ new\_bo ] \.{=}\@w{Live} ]}
- \fl{ \.{\land}}\al{310}{1}{ bucket\_freed\_epoch \.{'} \.{=} [
- bucket\_freed\_epoch {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}
-\fl{ \.{\land}}\al{311}{1}{ bucket\_contents \.{'} \.{=}}
-\fl{ [}\al{312}{1}{ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}
- \fl{ [ x \.{\in} Keys \.{\mapsto} {\IF} x \.{=} k \.{\THEN} 0 \.{\ELSE}
- bucket\_contents [ old\_bo ] [ x ] ] ]}
- \fl{ \.{\land}}\al{314}{1}{ bucket\_ptr \.{'} \.{=} [ bucket\_ptr {\EXCEPT}
- {\bang} [ b ] \.{=} new\_bo ]}
-\fl{}
-\fl{}
- \fl{ \.{\land}}\al{317}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state \.{'}
- {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}
- \fl{ \.{\land}}\al{318}{1}{ bucket\_freed\_epoch \.{'} \.{=} [
+ released\_epoch \}}%
+\@pvspace{8.0pt}%
+\@x{ WriterUpsert ( k ,\, v ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} HasUnusedObj}%
+\@x{\@s{8.2} \.{\land} HasUnusedBucket}%
+\@x{\@s{8.2} \.{\land} \.{\LET} new\_obj \.{\defeq} ChooseUnusedObj}%
+\@x{\@s{39.71} new\_bo\@s{4.39} \.{\defeq} ChooseUnusedBucket}%
+\@x{\@s{39.71} b \.{\defeq} BucketOfKey ( k )}%
+\@x{\@s{39.71} old\_bo \.{\defeq} bucket\_ptr [ b ]}%
+ \@x{\@s{39.71} old\_obj \.{\defeq} {\IF} old\_bo \.{=} 0 \.{\THEN} 0
+ \.{\ELSE} bucket\_contents [ old\_bo ] [ k ]}%
+\@x{\@s{39.71} key\_is\_new \.{\defeq} ( old\_obj \.{=} 0 )}%
+ \@x{\@s{39.71} can\_insert\@s{3.90} \.{\defeq} ( BucketKeyCount ( bucket\_ptr
+ ,\, bucket\_contents ) \.{<} MaxEntries )}%
+\@x{\@s{19.31} \.{\IN}}%
+\@x{\@s{19.31} \.{\land} ( {\lnot} key\_is\_new ) \.{\lor} can\_insert}%
+\@pvspace{8.0pt}%
+\@x{\@s{19.31} \.{\land} \.{\LET}}%
+ \@x{\@s{42.72} base\_obj\_state \.{\defeq} [ obj\_state {\EXCEPT} {\bang} [
+ new\_obj ] \.{=}\@w{Live} ]}%
+ \@x{\@s{42.72} base\_obj\_freed\@s{0.10} \.{\defeq} [ obj\_freed\_epoch
+ {\EXCEPT} {\bang} [ new\_obj ] \.{=} 0 ]}%
+\@x{\@s{42.72} final\_obj\_state \.{\defeq}}%
+ \@x{\@s{50.92} {\IF} old\_obj \.{=} 0 \.{\THEN} base\_obj\_state \.{\ELSE} [
+ base\_obj\_state {\EXCEPT} {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}%
+\@x{\@s{42.72} final\_obj\_freed \.{\defeq}}%
+\@x{\@s{50.92} {\IF} old\_obj \.{=} 0}%
+\@x{\@s{50.92} \.{\THEN} base\_obj\_freed}%
+ \@x{\@s{50.92} \.{\ELSE} [ base\_obj\_freed {\EXCEPT} {\bang} [ old\_obj ]
+ \.{=} StampEpoch ( published\_epoch ) ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{42.72} base\_bucket\_state \.{\defeq} [ bucket\_state {\EXCEPT}
+ {\bang} [ new\_bo ] \.{=}\@w{Live} ]}%
+ \@x{\@s{42.72} base\_bucket\_freed\@s{0.10} \.{\defeq} [ bucket\_freed\_epoch
+ {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}%
+\@x{\@s{42.72} final\_bucket\_state \.{\defeq}}%
+ \@x{\@s{50.92} {\IF} old\_bo \.{=} 0 \.{\THEN} base\_bucket\_state \.{\ELSE}
+ [ base\_bucket\_state {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}%
+\@x{\@s{42.72} final\_bucket\_freed \.{\defeq}}%
+\@x{\@s{50.92} {\IF} old\_bo \.{=} 0}%
+\@x{\@s{50.92} \.{\THEN} base\_bucket\_freed}%
+ \@x{\@s{50.92} \.{\ELSE} [ base\_bucket\_freed {\EXCEPT} {\bang} [ old\_bo ]
+ \.{=} StampEpoch ( published\_epoch ) ]}%
+\@x{\@s{34.52} \.{\IN}}%
+\@x{\@s{34.52} \.{\land} obj\_state \.{'} \.{=} final\_obj\_state}%
+ \@x{\@s{34.52} \.{\land} obj\_key \.{'} \.{=} [ obj\_key {\EXCEPT} {\bang} [
+ new\_obj ] \.{=} k ]}%
+ \@x{\@s{34.52} \.{\land} obj\_val \.{'}\@s{1.64} \.{=} [ obj\_val {\EXCEPT}
+ {\bang} [ new\_obj ]\@s{1.64} \.{=} v ]}%
+\@x{\@s{34.52} \.{\land} obj\_freed\_epoch \.{'} \.{=} final\_obj\_freed}%
+\@pvspace{8.0pt}%
+\@x{\@s{34.52} \.{\land} bucket\_state \.{'} \.{=} final\_bucket\_state}%
+ \@x{\@s{34.52} \.{\land} bucket\_freed\_epoch \.{'} \.{=}
+ final\_bucket\_freed}%
+\@x{\@s{34.52} \.{\land} bucket\_contents \.{'} \.{=}}%
+\@x{\@s{53.83} [ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}%
+\@x{\@s{60.71} {\IF} old\_bo \.{=} 0}%
+ \@x{\@s{60.71} \.{\THEN} [ x \.{\in} Keys \.{\mapsto} {\IF} x \.{=} k
+ \.{\THEN} new\_obj \.{\ELSE} 0 ]}%
+ \@x{\@s{60.71} \.{\ELSE} [ x \.{\in} Keys \.{\mapsto} {\IF} x \.{=} k
+ \.{\THEN} new\_obj \.{\ELSE} bucket\_contents [ old\_bo ] [ x ] ] ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{34.52} \.{\land} bucket\_ptr \.{'}\@s{5.94} \.{=} [ bucket\_ptr
+ {\EXCEPT} {\bang} [ b ] \.{=} new\_bo ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{34.52} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{108.32} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{108.32} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ WriterDelete ( k ) \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} HasUnusedBucket}%
+\@x{\@s{8.2} \.{\land} \.{\LET} new\_bo \.{\defeq} ChooseUnusedBucket}%
+\@x{\@s{39.71} b \.{\defeq} BucketOfKey ( k )}%
+\@x{\@s{39.71} old\_bo \.{\defeq} bucket\_ptr [ b ]}%
+\@x{\@s{19.31} \.{\IN}}%
+\@x{\@s{19.31} \.{\land} old\_bo \.{\neq} 0}%
+ \@x{\@s{19.31} \.{\land} \.{\LET} old\_obj \.{\defeq} bucket\_contents [
+ old\_bo ] [ k ] \.{\IN}}%
+\@x{\@s{30.42} \.{\land} old\_obj \.{\neq} 0}%
+\@pvspace{8.0pt}%
+\@x{\@s{38.62}}%
+\@y{\@s{0}%
+ New bucket is copy of old, with key removed.
+}%
+\@xx{}%
+ \@x{\@s{38.62} \.{\land} bucket\_state \.{'} \.{=} [ bucket\_state {\EXCEPT}
+ {\bang} [ new\_bo ] \.{=}\@w{Live} ]}%
+ \@x{\@s{38.62} \.{\land} bucket\_freed\_epoch \.{'} \.{=} [
+ bucket\_freed\_epoch {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}%
+\@x{\@s{38.62} \.{\land} bucket\_contents \.{'} \.{=}}%
+\@x{\@s{57.93} [ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}%
+ \@x{\@s{64.81} [ x \.{\in} Keys \.{\mapsto} {\IF} x \.{=} k \.{\THEN} 0
+ \.{\ELSE} bucket\_contents [ old\_bo ] [ x ] ] ]}%
+ \@x{\@s{38.62} \.{\land} bucket\_ptr \.{'} \.{=} [ bucket\_ptr {\EXCEPT}
+ {\bang} [ b ] \.{=} new\_bo ]}%
+\@pvspace{8.0pt}%
+\@x{\@s{38.62}}%
+\@y{\@s{0}%
+ Retire old bucket and old value.
+}%
+\@xx{}%
+ \@x{\@s{38.62} \.{\land} bucket\_state \.{'} \.{=} [ bucket\_state \.{'}
+ {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}%
+ \@x{\@s{38.62} \.{\land} bucket\_freed\_epoch \.{'} \.{=} [
  bucket\_freed\_epoch \.{'} {\EXCEPT} {\bang} [ old\_bo ] \.{=} StampEpoch (
- published\_epoch ) ]}
-\fl{}
- \fl{ \.{\land}}\al{320}{1}{ obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
- {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}
- \fl{ \.{\land}}\al{321}{1}{ obj\_freed\_epoch \.{'} \.{=} [ obj\_freed\_epoch
- {\EXCEPT} {\bang} [ old\_obj ] \.{=} StampEpoch ( published\_epoch ) ]}
-\fl{}
- \fl{ \.{\land}}\al{323}{1}{ {\UNCHANGED}}\al{323}{2}{ {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_key ,\, obj\_val ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ AdvancePublishedEpoch \.{\defeq}}
-\fl{ \.{\land}}\al{333}{1}{ published\_epoch \.{<} MaxEpoch}
- \fl{ \.{\land}}\al{334}{1}{ published\_epoch \.{'} \.{=} published\_epoch
- \.{+} 1}
- \fl{ \.{\land}}\al{335}{1}{ {\UNCHANGED}}\al{335}{2}{ {\langle}
- released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ ComputeReleasedEpoch \.{\defeq}}
- \fl{ \.{\land}}\al{342}{1}{ \.{\LET}}\al{342}{2}{ active \.{\defeq}
- ActiveEpochs ( cpu\_epoch )}
-\fl{ candidate \.{\defeq}}
-\fl{ {\IF} active \.{=} \{ \}}
- \fl{ \.{\THEN} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
- published\_epoch \.{-} 1}
- \fl{ \.{\ELSE} \.{\LET} m \.{\defeq} MinSet ( active ) \.{\IN} {\IF} m \.{=}
- 0 \.{\THEN} 0 \.{\ELSE} m \.{-} 1}
-\fl{ \.{\IN}}
-\fl{ released\_epoch \.{'} \.{=} Max2 ( released\_epoch ,\, candidate )}
- \fl{ \.{\land}}\al{349}{1}{ {\UNCHANGED}}\al{349}{2}{ {\langle}
- published\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{ ReclaimOne \.{\defeq}}
-\fl{ \.{\lor} \.{\land} RetiredObjs \.{\neq} \{ \}}
- \fl{ \.{\land} \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} RetiredObjs \.{:}
- {\TRUE} \.{\IN}}
- \fl{ \.{\land}}\al{358}{1}{ obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
- {\bang} [ o ] \.{=}\@w{Freed} ]}
- \fl{ \.{\land}}\al{359}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
- released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{ \.{\lor} \.{\land} RetiredBuckets \.{\neq} \{ \}}
- \fl{ \.{\land} \.{\LET} bo \.{\defeq} {\CHOOSE} x \.{\in} RetiredBuckets
- \.{:} {\TRUE} \.{\IN}}
- \fl{ \.{\land}}\al{366}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state
- {\EXCEPT} {\bang} [ bo ] \.{=}\@w{Freed} ]}
- \fl{ \.{\land}}\al{367}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
- released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
-\fl{ bucket\_contents ,\, bucket\_freed\_epoch ,\, bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Next}\al{377}{1}{ \.{\defeq}}
- \fl{ \.{\lor}}\al{378}{1}{ \E\, c}\al{378}{3}{ \.{\in}}\al{378}{4}{
- CPUs}\al{378}{5}{ \.{:}}\al{378}{6}{ ReaderEnter ( c )}
- \fl{ \.{\lor}}\al{379}{1}{ \E\, c}\al{379}{3}{ \.{\in}}\al{379}{4}{
- CPUs}\al{379}{5}{ \.{:}}\al{379}{6}{ ReaderExit ( c )}
- \fl{ \.{\lor}}\al{380}{1}{ \E\, c}\al{380}{3}{ \.{\in} CPUs}\al{380}{5}{
- \.{:} \E\, k \.{\in} Keys \.{:} ReaderBeginFind ( c ,\, k )}
- \fl{ \.{\lor}}\al{381}{1}{ \E\, c}\al{381}{3}{ \.{\in} CPUs}\al{381}{5}{
- \.{:} ReaderFinishFind ( c )}
- \fl{ \.{\lor}}\al{382}{1}{ \E\, c}\al{382}{3}{ \.{\in} CPUs}\al{382}{5}{
- \.{:} ReaderUseHeld ( c )}
-\fl{}
- \fl{ \.{\lor}}\al{384}{1}{ \E\, k}\al{384}{3}{ \.{\in} Keys}\al{384}{5}{
- \.{:} \E\, v \.{\in} Values \.{:} WriterUpsert ( k ,\, v )}
- \fl{ \.{\lor}}\al{385}{1}{ \E\, k}\al{385}{3}{ \.{\in} Keys}\al{385}{5}{
- \.{:} WriterDelete ( k )}
-\fl{}
-\fl{ \.{\lor}}\al{387}{1}{ AdvancePublishedEpoch}
-\fl{ \.{\lor}}\al{388}{1}{ ComputeReleasedEpoch}
-\fl{ \.{\lor}}\al{389}{1}{ ReclaimOne}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{}
-\fl{ Safety \.{\defeq}}
-\fl{ \.{\land}}\al{396}{1}{ {\lnot} bad}
-\fl{ \.{\land}}\al{397}{1}{ released\_epoch \.{\leq} published\_epoch}
-\fl{}
-\fl{}
-\fl{ \.{\land}}\al{400}{1}{ \A\, c \.{\in} CPUs \.{:}}
- \fl{ ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_obj [ c ] \.{\neq} 0 )
- \.{\implies} obj\_state [ held\_obj [ c ] ] \.{\neq}\@w{Freed}}
-\fl{ \.{\land}}\al{402}{1}{ \A\, c \.{\in} CPUs \.{:}}
- \fl{ ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_bucket [ c ] \.{\neq} 0 )
- \.{\implies} bucket\_state [ held\_bucket [ c ] ] \.{\neq}\@w{Freed}}
-\fl{}
- \fl{ Spec \.{\defeq} Init \.{\land} {\Box} [}\al{405}{6}{ Next ] {\langle}
- published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
-\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
- \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
- bucket\_ptr ,\,}
-\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
-\fl{ bad {\rangle}}
-\fl{}
-\fl{}\bottombar\cl{}
+ published\_epoch ) ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{38.62} \.{\land} obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
+ {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}%
+ \@x{\@s{38.62} \.{\land} obj\_freed\_epoch \.{'} \.{=} [ obj\_freed\_epoch
+ {\EXCEPT} {\bang} [ old\_obj ] \.{=} StampEpoch ( published\_epoch ) ]}%
+\@pvspace{8.0pt}%
+ \@x{\@s{38.62} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+\@x{\@s{112.42} obj\_key ,\, obj\_val ,\,}%
+ \@x{\@s{112.42} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{112.42} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Epoch progression + reclamation
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ AdvancePublishedEpoch \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} published\_epoch \.{<} MaxEpoch}%
+\@x{\@s{8.2} \.{\land} published\_epoch \.{'} \.{=} published\_epoch \.{+} 1}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} released\_epoch ,\, cpu\_epoch
+ ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{81.99} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{81.99} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ComputeReleasedEpoch \.{\defeq}}%
+ \@x{\@s{8.2} \.{\land} \.{\LET} active \.{\defeq} ActiveEpochs ( cpu\_epoch
+ )}%
+\@x{\@s{39.71} candidate \.{\defeq}}%
+\@x{\@s{47.91} {\IF} active \.{=} \{ \}}%
+ \@x{\@s{47.91} \.{\THEN} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}%
+ \@x{\@s{47.91} \.{\ELSE} \.{\LET} m \.{\defeq} MinSet ( active ) \.{\IN}
+ {\IF} m \.{=} 0 \.{\THEN} 0 \.{\ELSE} m \.{-} 1}%
+\@x{\@s{19.31} \.{\IN}}%
+ \@x{\@s{19.31} released\_epoch \.{'} \.{=} Max2 ( released\_epoch ,\,
+ candidate )}%
+ \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\, cpu\_epoch
+ ,\,}%
+ \@x{\@s{81.99} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{81.99} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{81.99} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{81.99} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{ ReclaimOne \.{\defeq}}%
+\@x{\@s{8.2} \.{\lor} \.{\land} RetiredObjs \.{\neq} \{ \}}%
+ \@x{\@s{16.4} \.{\land} \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} RetiredObjs
+ \.{:} {\TRUE} \.{\IN}}%
+ \@x{\@s{24.59} \.{\land} obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
+ {\bang} [ o ] \.{=}\@w{Freed} ]}%
+ \@x{\@s{24.59} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+\@x{\@s{60.31} obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}%
+ \@x{\@s{60.31} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{60.31} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{60.31} bad {\rangle}}%
+\@x{\@s{8.2} \.{\lor} \.{\land} RetiredBuckets \.{\neq} \{ \}}%
+ \@x{\@s{16.4} \.{\land} \.{\LET} bo \.{\defeq} {\CHOOSE} x \.{\in}
+ RetiredBuckets \.{:} {\TRUE} \.{\IN}}%
+ \@x{\@s{24.59} \.{\land} bucket\_state \.{'} \.{=} [ bucket\_state {\EXCEPT}
+ {\bang} [ bo ] \.{=}\@w{Freed} ]}%
+ \@x{\@s{24.59} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{60.31} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+\@x{\@s{60.31} bucket\_contents ,\, bucket\_freed\_epoch ,\, bucket\_ptr ,\,}%
+ \@x{\@s{60.31} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{60.31} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Next-state relation
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Next \.{\defeq}}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, c\@s{0.51} \.{\in} CPUs \.{:} ReaderEnter
+ ( c )}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, c\@s{0.51} \.{\in} CPUs \.{:} ReaderExit
+ ( c )}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, c\@s{0.51} \.{\in} CPUs \.{:} \E\, k
+ \.{\in} Keys \.{:} ReaderBeginFind ( c ,\, k )}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, c\@s{0.51} \.{\in} CPUs \.{:}
+ ReaderFinishFind ( c )}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, c\@s{0.51} \.{\in} CPUs \.{:}
+ ReaderUseHeld ( c )}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, k \.{\in} Keys\@s{4.22} \.{:} \E\, v
+ \.{\in} Values \.{:} WriterUpsert ( k ,\, v )}%
+ \@x{\@s{8.2} \.{\lor}\@s{1.63} \E\, k \.{\in} Keys\@s{4.22} \.{:}
+ WriterDelete ( k )}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2} \.{\lor}\@s{1.63} AdvancePublishedEpoch}%
+\@x{\@s{8.2} \.{\lor}\@s{1.63} ComputeReleasedEpoch}%
+\@x{\@s{8.2} \.{\lor}\@s{1.63} ReclaimOne}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+****************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Invariants
+\end{cpar}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+****************************************************************
+\end{cpar}%
+\end{lcom}%
+\@x{ Safety \.{\defeq}}%
+\@x{\@s{8.2} \.{\land} {\lnot} bad}%
+\@x{\@s{8.2} \.{\land} released\_epoch \.{\leq} published\_epoch}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ While in an epoch, held objects/buckets must not be reclaimed.
+}%
+\@xx{}%
+\@x{\@s{8.2} \.{\land} \A\, c \.{\in} CPUs \.{:}}%
+ \@x{\@s{27.51} ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_obj [ c ]
+ \.{\neq} 0 ) \.{\implies} obj\_state [ held\_obj [ c ] ] \.{\neq}\@w{Freed}}%
+\@x{\@s{8.2} \.{\land} \A\, c \.{\in} CPUs \.{:}}%
+ \@x{\@s{27.51} ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_bucket [ c ]
+ \.{\neq} 0 ) \.{\implies} bucket\_state [ held\_bucket [ c ] ]
+ \.{\neq}\@w{Freed}}%
+\@pvspace{8.0pt}%
+ \@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ] {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}%
+ \@x{\@s{76.54} obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch
+ ,\,}%
+ \@x{\@s{76.54} bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch
+ ,\, bucket\_ptr ,\,}%
+ \@x{\@s{76.54} reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj ,\,}%
+\@x{\@s{76.54} bad {\rangle}}%
+\@pvspace{8.0pt}%
+\@x{}\bottombar\@xx{}%
 \end{document}
