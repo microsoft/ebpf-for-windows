@@ -30,12 +30,17 @@ In this repo we use it pragmatically:
 
 ### TLC
 
-The CI workflow downloads the TLA+ tools jar (`tla2tools.jar`) from the official TLA+ release. For local runs, download it (or use the Toolbox install):
+This repo does **not** vendor the TLA+ tools jar. It is downloaded from the official TLA+ releases by the GitHub workflows.
 
-```powershell
-curl.exe -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
-```
+#### Downloading `tla2tools.jar` locally
 
+1. Go to the official TLA+ GitHub releases: https://github.com/tlaplus/tlaplus/releases  
+2. Download the `tla2tools.jar` artifact for the desired version.  
+3. Place it at:
+
+   - `models/tla2tools.jar`
+
+With `tla2tools.jar` in place, you can run TLC from the repo root using the model’s `.cfg` file:
 Run TLC from the repo root using the model’s `.cfg` file:
 
 ```powershell
