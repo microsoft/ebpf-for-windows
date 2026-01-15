@@ -18,9 +18,12 @@ In the context of this project's epoch memory management module
 (referred to as epoch module herein), the term epoch is intended to
 mean a period of indeterminate length.
 
-The epoch module is implemented as a per-CPU design. Each CPU maintains its own
-epoch state and free list. The per-CPU epochs are kept consistent via an inter-CPU
-messaging cycle.
+The epoch module is implemented as a per-CPU design for participant tracking and
+deferred-reclamation queues: each CPU maintains its own epoch state list and free list.
+
+Epoch *numbering* is driven by a single globally published epoch value that is advanced
+by CPU 0 during an inter-CPU propose/commit cycle. Each CPU also caches this value in a
+per-CPU `current_epoch`, which may temporarily lag until it processes the latest message.
 
 At a high level, the epoch module provides:
 
@@ -36,15 +39,22 @@ Each CPU maintains:
 
 - A list of active epoch participants on that CPU (the epoch state list).
 - A per-CPU free list containing allocations/work-items waiting to be reclaimed.
-- A per-CPU `current_epoch` value.
+- A per-CPU `current_epoch` value (a cache of the globally published epoch).
 - A per-CPU `released_epoch` value (the newest epoch that is safe to reclaim).
 
-Although these are per-CPU values, the propose/commit protocol ensures that all CPUs
-advance to a consistent `current_epoch` and compute a safe global minimum for release.
+In addition to the per-CPU state, there is a globally published epoch value used as the
+source of truth for:
+
+- `ebpf_epoch_enter()` stamping the `epoch_state->epoch` value.
+- Retirement stamping when an allocation/work item is inserted into a free list.
+
+The propose/commit protocol computes a safe global minimum for release. Per-CPU `current_epoch`
+values are synchronized via inter-CPU messaging but may temporarily lag the globally
+published epoch.
 
 Every execution context (a thread at passive IRQL or a DPC running at
 dispatch IRQL) is associated with the point in time when execution began
-(i.e., the per-CPU `current_epoch` value observed in `ebpf_epoch_enter`).
+(i.e., the globally published epoch value observed in `ebpf_epoch_enter`).
 All memory that the execution context could touch during its execution is part
 of that epoch.
 
@@ -58,7 +68,7 @@ Callers bracket epoch-protected access with:
 On enter, the epoch module:
 
 - Temporarily raises IRQL to DISPATCH_LEVEL (if needed).
-- Captures the current CPU id and that CPU's `current_epoch` into the provided `epoch_state`.
+- Captures the current CPU id and the globally published epoch into the provided `epoch_state`.
 - Inserts `epoch_state` into that CPU's epoch state list.
 
 On exit, the module removes `epoch_state` from the list and may arm a timer to
@@ -75,9 +85,9 @@ when the memory transitioned from visible -> non-visible and as such
 can only be returned to the OS once no active execution context could be
 using that memory.
 
-In the implementation, an allocation is stamped with `freed_epoch` at the moment it is queued:
-
-- `freed_epoch = (current CPU's current_epoch)`
+In the implementation, an allocation/work item is stamped with `freed_epoch` at the moment it is queued,
+using the globally published epoch value (so retirements are never stamped with an epoch older than a
+concurrent reader may have observed).
 
 and it becomes eligible for reclamation when:
 
@@ -106,8 +116,8 @@ cycle via the CPU work queues.
 
 The propose phase walks all CPUs to determine a safe epoch boundary:
 
-- CPU 0 increments its `current_epoch` and initializes `proposed_release_epoch` to that new value.
-- Every other CPU sets its `current_epoch` to the value provided by CPU 0.
+- CPU 0 advances the globally published epoch and initializes `proposed_release_epoch` to that new value.
+- Every other CPU updates its local `current_epoch` cache to the value provided by CPU 0.
 - Each CPU computes the minimum `epoch` value among active epoch participants on that CPU.
 - The message's `proposed_release_epoch` becomes the minimum over all CPUs.
 
