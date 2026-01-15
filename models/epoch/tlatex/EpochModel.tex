@@ -1062,9 +1062,19 @@ Tune constants in the \ensuremath{.cfg} files in this folder.
  Reachable / \ensuremath{Retired} / \ensuremath{Reclaimed
 }}%
 \@xx{}%
-\@x{\@s{16.4} obj\_freed\_epoch\@s{10.52}}%
+\@x{\@s{16.4} obj\_freed\_epoch ,\,\@s{4.41}}%
 \@y{\@s{0}%
  epoch stamped at retirement
+}%
+\@xx{}%
+\@x{\@s{16.4} retire\_published\_epoch ,\,}%
+\@y{\@s{0}%
+ published epoch value observed at retirement time
+}%
+\@xx{}%
+\@x{\@s{16.4} retire\_cpu\_epoch\@s{30.39}}%
+\@y{\@s{0}%
+ per-CPU cached epoch value observed at retirement time
 }%
 \@xx{}%
 \@pvspace{8.0pt}%
@@ -1076,7 +1086,9 @@ Tune constants in the \ensuremath{.cfg} files in this folder.
 \@x{\@s{16.4} reader\_epoch ,\,}%
 \@x{\@s{16.4} reader\_holds ,\,}%
 \@x{\@s{16.4} obj\_state ,\,}%
-\@x{\@s{16.4} obj\_freed\_epoch}%
+\@x{\@s{16.4} obj\_freed\_epoch ,\,}%
+\@x{\@s{16.4} retire\_published\_epoch ,\,}%
+\@x{\@s{16.4} retire\_cpu\_epoch}%
 \@x{ {\rangle}}%
 \@pvspace{8.0pt}%
  \@x{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a\@s{12.70} \.{\geq} b \.{\THEN} a
@@ -1106,6 +1118,10 @@ Tune constants in the \ensuremath{.cfg} files in this folder.
 \@x{\@s{16.4} \.{\land}\@s{9.74} obj\_state \.{\in} ObjStates}%
  \@x{\@s{16.4} \.{\land}\@s{9.74} obj\_freed\_epoch \.{\in} 0 \.{\dotdot}
  MaxEpoch}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} retire\_published\_epoch \.{\in} 0
+ \.{\dotdot} MaxEpoch}%
+ \@x{\@s{16.4} \.{\land}\@s{9.74} retire\_cpu\_epoch \.{\in} 0 \.{\dotdot}
+ MaxEpoch}%
 \@pvspace{8.0pt}%
 \@x{ Init \.{\defeq}}%
 \@x{\@s{16.4} \.{\land} published\_epoch \.{=} 1}%
@@ -1120,6 +1136,8 @@ Tune constants in the \ensuremath{.cfg} files in this folder.
 \@pvspace{8.0pt}%
 \@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Reachable}}%
 \@x{\@s{16.4} \.{\land} obj\_freed\_epoch \.{=} 0}%
+\@x{\@s{16.4} \.{\land} retire\_published\_epoch \.{=} 0}%
+\@x{\@s{16.4} \.{\land} retire\_cpu\_epoch \.{=} 0}%
 \@pvspace{8.0pt}%
 \begin{lcom}{0}%
 \begin{cpar}{0}{T}{F}{5.0}{0}{}%
@@ -1146,7 +1164,8 @@ Protocol steps
  [ 0 ] \.{=} published\_epoch \.{'} ]}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} released\_epoch ,\,
  reader\_active ,\, reader\_epoch ,\, reader\_holds ,\, obj\_state ,\,
- obj\_freed\_epoch {\rangle}}%
+ obj\_freed\_epoch ,\, retire\_published\_epoch ,\, retire\_cpu\_epoch
+ {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1160,7 +1179,8 @@ Protocol steps
  [ c ] \.{=} published\_epoch ]}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  released\_epoch ,\, reader\_active ,\, reader\_epoch ,\, reader\_holds ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+ obj\_state ,\, obj\_freed\_epoch ,\, retire\_published\_epoch ,\,
+ retire\_cpu\_epoch {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1178,8 +1198,8 @@ Protocol steps
  \@x{\@s{16.4} \.{\land} reader\_holds \.{'}\@s{1.47} \.{=} [ reader\_holds
  {\EXCEPT} {\bang} [ c ]\@s{1.47} \.{=} {\FALSE} ]}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
- cpu\_epoch ,\, released\_epoch ,\, obj\_state ,\, obj\_freed\_epoch
- {\rangle}}%
+ cpu\_epoch ,\, released\_epoch ,\, obj\_state ,\, obj\_freed\_epoch ,\,
+ retire\_published\_epoch ,\, retire\_cpu\_epoch {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1194,7 +1214,8 @@ Protocol steps
  {\bang} [ c ] \.{=} {\TRUE} ]}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_active ,\, reader\_epoch ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+ obj\_state ,\, obj\_freed\_epoch ,\, retire\_published\_epoch ,\,
+ retire\_cpu\_epoch {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1210,7 +1231,8 @@ Protocol steps
  {\bang} [ c ] \.{=} {\FALSE} ]}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_epoch ,\, obj\_state ,\,
- obj\_freed\_epoch {\rangle}}%
+ obj\_freed\_epoch ,\, retire\_published\_epoch ,\, retire\_cpu\_epoch
+ {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1221,6 +1243,9 @@ Protocol steps
 \@x{\@s{16.4} \.{\land} c \.{\in} CPUS}%
 \@x{\@s{16.4} \.{\land} obj\_state \.{=}\@w{Reachable}}%
 \@x{\@s{16.4} \.{\land} obj\_state \.{'} \.{=}\@w{Retired}}%
+ \@x{\@s{16.4} \.{\land} retire\_published\_epoch \.{'} \.{=}
+ published\_epoch}%
+\@x{\@s{16.4} \.{\land} retire\_cpu\_epoch \.{'} \.{=} cpu\_epoch [ c ]}%
 \@x{\@s{16.4} \.{\land} obj\_freed\_epoch \.{'} \.{=}}%
 \@x{\@s{31.61} {\IF} UsePublishedEpochForRetire}%
 \@x{\@s{47.86} \.{\THEN} Max2 ( published\_epoch ,\, cpu\_epoch [ c ] )}%
@@ -1253,7 +1278,8 @@ Protocol steps
  candidate )}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, reader\_active ,\, reader\_epoch ,\, reader\_holds ,\,
- obj\_state ,\, obj\_freed\_epoch {\rangle}}%
+ obj\_state ,\, obj\_freed\_epoch ,\, retire\_published\_epoch ,\,
+ retire\_cpu\_epoch {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
@@ -1267,7 +1293,8 @@ Protocol steps
 \@x{\@s{16.4} \.{\land} obj\_state \.{'} \.{=}\@w{Reclaimed}}%
  \@x{\@s{16.4} \.{\land} {\UNCHANGED} {\langle} published\_epoch ,\,
  cpu\_epoch ,\, released\_epoch ,\, reader\_active ,\, reader\_epoch ,\,
- reader\_holds ,\, obj\_freed\_epoch {\rangle}}%
+ reader\_holds ,\, obj\_freed\_epoch ,\, retire\_published\_epoch ,\,
+ retire\_cpu\_epoch {\rangle}}%
 \@pvspace{8.0pt}%
 \@x{ Next \.{\defeq}}%
 \@x{\@s{16.4} \.{\lor} AdvanceEpoch}%
@@ -1301,6 +1328,39 @@ Properties to check with \ensuremath{TLC
 \@xx{}%
  \@x{ Safety \.{\defeq} ( obj\_state \.{=}\@w{Reclaimed} ) \.{\implies} ( \A\,
  c \.{\in} CPUS \.{:} {\lnot} reader\_holds [ c ] )}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ When the published-epoch retirement behavior is enabled, the epoch stamped on
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ the retired object equals the \ensuremath{max()} of the values observed at
+ the moment of retirement.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ This corresponds to the implementation\mbox{'}s:
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{5.0}%
+ header\ensuremath{\.{\rightarrow}freed\_epoch \.{=} max(published\_epoch,\,
+ local\_epoch)
+}}%
+\@xx{}%
+\@x{ RetireStampIsMaxWhenEnabled \.{\defeq}}%
+\@x{\@s{16.4} UsePublishedEpochForRetire \.{\implies}}%
+\@x{\@s{32.8} ( ( obj\_state \.{=}\@w{Reachable} ) \.{\implies}}%
+\@x{\@s{48.77} \.{\land} obj\_freed\_epoch \.{=} 0}%
+\@x{\@s{48.77} \.{\land} retire\_published\_epoch \.{=} 0}%
+\@x{\@s{48.77} \.{\land} retire\_cpu\_epoch \.{=} 0 )}%
+ \@x{\@s{32.8} \.{\land} ( ( obj\_state \.{\in} \{\@w{Retired}
+ ,\,\@w{Reclaimed} \} ) \.{\implies}}%
+ \@x{\@s{47.79} obj\_freed\_epoch \.{=} Max2 ( retire\_published\_epoch ,\,
+ retire\_cpu\_epoch ) )}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
