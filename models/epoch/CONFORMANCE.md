@@ -30,6 +30,7 @@ This table is the intended mapping from concrete state to model state.
 | Reader captured epoch | `reader_epoch[c]` | The epoch a thread recorded on entry | `epoch_state->epoch` set by `ebpf_epoch_enter()` to `_ebpf_epoch_get_published_epoch()` |
 | Reader currently “holds” object | `reader_holds[c]` | Abstract “the reader still has a reference to the to-be-freed object” | Not represented directly in C; in the implementation this corresponds to “a thread can still access memory that is protected by having entered the epoch and not yet exited” |
 | Retirement stamp (object’s freed_epoch) | `obj_freed_epoch` | When an entry is enqueued for deferred reclamation, it is stamped with an epoch | `header->freed_epoch` in `_ebpf_epoch_insert_in_free_list()`, set to `max(published_epoch, local_epoch)` |
+| Retirement stamp inputs (snapshotted at retirement time) | `retire_published_epoch`, `retire_cpu_epoch` | The values used to compute the retirement stamp at the moment of retirement | In `_ebpf_epoch_insert_in_free_list()`: `published_epoch = _ebpf_epoch_get_published_epoch()` and `local_epoch = cpu_entry->current_epoch` |
 | Release threshold | `released_epoch` | The newest epoch eligible for reclamation | Per-CPU `_ebpf_epoch_cpu_table[c].released_epoch`, computed in `_ebpf_epoch_messenger_commit_release_epoch()` as `message->...released_epoch - 1` |
 | Reclamation | `Reclaim` action | Actual free / queue work-item / signal event for eligible entries | `_ebpf_epoch_release_free_list()` drains entries with `header->freed_epoch <= released_epoch` |
 
@@ -97,6 +98,9 @@ These are implementation-design invariants that correspond directly to the model
 4) **Retirements are stamped conservatively**
 - Model: in the fixed config, retirement stamping uses `max(published_epoch, cpu_epoch[c])`.
 - Code: `_ebpf_epoch_insert_in_free_list()` stamps `max(published_epoch, local_epoch)`.
+
+The model checks this stamping rule explicitly via the invariant:
+- `RetireStampIsMaxWhenEnabled`: when `UsePublishedEpochForRetire=TRUE`, the stamped `obj_freed_epoch` equals `Max(retire_published_epoch, retire_cpu_epoch)`.
 
 ## Intentional simplifications (where the model does NOT match the code)
 
