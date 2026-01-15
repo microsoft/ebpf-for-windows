@@ -8,12 +8,16 @@ on:
   pull_request:
     paths:
       - 'models/**'
+      - 'scripts/generate_tlatex.sh'
+      - 'scripts/generate_tlatex.ps1'
       - '.github/workflows/tla-plus-models.yml'
   push:
     branches:
       - main
     paths:
       - 'models/**'
+      - 'scripts/generate_tlatex.sh'
+      - 'scripts/generate_tlatex.ps1'
       - '.github/workflows/tla-plus-models.yml'
 
 permissions:
@@ -38,6 +42,24 @@ jobs:
         run: |
           curl -fsSL -o tla2tools.jar \
             https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+
+      - name: Install LaTeX (for TLATeX)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base
+
+      - name: Generate TLATeX outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/generate_tlatex.sh
+          TLA2TOOLS_JAR=./tla2tools.jar scripts/generate_tlatex.sh
+
+      - name: Verify TLATeX outputs are up to date
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
 
       - name: Run TLC for all models
         shell: bash

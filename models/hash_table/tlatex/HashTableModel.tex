@@ -1,0 +1,1528 @@
+\batchmode %% Suppresses most terminal output.
+\documentclass{article}
+\setlength{\textwidth}{360pt}
+\setlength{\textheight}{541pt}
+\usepackage{latexsym}
+\usepackage{ifthen}
+% \usepackage{color}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SWITCHES                                                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newboolean{shading}
+\setboolean{shading}{false}
+\makeatletter
+ %% this is needed only when inserted into the file, not when
+ %% used as a package file.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                           %
+% DEFINITIONS OF SYMBOL-PRODUCING COMMANDS                                  %
+%                                                                           %
+%    TLA+      LaTeX                                                        %
+%    symbol    command                                                      %
+%    ------    -------                                                      %
+%    =>        \implies                                                     %
+%    <:        \ltcolon                                                     %
+%    :>        \colongt                                                     %
+%    ==        \defeq                                                       %
+%    ..        \dotdot                                                      %
+%    ::        \coloncolon                                                  %
+%    =|        \eqdash                                                      %
+%    ++        \pp                                                          %
+%    --        \mm                                                          %
+%    **        \stst                                                        %
+%    //        \slsl                                                        %
+%    ^         \ct                                                          %
+%    \A        \A                                                           %
+%    \E        \E                                                           %
+%    \AA       \AA                                                          %
+%    \EE       \EE                                                          %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newlength{\symlength}
+\newcommand{\implies}{\Rightarrow}
+\newcommand{\ltcolon}{\mathrel{<\!\!\mbox{:}}}
+\newcommand{\colongt}{\mathrel{\!\mbox{:}\!\!>}}
+\newcommand{\defeq}{\;\mathrel{\smash   %% keep this symbol from being too tall
+    {{\stackrel{\scriptscriptstyle\Delta}{=}}}}\;}
+\newcommand{\dotdot}{\mathrel{\ldotp\ldotp}}
+\newcommand{\coloncolon}{\mathrel{::\;}}
+\newcommand{\eqdash}{\mathrel = \joinrel \hspace{-.28em}|}
+\newcommand{\pp}{\mathbin{++}}
+\newcommand{\mm}{\mathbin{--}}
+\newcommand{\stst}{*\!*}
+\newcommand{\slsl}{/\!/}
+\newcommand{\ct}{\hat{\hspace{.4em}}}
+\newcommand{\A}{\forall}
+\newcommand{\E}{\exists}
+\renewcommand{\AA}{\makebox{$\raisebox{.05em}{\makebox[0pt][l]{%
+   $\forall\hspace{-.517em}\forall\hspace{-.517em}\forall$}}%
+   \forall\hspace{-.517em}\forall \hspace{-.517em}\forall\,$}}
+\newcommand{\EE}{\makebox{$\raisebox{.05em}{\makebox[0pt][l]{%
+   $\exists\hspace{-.517em}\exists\hspace{-.517em}\exists$}}%
+   \exists\hspace{-.517em}\exists\hspace{-.517em}\exists\,$}}
+\newcommand{\whileop}{\.{\stackrel
+  {\mbox{\raisebox{-.3em}[0pt][0pt]{$\scriptscriptstyle+\;\,$}}}%
+  {-\hspace{-.16em}\triangleright}}}
+
+% Commands are defined to produce the upper-case keywords.
+% Note that some have space after them.
+\newcommand{\ASSUME}{\textsc{assume }}
+\newcommand{\ASSUMPTION}{\textsc{assumption }}
+\newcommand{\AXIOM}{\textsc{axiom }}
+\newcommand{\BOOLEAN}{\textsc{boolean }}
+\newcommand{\CASE}{\textsc{case }}
+\newcommand{\CONSTANT}{\textsc{constant }}
+\newcommand{\CONSTANTS}{\textsc{constants }}
+\newcommand{\ELSE}{\settowidth{\symlength}{\THEN}%
+   \makebox[\symlength][l]{\textsc{ else}}}
+\newcommand{\EXCEPT}{\textsc{ except }}
+\newcommand{\EXTENDS}{\textsc{extends }}
+\newcommand{\FALSE}{\textsc{false}}
+\newcommand{\IF}{\textsc{if }}
+\newcommand{\IN}{\settowidth{\symlength}{\LET}%
+   \makebox[\symlength][l]{\textsc{in}}}
+\newcommand{\INSTANCE}{\textsc{instance }}
+\newcommand{\LET}{\textsc{let }}
+\newcommand{\LOCAL}{\textsc{local }}
+\newcommand{\MODULE}{\textsc{module }}
+\newcommand{\OTHER}{\textsc{other }}
+\newcommand{\STRING}{\textsc{string}}
+\newcommand{\THEN}{\textsc{ then }}
+\newcommand{\THEOREM}{\textsc{theorem }}
+\newcommand{\LEMMA}{\textsc{lemma }}
+\newcommand{\PROPOSITION}{\textsc{proposition }}
+\newcommand{\COROLLARY}{\textsc{corollary }}
+\newcommand{\TRUE}{\textsc{true}}
+\newcommand{\VARIABLE}{\textsc{variable }}
+\newcommand{\VARIABLES}{\textsc{variables }}
+\newcommand{\WITH}{\textsc{ with }}
+\newcommand{\WF}{\textrm{WF}}
+\newcommand{\SF}{\textrm{SF}}
+\newcommand{\CHOOSE}{\textsc{choose }}
+\newcommand{\ENABLED}{\textsc{enabled }}
+\newcommand{\UNCHANGED}{\textsc{unchanged }}
+\newcommand{\SUBSET}{\textsc{subset }}
+\newcommand{\UNION}{\textsc{union }}
+\newcommand{\DOMAIN}{\textsc{domain }}
+% Added for tla2tex
+\newcommand{\BY}{\textsc{by }}
+\newcommand{\OBVIOUS}{\textsc{obvious }}
+\newcommand{\HAVE}{\textsc{have }}
+\newcommand{\QED}{\textsc{qed }}
+\newcommand{\TAKE}{\textsc{take }}
+\newcommand{\DEF}{\textsc{ def }}
+\newcommand{\HIDE}{\textsc{hide }}
+\newcommand{\RECURSIVE}{\textsc{recursive }}
+\newcommand{\USE}{\textsc{use }}
+\newcommand{\DEFINE}{\textsc{define }}
+\newcommand{\PROOF}{\textsc{proof }}
+\newcommand{\WITNESS}{\textsc{witness }}
+\newcommand{\PICK}{\textsc{pick }}
+\newcommand{\DEFS}{\textsc{defs }}
+\newcommand{\PROVE}{\settowidth{\symlength}{\ASSUME}%
+   \makebox[\symlength][l]{\textsc{prove}}\@s{-4.1}}%
+  %% The \@s{-4.1) is a kludge added on 24 Oct 2009 [happy birthday, Ellen]
+  %% so the correct alignment occurs if the user types
+  %%   ASSUME X
+  %%   PROVE  Y
+  %% because it cancels the extra 4.1 pts added because of the
+  %% extra space after the PROVE.  This seems to works OK.
+  %% However, the 4.1 equals Parameters.LaTeXLeftSpace(1) and
+  %% should be changed if that method ever changes.
+\newcommand{\SUFFICES}{\textsc{suffices }}
+\newcommand{\NEW}{\textsc{new }}
+\newcommand{\LAMBDA}{\textsc{lambda }}
+\newcommand{\STATE}{\textsc{state }}
+\newcommand{\ACTION}{\textsc{action }}
+\newcommand{\TEMPORAL}{\textsc{temporal }}
+\newcommand{\ONLY}{\textsc{only }}              %% added by LL on 2 Oct 2009
+\newcommand{\OMITTED}{\textsc{omitted }}        %% added by LL on 31 Oct 2009
+\newcommand{\@pfstepnum}[2]{\ensuremath{\langle#1\rangle}\textrm{#2}}
+\newcommand{\bang}{\@s{1}\mbox{\small !}\@s{1}}
+%% We should format || differently in PlusCal code than in TLA+ formulas.
+\newcommand{\p@barbar}{\ifpcalsymbols
+   \,\,\rule[-.25em]{.075em}{1em}\hspace*{.2em}\rule[-.25em]{.075em}{1em}\,\,%
+   \else \,||\,\fi}
+%% PlusCal keywords
+\newcommand{\p@fair}{\textbf{fair }}
+\newcommand{\p@semicolon}{\textbf{\,; }}
+\newcommand{\p@algorithm}{\textbf{algorithm }}
+\newcommand{\p@mmfair}{\textbf{-{}-fair }}
+\newcommand{\p@mmalgorithm}{\textbf{-{}-algorithm }}
+\newcommand{\p@assert}{\textbf{assert }}
+\newcommand{\p@await}{\textbf{await }}
+\newcommand{\p@begin}{\textbf{begin }}
+\newcommand{\p@end}{\textbf{end }}
+\newcommand{\p@call}{\textbf{call }}
+\newcommand{\p@define}{\textbf{define }}
+\newcommand{\p@do}{\textbf{ do }}
+\newcommand{\p@either}{\textbf{either }}
+\newcommand{\p@or}{\textbf{or }}
+\newcommand{\p@goto}{\textbf{goto }}
+\newcommand{\p@if}{\textbf{if }}
+\newcommand{\p@then}{\,\,\textbf{then }}
+\newcommand{\p@else}{\ifcsyntax \textbf{else } \else \,\,\textbf{else }\fi}
+\newcommand{\p@elsif}{\,\,\textbf{elsif }}
+\newcommand{\p@macro}{\textbf{macro }}
+\newcommand{\p@print}{\textbf{print }}
+\newcommand{\p@procedure}{\textbf{procedure }}
+\newcommand{\p@process}{\textbf{process }}
+\newcommand{\p@return}{\textbf{return}}
+\newcommand{\p@skip}{\textbf{skip}}
+\newcommand{\p@variable}{\textbf{variable }}
+\newcommand{\p@variables}{\textbf{variables }}
+\newcommand{\p@while}{\textbf{while }}
+\newcommand{\p@when}{\textbf{when }}
+\newcommand{\p@with}{\textbf{with }}
+\newcommand{\p@lparen}{\textbf{(\,\,}}
+\newcommand{\p@rparen}{\textbf{\,\,) }}
+\newcommand{\p@lbrace}{\textbf{\{\,\,}}
+\newcommand{\p@rbrace}{\textbf{\,\,\} }}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REDEFINE STANDARD COMMANDS TO MAKE THEM FORMAT BETTER %
+%                                                       %
+% We redefine \in and \notin                            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\_}{\rule{.4em}{.06em}\hspace{.05em}}
+\newlength{\equalswidth}
+\let\oldin=\in
+\let\oldnotin=\notin
+\renewcommand{\in}{%
+   {\settowidth{\equalswidth}{$\.{=}$}\makebox[\equalswidth][c]{$\oldin$}}}
+\renewcommand{\notin}{%
+   {\settowidth{\equalswidth}{$\.{=}$}\makebox[\equalswidth]{$\oldnotin$}}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                  %
+% HORIZONTAL BARS:                                 %
+%                                                  %
+%   \moduleLeftDash    |~~~~~~~~~~                 %
+%   \moduleRightDash    ~~~~~~~~~~|                %
+%   \midbar            |----------|                %
+%   \bottombar         |__________|                %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newlength{\charwidth}\settowidth{\charwidth}{{\small\tt M}}
+\newlength{\boxrulewd}\setlength{\boxrulewd}{.4pt}
+\newlength{\boxlineht}\setlength{\boxlineht}{.5\baselineskip}
+\newcommand{\boxsep}{\charwidth}
+\newlength{\boxruleht}\setlength{\boxruleht}{.5ex}
+\newlength{\boxruledp}\setlength{\boxruledp}{-\boxruleht}
+\addtolength{\boxruledp}{\boxrulewd}
+\newcommand{\boxrule}{\leaders\hrule height \boxruleht depth \boxruledp
+                      \hfill\mbox{}}
+\newcommand{\@computerule}{%
+  \setlength{\boxruleht}{.5ex}%
+  \setlength{\boxruledp}{-\boxruleht}%
+  \addtolength{\boxruledp}{\boxrulewd}}
+
+\newcommand{\bottombar}{\hspace{-\boxsep}%
+  \raisebox{-\boxrulewd}[0pt][0pt]{\rule[.5ex]{\boxrulewd}{\boxlineht}}%
+  \boxrule
+  \raisebox{-\boxrulewd}[0pt][0pt]{%
+      \rule[.5ex]{\boxrulewd}{\boxlineht}}\hspace{-\boxsep}\vspace{0pt}}
+
+\newcommand{\moduleLeftDash}%
+   {\hspace*{-\boxsep}%
+     \raisebox{-\boxlineht}[0pt][0pt]{\rule[.5ex]{\boxrulewd
+               }{\boxlineht}}%
+    \boxrule\hspace*{.4em }}
+
+\newcommand{\moduleRightDash}%
+    {\hspace*{.4em}\boxrule
+    \raisebox{-\boxlineht}[0pt][0pt]{\rule[.5ex]{\boxrulewd
+               }{\boxlineht}}\hspace{-\boxsep}}%\vspace{.2em}
+
+\newcommand{\midbar}{\hspace{-\boxsep}\raisebox{-.5\boxlineht}[0pt][0pt]{%
+   \rule[.5ex]{\boxrulewd}{\boxlineht}}\boxrule\raisebox{-.5\boxlineht%
+   }[0pt][0pt]{\rule[.5ex]{\boxrulewd}{\boxlineht}}\hspace{-\boxsep}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FORMATING COMMANDS                                                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PLUSCAL SHADING                                                           %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The TeX pcalshading switch is set on to cause PlusCal shading to be
+% performed.  This changes the behavior of the following commands and
+% environments to cause full-width shading to be performed on all lines.
+%
+%   \tstrut \@x cpar mcom \@pvspace
+%
+% The TeX pcalsymbols switch is turned on when typesetting a PlusCal algorithm,
+% whether or not shading is being performed.  It causes symbols (other than
+% parentheses and braces and PlusCal-only keywords) that should be typeset
+% differently depending on whether they are in an algorithm to be typeset
+% appropriately.  Currently, the only such symbol is "||".
+%
+% The TeX csyntax switch is turned on when typesetting a PlusCal algorithm in
+% c-syntax.  This allows symbols to be format differently in the two syntaxes.
+% The "else" keyword is the only one that is.
+
+\newif\ifpcalshading \pcalshadingfalse
+\newif\ifpcalsymbols \pcalsymbolsfalse
+\newif\ifcsyntax     \csyntaxtrue
+
+% The \@pvspace command makes a vertical space.  It uses \vspace
+% except with \ifpcalshading, in which case it sets \pvcalvspace
+% and the space is added by a following \@x command.
+%
+\newlength{\pcalvspace}\setlength{\pcalvspace}{0pt}%
+\newcommand{\@pvspace}[1]{%
+  \ifpcalshading
+     \par\global\setlength{\pcalvspace}{#1}%
+  \else
+     \par\vspace{#1}%
+  \fi
+}
+
+% The lcom environment was changed to set \lcomindent equal to
+% the indentation it produces.  This length is used by the
+% cpar environment to make shading extend for the full width
+% of the line.  This assumes that lcom environments are not
+% nested.  I hope TLATeX does not nest them.
+%
+\newlength{\lcomindent}%
+\setlength{\lcomindent}{0pt}%
+
+%\tstrut: A strut to produce inter-paragraph space in a comment.
+%\rstrut: A strut to extend the bottom of a one-line comment so
+%         there's no break in the shading between comments on
+%         successive lines.
+\newcommand\tstrut%
+  {\raisebox{\vshadelen}{\raisebox{-.25em}{\rule{0pt}{1.15em}}}%
+   \global\setlength{\vshadelen}{0pt}}
+\newcommand\rstrut{\raisebox{-.25em}{\rule{0pt}{1.15em}}%
+ \global\setlength{\vshadelen}{0pt}}
+
+
+% \.{op} formats operator op in math mode with empty boxes on either side.
+% Used because TeX otherwise vary the amount of space it leaves around op.
+\renewcommand{\.}[1]{\ensuremath{\mbox{}#1\mbox{}}}
+
+% \@s{n} produces an n-point space
+\newcommand{\@s}[1]{\hspace{#1pt}}
+
+% \@x{txt} starts a specification line in the beginning with txt
+% in the final LaTeX source.
+\newlength{\@xlen}
+\newcommand\xtstrut%
+  {\setlength{\@xlen}{1.05em}%
+   \addtolength{\@xlen}{\pcalvspace}%
+    \raisebox{\vshadelen}{\raisebox{-.25em}{\rule{0pt}{\@xlen}}}%
+   \global\setlength{\vshadelen}{0pt}%
+   \global\setlength{\pcalvspace}{0pt}}
+
+\newcommand{\@x}[1]{\par
+  \ifpcalshading
+  \makebox[0pt][l]{\shadebox{\xtstrut\hspace*{\textwidth}}}%
+  \fi
+  \mbox{$\mbox{}#1\mbox{}$}}
+
+% \@xx{txt} continues a specification line with the text txt.
+\newcommand{\@xx}[1]{\mbox{$\mbox{}#1\mbox{}$}}
+
+% \@y{cmt} produces a one-line comment.
+\newcommand{\@y}[1]{\mbox{\footnotesize\hspace{.65em}%
+  \ifthenelse{\boolean{shading}}{%
+      \shadebox{#1\hspace{-\the\lastskip}\rstrut}}%
+               {#1\hspace{-\the\lastskip}\rstrut}}}
+
+% \@z{cmt} produces a zero-width one-line comment.
+\newcommand{\@z}[1]{\makebox[0pt][l]{\footnotesize
+  \ifthenelse{\boolean{shading}}{%
+      \shadebox{#1\hspace{-\the\lastskip}\rstrut}}%
+               {#1\hspace{-\the\lastskip}\rstrut}}}
+
+
+% \@w{str} produces the TLA+ string "str".
+\newcommand{\@w}[1]{\textsf{``{#1}''}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SHADING                                                                   %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\def\graymargin{1}
+  % The number of points of margin in the shaded box.
+
+% \definecolor{boxshade}{gray}{.85}
+% Defines the darkness of the shading: 1 = white, 0 = black
+% Added by TLATeX only if needed.
+
+% \shadebox{txt} puts txt in a shaded box.
+\newlength{\templena}
+\newlength{\templenb}
+\newsavebox{\tempboxa}
+\newcommand{\shadebox}[1]{{\setlength{\fboxsep}{\graymargin pt}%
+     \savebox{\tempboxa}{#1}%
+     \settoheight{\templena}{\usebox{\tempboxa}}%
+     \settodepth{\templenb}{\usebox{\tempboxa}}%
+     \hspace*{-\fboxsep}\raisebox{0pt}[\templena][\templenb]%
+        {\colorbox{boxshade}{\usebox{\tempboxa}}}\hspace*{-\fboxsep}}}
+
+% \vshade{n} makes an n-point inter-paragraph space, with
+%  shading if the `shading' flag is true.
+\newlength{\vshadelen}
+\setlength{\vshadelen}{0pt}
+\newcommand{\vshade}[1]{\ifthenelse{\boolean{shading}}%
+   {\global\setlength{\vshadelen}{#1pt}}%
+   {\vspace{#1pt}}}
+
+\newlength{\boxwidth}
+\newlength{\multicommentdepth}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE cpar ENVIRONMENT                                                      %
+% ^^^^^^^^^^^^^^^^^^^^                                                      %
+% The LaTeX input                                                           %
+%                                                                           %
+%   \begin{cpar}{pop}{nest}{isLabel}{d}{e}{arg6}                            %
+%     XXXXXXXXXXXXXXX                                                       %
+%     XXXXXXXXXXXXXXX                                                       %
+%     XXXXXXXXXXXXXXX                                                       %
+%   \end{cpar}                                                              %
+%                                                                           %
+% produces one of two possible results.  If isLabel is the letter "T",      %
+% it produces the following, where [label] is the result of typesetting     %
+% arg6 in an LR box, and d is is a number representing a distance in        %
+% points.                                                                   %
+%                                                                           %
+%   prevailing |<-- d -->[label]<- e ->XXXXXXXXXXXXXXX                      %
+%         left |                       XXXXXXXXXXXXXXX                      %
+%       margin |                       XXXXXXXXXXXXXXX                      %
+%                                                                           %
+% If isLabel is the letter "F", then it produces                            %
+%                                                                           %
+%   prevailing |<-- d -->XXXXXXXXXXXXXXXXXXXXXXX                            %
+%         left |         <- e ->XXXXXXXXXXXXXXXX                            %
+%       margin |                XXXXXXXXXXXXXXXX                            %
+%                                                                           %
+% where d and e are numbers representing distances in points.               %
+%                                                                           %
+% The prevailing left margin is the one in effect before the most recent    %
+% pop (argument 1) cpar environments with "T" as the nest argument, where   %
+% pop is a number \geq 0.                                                   %
+%                                                                           %
+% If the nest argument is the letter "T", then the prevailing left          %
+% margin is moved to the left of the second (and following) lines of        %
+% X's.  Otherwise, the prevailing left margin is left unchanged.            %
+%                                                                           %
+% An \unnest{n} command moves the prevailing left margin to where it was    %
+% before the most recent n cpar environments with "T" as the nesting        %
+% argument.                                                                 %
+%                                                                           %
+% The environment leaves no vertical space above or below it, or between    %
+% its paragraphs.  (TLATeX inserts the proper amount of vertical space.)    %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcounter{pardepth}
+\setcounter{pardepth}{0}
+
+% \setgmargin{txt} defines \gmarginN to be txt, where N is \roman{pardepth}.
+% \thegmargin equals \gmarginN, where N is \roman{pardepth}.
+\newcommand{\setgmargin}[1]{%
+  \expandafter\xdef\csname gmargin\roman{pardepth}\endcsname{#1}}
+\newcommand{\thegmargin}{\csname gmargin\roman{pardepth}\endcsname}
+\newcommand{\gmargin}{0pt}
+
+\newsavebox{\tempsbox}
+
+\newlength{\@cparht}
+\newlength{\@cpardp}
+\newenvironment{cpar}[6]{%
+  \addtocounter{pardepth}{-#1}%
+  \ifthenelse{\boolean{shading}}{\par\begin{lrbox}{\tempsbox}%
+                                 \begin{minipage}[t]{\linewidth}}{}%
+  \begin{list}{}{%
+     \edef\temp{\thegmargin}
+     \ifthenelse{\equal{#3}{T}}%
+       {\settowidth{\leftmargin}{\hspace{\temp}\footnotesize #6\hspace{#5pt}}%
+        \addtolength{\leftmargin}{#4pt}}%
+       {\setlength{\leftmargin}{#4pt}%
+        \addtolength{\leftmargin}{#5pt}%
+        \addtolength{\leftmargin}{\temp}%
+        \setlength{\itemindent}{-#5pt}}%
+      \ifthenelse{\equal{#2}{T}}{\addtocounter{pardepth}{1}%
+                                 \setgmargin{\the\leftmargin}}{}%
+      \setlength{\labelwidth}{0pt}%
+      \setlength{\labelsep}{0pt}%
+      \setlength{\itemindent}{-\leftmargin}%
+      \setlength{\topsep}{0pt}%
+      \setlength{\parsep}{0pt}%
+      \setlength{\partopsep}{0pt}%
+      \setlength{\parskip}{0pt}%
+      \setlength{\itemsep}{0pt}
+      \setlength{\itemindent}{#4pt}%
+      \addtolength{\itemindent}{-\leftmargin}}%
+   \ifthenelse{\equal{#3}{T}}%
+      {\item[\tstrut\footnotesize \hspace{\temp}{#6}\hspace{#5pt}]
+        }%
+      {\item[\tstrut\hspace{\temp}]%
+         }%
+   \footnotesize}
+ {\hspace{-\the\lastskip}\tstrut
+ \end{list}%
+  \ifthenelse{\boolean{shading}}%
+          {\end{minipage}%
+           \end{lrbox}%
+           \ifpcalshading
+             \setlength{\@cparht}{\ht\tempsbox}%
+             \setlength{\@cpardp}{\dp\tempsbox}%
+             \addtolength{\@cparht}{.15em}%
+             \addtolength{\@cpardp}{.2em}%
+             \addtolength{\@cparht}{\@cpardp}%
+            % I don't know what's going on here.  I want to add a
+            % \pcalvspace high shaded line, but I don't know how to
+            % do it.  A little trial and error shows that the following
+            % does a reasonable job approximating that, eliminating
+            % the line if \pcalvspace is small.
+            \addtolength{\@cparht}{\pcalvspace}%
+             \ifdim \pcalvspace > .8em
+               \addtolength{\pcalvspace}{-.2em}%
+               \hspace*{-\lcomindent}%
+               \shadebox{\rule{0pt}{\pcalvspace}\hspace*{\textwidth}}\par
+               \global\setlength{\pcalvspace}{0pt}%
+               \fi
+             \hspace*{-\lcomindent}%
+             \makebox[0pt][l]{\raisebox{-\@cpardp}[0pt][0pt]{%
+                 \shadebox{\rule{0pt}{\@cparht}\hspace*{\textwidth}}}}%
+             \hspace*{\lcomindent}\usebox{\tempsbox}%
+             \par
+           \else
+             \shadebox{\usebox{\tempsbox}}\par
+           \fi}%
+           {}%
+  }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE ppar ENVIRONMENT                                                       %
+% ^^^^^^^^^^^^^^^^^^^^                                                       %
+% The environment                                                            %
+%                                                                            %
+%   \begin{ppar} ... \end{ppar}                                              %
+%                                                                            %
+% is equivalent to                                                           %
+%                                                                            %
+%   \begin{cpar}{0}{F}{F}{0}{0}{} ... \end{cpar}                             %
+%                                                                            %
+% The environment is put around each line of the output for a PlusCal        %
+% algorithm.                                                                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\newenvironment{ppar}{%
+%  \ifthenelse{\boolean{shading}}{\par\begin{lrbox}{\tempsbox}%
+%                                 \begin{minipage}[t]{\linewidth}}{}%
+%  \begin{list}{}{%
+%     \edef\temp{\thegmargin}
+%        \setlength{\leftmargin}{0pt}%
+%        \addtolength{\leftmargin}{\temp}%
+%        \setlength{\itemindent}{0pt}%
+%      \setlength{\labelwidth}{0pt}%
+%      \setlength{\labelsep}{0pt}%
+%      \setlength{\itemindent}{-\leftmargin}%
+%      \setlength{\topsep}{0pt}%
+%      \setlength{\parsep}{0pt}%
+%      \setlength{\partopsep}{0pt}%
+%      \setlength{\parskip}{0pt}%
+%      \setlength{\itemsep}{0pt}
+%      \setlength{\itemindent}{0pt}%
+%      \addtolength{\itemindent}{-\leftmargin}}%
+%      \item[\tstrut\hspace{\temp}]}%
+% {\hspace{-\the\lastskip}\tstrut
+% \end{list}%
+%  \ifthenelse{\boolean{shading}}{\end{minipage}
+%                                 \end{lrbox}%
+%                                 \shadebox{\usebox{\tempsbox}}\par}{}%
+%  }
+
+ %%% TESTING
+ \newcommand{\xtest}[1]{\par
+ \makebox[0pt][l]{\shadebox{\xtstrut\hspace*{\textwidth}}}%
+ \mbox{$\mbox{}#1\mbox{}$}}
+
+% \newcommand{\xxtest}[1]{\par
+% \makebox[0pt][l]{\shadebox{\xtstrut{#1}\hspace*{\textwidth}}}%
+% \mbox{$\mbox{}#1\mbox{}$}}
+
+%\newlength{\pcalvspace}
+%\setlength{\pcalvspace}{0pt}
+% \newlength{\xxtestlen}
+% \setlength{\xxtestlen}{0pt}
+% \newcommand\xtstrut%
+%   {\setlength{\xxtestlen}{1.15em}%
+%    \addtolength{\xxtestlen}{\pcalvspace}%
+%     \raisebox{\vshadelen}{\raisebox{-.25em}{\rule{0pt}{\xxtestlen}}}%
+%    \global\setlength{\vshadelen}{0pt}%
+%    \global\setlength{\pcalvspace}{0pt}}
+
+   %%%% TESTING
+
+   %% The xcpar environment
+   %%  Note: overloaded use of \pcalvspace for testing.
+   %%
+%   \newlength{\xcparht}%
+%   \newlength{\xcpardp}%
+
+%   \newenvironment{xcpar}[6]{%
+%  \addtocounter{pardepth}{-#1}%
+%  \ifthenelse{\boolean{shading}}{\par\begin{lrbox}{\tempsbox}%
+%                                 \begin{minipage}[t]{\linewidth}}{}%
+%  \begin{list}{}{%
+%     \edef\temp{\thegmargin}%
+%     \ifthenelse{\equal{#3}{T}}%
+%       {\settowidth{\leftmargin}{\hspace{\temp}\footnotesize #6\hspace{#5pt}}%
+%        \addtolength{\leftmargin}{#4pt}}%
+%       {\setlength{\leftmargin}{#4pt}%
+%        \addtolength{\leftmargin}{#5pt}%
+%        \addtolength{\leftmargin}{\temp}%
+%        \setlength{\itemindent}{-#5pt}}%
+%      \ifthenelse{\equal{#2}{T}}{\addtocounter{pardepth}{1}%
+%                                 \setgmargin{\the\leftmargin}}{}%
+%      \setlength{\labelwidth}{0pt}%
+%      \setlength{\labelsep}{0pt}%
+%      \setlength{\itemindent}{-\leftmargin}%
+%      \setlength{\topsep}{0pt}%
+%      \setlength{\parsep}{0pt}%
+%      \setlength{\partopsep}{0pt}%
+%      \setlength{\parskip}{0pt}%
+%      \setlength{\itemsep}{0pt}%
+%      \setlength{\itemindent}{#4pt}%
+%      \addtolength{\itemindent}{-\leftmargin}}%
+%   \ifthenelse{\equal{#3}{T}}%
+%      {\item[\xtstrut\footnotesize \hspace{\temp}{#6}\hspace{#5pt}]%
+%        }%
+%      {\item[\xtstrut\hspace{\temp}]%
+%         }%
+%   \footnotesize}
+% {\hspace{-\the\lastskip}\tstrut
+% \end{list}%
+%  \ifthenelse{\boolean{shading}}{\end{minipage}
+%                                 \end{lrbox}%
+%                                 \setlength{\xcparht}{\ht\tempsbox}%
+%                                 \setlength{\xcpardp}{\dp\tempsbox}%
+%                                 \addtolength{\xcparht}{.15em}%
+%                                 \addtolength{\xcpardp}{.2em}%
+%                                 \addtolength{\xcparht}{\xcpardp}%
+%                                 \hspace*{-\lcomindent}%
+%                                 \makebox[0pt][l]{\raisebox{-\xcpardp}[0pt][0pt]{%
+%                                      \shadebox{\rule{0pt}{\xcparht}\hspace*{\textwidth}}}}%
+%                                 \hspace*{\lcomindent}\usebox{\tempsbox}%
+%                                 \par}{}%
+%  }
+%
+% \newlength{\xmcomlen}
+%\newenvironment{xmcom}[1]{%
+%  \setcounter{pardepth}{0}%
+%  \hspace{.65em}%
+%  \begin{lrbox}{\alignbox}\sloppypar%
+%      \setboolean{shading}{false}%
+%      \setlength{\boxwidth}{#1pt}%
+%      \addtolength{\boxwidth}{-.65em}%
+%      \begin{minipage}[t]{\boxwidth}\footnotesize
+%      \parskip=0pt\relax}%
+%       {\end{minipage}\end{lrbox}%
+%       \setlength{\xmcomlen}{\textwidth}%
+%       \addtolength{\xmcomlen}{-\wd\alignbox}%
+%       \settodepth{\alignwidth}{\usebox{\alignbox}}%
+%       \global\setlength{\multicommentdepth}{\alignwidth}%
+%       \setlength{\boxwidth}{\alignwidth}%
+%       \global\addtolength{\alignwidth}{-\maxdepth}%
+%       \addtolength{\boxwidth}{.1em}%
+%       \raisebox{0pt}[0pt][0pt]{%
+%        \ifthenelse{\boolean{shading}}%
+%          {\hspace*{-\xmcomlen}\shadebox{\rule[-\boxwidth]{0pt}{0pt}%
+%                                 \hspace*{\xmcomlen}\usebox{\alignbox}}}%
+%          {\usebox{\alignbox}}}%
+%       \vspace*{\alignwidth}\pagebreak[0]\vspace{-\alignwidth}\par}
+% % a multi-line comment, whose first argument is its width in points.
+%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE lcom ENVIRONMENT                                                       %
+% ^^^^^^^^^^^^^^^^^^^^                                                       %
+% A multi-line comment with no text to its left is typeset in an lcom        %
+% environment, whose argument is a number representing the indentation       %
+% of the left margin, in points.  All the text of the comment should be      %
+% inside cpar environments.                                                  %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newenvironment{lcom}[1]{%
+  \setlength{\lcomindent}{#1pt} % Added for PlusCal handling.
+  \par\vspace{.2em}%
+  \sloppypar
+  \setcounter{pardepth}{0}%
+  \footnotesize
+  \begin{list}{}{%
+    \setlength{\leftmargin}{#1pt}
+    \setlength{\labelwidth}{0pt}%
+    \setlength{\labelsep}{0pt}%
+    \setlength{\itemindent}{0pt}%
+    \setlength{\topsep}{0pt}%
+    \setlength{\parsep}{0pt}%
+    \setlength{\partopsep}{0pt}%
+    \setlength{\parskip}{0pt}}
+    \item[]}%
+  {\end{list}\vspace{.3em}\setlength{\lcomindent}{0pt}%
+ }
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THE mcom ENVIRONMENT AND \mutivspace COMMAND                              %
+% ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                              %
+%                                                                           %
+% A part of the spec containing a right-comment of the form                 %
+%                                                                           %
+%      xxxx (*************)                                                 %
+%      yyyy (* ccccccccc *)                                                 %
+%      ...  (* ccccccccc *)                                                 %
+%           (* ccccccccc *)                                                 %
+%           (* ccccccccc *)                                                 %
+%           (*************)                                                 %
+%                                                                           %
+% is typeset by                                                             %
+%                                                                           %
+%     XXXX \begin{mcom}{d}                                                  %
+%            CCCC ... CCC                                                   %
+%          \end{mcom}                                                       %
+%     YYYY ...                                                              %
+%     \multivspace{n}                                                       %
+%                                                                           %
+% where the number d is the width in points of the comment, n is the        %
+% number of xxxx, yyyy, ...  lines to the left of the comment.              %
+% All the text of the comment should be typeset in cpar environments.       %
+%                                                                           %
+% This puts the comment into a single box (so no page breaks can occur      %
+% within it).  The entire box is shaded iff the shading flag is true.       %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newlength{\xmcomlen}%
+\newenvironment{mcom}[1]{%
+  \setcounter{pardepth}{0}%
+  \hspace{.65em}%
+  \begin{lrbox}{\alignbox}\sloppypar%
+      \setboolean{shading}{false}%
+      \setlength{\boxwidth}{#1pt}%
+      \addtolength{\boxwidth}{-.65em}%
+      \begin{minipage}[t]{\boxwidth}\footnotesize
+      \parskip=0pt\relax}%
+       {\end{minipage}\end{lrbox}%
+       \setlength{\xmcomlen}{\textwidth}%       % For PlusCal shading
+       \addtolength{\xmcomlen}{-\wd\alignbox}%  % For PlusCal shading
+       \settodepth{\alignwidth}{\usebox{\alignbox}}%
+       \global\setlength{\multicommentdepth}{\alignwidth}%
+       \setlength{\boxwidth}{\alignwidth}%      % For PlusCal shading
+       \global\addtolength{\alignwidth}{-\maxdepth}%
+       \addtolength{\boxwidth}{.1em}%           % For PlusCal shading
+      \raisebox{0pt}[0pt][0pt]{%
+        \ifthenelse{\boolean{shading}}%
+          {\ifpcalshading
+             \hspace*{-\xmcomlen}%
+             \shadebox{\rule[-\boxwidth]{0pt}{0pt}\hspace*{\xmcomlen}%
+                          \usebox{\alignbox}}%
+           \else
+             \shadebox{\usebox{\alignbox}}
+           \fi
+          }%
+          {\usebox{\alignbox}}}%
+       \vspace*{\alignwidth}\pagebreak[0]\vspace{-\alignwidth}\par}
+ % a multi-line comment, whose first argument is its width in points.
+
+
+% \multispace{n} produces the vertical space indicated by "|"s in
+% this situation
+%
+%     xxxx (*************)
+%     xxxx (* ccccccccc *)
+%      |   (* ccccccccc *)
+%      |   (* ccccccccc *)
+%      |   (* ccccccccc *)
+%      |   (*************)
+%
+% where n is the number of "xxxx" lines.
+\newcommand{\multivspace}[1]{\addtolength{\multicommentdepth}{-#1\baselineskip}%
+ \addtolength{\multicommentdepth}{1.2em}%
+ \ifthenelse{\lengthtest{\multicommentdepth > 0pt}}%
+    {\par\vspace{\multicommentdepth}\par}{}}
+
+%\newenvironment{hpar}[2]{%
+%  \begin{list}{}{\setlength{\leftmargin}{#1pt}%
+%                 \addtolength{\leftmargin}{#2pt}%
+%                 \setlength{\itemindent}{-#2pt}%
+%                 \setlength{\topsep}{0pt}%
+%                 \setlength{\parsep}{0pt}%
+%                 \setlength{\partopsep}{0pt}%
+%                 \setlength{\parskip}{0pt}%
+%                 \addtolength{\labelsep}{0pt}}%
+%  \item[]\footnotesize}{\end{list}}
+%    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    % Typesets a sequence of paragraphs like this:                         %
+%    %                                                                      %
+%    %      left |<-- d1 --> XXXXXXXXXXXXXXXXXXXXXXXX                       %
+%    %    margin |           <- d2 -> XXXXXXXXXXXXXXX                       %
+%    %           |                    XXXXXXXXXXXXXXX                       %
+%    %           |                                                          %
+%    %           |                    XXXXXXXXXXXXXXX                       %
+%    %           |                    XXXXXXXXXXXXXXX                       %
+%    %                                                                      %
+%    % where d1 = #1pt and d2 = #2pt, but with no vspace between            %
+%    % paragraphs.                                                          %
+%    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Commands for repeated characters that produce dashes.              %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \raisedDash{wd}{ht}{thk} makes a horizontal line wd characters wide,
+% raised a distance ht ex's above the baseline, with a thickness of
+% thk em's.
+\newcommand{\raisedDash}[3]{\raisebox{#2ex}{\setlength{\alignwidth}{.5em}%
+  \rule{#1\alignwidth}{#3em}}}
+
+% The following commands take a single argument n and produce the
+% output for n repeated characters, as follows
+%   \cdash:    -
+%   \tdash:    ~
+%   \ceqdash:  =
+%   \usdash:   _
+\newcommand{\cdash}[1]{\raisedDash{#1}{.5}{.04}}
+\newcommand{\usdash}[1]{\raisedDash{#1}{0}{.04}}
+\newcommand{\ceqdash}[1]{\raisedDash{#1}{.5}{.08}}
+\newcommand{\tdash}[1]{\raisedDash{#1}{1}{.08}}
+
+\newlength{\spacewidth}
+\setlength{\spacewidth}{.2em}
+\newcommand{\e}[1]{\hspace{#1\spacewidth}}
+%% \e{i} produces space corresponding to i input spaces.
+
+
+%% Alignment-file Commands
+
+\newlength{\alignboxwidth}
+\newlength{\alignwidth}
+\newsavebox{\alignbox}
+
+% \al{i}{j}{txt} is used in the alignment file to put "%{i}{j}{wd}"
+% in the log file, where wd is the width of the line up to that point,
+% and txt is the following text.
+\newcommand{\al}[3]{%
+  \typeout{\%{#1}{#2}{\the\alignwidth}}%
+  \cl{#3}}
+
+%% \cl{txt} continues a specification line in the alignment file
+%% with text txt.
+\newcommand{\cl}[1]{%
+  \savebox{\alignbox}{\mbox{$\mbox{}#1\mbox{}$}}%
+  \settowidth{\alignboxwidth}{\usebox{\alignbox}}%
+  \addtolength{\alignwidth}{\alignboxwidth}%
+  \usebox{\alignbox}}
+
+% \fl{txt} in the alignment file begins a specification line that
+% starts with the text txt.
+\newcommand{\fl}[1]{%
+  \par
+  \savebox{\alignbox}{\mbox{$\mbox{}#1\mbox{}$}}%
+  \settowidth{\alignwidth}{\usebox{\alignbox}}%
+  \usebox{\alignbox}}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Ordinarily, TeX typesets letters in math mode in a special math italic    %
+% font.  This makes it typeset "it" to look like the product of the         %
+% variables i and t, rather than like the word "it".  The following         %
+% commands tell TeX to use an ordinary italic font instead.                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ifx\documentclass\undefined
+\else
+  \DeclareSymbolFont{tlaitalics}{\encodingdefault}{cmr}{m}{it}
+  \let\itfam\symtlaitalics
+\fi
+
+\makeatletter
+\newcommand{\tlx@c}{\c@tlx@ctr\advance\c@tlx@ctr\@ne}
+\newcounter{tlx@ctr}
+\c@tlx@ctr=\itfam \multiply\c@tlx@ctr"100\relax \advance\c@tlx@ctr "7061\relax
+\mathcode`a=\tlx@c \mathcode`b=\tlx@c \mathcode`c=\tlx@c \mathcode`d=\tlx@c
+\mathcode`e=\tlx@c \mathcode`f=\tlx@c \mathcode`g=\tlx@c \mathcode`h=\tlx@c
+\mathcode`i=\tlx@c \mathcode`j=\tlx@c \mathcode`k=\tlx@c \mathcode`l=\tlx@c
+\mathcode`m=\tlx@c \mathcode`n=\tlx@c \mathcode`o=\tlx@c \mathcode`p=\tlx@c
+\mathcode`q=\tlx@c \mathcode`r=\tlx@c \mathcode`s=\tlx@c \mathcode`t=\tlx@c
+\mathcode`u=\tlx@c \mathcode`v=\tlx@c \mathcode`w=\tlx@c \mathcode`x=\tlx@c
+\mathcode`y=\tlx@c \mathcode`z=\tlx@c
+\c@tlx@ctr=\itfam \multiply\c@tlx@ctr"100\relax \advance\c@tlx@ctr "7041\relax
+\mathcode`A=\tlx@c \mathcode`B=\tlx@c \mathcode`C=\tlx@c \mathcode`D=\tlx@c
+\mathcode`E=\tlx@c \mathcode`F=\tlx@c \mathcode`G=\tlx@c \mathcode`H=\tlx@c
+\mathcode`I=\tlx@c \mathcode`J=\tlx@c \mathcode`K=\tlx@c \mathcode`L=\tlx@c
+\mathcode`M=\tlx@c \mathcode`N=\tlx@c \mathcode`O=\tlx@c \mathcode`P=\tlx@c
+\mathcode`Q=\tlx@c \mathcode`R=\tlx@c \mathcode`S=\tlx@c \mathcode`T=\tlx@c
+\mathcode`U=\tlx@c \mathcode`V=\tlx@c \mathcode`W=\tlx@c \mathcode`X=\tlx@c
+\mathcode`Y=\tlx@c \mathcode`Z=\tlx@c
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                THE describe ENVIRONMENT                %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+% It is like the description environment except it takes an argument
+% ARG that should be the text of the widest label.  It adjusts the
+% indentation so each item with label LABEL produces
+%%      LABEL             blah blah blah
+%%      <- width of ARG ->blah blah blah
+%%                        blah blah blah
+\newenvironment{describe}[1]%
+   {\begin{list}{}{\settowidth{\labelwidth}{#1}%
+            \setlength{\labelsep}{.5em}%
+            \setlength{\leftmargin}{\labelwidth}%
+            \addtolength{\leftmargin}{\labelsep}%
+            \addtolength{\leftmargin}{\parindent}%
+            \def\makelabel##1{\rm ##1\hfill}}%
+            \setlength{\topsep}{0pt}}%%
+                % Sets \topsep to 0 to reduce vertical space above
+                % and below embedded displayed equations
+   {\end{list}}
+
+%   For tlatex.TeX
+\usepackage{verbatim}
+\makeatletter
+\def\tla{\let\%\relax%
+         \@bsphack
+         \typeout{\%{\the\linewidth}}%
+             \let\do\@makeother\dospecials\catcode`\^^M\active
+             \let\verbatim@startline\relax
+             \let\verbatim@addtoline\@gobble
+             \let\verbatim@processline\relax
+             \let\verbatim@finish\relax
+             \verbatim@}
+\let\endtla=\@esphack
+
+\let\pcal=\tla
+\let\endpcal=\endtla
+\let\ppcal=\tla
+\let\endppcal=\endtla
+
+% The tlatex environment is used by TLATeX.TeX to typeset TLA+.
+% TLATeX.TLA starts its files by writing a \tlatex command.  This
+% command/environment sets \parindent to 0 and defines \% to its
+% standard definition because the writing of the log files is messed up
+% if \% is defined to be something else.  It also executes
+% \@computerule to determine the dimensions for the TLA horizonatl
+% bars.
+\newenvironment{tlatex}{\@computerule%
+                        \setlength{\parindent}{0pt}%
+                       \makeatletter\chardef\%=`\%}{}
+
+
+% The notla environment produces no output.  You can turn a
+% tla environment to a notla environment to prevent tlatex.TeX from
+% re-formatting the environment.
+
+\def\notla{\let\%\relax%
+         \@bsphack
+             \let\do\@makeother\dospecials\catcode`\^^M\active
+             \let\verbatim@startline\relax
+             \let\verbatim@addtoline\@gobble
+             \let\verbatim@processline\relax
+             \let\verbatim@finish\relax
+             \verbatim@}
+\let\endnotla=\@esphack
+
+\let\nopcal=\notla
+\let\endnopcal=\endnotla
+\let\noppcal=\notla
+\let\endnoppcal=\endnotla
+
+%%%%%%%%%%%%%%%%%%%%%%%% end of tlatex.sty file %%%%%%%%%%%%%%%%%%%%%%%
+% last modified on Fri  3 August 2012 at 14:23:49 PST by lamport
+
+\begin{document}
+\tlatex
+\fl{}\moduleLeftDash\cl{ {\MODULE} HashTableModel}\moduleRightDash\cl{}
+\fl{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ {\CONSTANTS}}
+\fl{ CPUs ,\,}\al{25}{2}{%
+\@y{\@s{0}%
+ Finite set of reader \ensuremath{CPUs}/threads.
+}%
+}
+\fl{ Keys ,\,}\al{26}{2}{%
+\@y{\@s{0}%
+ Finite set of keys.
+}%
+}
+\fl{ Values ,\,}\al{27}{2}{%
+\@y{\@s{0}%
+ Finite set of values.
+}%
+}
+\fl{ BucketIds ,\,}\al{28}{2}{%
+\@y{\@s{0}%
+ Finite set of bucket indices.
+}%
+}
+\fl{ ObjIds ,\,}\al{29}{2}{%
+\@y{\@s{0}%
+ Finite set of value-object identifiers.
+}%
+}
+\fl{ BucketObjs ,\,}\al{30}{2}{%
+\@y{\@s{0}%
+ Finite set of bucket-object identifiers.
+}%
+}
+\fl{ MaxEntries ,\,}\al{31}{2}{%
+\@y{\@s{0}%
+ \ensuremath{Nat}, \ensuremath{max \.{\neq}}keys allowed in table.
+}%
+}
+\fl{ MaxEpoch ,\,}\al{32}{2}{%
+\@y{\@s{0}%
+ \ensuremath{Nat}, upper bound to keep \ensuremath{TLC} finite.
+}%
+}
+\fl{}
+\fl{ ReadersUsePublishedEpoch ,\,}\al{34}{2}{%
+\@y{\@s{0}%
+ \ensuremath{{\BOOLEAN}
+}}%
+}
+\fl{ RetireStampUsesPublishedEpoch ,\,}\al{35}{2}{%
+\@y{\@s{0}%
+ \ensuremath{{\BOOLEAN}
+}}%
+}
+\fl{ AllowUseAfterExit}\al{36}{1}{%
+\@y{\@s{0}%
+ \ensuremath{{\BOOLEAN}
+}}%
+}
+\fl{}
+\fl{ {\ASSUME} MaxEntries \.{\in} Nat}
+\fl{ {\ASSUME} MaxEpoch \.{\in} Nat}
+\fl{ {\ASSUME} ReadersUsePublishedEpoch \.{\in} {\BOOLEAN}}
+\fl{ {\ASSUME} RetireStampUsesPublishedEpoch \.{\in} {\BOOLEAN}}
+\fl{ {\ASSUME} AllowUseAfterExit \.{\in} {\BOOLEAN}}
+\fl{}
+ \fl{ ObjStates \.{\defeq} \{\@w{Unused} ,\,\@w{Live} ,\,\@w{Retired}
+ ,\,\@w{Freed} \}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ Max2 ( a ,\, b ) \.{\defeq} {\IF} a \.{\geq} b \.{\THEN} a \.{\ELSE} b}
+\fl{}
+ \fl{ MinSet ( S ) \.{\defeq} {\CHOOSE} m \.{\in} S \.{:} \A\, x \.{\in} S
+ \.{:} m \.{\leq} x}
+\fl{}
+\fl{ StampEpoch ( published\_epoch ) \.{\defeq}}
+\fl{ {\IF} RetireStampUsesPublishedEpoch}
+\fl{ \.{\THEN} published\_epoch}
+ \fl{ \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}
+\fl{}
+\fl{ EnterEpochValue ( published\_epoch ) \.{\defeq}}
+\fl{ {\IF} ReadersUsePublishedEpoch}
+\fl{ \.{\THEN} published\_epoch}
+ \fl{ \.{\ELSE} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}
+\fl{}
+\fl{ ActiveEpochs ( cpu\_epoch ) \.{\defeq}}
+ \fl{ \{ e \.{\in} 0 \.{\dotdot} MaxEpoch \.{:} ( e \.{\neq} 0 ) \.{\land} (
+ \E\, c \.{\in} CPUs \.{:} cpu\_epoch [ c ] \.{=} e ) \}}
+\fl{}
+\fl{}
+\fl{}
+\fl{ BucketOfKey ( k ) \.{\defeq} {\CHOOSE} b \.{\in} BucketIds \.{:} {\TRUE}}
+\fl{}
+\fl{ BucketKeyCount ( bucketPtr ,\, bucketContents ) \.{\defeq}}
+ \fl{ Cardinality ( \{ k \.{\in} Keys \.{:} \.{\LET} b \.{\defeq} BucketOfKey
+ ( k ) \.{\IN}}
+\fl{ \.{\land}}\al{73}{1}{ bucketPtr [ b ] \.{\neq} 0}
+ \fl{ \.{\land}}\al{74}{1}{ bucketContents [ bucketPtr [ b ] ] [ k ] \.{\neq}
+ 0 \} )}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ {\VARIABLES}}
+\fl{}
+\fl{ published\_epoch ,\,}
+\fl{ released\_epoch ,\,}
+\fl{ cpu\_epoch ,\,}
+\fl{}
+\fl{}
+\fl{ obj\_state ,\,}
+\fl{ obj\_key ,\,}
+\fl{ obj\_val ,\,}
+\fl{ obj\_freed\_epoch ,\,}
+\fl{}
+\fl{ bucket\_state ,\,}
+\fl{ bucket\_contents ,\,}
+\fl{ bucket\_freed\_epoch ,\,}
+\fl{ bucket\_ptr ,\,}
+\fl{}
+\fl{}
+\fl{ reader\_key ,\,}
+\fl{ snapshot\_bucket ,\,}
+\fl{ held\_bucket ,\,}
+\fl{ held\_obj ,\,}
+\fl{}
+\fl{}
+\fl{ bad}
+\fl{}
+\fl{ TypeOK \.{\defeq}}
+\fl{ \.{\land}}\al{107}{1}{ published\_epoch \.{\in} Nat}
+\fl{ \.{\land}}\al{108}{1}{ released\_epoch \.{\in} Nat}
+ \fl{ \.{\land}}\al{109}{1}{ cpu\_epoch}\al{109}{2}{ \.{\in}}\al{109}{3}{ [
+ CPUs \.{\rightarrow} Nat ]}
+\fl{}
+ \fl{ \.{\land}}\al{111}{1}{ obj\_state}\al{111}{2}{ \.{\in}}\al{111}{3}{ [
+ ObjIds \.{\rightarrow} ObjStates ]}
+ \fl{ \.{\land}}\al{112}{1}{ obj\_key}\al{112}{2}{ \.{\in}}\al{112}{3}{ [
+ ObjIds}\al{112}{5}{ \.{\rightarrow}}\al{112}{6}{ Keys ]}
+ \fl{ \.{\land}}\al{113}{1}{ obj\_val}\al{113}{2}{ \.{\in}}\al{113}{3}{ [
+ ObjIds}\al{113}{5}{ \.{\rightarrow}}\al{113}{6}{ Values ]}
+ \fl{ \.{\land}}\al{114}{1}{ obj\_freed\_epoch \.{\in} [ ObjIds
+ \.{\rightarrow} Nat ]}
+\fl{}
+ \fl{ \.{\land}}\al{116}{1}{ bucket\_state \.{\in} [ BucketObjs
+ \.{\rightarrow} ObjStates ]}
+ \fl{ \.{\land}}\al{117}{1}{ bucket\_contents \.{\in} [ BucketObjs
+ \.{\rightarrow} [ Keys \.{\rightarrow} ObjIds \.{\cup} \{ 0 \} ] ]}
+ \fl{ \.{\land}}\al{118}{1}{ bucket\_freed\_epoch \.{\in} [ BucketObjs
+ \.{\rightarrow} Nat ]}
+ \fl{ \.{\land}}\al{119}{1}{ bucket\_ptr}\al{119}{2}{ \.{\in}}\al{119}{3}{ [
+ BucketIds \.{\rightarrow} BucketObjs \.{\cup} \{ 0 \} ]}
+\fl{}
+ \fl{ \.{\land}}\al{121}{1}{ reader\_key}\al{121}{2}{ \.{\in}}\al{121}{3}{ [
+ CPUs \.{\rightarrow} Keys ]}
+ \fl{ \.{\land}}\al{122}{1}{ snapshot\_bucket \.{\in} [ CPUs \.{\rightarrow}
+ BucketObjs \.{\cup} \{ 0 \} ]}
+ \fl{ \.{\land}}\al{123}{1}{ held\_bucket \.{\in} [ CPUs \.{\rightarrow}
+ BucketObjs \.{\cup} \{ 0 \} ]}
+ \fl{ \.{\land}}\al{124}{1}{ held\_obj \.{\in} [ CPUs \.{\rightarrow} ObjIds
+ \.{\cup} \{ 0 \} ]}
+\fl{}
+\fl{ \.{\land}}\al{126}{1}{ bad \.{\in} {\BOOLEAN}}
+\fl{}
+\fl{ BucketContentsWellFormed \.{\defeq}}
+\fl{ \A\, bo \.{\in} BucketObjs \.{:}}
+\fl{ \A\, k \.{\in} Keys \.{:}}
+\fl{ \.{\LET} o \.{\defeq} bucket\_contents [ bo ] [ k ] \.{\IN}}
+\fl{ o \.{=} 0 \.{\lor} ( o \.{\in} ObjIds \.{\land} obj\_key [ o ] \.{=} k )}
+\fl{}
+\fl{ BucketPtrPointsToLiveOrEmpty \.{\defeq}}
+ \fl{ \A\, b \.{\in} BucketIds \.{:} bucket\_ptr [ b ] \.{=} 0 \.{\lor}
+ bucket\_state [ bucket\_ptr [ b ] ] \.{=}\@w{Live}}
+\fl{}
+\fl{ NoFreedBeforeRetired \.{\defeq}}
+ \fl{ \A\, o \.{\in} ObjIds \.{:} ( obj\_state [ o ] \.{=}\@w{Freed} )
+ \.{\implies} ( obj\_freed\_epoch [ o ] \.{\leq} released\_epoch )}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ Init}\al{145}{1}{ \.{\defeq}}
+\fl{ \.{\land}}\al{146}{1}{ published\_epoch \.{=} 1}
+\fl{ \.{\land}}\al{147}{1}{ released\_epoch}\al{147}{2}{ \.{=} 0}
+ \fl{ \.{\land}}\al{148}{1}{ cpu\_epoch}\al{148}{2}{ \.{=}}\al{148}{3}{ [
+ c}\al{148}{5}{ \.{\in} CPUs \.{\mapsto} 0 ]}
+\fl{}
+ \fl{ \.{\land}}\al{150}{1}{ obj\_state}\al{150}{2}{ \.{=}}\al{150}{3}{ [
+ o}\al{150}{5}{ \.{\in} ObjIds \.{\mapsto}\@w{Unused} ]}
+ \fl{ \.{\land}}\al{151}{1}{ obj\_key}\al{151}{2}{ \.{=}}\al{151}{3}{ [
+ o}\al{151}{5}{ \.{\in}}\al{151}{6}{ ObjIds}\al{151}{7}{
+ \.{\mapsto}}\al{151}{8}{ {\CHOOSE} k}\al{151}{10}{ \.{\in}}\al{151}{11}{
+ Keys \.{:} {\TRUE} ]}
+ \fl{ \.{\land}}\al{152}{1}{ obj\_val}\al{152}{2}{ \.{=}}\al{152}{3}{ [
+ o}\al{152}{5}{ \.{\in}}\al{152}{6}{ ObjIds}\al{152}{7}{
+ \.{\mapsto}}\al{152}{8}{ {\CHOOSE} v}\al{152}{10}{ \.{\in}}\al{152}{11}{
+ Values \.{:} {\TRUE} ]}
+ \fl{ \.{\land}}\al{153}{1}{ obj\_freed\_epoch \.{=} [ o \.{\in} ObjIds
+ \.{\mapsto} 0 ]}
+\fl{}
+ \fl{ \.{\land}}\al{155}{1}{ bucket\_state \.{=} [ bo \.{\in} BucketObjs
+ \.{\mapsto}\@w{Unused} ]}
+ \fl{ \.{\land}}\al{156}{1}{ bucket\_contents \.{=} [ bo \.{\in} BucketObjs
+ \.{\mapsto} [ k \.{\in} Keys \.{\mapsto} 0 ] ]}
+ \fl{ \.{\land}}\al{157}{1}{ bucket\_freed\_epoch \.{=} [ bo \.{\in}
+ BucketObjs \.{\mapsto} 0 ]}
+ \fl{ \.{\land}}\al{158}{1}{ bucket\_ptr}\al{158}{2}{ \.{=}}\al{158}{3}{ [
+ b}\al{158}{5}{ \.{\in}}\al{158}{6}{ BucketIds \.{\mapsto} 0 ]}
+\fl{}
+ \fl{ \.{\land}}\al{160}{1}{ reader\_key}\al{160}{2}{ \.{=}}\al{160}{3}{ [
+ c}\al{160}{5}{ \.{\in}}\al{160}{6}{ CPUs \.{\mapsto} {\CHOOSE} k \.{\in}
+ Keys \.{:} {\TRUE} ]}
+ \fl{ \.{\land}}\al{161}{1}{ snapshot\_bucket}\al{161}{2}{ \.{=} [ c \.{\in}
+ CPUs \.{\mapsto} 0 ]}
+ \fl{ \.{\land}}\al{162}{1}{ held\_bucket \.{=} [ c \.{\in} CPUs \.{\mapsto} 0
+ ]}
+\fl{ \.{\land}}\al{163}{1}{ held\_obj \.{=} [ c \.{\in} CPUs \.{\mapsto} 0 ]}
+\fl{}
+\fl{ \.{\land}}\al{165}{1}{ bad \.{=} {\FALSE}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ ReaderEnter ( c ) \.{\defeq}}
+\fl{ \.{\land}}\al{172}{1}{ cpu\_epoch [ c ] \.{=} 0}
+ \fl{ \.{\land}}\al{173}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
+ {\bang} [ c ] \.{=} EnterEpochValue ( published\_epoch ) ]}
+ \fl{ \.{\land}}\al{174}{1}{ {\UNCHANGED}}\al{174}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ ReaderExit ( c ) \.{\defeq}}
+\fl{ \.{\land}}\al{181}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
+ \fl{ \.{\land}}\al{182}{1}{ cpu\_epoch \.{'} \.{=} [ cpu\_epoch {\EXCEPT}
+ {\bang} [ c ] \.{=} 0 ]}
+\fl{ \.{\land}}\al{183}{1}{ {\IF} AllowUseAfterExit}
+ \fl{ \.{\THEN} {\UNCHANGED} {\langle} snapshot\_bucket ,\, held\_bucket ,\,
+ held\_obj {\rangle}}
+ \fl{ \.{\ELSE}}\al{185}{1}{ \.{\land}}\al{185}{2}{ snapshot\_bucket \.{'}
+ \.{=} [ snapshot\_bucket {\EXCEPT} {\bang} [ c ] \.{=} 0 ]}
+ \fl{ \.{\land}}\al{186}{1}{ held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
+ {\bang} [ c ] \.{=} 0 ]}
+ \fl{ \.{\land}}\al{187}{1}{ held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT}
+ {\bang} [ c ] \.{=} 0 ]}
+ \fl{ \.{\land}}\al{188}{1}{ {\UNCHANGED}}\al{188}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ ReaderBeginFind ( c ,\, k ) \.{\defeq}}
+\fl{ \.{\land}}\al{195}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
+ \fl{ \.{\land}}\al{196}{1}{ reader\_key \.{'} \.{=} [ reader\_key {\EXCEPT}
+ {\bang} [ c ] \.{=} k ]}
+\fl{ \.{\land}}\al{197}{1}{ \.{\LET} b \.{\defeq} BucketOfKey ( k ) \.{\IN}}
+ \fl{ snapshot\_bucket \.{'} \.{=} [ snapshot\_bucket {\EXCEPT} {\bang} [ c ]
+ \.{=} bucket\_ptr [ b ] ]}
+ \fl{ \.{\land}}\al{199}{1}{ {\UNCHANGED}}\al{199}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ ReaderFinishFind ( c ) \.{\defeq}}
+\fl{ \.{\land}}\al{206}{1}{ cpu\_epoch [ c ] \.{\neq} 0}
+ \fl{ \.{\land}}\al{207}{1}{ \.{\LET}}\al{207}{2}{ bo}\al{207}{3}{
+ \.{\defeq}}\al{207}{4}{ snapshot\_bucket [ c ]}
+\fl{ k}\al{208}{1}{ \.{\defeq}}\al{208}{2}{ reader\_key [ c ]}
+ \fl{ o}\al{209}{1}{ \.{\defeq} {\IF} bo \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ bucket\_contents [ bo ] [ k ]}
+\fl{ \.{\IN}}
+ \fl{ \.{\land}}\al{211}{1}{ held\_bucket \.{'} \.{=} [ held\_bucket {\EXCEPT}
+ {\bang} [ c ] \.{=} bo ]}
+ \fl{ \.{\land}}\al{212}{1}{ held\_obj \.{'} \.{=} [ held\_obj {\EXCEPT}
+ {\bang} [ c ] \.{=} o ]}
+\fl{ \.{\land}}\al{213}{1}{ bad \.{'} \.{=} bad \.{\lor}}
+ \fl{ ( ( bo}\al{214}{3}{ \.{\neq}}\al{214}{4}{ 0 )}\al{214}{6}{
+ \.{\land}}\al{214}{7}{ bucket\_state [ bo ] \.{=}\@w{Freed} ) \.{\lor}}
+ \fl{ ( ( o}\al{215}{3}{ \.{\neq}}\al{215}{4}{ 0 )}\al{215}{6}{
+ \.{\land}}\al{215}{7}{ obj\_state [ o ] \.{=}\@w{Freed} )}
+ \fl{ \.{\land}}\al{216}{1}{ {\UNCHANGED}}\al{216}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket {\rangle}}
+\fl{}
+\fl{ ReaderUseHeld ( c ) \.{\defeq}}
+\fl{ \.{\land}}\al{222}{1}{ held\_obj [ c ] \.{\neq} 0}
+\fl{ \.{\land}}\al{223}{1}{ bad \.{'} \.{=} bad \.{\lor}}
+ \fl{ ( held\_bucket [ c ] \.{\neq} 0 \.{\land} bucket\_state [ held\_bucket [
+ c ] ] \.{=}\@w{Freed} ) \.{\lor}}
+\fl{ ( obj\_state [ held\_obj [ c ] ] \.{=}\@w{Freed} )}
+ \fl{ \.{\land}}\al{226}{1}{ {\UNCHANGED}}\al{226}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+ \fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj
+ {\rangle}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ AllocateUnusedObj ( o ) \.{\defeq} obj\_state [ o ] \.{=}\@w{Unused}}
+ \fl{ AllocateUnusedBucket ( bo ) \.{\defeq} bucket\_state [ bo ]
+ \.{=}\@w{Unused}}
+\fl{}
+ \fl{ HasUnusedObj \.{\defeq} \E\, o \.{\in} ObjIds \.{:} AllocateUnusedObj (
+ o )}
+ \fl{ HasUnusedBucket}\al{239}{1}{ \.{\defeq}}\al{239}{2}{ \E\, bo \.{\in}
+ BucketObjs \.{:} AllocateUnusedBucket ( bo )}
+\fl{}
+ \fl{ ChooseUnusedObj}\al{241}{1}{ \.{\defeq}}\al{241}{2}{ {\CHOOSE} o \.{\in}
+ ObjIds \.{:} AllocateUnusedObj ( o )}
+ \fl{ ChooseUnusedBucket \.{\defeq} {\CHOOSE} bo \.{\in} BucketObjs \.{:}
+ AllocateUnusedBucket ( bo )}
+\fl{}
+ \fl{ RetiredObjs \.{\defeq} \{ o \.{\in} ObjIds \.{:} obj\_state [ o ]
+ \.{=}\@w{Retired} \.{\land} obj\_freed\_epoch [ o ] \.{\leq} released\_epoch
+ \}}
+ \fl{ RetiredBuckets \.{\defeq} \{ bo \.{\in} BucketObjs \.{:} bucket\_state [
+ bo ] \.{=}\@w{Retired} \.{\land} bucket\_freed\_epoch [ bo ] \.{\leq}
+ released\_epoch \}}
+\fl{}
+\fl{ WriterUpsert ( k ,\, v ) \.{\defeq}}
+\fl{ \.{\land}}\al{248}{1}{ HasUnusedObj}
+\fl{ \.{\land}}\al{249}{1}{ HasUnusedBucket}
+ \fl{ \.{\land}}\al{250}{1}{ \.{\LET}}\al{250}{2}{ new\_obj}\al{250}{3}{
+ \.{\defeq}}\al{250}{4}{ ChooseUnusedObj}
+\fl{ new\_bo}\al{251}{1}{ \.{\defeq}}\al{251}{2}{ ChooseUnusedBucket}
+\fl{ b \.{\defeq} BucketOfKey ( k )}
+\fl{ old\_bo \.{\defeq} bucket\_ptr [ b ]}
+ \fl{ old\_obj \.{\defeq} {\IF} old\_bo \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ bucket\_contents [ old\_bo ] [ k ]}
+\fl{ key\_is\_new}\al{255}{1}{ \.{\defeq}}\al{255}{2}{ ( old\_obj \.{=} 0 )}
+ \fl{ can\_insert}\al{256}{1}{ \.{\defeq}}\al{256}{2}{ ( BucketKeyCount (
+ bucket\_ptr ,\, bucket\_contents ) \.{<} MaxEntries )}
+\fl{ \.{\IN}}
+\fl{ \.{\land}}\al{258}{1}{ ( {\lnot} key\_is\_new ) \.{\lor} can\_insert}
+\fl{}
+\fl{ \.{\land}}\al{260}{1}{ \.{\LET}}
+ \fl{ base\_obj\_state}\al{261}{1}{ \.{\defeq}}\al{261}{2}{ [ obj\_state
+ {\EXCEPT} {\bang} [ new\_obj ] \.{=}\@w{Live} ]}
+ \fl{ base\_obj\_freed}\al{262}{1}{ \.{\defeq}}\al{262}{2}{ [
+ obj\_freed\_epoch {\EXCEPT} {\bang} [ new\_obj ] \.{=} 0 ]}
+\fl{ final\_obj\_state \.{\defeq}}
+ \fl{ {\IF} old\_obj \.{=} 0 \.{\THEN} base\_obj\_state \.{\ELSE} [
+ base\_obj\_state {\EXCEPT} {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}
+\fl{ final\_obj\_freed \.{\defeq}}
+\fl{ {\IF} old\_obj \.{=} 0}
+\fl{ \.{\THEN} base\_obj\_freed}
+ \fl{ \.{\ELSE} [ base\_obj\_freed {\EXCEPT} {\bang} [ old\_obj ] \.{=}
+ StampEpoch ( published\_epoch ) ]}
+\fl{}
+ \fl{ base\_bucket\_state}\al{270}{1}{ \.{\defeq}}\al{270}{2}{ [ bucket\_state
+ {\EXCEPT} {\bang} [ new\_bo ] \.{=}\@w{Live} ]}
+ \fl{ base\_bucket\_freed}\al{271}{1}{ \.{\defeq}}\al{271}{2}{ [
+ bucket\_freed\_epoch {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}
+\fl{ final\_bucket\_state \.{\defeq}}
+ \fl{ {\IF} old\_bo \.{=} 0 \.{\THEN} base\_bucket\_state \.{\ELSE} [
+ base\_bucket\_state {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}
+\fl{ final\_bucket\_freed \.{\defeq}}
+\fl{ {\IF} old\_bo \.{=} 0}
+\fl{ \.{\THEN} base\_bucket\_freed}
+ \fl{ \.{\ELSE} [ base\_bucket\_freed {\EXCEPT} {\bang} [ old\_bo ] \.{=}
+ StampEpoch ( published\_epoch ) ]}
+\fl{ \.{\IN}}
+\fl{ \.{\land}}\al{279}{1}{ obj\_state \.{'} \.{=} final\_obj\_state}
+ \fl{ \.{\land}}\al{280}{1}{ obj\_key \.{'}}\al{280}{3}{ \.{=}}\al{280}{4}{ [
+ obj\_key {\EXCEPT} {\bang} [ new\_obj ]}\al{280}{11}{ \.{=}}\al{280}{12}{ k
+ ]}
+ \fl{ \.{\land}}\al{281}{1}{ obj\_val \.{'}}\al{281}{3}{ \.{=}}\al{281}{4}{ [
+ obj\_val {\EXCEPT} {\bang} [ new\_obj ]}\al{281}{11}{ \.{=}}\al{281}{12}{ v
+ ]}
+\fl{ \.{\land}}\al{282}{1}{ obj\_freed\_epoch \.{'} \.{=} final\_obj\_freed}
+\fl{}
+\fl{ \.{\land}}\al{284}{1}{ bucket\_state \.{'} \.{=} final\_bucket\_state}
+ \fl{ \.{\land}}\al{285}{1}{ bucket\_freed\_epoch \.{'} \.{=}
+ final\_bucket\_freed}
+\fl{ \.{\land}}\al{286}{1}{ bucket\_contents \.{'} \.{=}}
+\fl{ [}\al{287}{1}{ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}
+\fl{ {\IF} old\_bo \.{=} 0}
+ \fl{ \.{\THEN} [ x}\al{289}{3}{ \.{\in}}\al{289}{4}{ Keys}\al{289}{5}{
+ \.{\mapsto}}\al{289}{6}{ {\IF} x}\al{289}{8}{ \.{=}}\al{289}{9}{
+ k}\al{289}{10}{ \.{\THEN}}\al{289}{11}{ new\_obj}\al{289}{12}{
+ \.{\ELSE}}\al{289}{13}{ 0 ]}
+ \fl{ \.{\ELSE} [ x}\al{290}{3}{ \.{\in}}\al{290}{4}{ Keys}\al{290}{5}{
+ \.{\mapsto}}\al{290}{6}{ {\IF} x}\al{290}{8}{ \.{=}}\al{290}{9}{
+ k}\al{290}{10}{ \.{\THEN}}\al{290}{11}{ new\_obj}\al{290}{12}{
+ \.{\ELSE}}\al{290}{13}{ bucket\_contents [ old\_bo ] [ x ] ] ]}
+\fl{}
+ \fl{ \.{\land}}\al{292}{1}{ bucket\_ptr \.{'}}\al{292}{3}{ \.{=} [
+ bucket\_ptr {\EXCEPT} {\bang} [ b ] \.{=} new\_bo ]}
+\fl{}
+ \fl{ \.{\land}}\al{294}{1}{ {\UNCHANGED}}\al{294}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ WriterDelete ( k ) \.{\defeq}}
+\fl{ \.{\land}}\al{299}{1}{ HasUnusedBucket}
+ \fl{ \.{\land}}\al{300}{1}{ \.{\LET}}\al{300}{2}{ new\_bo \.{\defeq}
+ ChooseUnusedBucket}
+\fl{ b \.{\defeq} BucketOfKey ( k )}
+\fl{ old\_bo \.{\defeq} bucket\_ptr [ b ]}
+\fl{ \.{\IN}}
+\fl{ \.{\land}}\al{304}{1}{ old\_bo \.{\neq} 0}
+ \fl{ \.{\land}}\al{305}{1}{ \.{\LET} old\_obj \.{\defeq} bucket\_contents [
+ old\_bo ] [ k ] \.{\IN}}
+\fl{ \.{\land} old\_obj \.{\neq} 0}
+\fl{}
+\fl{}
+ \fl{ \.{\land}}\al{309}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state
+ {\EXCEPT} {\bang} [ new\_bo ] \.{=}\@w{Live} ]}
+ \fl{ \.{\land}}\al{310}{1}{ bucket\_freed\_epoch \.{'} \.{=} [
+ bucket\_freed\_epoch {\EXCEPT} {\bang} [ new\_bo ] \.{=} 0 ]}
+\fl{ \.{\land}}\al{311}{1}{ bucket\_contents \.{'} \.{=}}
+\fl{ [}\al{312}{1}{ bucket\_contents {\EXCEPT} {\bang} [ new\_bo ] \.{=}}
+ \fl{ [ x \.{\in} Keys \.{\mapsto} {\IF} x \.{=} k \.{\THEN} 0 \.{\ELSE}
+ bucket\_contents [ old\_bo ] [ x ] ] ]}
+ \fl{ \.{\land}}\al{314}{1}{ bucket\_ptr \.{'} \.{=} [ bucket\_ptr {\EXCEPT}
+ {\bang} [ b ] \.{=} new\_bo ]}
+\fl{}
+\fl{}
+ \fl{ \.{\land}}\al{317}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state \.{'}
+ {\EXCEPT} {\bang} [ old\_bo ] \.{=}\@w{Retired} ]}
+ \fl{ \.{\land}}\al{318}{1}{ bucket\_freed\_epoch \.{'} \.{=} [
+ bucket\_freed\_epoch \.{'} {\EXCEPT} {\bang} [ old\_bo ] \.{=} StampEpoch (
+ published\_epoch ) ]}
+\fl{}
+ \fl{ \.{\land}}\al{320}{1}{ obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
+ {\bang} [ old\_obj ] \.{=}\@w{Retired} ]}
+ \fl{ \.{\land}}\al{321}{1}{ obj\_freed\_epoch \.{'} \.{=} [ obj\_freed\_epoch
+ {\EXCEPT} {\bang} [ old\_obj ] \.{=} StampEpoch ( published\_epoch ) ]}
+\fl{}
+ \fl{ \.{\land}}\al{323}{1}{ {\UNCHANGED}}\al{323}{2}{ {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_key ,\, obj\_val ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ AdvancePublishedEpoch \.{\defeq}}
+\fl{ \.{\land}}\al{333}{1}{ published\_epoch \.{<} MaxEpoch}
+ \fl{ \.{\land}}\al{334}{1}{ published\_epoch \.{'} \.{=} published\_epoch
+ \.{+} 1}
+ \fl{ \.{\land}}\al{335}{1}{ {\UNCHANGED}}\al{335}{2}{ {\langle}
+ released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ ComputeReleasedEpoch \.{\defeq}}
+ \fl{ \.{\land}}\al{342}{1}{ \.{\LET}}\al{342}{2}{ active \.{\defeq}
+ ActiveEpochs ( cpu\_epoch )}
+\fl{ candidate \.{\defeq}}
+\fl{ {\IF} active \.{=} \{ \}}
+ \fl{ \.{\THEN} {\IF} published\_epoch \.{=} 0 \.{\THEN} 0 \.{\ELSE}
+ published\_epoch \.{-} 1}
+ \fl{ \.{\ELSE} \.{\LET} m \.{\defeq} MinSet ( active ) \.{\IN} {\IF} m \.{=}
+ 0 \.{\THEN} 0 \.{\ELSE} m \.{-} 1}
+\fl{ \.{\IN}}
+\fl{ released\_epoch \.{'} \.{=} Max2 ( released\_epoch ,\, candidate )}
+ \fl{ \.{\land}}\al{349}{1}{ {\UNCHANGED}}\al{349}{2}{ {\langle}
+ published\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{ ReclaimOne \.{\defeq}}
+\fl{ \.{\lor} \.{\land} RetiredObjs \.{\neq} \{ \}}
+ \fl{ \.{\land} \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} RetiredObjs \.{:}
+ {\TRUE} \.{\IN}}
+ \fl{ \.{\land}}\al{358}{1}{ obj\_state \.{'} \.{=} [ obj\_state {\EXCEPT}
+ {\bang} [ o ] \.{=}\@w{Freed} ]}
+ \fl{ \.{\land}}\al{359}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{ \.{\lor} \.{\land} RetiredBuckets \.{\neq} \{ \}}
+ \fl{ \.{\land} \.{\LET} bo \.{\defeq} {\CHOOSE} x \.{\in} RetiredBuckets
+ \.{:} {\TRUE} \.{\IN}}
+ \fl{ \.{\land}}\al{366}{1}{ bucket\_state \.{'} \.{=} [ bucket\_state
+ {\EXCEPT} {\bang} [ bo ] \.{=}\@w{Freed} ]}
+ \fl{ \.{\land}}\al{367}{1}{ {\UNCHANGED} {\langle} published\_epoch ,\,
+ released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+\fl{ bucket\_contents ,\, bucket\_freed\_epoch ,\, bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ Next}\al{377}{1}{ \.{\defeq}}
+ \fl{ \.{\lor}}\al{378}{1}{ \E\, c}\al{378}{3}{ \.{\in}}\al{378}{4}{
+ CPUs}\al{378}{5}{ \.{:}}\al{378}{6}{ ReaderEnter ( c )}
+ \fl{ \.{\lor}}\al{379}{1}{ \E\, c}\al{379}{3}{ \.{\in}}\al{379}{4}{
+ CPUs}\al{379}{5}{ \.{:}}\al{379}{6}{ ReaderExit ( c )}
+ \fl{ \.{\lor}}\al{380}{1}{ \E\, c}\al{380}{3}{ \.{\in} CPUs}\al{380}{5}{
+ \.{:} \E\, k \.{\in} Keys \.{:} ReaderBeginFind ( c ,\, k )}
+ \fl{ \.{\lor}}\al{381}{1}{ \E\, c}\al{381}{3}{ \.{\in} CPUs}\al{381}{5}{
+ \.{:} ReaderFinishFind ( c )}
+ \fl{ \.{\lor}}\al{382}{1}{ \E\, c}\al{382}{3}{ \.{\in} CPUs}\al{382}{5}{
+ \.{:} ReaderUseHeld ( c )}
+\fl{}
+ \fl{ \.{\lor}}\al{384}{1}{ \E\, k}\al{384}{3}{ \.{\in} Keys}\al{384}{5}{
+ \.{:} \E\, v \.{\in} Values \.{:} WriterUpsert ( k ,\, v )}
+ \fl{ \.{\lor}}\al{385}{1}{ \E\, k}\al{385}{3}{ \.{\in} Keys}\al{385}{5}{
+ \.{:} WriterDelete ( k )}
+\fl{}
+\fl{ \.{\lor}}\al{387}{1}{ AdvancePublishedEpoch}
+\fl{ \.{\lor}}\al{388}{1}{ ComputeReleasedEpoch}
+\fl{ \.{\lor}}\al{389}{1}{ ReclaimOne}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ Safety \.{\defeq}}
+\fl{ \.{\land}}\al{396}{1}{ {\lnot} bad}
+\fl{ \.{\land}}\al{397}{1}{ released\_epoch \.{\leq} published\_epoch}
+\fl{}
+\fl{}
+\fl{ \.{\land}}\al{400}{1}{ \A\, c \.{\in} CPUs \.{:}}
+ \fl{ ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_obj [ c ] \.{\neq} 0 )
+ \.{\implies} obj\_state [ held\_obj [ c ] ] \.{\neq}\@w{Freed}}
+\fl{ \.{\land}}\al{402}{1}{ \A\, c \.{\in} CPUs \.{:}}
+ \fl{ ( cpu\_epoch [ c ] \.{\neq} 0 \.{\land} held\_bucket [ c ] \.{\neq} 0 )
+ \.{\implies} bucket\_state [ held\_bucket [ c ] ] \.{\neq}\@w{Freed}}
+\fl{}
+ \fl{ Spec \.{\defeq} Init \.{\land} {\Box} [}\al{405}{6}{ Next ] {\langle}
+ published\_epoch ,\, released\_epoch ,\, cpu\_epoch ,\,}
+\fl{ obj\_state ,\, obj\_key ,\, obj\_val ,\, obj\_freed\_epoch ,\,}
+ \fl{ bucket\_state ,\, bucket\_contents ,\, bucket\_freed\_epoch ,\,
+ bucket\_ptr ,\,}
+\fl{ reader\_key ,\, snapshot\_bucket ,\, held\_bucket ,\, held\_obj ,\,}
+\fl{ bad {\rangle}}
+\fl{}
+\fl{}\bottombar\cl{}
+\end{document}
