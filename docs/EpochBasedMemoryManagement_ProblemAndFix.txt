@@ -1,0 +1,88 @@
+Copyright (c) eBPF for Windows contributors
+SPDX-License-Identifier: MIT
+
+Epoch-based memory reclamation: problem statement and proposed fix
+
+Problem statement
+
+The current epoch mechanism maintains per-CPU epoch state. Each CPU has a current_epoch, a released_epoch, a list of active epoch participants, and a per-CPU free list. Epoch advance and reclamation are coordinated via an inter-CPU propose/commit message cycle.
+
+A correctness risk exists due to per-CPU epoch skew:
+
+- CPU0 can advance its local current_epoch to N+1 during the propose phase.
+- Threads that enter an epoch on CPU0 can observe epoch N+1 immediately.
+- Other CPUs may still have local current_epoch == N until they process the propose message.
+- If a thread on a lagging CPU retires an object M, the object is stamped with freed_epoch == N (because freed_epoch is set using the local CPU’s current_epoch at the time of insertion into the free list).
+- If the global minimum active epoch becomes N+1, the commit phase computes released_epoch == N and may reclaim entries with freed_epoch <= N.
+
+This creates a potential interleaving where:
+
+1. A reader enters epoch N+1 (on a CPU that has advanced).
+2. The reader obtains a pointer to M (M is still reachable at the time of observation).
+3. A writer on a lagging CPU retires M and stamps it with freed_epoch == N.
+4. The system computes released_epoch == N and reclaims M.
+5. The reader (still in epoch N+1) dereferences M and encounters a use-after-free.
+
+The key issue is that a reader can legitimately observe epoch N+1 while a retirement can still be stamped with epoch N. That violates the safety property that retire stamps must not be “older” than the epoch of any concurrent reader that might still hold a reference.
+
+Proposed fix (published global epoch for enter and retire stamping)
+
+Introduce a single, globally-published epoch value that is used as the source of truth for:
+
+- ebpf_epoch_enter(): the epoch recorded into ebpf_epoch_state_t
+- Retirement stamping: the freed_epoch recorded when inserting an entry into the per-CPU free list
+
+Design
+
+1. Add a global, monotonic, atomic epoch variable:
+
+   published_current_epoch
+
+2. On epoch advance initiation (CPU0 during propose start), increment and publish the new epoch using an interlocked operation.
+
+3. On ebpf_epoch_enter(), record:
+
+   epoch_state.epoch = published_current_epoch
+
+   Use an atomic/interlocked read to avoid torn reads and to provide proper ordering.
+
+4. On inserting into the reclamation/free list, stamp:
+
+   header->freed_epoch = published_current_epoch
+
+   Use an atomic/interlocked read. Optionally, if local current_epoch is still retained for other logic, stamp:
+
+   header->freed_epoch = max(published_current_epoch, cpu_entry->current_epoch)
+
+   but the primary requirement is that enter and retire stamping use the same published epoch source.
+
+5. Keep the existing propose/commit computation for released_epoch. Reclamation continues to use the rule:
+
+   reclaim if freed_epoch <= released_epoch
+
+Why this fixes the skew issue
+
+With a single published epoch used by both enter and retire stamping:
+
+- If any thread can enter and observe epoch N+1, then published_current_epoch is already N+1.
+- Any retirement that happens after that publication will stamp freed_epoch >= N+1.
+- Therefore, when released_epoch first reaches N, no object that could have been observed by an epoch N+1 reader can be reclaimed (because it will have freed_epoch >= N+1).
+
+Stale reads and correctness
+
+Absolute prevention of “stale” in the sense of “has not yet observed the newest epoch increment” typically requires a global barrier, which is undesirable for performance.
+
+For correctness, it is sufficient to ensure:
+
+- Atomicity: no torn reads/writes of the published epoch (especially for 64-bit values).
+- Ordering: publish and reads use appropriate memory ordering (interlocked operations provide this on Windows).
+
+A stale read of an older epoch is conservative: it makes the thread join an older epoch and can only delay reclamation. The correctness bug is driven by the opposite mismatch (reader seeing newer while retire stamping sees older), which is addressed by using a single published epoch for both operations.
+
+Alternative fix (barriered epoch flip)
+
+A stronger but higher-overhead alternative is to prevent any CPU from handing out epoch N+1 until all CPUs have acknowledged switching to N+1. This removes skew entirely but introduces barrier-like synchronization costs on each epoch advance.
+
+Recommendation
+
+Adopt the published global epoch approach. It is a minimal change, maintains the existing per-CPU lists and propose/commit reclamation scheme, and closes the correctness gap caused by per-CPU epoch skew.
