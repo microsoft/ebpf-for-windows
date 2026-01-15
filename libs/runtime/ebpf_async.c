@@ -67,7 +67,7 @@ static ebpf_result_t
 _remove_tracker(_In_ const void* context)
 {
     uint8_t* key = (uint8_t*)&context;
-    return ebpf_hash_table_delete(_ebpf_async_tracker_table, key);
+    return ebpf_hash_table_delete(_ebpf_async_tracker_table, NULL, key);
 }
 
 _Must_inspect_result_ ebpf_result_t

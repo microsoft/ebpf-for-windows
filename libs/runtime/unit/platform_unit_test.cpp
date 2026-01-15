@@ -351,22 +351,21 @@ TEST_CASE("hash_table_test", "[platform]")
     REQUIRE(returned_key == key_3);
 
     // Delete middle key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), NULL, key_2.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Delete not found
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_delete(table.get(), NULL, key_2.data()) == EBPF_KEY_NOT_FOUND);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Find not found
     REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
-
     // Delete first key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_1.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), NULL, key_1.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Delete last key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_3.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), NULL, key_3.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 0);
 }
 

@@ -579,6 +579,7 @@ Done:
  * Operations include insert, update and delete of elements.
  *
  * @param[in] hash_table Hash table to update.
+ * @param[in] operation_context Context to pass to notification functions.
  * @param[in] key Key to operate on.
  * @param[in] value Value to be inserted or NULL.
  * @param[in] operation Operation to perform.
@@ -590,6 +591,7 @@ Done:
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
     _Inout_ ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
@@ -622,8 +624,15 @@ _ebpf_hash_table_replace_bucket(
             memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
         }
         if (hash_table->notification_callback) {
-            hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, key, new_data);
+            result = hash_table->notification_callback(
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE,
+                key,
+                new_data);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
         }
     }
 
@@ -693,12 +702,22 @@ Done:
 
     if (hash_table->notification_callback) {
         if (new_data) {
+            // Ignore return value from free notification.
             hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, new_data);
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                key,
+                new_data);
         }
         if (old_data) {
+            // Ignore return value from free notification.
             hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, old_data);
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                key,
+                old_data);
         }
     }
 
@@ -839,8 +858,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
 
     *value = data;
     if (hash_table->notification_callback) {
+        // Ignore return value from use notification.
         hash_table->notification_callback(
-            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
+            hash_table->notification_context, NULL, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
     }
     retval = EBPF_SUCCESS;
 Done:
@@ -850,6 +870,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
     _Inout_ ebpf_hash_table_t* hash_table,
+    _In_opt_ const uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_table_operations_t operation)
@@ -877,13 +898,14 @@ ebpf_hash_table_update(
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, bucket_operation);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, operation_context, key, value, bucket_operation);
 Done:
     return retval;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+ebpf_hash_table_delete(
+    _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* operation_context, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
 
@@ -892,7 +914,8 @@ ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
+    retval =
+        _ebpf_hash_table_replace_bucket(hash_table, operation_context, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
 
 Done:
     return retval;

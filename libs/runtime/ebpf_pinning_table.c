@@ -215,7 +215,7 @@ ebpf_pinning_table_delete(ebpf_pinning_table_t* pinning_table, const cxplat_utf8
         pinning_table->hash_table, (const uint8_t*)&existing_key, (uint8_t**)&existing_pinning_entry);
     if (return_value == EBPF_SUCCESS) {
         entry = *existing_pinning_entry;
-        return_value = ebpf_hash_table_delete(pinning_table->hash_table, (const uint8_t*)&existing_key);
+        return_value = ebpf_hash_table_delete(pinning_table->hash_table, NULL, (const uint8_t*)&existing_key);
         // If unable to remove the entry from the table, don't delete it.
         if (return_value != EBPF_SUCCESS) {
             entry = NULL;
@@ -268,7 +268,8 @@ ebpf_pinning_table_enumerate_entries(
     }
 
     // Allocate the output array for storing the pinning entries.
-    local_pinning_entries = (ebpf_pinning_entry_t*)ebpf_allocate_with_tag(sizeof(ebpf_pinning_entry_t) * entries_array_length, EBPF_POOL_TAG_DEFAULT);
+    local_pinning_entries = (ebpf_pinning_entry_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_pinning_entry_t) * entries_array_length, EBPF_POOL_TAG_DEFAULT);
     if (local_pinning_entries == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;

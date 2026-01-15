@@ -140,7 +140,7 @@ _ebpf_object_tracking_list_remove(_In_ const ebpf_core_object_t* object)
     ebpf_assert(entry->object == object);
     entry->object = NULL;
 
-    ebpf_assert_success(ebpf_hash_table_delete(_ebpf_id_table, (const uint8_t*)&object->id));
+    ebpf_assert_success(ebpf_hash_table_delete(_ebpf_id_table, NULL, (const uint8_t*)&object->id));
 }
 
 ebpf_result_t

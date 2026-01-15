@@ -56,7 +56,7 @@ typedef enum _ebpf_pool_tag
     EBPF_POOL_TAG_RANDOM = 'gnre',
     EBPF_POOL_TAG_RING_BUFFER = 'fbre',
     EBPF_POOL_TAG_STATE = 'atse',
-    EBPF_POOL_TAG_EXTENSIBLE_MAP = 'pmxe'
+    EBPF_POOL_TAG_CUSTOM_MAP = 'pmce'
 } ebpf_pool_tag_t;
 
 __forceinline void
