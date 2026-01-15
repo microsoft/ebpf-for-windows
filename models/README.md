@@ -30,23 +30,83 @@ In this repo we use it pragmatically:
 
 ### TLC
 
-This repo vendors the TLA+ tools jar at:
+The CI workflow downloads the TLA+ tools jar (`tla2tools.jar`) from the official TLA+ release. For local runs, download it (or use the Toolbox install):
 
-- `models/tla2tools.jar`
+```powershell
+curl.exe -fsSL -o tla2tools.jar https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+```
 
 Run TLC from the repo root using the model’s `.cfg` file:
 
 ```powershell
-java -jar models\tla2tools.jar -config models\<model>\<config>.cfg models\<model>\<spec>.tla
+java -cp .\tla2tools.jar tlc2.TLC -config models\<model>\<config>.cfg models\<model>\<spec>.tla
 ```
 
 Many models also run faster with multiple workers:
 
 ```powershell
-java -jar models\tla2tools.jar -workers 8 -terse -nowarning -config models\<model>\<config>.cfg models\<model>\<spec>.tla
+java -cp .\tla2tools.jar tlc2.TLC -workers 8 -terse -nowarning -config models\<model>\<config>.cfg models\<model>\<spec>.tla
 ```
 
 TLC writes state exploration artifacts into `states/` folders next to the model by default.
+
+### TLATeX (LaTeX pretty-print)
+
+For a typeset (mathematically formatted) version of each model, this repo checks in the generated `.tex` output under:
+
+- `models/<model>/tlatex/<Spec>.tex`
+
+To regenerate them, you need Java and a LaTeX toolchain installed (because TLATeX runs `latex` to compute alignment). On Ubuntu, this is typically:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y texlive-latex-base
+```
+
+Then run:
+
+```bash
+TLA2TOOLS_JAR=./tla2tools.jar scripts/generate_tlatex.sh
+```
+
+On Windows, you can run the PowerShell version:
+
+```powershell
+pwsh -File scripts\generate_tlatex.ps1 -Tla2ToolsJar .\tla2tools.jar
+```
+
+### Generating PDFs on Windows (from TLATeX output)
+
+If you want a PDF rendering of a model, you can compile the generated TLATeX `.tex` file (for example `models\epoch\tlatex\EpochModel.tex`).
+
+One straightforward option is **MiKTeX**:
+
+```powershell
+winget install MiKTeX.MiKTeX
+```
+
+After installation, open a new terminal so PATH updates are picked up.
+
+Then, from the directory containing the `.tex` file:
+
+- Preferred (handles multiple passes automatically):
+
+```powershell
+latexmk -pdf -interaction=nonstopmode -file-line-error EpochModel.tex
+```
+
+Note: on Windows with MiKTeX, `latexmk` typically requires a Perl runtime (e.g., Strawberry Perl). If `latexmk` fails with “MiKTeX could not find the script engine 'perl'”, either install Perl or use the `pdflatex` fallback below.
+
+- If `latexmk` is not available, run `pdflatex` twice:
+
+```powershell
+pdflatex -interaction=nonstopmode -file-line-error EpochModel.tex
+pdflatex -interaction=nonstopmode -file-line-error EpochModel.tex
+```
+
+This will produce `EpochModel.pdf` next to the `.tex` file.
+
+The GitHub workflow `.github/workflows/tla-plus-models.yml` regenerates these files and fails the build if there are diffs.
 
 ## Models in this repo
 
