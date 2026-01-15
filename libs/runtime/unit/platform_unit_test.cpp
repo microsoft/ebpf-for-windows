@@ -726,6 +726,7 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
 
             ebpf_epoch_work_item_t* work_item = nullptr;
             void* memory_to_free = memory;
+            volatile uint32_t spin = 0;
 
             while (!stop_hog.load(std::memory_order_acquire)) {
                 if (do_retire.load(std::memory_order_acquire) && !retire_done.load(std::memory_order_acquire)) {
@@ -754,7 +755,8 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform][.]")
                 }
 
                 // Busy loop to keep the CPU occupied.
-                _mm_pause();
+                spin++;
+                std::atomic_signal_fence(std::memory_order_seq_cst);
             }
 
             // Restore thread priority and affinity.
