@@ -35,6 +35,7 @@
 #include <mutex>
 #include <numeric>
 #include <sddl.h>
+#include <stop_token>
 #include <thread>
 #include <vector>
 
@@ -716,7 +717,8 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
         const uint64_t start_epoch = read_epoch_on_cpu(reader_cpu);
 
         // Hog the lagging CPU so it cannot process the propose message until after retirement.
-        std::thread hog_thread([&]() {
+        // Use std::jthread so we always join during exception unwinding.
+        std::jthread hog_thread([&](std::stop_token stop_token) {
             GROUP_AFFINITY old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(lagging_cpu, &old_thread_affinity));
 
@@ -728,7 +730,7 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
             void* memory_to_free = memory;
             volatile uint32_t spin = 0;
 
-            while (!stop_hog.load(std::memory_order_acquire)) {
+            while (!stop_hog.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
                 if (do_retire.load(std::memory_order_acquire) && !retire_done.load(std::memory_order_acquire)) {
                     // Make the object non-reachable.
                     published_pointer.store(nullptr, std::memory_order_release);
@@ -775,12 +777,12 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
         REQUIRE(epoch_trigger_allocation != nullptr);
         ebpf_epoch_free(epoch_trigger_allocation);
 
-        std::thread reader_thread([&]() {
+        std::jthread reader_thread([&](std::stop_token stop_token) {
             GROUP_AFFINITY old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(reader_cpu, &old_thread_affinity));
 
             ebpf_epoch_state_t epoch_state = {};
-            while (!stop_reader.load(std::memory_order_acquire)) {
+            while (!stop_reader.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
                 memset(&epoch_state, 0, sizeof(epoch_state));
                 ebpf_epoch_enter(&epoch_state);
                 if (epoch_state.epoch > start_epoch) {
@@ -795,7 +797,7 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
             }
 
             // Hold the epoch until the main test thread asks us to exit.
-            while (!stop_reader.load(std::memory_order_acquire)) {
+            while (!stop_reader.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
 
