@@ -148,7 +148,7 @@ extension.
 
 **Map Creation Flow**:
 ```
-User calls bpf_create_map(BPF_MAP_TYPE_CUSTOM, ...)
+User calls bpf_map_create(BPF_MAP_TYPE_CUSTOM, ...)
     ↓
 ebpfapi validates parameters
     ↓
