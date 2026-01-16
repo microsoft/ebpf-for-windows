@@ -48,7 +48,6 @@ typedef struct _ebpf_map_provider_dispatch_table {
     ebpf_process_map_find_element_t process_map_find_element;
     ebpf_process_map_add_element_t process_map_add_element;
     ebpf_process_map_delete_element_t process_map_delete_element;
-    ebpf_process_map_get_next_key_and_value_t process_map_get_next_key_and_value;
 } ebpf_map_provider_dispatch_table_t;
 
 typedef ebpf_result_t (*ebpf_process_map_create_t)(
