@@ -68,59 +68,60 @@ jobs:
           # Convention:
           # - any config named *_buggy*.cfg is expected to FAIL with an invariant violation
           # - all other *.cfg are expected to PASS
-          # Each model directory under models/* (excluding the jar) should contain exactly one *.tla.
+          # A model directory may contain one or more *.tla files. For each spec, we run any
+          # configs that match "<SpecRoot>*.cfg" (e.g., EpochModel.cfg and EpochModel_buggy.cfg).
 
           shopt -s nullglob
 
           for model_dir in models/*/ ; do
             tla_files=("${model_dir}"*.tla)
-            cfg_files=("${model_dir}"*.cfg)
-
             if [ ${#tla_files[@]} -eq 0 ]; then
               echo "Skipping ${model_dir}: no .tla files"
               continue
             fi
-            if [ ${#tla_files[@]} -ne 1 ]; then
-              echo "${model_dir}: expected exactly one .tla file, found ${#tla_files[@]}"
-              printf '  %s\n' "${tla_files[@]}"
-              exit 1
-            fi
-            if [ ${#cfg_files[@]} -eq 0 ]; then
-              echo "Skipping ${model_dir}: no .cfg files"
-              continue
-            fi
 
-            tla="${tla_files[0]}"
-            echo "=== Model: ${model_dir} (spec: ${tla}) ==="
+            echo "=== Model: ${model_dir} (specs: ${#tla_files[@]}) ==="
 
-            for cfg in "${cfg_files[@]}" ; do
-              echo "--- Config: ${cfg} ---"
-              out="${cfg}.out"
+            for tla in "${tla_files[@]}" ; do
+              spec_root="$(basename "${tla}" .tla)"
+              spec_cfg_files=("${model_dir}${spec_root}"*.cfg)
 
-              set +e
-              java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
-                -config "${cfg}" \
-                "${tla}" \
-                >"${out}" 2>&1
-              status=$?
-              set -e
-
-              cat "${out}"
-
-              if [[ "${cfg}" == *"_buggy"*".cfg" ]]; then
-                if [ "$status" -eq 0 ]; then
-                  echo "Buggy config unexpectedly passed: ${cfg}"
-                  exit 1
-                fi
-                if ! grep -q "Invariant" "${out}"; then
-                  echo "Buggy config failed but did not report an invariant violation: ${cfg}"
-                  exit 1
-                fi
-              else
-                if [ "$status" -ne 0 ]; then
-                  echo "Config failed unexpectedly: ${cfg}"
-                  exit 1
-                fi
+              if [ ${#spec_cfg_files[@]} -eq 0 ]; then
+                echo "Skipping spec ${tla}: no matching .cfg files"
+                continue
               fi
+
+              echo "--- Spec: ${tla} ---"
+
+              for cfg in "${spec_cfg_files[@]}" ; do
+                echo "--- Config: ${cfg} ---"
+                out="${cfg}.out"
+
+                set +e
+                java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
+                  -config "${cfg}" \
+                  "${tla}" \
+                  >"${out}" 2>&1
+                status=$?
+                set -e
+
+                cat "${out}"
+
+                if [[ "${cfg}" == *"_buggy"*".cfg" ]]; then
+                  if [ "$status" -eq 0 ]; then
+                    echo "Buggy config unexpectedly passed: ${cfg}"
+                    exit 1
+                  fi
+                  if ! grep -q "Invariant" "${out}"; then
+                    echo "Buggy config failed but did not report an invariant violation: ${cfg}"
+                    exit 1
+                  fi
+                else
+                  if [ "$status" -ne 0 ]; then
+                    echo "Config failed unexpectedly: ${cfg}"
+                    exit 1
+                  fi
+                fi
+              done
             done
           done
