@@ -29,6 +29,8 @@
 #include <cmath>
 #include <complex>
 #include <condition_variable>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <intrin.h>
 #include <iostream>
@@ -39,9 +41,6 @@
 #include <stop_token>
 #include <thread>
 #include <vector>
-
-#include <cstdlib>
-#include <cstring>
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
 extern uint32_t ebpf_core_helper_functions_count;
@@ -1108,8 +1107,7 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
             }
 
             ebpf_epoch_work_item_t* work_item = ebpf_epoch_allocate_work_item(
-                callback_context,
-                reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_spin_test_work_item_callback));
+                callback_context, reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_spin_test_work_item_callback));
             if (work_item == nullptr) {
                 delete callback_context;
                 return false;
@@ -1121,8 +1119,7 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
         };
 
         while (!stop.load(std::memory_order_acquire) && !stop_token.stop_requested() &&
-               (std::chrono::steady_clock::now() < deadline) &&
-               !thread_error.load(std::memory_order_acquire)) {
+               (std::chrono::steady_clock::now() < deadline) && !thread_error.load(std::memory_order_acquire)) {
             // Retry deferred frees first.
             if (!deferred_frees.empty() && try_schedule_free(deferred_frees.back())) {
                 deferred_frees.pop_back();
@@ -1173,8 +1170,9 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
 
     // Drain any remaining scheduled work items before exiting the test to ensure callbacks don't outlive context.
     const auto drain_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-    while ((work_items_invoked.load(std::memory_order_acquire) < work_items_scheduled.load(std::memory_order_acquire)) &&
-           (std::chrono::steady_clock::now() < drain_deadline)) {
+    while (
+        (work_items_invoked.load(std::memory_order_acquire) < work_items_scheduled.load(std::memory_order_acquire)) &&
+        (std::chrono::steady_clock::now() < drain_deadline)) {
         ebpf_epoch_synchronize();
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -1198,18 +1196,15 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
     }
 
     INFO(
-        "epoch spin test ran for " << duration_seconds << "s, scheduled="
-                                   << work_items_scheduled.load(std::memory_order_acquire) << ", invoked="
-                                   << work_items_invoked.load(std::memory_order_acquire)
+        "epoch spin test ran for " << duration_seconds
+                                   << "s, scheduled=" << work_items_scheduled.load(std::memory_order_acquire)
+                                   << ", invoked=" << work_items_invoked.load(std::memory_order_acquire)
                                    << ", callbacks_while_reader_active="
                                    << callbacks_while_reader_active.load(std::memory_order_acquire));
 
-    REQUIRE(
-        work_items_invoked.load(std::memory_order_acquire) >= work_items_scheduled.load(std::memory_order_acquire));
+    REQUIRE(work_items_invoked.load(std::memory_order_acquire) >= work_items_scheduled.load(std::memory_order_acquire));
     REQUIRE_FALSE(thread_error.load(std::memory_order_acquire));
 }
-
-
 
 static auto provider_function = []() { return EBPF_SUCCESS; };
 
