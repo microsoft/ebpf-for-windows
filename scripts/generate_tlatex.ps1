@@ -39,11 +39,19 @@ function Invoke-TlaTex {
 
     # TLATeX may emit trailing whitespace which trips pre-commit hooks.
     # Strip it deterministically.
+    $rawText = [System.IO.File]::ReadAllText($texPath)
+    $endsWithNewline = $rawText.EndsWith("`n")
     $lines = [System.IO.File]::ReadAllLines($texPath)
     for ($i = 0; $i -lt $lines.Length; $i++) {
         $lines[$i] = $lines[$i] -replace "[ \t]+$", ""
     }
-    [System.IO.File]::WriteAllLines($texPath, $lines)
+
+    $normalizedText = $lines -join "`n"
+    if ($endsWithNewline) {
+        $normalizedText += "`n"
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($texPath, $normalizedText, $utf8NoBom)
 
     if ($exitCode -ne 0) {
         $log = Get-Content -Raw -ErrorAction SilentlyContinue $logPath
