@@ -113,6 +113,9 @@ typedef struct _epoch_spin_test_context
 static void
 _epoch_skew_test_work_item_callback(_Inout_ void* context)
 {
+    if (context == nullptr) {
+        return;
+    }
     auto* ctx = (epoch_skew_test_callback_context_t*)context;
     ctx->callback_invoked->store(true, std::memory_order_release);
     if (ctx->reader_active->load(std::memory_order_acquire)) {
@@ -123,6 +126,9 @@ _epoch_skew_test_work_item_callback(_Inout_ void* context)
 static void
 _epoch_spin_test_work_item_callback(_Inout_ void* context)
 {
+    if (context == nullptr) {
+        return;
+    }
     auto* ctx = (epoch_spin_test_context_t*)context;
     if (ctx->object != nullptr && ctx->object_size != 0) {
         // The test uses VirtualAlloc'd objects and turns them into a guard page before freeing.
