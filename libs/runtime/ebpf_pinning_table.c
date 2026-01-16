@@ -155,6 +155,7 @@ ebpf_pinning_table_insert(
 
     return_value = ebpf_hash_table_update(
         pinning_table->hash_table,
+        NULL,
         (const uint8_t*)&new_key,
         (const uint8_t*)&new_pinning_entry,
         EBPF_HASH_TABLE_OPERATION_INSERT);

@@ -31,7 +31,7 @@ extern "C"
 
     typedef ebpf_result_t (*ebpf_hash_table_notification_function)(
         _Inout_ void* context,
-        _Inout_ void* instance_context,
+        _Inout_opt_ void* instance_context,
         _In_ ebpf_hash_table_notification_type_t type,
         _In_ const uint8_t* key,
         _Inout_ uint8_t* value);
@@ -124,7 +124,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(
         _Inout_ ebpf_hash_table_t* hash_table,
-        _In_opt_ const uint8_t* operation_context,
+        _In_opt_ uint8_t* operation_context,
         _In_ const uint8_t* key,
         _In_opt_ const uint8_t* value,
         ebpf_hash_table_operations_t operation);
@@ -140,7 +140,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_delete(
-        _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* operation_context, _In_ const uint8_t* key);
+        _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ uint8_t* operation_context, _In_ const uint8_t* key);
 
     /**
      * @brief Fetch pointers to keys and values from one or more buckets in the hash table. Whole buckets worth of keys

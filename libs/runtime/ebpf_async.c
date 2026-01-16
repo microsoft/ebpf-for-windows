@@ -46,8 +46,8 @@ ebpf_async_set_completion_callback(
     ebpf_async_tracker_t tracker = {on_complete};
 
     uint8_t* key = (uint8_t*)&context;
-    EBPF_RETURN_RESULT(
-        ebpf_hash_table_update(_ebpf_async_tracker_table, key, (uint8_t*)(&tracker), EBPF_HASH_TABLE_OPERATION_INSERT));
+    EBPF_RETURN_RESULT(ebpf_hash_table_update(
+        _ebpf_async_tracker_table, NULL, key, (uint8_t*)(&tracker), EBPF_HASH_TABLE_OPERATION_INSERT));
 }
 
 static ebpf_async_tracker_t*

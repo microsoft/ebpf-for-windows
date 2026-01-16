@@ -591,7 +591,7 @@ Done:
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
     _Inout_ ebpf_hash_table_t* hash_table,
-    _In_opt_ const uint8_t* operation_context,
+    _In_opt_ uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
@@ -870,7 +870,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
     _Inout_ ebpf_hash_table_t* hash_table,
-    _In_opt_ const uint8_t* operation_context,
+    _In_opt_ uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_table_operations_t operation)
@@ -905,7 +905,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_delete(
-    _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ const uint8_t* operation_context, _In_ const uint8_t* key)
+    _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ uint8_t* operation_context, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
 

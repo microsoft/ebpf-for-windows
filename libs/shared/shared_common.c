@@ -128,7 +128,7 @@ size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0
 size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
 #define EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, get_next_key_and_value_function)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, process_map_delete_element)
 size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 \

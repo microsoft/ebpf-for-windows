@@ -252,7 +252,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
  * @param[out] value Pointer to the value associated with the key.
  */
-typedef void (*ebpf_process_map_delete_element_t)(
+typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -260,23 +260,23 @@ typedef void (*ebpf_process_map_delete_element_t)(
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value);
 
-/**
- * @brief Get the next key and value in the eBPF map.
- *
- * @param[in] map The eBPF map to query.
- * @param[in] previous_key The previous key. If NULL, get the first key.
- * @param[out] next_key The next key in the map.
- *
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_OBJECT_NOT_FOUND No more keys in the map.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
- */
-typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
-    _In_ void* map,
-    size_t key_size,
-    _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key,
-    _Outptr_opt_ uint8_t** next_value);
+// /**
+//  * @brief Get the next key and value in the eBPF map.
+//  *
+//  * @param[in] map The eBPF map to query.
+//  * @param[in] previous_key The previous key. If NULL, get the first key.
+//  * @param[out] next_key The next key in the map.
+//  *
+//  * @retval EBPF_SUCCESS The operation was successful.
+//  * @retval EBPF_OBJECT_NOT_FOUND No more keys in the map.
+//  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+//  */
+// typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
+//     _In_ void* map,
+//     size_t key_size,
+//     _In_reads_opt_(key_size) const uint8_t* previous_key,
+//     _Out_writes_(key_size) uint8_t* next_key,
+//     _Outptr_opt_ uint8_t** next_value);
 
 /**
  * @brief Get the next key in the eBPF map.
@@ -288,7 +288,7 @@ typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  */
 typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
-    _In_ void* map, _In_ const ebpf_program_type_t* program_type);
+    _In_ void* binding_context, _In_ void* map_context, _In_ const ebpf_program_type_t* program_type);
 
 /**
  * Dispatch table implemented by the eBPF extension to provide map operations.
@@ -303,7 +303,6 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_process_map_find_element_t process_map_find_element;
     ebpf_process_map_add_element_t process_map_add_element;
     ebpf_process_map_delete_element_t process_map_delete_element;
-    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
 } ebpf_map_provider_dispatch_table_t;
 
 /**
@@ -349,7 +348,7 @@ typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  */
 typedef ebpf_result_t (*ebpf_map_find_element_t)(
-    _In_ void* map,
+    _In_ const void* map,
     // size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     // size_t value_size,

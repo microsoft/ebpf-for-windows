@@ -31,7 +31,7 @@ typedef struct _ebpf_core_map
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
-    uint8_t* custom_map_data; // Pointer to custom map context, if any. *Should be* NULL for regular maps.
+    uint8_t* custom_map_context; // Pointer to custom map context, if any. *Should be* NULL for regular maps.
 } ebpf_core_map_t;
 
 static inline bool
@@ -64,12 +64,11 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_custom_map_get_next_key_and_value(
+ebpf_custom_map_get_next_key(
     _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key,
-    _Outptr_opt_ uint8_t** next_value);
+    _Out_writes_(key_size) uint8_t* next_key);
 
 static ebpf_result_t
 _custom_hash_map_notification(
@@ -1209,12 +1208,18 @@ _create_hash_map_internal(
         extract_function,
         notification_callback,
         local_map);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    *map = local_map;
+    local_map = NULL;
 
 Done:
-    if (retval != EBPF_SUCCESS) {
+    if (local_map != NULL) {
         ebpf_epoch_free_cache_aligned(local_map);
         local_map = NULL;
     }
+
     return retval;
 }
 
@@ -1777,7 +1782,7 @@ volatile int32_t reap_attempt_counts[64] = {0};
 static ebpf_result_t
 _update_hash_map_entry_operation_context(
     _Inout_ ebpf_core_map_t* map,
-    _In_opt_ const uint8_t* operation_context,
+    _In_opt_ uint8_t* operation_context,
     _In_opt_ const uint8_t* key,
     _In_opt_ const uint8_t* data,
     ebpf_map_option_t option)
@@ -1952,7 +1957,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
 
 static ebpf_result_t
 _delete_hash_map_entry_operation_context(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* operation_context, _In_ const uint8_t* key)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ uint8_t* operation_context, _In_ const uint8_t* key)
 {
     if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
@@ -3691,7 +3696,7 @@ ebpf_map_next_key(
     _Out_writes_(key_size) uint8_t* next_key)
 {
     if (_ebpf_map_type_is_custom(map->ebpf_map_definition.type)) {
-        return ebpf_custom_map_get_next_key_and_value(map, key_size, previous_key, next_key, NULL);
+        return ebpf_custom_map_get_next_key(map, key_size, previous_key, next_key);
     }
 
     // High volume call - Skip entry/exit logging.
@@ -4006,7 +4011,7 @@ ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_ad
 // #include "ebpf_tracelog.h"
 
 static ebpf_result_t
-_ebpf_custom_map_find_element(_In_ ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+_ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
     UNREFERENCED_PARAMETER(map);
     UNREFERENCED_PARAMETER(key);
@@ -4055,7 +4060,7 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_custom_map
 
 static ebpf_map_client_data_t _ebpf_custom_map_client_data = {
     EBPF_MAP_CLIENT_DATA_HEADER,
-    offsetof(ebpf_custom_map_t, core_map) + offsetof(ebpf_core_map_t, custom_map_data),
+    offsetof(ebpf_custom_map_t, core_map) + offsetof(ebpf_core_map_t, custom_map_context),
     &_ebpf_custom_map_client_dispatch_table};
 
 // NMR client callbacks
@@ -4149,7 +4154,7 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
         // Call provider to notify deletion.
         map->provider_dispatch->process_map_delete_element(
             map->provider_context,
-            map->core_map.custom_map_data,
+            map->core_map.custom_map_context,
             map->core_map.ebpf_map_definition.key_size,
             next_key,
             map->actual_value_size,
@@ -4237,7 +4242,7 @@ _ebpf_custom_map_update_hash_map_entry(
     UNREFERENCED_PARAMETER(value_size);
     ebpf_custom_map_operation_context_t operation_context = {value_size, (uint8_t*)value, flags};
 
-    result = _update_hash_map_entry_operation_context(map, (const uint8_t*)&operation_context, key, value, option);
+    result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, value, option);
 
     return result;
 }
@@ -4260,7 +4265,7 @@ _custom_hash_map_notification(
         uint8_t* out_value = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
         result = custom_map->provider_dispatch->process_map_add_element(
             custom_map->provider_context,
-            custom_map->core_map.custom_map_data,
+            custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
             key,
             custom_map->core_map.ebpf_map_definition.value_size,
@@ -4276,7 +4281,7 @@ _custom_hash_map_notification(
         }
         custom_map->provider_dispatch->process_map_delete_element(
             custom_map->provider_context,
-            custom_map->core_map.custom_map_data,
+            custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
             key,
             custom_map->actual_value_size,
@@ -4305,7 +4310,7 @@ ebpf_custom_map_create(
     NTSTATUS status;
     GUID module_id;
     uint32_t actual_value_size;
-    uint8_t* custom_map_data = NULL;
+    uint8_t* custom_map_context = NULL;
 
     *map = NULL;
 
@@ -4377,7 +4382,7 @@ ebpf_custom_map_create(
         map_definition->value_size,
         map_definition->max_entries,
         &actual_value_size,
-        &custom_map_data);
+        &custom_map_context);
 
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -4405,16 +4410,16 @@ ebpf_custom_map_create(
         goto Done;
     }
 
-    custom_map->core_map.custom_map_data = custom_map_data;
+    custom_map->core_map.custom_map_context = custom_map_context;
     custom_map->actual_value_size = actual_value_size;
     *map = &custom_map->core_map;
     custom_map = NULL;
 
 Done:
     if (custom_map) {
-        if (custom_map_data) {
+        if (custom_map_context) {
             // Clean up custom map data if map creation failed.
-            custom_map->provider_dispatch->process_map_delete(custom_map->provider_context, custom_map_data);
+            custom_map->provider_dispatch->process_map_delete(custom_map->provider_context, custom_map_context);
         }
         _ebpf_custom_map_delete(custom_map);
     }
@@ -4436,7 +4441,7 @@ ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
 
     // // Call provider to notify map deletion.
     // custom_map->provider_dispatch->process_map_delete(
-    //     custom_map->provider_context, custom_map->core_map.custom_map_data);
+    //     custom_map->provider_context, custom_map->core_map.custom_map_context);
 
     // Now that the map is deleted, release the rundown reference acquired during map creation.
     ExReleaseRundownProtection(&custom_map->provider_rundown_reference);
@@ -4646,7 +4651,7 @@ ebpf_custom_map_find_entry(
         // ANUSA TODO: Decide if process_map_find_element should return a value, or it should be void.
         result = provider_dispatch->process_map_find_element(
             custom_map->provider_context,
-            custom_map->core_map.custom_map_data,
+            custom_map->core_map.custom_map_context,
             key_size,
             key,
             custom_map->actual_value_size,
@@ -4725,7 +4730,7 @@ ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(k
         ebpf_custom_map_operation_context_t operation_context = {0};
         operation_context.flags = flags;
 
-        return _delete_hash_map_entry_operation_context(&custom_map->core_map, (const uint8_t*)&operation_context, key);
+        return _delete_hash_map_entry_operation_context(&custom_map->core_map, (uint8_t*)&operation_context, key);
     } else {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -4737,26 +4742,28 @@ ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(k
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_custom_map_get_next_key_and_value(
+ebpf_custom_map_get_next_key(
     _Inout_ ebpf_map_t* map,
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key,
-    _Outptr_opt_ uint8_t** next_value)
+    _Out_writes_(key_size) uint8_t* next_key)
 {
     ebpf_custom_map_t* custom_map = CONTAINING_RECORD(map, ebpf_custom_map_t, core_map);
     ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
 
-    // Get provider dispatch.
-    ebpf_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
-    ebpf_assert(provider_dispatch != NULL);
-    // Call provider's get next key and value function
-    __analysis_assume(provider_dispatch != NULL);
-    if (provider_dispatch->get_next_key_and_value_function == NULL) {
+    UNREFERENCED_PARAMETER(key_size);
+
+    if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
+        // Get the next key from the hash table first.
+        result = _next_hash_map_key_and_value(&custom_map->core_map, previous_key, next_key, NULL);
+    } else {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Unsupported base map type for custom map",
+            custom_map->base_map_type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-    result = provider_dispatch->get_next_key_and_value_function(
-        custom_map->core_map.custom_map_data, key_size, previous_key, next_key, next_value);
 
     return result;
 }
@@ -4774,7 +4781,8 @@ ebpf_custom_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _eb
     // Call provider's associate program function
     __analysis_assume(provider_dispatch != NULL);
     __analysis_assume(provider_dispatch->associate_program_function != NULL);
-    result = provider_dispatch->associate_program_function(custom_map->core_map.custom_map_data, &program_type);
+    result = provider_dispatch->associate_program_function(
+        custom_map->provider_context, custom_map->core_map.custom_map_context, &program_type);
 
     return result;
 }
