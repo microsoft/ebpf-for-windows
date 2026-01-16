@@ -723,30 +723,39 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             char* next = output + i + 3;
             memmove(output + i + 1, next, strlen(next) + 1);
         } else if (strncmp(output + i, "\\..\\", 4) == 0) {
-            size_t previous_index = i - 1;
-            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+            // Walk backwards to the previous separator.
+            // Use a size_t-safe loop to avoid underflow/wraparound.
+            size_t previous_index = i;
+            bool found_separator = false;
+            while (previous_index > DEVICE_PREFIX_SIZE) {
+                previous_index--;
                 if (output[previous_index] == '\\') {
-                    // Back up to the previous separator.
                     char* next = output + i + 4;
                     memmove(output + previous_index + 1, next, strlen(next) + 1);
                     i = previous_index;
+                    found_separator = true;
                     break;
                 }
             }
-            if (previous_index < DEVICE_PREFIX_SIZE) {
+            if (!found_separator) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else if (strcmp(output + i, "\\..") == 0) {
-            size_t previous_index = i - 1;
-            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+            // Walk backwards to the previous separator.
+            // Use a size_t-safe loop to avoid underflow/wraparound.
+            size_t previous_index = i;
+            bool found_separator = false;
+            while (previous_index > DEVICE_PREFIX_SIZE) {
+                previous_index--;
                 if (output[previous_index] == '\\') {
                     // Terminate the string at the previous separator.
                     output[previous_index] = 0;
                     i = previous_index;
+                    found_separator = true;
                     break;
                 }
             }
-            if (previous_index < DEVICE_PREFIX_SIZE) {
+            if (!found_separator) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else {

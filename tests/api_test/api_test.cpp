@@ -75,16 +75,13 @@ _test_program_load(
     program_fd = bpf_prog_get_fd_by_id(next_id);
     REQUIRE(program_fd > 0);
 
-    const char* program_file_name;
-    const char* program_section_name;
+    const char* program_file_name = nullptr;
+    const char* program_section_name = nullptr;
     ebpf_execution_type_t program_execution_type;
     REQUIRE(
         ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name) ==
         EBPF_SUCCESS);
-    _close(program_fd);
 
-    // Set the default execution type to JIT. This will eventually
-    // be decided by a system-wide policy. TODO(Issue #288): Configure
     // system-wide execution type.
     if (execution_type == EBPF_EXECUTION_ANY) {
         execution_type = EBPF_EXECUTION_JIT;
@@ -93,6 +90,9 @@ _test_program_load(
     if (execution_type != EBPF_EXECUTION_NATIVE) {
         REQUIRE(strcmp(program_file_name, file_name) == 0);
     }
+
+    ebpf_free_string(program_file_name);
+    ebpf_free_string(program_section_name);
 
     // Next program should not be present.
     uint32_t previous_id = next_id;
@@ -1853,9 +1853,9 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         // Test program verification from file.
         uint32_t result = ebpf_api_elf_verify_program_from_file(
             file,
-            nullptr, // section_name - use first section
-            nullptr, // program_name - use first program
-            nullptr, // program_type - derive from section
+            nullptr, // section_name - use first section.
+            nullptr, // program_name - use first program.
+            nullptr, // program_type - derive from section.
             EBPF_VERIFICATION_VERBOSITY_NORMAL,
             &report,
             &error_message,
@@ -1907,8 +1907,8 @@ TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
         // Test program disassembly from file.
         uint32_t result = ebpf_api_elf_disassemble_program(
             file,
-            nullptr, // section_name - use first section
-            nullptr, // program_name - use first program
+            nullptr, // section_name - use first section.
+            nullptr, // program_name - use first program.
             &disassembly,
             &error_message);
 
@@ -1973,6 +1973,9 @@ TEST_CASE("ebpf_object_apis", "[ebpf_api]")
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(map_count == 0);
     REQUIRE(map_info == nullptr);
+
+    // Verify free is a no-op for empty results.
+    ebpf_api_map_info_free(map_count, map_info);
 
     // Close the map fd.
     _close(map_fd);
@@ -2044,8 +2047,14 @@ TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
              exec_type == EBPF_EXECUTION_INTERPRET || exec_type == EBPF_EXECUTION_NATIVE));
         ebpf_execution_type_t original_type = exec_type;
 
+        // Test setting an invalid execution type.
+        ebpf_execution_type_t invalid_execution_type = static_cast<ebpf_execution_type_t>(0x7fffffff);
+        ebpf_result_t result = ebpf_object_set_execution_type(object, invalid_execution_type);
+        REQUIRE(result == EBPF_INVALID_ARGUMENT);
+        REQUIRE(ebpf_object_get_execution_type(object) == original_type);
+
         // Test setting execution type to INTERPRET.
-        ebpf_result_t result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
+        result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
         if (result == EBPF_SUCCESS) {
             // Verify the execution type was set.
             exec_type = ebpf_object_get_execution_type(object);
@@ -2084,7 +2093,7 @@ TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
         REQUIRE(result != EBPF_SUCCESS);
 
         // Negative test: null data.
-        // This test can not be performed as it violates static analysis checks and causes an assert at runtime.
+        // Not tested: passing nullptr violates SAL annotations.
 
         // Negative test: zero size.
         result = ebpf_perf_event_array_map_write(map_fd, test_data, 0);
@@ -2191,9 +2200,9 @@ TEST_CASE("ebpf_program_info_from_verifier_api", "[ebpf_api]")
 
     uint32_t verify_result = ebpf_api_elf_verify_program_from_file(
         "test_sample_ebpf.o",
-        nullptr, // section_name - use first section
-        nullptr, // program_name - use first program
-        nullptr, // program_type - derive from section
+        nullptr, // section_name - use first section.
+        nullptr, // program_name - use first program.
+        nullptr, // program_type - derive from section.
         EBPF_VERIFICATION_VERBOSITY_NORMAL,
         &report,        // report
         &error_message, // error_message
