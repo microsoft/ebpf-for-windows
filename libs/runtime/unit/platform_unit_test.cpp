@@ -1106,11 +1106,12 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
                 return false;
             }
 
-            auto* callback_context = new (std::nothrow) epoch_spin_test_context_t{
-                obj, page_size, &reader_active, &work_items_invoked, &callbacks_while_reader_active};
+            auto* callback_context = new (std::nothrow) epoch_spin_test_context_t;
             if (callback_context == nullptr) {
                 return false;
             }
+            *callback_context = {
+                obj, page_size, &reader_active, &work_items_invoked, &callbacks_while_reader_active};
 
             ebpf_epoch_work_item_t* work_item = ebpf_epoch_allocate_work_item(
                 callback_context, reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_spin_test_work_item_callback));
