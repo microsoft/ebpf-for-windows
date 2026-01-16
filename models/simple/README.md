@@ -15,7 +15,7 @@ This folder contains a tiny TLA+ spec you can run with TLC.
 - `Counter.tla`: the TLA+ module
 - `Counter.cfg`: TLC configuration (sets constants and checks invariant)
 - `Failure.tla`: intentionally buggy model that violates the invariant
-- `Failure.cfg`: TLC config for `Failure.tla` (expected to FAIL)
+- `Failure_buggy.cfg`: TLC config for `Failure.tla` (expected to FAIL)
 
 ## How to run (VS Code)
 
@@ -31,7 +31,7 @@ From the repo root:
 
 To see a real counterexample (expected to FAIL with an invariant violation):
 
-`java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\simple\Failure.cfg models\simple\Failure.tla`
+`java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\simple\Failure_buggy.cfg models\simple\Failure.tla`
 
 Note: TLC treats the filename you pass as the module name. If you run `... counter.tla`, TLC expects the top-level module to be `counter`, which will fail for this spec (module name is `Counter`).
 
