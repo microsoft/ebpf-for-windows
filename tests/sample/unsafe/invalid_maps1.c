@@ -170,13 +170,13 @@ BindMonitor_Callee1(bind_md_t* ctx)
     process_entry_t* entry;
     uint32_t* limit = bpf_map_lookup_elem(&limits_map, &limit_key);
     if (!limit || *limit == 0) {
-        return BIND_PERMIT;
+        return BIND_PERMIT_SOFT;
     }
 
     entry = find_or_create_process_entry(ctx);
 
     if (!entry) {
-        return BIND_PERMIT;
+        return BIND_PERMIT_SOFT;
     }
 
     switch (ctx->operation) {
@@ -201,5 +201,5 @@ BindMonitor_Callee1(bind_md_t* ctx)
         bpf_map_delete_elem(&process_map, &key);
     }
 
-    return BIND_PERMIT;
+    return BIND_PERMIT_SOFT;
 }

@@ -10,7 +10,7 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_execution_type.h"
 #include "ebpf_platform.h"
-#include "ebpf_vm_isa.hpp"
+#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
 #include "platform.h"
@@ -19,7 +19,7 @@
 
 #include <fstream>
 
-// Pulling in the prevail namespace to get the definitions in ebpf_vm_isa.h.
+// Pulling in the prevail namespace to get the definitions in spec/vm_isa.hpp.
 // See: https://github.com/vbpf/prevail/issues/876
 using namespace prevail;
 

@@ -22,12 +22,12 @@
 #define HELPER_DATA_1 1
 #define HELPER_DATA_2 2
 
-// Driver global variables
+// Driver global variables.
 static DEVICE_OBJECT* _sample_ebpf_ext_driver_device_object;
 static BOOLEAN _sample_ebpf_ext_driver_unloading_flag = FALSE;
 
 //
-// Pre-Declarations
+// Pre-Declarations.
 //
 static EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL _sample_ebpf_ext_driver_io_device_control;
 DRIVER_INITIALIZE DriverEntry;
@@ -126,8 +126,7 @@ _sample_ebpf_ext_driver_initialize_objects(
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, device);
 
     if (!NT_SUCCESS(status)) {
-        // do not free if any other call
-        // after WdfDeviceCreate fails.
+        // Do not free if any other call after WdfDeviceCreate fails.
         WdfDeviceInitFree(device_initialize);
         device_initialize = NULL;
         goto Exit;

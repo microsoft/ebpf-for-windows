@@ -1935,21 +1935,10 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     ebpf_program_info_t* local_program_info = NULL;
     uint32_t total_count_of_helpers = 0;
     uint32_t helper_index = 0;
-    bool provider_data_referenced = false;
 
     ebpf_assert(program_info);
     *program_info = NULL;
 
-    if (ebpf_program_reference_providers((ebpf_program_t*)program) != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "The extension is not loaded for program type",
-            &program->parameters.program_type);
-        result = EBPF_EXTENSION_FAILED_TO_LOAD;
-        goto Exit;
-    }
-    provider_data_referenced = true;
     program_data = program->extension_program_data;
     ebpf_assert_assume(program_data != NULL);
 
@@ -2013,10 +2002,6 @@ Exit:
         local_program_info = NULL;
     } else {
         ebpf_program_free_program_info(local_program_info);
-    }
-
-    if (provider_data_referenced) {
-        ebpf_program_dereference_providers((ebpf_program_t*)program);
     }
 
     EBPF_RETURN_RESULT(result);

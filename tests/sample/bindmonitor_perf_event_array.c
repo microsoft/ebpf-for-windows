@@ -36,5 +36,5 @@ bind_monitor(bind_md_t* ctx)
         break;
     }
 
-    return BIND_PERMIT;
+    return BIND_PERMIT_SOFT;
 }

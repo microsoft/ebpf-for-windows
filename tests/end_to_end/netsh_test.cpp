@@ -97,29 +97,34 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf_call.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
-    REQUIRE(
-        output == "; ./tests/sample/undocked/bpf_call.c:25\n"
-                  "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
-                  "       0:	r1 = 0\n"
-                  "; ./tests/sample/undocked/bpf_call.c:27\n"
-                  ";     uint32_t key = 0;\n"
-                  "       1:	*(u32 *)(r10 - 4) = r1\n"
-                  "       2:	r1 = 42\n"
-                  "; ./tests/sample/undocked/bpf_call.c:28\n"
-                  ";     uint32_t value = 42;\n"
-                  "       3:	*(u32 *)(r10 - 8) = r1\n"
-                  "       4:	r2 = r10\n"
-                  "       5:	r2 += -4\n"
-                  "       6:	r3 = r10\n"
-                  "       7:	r3 += -8\n"
-                  "; ./tests/sample/undocked/bpf_call.c:29\n"
-                  ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
-                  "       8:	r1 = map_fd 1\n"
-                  "      10:	r4 = 0\n"
-                  "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
-                  "; ./tests/sample/undocked/bpf_call.c:30\n"
-                  ";     return result;\n"
-                  "      12:	exit\n\n");
+    std::string expected_output =
+        "; ./tests/sample/undocked/bpf_call.c:25\n"
+        "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
+        "       0:	r1 = 0\n"
+        "; ./tests/sample/undocked/bpf_call.c:27\n"
+        ";     uint32_t key = 0;\n"
+        "       1:	*(u32 *)(r10 - 4) = r1\n"
+        "       2:	r1 = 42\n"
+        "; ./tests/sample/undocked/bpf_call.c:28\n"
+        ";     uint32_t value = 42;\n"
+        "       3:	*(u32 *)(r10 - 8) = r1\n"
+        "       4:	r2 = r10\n"
+        "; ./tests/sample/undocked/bpf_call.c:0\n"
+        "; \n"
+        "       5:	r2 += -4\n"
+        "; ./tests/sample/undocked/bpf_call.c:28\n"
+        ";     uint32_t value = 42;\n"
+        "       6:	r3 = r10\n"
+        "       7:	r3 += -8\n"
+        "; ./tests/sample/undocked/bpf_call.c:29\n"
+        ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
+        "       8:	r1 = map_fd 1\n"
+        "      10:	r4 = 0\n"
+        "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
+        "; ./tests/sample/undocked/bpf_call.c:30\n"
+        ";     return result;\n"
+        "      12:	exit\n\n";
+    test_expected_output_line_by_line(expected_output, output);
 }
 
 TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
@@ -130,7 +135,7 @@ TEST_CASE("show disassembly bpf.o nosuchsection", "[netsh][disassembly]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_disassembly, L"bpf.o", L"nosuchsection", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "error: Can't find section nosuchsection in file bpf.o\n");
+    REQUIRE(output == "error: Section not found\n");
 }
 
 TEST_CASE("show disassembly nosuchfile.o", "[netsh][disassembly]")
@@ -863,6 +868,86 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
     // Verify the program ID doesn't exist any more.
     verify_no_programs_exist();
+}
+
+TEST_CASE("xdp interface parameter", "[netsh][programs]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    // Load a program pinned.
+    int result;
+
+    // Load program with pinpath and loopback interface alias.
+    std::string output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"Loopback Pseudo-Interface 1");
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\n");
+    verify_no_programs_exist();
+
+    // Load program with pinpath and loopback interface name.
+    output = run_netsh_command_with_args(
+        handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 10 from BPF:\\mypinpath\n");
+    verify_no_programs_exist();
+
+    // Load program with loopback interface index.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
+    REQUIRE(result == NO_ERROR);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output == "Unpinned 15 from BPF:\\DropPacket\n");
+    verify_no_programs_exist();
+
+    // (Negative) Load program with incorrect interface name.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
+    REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    // (Negative) Load program with program type that does not support the interface parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
+    REQUIRE(
+        strcmp(
+            output.c_str(), "Interface parameter is not allowed for program types that don't support interfaces.\n") ==
+        0);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    verify_no_programs_exist();
+
+    // Add program with no interface parameter.
+    output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 29\n") == 0);
+    REQUIRE(result == NO_ERROR);
+
+    // Detach the program.
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", L"", nullptr, &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+
+    output = _run_netsh_command(handle_ebpf_show_programs, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "    ID  Pins  Links  Mode       Type           Name\n"
+                  "======  ====  =====  =========  =============  ====================\n"
+                  "    29     1      0  JIT        xdp            DropPacket\n");
+
+    // Re-attach the program with interface index parameter.
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);
+    REQUIRE(output == "");
+    REQUIRE(result == ERROR_OKAY);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")

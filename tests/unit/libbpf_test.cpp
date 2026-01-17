@@ -11,7 +11,7 @@
 #include "common_tests.h"
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
-#include "ebpf_vm_isa.hpp"
+#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
 #include "platform.h"
@@ -23,7 +23,7 @@
 #include <stop_token>
 #include <thread>
 
-// Pulling in the prevail namespace to get the definitions in ebpf_vm_isa.h.
+// Pulling in the prevail namespace to get the definitions in spec/vm_isa.hpp.
 // See: https://github.com/vbpf/prevail/issues/876
 using namespace prevail;
 
@@ -493,6 +493,41 @@ test_xdp_ifindex(uint32_t ifindex, int program_fd[2], bpf_prog_info program_info
     REQUIRE(bpf_xdp_query_id(ifindex, 0, &program_id) < 0);
     REQUIRE(errno == ENOENT);
 }
+
+static void
+_test_bpf_set_link_xdp_fd(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct bpf_object* object[2];
+    struct bpf_program* program[2];
+    int program_fd[2];
+    bpf_prog_info program_info[2] = {};
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
+    for (int i = 0; i < 2; i++) {
+        object[i] = bpf_object__open(file_name);
+        REQUIRE(object[i] != nullptr);
+        // Load the program(s).
+        REQUIRE(bpf_object__load(object[i]) == 0);
+
+        program[i] = bpf_object__find_program_by_name(object[i], "DropPacket");
+        REQUIRE(program[i] != nullptr);
+        program_fd[i] = bpf_program__fd(const_cast<const bpf_program*>(program[i]));
+
+        uint32_t program_info_size = sizeof(program_info[i]);
+        REQUIRE(bpf_obj_get_info_by_fd(program_fd[i], &program_info[i], &program_info_size) == 0);
+    }
+
+    test_xdp_ifindex(TEST_IFINDEX, program_fd, program_info);
+    test_xdp_ifindex(0, program_fd, program_info);
+
+    bpf_object__close(object[0]);
+    bpf_object__close(object[1]);
+}
+
+DECLARE_ALL_TEST_CASES("bpf_set_link_xdp_fd", "[libbpf]", _test_bpf_set_link_xdp_fd);
 
 static void
 _test_libbpf_map(ebpf_execution_type_t execution_type)

@@ -565,7 +565,7 @@ _ebpf_map_lookup_element_batch_helper(
 
     while (count_returned < input_count) {
         // Fetch the next batch of entries.
-        size_t entries_to_fetch = min(input_count - count_returned, max_entries_per_batch);
+        size_t entries_to_fetch = std::min(input_count - count_returned, max_entries_per_batch);
 
         ebpf_protocol_buffer_t request_buffer(
             EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_request, previous_key) +
@@ -773,7 +773,7 @@ _update_map_element_batch(
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_update = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_update = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data) +
@@ -1103,7 +1103,7 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_delete = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_delete = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys) + key_size * entries_to_delete);

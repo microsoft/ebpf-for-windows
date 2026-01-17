@@ -41,6 +41,23 @@
                 <LogonCount>9999</LogonCount>
                 <Username>Administrator</Username>
             </AutoLogon>
+            <FirstLogonCommands>
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>net accounts /maxpwage:unlimited</CommandLine>
+                    <Description>Set system-wide password expiration to unlimited</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>2</Order>
+                    <CommandLine>powershell.exe -Command "Set-LocalUser -Name 'Administrator' -PasswordNeverExpires $true"</CommandLine>
+                    <Description>Disable password expiration for Administrator</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>3</Order>
+                    <CommandLine>powershell.exe -Command "Set-LocalUser -Name 'VMStandardUser' -PasswordNeverExpires $true"</CommandLine>
+                    <Description>Disable password expiration for VMStandardUser</Description>
+                </SynchronousCommand>
+            </FirstLogonCommands>
         </component>
     </settings>
 </unattend>

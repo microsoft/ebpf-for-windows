@@ -127,6 +127,7 @@ _test_multiple_programs_load(
         fd_t program_fd;
 
         result = program_load_helper(file_name, program_type, execution_type, &object, &program_fd);
+        CAPTURE(file_name);
         REQUIRE(expected_load_result == result);
         if (expected_load_result == 0) {
             REQUIRE(program_fd > 0);
@@ -1676,7 +1677,7 @@ TEST_CASE("native_load_retry_after_insufficient_buffers", "[native_tests]")
     }
 }
 
-TEST_CASE("load_all_sample_programs", "[native_tests][!mayfail]")
+TEST_CASE("load_all_sample_programs", "[native_tests]")
 {
     struct _ebpf_program_load_test_parameters test_parameters[] = {
         {"bindmonitor.sys", BPF_PROG_TYPE_UNSPEC},

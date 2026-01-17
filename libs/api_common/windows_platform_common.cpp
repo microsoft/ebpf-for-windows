@@ -10,10 +10,8 @@
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_verifier_wrapper.hpp"
-#include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
-#include "spec_type_descriptors.hpp"
 #include "store_helper_internal.h"
 #include "utilities.hpp"
 #include "windows_platform.hpp"
@@ -158,7 +156,8 @@ _get_program_descriptor_from_info(
             goto Exit;
         }
         type->name = std::string(name);
-        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
         if (type->context_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -167,7 +166,8 @@ _get_program_descriptor_from_info(
             (void*)type->context_descriptor,
             info->program_type_descriptor->context_descriptor,
             sizeof(ebpf_context_descriptor_t));
-        ebpf_program_type_t* program_type = (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
+        ebpf_program_type_t* program_type =
+            (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
         if (program_type == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -535,7 +535,8 @@ _update_global_helpers_for_program_information(
             goto Exit;
         }
         total_helper_size = total_helper_count * sizeof(ebpf_helper_function_prototype_t);
-        new_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(total_helper_size, EBPF_POOL_TAG_DEFAULT);
+        new_helpers =
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(total_helper_size, EBPF_POOL_TAG_DEFAULT);
         if (new_helpers == nullptr) {
             result = EBPF_NO_MEMORY;
             break;

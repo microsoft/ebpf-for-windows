@@ -34,12 +34,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@95d9a5deda9de15063e7595e9719c11c38c90ae2  # v2.13.2
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76  # v2.14.0
         with:
           egress-policy: audit
 
       - name: Download performance result artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         with:
           name: Test-Logs-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results_artifact
@@ -65,7 +65,7 @@ jobs:
 
       # Grab the output from the results directory and upload it as an artifact to debug failures.
       - name: Upload data as artifacts for debugging
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: Test-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results
@@ -105,7 +105,7 @@ jobs:
           psql -f ./check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
 
       - name: Upload regression results
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: Regression-Results-${{inputs.result_artifact}}
           path: ${{github.workspace}}/results/regression_results.csv
