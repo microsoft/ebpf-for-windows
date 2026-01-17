@@ -137,7 +137,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/init@5d4e8d1aca955e8d8589aabd499c5cae939e33c7
+        uses: github/codeql-action/init@cdefb33c0f6224e58673d9004f47f7cb3e328b89
         with:
           languages: 'cpp'
 
@@ -148,7 +148,7 @@ jobs:
 
       - name: Cache chocolatey packages
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7
         env:
           cache-name: cache-choco-packages
         with:
@@ -188,7 +188,7 @@ jobs:
       - name: Cache nuget packages
         if: steps.skip_check.outputs.should_skip != 'true'
         continue-on-error: true
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7
         env:
           cache-name: cache-nuget-modules
         with:
@@ -198,7 +198,7 @@ jobs:
       - name: Cache verifier project
         # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7
         env:
           cache-name: cache-verifier-project
         with:
@@ -356,4 +356,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/analyze@5d4e8d1aca955e8d8589aabd499c5cae939e33c7
+        uses: github/codeql-action/analyze@cdefb33c0f6224e58673d9004f47f7cb3e328b89
