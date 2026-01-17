@@ -140,30 +140,10 @@ _test_sample_map_associate_program(
     return EBPF_SUCCESS;
 }
 
-#pragma region Sample Hash Map Implementation
 typedef struct _test_sample_hash_map_context
 {
     class _test_sample_map_provider* map_provider;
 } test_sample_hash_map_context_t;
-
-// typedef struct _test_sample_hash_map_entry
-// {
-//     uint32_t value;
-// } sample_hash_map_entry_t;
-
-// static ebpf_result_t
-// _test_sample_hash_map_get_next_key_and_value(
-//     _In_ void* map,
-//     size_t key_size,
-//     _In_ const uint8_t* previous_key,
-//     _Out_writes_(key_size) uint8_t* next_key,
-//     _Outptr_opt_ uint8_t** next_value)
-// {
-//     test_sample_hash_map_t* sample_map = (test_sample_hash_map_t*)map;
-//     return _sample_hash_map_get_next_key_and_value_common(
-//         &sample_map->base, key_size, previous_key, next_key, next_value);
-// }
-#pragma endregion
 
 static ebpf_result_t
 _test_sample_hash_map_create(
@@ -212,14 +192,6 @@ _test_sample_hash_map_update_entry(
     _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
-// static ebpf_result_t
-// _test_sample_hash_map_get_next_key_and_value(
-//     _In_ void* map,
-//     size_t key_size,
-//     _In_ const uint8_t* previous_key,
-//     _Out_writes_(key_size) uint8_t* next_key,
-//     _Outptr_opt_ uint8_t** next_value);
-
 static ebpf_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table = {
     .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _test_sample_hash_map_create,
@@ -227,9 +199,7 @@ static ebpf_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table =
     .associate_program_function = _test_sample_map_associate_program,
     .process_map_find_element = _test_sample_hash_map_find_entry,
     .process_map_add_element = _test_sample_hash_map_update_entry,
-    .process_map_delete_element = _test_sample_hash_map_delete_entry
-    // .process_map_get_next_key_and_value = _test_sample_hash_map_get_next_key_and_value
-};
+    .process_map_delete_element = _test_sample_hash_map_delete_entry};
 
 static ebpf_map_provider_data_t _test_sample_hash_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER,
@@ -385,13 +355,6 @@ _test_sample_hash_map_create(
     }
 
     test_sample_map_provider_t* provider = (test_sample_map_provider_t*)binding_context;
-
-    // test_sample_hash_map_t* sample_map =
-    //     (test_sample_hash_map_t*)provider->dispatch_table()->epoch_allocate_cache_aligned_with_tag(
-    //         sizeof(test_sample_hash_map_t), EBPF_TEST_POOL_TAG);
-    // if (sample_map == nullptr) {
-    //     return EBPF_NO_MEMORY;
-    // }
 
     if (!provider->object_map()) {
         *actual_value_size = value_size;
@@ -638,8 +601,6 @@ _xdp_context_destroy(
 
     free(xdp_context_header);
 }
-
-typedef class _test_global_helper
 
 static ebpf_result_t
 _test_sample_hash_map_find_entry(
@@ -906,7 +867,6 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
      // Flags.
      {HELPER_FUNCTION_REALLOCATE_PACKET}}};
-
 
 static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
