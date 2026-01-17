@@ -64,11 +64,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_custom_map_get_next_key(
-    _Inout_ ebpf_map_t* map,
-    size_t key_size,
-    _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key);
+ebpf_custom_map_get_next_key(_Inout_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key);
 
 static ebpf_result_t
 _custom_hash_map_notification(
@@ -1976,7 +1972,7 @@ static ebpf_result_t
 _next_hash_map_key_and_value(
     _Inout_ ebpf_core_map_t* map,
     _In_opt_ const uint8_t* previous_key,
-    _Inout_ uint8_t* next_key,
+    _Out_ uint8_t* next_key,
     _Inout_opt_ uint8_t** next_value)
 {
     ebpf_result_t result;
@@ -3696,7 +3692,7 @@ ebpf_map_next_key(
     _Out_writes_(key_size) uint8_t* next_key)
 {
     if (_ebpf_map_type_is_custom(map->ebpf_map_definition.type)) {
-        return ebpf_custom_map_get_next_key(map, key_size, previous_key, next_key);
+        return ebpf_custom_map_get_next_key(map, previous_key, next_key);
     }
 
     // High volume call - Skip entry/exit logging.
@@ -4158,7 +4154,8 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             map->core_map.ebpf_map_definition.key_size,
             next_key,
             map->actual_value_size,
-            value);
+            value,
+            0);
 
         // ebpf_core_object_t* value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
         // if (value_object) {
@@ -4279,13 +4276,14 @@ _custom_hash_map_notification(
             // This is a delete notification related to lookup with delete.
             break;
         }
-        custom_map->provider_dispatch->process_map_delete_element(
+        result = custom_map->provider_dispatch->process_map_delete_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
             key,
             custom_map->actual_value_size,
-            value);
+            value,
+            op_context->flags);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
         // Ignore lookup notification as it is handled separately.
@@ -4742,16 +4740,10 @@ ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(k
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_custom_map_get_next_key(
-    _Inout_ ebpf_map_t* map,
-    size_t key_size,
-    _In_reads_opt_(key_size) const uint8_t* previous_key,
-    _Out_writes_(key_size) uint8_t* next_key)
+ebpf_custom_map_get_next_key(_Inout_ ebpf_map_t* map, _In_opt_ const uint8_t* previous_key, _Out_ uint8_t* next_key)
 {
     ebpf_custom_map_t* custom_map = CONTAINING_RECORD(map, ebpf_custom_map_t, core_map);
     ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
-
-    UNREFERENCED_PARAMETER(key_size);
 
     if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
         // Get the next key from the hash table first.

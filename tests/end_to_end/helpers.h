@@ -145,10 +145,10 @@ typedef struct _test_sample_hash_map_context
     class _test_sample_map_provider* map_provider;
 } test_sample_hash_map_context_t;
 
-typedef struct _test_sample_hash_map_entry
-{
-    uint32_t value;
-} test_sample_hash_map_entry_t;
+// typedef struct _test_sample_hash_map_entry
+// {
+//     uint32_t value;
+// } sample_hash_map_entry_t;
 
 // static ebpf_result_t
 // _test_sample_hash_map_get_next_key_and_value(
@@ -184,7 +184,8 @@ _test_sample_hash_map_delete_entry(
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     size_t value_size,
-    _In_reads_(value_size) const uint8_t* value);
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
 
 static ebpf_result_t
 _test_sample_hash_map_find_entry(
@@ -195,7 +196,7 @@ _test_sample_hash_map_find_entry(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
 static ebpf_result_t
@@ -207,7 +208,7 @@ _test_sample_hash_map_update_entry(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
 // static ebpf_result_t
@@ -438,7 +439,8 @@ _test_sample_hash_map_delete_entry(
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     size_t value_size,
-    _In_reads_(value_size) const uint8_t* value)
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags)
 {
     test_sample_map_provider_t* provider = (test_sample_map_provider_t*)binding_context;
 
@@ -450,13 +452,7 @@ _test_sample_hash_map_delete_entry(
     if (!provider->object_map()) {
         // Nothing to do.
     } else {
-        // The value is a pointer to an object. Read the pointer.
-        test_sample_hash_map_entry_t* entry =
-            (test_sample_hash_map_entry_t*)ReadULong64NoFence((volatile const uint64_t*)value);
-        ebpf_assert(entry != nullptr);
-
-        // Free the object.
-        provider->dispatch_table()->epoch_free(entry);
+        return _sample_object_hash_map_delete_entry_common(provider->dispatch_table(), value_size, value, flags);
     }
 
     return EBPF_SUCCESS;
@@ -471,7 +467,7 @@ _test_sample_hash_map_find_entry(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags)
 {
     test_sample_map_provider_t* provider = (test_sample_map_provider_t*)binding_context;
@@ -486,16 +482,8 @@ _test_sample_hash_map_find_entry(
         ebpf_assert(out_value_size == 0 && out_value == nullptr);
         return EBPF_SUCCESS;
     } else {
-        // The in_value is a pointer to an object. Read the pointer.
-        test_sample_hash_map_entry_t* value =
-            (test_sample_hash_map_entry_t*)ReadULong64NoFence((volatile const uint64_t*)in_value);
-        ebpf_assert(value != nullptr);
-
-        // Copy the value from the object to out_value.
-        memcpy(out_value, &value->value, sizeof(uint32_t));
+        return _sample_object_hash_map_find_entry_common(in_value_size, in_value, out_value_size, out_value);
     }
-
-    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t
@@ -507,7 +495,7 @@ _test_sample_hash_map_update_entry(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags)
 {
     test_sample_map_provider_t* provider = (test_sample_map_provider_t*)binding_context;
@@ -515,7 +503,6 @@ _test_sample_hash_map_update_entry(
     UNREFERENCED_PARAMETER(map_context);
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(in_value_size);
     UNREFERENCED_PARAMETER(flags);
 
     if (!provider->object_map()) {
@@ -523,21 +510,9 @@ _test_sample_hash_map_update_entry(
         ebpf_assert(out_value_size == 0 && out_value == nullptr);
         return EBPF_SUCCESS;
     } else {
-        // Create a new object to hold the value.
-        test_sample_hash_map_entry_t* value =
-            (test_sample_hash_map_entry_t*)provider->dispatch_table()->epoch_allocate_with_tag(
-                sizeof(test_sample_hash_map_entry_t), EBPF_POOL_TAG_DEFAULT);
-        if (value == nullptr) {
-            return EBPF_NO_MEMORY;
-        }
-
-        // Copy the value from in_value to the object.
-        memcpy(&value->value, in_value, sizeof(uint32_t));
-
-        // Store the pointer to the object as a uint64_t.
-        WriteULong64NoFence((volatile uint64_t*)out_value, (uint64_t)value);
+        return _sample_object_hash_map_update_entry_common(
+            provider->dispatch_table(), in_value_size, in_value, out_value_size, out_value);
     }
-    return EBPF_SUCCESS;
 }
 
 typedef class _test_sample_helper

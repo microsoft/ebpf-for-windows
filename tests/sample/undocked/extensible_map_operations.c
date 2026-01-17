@@ -31,7 +31,7 @@ struct
 
 struct
 {
-    __uint(type, BPF_MAP_TYPE_SAMPLE_ARRAY_MAP);
+    __uint(type, BPF_MAP_TYPE_SAMPLE_HASH_MAP);
     __type(key, uint32_t);
     __type(value, uint32_t);
     __uint(max_entries, MAX_ENTRIES);

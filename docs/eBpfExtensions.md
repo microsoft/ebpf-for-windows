@@ -1,7 +1,7 @@
 # eBPF extensions
 
 ## 1 Overview
-An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks, helper functions and extensible maps. The design
+An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks, helper functions and custom maps. The design
 of eBPF for Windows is such that an extension providing an implementation for hooks, helper functions and maps can be
 developed and deployed without the need to modify either the eBPF execution context or the eBPF verifier.
 
@@ -54,10 +54,10 @@ a separate Map Info NPI provider module for each map type it implements.
 The steps for authoring an eBPF extension are:
 1. Register the NPI provider.
 2. Author any program type specific Helper Functions.
-3. Author any extensible maps.
+3. Author any custom maps.
 3. Invoke eBPF programs from hook(s).
 4. Register program and attach types.
-5. Register extensible map types, if any.
+5. Register custom map types, if any.
 
 The following sections describe these steps in detail.
 
@@ -596,17 +596,17 @@ typedef struct _ebpf_map_provider_data
 } ebpf_map_provider_data_t;
 
 #### `ebpf_map_provider_data_t` Struct
-This structure is used to specify all the extensible map types that the extension supports. It contains the following fields:
+This structure is used to specify all the custom map types that the extension supports. It contains the following fields:
 * `supported_map_type_count`
 * `supported_map_types`
 * `dispatch_table`
 
-The `supported_map_type_count` field contains the number of extensible maps that the extension supports.
-The `supported_map_types` is a pointer to an array containing the map types of the extensible maps that the extension supports.
+The `supported_map_type_count` field contains the number of custom maps that the extension supports.
+The `supported_map_types` is a pointer to an array containing the map types of the custom maps that the extension supports.
 The `dispatch_table` is a pointer to the provider dispatch table that the extension provides for operations on the supported maps.
 
 #### Map ID
-eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4095 (BPF_MAP_TYPE_MAX) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_MAX for any extensible map they implement.
+eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4095 (BPF_MAP_TYPE_MAX) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_MAX for any custom map they implement.
 
 Note: Though this is not required, extensions *can* register their map types by creating a pull request to eBPF-for-Windows
 repo and updating `ebpf_map_type_t` enum in ebpf_structs.h. This helps in any map type collision with another extension.
@@ -628,7 +628,7 @@ typedef struct _ebpf_map_provider_dispatch_table
 This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
 1. `process_map_create` - Called by eBPF runtime to create the map.
 2. `delete_map_function` - Called by eBPF runtime to delete the map.
-3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an extensible map is associated with a program.
+3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
 4. `find_element_function` - Function to find an entry.
 5. `update_element_function` - Function to update an entry.
 5. `delete_element_function` - Function to delete an entry.
@@ -649,8 +649,8 @@ typedef struct _ebpf_map_client_data
 ```
 
 `map_context_offset` is provided by eBPFCore to the extension to get to the extension specific map context when the
-extensible map is being used in a helper function. This value is constant for all the bindings from eBPFCore to the
-extension for all extensible map types and instances.
+custom map is being used in a helper function. This value is constant for all the bindings from eBPFCore to the
+extension for all custom map types and instances.
 
 `dispatch_table` is the client dispatch table provided by eBPFCore to the extension. It is defined as below:
 ```
@@ -664,7 +664,7 @@ typedef struct _ebpf_map_client_dispatch_table
 } ebpf_map_client_dispatch_table_t;
 ```
 The client dispatch table provides *epoch based memory management* APIs that extension can use for allocating
-memory when implementing extensible maps.
+memory when implementing custom maps.
 See [Epoch based memory management](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/EpochBasedMemoryManagement.md) for more details on this topic.
 
 ### 2.8 Authoring Helper Functions
@@ -693,8 +693,8 @@ The helper function ID for a general helper function must be in the range 0 - 65
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and
 `ebpf_return_type_t` enums.
 
-### 2.9 Helper functions that use extensible maps.
-If the extension is implementing a helper function that takes an extensible map as input, when the helper function is
+### 2.9 Helper functions that use custom maps.
+If the extension is implementing a helper function that takes an custom map as input, when the helper function is
 invoked, it will **not** get the map context that it had passed earlier to eBPFCore. It will instead get a pointer to
 a separate map structure that eBPFCore maintains. Using this pointer, and the `map_context_offset` provided in the
 `map_client_data`, extensions will need to get their map context. `MAP_CONTEXT()` macro is provied in `ebpf_extensions.h`
@@ -732,4 +732,4 @@ The eBPF for Windows project provides a
 as an example for how to implement an extension. This simple extension exposes a new program type, and implements a
 hook for it with a single attach type. It implements simple NPI provider modules for the two NPIs. It also implements
 three program-type specific helper functions.
-The extension also implements two extensible maps, and implements a provider module for the two maps that it implements.
+The extension also implements two custom maps, and implements a provider module for the two maps that it implements.

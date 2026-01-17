@@ -206,7 +206,7 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
 /**
@@ -234,7 +234,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
-    _Out_writes_(out_value_size) uint8_t* out_value,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
     // size_t value_size,
     // // _In_reads_opt_(value_size) const uint8_t* old_value,
     // _Inout_updates_(value_size) uint8_t* new_value,
@@ -251,6 +251,12 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * associated value is deleted.
  * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
  * @param[out] value Pointer to the value associated with the key.
+ * @param[in] flags Delete flags.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ *
  */
 typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     _In_ void* binding_context,
@@ -258,7 +264,8 @@ typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     size_t key_size,
     _In_reads_opt_(key_size) const uint8_t* key,
     size_t value_size,
-    _In_reads_(value_size) const uint8_t* value);
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
 
 // /**
 //  * @brief Get the next key and value in the eBPF map.
@@ -350,7 +357,7 @@ typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
 typedef ebpf_result_t (*ebpf_map_find_element_t)(
     _In_ const void* map,
     // size_t key_size,
-    _In_reads_opt_(key_size) const uint8_t* key,
+    _In_ const uint8_t* key,
     // size_t value_size,
     _Outptr_ uint8_t** value);
 
@@ -368,19 +375,19 @@ typedef struct _ebpf_map_client_dispatch_table
 } ebpf_map_client_dispatch_table_t;
 
 /**
- * @brief Extensible map provider data.
+ * @brief Custom map provider data.
  */
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    uint32_t map_type;           // Extensible map type implemented by the provider.
-    uint32_t base_map_type;      // Base map type used to implement the extensible map.
+    uint32_t map_type;           // Custom map type implemented by the provider.
+    uint32_t base_map_type;      // Base map type used to implement the custom map.
     bool updates_original_value; // Whether the provider updates the original values stored in the map.
     ebpf_map_provider_dispatch_table_t* dispatch_table;
 } ebpf_map_provider_data_t;
 
 /**
- * @brief Extensible map client data.
+ * @brief Custom map client data.
  */
 typedef struct _ebpf_map_client_data
 {

@@ -649,6 +649,8 @@ _ebpf_hash_table_replace_bucket(
         }
     }
 
+    // ANUSA TODO: Call delete notification for old_data here if operation is EBPF_HASH_BUCKET_OPERATION_DELETE.
+
     switch (operation) {
     case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
         if (index == old_bucket_count) {

@@ -22,13 +22,13 @@
 #define CONFIG_USE_ARRAY_MAP 1
 #define CONFIG_USE_HASH_MAP 2
 
-struct
-{
-    __uint(type, BPF_MAP_TYPE_SAMPLE_ARRAY_MAP);
-    __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 1);
-} sample_array_map SEC(".maps");
+// struct
+// {
+//     __uint(type, BPF_MAP_TYPE_SAMPLE_HASH_MAP);
+//     __type(key, uint32_t);
+//     __type(value, uint32_t);
+//     __uint(max_entries, 1);
+// } sample_array_map SEC(".maps");
 
 struct
 {
@@ -78,9 +78,8 @@ get_sample_map(void)
     uint32_t* config = bpf_map_lookup_elem(&config_map, &key);
     if (!config) {
         return NULL;
-    } else if (*config == CONFIG_USE_ARRAY_MAP) {
-        map = &sample_array_map;
-    } else if (*config == CONFIG_USE_HASH_MAP) {
+    }
+    if (*config == CONFIG_USE_HASH_MAP) {
         map = &sample_hash_map;
     }
     return map;

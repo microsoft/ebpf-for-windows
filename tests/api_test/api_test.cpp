@@ -1709,7 +1709,7 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
 {
     // This test validates extensible map user APIs.
     fd_t extensible_map_fd = bpf_map_create(
-        BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
+        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
     REQUIRE(extensible_map_fd > 0);
 
     // Update elements at various indices.
@@ -1741,9 +1741,8 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
         uint32_t key = i * 10;
         uint32_t value = 0;
         int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
-        // Since this is an array map, lookup should succeed but value should be zero.
-        REQUIRE(result == ERROR_SUCCESS);
-        REQUIRE(value == 0);
+        // Since this is a hash map, lookup should fail for deleted elements.
+        REQUIRE(result != 0);
     }
 
     // Clean up
@@ -1769,7 +1768,7 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
 
     unique_object.reset(object);
 
-    const char* map_name = (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) ? "sample_array_map" : "sample_hash_map";
+    const char* map_name = "sample_hash_map";
     fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
     REQUIRE(result_map_fd > 0);
 
@@ -1799,7 +1798,7 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
     fd_t config_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "config_map");
     REQUIRE(config_map_fd > 0);
     uint32_t config_key = 0;
-    uint32_t config_value = type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP ? 1 : 2;
+    uint32_t config_value = 2;
     REQUIRE((bpf_map_update_elem(config_map_fd, &config_key, &config_value, 0) == 0));
 
     // Set initial value in the map.
@@ -1871,11 +1870,7 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
     REQUIRE(result == 0);
 
     // Lookup the sample map value and validate it is set to 0.
-    if (type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) {
-        validate_sample_map_value(0);
-    } else {
-        validate_sample_map_value(0, true);
-    }
+    validate_sample_map_value(0, true);
     validate_result_map(1);
 
     // Set map value to 200.
@@ -1932,7 +1927,6 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
 void
 _test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
 {
-    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, execution_type);
     _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
 }
 
