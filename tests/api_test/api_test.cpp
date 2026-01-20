@@ -81,7 +81,10 @@ _test_program_load(
     REQUIRE(
         ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name) ==
         EBPF_SUCCESS);
+    _close(program_fd);
 
+    // Set the default execution type to JIT. This will eventually
+    // be decided by a system-wide policy. TODO(Issue #288): Configure
     // system-wide execution type.
     if (execution_type == EBPF_EXECUTION_ANY) {
         execution_type = EBPF_EXECUTION_JIT;
