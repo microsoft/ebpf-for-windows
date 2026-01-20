@@ -1791,30 +1791,33 @@ TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
 TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
 {
     // Test with a known test file path - using sample programs from the project.
-    const char* test_files[] = {"test_sample_ebpf.o", "bindmonitor.o"};
+    auto test_cases = std::map<std::string, std::function<void(ebpf_api_program_info_t*)>>{
+        {"test_sample_ebpf.o",
+         [](ebpf_api_program_info_t* info) {
+             REQUIRE(std::string(info->section_name) == "sample_ext");
+             REQUIRE(std::string(info->program_name) == "test_program_entry");
+             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
+             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
+         }},
+        {"bindmonitor.o", [](ebpf_api_program_info_t* info) {
+             REQUIRE(std::string(info->section_name) == "bind");
+             REQUIRE(std::string(info->program_name) == "BindMonitor");
+             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_BIND);
+             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_BIND);
+         }}};
 
-    for (const char* file : test_files) {
+    for (const auto& [file, validate] : test_cases) {
         ebpf_api_program_info_t* program_infos = nullptr;
         const char* error_message = nullptr;
 
         // Try to enumerate programs from test file.
-        ebpf_result_t result = ebpf_enumerate_programs(file, false, &program_infos, &error_message);
+        ebpf_result_t result = ebpf_enumerate_programs(file.c_str(), false, &program_infos, &error_message);
 
         if (result == EBPF_SUCCESS && program_infos != nullptr) {
             // Verify we got some program info.
             REQUIRE(program_infos->section_name != nullptr);
             REQUIRE(strlen(program_infos->section_name) > 0);
-            if (std::string(file) == "test_sample_ebpf.o") {
-                REQUIRE(std::string(program_infos->section_name) == "sample_ext");
-                REQUIRE(std::string(program_infos->program_name) == "test_program_entry");
-                REQUIRE(program_infos->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
-                REQUIRE(program_infos->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
-            } else if (std::string(file) == "bindmonitor.o") {
-                REQUIRE(std::string(program_infos->section_name) == "bind");
-                REQUIRE(std::string(program_infos->program_name) == "BindMonitor");
-                REQUIRE(program_infos->program_type == EBPF_PROGRAM_TYPE_BIND);
-                REQUIRE(program_infos->expected_attach_type == EBPF_ATTACH_TYPE_BIND);
-            }
+            validate(program_infos);
 
             // Clean up.
             ebpf_free_programs(program_infos);
