@@ -1054,7 +1054,11 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
 
     std::jthread reader_thread([&](std::stop_token stop_token) {
         GROUP_AFFINITY old_thread_affinity;
-        ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(reader_cpu, &old_thread_affinity));
+        if (!ebpf_set_current_thread_cpu_affinity(reader_cpu, &old_thread_affinity)) {
+            std::cerr << "Failed to set reader thread affinity to CPU " << reader_cpu << std::endl;
+            thread_error.store(true, std::memory_order_release);
+            return;
+        }
 
         while (!stop.load(std::memory_order_acquire) && !stop_token.stop_requested() &&
                (std::chrono::steady_clock::now() < deadline)) {
@@ -1089,7 +1093,12 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
 
     std::jthread writer_thread([&](std::stop_token stop_token) {
         GROUP_AFFINITY old_thread_affinity;
-        ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(writer_cpu, &old_thread_affinity));
+
+        if (!ebpf_set_current_thread_cpu_affinity(writer_cpu, &old_thread_affinity)) {
+            std::cerr << "Failed to set writer thread affinity to CPU " << writer_cpu << std::endl;
+            thread_error.store(true, std::memory_order_release);
+            return;
+        }
 
         std::vector<epoch_spin_shared_object_t*> deferred_frees;
         uint64_t generation = 1;
