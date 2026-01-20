@@ -186,11 +186,11 @@ Pull requests need at least two approvals before being eligible for merging.
 Besides reviewing for technical correctness, reviewers are expected to:
 
 * For any PR that adds functionality, check that the PR includes sufficient tests
-  for that functionality.  This is required in [CONTRIBUTING.md](../Contributing.md).
+  for that functionality.  This is required in [CONTRIBUTING.md](../CONTRIBUTING.md).
 * For any PR that adds or changes functionality in a way that is observable
   by administrators or by authors of eBPF programs or applications, check that
   documentation has been sufficiently updated.  This is required in
-  [CONTRIBUTING.md](../Contributing.md).
+  [CONTRIBUTING.md](../CONTRIBUTING.md).
 * Check that there are no gratuitous differences in public APIs between eBPF for
   Windows and Linux.
 * Be familiar with, and call out code that does not conform to, the eBPF for Windows
