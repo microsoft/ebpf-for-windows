@@ -519,11 +519,22 @@ ebpf_ring_buffer__new(
             map_info.sample_fn = (void*)sample_cb;
             map_info.ctx = ctx;
 
+            // Create cleanup guard to close wait handle, clear map wait handle, and unmap buffer on failure.
+            auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+                reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+                [&](void*) {
+                    (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
+                    if (map_info.consumer_page) {
+                        (void)ebpf_ring_buffer_map_unmap_buffer(
+                            map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
+                    }
+                    CloseHandle(reinterpret_cast<HANDLE>(ring_buffer->wait_handle));
+                    ring_buffer->wait_handle = ebpf_handle_invalid;
+                });
+
             // Set the shared wait handle for this map to receive notifications
             result = ebpf_map_set_wait_handle(map_fd, 0, ring_buffer->wait_handle);
             if (result != EBPF_SUCCESS) {
-                CloseHandle(wait_handle);
-                ring_buffer->wait_handle = ebpf_handle_invalid;
                 goto Exit;
             }
 
@@ -535,18 +546,13 @@ ebpf_ring_buffer__new(
                 &map_info.data,
                 &map_info.data_size);
             if (result != EBPF_SUCCESS) {
-                CloseHandle(wait_handle);
-                ring_buffer->wait_handle = ebpf_handle_invalid;
                 goto Exit;
             }
 
             try {
                 ring_buffer->sync_maps.push_back(map_info);
+                cleanup.release(); // Success - release cleanup guard.
             } catch (const std::bad_alloc&) {
-                CloseHandle(wait_handle);
-                ring_buffer->wait_handle = ebpf_handle_invalid;
-                (void)ebpf_ring_buffer_map_unmap_buffer(
-                    map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
