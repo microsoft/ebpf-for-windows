@@ -211,19 +211,22 @@ Before using native mode, ensure you have:
 
 #### Step 1: Compile eBPF C to ELF
 
-Compile your eBPF program from C to an ELF object file:
+First, navigate to your build output directory (e.g., `x64\Release\`) where `Convert-BpfToNative.ps1` is located. Then compile your eBPF program from C to an ELF object file:
 
 ```cmd
-clang -target bpf -O2 -g -Werror -c program.c -o program.o
+cd x64\Release
+clang -target bpf -O2 -g -Werror -c ..\..\path\to\program.c -o program.o
 ```
 
-Replace `program.c` with your eBPF source file name. The `-g` flag includes debug information, which is useful for troubleshooting.
+Replace `..\..\path\to\program.c` with the relative path to your eBPF source file. The `-g` flag includes debug information, which is useful for troubleshooting.
+
+> **Note:** The `.o` file must be in the same directory as `Convert-BpfToNative.ps1` (the build output directory) for the conversion script to work.
 
 #### Step 2: Convert ELF to native `.sys` driver
 
 eBPF for Windows provides the `Convert-BpfToNative.ps1` script to convert the ELF bytecode to a native Windows kernel driver. This script handles the complete pipeline: verification, C code generation, compilation, linking, and signing.
 
-From a Developer Command Prompt for VS 2022, navigate to your build output directory (e.g., `x64\Release\`) where the `.o` file is located, and run:
+From a Developer Command Prompt for VS 2022, in the same build output directory, run:
 
 ```powershell
 powershell .\Convert-BpfToNative.ps1 -FileName program
