@@ -11,8 +11,8 @@
 $arguments = $args
 
 # Check that the correct number of arguments have been provided.
-if ($arguments.Count -eq 0) {
-    Write-Output "Usage: Run-Test.ps1 <output folder> <timeout in seconds> <test command> <test arguments>"
+if ($arguments.Count -lt 3) {
+    Write-Output "Usage: Run-Test.ps1 <output folder> <timeout in seconds> <test command> [<test arguments>]"
     exit 1
 }
 
@@ -24,25 +24,86 @@ $arguments = $arguments[1..($arguments.Length - 1)]
 
 # Start the test process using the provided command and arguments.
 # This can't use Start-Process as that doesn't save exit code and always returns 0.
+$null = New-Item -Path $OutputFolder -ItemType Directory -Force -ErrorAction SilentlyContinue
+
 $processInfo = New-Object System.Diagnostics.ProcessStartInfo
 $processInfo.UseShellExecute = $false
 $processInfo.FileName = $arguments[0]
-$processInfo.Arguments = $arguments[1..($arguments.Length - 1)] -join ' '
+$processInfo.Arguments = ""
+if ($arguments.Length -gt 1) {
+    $processInfo.Arguments = $arguments[1..($arguments.Length - 1)] -join ' '
+}
+
+$test_executable_name = [System.IO.Path]::GetFileNameWithoutExtension($processInfo.FileName)
+
+Write-Output "Running test: $($processInfo.FileName) $($processInfo.Arguments)"
+Write-Output "Dump output folder: $OutputFolder"
 
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $processInfo
 $process.Start() | Out-Null
 
+# If ProcDump is available (installed by CI when dump collection is enabled), start it as a background
+# monitor so crashes that don't produce WER dumps still generate a dump file.
+$procdump_process = $null
+$procdump_command = Get-Command procdump.exe -ErrorAction SilentlyContinue
+if ($null -eq $procdump_command) {
+    $procdump_command = Get-Command procdump -ErrorAction SilentlyContinue
+}
+
+$enable_procdump_monitor = ($null -ne $procdump_command) -and (($env:EBPF_TEST_USE_PROCDUMP -eq 'yes') -or ($env:CI -eq 'true'))
+if ($enable_procdump_monitor) {
+    $procdump_exception_mode = "-e"
+    if ($env:EBPF_TEST_PROCDUMP_FIRST_CHANCE -eq 'yes') {
+        $procdump_exception_mode = "-e 1"
+    }
+
+    $procdump_args = "-accepteula -ma $procdump_exception_mode -x `"$OutputFolder`" $($process.Id)"
+    Write-Output "Starting ProcDump monitor: $($procdump_command.Source) $procdump_args"
+    try {
+        $procdump_process = Start-Process -NoNewWindow -PassThru -FilePath $procdump_command.Source -ArgumentList $procdump_args
+    } catch {
+        Write-Output "Failed to start ProcDump monitor: $($_.Exception.Message)"
+    }
+}
+
 if (!$process.WaitForExit($Timeout * 1000)) {
-    $dumpFileName = "$($process.ProcessName)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
+    $dumpFileName = "$test_executable_name\_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
     $dumpFilePath = Join-Path $OutputFolder $dumpFileName
-    Write-Output "Capturing dump of $($process.ProcessName) to $dumpFilePath"
+    Write-Output "Capturing dump of $test_executable_name to $dumpFilePath"
     Start-Process -NoNewWindow -Wait -FilePath procdump -ArgumentList "-accepteula -ma $($process.Id) $dumpFilePath"
     if (!$process.HasExited) {
-        Write-Output "Killing $($process.ProcessName)"
+        Write-Output "Killing $test_executable_name"
         $process.Kill()
     }
 }
 
-Write-Output "Test $($process.ProcessName) exited with code $($process.ExitCode)"
+if (!$process.HasExited) {
+    $process.WaitForExit() | Out-Null
+}
+
+if ($null -ne $procdump_process) {
+    try {
+        if (!$procdump_process.HasExited) {
+            $procdump_process.Kill()
+        }
+    } catch {
+        # Ignore failures (e.g. ProcDump already exited).
+    }
+}
+
+Write-Output "Test $test_executable_name exited with code $($process.ExitCode)"
+
+if ($process.ExitCode -ne 0) {
+    $dump_files = Get-ChildItem -Path $OutputFolder -Filter "*.dmp" -ErrorAction SilentlyContinue | Sort-Object -Property LastWriteTime -Descending
+    if ($null -ne $dump_files -and $dump_files.Count -gt 0) {
+        Write-Output "Found dump file(s):"
+        foreach ($dump_file in ($dump_files | Select-Object -First 10)) {
+            Write-Output "  $($dump_file.FullName)"
+        }
+    } else {
+        Write-Output "No dump files found in $OutputFolder"
+    }
+}
+
 exit $process.ExitCode
