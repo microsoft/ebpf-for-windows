@@ -221,17 +221,17 @@ Replace `program.c` with your eBPF source file name. The `-g` flag includes debu
 
 #### Step 2: Convert ELF to native `.sys` driver
 
-eBPF for Windows provides the `bpf2c` tool to convert the ELF bytecode to C source code, which is then compiled into a native Windows kernel driver.
+eBPF for Windows provides the `Convert-BpfToNative.ps1` script to convert the ELF bytecode to a native Windows kernel driver. This script handles the complete pipeline: verification, C code generation, compilation, linking, and signing.
 
-From a Developer Command Prompt for VS 2022, navigate to your build output directory (e.g., `x64\Release\`) and run:
+From a Developer Command Prompt for VS 2022, navigate to your build output directory (e.g., `x64\Release\`) where the `.o` file is located, and run:
 
-```cmd
-bpf2c.exe program.o program.sys
+```powershell
+powershell .\Convert-BpfToNative.ps1 -FileName program
 ```
 
 This generates a native driver file `program.sys` in the same directory.
 
-> **Note:** The `bpf2c` tool is located in the build output directory (e.g., `x64\Release\`) after building eBPF for Windows. For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
+> **Note:** The `Convert-BpfToNative.ps1` script is generated in the build output directory (e.g., `x64\Release\`) after building eBPF for Windows. The script name should be provided without the `.o` extension. For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
 
 #### Step 3: Load the native driver as a service
 
@@ -304,7 +304,7 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
 1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe)
    if not already installed on the defender machine.
 1. Copy `droppacket.c` and `ebpf.h` from the `tests\sample` directory to a folder (such as `c:\test`).
-1. If using native mode, ensure `bpf2c.exe` is available (from the build output directory) or in your PATH.
+1. If using native mode, ensure you have built eBPF for Windows so that `Convert-BpfToNative.ps1` is available in your build output directory.
 
 On the attacker machine, do the following:
 
@@ -327,13 +327,16 @@ On the attacker machine, do the following:
    clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
    ```
 
-1. Convert to native driver using `bpf2c`:
+1. Copy the `.o` file to your build output directory (e.g., `c:\your\path\x64\Release\`) where `Convert-BpfToNative.ps1` is located.
 
-   ```cmd
-   bpf2c.exe droppacket.o droppacket.sys
+1. Convert to native driver using the conversion script:
+
+   ```powershell
+   cd c:\your\path\x64\Release
+   powershell .\Convert-BpfToNative.ps1 -FileName droppacket
    ```
 
-   > **Note:** Navigate to your build output directory (e.g., `c:\your\path\x64\Release\`) or ensure `bpf2c.exe` is in your PATH.
+   This generates `droppacket.sys` in the same directory.
 
 1. Load the native driver:
 

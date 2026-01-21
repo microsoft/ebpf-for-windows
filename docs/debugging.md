@@ -22,7 +22,7 @@ Before debugging native mode programs, ensure you have:
 
 2. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version 18.1.8) installed
 
-3. eBPF for Windows built from source, with `bpf2c.exe` available in your build output directory (e.g., `x64\Debug\`)
+3. eBPF for Windows built from source, with `Convert-BpfToNative.ps1` available in your build output directory (e.g., `x64\Debug\`)
 
 4. WinDbg or another kernel debugger if you need to debug driver load issues or runtime behavior
 
@@ -55,17 +55,18 @@ If verification fails, address the issues before proceeding. See the [verifier d
 
 ### Step 3: Convert to native driver
 
-Use the `bpf2c` tool to convert the ELF bytecode to a native Windows driver:
+Use the `Convert-BpfToNative.ps1` script to convert the ELF bytecode to a native Windows driver:
 
-```cmd
-bpf2c.exe droppacket.o droppacket.sys
+```powershell
+powershell .\Convert-BpfToNative.ps1 -FileName droppacket
 ```
 
-This generates `droppacket.sys` in the current directory. The conversion process:
-1. Extracts eBPF bytecode from the ELF file
+This generates `droppacket.sys` in the current directory. The conversion process handled by the script:
+1. Verifies the eBPF program passes safety checks
 2. Generates C source code equivalent to the eBPF instructions
 3. Compiles the C code to native x64/ARM64 machine code
 4. Links it with the eBPF driver skeleton to create a `.sys` file
+5. Signs the driver for test or production use
 
 For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
 
@@ -102,9 +103,9 @@ If `sc start` fails, common causes include:
    - Or ensure the driver is production-signed
 
 2. **Verification failure during compilation:**
-   - The program failed verification at `bpf2c` conversion time
-   - Check the `bpf2c` output for verification errors
-   - Use `netsh ebpf show verification program.o section_name` to debug
+   - The program failed verification during the `Convert-BpfToNative.ps1` conversion process
+   - Check the script output for verification errors
+   - Use `netsh ebpf show verification program.o section_name` to debug before conversion
 
 3. **Missing dependencies:**
    - Ensure `ebpfcore.sys` and `netebpfext.sys` are loaded
