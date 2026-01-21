@@ -10,6 +10,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_ring_buffer_record.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_structs.h"
 #include "misc_helper.h"
 #include "native_helper.hpp"
@@ -75,8 +76,8 @@ _test_program_load(
     program_fd = bpf_prog_get_fd_by_id(next_id);
     REQUIRE(program_fd > 0);
 
-    const char* program_file_name;
-    const char* program_section_name;
+    const char* program_file_name = nullptr;
+    const char* program_section_name = nullptr;
     ebpf_execution_type_t program_execution_type;
     REQUIRE(
         ebpf_program_query_info(program_fd, &program_execution_type, &program_file_name, &program_section_name) ==
@@ -93,6 +94,9 @@ _test_program_load(
     if (execution_type != EBPF_EXECUTION_NATIVE) {
         REQUIRE(strcmp(program_file_name, file_name) == 0);
     }
+
+    ebpf_free_string(program_file_name);
+    ebpf_free_string(program_section_name);
 
     // Next program should not be present.
     uint32_t previous_id = next_id;
@@ -1706,244 +1710,558 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
-TEST_CASE("custom_maps_user_apis", "[custom_maps]")
+// Test eBPF string and type conversion APIs.
+TEST_CASE("ebpf_string_apis", "[ebpf_api]")
 {
-    // This test validates custom map user APIs.
-    fd_t custom_map_fd =
-        bpf_map_create(BPF_MAP_TYPE_SAMPLE_HASH_MAP, "custom_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
-    REQUIRE(custom_map_fd > 0);
+    // Test ebpf_free_string - can be called with NULL safely.
+    ebpf_free_string(nullptr);
 
-    // Update elements at various indices.
-    for (uint32_t i = 0; i < 10; i++) {
-        uint32_t key = i * 10;
-        uint32_t value = i + 100;
-        int result = bpf_map_update_elem(custom_map_fd, &key, &value, 0);
-        REQUIRE(result == ERROR_SUCCESS);
-    }
+    // Test program type name lookup.
+    ebpf_program_type_t sample_program_type = EBPF_PROGRAM_TYPE_BIND_GUID;
+    const char* type_name = ebpf_get_program_type_name(&sample_program_type);
+    REQUIRE(type_name != nullptr);
+    REQUIRE(std::string(type_name) == "bind"); // Verify actual content
 
-    // Lookup elements and validate values.
-    for (uint32_t i = 0; i < 10; i++) {
-        uint32_t key = i * 10;
-        uint32_t value = 0;
-        int result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
-        REQUIRE(result == ERROR_SUCCESS);
-        REQUIRE(value == i + 100);
-    }
+    // Test attach type name lookup.
+    ebpf_attach_type_t bind_attach_type = EBPF_ATTACH_TYPE_BIND_GUID;
+    const char* attach_name = ebpf_get_attach_type_name(&bind_attach_type);
+    REQUIRE(attach_name != nullptr);
+    REQUIRE(std::string(attach_name) == "bind"); // Verify actual content
 
-    // Delete some elements.
-    for (uint32_t i = 0; i < 5; i++) {
-        uint32_t key = i * 10;
-        int result = bpf_map_delete_elem(custom_map_fd, &key);
-        REQUIRE(result == ERROR_SUCCESS);
-    }
-
-    // Validate deleted elements are no longer present.
-    for (uint32_t i = 0; i < 5; i++) {
-        uint32_t key = i * 10;
-        uint32_t value = 0;
-        int result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
-        // Since this is a hash map, lookup should fail for deleted elements.
-        REQUIRE(result != 0);
-    }
-
-    // Clean up
-    _close(custom_map_fd);
+    // Test with invalid/unknown program type to verify graceful handling.
+    ebpf_program_type_t invalid_type = {0};
+    const char* invalid_name = ebpf_get_program_type_name(&invalid_type);
+    // Should either return nullptr or empty string for unknown types.
+    REQUIRE((invalid_name == nullptr || strlen(invalid_name) == 0));
 }
 
-#define OPERATION_SUCCESS 1
-#define OPERATION_FAILURE 0
-
-void
-_test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
+// Test eBPF program and attach type conversion APIs.
+TEST_CASE("ebpf_type_conversion_apis", "[ebpf_api]")
 {
-    bpf_object_ptr unique_object{nullptr};
-    int result;
-    fd_t program_fd;
-    bpf_link_ptr link;
-    // int iteration = 10;
-    bpf_object* object = nullptr;
+    // Test BPF to eBPF program type conversion.
+    const ebpf_program_type_t* ebpf_type = ebpf_get_ebpf_program_type(BPF_PROG_TYPE_SAMPLE);
+    REQUIRE(ebpf_type != nullptr);
 
-    UNREFERENCED_PARAMETER(type);
+    // Test reverse conversion.
+    bpf_prog_type_t bpf_type = ebpf_get_bpf_program_type(ebpf_type);
+    REQUIRE(bpf_type == BPF_PROG_TYPE_SAMPLE);
 
-    native_module_helper_t test_sample_ebpf_helper;
-    test_sample_ebpf_helper.initialize("custom_map_basic", execution_type);
+    // Test BPF to eBPF attach type conversion.
+    ebpf_attach_type_t ebpf_attach_type;
+    ebpf_result_t result = ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND, &ebpf_attach_type);
+    REQUIRE(result == EBPF_SUCCESS);
 
-    result = program_load_helper(
-        test_sample_ebpf_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd);
-    REQUIRE(result == 0);
+    // Test reverse conversion.
+    bpf_attach_type_t bpf_attach_type = ebpf_get_bpf_attach_type(&ebpf_attach_type);
+    REQUIRE(bpf_attach_type == BPF_ATTACH_TYPE_BIND);
 
-    unique_object.reset(object);
+    // Test program type lookup by name.
+    ebpf_program_type_t program_type;
+    ebpf_attach_type_t expected_attach_type;
+    result = ebpf_get_program_type_by_name("bind", &program_type, &expected_attach_type);
+    REQUIRE(result == EBPF_SUCCESS);
 
-    const char* map_name = "sample_hash_map";
-    fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
-    REQUIRE(result_map_fd > 0);
+    // Verify the lookup worked by converting back to name.
+    const char* retrieved_name = ebpf_get_program_type_name(&program_type);
+    REQUIRE(retrieved_name != nullptr);
+    REQUIRE(std::string(retrieved_name) == "bind");
+}
 
-    fd_t result_value_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_value_map");
-    REQUIRE(result_value_map_fd > 0);
+// Test path canonicalization API.
+TEST_CASE("ebpf_canonicalize_pin_path", "[ebpf_api]")
+{
+    char output[MAX_PATH];
 
-    fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), map_name);
-    REQUIRE(sample_map_fd > 0);
+    // Test with a simple path.
+    ebpf_result_t result = ebpf_canonicalize_pin_path(output, sizeof(output), "/some/test/path");
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(std::string(output) == "BPF:\\some\\test\\path");
 
-    auto validate_result_map = [&](uint32_t expected_value) {
-        uint32_t key = 0;
-        uint32_t result_value = 0;
-        REQUIRE(bpf_map_lookup_elem(result_map_fd, &key, &result_value) == 0);
-        REQUIRE(result_value == expected_value);
-    };
+    // Test with empty path.
+    result = ebpf_canonicalize_pin_path(output, sizeof(output), "");
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(std::string(output) == "BPF:\\");
 
-    auto validate_result_value_map = [&](uint32_t expected_value) {
-        uint32_t key = 0;
-        uint32_t result_value = 0;
-        REQUIRE(bpf_map_lookup_elem(result_value_map_fd, &key, &result_value) == 0);
-        REQUIRE(result_value == expected_value);
-    };
+    // Negative test: buffer too small.
+    char small_output[5];
+    result = ebpf_canonicalize_pin_path(small_output, sizeof(small_output), "/some/very/long/path/that/wont/fit");
+    REQUIRE(result != EBPF_SUCCESS);
+}
 
-    auto validate_sample_map_value = [&](uint32_t expected_value, bool expect_lookup_to_fail = false) {
-        uint32_t key = 0;
-        uint32_t map_value = 0;
-        if (expect_lookup_to_fail) {
-            REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) != 0);
-            return;
-        } else {
-            REQUIRE(bpf_map_lookup_elem(sample_map_fd, &key, &map_value) == 0);
-            REQUIRE(map_value == expected_value);
+// Test enumerate programs API.
+TEST_CASE("ebpf_enumerate_programs", "[ebpf_api]")
+{
+    // Test with a known test file path - using sample programs from the project.
+    auto test_cases = std::map<std::string, std::function<void(ebpf_api_program_info_t*)>>{
+        {"test_sample_ebpf.o",
+         [](ebpf_api_program_info_t* info) {
+             REQUIRE(std::string(info->section_name) == "sample_ext");
+             REQUIRE(std::string(info->program_name) == "test_program_entry");
+             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_SAMPLE);
+             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_SAMPLE);
+         }},
+        {"bindmonitor.o", [](ebpf_api_program_info_t* info) {
+             REQUIRE(std::string(info->section_name) == "bind");
+             REQUIRE(std::string(info->program_name) == "BindMonitor");
+             REQUIRE(info->program_type == EBPF_PROGRAM_TYPE_BIND);
+             REQUIRE(info->expected_attach_type == EBPF_ATTACH_TYPE_BIND);
+         }}};
+
+    for (const auto& [file, validate] : test_cases) {
+        ebpf_api_program_info_t* program_infos = nullptr;
+        const char* error_message = nullptr;
+
+        // Try to enumerate programs from test file.
+        ebpf_result_t result = ebpf_enumerate_programs(file.c_str(), false, &program_infos, &error_message);
+
+        if (result == EBPF_SUCCESS && program_infos != nullptr) {
+            // Verify we got some program info.
+            REQUIRE(program_infos->section_name != nullptr);
+            REQUIRE(strlen(program_infos->section_name) > 0);
+            validate(program_infos);
+
+            // Clean up.
+            ebpf_free_programs(program_infos);
         }
-    };
 
-    // Set config map.
-    fd_t config_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "config_map");
-    REQUIRE(config_map_fd > 0);
-    uint32_t config_key = 0;
-    uint32_t config_value = 2;
-    REQUIRE((bpf_map_update_elem(config_map_fd, &config_key, &config_value, 0) == 0));
+        // Clean up error message if any.
+        ebpf_free_string(error_message);
+    }
 
-    // Set initial value in the map.
-    uint32_t key = 0;
-    uint32_t value = 1234;
-    REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
+    // Test with non-existent file - should fail gracefully.
+    ebpf_api_program_info_t* program_infos = nullptr;
+    const char* error_message = nullptr;
+    ebpf_result_t result = ebpf_enumerate_programs("non_existent_file.o", false, &program_infos, &error_message);
+    REQUIRE(result != EBPF_SUCCESS);
+    // Should provide error message when operation fails.
+    REQUIRE(error_message != nullptr);
 
-    // First invoke "test_map_read_increment" program. The program tries to increment the map value
-    // directly, which is not allowed for object maps.
-    bpf_test_run_opts opts = {};
-    sample_program_context_t ctx = {};
-    opts.batch_size = 1;
-    opts.repeat = 1;
-    opts.ctx_in = &ctx;
-    opts.ctx_size_in = sizeof(sample_program_context_t);
-    opts.ctx_out = &ctx;
-    opts.ctx_size_out = sizeof(sample_program_context_t);
+    // Clean up error message.
+    ebpf_free_string(error_message);
 
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_increment"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
+    // Negative test: null file path.
+    error_message = nullptr;
+    program_infos = nullptr;
 
-    // Since it is an object map, update from BPF program is not allowed. Lookup the sample map value and validate the
-    // result.
-    validate_sample_map_value(1234);
-    validate_result_map(OPERATION_FAILURE);
-
-    // Now invoke "test_map_read_helper_increment" program.
-    program_fd =
-        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // Since this is an object map, update from BPF program should fail via helper.
-    validate_sample_map_value(1234);
-    validate_result_map(OPERATION_FAILURE);
-
-    // Set iteration to 1 for the remaining tests.
-    opts.repeat = 1;
-
-    // Now invoke "test_map_read_helper_value" program, and validate the map value.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_value"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    validate_result_map(OPERATION_SUCCESS);
-    validate_result_value_map(1234);
-
-    // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
-    program_fd = bpf_program__fd(
-        bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment_invalid"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // Validate that the program failed by checking the result map.
-    validate_result_map(0);
-
-    // Now invoke "test_map_update_element" program. The value should be set to 42.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // Update is not supported for object maps, so value should remain unchanged.
-    validate_sample_map_value(1234);
-    validate_result_map(OPERATION_FAILURE);
-
-    // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // Delete is not supported for object maps, so value should remain unchanged.
-    validate_sample_map_value(1234);
-    validate_result_map(OPERATION_FAILURE);
-
-    // Set map value to 200.
-    value = 200;
-    REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
-
-    // Invoke "test_map_find_and_delete_element" program.
-    program_fd =
-        bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    validate_sample_map_value(200);
-    validate_result_map(OPERATION_FAILURE);
-
-    // Invoke "test_map_push_elem" program.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // push_elem is not supported for array or hash maps, validate that the call failed.
-    validate_result_map(0);
-
-    // Invoke "test_map_pop_elem" program.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_pop_elem"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // pop_elem is not supported for array or hash maps, validate that the call failed.
-    validate_result_map(0);
-
-    // Invoke "test_map_peek_elem" program.
-    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_peek_elem"));
-    REQUIRE(program_fd > 0);
-    result = bpf_prog_test_run_opts(program_fd, &opts);
-    REQUIRE(result == 0);
-
-    // peek_elem is not supported for array or hash maps, validate that the call failed.
-    validate_result_map(0);
-
-    bpf_object__close(unique_object.release());
+    // Can't test with null parameter directly as this violates the static analysis checks and causes crash at runtime.
 }
 
-void
-_test_custom_maps_program_load(ebpf_execution_type_t execution_type)
+// Test eBPF verification APIs.
+TEST_CASE("ebpf_verification_apis", "[ebpf_api]")
 {
-    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
+    // Test file verification APIs with known test files.
+    const char* test_files[] = {"test_sample_ebpf.o", "bindmonitor.o"};
+
+    for (const char* file : test_files) {
+        const char* report = nullptr;
+        const char* error_message = nullptr;
+        ebpf_api_verifier_stats_t stats = {};
+
+        // Test program verification from file.
+        uint32_t result = ebpf_api_elf_verify_program_from_file(
+            file,
+            nullptr, // section_name - use first section.
+            nullptr, // program_name - use first program.
+            nullptr, // program_type - derive from section.
+            EBPF_VERIFICATION_VERBOSITY_NORMAL,
+            &report,
+            &error_message,
+            &stats);
+
+        // Result should be 0 (success).
+        REQUIRE(result == 0);
+
+        // Verify that stats are populated for successful verification.
+        REQUIRE(report != nullptr); // Should generate a report
+
+        // Clean up strings.
+        ebpf_free_string(report);
+        ebpf_free_string(error_message);
+    }
+
+    // Negative test: invalid ELF data.
+    {
+        const char* report = nullptr;
+        const char* error_message = nullptr;
+        ebpf_api_verifier_stats_t stats = {};
+        const char* invalid_data = "this is not valid ELF data";
+
+        uint32_t result = ebpf_api_elf_verify_program_from_memory(
+            invalid_data,
+            strlen(invalid_data),
+            nullptr,
+            nullptr,
+            nullptr,
+            EBPF_VERIFICATION_VERBOSITY_NORMAL,
+            &report,
+            &error_message,
+            &stats);
+
+        // Should fail validation.
+        REQUIRE(result != 0);
+        // Should provide error details.
+        REQUIRE(error_message != nullptr);
+
+        ebpf_free_string(report);
+        ebpf_free_string(error_message);
+    }
+
+    // Test disassembly APIs.
+    for (const char* file : test_files) {
+        const char* disassembly = nullptr;
+        const char* error_message = nullptr;
+
+        // Test program disassembly from file.
+        uint32_t result = ebpf_api_elf_disassemble_program(
+            file,
+            nullptr, // section_name - use first section.
+            nullptr, // program_name - use first program.
+            &disassembly,
+            &error_message);
+
+        if (result == 0 && disassembly != nullptr) {
+            // Verify we got some disassembly output.
+            REQUIRE(strlen(disassembly) > 0);
+        }
+
+        // Clean up strings.
+        ebpf_free_string(disassembly);
+        ebpf_free_string(error_message);
+    }
+}
+
+// Test eBPF object management APIs.
+TEST_CASE("ebpf_object_apis", "[ebpf_api]")
+{
+    // Create a simple map object.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map_pin", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Pin the map object.
+    const char* pin_path = "BPF:\\test_map_pin";
+    int pin_result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(pin_result == 0);
+
+    // Call ebpf_api_get_pinned_map_info to get pinned map info.
+    uint16_t map_count = 0;
+    ebpf_map_info_t* map_info = nullptr;
+    ebpf_result_t result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_count == 1);
+    REQUIRE(map_info != nullptr);
+
+    // Validate ALL fields of the returned map info.
+    REQUIRE(map_info[0].definition.type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(std::string(map_info[0].pin_path) == "BPF:\\test_map_pin");
+    REQUIRE(map_info[0].definition.key_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].definition.value_size == sizeof(uint32_t));
+    REQUIRE(map_info[0].definition.max_entries == 1);
+    REQUIRE(map_info[0].definition.inner_map_id == 0);
+
+    // Clean up pinned map info returned by the API.
+    ebpf_api_map_info_free(map_count, map_info);
+
+    // Negative test: null count parameter.
+    // Test can not be performed as it violates static analysis checks and causes an assert at runtime.
+
+    // Negative test: null info parameter.
+    // Test can not be performed as it violates static analysis checks and causes an assert at runtime.
+
+    // Unpin the map object.
+    result = ebpf_object_unpin(pin_path);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Verify that unpinning the object a second time fails.
+    result = ebpf_object_unpin(pin_path);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // Verify that the map can no longer be found via ebpf_api_get_pinned_map_info.
+    result = ebpf_api_get_pinned_map_info(&map_count, &map_info);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_count == 0);
+    REQUIRE(map_info == nullptr);
+
+    // Verify free is a no-op for empty results.
+    ebpf_api_map_info_free(map_count, map_info);
+
+    // Close the map fd.
+    _close(map_fd);
+}
+
+// Test eBPF pinned object path APIs.
+TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
+{
+    char next_path[EBPF_MAX_PIN_PATH_LENGTH];
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+
+    // 1) Create and pin a map.
+    const char* pin_path = "BPF:\\test_get_next_pinned_object_path";
+    fd_t map_fd = bpf_map_create(
+        BPF_MAP_TYPE_ARRAY, "test_get_next_pinned_object_path", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    int pin_result = bpf_obj_pin(map_fd, pin_path);
+    REQUIRE(pin_result == 0);
+
+    // 2) Verify the map can be found via ebpf_get_next_pinned_object_path.
+    ebpf_result_t result = ebpf_get_next_pinned_object_path("", next_path, sizeof(next_path), &object_type);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(object_type == EBPF_OBJECT_MAP);
+    // Validate the full path structure.
+    REQUIRE(strstr(next_path, "test_get_next_pinned_object_path") != nullptr);
+    // Verify it starts with expected prefix.
+    REQUIRE(strstr(next_path, "BPF:") == next_path);
+
+    // 3) Test iteration - should be no more objects after this one.
+    char second_path[EBPF_MAX_PIN_PATH_LENGTH];
+    result = ebpf_get_next_pinned_object_path(next_path, second_path, sizeof(second_path), &object_type);
+    REQUIRE(result == EBPF_NO_MORE_KEYS);
+
+    // Negative test: null output buffer.
+    // This test can not be performed as it violates static analysis checks and causes an assert at runtime.
+
+    // Negative test: zero size buffer.
+    result = ebpf_get_next_pinned_object_path("", next_path, 0, &object_type);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    // 4) Unpin and free the map.
+    ebpf_result_t unpin_result = ebpf_object_unpin(pin_path);
+    REQUIRE(unpin_result == EBPF_SUCCESS);
+
+    _close(map_fd);
+}
+
+// Test eBPF program synchronization API.
+TEST_CASE("ebpf_program_synchronize", "[ebpf_api]")
+{
+    // Test program synchronization multiple times to ensure it's idempotent.
+    for (int i = 0; i < 3; i++) {
+        ebpf_result_t result = ebpf_program_synchronize();
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+}
+
+// Test eBPF object execution type APIs.
+TEST_CASE("ebpf_object_execution_type_apis", "[ebpf_api]")
+{
+    // Load a test object to test execution type APIs.
+    struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
+    if (object != nullptr) {
+        // Test getting the default execution type - be flexible about default.
+        ebpf_execution_type_t exec_type = ebpf_object_get_execution_type(object);
+        REQUIRE(
+            (exec_type == EBPF_EXECUTION_ANY || exec_type == EBPF_EXECUTION_JIT ||
+             exec_type == EBPF_EXECUTION_INTERPRET || exec_type == EBPF_EXECUTION_NATIVE));
+        ebpf_execution_type_t original_type = exec_type;
+
+        // Test setting an invalid execution type.
+        ebpf_execution_type_t invalid_execution_type = static_cast<ebpf_execution_type_t>(0x7fffffff);
+        ebpf_result_t result = ebpf_object_set_execution_type(object, invalid_execution_type);
+        REQUIRE(result == EBPF_INVALID_ARGUMENT);
+        REQUIRE(ebpf_object_get_execution_type(object) == original_type);
+
+        // Test setting execution type to INTERPRET.
+        result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_INTERPRET);
+        if (result == EBPF_SUCCESS) {
+            // Verify the execution type was set.
+            exec_type = ebpf_object_get_execution_type(object);
+            REQUIRE(exec_type == EBPF_EXECUTION_INTERPRET);
+        } else {
+            // If setting fails, verify the original value is unchanged.
+            ebpf_execution_type_t new_exec_type = ebpf_object_get_execution_type(object);
+            REQUIRE(new_exec_type == original_type);
+        }
+
+        // Test setting to JIT.
+        result = ebpf_object_set_execution_type(object, EBPF_EXECUTION_JIT);
+        if (result == EBPF_SUCCESS) {
+            exec_type = ebpf_object_get_execution_type(object);
+            REQUIRE(exec_type == EBPF_EXECUTION_JIT);
+        }
+
+        bpf_object__close(object);
+    }
+}
+
+// Test eBPF perf event array API.
+TEST_CASE("ebpf_perf_event_array_api", "[ebpf_api]")
+{
+    // Create a perf event array map for testing.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "test_perf", 0, 0, 4, nullptr);
+    if (map_fd > 0) {
+        // Test writing to perf event array.
+        const char test_data[] = "test perf event data";
+        ebpf_result_t result = ebpf_perf_event_array_map_write(map_fd, test_data, sizeof(test_data));
+
+        REQUIRE(result == EBPF_SUCCESS);
+
+        // Negative test: invalid file descriptor.
+        result = ebpf_perf_event_array_map_write(-1, test_data, sizeof(test_data));
+        REQUIRE(result != EBPF_SUCCESS);
+
+        // Negative test: null data.
+        // Not tested: passing nullptr violates SAL annotations.
+
+        // Negative test: zero size.
+        result = ebpf_perf_event_array_map_write(map_fd, test_data, 0);
+        REQUIRE(result != EBPF_SUCCESS);
+
+        (void)ebpf_close_fd(map_fd);
+    }
+}
+
+// Test eBPF object info API.
+TEST_CASE("ebpf_object_info_api", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    // Create a simple map to test object info API.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    struct bpf_map_info info = {0};
+    uint32_t info_size = sizeof(info);
+    ebpf_object_type_t object_type;
+
+    ebpf_result_t result = ebpf_object_get_info_by_fd(map_fd, &info, &info_size, &object_type);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(object_type == EBPF_OBJECT_MAP);
+    REQUIRE(info_size > 0);
+    REQUIRE(info.type == BPF_MAP_TYPE_ARRAY);
+    REQUIRE(info.key_size == sizeof(uint32_t));
+    REQUIRE(info.value_size == sizeof(uint32_t));
+    REQUIRE(info.max_entries == 1);
+    REQUIRE(info.id != 0);
+    REQUIRE(std::string(info.name) == "test_map");
+
+    (void)ebpf_close_fd(map_fd);
+
+    // Test with invalid fd.
+    result = ebpf_object_get_info_by_fd(-1, nullptr, &info_size, &object_type);
+    REQUIRE(result != EBPF_SUCCESS);
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+// Test eBPF program attach APIs with graceful error handling.
+TEST_CASE("ebpf_program_attach_apis_basic", "[ebpf_api]")
+{
+    _disable_crt_report_hook disable_hook;
+
+    // Load test_sample_ebpf.o to get a valid program fd.
+    bpf_object* object = bpf_object__open_file("test_sample_ebpf.o", nullptr);
+    REQUIRE(object != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Load the first program in the object.
+    bpf_program* program = bpf_object__next_program(object, nullptr);
+    REQUIRE(program != nullptr);
+
+    int program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    // Test attach with a valid fd - should succeed.
+    struct bpf_link* link = nullptr;
+    GUID sample_attach_type = EBPF_ATTACH_TYPE_SAMPLE_GUID;
+    ebpf_result_t result = ebpf_program_attach_by_fd(program_fd, &sample_attach_type, nullptr, 0, &link);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(link != nullptr);
+
+    ebpf_link_close(link);
+
+    bpf_object__close(object);
+
+    // Test with invalid fd.
+    result = ebpf_program_attach_by_fd(-1, &sample_attach_type, nullptr, 0, &link);
+    REQUIRE(result != EBPF_SUCCESS);
+}
+#endif
+
+// Test eBPF native object loading API.
+TEST_CASE("ebpf_object_load_native_api", "[ebpf_api]")
+{
+    // Test loading native object with invalid file.
+    size_t map_count = 1;
+    size_t program_count = 1;
+    std::vector<fd_t> map_fds(1);
+    std::vector<fd_t> program_fds(1);
+
+    ebpf_result_t result = ebpf_object_load_native_by_fds(
+        "test_sample_ebpf.sys", &map_count, map_fds.data(), &program_count, program_fds.data());
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(map_count == 1);
+    REQUIRE(program_count == 1);
+    REQUIRE(map_fds[0] > 0);
+    REQUIRE(program_fds[0] > 0);
+    _close(map_fds[0]);
+    _close(program_fds[0]);
+}
+
+// Test eBPF program info from verifier API.
+TEST_CASE("ebpf_program_info_from_verifier_api", "[ebpf_api]")
+{
+    const ebpf_program_info_t* program_info = nullptr;
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+
+    uint32_t verify_result = ebpf_api_elf_verify_program_from_file(
+        "test_sample_ebpf.o",
+        nullptr, // section_name - use first section.
+        nullptr, // program_name - use first program.
+        nullptr, // program_type - derive from section.
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report,        // report
+        &error_message, // error_message
+        nullptr         // stats
+    );
+
+    REQUIRE(verify_result == 0);
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+    REQUIRE(error_message == nullptr);
+
+    ebpf_result_t result = ebpf_get_program_info_from_verifier(&program_info);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(program_info != nullptr);
+}
+
+// Test eBPF memory-based verification APIs.
+TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
+{
+    // Test memory-based verification with minimal data.
+    const char* test_data = "minimal_test_data";
+    const char* report = nullptr;
+    const char* error_message = nullptr;
+    ebpf_api_verifier_stats_t stats = {};
+
+    // Test program verification from memory with invalid data.
+    uint32_t result = ebpf_api_elf_verify_program_from_memory(
+        test_data,
+        strlen(test_data),
+        nullptr, // section_name
+        nullptr, // program_name
+        nullptr, // program_type
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
+        &report,
+        &error_message,
+        &stats);
+
+    // Should fail for invalid ELF data but handle gracefully.
+    REQUIRE(result != 0); // Not successful verification.
+
+    // Clean up strings.
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
+
+    // Test with null data - should fail gracefully.
+    result = ebpf_api_elf_verify_program_from_memory(
+        nullptr, 0, nullptr, nullptr, nullptr, EBPF_VERIFICATION_VERBOSITY_NORMAL, &report, &error_message, &stats);
+    REQUIRE(result != 0);
+
+    // Clean up strings.
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)

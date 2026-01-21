@@ -680,7 +680,28 @@ Exit:
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
 {
-    const int DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+    const size_t DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+
+    // Validate buffer size upfront to avoid assertions in debug builds.
+    size_t input_length = strlen(input);
+    size_t required_size = DEVICE_PREFIX_SIZE + 1; // "BPF:" + null terminator
+
+    // Add space for leading backslash if path is relative.
+    if (input[0] != '/' && input[0] != '\\') {
+        required_size++;
+    }
+
+    // Add space for input path (minus "BPF:" prefix if present).
+    if (_strnicmp(input, "BPF:", DEVICE_PREFIX_SIZE) == 0) {
+        required_size += input_length - DEVICE_PREFIX_SIZE;
+    } else {
+        required_size += input_length;
+    }
+
+    if (output_size < required_size) {
+        return EBPF_INSUFFICIENT_BUFFER;
+    }
+
     if (strcpy_s(output, output_size, "BPF:") != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -702,7 +723,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
         }
     }
 
-    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
+    for (size_t i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
         if (output[i] == '/') {
             // Convert slashes to backslashes.
             output[i] = '\\';
@@ -718,7 +739,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
         memmove(output + DEVICE_PREFIX_SIZE + 1, next, strlen(next) + 1);
     }
 
-    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
+    for (size_t i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
         if (strncmp(output + i, "\\\\", 2) == 0) {
             char* next = output + i + 2;
             memmove(output + i + 1, next, strlen(next) + 1);
@@ -728,30 +749,39 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             char* next = output + i + 3;
             memmove(output + i + 1, next, strlen(next) + 1);
         } else if (strncmp(output + i, "\\..\\", 4) == 0) {
-            int previous_index = i - 1;
-            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+            // Walk backwards to the previous separator.
+            // Use a size_t-safe loop to avoid underflow/wraparound.
+            size_t previous_index = i;
+            bool found_separator = false;
+            while (previous_index > DEVICE_PREFIX_SIZE) {
+                previous_index--;
                 if (output[previous_index] == '\\') {
-                    // Back up to the previous separator.
                     char* next = output + i + 4;
                     memmove(output + previous_index + 1, next, strlen(next) + 1);
                     i = previous_index;
+                    found_separator = true;
                     break;
                 }
             }
-            if (previous_index < DEVICE_PREFIX_SIZE) {
+            if (!found_separator) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else if (strcmp(output + i, "\\..") == 0) {
-            int previous_index = i - 1;
-            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+            // Walk backwards to the previous separator.
+            // Use a size_t-safe loop to avoid underflow/wraparound.
+            size_t previous_index = i;
+            bool found_separator = false;
+            while (previous_index > DEVICE_PREFIX_SIZE) {
+                previous_index--;
                 if (output[previous_index] == '\\') {
                     // Terminate the string at the previous separator.
                     output[previous_index] = 0;
                     i = previous_index;
+                    found_separator = true;
                     break;
                 }
             }
-            if (previous_index < DEVICE_PREFIX_SIZE) {
+            if (!found_separator) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else {
