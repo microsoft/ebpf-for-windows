@@ -147,7 +147,7 @@ jobs:
 
             - [ ] Verify CI build completes successfully with new LLVM version
             - [ ] Test that `clang -target bpf` still works correctly
-            - [ ] Verify the code formatting script (`./scripts/format-code`) runs without errors
+            - [ ] Verify the code formatting script (`./scripts/format-code.ps1`) runs without errors
             - [ ] Check for any breaking changes in LLVM release notes that might affect eBPF compilation
           LABELS: dependencies,ci/cd
         with:
@@ -169,7 +169,7 @@ jobs:
             // Look for an existing issue with the title.
             for (const issue of issues) {
               if (issue.title === title) {
-                console.log(`Updating issue ${issue.title}`);
+                console.log(`Updating issue ${title}`);
                 await github.rest.issues.createComment({
                   issue_number: issue.number,
                   owner,
