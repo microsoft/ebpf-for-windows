@@ -1043,6 +1043,10 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
     // Keep the number of outstanding work items bounded so the test can run for long durations
     // without accumulating unbounded memory or taking excessive time to drain at the end.
     constexpr uint64_t max_outstanding_work_items = 256;
+    // Also cap how many OS allocations we are willing to hold onto if scheduling stalls.
+    // If epoch work items stop being invoked, the previous logic could allocate unbounded pages
+    // and eventually exhaust system commit (causing unrelated processes to fail-fast).
+    constexpr size_t max_deferred_frees = 4096;
 
     std::atomic<epoch_spin_shared_object_t*> shared_object{allocate_object()};
     if (shared_object.load(std::memory_order_acquire) == nullptr) {
@@ -1136,8 +1140,23 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
         while (!stop.load(std::memory_order_acquire) && !stop_token.stop_requested() &&
                (std::chrono::steady_clock::now() < deadline) && !thread_error.load(std::memory_order_acquire)) {
             // Retry deferred frees first.
-            if (!deferred_frees.empty() && try_schedule_free(deferred_frees.back())) {
-                deferred_frees.pop_back();
+            if (!deferred_frees.empty()) {
+                if (try_schedule_free(deferred_frees.back())) {
+                    deferred_frees.pop_back();
+                    continue;
+                }
+
+                if (deferred_frees.size() > max_deferred_frees) {
+                    std::cerr << "Deferred frees exceeded limit (" << deferred_frees.size()
+                              << "); epoch work items may be stalled" << std::endl;
+                    thread_error.store(true, std::memory_order_release);
+                    break;
+                }
+
+                // Avoid allocating more memory while we are unable to schedule frees.
+                // Help the system make progress and try again.
+                ebpf_epoch_synchronize();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 continue;
             }
 
@@ -1151,6 +1170,12 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
             epoch_spin_shared_object_t* old_obj = shared_object.exchange(new_obj, std::memory_order_acq_rel);
             if (old_obj != nullptr && !try_schedule_free(old_obj)) {
                 deferred_frees.push_back(old_obj);
+                if (deferred_frees.size() > max_deferred_frees) {
+                    std::cerr << "Deferred frees exceeded limit (" << deferred_frees.size()
+                              << "); epoch work items may be stalled" << std::endl;
+                    thread_error.store(true, std::memory_order_release);
+                    break;
+                }
             }
         }
 
