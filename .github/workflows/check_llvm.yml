@@ -30,11 +30,16 @@ jobs:
 
       - name: Get latest LLVM release version
         id: check_llvm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Query GitHub Releases API for llvm/llvm-project
           # Filter to get only stable releases (not pre-releases)
           # Parse tag_name like "llvmorg-21.1.1" to extract version "21.1.1"
-          LATEST_RELEASE=$(curl -s https://api.github.com/repos/llvm/llvm-project/releases?per_page=10 | \
+          LATEST_RELEASE=$(curl -s \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/llvm/llvm-project/releases?per_page=100 | \
             jq -r '[.[] | select(.prerelease == false)] | first | .tag_name')
 
           if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" = "null" ]; then
@@ -44,6 +49,12 @@ jobs:
 
           # Extract version number from tag (e.g., llvmorg-21.1.1 -> 21.1.1)
           LLVM_VERSION=$(echo "$LATEST_RELEASE" | sed 's/^llvmorg-//')
+
+          # Validate that the extracted version contains only numbers and dots
+          if ! echo "$LLVM_VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
+            echo "Error: Parsed LLVM version '$LLVM_VERSION' from tag '$LATEST_RELEASE' is invalid"
+            exit 1
+          fi
 
           echo "Latest LLVM release: $LLVM_VERSION"
           echo "llvm_version=$LLVM_VERSION" >> $GITHUB_OUTPUT
@@ -63,10 +74,46 @@ jobs:
           echo "Repository LLVM version: $REPO_VERSION"
           echo "llvm_version=$REPO_VERSION" >> $GITHUB_OUTPUT
 
+      - name: Compare LLVM versions semantically
+        id: compare_llvm
+        run: |
+          LATEST="${{ steps.check_llvm.outputs.llvm_version }}"
+          CURRENT="${{ steps.check_repo_llvm.outputs.llvm_version }}"
+
+          version_gt() {
+            local IFS=.
+            local i
+            local ver1=($1)
+            local ver2=($2)
+
+            # Pad shorter version with zeros
+            for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+              ver1[i]=0
+            done
+            for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do
+              ver2[i]=0
+            done
+
+            for ((i=0; i<${#ver1[@]}; i++)); do
+              if ((10#${ver1[i]} > 10#${ver2[i]})); then
+                return 0
+              elif ((10#${ver1[i]} < 10#${ver2[i]})); then
+                return 1
+              fi
+            done
+            return 1
+          }
+
+          if version_gt "$LATEST" "$CURRENT"; then
+            echo "is_newer=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_newer=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
-        if: steps.check_llvm.outputs.llvm_version != steps.check_repo_llvm.outputs.llvm_version
+        if: steps.compare_llvm.outputs.is_newer == 'true'
         env:
-          TITLE: 'Update LLVM/Clang toolchain to ${{steps.check_llvm.outputs.llvm_version}}'
+          TITLE: 'Update LLVM/Clang toolchain'
           BODY: |
             A new stable version of LLVM/Clang is available. The repository should be updated to use the latest version.
 
@@ -116,7 +163,7 @@ jobs:
               labels: label_array,
             });
             const issues = await github.paginate(opts);
-            // Look for an existing issue with the exact title.
+            // Look for an existing issue with the title.
             for (const issue of issues) {
               if (issue.title === title) {
                 console.log(`Updating issue ${issue.title}`);
