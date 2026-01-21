@@ -108,7 +108,7 @@ jobs:
           import os
           import re
           import subprocess
-          from datetime import datetime, timedelta
+          from datetime import datetime, timedelta, timezone
           from pathlib import Path
 
           # Configuration
@@ -300,7 +300,12 @@ jobs:
                           if last_run_str and last_run_str.lower() not in ['', 'null']:
                               try:
                                   last_run = datetime.fromisoformat(last_run_str.replace('Z', '+00:00'))
-                                  age = datetime.now(last_run.tzinfo) - last_run
+                                  # Ensure we have a timezone-aware datetime for comparison
+                                  now = datetime.now(timezone.utc)
+                                  # If last_run is naive, assume UTC
+                                  if last_run.tzinfo is None:
+                                      last_run = last_run.replace(tzinfo=timezone.utc)
+                                  age = now - last_run
                                   if age.days > STALE_DATA_THRESHOLD_DAYS:
                                       print(f"⚠️  Stale data detected: last run was {age.days} days ago")
                                       upsert_stale_data_issue(platform, last_run_str)
