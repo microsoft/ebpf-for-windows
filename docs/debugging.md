@@ -61,7 +61,7 @@ Use the `Convert-BpfToNative.ps1` script to convert the ELF bytecode to a native
 powershell .\Convert-BpfToNative.ps1 -FileName droppacket
 ```
 
-This generates `droppacket.sys` in the current directory. The conversion process handled by the script:
+This generates `droppacket.sys` in the current directory. The conversion process handled by the script includes:
 1. Verifies the eBPF program passes safety checks
 2. Generates C source code equivalent to the eBPF instructions
 3. Compiles the C code to native x64/ARM64 machine code
