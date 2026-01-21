@@ -80,7 +80,7 @@ function Generate-KernelDumpOnVM {
         $NotMyFaultProc.WaitForExit(30*60*1000)
         
         # If we get here, notmyfault64.exe failed for some reason. Kill the hung process, throw error.
-        if (-not $NotMyFaultProc.HasExited) {
+        if ($NotMyFaultProc -and (-not $NotMyFaultProc.HasExited)) {
             $NotMyFaultProc.Kill()
         }
         Write-Log "*** ERROR *** kernel mode dump creation FAILED" -ForegroundColor Red
