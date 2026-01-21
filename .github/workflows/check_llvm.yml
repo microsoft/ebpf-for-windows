@@ -95,9 +95,12 @@ jobs:
             done
 
             for ((i=0; i<${#ver1[@]}; i++)); do
-              if ((10#${ver1[i]} > 10#${ver2[i]})); then
+              # Strip leading zeros to avoid octal interpretation issues
+              local num1=$((10#${ver1[i]:-0}))
+              local num2=$((10#${ver2[i]:-0}))
+              if ((num1 > num2)); then
                 return 0
-              elif ((10#${ver1[i]} < 10#${ver2[i]})); then
+              elif ((num1 < num2)); then
                 return 1
               fi
             done
