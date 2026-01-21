@@ -117,13 +117,13 @@
     <CustomBuild Include="multiple_programs.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="extensible_map_basic.c">
+    <CustomBuild Include="custom_map_basic.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="extensible_map_invalid.c">
+    <CustomBuild Include="custom_map_invalid.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="extensible_map_operations.c">
+    <CustomBuild Include="custom_map_operations.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>

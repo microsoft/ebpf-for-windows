@@ -34,7 +34,7 @@ unsigned int map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 
 // Define the sample map type
 // #define BPF_MAP_TYPE_SAMPLE_ARRAY_MAP 0xF000
-#define BPF_MAP_TYPE_SAMPLE_HASH_MAP 0xF001
+#define BPF_MAP_TYPE_SAMPLE_HASH_MAP 4097
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
@@ -1197,24 +1197,51 @@ static void*
 _sample_ext_helper_map_lookup_element(
     _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3)
 {
+    UNREFERENCED_PARAMETER(map);
+    UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(dummy_param1);
     UNREFERENCED_PARAMETER(dummy_param2);
     UNREFERENCED_PARAMETER(dummy_param3);
 
+    // Since this is an object map, return NULL.
+    return NULL;
+}
+
+static int32_t
+_sample_ext_helper_map_get_value(
+    _In_ const void* map,
+    _In_ const uint8_t* key,
+    _Out_writes_(value_size) uint8_t* value,
+    size_t value_size,
+    uint64_t dummy_param1)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+
     sample_map_context_t** map_context = (sample_map_context_t**)MAP_CONTEXT(map, _map_context_offset);
     if (*map_context == NULL) {
-        return NULL;
+        return -1;
     }
-    uint8_t* value = NULL;
 
     // Call client dispatch to find the entry.
-    ebpf_result_t result = (*map_context)->client_dispatch->find_element_function(map, key, &value);
+    uint8_t* local_value = NULL;
+    ebpf_result_t result = (*map_context)->client_dispatch->find_element_function(map, key, &local_value);
 
     if (result != EBPF_SUCCESS) {
-        return NULL;
+        return -1;
     }
 
-    return value;
+    if (result != EBPF_SUCCESS) {
+        return -1;
+    }
+
+    if (local_value == NULL) {
+        return -1;
+    }
+
+    sample_hash_map_entry_t* object = (sample_hash_map_entry_t*)(*(uint8_t**)local_value);
+    memcpy(value, &object->value, value_size);
+
+    return 0;
 }
 
 // Sample Array Map Implementation

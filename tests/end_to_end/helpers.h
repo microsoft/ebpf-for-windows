@@ -168,8 +168,7 @@ _test_sample_hash_map_delete_entry(
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags);
 
-static ebpf_result_t
-_test_sample_hash_map_find_entry(
+_Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_find_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -180,8 +179,7 @@ _test_sample_hash_map_find_entry(
     _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
-static ebpf_result_t
-_test_sample_hash_map_update_entry(
+_Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_update_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -237,9 +235,8 @@ typedef class _test_sample_map_provider
             return EBPF_OPERATION_NOT_SUPPORTED;
         }
 
-        if (!object_map) {
-            _test_sample_hash_map_provider_data.updates_original_value = false;
-        }
+        _test_sample_hash_map_provider_data.updates_original_value = object_map ? true : false;
+
         // Register as NMR provider
         NTSTATUS status = NmrRegisterProvider(&_map_provider_characteristics, this, &_map_provider_handle);
         return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_FAILED;
@@ -602,8 +599,7 @@ _xdp_context_destroy(
     free(xdp_context_header);
 }
 
-static ebpf_result_t
-_test_sample_hash_map_find_entry(
+_Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_find_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -624,14 +620,16 @@ _test_sample_hash_map_find_entry(
     if (!provider->object_map()) {
         // Assert that out_value is NULL.
         ebpf_assert(out_value_size == 0 && out_value == nullptr);
+        if (out_value != nullptr && out_value_size > 0) {
+            memset(out_value, 0, out_value_size);
+        }
         return EBPF_SUCCESS;
     } else {
         return _sample_object_hash_map_find_entry_common(in_value_size, in_value, out_value_size, out_value);
     }
 }
 
-static ebpf_result_t
-_test_sample_hash_map_update_entry(
+_Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_update_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -652,6 +650,9 @@ _test_sample_hash_map_update_entry(
     if (!provider->object_map()) {
         // Assert that out_value is NULL.
         ebpf_assert(out_value_size == 0 && out_value == nullptr);
+        if (out_value != nullptr && out_value_size > 0) {
+            memset(out_value, 0, out_value_size);
+        }
         return EBPF_SUCCESS;
     } else {
         return _sample_object_hash_map_update_entry_common(
@@ -762,7 +763,12 @@ typedef class _test_sample_helper
             return NULL;
         }
 
+        // If it is object map, fail the call as BPF programs are not allowed to query object maps.
         test_sample_map_provider_t* provider = (*map_context)->map_provider;
+        if (provider->object_map()) {
+            return NULL;
+        }
+
         // Call client find entry function.
         uint8_t* value = nullptr;
         ebpf_result_t result = provider->dispatch_table()->find_element_function(map, key, &value);
@@ -772,6 +778,48 @@ typedef class _test_sample_helper
         }
 
         return value;
+    }
+
+    _Success_(return == 0) static int32_t _sample_helper_map_get_value(
+        _In_ const void* map,
+        _In_ const uint8_t* key,
+        _Out_writes_(value_size) uint8_t* value,
+        size_t value_size,
+        uint64_t dummy_param1)
+    {
+        UNREFERENCED_PARAMETER(dummy_param1);
+
+        if (value_size != sizeof(uint32_t)) {
+            return -1;
+        }
+
+        test_sample_hash_map_context_t** map_context =
+            (test_sample_hash_map_context_t**)MAP_CONTEXT(map, test_sample_map_provider_t::get_map_context_offset());
+        if (*map_context == NULL) {
+            return -1;
+        }
+
+        test_sample_map_provider_t* provider = (*map_context)->map_provider;
+        // Call client find entry function.
+        uint8_t* local_value = nullptr;
+        ebpf_result_t result = provider->dispatch_table()->find_element_function(map, key, &local_value);
+
+        if (result != EBPF_SUCCESS) {
+            return -1;
+        }
+
+        if (local_value == nullptr) {
+            return -1;
+        }
+
+        if (provider->object_map()) {
+            // Dereference the pointer to get the actual value.
+            sample_hash_map_entry_t* object = (sample_hash_map_entry_t*)(*(uint8_t**)local_value);
+            memcpy(value, &object->value, value_size);
+        } else {
+            memcpy(value, local_value, value_size);
+        }
+        return 0;
     }
 } test_sample_helper_t;
 
@@ -1244,7 +1292,8 @@ static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_replace,
     test_sample_helper_t::_sample_ebpf_extension_helper_implicit_1,
     test_sample_helper_t::_sample_ebpf_extension_helper_implicit_2,
-    test_sample_helper_t::_sample_helper_map_lookup_element};
+    test_sample_helper_t::_sample_helper_map_lookup_element,
+    test_sample_helper_t::_sample_helper_map_get_value};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

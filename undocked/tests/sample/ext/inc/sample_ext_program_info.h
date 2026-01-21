@@ -65,6 +65,16 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_func
      EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
      {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY},
      {0},
+     true},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     SAMPLE_EXT_HELPER_FUNCTION_START + 7,
+     "sample_ext_helper_map_get_value",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY,
+      EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE},
+     {0},
      true}};
 
 // Global helper function prototype descriptors.

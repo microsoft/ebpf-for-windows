@@ -39,8 +39,9 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
     BPF_MAP_TYPE_MAX = 15,              ///< Maximum value for global map types.
 
-    BPF_MAP_TYPE_CUSTOM_START = 4096,   ///< Start of custom map types.
-    BPF_MAP_TYPE_SAMPLE_HASH_MAP = 4097 ///< Sample hash map type.
+    BPF_MAP_TYPE_CUSTOM_START = 4096,    ///< Start of custom map types.
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP = 4097, ///< Sample hash map type.
+    BPF_MAP_TYPE_CUSTOM_MAX
 } ebpf_map_type_t;
 
 #define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \

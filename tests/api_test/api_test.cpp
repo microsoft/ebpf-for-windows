@@ -1706,18 +1706,18 @@ TEST_CASE("load_all_sample_programs", "[native_tests]")
     _test_multiple_programs_load(_countof(test_parameters), test_parameters, EBPF_EXECUTION_NATIVE, 0);
 }
 
-TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
+TEST_CASE("custom_maps_user_apis", "[custom_maps]")
 {
-    // This test validates extensible map user APIs.
-    fd_t extensible_map_fd = bpf_map_create(
-        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "extensible_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
-    REQUIRE(extensible_map_fd > 0);
+    // This test validates custom map user APIs.
+    fd_t custom_map_fd =
+        bpf_map_create(BPF_MAP_TYPE_SAMPLE_HASH_MAP, "custom_map", sizeof(uint32_t), sizeof(uint32_t), 100, nullptr);
+    REQUIRE(custom_map_fd > 0);
 
     // Update elements at various indices.
     for (uint32_t i = 0; i < 10; i++) {
         uint32_t key = i * 10;
         uint32_t value = i + 100;
-        int result = bpf_map_update_elem(extensible_map_fd, &key, &value, 0);
+        int result = bpf_map_update_elem(custom_map_fd, &key, &value, 0);
         REQUIRE(result == ERROR_SUCCESS);
     }
 
@@ -1725,7 +1725,7 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
     for (uint32_t i = 0; i < 10; i++) {
         uint32_t key = i * 10;
         uint32_t value = 0;
-        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        int result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
         REQUIRE(result == ERROR_SUCCESS);
         REQUIRE(value == i + 100);
     }
@@ -1733,7 +1733,7 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
     // Delete some elements.
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t key = i * 10;
-        int result = bpf_map_delete_elem(extensible_map_fd, &key);
+        int result = bpf_map_delete_elem(custom_map_fd, &key);
         REQUIRE(result == ERROR_SUCCESS);
     }
 
@@ -1741,17 +1741,17 @@ TEST_CASE("extensible_maps_user_apis", "[extensible_maps]")
     for (uint32_t i = 0; i < 5; i++) {
         uint32_t key = i * 10;
         uint32_t value = 0;
-        int result = bpf_map_lookup_elem(extensible_map_fd, &key, &value);
+        int result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
         // Since this is a hash map, lookup should fail for deleted elements.
         REQUIRE(result != 0);
     }
 
     // Clean up
-    _close(extensible_map_fd);
+    _close(custom_map_fd);
 }
 
 void
-_test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
+_test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
 {
     bpf_object_ptr unique_object{nullptr};
     int result;
@@ -1761,7 +1761,7 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
     bpf_object* object = nullptr;
 
     native_module_helper_t test_sample_ebpf_helper;
-    test_sample_ebpf_helper.initialize("extensible_map_basic", execution_type);
+    test_sample_ebpf_helper.initialize("custom_map_basic", execution_type);
 
     result = program_load_helper(
         test_sample_ebpf_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd);
@@ -1926,18 +1926,12 @@ _test_extensible_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_t
 }
 
 void
-_test_extensible_maps_program_load(ebpf_execution_type_t execution_type)
+_test_custom_maps_program_load(ebpf_execution_type_t execution_type)
 {
-    _test_extensible_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, execution_type);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("extensible_maps_program_load-jit", "[extensible_maps]")
-{
-    _test_extensible_maps_program_load(EBPF_EXECUTION_JIT);
-}
+TEST_CASE("custom_maps_program_load-jit", "[custom_maps]") { _test_custom_maps_program_load(EBPF_EXECUTION_JIT); }
 #endif
-TEST_CASE("extensible_maps_program_load-native", "[extensible_maps]")
-{
-    _test_extensible_maps_program_load(EBPF_EXECUTION_NATIVE);
-}
+TEST_CASE("custom_maps_program_load-native", "[custom_maps]") { _test_custom_maps_program_load(EBPF_EXECUTION_NATIVE); }

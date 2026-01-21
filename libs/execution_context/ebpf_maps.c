@@ -4007,15 +4007,7 @@ ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_ad
 // #include "ebpf_tracelog.h"
 
 static ebpf_result_t
-_ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
-{
-    UNREFERENCED_PARAMETER(map);
-    UNREFERENCED_PARAMETER(key);
-    UNREFERENCED_PARAMETER(value);
-
-    EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Custom map find_element not implemented");
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-}
+_ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
 static ebpf_map_client_dispatch_table_t _ebpf_custom_map_client_dispatch_table = {
     EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
@@ -4260,6 +4252,8 @@ _custom_hash_map_notification(
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
         ebpf_assert(op_context != NULL);
         uint8_t* out_value = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
+        size_t out_value_size =
+            UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
         result = custom_map->provider_dispatch->process_map_add_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
@@ -4267,7 +4261,7 @@ _custom_hash_map_notification(
             key,
             custom_map->core_map.ebpf_map_definition.value_size,
             op_context->value,
-            custom_map->actual_value_size,
+            out_value_size,
             out_value,
             op_context->flags);
         break;
@@ -4328,7 +4322,7 @@ ebpf_custom_map_create(
 
     memset(custom_map, 0, sizeof(ebpf_custom_map_t));
 
-    // custom_map->core_map.ebpf_map_definition = *map_definition;
+    custom_map->core_map.ebpf_map_definition = *map_definition;
     custom_map->module_id.Guid = module_id;
     custom_map->module_id.Length = sizeof(NPI_MODULEID);
     custom_map->module_id.Type = MIT_GUID;
@@ -4524,7 +4518,8 @@ _ebpf_custom_map_client_attach_provider(
     }
 
     custom_map->base_map_type = provider_data->base_map_type;
-    custom_map->provider_flags = EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE;
+    custom_map->provider_flags =
+        provider_data->updates_original_value ? EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE : 0;
     // custom_map->updates_original_value = provider_data->updates_original_value;
 
     memcpy(
@@ -4597,6 +4592,41 @@ _ebpf_custom_map_client_detach_provider(_In_ void* client_binding_context)
 //     // custom maps don't support handle-based updates by default
 //     return EBPF_OPERATION_NOT_SUPPORTED;
 // }
+
+static ebpf_result_t
+_ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+{
+
+    ebpf_result_t result;
+    uint8_t* data = NULL;
+
+    // This call is from the provider to find an element in the map. Check if this is a custom map.
+    ebpf_core_map_t* core_map = (ebpf_core_map_t*)map;
+    if (core_map->custom_map_context == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Map is not a custom map");
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    ebpf_custom_map_t* custom_map = CONTAINING_RECORD(map, ebpf_custom_map_t, core_map);
+
+    if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
+        // Find the entry in the hash table first.
+        result = _ebpf_custom_map_find_hash_map_entry(core_map, key, false, &data);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+    } else {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Unsupported base map type for custom map",
+            custom_map->base_map_type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    *value = data;
+
+    return EBPF_SUCCESS;
+}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_custom_map_find_entry(

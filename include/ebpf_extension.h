@@ -363,6 +363,10 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
 
 /**
  * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
+ *
+ * Note: `find_element_function` can only be invoked in the context of a BPF program
+ *       (i.e., when called from within a BPF helper function). Calling it from
+ *       non-BPF program contexts may lead to use-after-free errors.
  */
 typedef struct _ebpf_map_client_dispatch_table
 {
