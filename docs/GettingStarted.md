@@ -176,6 +176,93 @@ If you're not already familiar with eBPF, or want a detailed walkthrough, see ou
 
 For API documentation, see <https://microsoft.github.io/ebpf-for-windows/>
 
+### Execution modes: native (preferred) and JIT (alternative)
+
+eBPF for Windows supports two execution modes for eBPF programs:
+
+**Native mode (preferred):** eBPF programs are ahead-of-time compiled to native machine code and packaged as Windows kernel drivers (`.sys` files). This is the **recommended deployment mode**, especially for production and security-sensitive environments, as it:
+- Works on systems with [Hypervisor-protected Code Integrity (HVCI)](https://docs.microsoft.com/en-us/windows-hardware/design/device-experiences/oem-hvci-enablement) enabled
+- Provides better performance by eliminating JIT compilation overhead at runtime
+- Enables code signing and integrity verification through standard Windows driver signing mechanisms
+
+**JIT mode (alternative):** eBPF programs remain in bytecode form (ELF `.o` files) and are Just-In-Time compiled at load time using the `netsh ebpf` commands. This mode is useful for:
+- Rapid development and iteration during the development cycle
+- Quick testing and experimentation
+- Systems where HVCI is not enabled
+
+For detailed information on native code generation, see [Native Code Generation](NativeCodeGeneration.md).
+
+### Native mode workflow
+
+This section describes the steps to compile, convert, and load an eBPF program using native mode.
+
+#### Prerequisites
+
+Before using native mode, ensure you have:
+
+1. Windows with one of the following:
+   - [Test signing enabled](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option) (see [VM Installation Instructions](vm-setup.md))
+   - A kernel debugger (KD) attached and running
+   - Production-signed drivers (for production deployments)
+
+2. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version **18.1.8**) installed
+
+3. eBPF for Windows built from source or installed via the MSI
+
+#### Step 1: Compile eBPF C to ELF
+
+Compile your eBPF program from C to an ELF object file:
+
+```cmd
+clang -target bpf -O2 -g -Werror -c program.c -o program.o
+```
+
+Replace `program.c` with your eBPF source file name. The `-g` flag includes debug information, which is useful for troubleshooting.
+
+#### Step 2: Convert ELF to native `.sys` driver
+
+eBPF for Windows provides the `bpf2c` tool to convert the ELF bytecode to C source code, which is then compiled into a native Windows kernel driver.
+
+From a Developer Command Prompt for VS 2022, navigate to your build output directory (e.g., `x64\Release\`) and run:
+
+```cmd
+bpf2c.exe program.o program.sys
+```
+
+This generates a native driver file `program.sys` in the same directory.
+
+> **Note:** The `bpf2c` tool is located in the build output directory (e.g., `x64\Release\`) after building eBPF for Windows. For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
+
+#### Step 3: Load the native driver as a service
+
+Load the native eBPF driver using Windows Service Control Manager (`sc`):
+
+```cmd
+sc create program_service type= kernel binPath= C:\full\path\to\program.sys
+sc start program_service
+```
+
+> **Important:** Replace `C:\full\path\to\program.sys` with the absolute path to your `.sys` file. Note the space after `type=` and `binPath=` is required.
+
+#### Step 4: Unload the driver
+
+To stop and remove the driver:
+
+```cmd
+sc stop program_service
+sc delete program_service
+```
+
+#### Troubleshooting native mode
+
+If the driver fails to load, common issues include:
+
+- **Code integrity requirements not met:** Ensure test signing is enabled, KD is attached, or the driver is production-signed
+- **Verification failure:** The eBPF program failed verification. Use `netsh ebpf show verification program.o section_name` to debug
+- **Missing dependencies:** Ensure `ebpfcore.sys` and `netebpfext.sys` are loaded before loading your eBPF program driver
+
+For more troubleshooting guidance, see the [Troubleshooting Guide](TroubleshootingGuide.md).
+
 ### Port leak and bind observability demo
 
 This section shows how to use eBPF for Windows in a demo that lets us control a UDP port leak by attaching an eBPF
@@ -216,13 +303,14 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
    [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
 1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe)
    if not already installed on the defender machine.
-1. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
+1. Copy `droppacket.c` and `ebpf.h` from the `tests\sample` directory to a folder (such as `c:\test`).
+1. If using native mode, ensure `bpf2c.exe` is available (from the build output directory) or in your PATH.
 
 On the attacker machine, do the following:
 
 1. Copy `DnsFlood.exe` to attacker machine
 
-#### Demo
+#### Demo using native mode (preferred)
 
 ##### On the attacker machine
 
@@ -233,11 +321,48 @@ On the attacker machine, do the following:
 1. Start performance monitor and add UDPv4 Datagrams/sec
 1. Show that 200K packets per second are being received
 1. Show & explain code of `droppacket.c`
-1. Compile `droppacket.c`:
+1. Compile `droppacket.c` to ELF bytecode:
 
    ```cmd
    clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
    ```
+
+1. Convert to native driver using `bpf2c`:
+
+   ```cmd
+   bpf2c.exe droppacket.o droppacket.sys
+   ```
+
+   > **Note:** Navigate to your build output directory (e.g., `c:\your\path\x64\Release\`) or ensure `bpf2c.exe` is in your PATH.
+
+1. Load the native driver:
+
+   ```cmd
+   sc create droppacket_service type= kernel binPath= c:\test\droppacket.sys
+   sc start droppacket_service
+   ```
+
+   > **Important:** Replace `c:\test\droppacket.sys` with the actual full path to your `.sys` file.
+
+1. Show UDP datagrams received drop to under 10 per second
+1. Unload the driver:
+
+   ```cmd
+   sc stop droppacket_service
+   sc delete droppacket_service
+   ```
+
+1. Show UDP datagrams received go back up to ~200K per second
+
+#### Alternative: Demo using JIT mode
+
+The JIT mode workflow is useful for rapid development and testing. This mode uses `netsh ebpf` commands to load eBPF programs directly from ELF bytecode.
+
+> **Note:** This mode demonstrates verifier-centric debugging and is convenient for development, but native mode is preferred for production deployments.
+
+##### On the defender machine
+
+1. Follow steps 1-4 from the native mode demo above (performance monitor, show packet rate, explain code, compile to ELF)
 
 1. Show eBPF byte code for `droppacket.o`:
 
@@ -266,7 +391,7 @@ On the attacker machine, do the following:
    delete program <id>     #Note: where `<id>` is the ID noted above.
    ```
 
-1. Show UDP datagrams received drop to back up to ~200K per second
+1. Show UDP datagrams received go back up to ~200K per second
 1. Modify `droppacket.c` to be unsafe - **Comment out line 20 & 21**
 1. Compile `droppacket.c`:
 
