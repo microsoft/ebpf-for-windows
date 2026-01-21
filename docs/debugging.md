@@ -70,32 +70,31 @@ This generates `droppacket.sys` in the current directory. The conversion process
 
 For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
 
-### Step 4: Load the native driver
+### Step 4: Load the eBPF program
 
-Load the driver using the Windows Service Control Manager:
-
-```cmd
-sc create droppacket_service type= kernel binPath= C:\full\path\to\x64\Debug\droppacket.sys
-sc start droppacket_service
-```
-
-> **Important:** Use the full absolute path to your `.sys` file. Note the space after `type=` and `binPath=` is required.
-
-### Step 5: Verify driver load
-
-Check if the driver loaded successfully:
+Load the eBPF program from the native driver:
 
 ```cmd
-sc query droppacket_service
+netsh ebpf add program droppacket.sys
 ```
 
-If the service is running, the driver loaded successfully.
+The driver service is automatically created and managed by the eBPF framework.
+
+### Step 5: Verify program load
+
+Check if the program loaded successfully:
+
+```cmd
+netsh ebpf show programs
+```
+
+You should see your program listed with an ID, pinning information, and execution mode (Native).
 
 ## Common native mode debugging scenarios
 
-### Driver fails to load
+### Program fails to load
 
-If `sc start` fails, common causes include:
+If `netsh ebpf add program` fails, common causes include:
 
 1. **Code integrity requirements not met:**
    - Ensure test signing is enabled: `bcdedit /enum | findstr /i testsigning`
@@ -109,7 +108,8 @@ If `sc start` fails, common causes include:
 
 3. **Missing dependencies:**
    - Ensure `ebpfcore.sys` and `netebpfext.sys` are loaded
-   - Check `sc query ebpfcore` and `sc query netebpfext`
+   - The eBPF framework should be installed and running
+   - Check Windows Event Viewer for eBPF-related errors
 
 4. **Driver signature issues:**
    - Verify the test certificate is installed if using test signing
@@ -125,7 +125,7 @@ For kernel-level debugging of native drivers:
 
 2. **Set breakpoints in native code:**
    - The native driver contains symbols if compiled with debug information
-   - Use `!lmi droppacket` to verify symbols are loaded
+   - After the program is loaded, use `!lmi droppacket` to verify symbols are loaded
    - Set breakpoints on the generated functions (look for names matching your program sections)
 
 3. **Inspect eBPF execution:**
@@ -133,14 +133,16 @@ For kernel-level debugging of native drivers:
    - Examine register values and memory
    - Step through the native x64/ARM64 code generated from eBPF instructions
 
-### Unloading the native driver
+### Unloading native programs
 
-To stop and remove the driver:
+To unload the program:
 
 ```cmd
-sc stop droppacket_service
-sc delete droppacket_service
+netsh ebpf show programs
+netsh ebpf delete program <id>
 ```
+
+Replace `<id>` with the program ID from the show command. The driver service is automatically stopped and removed when the last program is unloaded.
 
 ## When to use native vs JIT mode for debugging
 

@@ -233,25 +233,31 @@ This generates a native driver file `program.sys` in the same directory.
 
 > **Note:** The `Convert-BpfToNative.ps1` script is generated in the build output directory (e.g., `x64\Release\`) after building eBPF for Windows. The script name should be provided without the `.o` extension. For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
 
-#### Step 3: Load the native driver as a service
+#### Step 3: Load the eBPF program
 
-Load the native eBPF driver using Windows Service Control Manager (`sc`):
+Load the eBPF program from the native driver using `netsh ebpf` or `bpftool`:
 
+Using `netsh ebpf`:
 ```cmd
-sc create program_service type= kernel binPath= C:\full\path\to\program.sys
-sc start program_service
+netsh ebpf add program program.sys
 ```
 
-> **Important:** Replace `C:\full\path\to\program.sys` with the absolute path to your `.sys` file. Note the space after `type=` and `binPath=` is required.
+This command loads all programs from the native driver. The driver service is automatically created and managed by the eBPF framework.
 
-#### Step 4: Unload the driver
+To list loaded programs:
+```cmd
+netsh ebpf show programs
+```
 
-To stop and remove the driver:
+#### Step 4: Unload the program
+
+To unload the program and remove the driver:
 
 ```cmd
-sc stop program_service
-sc delete program_service
+netsh ebpf delete program <id>
 ```
+
+Replace `<id>` with the program ID from `netsh ebpf show programs`. The driver service is automatically stopped and removed when the last program is unloaded.
 
 #### Troubleshooting native mode
 
@@ -338,22 +344,23 @@ On the attacker machine, do the following:
 
    This generates `droppacket.sys` in the same directory.
 
-1. Load the native driver:
+1. Load the eBPF program from the native driver:
 
    ```cmd
-   sc create droppacket_service type= kernel binPath= c:\test\droppacket.sys
-   sc start droppacket_service
+   netsh ebpf add program droppacket.sys
    ```
 
-   > **Important:** Replace `c:\test\droppacket.sys` with the actual full path to your `.sys` file.
+   The driver service is automatically created and managed by the eBPF framework.
 
 1. Show UDP datagrams received drop to under 10 per second
-1. Unload the driver:
+1. Unload the program:
 
    ```cmd
-   sc stop droppacket_service
-   sc delete droppacket_service
+   netsh ebpf show programs
+   netsh ebpf delete program <id>
    ```
+
+   Replace `<id>` with the program ID from the show command.
 
 1. Show UDP datagrams received go back up to ~200K per second
 
