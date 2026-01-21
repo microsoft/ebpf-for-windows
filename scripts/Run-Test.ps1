@@ -53,13 +53,14 @@ if ($null -eq $procdump_command) {
 
 $enable_procdump_monitor = ($null -ne $procdump_command) -and (($env:EBPF_TEST_USE_PROCDUMP -eq 'yes') -or ($env:CI -eq 'true'))
 if ($enable_procdump_monitor) {
-    $procdump_exception_mode = "-e"
+    $procdump_args = @('-accepteula', '-ma')
     if ($env:EBPF_TEST_PROCDUMP_FIRST_CHANCE -eq 'yes') {
-        $procdump_exception_mode = "-e 1"
+        $procdump_args += @('-e', '1')
+    } else {
+        $procdump_args += @('-e')
     }
-
-    $procdump_args = "-accepteula -ma $procdump_exception_mode -x `"$OutputFolder`" $($process.Id)"
-    Write-Output "Starting ProcDump monitor: $($procdump_command.Source) $procdump_args"
+    $procdump_args += @('-x', $OutputFolder, $process.Id)
+    Write-Output "Starting ProcDump monitor: $($procdump_command.Source) $($procdump_args -join ' ')"
     try {
         $procdump_process = Start-Process -NoNewWindow -PassThru -FilePath $procdump_command.Source -ArgumentList $procdump_args
     } catch {
@@ -71,7 +72,11 @@ if (!$process.WaitForExit($Timeout * 1000)) {
     $dumpFileName = "$test_executable_name\_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
     $dumpFilePath = Join-Path $OutputFolder $dumpFileName
     Write-Output "Capturing dump of $test_executable_name to $dumpFilePath"
-    Start-Process -NoNewWindow -Wait -FilePath procdump -ArgumentList "-accepteula -ma $($process.Id) $dumpFilePath"
+    if ($null -ne $procdump_command) {
+        Start-Process -NoNewWindow -Wait -FilePath $procdump_command.Source -ArgumentList @('-accepteula', '-ma', $process.Id, $dumpFilePath)
+    } else {
+        Start-Process -NoNewWindow -Wait -FilePath procdump -ArgumentList @('-accepteula', '-ma', $process.Id, $dumpFilePath)
+    }
     if (!$process.HasExited) {
         Write-Output "Killing $test_executable_name"
         $process.Kill()
@@ -85,7 +90,15 @@ if (!$process.HasExited) {
 if ($null -ne $procdump_process) {
     try {
         if (!$procdump_process.HasExited) {
-            $procdump_process.Kill()
+            # If the test exited due to a crash, ProcDump may still be writing the dump.
+            # Give it a small grace period to finish before killing it.
+            $grace_ms = 20000
+            if ($process.ExitCode -ne 0) {
+                $null = $procdump_process.WaitForExit($grace_ms)
+            }
+            if (!$procdump_process.HasExited) {
+                $procdump_process.Kill()
+            }
         }
     } catch {
         # Ignore failures (e.g. ProcDump already exited).
