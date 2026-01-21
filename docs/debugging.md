@@ -7,7 +7,160 @@ If you're new to eBPF for Windows, we recommend first going through the [basic e
 Once you understand that tutorial and have llvm-objdump and the netsh helper installed
 on your machine, you're ready for the debugging tutorial.
 
-# 2. Debugging a buggy eBPF program
+# 2. Debugging native mode programs (preferred)
+
+Native mode is the **preferred deployment option** for eBPF for Windows, especially for production and security-sensitive environments. This section covers debugging eBPF programs compiled to native Windows kernel drivers (`.sys` files).
+
+## Prerequisites for native mode debugging
+
+Before debugging native mode programs, ensure you have:
+
+1. A Windows system with one of the following:
+   - [Test signing enabled](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option) (see [VM Installation Instructions](vm-setup.md))
+   - A kernel debugger (KD) attached and running
+   - Production-signed drivers (for production deployments)
+
+2. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe) (version 18.1.8) installed
+
+3. eBPF for Windows built from source, with `bpf2c.exe` available in your build output directory (e.g., `x64\Debug\`)
+
+4. WinDbg or another kernel debugger if you need to debug driver load issues or runtime behavior
+
+## Converting an eBPF program to native mode
+
+This section demonstrates how to take the `droppacket_unsafe.c` sample program used in this tutorial and generate a native `.sys` driver from it.
+
+### Step 1: Compile to ELF bytecode
+
+First, compile your eBPF program to ELF format:
+
+```cmd
+cd x64\Debug
+clang -target bpf -O2 -g -Werror -c ..\..\tests\sample\unsafe\droppacket_unsafe.c -o droppacket_unsafe.o
+```
+
+The `-g` flag includes debug information, which is helpful for debugging.
+
+### Step 2: Verify the program (recommended)
+
+Before converting to native code, verify that your eBPF program passes verification:
+
+```cmd
+netsh ebpf show verification droppacket_unsafe.o xdp_test
+```
+
+If verification fails, address the issues before proceeding. See the [verifier debugging section](#3-debugging-verifier-failures-jit-mode-workflow) below for detailed guidance on understanding and fixing verification errors.
+
+### Step 3: Convert to native driver
+
+Use the `bpf2c` tool to convert the ELF bytecode to a native Windows driver:
+
+```cmd
+bpf2c.exe droppacket_unsafe.o droppacket_unsafe.sys
+```
+
+This generates `droppacket_unsafe.sys` in the current directory. The conversion process:
+1. Extracts eBPF bytecode from the ELF file
+2. Generates C source code equivalent to the eBPF instructions
+3. Compiles the C code to native x64/ARM64 machine code
+4. Links it with the eBPF driver skeleton to create a `.sys` file
+
+For more details on the native code generation pipeline, see [Native Code Generation](NativeCodeGeneration.md).
+
+### Step 4: Load the native driver
+
+Load the driver using the Windows Service Control Manager:
+
+```cmd
+sc create droppacket_service type= kernel binPath= C:\full\path\to\x64\Debug\droppacket_unsafe.sys
+sc start droppacket_service
+```
+
+> **Important:** Use the full absolute path to your `.sys` file. Note the space after `type=` and `binPath=` is required.
+
+### Step 5: Verify driver load
+
+Check if the driver loaded successfully:
+
+```cmd
+sc query droppacket_service
+```
+
+If the service is running, the driver loaded successfully.
+
+## Common native mode debugging scenarios
+
+### Driver fails to load
+
+If `sc start` fails, common causes include:
+
+1. **Code integrity requirements not met:**
+   - Ensure test signing is enabled: `bcdedit /enum | findstr /i testsigning`
+   - Or verify a kernel debugger is attached and running
+   - Or ensure the driver is production-signed
+
+2. **Verification failure during compilation:**
+   - The program failed verification at `bpf2c` conversion time
+   - Check the `bpf2c` output for verification errors
+   - Use `netsh ebpf show verification program.o section_name` to debug
+
+3. **Missing dependencies:**
+   - Ensure `ebpfcore.sys` and `netebpfext.sys` are loaded
+   - Check `sc query ebpfcore` and `sc query netebpfext`
+
+4. **Driver signature issues:**
+   - Verify the test certificate is installed if using test signing
+   - Check Event Viewer > Windows Logs > System for Code Integrity errors
+
+### Debugging runtime behavior with WinDbg
+
+For kernel-level debugging of native drivers:
+
+1. **Set up kernel debugging:**
+   - Configure kernel debugging on the target machine
+   - See the [VM setup guide](vm-setup.md) for instructions
+
+2. **Set breakpoints in native code:**
+   - The native driver contains symbols if compiled with debug information
+   - Use `!lmi droppacket_unsafe` to verify symbols are loaded
+   - Set breakpoints on the generated functions (look for names matching your program sections)
+
+3. **Inspect eBPF execution:**
+   - Break on entry to your eBPF program function
+   - Examine register values and memory
+   - Step through the native x64/ARM64 code generated from eBPF instructions
+
+### Unloading the native driver
+
+To stop and remove the driver:
+
+```cmd
+sc stop droppacket_service
+sc delete droppacket_service
+```
+
+## When to use native vs JIT mode for debugging
+
+**Use native mode when:**
+- You are preparing for production deployment
+- You need to debug on HVCI-enabled systems
+- You want to verify the complete deployment workflow
+- You are debugging driver load or registration issues
+
+**Use JIT mode (see next section) when:**
+- You are rapidly iterating on eBPF code during development
+- You need detailed verifier output and disassembly
+- You want to test verification without creating a driver
+- You are debugging verification logic itself
+
+# 3. Debugging verifier failures (JIT mode workflow)
+
+> **Note:** This section demonstrates verifier-centric debugging using the JIT workflow with `netsh ebpf` commands. While this is very useful during development for understanding verification failures, **native mode is the preferred deployment model** for production environments. For native mode debugging, see the [previous section](#2-debugging-native-mode-programs-preferred).
+
+The JIT mode workflow is particularly helpful for:
+- Understanding detailed verifier behavior
+- Viewing disassembly and invariants
+- Rapid iteration during eBPF program development
 
 Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
 is compiled as part of building eBPF for Windows, as it is used in the unit tests.
@@ -750,7 +903,7 @@ registers.  Thus in instruction 8, r1's attributes are copied to s[504...511], w
 can be later used by assertions, or used when subsequently loading a stack value into a
 variable.
 
-# 3. Some final notes about other verifier errors and warnings
+# 4. Some final notes about other verifier errors and warnings
 
 Let's look at a couple of other potential errors/warnings.
 
