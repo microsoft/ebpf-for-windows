@@ -110,8 +110,8 @@ jobs:
           import csv
           import json
           import os
-          import re
           import subprocess
+          import textwrap
           from datetime import datetime, timedelta, timezone
           from pathlib import Path
 
@@ -134,7 +134,7 @@ jobs:
                   z_score = 0
 
               if mean != 0:
-                  percent_delta = 100 * (value - mean) / abs(mean)
+                  percent_delta = 100 * (value - mean) / mean
               else:
                   percent_delta = 0
 
@@ -197,32 +197,33 @@ jobs:
                   last_run_display = last_run_str or "Unknown"
 
               title = f"Perf: no recent results for {platform}"
-              body = f"""{marker}
+              body = textwrap.dedent(f"""\
+              {marker}
 
-          ## Stale Performance Data Alert
+              ## Stale Performance Data Alert
 
-          **Platform:** {platform}
-          **Last Run:** {last_run_display}
-          **Threshold:** {STALE_DATA_THRESHOLD_DAYS} days
+              **Platform:** {platform}
+              **Last Run:** {last_run_display}
+              **Threshold:** {STALE_DATA_THRESHOLD_DAYS} days
 
-          No performance results have been uploaded for this platform in over {STALE_DATA_THRESHOLD_DAYS} days.
+              No performance results have been uploaded for this platform in over {STALE_DATA_THRESHOLD_DAYS} days.
 
-          ### Action Required
-          - Check if the performance test workflow is running for this platform
-          - Review recent workflow runs: https://github.com/{REPOSITORY}/actions
-          - Verify self-hosted runners are healthy (if applicable)
+              ### Action Required
+              - Check if the performance test workflow is running for this platform
+              - Review recent workflow runs: https://github.com/{REPOSITORY}/actions
+              - Verify self-hosted runners are healthy (if applicable)
 
-          ### Dashboard
-          [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
-          """
+              ### Dashboard
+              [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
+              """)
 
               issue_number = search_issue_by_marker(marker)
               if issue_number:
-                  comment = f"""**Update:** Still no recent performance results.
-
-          - **Last Run:** {last_run_display}
-          - **Checked:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
-          """
+                  comment = (
+                      f"**Update:** Still no recent performance results.\n\n"
+                      f"- **Last Run:** {last_run_display}\n"
+                      f"- **Checked:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                  )
                   add_comment(issue_number, comment)
               else:
                   create_issue(title, body, ['tests'])
@@ -241,45 +242,47 @@ jobs:
               direction = "increased" if value > mean else "decreased"
               title = f"Perf regression: {platform}: {metric}"
 
-              body = f"""{marker}
+              body = textwrap.dedent(f"""\
+              {marker}
 
-          ## Performance Regression Detected
+              ## Performance Regression Detected
 
-          **Platform:** {platform}
-          **Metric:** `{metric}`
-          **Detected:** {timestamp}
+              **Platform:** {platform}
+              **Metric:** `{metric}`
+              **Detected:** {timestamp}
 
-          ### Statistics
-          | Metric | Value |
-          |--------|-------|
-          | Current Value | {value:.2f} |
-          | Historical Mean | {mean:.2f} |
-          | Standard Deviation | {stddev:.2f} |
-          | Z-Score | {z_score:.2f}σ |
-          | Change | {percent_delta:+.2f}% |
-          | Direction | {direction} |
+              ### Statistics
+              | Metric | Value |
+              |--------|-------|
+              | Current Value | {value:.2f} |
+              | Historical Mean | {mean:.2f} |
+              | Standard Deviation | {stddev:.2f} |
+              | Z-Score | {z_score:.2f}σ |
+              | Change | {percent_delta:+.2f}% |
+              | Direction | {direction} |
 
-          ### Details
-          The metric has {direction} by {abs(percent_delta):.2f}%, which is {abs(z_score):.2f} standard deviations from the mean.
+              ### Details
+              The metric has {direction} by {abs(percent_delta):.2f}%, which is {abs(z_score):.2f} standard deviations from the mean.
 
-          ### Dashboard
-          [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
+              ### Dashboard
+              [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
 
-          ### Configuration
-          - Detection Threshold: {MAX_SIGMA}σ
-          - Lookback Period: 30 days
-          - Min Change Threshold: {MIN_PERCENT_DELTA}%
-          """
+              ### Configuration
+              - Detection Threshold: {MAX_SIGMA}σ
+              - Lookback Period: 30 days
+              - Min Change Threshold: {MIN_PERCENT_DELTA}%
+              """)
 
               issue_number = search_issue_by_marker(marker)
               if issue_number:
-                  comment = f"""**Regression Still Present**
+                  comment = textwrap.dedent(f"""\
+                  **Regression Still Present**
 
-          - **Timestamp:** {timestamp}
-          - **Value:** {value:.2f} (mean: {mean:.2f}, σ: {stddev:.2f})
-          - **Z-Score:** {z_score:.2f}σ
-          - **Change:** {percent_delta:+.2f}%
-          """
+                  - **Timestamp:** {timestamp}
+                  - **Value:** {value:.2f} (mean: {mean:.2f}, σ: {stddev:.2f})
+                  - **Z-Score:** {z_score:.2f}σ
+                  - **Change:** {percent_delta:+.2f}%
+                  """)
                   add_comment(issue_number, comment)
               else:
                   create_issue(title, body, ['tests'])
