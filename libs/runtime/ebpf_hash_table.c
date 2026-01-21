@@ -624,6 +624,8 @@ _ebpf_hash_table_replace_bucket(
             memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
         }
         if (hash_table->notification_callback) {
+            // ANUSA TODO: If this fails, that means that the new_data may not contain the correct value.
+            // We should not invoke delete notification for new_data in this case.
             result = hash_table->notification_callback(
                 hash_table->notification_context,
                 operation_context,

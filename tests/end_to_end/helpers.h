@@ -410,6 +410,8 @@ _test_sample_hash_map_delete_entry(
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(value_size);
 
+    printf("ANUSA: _test_sample_hash_map_delete_entry invoked\n");
+
     if (!provider->object_map()) {
         // Nothing to do.
     } else {
@@ -617,6 +619,8 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_fin
     UNREFERENCED_PARAMETER(in_value_size);
     UNREFERENCED_PARAMETER(flags);
 
+    printf("ANUSA: _test_sample_hash_map_find_entry invoked\n");
+
     if (!provider->object_map()) {
         // Assert that out_value is NULL.
         ebpf_assert(out_value_size == 0 && out_value == nullptr);
@@ -646,6 +650,8 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_upd
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(flags);
+
+    printf("ANUSA: _test_sample_hash_map_update_entry invoked\n");
 
     if (!provider->object_map()) {
         // Assert that out_value is NULL.

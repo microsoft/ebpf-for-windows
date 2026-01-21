@@ -4426,14 +4426,10 @@ ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
     if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
         _ebpf_custom_map_delete_hash_map(custom_map);
     }
-    // // Delete underlying hash map.
-    // _ebpf_custom_map_delete_hash_map(&custom_map->core_map);
 
-    // // ANUSA TODO: Figure out how to notify the provider about each element deletion when the map is deleted.
-
-    // // Call provider to notify map deletion.
-    // custom_map->provider_dispatch->process_map_delete(
-    //     custom_map->provider_context, custom_map->core_map.custom_map_context);
+    // Call provider to notify map deletion.
+    custom_map->provider_dispatch->process_map_delete(
+        custom_map->provider_context, custom_map->core_map.custom_map_context);
 
     // Now that the map is deleted, release the rundown reference acquired during map creation.
     ExReleaseRundownProtection(&custom_map->provider_rundown_reference);
