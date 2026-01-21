@@ -51,8 +51,38 @@ function Generate-KernelDumpOnVM {
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
         Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue
-        Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName -Force -WarningAction SilentlyContinue
-        Generate-KernelDump
+        
+        # Inline implementation of Generate-KernelDump to avoid module import issues in remote context
+        Push-Location $WorkingDirectory
+        $NotMyFaultBinary = "NotMyFault64.exe"
+        Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
+        
+        # Inline GetToolLocationPath functionality
+        $NotMyFaultBinaryPath = Get-ChildItem -Path "$Pwd" `
+            -Recurse -Filter "$NotMyFaultBinary" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($NotMyFaultBinaryPath -eq $null) {
+            Write-Log "*** ERROR *** $NotMyFaultBinary not found under $Pwd." -ForegroundColor Red
+            Start-Sleep -Milliseconds 100
+            throw "*** ERROR *** $NotMyFaultBinary not found under $Pwd."
+        }
+        
+        $NotMyFaultBinaryPath = $NotMyFaultBinaryPath.FullName
+        Write-Log "$NotMyFaultBinary location: $NotMyFaultBinaryPath"
+        Write-Log "`n"
+        
+        Write-Log "Creating kernel dump...`n"
+        # Wait a bit for the above message to show up in the log.
+        Start-Sleep -seconds 5
+        
+        # This will/should not return (test system will/should bluescreen and reboot).
+        $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+        # wait for 30 minutes to generate the kernel dump.
+        $NotMyFaultProc.WaitForExit(30*60*1000)
+        
+        # If we get here, notmyfault64.exe failed for some reason. Kill the hung process, throw error.
+        Write-Log "*** ERROR *** kernel mode dump creation FAILED" -ForegroundColor Red
+        Start-Sleep -Milliseconds 100
+        throw "*** ERROR *** kernel mode dump creation FAILED"
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
