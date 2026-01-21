@@ -746,12 +746,12 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     }
 }
 
-// It is a regression benchmark for a potential correctness hazard
+// This test validates a regression scenario for a potential correctness hazard
 // where one CPU hands out a newer epoch to readers while another CPU may still stamp retirements
 // with an older epoch due to delayed processing of the propose message.
 //
-// The test FAILS if the hazard is observed (i.e., a work item callback runs while a reader is still
-// active in a newer epoch). It should pass once the epoch implementation is fixed.
+// The test verifies that the epoch implementation correctly prevents premature reclamation by
+// ensuring a work item callback never runs while a reader is still active in a newer epoch.
 TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
 {
     _test_helper test_helper;
