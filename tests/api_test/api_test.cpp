@@ -1750,6 +1750,9 @@ TEST_CASE("custom_maps_user_apis", "[custom_maps]")
     _close(custom_map_fd);
 }
 
+#define OPERATION_SUCCESS 1
+#define OPERATION_FAILURE 0
+
 void
 _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_t execution_type)
 {
@@ -1757,8 +1760,10 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     int result;
     fd_t program_fd;
     bpf_link_ptr link;
-    int iteration = 10;
+    // int iteration = 10;
     bpf_object* object = nullptr;
+
+    UNREFERENCED_PARAMETER(type);
 
     native_module_helper_t test_sample_ebpf_helper;
     test_sample_ebpf_helper.initialize("custom_map_basic", execution_type);
@@ -1773,6 +1778,9 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     fd_t result_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_map");
     REQUIRE(result_map_fd > 0);
 
+    fd_t result_value_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "result_value_map");
+    REQUIRE(result_value_map_fd > 0);
+
     fd_t sample_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), map_name);
     REQUIRE(sample_map_fd > 0);
 
@@ -1780,6 +1788,13 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
         uint32_t key = 0;
         uint32_t result_value = 0;
         REQUIRE(bpf_map_lookup_elem(result_map_fd, &key, &result_value) == 0);
+        REQUIRE(result_value == expected_value);
+    };
+
+    auto validate_result_value_map = [&](uint32_t expected_value) {
+        uint32_t key = 0;
+        uint32_t result_value = 0;
+        REQUIRE(bpf_map_lookup_elem(result_value_map_fd, &key, &result_value) == 0);
         REQUIRE(result_value == expected_value);
     };
 
@@ -1807,12 +1822,12 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     uint32_t value = 1234;
     REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
 
-    // First invoke "test_map_read_increment" program. The map value should be incremented by 1 by the program for each
-    // iteration.
+    // First invoke "test_map_read_increment" program. The program tries to increment the map value
+    // directly, which is not allowed for object maps.
     bpf_test_run_opts opts = {};
     sample_program_context_t ctx = {};
     opts.batch_size = 1;
-    opts.repeat = iteration;
+    opts.repeat = 1;
     opts.ctx_in = &ctx;
     opts.ctx_size_in = sizeof(sample_program_context_t);
     opts.ctx_out = &ctx;
@@ -1823,26 +1838,33 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Lookup the sample map value and validate it is updated.
-    validate_sample_map_value(value + iteration);
-    validate_result_map(1);
-    value += iteration;
+    // Since it is an object map, update from BPF program is not allowed. Lookup the sample map value and validate the
+    // result.
+    validate_sample_map_value(1234);
+    validate_result_map(OPERATION_FAILURE);
 
-    // Now invoke "test_map_read_helper_increment" program. The map value should be incremented by 1 by the program for
-    // each iteration.
+    // Now invoke "test_map_read_helper_increment" program.
     program_fd =
         bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_increment"));
     REQUIRE(program_fd > 0);
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Lookup the sample map value and validate it is updated.
-    validate_sample_map_value(value + iteration);
-    validate_result_map(1);
-    value += iteration;
+    // Since this is an object map, update from BPF program should fail via helper.
+    validate_sample_map_value(1234);
+    validate_result_map(OPERATION_FAILURE);
 
     // Set iteration to 1 for the remaining tests.
     opts.repeat = 1;
+
+    // Now invoke "test_map_read_helper_value" program, and validate the map value.
+    program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_read_helper_value"));
+    REQUIRE(program_fd > 0);
+    result = bpf_prog_test_run_opts(program_fd, &opts);
+    REQUIRE(result == 0);
+
+    validate_result_map(OPERATION_SUCCESS);
+    validate_result_value_map(1234);
 
     // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
     program_fd = bpf_program__fd(
@@ -1860,9 +1882,9 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Lookup the sample map value and validate it is set to 42.
-    validate_sample_map_value(42);
-    validate_result_map(1);
+    // Update is not supported for object maps, so value should remain unchanged.
+    validate_sample_map_value(1234);
+    validate_result_map(OPERATION_FAILURE);
 
     // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
@@ -1870,9 +1892,9 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Lookup the sample map value and validate it is set to 0.
-    validate_sample_map_value(0, true);
-    validate_result_map(1);
+    // Delete is not supported for object maps, so value should remain unchanged.
+    validate_sample_map_value(1234);
+    validate_result_map(OPERATION_FAILURE);
 
     // Set map value to 200.
     value = 200;
@@ -1885,15 +1907,8 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    if (type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
-        // find_and_delete is supported for hash maps, validate that the value is deleted.
-        validate_sample_map_value(0, true);
-        validate_result_map(1);
-    } else {
-        // find_and_delete is not supported for array maps, so value should remain unchanged.
-        validate_sample_map_value(200);
-        validate_result_map(0);
-    }
+    validate_sample_map_value(200);
+    validate_result_map(OPERATION_FAILURE);
 
     // Invoke "test_map_push_elem" program.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_push_elem"));
