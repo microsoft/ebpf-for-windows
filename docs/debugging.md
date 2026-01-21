@@ -28,7 +28,7 @@ Before debugging native mode programs, ensure you have:
 
 ## Converting an eBPF program to native mode
 
-This section demonstrates how to take the `droppacket_unsafe.c` sample program used in this tutorial and generate a native `.sys` driver from it.
+This section demonstrates how to take an eBPF sample program and generate a native `.sys` driver from it. We'll use the `droppacket.c` program from the samples directory.
 
 ### Step 1: Compile to ELF bytecode
 
@@ -36,7 +36,7 @@ First, compile your eBPF program to ELF format:
 
 ```cmd
 cd x64\Debug
-clang -target bpf -O2 -g -Werror -c ..\..\tests\sample\unsafe\droppacket_unsafe.c -o droppacket_unsafe.o
+clang -target bpf -O2 -g -Werror -c ..\..\tests\sample\droppacket.c -o droppacket.o
 ```
 
 The `-g` flag includes debug information, which is helpful for debugging.
@@ -46,20 +46,22 @@ The `-g` flag includes debug information, which is helpful for debugging.
 Before converting to native code, verify that your eBPF program passes verification:
 
 ```cmd
-netsh ebpf show verification droppacket_unsafe.o xdp_test
+netsh ebpf show verification droppacket.o xdp
 ```
 
 If verification fails, address the issues before proceeding. See the [verifier debugging section](#3-debugging-verifier-failures-jit-mode-workflow) below for detailed guidance on understanding and fixing verification errors.
+
+> **Note:** The section name may vary depending on your program. Use `netsh ebpf show sections droppacket.o` to list available sections.
 
 ### Step 3: Convert to native driver
 
 Use the `bpf2c` tool to convert the ELF bytecode to a native Windows driver:
 
 ```cmd
-bpf2c.exe droppacket_unsafe.o droppacket_unsafe.sys
+bpf2c.exe droppacket.o droppacket.sys
 ```
 
-This generates `droppacket_unsafe.sys` in the current directory. The conversion process:
+This generates `droppacket.sys` in the current directory. The conversion process:
 1. Extracts eBPF bytecode from the ELF file
 2. Generates C source code equivalent to the eBPF instructions
 3. Compiles the C code to native x64/ARM64 machine code
@@ -72,7 +74,7 @@ For more details on the native code generation pipeline, see [Native Code Genera
 Load the driver using the Windows Service Control Manager:
 
 ```cmd
-sc create droppacket_service type= kernel binPath= C:\full\path\to\x64\Debug\droppacket_unsafe.sys
+sc create droppacket_service type= kernel binPath= C:\full\path\to\x64\Debug\droppacket.sys
 sc start droppacket_service
 ```
 
@@ -122,7 +124,7 @@ For kernel-level debugging of native drivers:
 
 2. **Set breakpoints in native code:**
    - The native driver contains symbols if compiled with debug information
-   - Use `!lmi droppacket_unsafe` to verify symbols are loaded
+   - Use `!lmi droppacket` to verify symbols are loaded
    - Set breakpoints on the generated functions (look for names matching your program sections)
 
 3. **Inspect eBPF execution:**
