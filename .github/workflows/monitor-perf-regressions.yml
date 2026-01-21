@@ -54,7 +54,7 @@ jobs:
           python-version: '3.11'
 
       - name: Log into Azure
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2 (pinned by SHA)
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -70,7 +70,7 @@ jobs:
 
       - name: Download regression check script
         run: |
-          curl https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
+          curl -fS https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
 
       - name: Check for regressions and stale data
         run: |
@@ -87,7 +87,11 @@ jobs:
             echo "Processing platform: $platform"
 
             # Check for stale data
-            psql -c "SELECT MAX(\"timestamp\") AS last_run FROM benchmarkresults WHERE platform = '$platform' AND repository = '$REPOSITORY';" --csv > "results/stale_check_${platform// /_}.csv"
+            psql \
+              -v platform="$platform" \
+              -v repository="$REPOSITORY" \
+              -c "SELECT MAX(\"timestamp\") AS last_run FROM benchmarkresults WHERE platform = :'platform' AND repository = :'repository';" \
+              --csv > "results/stale_check_${platform// /_}.csv"
 
             # Check for regressions
             psql -f ./check_perf_results.sql \
@@ -138,8 +142,6 @@ jobs:
 
           def search_issue_by_marker(marker):
               """Search for an open issue containing the marker."""
-              # Escape special characters for search
-              search_query = f'repo:{REPOSITORY} is:issue is:open "{marker}"'
               try:
                   result = subprocess.run(
                       ['gh', 'issue', 'list', '--repo', REPOSITORY, '--state', 'open',
@@ -191,7 +193,7 @@ jobs:
                       last_run_display = last_run.strftime('%Y-%m-%d %H:%M:%S UTC')
                   else:
                       last_run_display = "Never"
-              except:
+              except Exception:
                   last_run_display = last_run_str or "Unknown"
 
               title = f"Perf: no recent results for {platform}"
@@ -219,7 +221,7 @@ jobs:
                   comment = f"""**Update:** Still no recent performance results.
 
           - **Last Run:** {last_run_display}
-          - **Checked:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+          - **Checked:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
           """
                   add_comment(issue_number, comment)
               else:
