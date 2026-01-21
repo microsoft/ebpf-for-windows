@@ -1899,6 +1899,10 @@ ebpf_api_get_pinned_map_info(
     size_t output_buffer_length = 4 * 1024;
     uint8_t attempt_count = 0;
 
+    if (map_count == nullptr || map_info == nullptr) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     ebpf_assert(map_count);
     ebpf_assert(map_info);
 
@@ -2911,6 +2915,9 @@ ebpf_enumerate_programs(
     _Outptr_result_maybenull_z_ const char** error_message) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
+    ebpf_assert(file);
+    ebpf_assert(infos);
+    ebpf_assert(error_message);
     std::string file_name_string(file);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
     if (file_extension == "dll" || file_extension == "sys") {
@@ -3067,6 +3074,11 @@ _ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type) NO_EXCEPT_TRY
 {
+    if (execution_type != EBPF_EXECUTION_ANY && execution_type != EBPF_EXECUTION_JIT &&
+        execution_type != EBPF_EXECUTION_INTERPRET && execution_type != EBPF_EXECUTION_NATIVE) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     if (Platform::_is_native_program(object->file_name)) {
         if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
             return EBPF_INVALID_ARGUMENT;
