@@ -26,7 +26,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v4.2.2
 
       - name: Get latest LLVM release version
         id: check_llvm
@@ -34,7 +34,7 @@ jobs:
           # Query GitHub Releases API for llvm/llvm-project
           # Filter to get only stable releases (not pre-releases)
           # Parse tag_name like "llvmorg-21.1.1" to extract version "21.1.1"
-          LATEST_RELEASE=$(curl -s https://api.github.com/repos/llvm/llvm-project/releases | \
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/llvm/llvm-project/releases?per_page=10 | \
             jq -r '[.[] | select(.prerelease == false)] | first | .tag_name')
 
           if [ -z "$LATEST_RELEASE" ] || [ "$LATEST_RELEASE" = "null" ]; then
@@ -116,10 +116,9 @@ jobs:
               labels: label_array,
             });
             const issues = await github.paginate(opts);
-            // Look for an existing issue with similar title pattern.
-            const titlePattern = /^Update LLVM\/Clang toolchain to/;
+            // Look for an existing issue with the exact title.
             for (const issue of issues) {
-              if (titlePattern.test(issue.title)) {
+              if (issue.title === title) {
                 console.log(`Updating issue ${issue.title}`);
                 await github.rest.issues.createComment({
                   issue_number: issue.number,
