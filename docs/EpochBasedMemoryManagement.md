@@ -78,6 +78,19 @@ Special case: if a thread entered an epoch at IRQL < DISPATCH_LEVEL and later
 exits on a different CPU, the exit operation is forwarded (via the inter-CPU
 work queue) to the CPU where the enter occurred so the correct per-CPU list is updated.
 
+### Per-CPU work queues
+
+The epoch module uses a per-CPU *timed work queue* to drive its inter-CPU messaging and to
+process certain epoch operations on the correct target CPU.
+
+Each CPU has its own queue. Work items on that queue are processed:
+
+- Opportunistically, when `ebpf_epoch_exit()` flushes the current CPU's queue before returning.
+- As a backstop, when the queue's timer expires (batching multiple messages).
+
+This model allows the epoch module to batch background work under load (timer-driven) while still
+ensuring prompt processing at key correctness boundaries (exit-driven flush).
+
 When memory is no longer needed, it is first made non-reachable (all
 pointers to it are removed) after which it is stamped with the current
 epoch and inserted into a "free list". The timestamp the is point in time
@@ -105,7 +118,8 @@ if the following conditions are met:
 3. The local free list is not empty.
 
 The timer's DPC is targeted to CPU 0. When the timer fires, it initiates an epoch computation
-cycle via the CPU work queues.
+cycle by queuing a `PROPOSE_RELEASE_EPOCH` message to CPU 0's per-CPU work queue.
+The propose/commit message sequence is then forwarded CPU-by-CPU using the same work queues.
 
 ### Propose phase
 
