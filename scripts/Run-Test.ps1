@@ -69,7 +69,7 @@ if ($enable_procdump_monitor) {
 }
 
 if (!$process.WaitForExit($Timeout * 1000)) {
-    $dumpFileName = "$test_executable_name\_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
+    $dumpFileName = "$test_executable_name-$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
     $dumpFilePath = Join-Path $OutputFolder $dumpFileName
     Write-Output "Capturing dump of $test_executable_name to $dumpFilePath"
     if ($null -ne $procdump_command) {

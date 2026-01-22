@@ -1016,7 +1016,7 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
         volatile uint64_t magic;
         volatile uint64_t generation;
     };
-    constexpr uint64_t epoch_spin_magic = 0xE0C41E0C'BEEFBEEF;
+    constexpr uint64_t EPOCH_SPIN_OBJECT_MAGIC = 0xE0C41E0C'BEEFBEEF;
 
     // Allocate each shared object from the OS so we can make reclamation visible (guard + free).
     auto allocate_object = [&]() -> epoch_spin_shared_object_t* {
@@ -1025,7 +1025,7 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
             return nullptr;
         }
         auto* obj = reinterpret_cast<epoch_spin_shared_object_t*>(memory);
-        obj->magic = epoch_spin_magic;
+        obj->magic = EPOCH_SPIN_OBJECT_MAGIC;
         obj->generation = 0;
         return obj;
     };
@@ -1075,7 +1075,7 @@ TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
                 // If reclamation is unsafe, an early free can manifest as an AV during these reads.
                 for (size_t i = 0; i < 8; i++) {
                     const uint64_t magic = obj->magic;
-                    if (magic != epoch_spin_magic) {
+                    if (magic != EPOCH_SPIN_OBJECT_MAGIC) {
                         thread_error.store(true, std::memory_order_release);
                         break;
                     }
