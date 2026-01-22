@@ -15,7 +15,161 @@
 #include <cstdlib>
 #include <io.h>
 #include <iostream>
+#include <memory>
 #include <string>
+
+namespace {
+struct unique_handle
+{
+    unique_handle() = default;
+    explicit unique_handle(HANDLE handle) : _handle(handle) {}
+    ~unique_handle() { reset(); }
+
+    unique_handle(const unique_handle&) = delete;
+    unique_handle&
+    operator=(const unique_handle&) = delete;
+
+    unique_handle(unique_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
+    unique_handle&
+    operator=(unique_handle&& other) noexcept
+    {
+        if (this != &other) {
+            reset();
+            _handle = other._handle;
+            other._handle = nullptr;
+        }
+        return *this;
+    }
+
+    void
+    reset(HANDLE handle = nullptr) noexcept
+    {
+        if (_handle != nullptr && _handle != INVALID_HANDLE_VALUE) {
+            CloseHandle(_handle);
+        }
+        _handle = handle;
+    }
+
+    HANDLE
+    get() const noexcept { return _handle; }
+    explicit
+    operator bool() const noexcept
+    {
+        return _handle != nullptr && _handle != INVALID_HANDLE_VALUE;
+    }
+
+  private:
+    HANDLE _handle{nullptr};
+};
+
+struct unique_fd
+{
+    unique_fd() = default;
+    explicit unique_fd(int fd) : _fd(fd) {}
+    ~unique_fd() { reset(); }
+
+    unique_fd(const unique_fd&) = delete;
+    unique_fd&
+    operator=(const unique_fd&) = delete;
+
+    unique_fd(unique_fd&& other) noexcept : _fd(other._fd) { other._fd = -1; }
+    unique_fd&
+    operator=(unique_fd&& other) noexcept
+    {
+        if (this != &other) {
+            reset();
+            _fd = other._fd;
+            other._fd = -1;
+        }
+        return *this;
+    }
+
+    void
+    reset(int fd = -1) noexcept
+    {
+        if (_fd >= 0) {
+            _close(_fd);
+        }
+        _fd = fd;
+    }
+
+    int
+    get() const noexcept
+    {
+        return _fd;
+    }
+    int
+    release() noexcept
+    {
+        int fd = _fd;
+        _fd = -1;
+        return fd;
+    }
+
+    explicit
+    operator bool() const noexcept
+    {
+        return _fd >= 0;
+    }
+
+  private:
+    int _fd{-1};
+};
+
+struct unique_bpf_object
+{
+    unique_bpf_object() = default;
+    explicit unique_bpf_object(bpf_object* object) : _object(object) {}
+    ~unique_bpf_object() { reset(); }
+
+    unique_bpf_object(const unique_bpf_object&) = delete;
+    unique_bpf_object&
+    operator=(const unique_bpf_object&) = delete;
+
+    unique_bpf_object(unique_bpf_object&& other) noexcept : _object(other._object) { other._object = nullptr; }
+    unique_bpf_object&
+    operator=(unique_bpf_object&& other) noexcept
+    {
+        if (this != &other) {
+            reset();
+            _object = other._object;
+            other._object = nullptr;
+        }
+        return *this;
+    }
+
+    void
+    reset(bpf_object* object = nullptr) noexcept
+    {
+        if (_object != nullptr) {
+            bpf_object__close(_object);
+        }
+        _object = object;
+    }
+
+    bpf_object*
+    get() const noexcept
+    {
+        return _object;
+    }
+    bpf_object*
+    release() noexcept
+    {
+        bpf_object* object = _object;
+        _object = nullptr;
+        return object;
+    }
+
+    explicit
+    operator bool() const noexcept
+    {
+        return _object != nullptr;
+    }
+
+  private:
+    bpf_object* _object{nullptr};
+};
+} // namespace
 
 #define PIN_PATH_MAP "/ebpf/test/restart_map"
 #define PIN_PATH_PROGRAM "/ebpf/test/restart_prog"
@@ -35,24 +189,23 @@ enum class OperationMode
 static void
 signal_controller(const char* signal_name)
 {
-    HANDLE event = CreateEventA(nullptr, TRUE, FALSE, signal_name);
-    if (event == nullptr) {
+    unique_handle event(CreateEventA(nullptr, TRUE, FALSE, signal_name));
+    if (!event) {
         std::cerr << "Failed to create event: " << signal_name << ", error: " << GetLastError() << std::endl;
         return;
     }
-    SetEvent(event);
-    CloseHandle(event);
+    SetEvent(event.get());
 }
 
 static void
 wait_for_controller()
 {
     ULONGLONG start_tick = GetTickCount64();
-    HANDLE event = nullptr;
+    unique_handle event;
 
     while (true) {
-        event = OpenEventA(SYNCHRONIZE, FALSE, SIGNAL_CONTROLLER_DONE);
-        if (event != nullptr) {
+        event.reset(OpenEventA(SYNCHRONIZE, FALSE, SIGNAL_CONTROLLER_DONE));
+        if (event) {
             break;
         }
 
@@ -71,12 +224,11 @@ wait_for_controller()
         return;
     }
 
-    DWORD wait_result = WaitForSingleObject(event, INFINITE);
+    DWORD wait_result = WaitForSingleObject(event.get(), INFINITE);
     if (wait_result != WAIT_OBJECT_0) {
         std::cerr << "Error waiting for controller event, result: " << wait_result << ", error: " << GetLastError()
                   << std::endl;
     }
-    CloseHandle(event);
 }
 
 static int
@@ -89,61 +241,52 @@ create_test_map()
 static int
 load_test_program(int& program_fd, bpf_object*& object_out)
 {
-    char* program_path_env = nullptr;
+    char* program_path_env_raw = nullptr;
     size_t program_path_len = 0;
-    errno_t env_error = _dupenv_s(&program_path_env, &program_path_len, "EBPF_TEST_PROGRAM_PATH");
+    errno_t env_error = _dupenv_s(&program_path_env_raw, &program_path_len, "EBPF_TEST_PROGRAM_PATH");
+    std::unique_ptr<char, decltype(&free)> program_path_env(program_path_env_raw, free);
 
-    const char* program_path = (env_error == 0 && program_path_env != nullptr && program_path_env[0] != '\0')
-                                   ? program_path_env
+    const char* program_path = (env_error == 0 && program_path_env != nullptr && program_path_env.get()[0] != '\0')
+                                   ? program_path_env.get()
                                    : "cgroup_sock_addr.o";
 
     // Verify program path exists for optional program load.
     if (_access(program_path, 0) != 0) {
         std::cerr << "eBPF test program not found at path: " << program_path << std::endl;
-        free(program_path_env);
         return -1;
     }
 
-    struct bpf_object* object = nullptr;
     struct bpf_program* program = nullptr;
     int result;
 
     // Try to open and load the program
-    object = bpf_object__open(program_path);
-    if (object == nullptr) {
+    unique_bpf_object object(bpf_object__open(program_path));
+    if (!object) {
         std::cerr << "Failed to open program: " << program_path << std::endl;
-        free(program_path_env);
         return -1;
     }
 
-    result = bpf_object__load(object);
+    result = bpf_object__load(object.get());
     if (result < 0) {
         std::cerr << "Failed to load program: " << program_path << ", error: " << result << std::endl;
-        bpf_object__close(object);
-        free(program_path_env);
         return result;
     }
 
     // Get the first program
-    program = bpf_object__next_program(object, nullptr);
+    program = bpf_object__next_program(object.get(), nullptr);
     if (program == nullptr) {
         std::cerr << "Failed to get program from object" << std::endl;
-        bpf_object__close(object);
-        free(program_path_env);
         return -1;
     }
 
     program_fd = bpf_program__fd(program);
     if (program_fd < 0) {
         std::cerr << "Failed to get program fd" << std::endl;
-        bpf_object__close(object);
-        free(program_path_env);
         return -1;
     }
 
     // Keep the object alive for caller to manage.
-    object_out = object;
-    free(program_path_env);
+    object_out = object.release();
     return 0;
 }
 
@@ -153,18 +296,19 @@ mode_open_handles()
     std::cout << "Mode: OPEN_HANDLES - Creating objects and keeping handles open" << std::endl;
 
     // Create a map
-    int map_fd = create_test_map();
-    if (map_fd < 0) {
-        std::cerr << "Failed to create map, error: " << map_fd << std::endl;
+    unique_fd map_fd(create_test_map());
+    if (map_fd.get() < 0) {
+        std::cerr << "Failed to create map, error: " << map_fd.get() << std::endl;
         return 1;
     }
 
-    std::cout << "Created map with fd: " << map_fd << std::endl;
+    std::cout << "Created map with fd: " << map_fd.get() << std::endl;
 
     // Try to load a program (optional - may not be available)
     int program_fd = -1;
-    bpf_object* program_object = nullptr;
-    load_test_program(program_fd, program_object);
+    bpf_object* program_object_raw = nullptr;
+    load_test_program(program_fd, program_object_raw);
+    unique_bpf_object program_object(program_object_raw);
     if (program_fd > 0) {
         std::cout << "Loaded program with fd: " << program_fd << std::endl;
     }
@@ -178,12 +322,6 @@ mode_open_handles()
     wait_for_controller();
 
     std::cout << "Controller signaled, exiting..." << std::endl;
-    if (program_object != nullptr) {
-        bpf_object__close(program_object);
-    }
-    if (map_fd >= 0) {
-        _close(map_fd);
-    }
     return 0;
 }
 
@@ -193,45 +331,38 @@ mode_pin_objects()
     std::cout << "Mode: PIN_OBJECTS - Creating, pinning, and releasing objects" << std::endl;
 
     // Create a map
-    int map_fd = create_test_map();
-    if (map_fd < 0) {
-        std::cerr << "Failed to create map, error: " << map_fd << std::endl;
+    unique_fd map_fd(create_test_map());
+    if (map_fd.get() < 0) {
+        std::cerr << "Failed to create map, error: " << map_fd.get() << std::endl;
         return 1;
     }
 
-    std::cout << "Created map with fd: " << map_fd << std::endl;
+    std::cout << "Created map with fd: " << map_fd.get() << std::endl;
 
     // Pin the map
-    int result = bpf_obj_pin(map_fd, PIN_PATH_MAP);
+    int result = bpf_obj_pin(map_fd.get(), PIN_PATH_MAP);
     if (result < 0) {
         std::cerr << "Failed to pin map, error: " << result << std::endl;
-        _close(map_fd);
         return 1;
     }
+
+    // Release the map handle after pinning.
+    map_fd.reset();
 
     std::cout << "Pinned map at: " << PIN_PATH_MAP << std::endl;
 
     // Try to load and pin a program (optional)
     int program_fd = -1;
-    bpf_object* program_object = nullptr;
-    if (load_test_program(program_fd, program_object) == 0 && program_fd > 0) {
-        result = bpf_obj_pin(program_fd, PIN_PATH_PROGRAM);
+    bpf_object* program_object_raw = nullptr;
+    if (load_test_program(program_fd, program_object_raw) == 0 && program_fd > 0) {
+        unique_bpf_object program_object(program_object_raw);
+        unique_fd program_handle(program_fd);
+        result = bpf_obj_pin(program_handle.get(), PIN_PATH_PROGRAM);
         if (result < 0) {
             std::cerr << "Failed to pin program, error: " << result << std::endl;
         } else {
             std::cout << "Pinned program at: " << PIN_PATH_PROGRAM << std::endl;
         }
-        if (program_fd >= 0) {
-            _close(program_fd);
-        }
-        if (program_object != nullptr) {
-            bpf_object__close(program_object);
-        }
-    }
-
-    // Close the map handle
-    if (map_fd >= 0) {
-        _close(map_fd);
     }
     std::cout << "Released handles" << std::endl;
 
