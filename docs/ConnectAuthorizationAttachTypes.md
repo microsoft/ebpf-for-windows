@@ -91,32 +91,19 @@ When both specific and wildcard programs are attached:
 - If multiple programs are attached for the same compartment ID (including wildcard), they are invoked in attach order.
 
 ### Verdict Handling
-CONNECT_AUTHORIZATION programs can return:
-- `BPF_SOCK_ADDR_VERDICT_PROCEED_HARD` - Allow the outbound connection. Maps to hard permit in WFP.
-- `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT` - Allow the outbound connection. Maps to soft permit in WFP.
-- `BPF_SOCK_ADDR_VERDICT_REJECT` - Deny the outbound connection.
-
-**Important Details:**
-
-`PROCEED_HARD` will tell WFP it does not need to verify any more filters **at this sublayer**. It will still process the outbound request at other sublayers. Additionally, `PROCEED_HARD` will override soft-block settings (e.g., default Windows Firewall allow/block settings are soft-block settings; this will allow the connection even if the Windows Firewall policy is to block by default).
-
-`PROCEED_SOFT` allows the outbound connection while respecting soft-block settings and continuing evaluations.
-
-For detailed information on how WFP evaluates and arbitrates filters across multiple layers and callouts, see [Filter Arbitration](https://learn.microsoft.com/en-us/windows/win32/fwp/filter-arbitration).
-
-**Important:** Redirect functionality is **not supported** at the CONNECT_AUTHORIZATION layer since route selection has already occurred. Outbound connection redirection can only be performed at the `BPF_CGROUP_INET4_CONNECT` and `BPF_CGROUP_INET6_CONNECT` layers.
+CONNECT_AUTHORIZATION programs return values from the existing `BPF_SOCK_ADDR_VERDICT` enum. This proposal does not redefine verdict semantics; see `ebpf_nethooks.h` for details.
 
 ### Context Modification Restrictions
 
 The `bpf_sock_addr` context is **read-only** for CONNECT_AUTHORIZATION attach types. Programs must not attempt to modify the source or destination IP address and port fields at this layer.
 
+**Expected Behavior:**
+If a program attached to CONNECT_AUTHORIZATION modifies the sock_addr context, the extension overrides the verdict returned by the program and always blocks the connection. Writes that leave the fields unchanged (for example, writing back the same value) are effectively no-ops, but are discouraged; programs should treat the context as read-only and avoid writes entirely.
+
 **Rationale:**
 - Route selection has already completed at the authorization layer, making any IP/port modifications ineffective
 - Context modifications would violate the semantic contract of read-only authorization at this layer
 - Silently ignoring modifications would lead to confusing program behavior and difficult-to-diagnose bugs
-
-**Expected Behavior:**
-The extension will **reject** the verdict of a program at this attach layer that changed the sock_addr context by modifying the source or destination IP/port. Programs that modify these fields will have their verdict rejected and the outbound connection will be blocked for security. Writes that leave the fields unchanged (for example, writing back the same value) are effectively no-ops, but are discouraged; programs should treat the context as read-only and avoid writes entirely.
 
 **Contrast with CONNECT Layer:**
 Unlike CONNECT_AUTHORIZATION, the CONNECT layer (operating at the redirect layer) fully supports `bpf_sock_addr` context modifications for redirection purposes, since route selection has not yet occurred.
@@ -252,7 +239,7 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
     // type and IP fields (for example, `user_ip6`).
     // Block known malicious destinations immediately.
     if (is_blacklisted_destination(ctx->user_ip4)) {
-        return BPF_SOCK_ADDR_VERDICT_REJECT; // CONNECT_AUTHORIZATION will NOT run.
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
     // Redirect to local proxy for inspection.
@@ -262,16 +249,16 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
         // wrapper around the helper logic. Replace `PROXY_SERVER_IP` and
         // `PROXY_SERVER_PORT` with real values or configuration.
         redirect_to_proxy(ctx, PROXY_SERVER_IP, PROXY_SERVER_PORT);
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run.
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
     // High-trust destinations can skip additional authorization.
     if (is_highly_trusted_destination(ctx->user_ip4)) {
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD; // CONNECT_AUTHORIZATION will NOT run.
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_HARD;
     }
 
     // Default: allow but require additional authorization.
-    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT; // CONNECT_AUTHORIZATION WILL run.
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
 ```
 ```c
@@ -279,15 +266,14 @@ int redirect_and_basic_filter(struct bpf_sock_addr *ctx)
 SEC("cgroup/connect_authorization4")
 int interface_aware_authorization(struct bpf_sock_addr *ctx)
 {
-    // This program only runs for PROCEED_SOFT verdicts from CONNECT layer.
-
     // Note: In CONNECT_AUTHORIZATION programs, the bpf_sock_addr context is read-only.
     // Programs must not modify destination/source IP/port fields at this layer.
     // The extension is expected to reject such modifications (reject the verdict and block the connection).
 
     bpf_sock_addr_network_context_t net_ctx = {};
     if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        // If network context is unavailable, conservatively reject.
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
     // Block outbound connections on public WiFi to sensitive destinations.
