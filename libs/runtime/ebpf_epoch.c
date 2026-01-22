@@ -17,9 +17,9 @@ static volatile int64_t _ebpf_epoch_published_current_epoch = 1;
 static __forceinline uint64_t
 _ebpf_epoch_get_published_epoch()
 {
-    // InterlockedCompareExchange64 provides a sequentially consistent atomic read (which includes acquire-release
-    // semantics).
-    return (uint64_t)InterlockedCompareExchange64(&_ebpf_epoch_published_current_epoch, 0, 0);
+    // ebpf_interlocked_compare_exchange_int64() (implemented using InterlockedCompareExchange64) provides a
+    // sequentially consistent atomic read.
+    return (uint64_t)ebpf_interlocked_compare_exchange_int64(&_ebpf_epoch_published_current_epoch, 0, 0);
 }
 
 /**
@@ -781,7 +781,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
 
     // First CPU updates the current epoch and proposes the release epoch.
     if (current_cpu == 0) {
-        int64_t new_epoch = InterlockedIncrement64(&_ebpf_epoch_published_current_epoch);
+        int64_t new_epoch = ebpf_interlocked_increment_int64(&_ebpf_epoch_published_current_epoch);
         cpu_entry->current_epoch = new_epoch;
         message->message.propose_epoch.current_epoch = (uint64_t)new_epoch;
         message->message.propose_epoch.proposed_release_epoch = (uint64_t)new_epoch;
