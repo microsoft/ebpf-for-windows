@@ -14,7 +14,105 @@
 #include <iostream>
 #include <string>
 
-// Signal names for IPC with child process
+namespace {
+struct unique_handle
+{
+    unique_handle() = default;
+    explicit unique_handle(HANDLE handle) : _handle(handle) {}
+    ~unique_handle() { reset(); }
+
+    unique_handle(const unique_handle&) = delete;
+    unique_handle&
+    operator=(const unique_handle&) = delete;
+
+    unique_handle(unique_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
+    unique_handle&
+    operator=(unique_handle&& other) noexcept
+    {
+        if (this != &other) {
+            reset();
+            _handle = other._handle;
+            other._handle = nullptr;
+        }
+        return *this;
+    }
+
+    void
+    reset(HANDLE handle = nullptr) noexcept
+    {
+        if (_handle != nullptr && _handle != INVALID_HANDLE_VALUE) {
+            CloseHandle(_handle);
+        }
+        _handle = handle;
+    }
+
+    HANDLE
+    get() const noexcept { return _handle; }
+
+    HANDLE
+    release() noexcept
+    {
+        HANDLE handle = _handle;
+        _handle = nullptr;
+        return handle;
+    }
+
+    explicit
+    operator bool() const noexcept
+    {
+        return _handle != nullptr && _handle != INVALID_HANDLE_VALUE;
+    }
+
+  private:
+    HANDLE _handle{nullptr};
+};
+
+struct unique_sc_handle
+{
+    unique_sc_handle() = default;
+    explicit unique_sc_handle(SC_HANDLE handle) : _handle(handle) {}
+    ~unique_sc_handle() { reset(); }
+
+    unique_sc_handle(const unique_sc_handle&) = delete;
+    unique_sc_handle&
+    operator=(const unique_sc_handle&) = delete;
+
+    unique_sc_handle(unique_sc_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
+    unique_sc_handle&
+    operator=(unique_sc_handle&& other) noexcept
+    {
+        if (this != &other) {
+            reset();
+            _handle = other._handle;
+            other._handle = nullptr;
+        }
+        return *this;
+    }
+
+    void
+    reset(SC_HANDLE handle = nullptr) noexcept
+    {
+        if (_handle != nullptr) {
+            CloseServiceHandle(_handle);
+        }
+        _handle = handle;
+    }
+
+    SC_HANDLE
+    get() const noexcept { return _handle; }
+
+    explicit
+    operator bool() const noexcept
+    {
+        return _handle != nullptr;
+    }
+
+  private:
+    SC_HANDLE _handle{nullptr};
+};
+} // namespace
+
+// Signal names for IPC with child process.
 #define SIGNAL_READY_HANDLES_OPEN "Global\\EBPF_RESTART_TEST_HANDLES_OPEN"
 #define SIGNAL_READY_PINNED_OBJECTS "Global\\EBPF_RESTART_TEST_PINNED_OBJECTS"
 #define SIGNAL_CONTROLLER_DONE "Global\\EBPF_RESTART_TEST_CONTROLLER_DONE"
@@ -24,12 +122,12 @@ static bool
 wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
 {
     ULONGLONG start_tick = GetTickCount64();
-    HANDLE event = nullptr;
+    unique_handle event;
 
     // Retry until the helper-created event exists or timeout expires.
     while (true) {
-        event = OpenEventA(SYNCHRONIZE, FALSE, signal_name);
-        if (event != nullptr) {
+        event.reset(OpenEventA(SYNCHRONIZE, FALSE, signal_name));
+        if (event) {
             break;
         }
 
@@ -51,8 +149,7 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
     ULONGLONG elapsed = GetTickCount64() - start_tick;
     DWORD remaining_timeout = (elapsed >= timeout_ms) ? 0 : (DWORD)(timeout_ms - elapsed);
 
-    DWORD result = WaitForSingleObject(event, remaining_timeout);
-    CloseHandle(event);
+    DWORD result = WaitForSingleObject(event.get(), remaining_timeout);
 
     if (result == WAIT_OBJECT_0) {
         std::cout << "Received signal: " << signal_name << std::endl;
@@ -70,13 +167,12 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
 static void
 signal_child_done()
 {
-    HANDLE event = CreateEventA(nullptr, TRUE, FALSE, SIGNAL_CONTROLLER_DONE);
-    if (event == nullptr) {
+    unique_handle event(CreateEventA(nullptr, TRUE, FALSE, SIGNAL_CONTROLLER_DONE));
+    if (!event) {
         std::cerr << "Failed to create controller done event, error: " << GetLastError() << std::endl;
         return;
     }
-    SetEvent(event);
-    CloseHandle(event);
+    SetEvent(event.get());
 }
 
 // Helper function to spawn child process
@@ -112,44 +208,37 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
 static DWORD
 attempt_stop_ebpfcore()
 {
-    SC_HANDLE scm = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
-    if (scm == nullptr) {
+    unique_sc_handle scm(OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT));
+    if (!scm) {
         DWORD error = GetLastError();
         std::cerr << "Failed to open SCM, error: " << error << std::endl;
         return error;
     }
 
-    SC_HANDLE service = OpenServiceW(scm, L"ebpfcore", SERVICE_STOP | SERVICE_QUERY_STATUS);
-    if (service == nullptr) {
+    unique_sc_handle service(OpenServiceW(scm.get(), L"ebpfcore", SERVICE_STOP | SERVICE_QUERY_STATUS));
+    if (!service) {
         DWORD error = GetLastError();
         std::cerr << "Failed to open ebpfcore service, error: " << error << std::endl;
-        CloseServiceHandle(scm);
         return error;
     }
 
     SERVICE_STATUS status;
-    if (!ControlService(service, SERVICE_CONTROL_STOP, &status)) {
+    if (!ControlService(service.get(), SERVICE_CONTROL_STOP, &status)) {
         DWORD error = GetLastError();
         std::cout << "Failed to stop ebpfcore service, error: " << error << std::endl;
-        CloseServiceHandle(service);
-        CloseServiceHandle(scm);
         return error;
     }
 
     // Wait for service to stop
     for (int i = 0; i < 10; i++) {
-        if (!QueryServiceStatus(service, &status)) {
+        if (!QueryServiceStatus(service.get(), &status)) {
             DWORD error = GetLastError();
             std::cerr << "Failed to query service status, error: " << error << std::endl;
-            CloseServiceHandle(service);
-            CloseServiceHandle(scm);
             return error;
         }
 
         if (status.dwCurrentState == SERVICE_STOPPED) {
             std::cout << "ebpfcore service stopped successfully" << std::endl;
-            CloseServiceHandle(service);
-            CloseServiceHandle(scm);
             return 0;
         }
 
@@ -157,8 +246,6 @@ attempt_stop_ebpfcore()
     }
 
     std::cerr << "Timeout waiting for ebpfcore service to stop" << std::endl;
-    CloseServiceHandle(service);
-    CloseServiceHandle(scm);
     return ERROR_SERVICE_REQUEST_TIMEOUT;
 }
 
@@ -166,27 +253,24 @@ attempt_stop_ebpfcore()
 static DWORD
 start_ebpfcore()
 {
-    SC_HANDLE scm = OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT);
-    if (scm == nullptr) {
+    unique_sc_handle scm(OpenSCManager(nullptr, nullptr, SC_MANAGER_CONNECT));
+    if (!scm) {
         DWORD error = GetLastError();
         std::cerr << "Failed to open SCM, error: " << error << std::endl;
         return error;
     }
 
-    SC_HANDLE service = OpenServiceW(scm, L"ebpfcore", SERVICE_START | SERVICE_QUERY_STATUS);
-    if (service == nullptr) {
+    unique_sc_handle service(OpenServiceW(scm.get(), L"ebpfcore", SERVICE_START | SERVICE_QUERY_STATUS));
+    if (!service) {
         DWORD error = GetLastError();
         std::cerr << "Failed to open ebpfcore service, error: " << error << std::endl;
-        CloseServiceHandle(scm);
         return error;
     }
 
-    if (!StartService(service, 0, nullptr)) {
+    if (!StartService(service.get(), 0, nullptr)) {
         DWORD error = GetLastError();
         if (error != ERROR_SERVICE_ALREADY_RUNNING) {
             std::cerr << "Failed to start ebpfcore service, error: " << error << std::endl;
-            CloseServiceHandle(service);
-            CloseServiceHandle(scm);
             return error;
         }
     }
@@ -194,18 +278,14 @@ start_ebpfcore()
     // Wait for service to start
     SERVICE_STATUS status;
     for (int i = 0; i < 10; i++) {
-        if (!QueryServiceStatus(service, &status)) {
+        if (!QueryServiceStatus(service.get(), &status)) {
             DWORD error = GetLastError();
             std::cerr << "Failed to query service status, error: " << error << std::endl;
-            CloseServiceHandle(service);
-            CloseServiceHandle(scm);
             return error;
         }
 
         if (status.dwCurrentState == SERVICE_RUNNING) {
             std::cout << "ebpfcore service started successfully" << std::endl;
-            CloseServiceHandle(service);
-            CloseServiceHandle(scm);
             return 0;
         }
 
@@ -213,8 +293,6 @@ start_ebpfcore()
     }
 
     std::cerr << "Timeout waiting for ebpfcore service to start" << std::endl;
-    CloseServiceHandle(service);
-    CloseServiceHandle(scm);
     return ERROR_SERVICE_REQUEST_TIMEOUT;
 }
 
@@ -234,8 +312,11 @@ main(int argc, char* argv[])
     std::cout << "Test 1: Attempting to stop ebpfcore with child process holding open handles..." << std::endl;
     {
         PROCESS_INFORMATION pi = {0};
-        HANDLE child_process = spawn_child_process("open-handles", pi);
-        if (child_process == nullptr) {
+        unique_handle child_process(spawn_child_process("open-handles", pi));
+        unique_handle child_thread(pi.hThread);
+        pi.hProcess = nullptr;
+        pi.hThread = nullptr;
+        if (!child_process) {
             std::cerr << "FAIL: Could not spawn child process" << std::endl;
             return 1;
         }
@@ -243,13 +324,7 @@ main(int argc, char* argv[])
         // Wait for child to signal it has handles open
         if (!wait_for_child_signal(SIGNAL_READY_HANDLES_OPEN)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
-            TerminateProcess(child_process, 1);
-            if (pi.hProcess != nullptr) {
-                CloseHandle(pi.hProcess);
-            }
-            if (pi.hThread != nullptr) {
-                CloseHandle(pi.hThread);
-            }
+            TerminateProcess(child_process.get(), 1);
             return 1;
         }
 
@@ -270,21 +345,15 @@ main(int argc, char* argv[])
         signal_child_done();
 
         // Wait for child to exit
-        DWORD wait_result = WaitForSingleObject(child_process, 5000);
+        DWORD wait_result = WaitForSingleObject(child_process.get(), 5000);
         if (wait_result == WAIT_OBJECT_0) {
             std::cout << "Child process exited" << std::endl;
         } else if (wait_result == WAIT_TIMEOUT) {
             std::cerr << "WARNING: Child process did not exit within timeout; terminating" << std::endl;
-            TerminateProcess(child_process, 1);
-            WaitForSingleObject(child_process, INFINITE);
+            TerminateProcess(child_process.get(), 1);
+            WaitForSingleObject(child_process.get(), INFINITE);
         } else if (wait_result == WAIT_FAILED) {
             std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
-        }
-        if (pi.hProcess != nullptr) {
-            CloseHandle(pi.hProcess);
-        }
-        if (pi.hThread != nullptr) {
-            CloseHandle(pi.hThread);
         }
     }
 
@@ -323,8 +392,11 @@ main(int argc, char* argv[])
     std::cout << std::endl << "Test 3: Testing behavior with pinned objects..." << std::endl;
     {
         PROCESS_INFORMATION pi = {0};
-        HANDLE child_process = spawn_child_process("pin-objects", pi);
-        if (child_process == nullptr) {
+        unique_handle child_process(spawn_child_process("pin-objects", pi));
+        unique_handle child_thread(pi.hThread);
+        pi.hProcess = nullptr;
+        pi.hThread = nullptr;
+        if (!child_process) {
             std::cerr << "FAIL: Could not spawn child process" << std::endl;
             return 1;
         }
@@ -332,32 +404,20 @@ main(int argc, char* argv[])
         // Wait for child to signal it has pinned objects and released handles
         if (!wait_for_child_signal(SIGNAL_READY_PINNED_OBJECTS)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
-            TerminateProcess(child_process, 1);
-            if (pi.hProcess != nullptr) {
-                CloseHandle(pi.hProcess);
-            }
-            if (pi.hThread != nullptr) {
-                CloseHandle(pi.hThread);
-            }
+            TerminateProcess(child_process.get(), 1);
             return 1;
         }
 
         // Wait for child to exit (it exits immediately after pinning)
-        DWORD wait_result = WaitForSingleObject(child_process, 5000);
+        DWORD wait_result = WaitForSingleObject(child_process.get(), 5000);
         if (wait_result == WAIT_OBJECT_0) {
             std::cout << "Child process exited" << std::endl;
         } else if (wait_result == WAIT_TIMEOUT) {
             std::cerr << "WARNING: Child process did not exit within timeout; terminating" << std::endl;
-            TerminateProcess(child_process, 1);
-            WaitForSingleObject(child_process, INFINITE);
+            TerminateProcess(child_process.get(), 1);
+            WaitForSingleObject(child_process.get(), INFINITE);
         } else if (wait_result == WAIT_FAILED) {
             std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
-        }
-        if (pi.hProcess != nullptr) {
-            CloseHandle(pi.hProcess);
-        }
-        if (pi.hThread != nullptr) {
-            CloseHandle(pi.hThread);
         }
 
         std::cout << "Child process exited with pinned objects remaining" << std::endl;
@@ -391,48 +451,27 @@ main(int argc, char* argv[])
 
             // Unpin the objects
             PROCESS_INFORMATION pi2 = {0};
-            HANDLE unpin_process = spawn_child_process("unpin-objects", pi2);
-            if (unpin_process == nullptr) {
+            unique_handle unpin_process(spawn_child_process("unpin-objects", pi2));
+            unique_handle unpin_thread(pi2.hThread);
+            pi2.hProcess = nullptr;
+            pi2.hThread = nullptr;
+            if (!unpin_process) {
                 std::cerr << "FAIL: Could not spawn unpin process" << std::endl;
                 return 1;
             }
 
-            DWORD wait_result_unpin = WaitForSingleObject(unpin_process, 10000);
+            DWORD wait_result_unpin = WaitForSingleObject(unpin_process.get(), 10000);
             if (wait_result_unpin == WAIT_OBJECT_0) {
                 // Success path; nothing else to do.
             } else if (wait_result_unpin == WAIT_TIMEOUT) {
                 std::cerr << "FAIL: Timeout waiting for unpin process to exit" << std::endl;
-                if (pi2.hProcess != nullptr) {
-                    CloseHandle(pi2.hProcess);
-                }
-                if (pi2.hThread != nullptr) {
-                    CloseHandle(pi2.hThread);
-                }
                 return 1;
             } else if (wait_result_unpin == WAIT_FAILED) {
                 std::cerr << "FAIL: Error waiting for unpin process, error: " << GetLastError() << std::endl;
-                if (pi2.hProcess != nullptr) {
-                    CloseHandle(pi2.hProcess);
-                }
-                if (pi2.hThread != nullptr) {
-                    CloseHandle(pi2.hThread);
-                }
                 return 1;
             } else {
                 std::cerr << "FAIL: Unexpected wait result for unpin process: " << wait_result_unpin << std::endl;
-                if (pi2.hProcess != nullptr) {
-                    CloseHandle(pi2.hProcess);
-                }
-                if (pi2.hThread != nullptr) {
-                    CloseHandle(pi2.hThread);
-                }
                 return 1;
-            }
-            if (pi2.hProcess != nullptr) {
-                CloseHandle(pi2.hProcess);
-            }
-            if (pi2.hThread != nullptr) {
-                CloseHandle(pi2.hThread);
             }
 
             std::cout << "Objects unpinned" << std::endl;
