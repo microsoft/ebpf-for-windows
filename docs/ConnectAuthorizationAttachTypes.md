@@ -154,7 +154,8 @@ int interface_aware_authorization(struct bpf_sock_addr *ctx)
     
     // Retrieve network context.
     if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
-        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+        // Unexpected for CONNECT_AUTHORIZATION; fail closed.
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
     
     // Use the retrieved information.
