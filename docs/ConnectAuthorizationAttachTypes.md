@@ -145,12 +145,6 @@ Note on sentinel values: The fields above are unsigned types and use a "not avai
 - `next_hop_interface_luid` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) hooks only
 - `sub_interface_index` - Available for CONNECT_AUTHORIZATION (BPF_CGROUP_INET4_CONNECT_AUTHORIZATION / BPF_CGROUP_INET6_CONNECT_AUTHORIZATION) and RECV_ACCEPT (BPF_CGROUP_INET4_RECV_ACCEPT / BPF_CGROUP_INET6_RECV_ACCEPT) hooks
 
-**Benefits of Versioned Struct Approach:**
-- **Single helper call** - Reduces overhead of multiple helper invocations
-- **Forward compatible** - New fields can be added in future versions without breaking existing programs
-- **Version awareness** - Programs can check the `version` field to know which fields are populated
-- **Extensible** - Future versions (e.g., version 2) can add new fields while maintaining backward compatibility
-
 **Usage Example:**
 ```c
 SEC("cgroup/connect_authorization4")
