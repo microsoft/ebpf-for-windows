@@ -123,14 +123,20 @@ The propose/commit message sequence is then forwarded CPU-by-CPU using the same 
 
 ### Propose phase
 
-The propose phase walks all CPUs to determine a safe epoch boundary:
+During the propose phase, the system determines the **safe release epoch** by passing a
+`PROPOSE_RELEASE_EPOCH` message sequentially across all CPUs, starting with CPU 0. The message
+carries the proposed release-epoch value.
 
-- CPU 0 advances the globally published epoch and initializes `proposed_release_epoch` to that new value.
-- Every other CPU updates its local `current_epoch` cache to the value provided by CPU 0.
-- Each CPU computes the minimum `epoch` value among active epoch participants on that CPU.
-- The message's `proposed_release_epoch` becomes the minimum over all CPUs.
+- CPU 0 atomically increments the globally published current epoch, updates its local current epoch
+    cache, and initializes the message's proposed release epoch to that new value.
+- Each subsequent CPU updates its local current epoch cache to the value carried in the message.
+- Every CPU, including CPU 0, computes the minimum epoch from its local epoch-state list. If this
+    minimum is lower than the message's proposed epoch, the message is updated with that lower value.
+- The CPU then forwards the (potentially updated) message to the next CPU.
 
-The last CPU converts the message into a commit message and sends it back to CPU 0.
+After the final CPU processes the message, it converts it into a `COMMIT_RELEASE_EPOCH` message
+containing the final proposed release epoch and sends it back to CPU 0. This begins the commit
+phase of the cycle.
 
 ### Commit phase
 
