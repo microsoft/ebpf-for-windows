@@ -3772,6 +3772,21 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result != 0), custom_map_fd);
     }
 
+    // Update elements and validate updated values.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = i + 200;
+        result = bpf_map_update_elem(custom_map_fd, &key, &value, 0);
+        require_and_close((result == 0), custom_map_fd);
+    }
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
+        require_and_close((result == 0), custom_map_fd);
+        require_and_close((value == i + 200), custom_map_fd);
+    }
+
     // Delete all elements.
     for (uint32_t i = 0; i < map_size; i++) {
         uint32_t key = i;

@@ -4122,12 +4122,10 @@ _ebpf_custom_map_create_hash_map(
 static void
 _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
 {
-    // Release all entry references.
-    ebpf_core_map_t* core_map = &map->core_map;
-    // ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, &map->core_map);
 
-    // ANUSA TODO: Decide if we need a lock here.
-    // ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
+    ebpf_core_map_t* core_map = &map->core_map;
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&map->lock);
+
     uint8_t* previous_key = NULL;
 
     uint8_t* next_key;
@@ -4149,11 +4147,6 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             value,
             0);
 
-        // ebpf_core_object_t* value_object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
-        // if (value_object) {
-        //     EBPF_OBJECT_RELEASE_REFERENCE(value_object);
-        //     WriteULong64NoFence((volatile uint64_t*)value, 0);
-        // }
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)core_map->data, NULL, previous_key));
         }
@@ -4163,7 +4156,7 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
     }
     ebpf_assert(ebpf_hash_table_key_count((ebpf_hash_table_t*)core_map->data) == 0);
 
-    // ebpf_lock_unlock(&object_map->lock, lock_state);
+    ebpf_lock_unlock(&map->lock, lock_state);
 }
 
 static void
@@ -4226,12 +4219,73 @@ _ebpf_custom_map_update_hash_map_entry(
     if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
     }
+    uint8_t* out_value = NULL;
 
     UNREFERENCED_PARAMETER(key_size);
-    UNREFERENCED_PARAMETER(value_size);
-    ebpf_custom_map_operation_context_t operation_context = {value_size, (uint8_t*)value, flags};
+    ebpf_custom_map_t* custom_map = EBPF_FROM_FIELD(ebpf_custom_map_t, core_map, map);
 
-    result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, value, option);
+    if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
+        // If provider updates original value, allocate a local buffer to hold the new value.
+        out_value = (uint8_t*)ebpf_allocate_with_tag(custom_map->actual_value_size, EBPF_POOL_TAG_MAP);
+        if (out_value == NULL) {
+            return EBPF_NO_MEMORY;
+        }
+        memset(out_value, 0, custom_map->actual_value_size);
+    }
+
+    // Acquire lock to serialize updates.
+    ebpf_lock_state_t lock_state = ebpf_lock_lock(&custom_map->lock);
+
+    // Invoke provider to process the update.
+    size_t out_value_size =
+        UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
+    result = custom_map->provider_dispatch->process_map_add_element(
+        custom_map->provider_context,
+        custom_map->core_map.custom_map_context,
+        custom_map->core_map.ebpf_map_definition.key_size,
+        key,
+        custom_map->core_map.ebpf_map_definition.value_size,
+        value,
+        out_value_size,
+        out_value,
+        flags);
+
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // The underlying hash table for custom maps may use a value size larger than the user-visible value size
+    // (e.g., object maps store pointers). ebpf_hash_table_update memcpy's hash_table->value_size bytes from the
+    // buffer we pass, so ensure the buffer is at least custom_map->actual_value_size bytes.
+    // const size_t target_value_size = custom_map->actual_value_size;
+    // uint8_t* local_value = NULL;
+    // const uint8_t* value_to_store = value;
+
+    // if (target_value_size == 0) {
+    //     return EBPF_INVALID_ARGUMENT;
+    // }
+
+    // if ((value_to_store == NULL) || (value_size < target_value_size)) {
+    //     local_value = (uint8_t*)ebpf_allocate_with_tag(target_value_size, EBPF_POOL_TAG_MAP);
+    //     if (local_value == NULL) {
+    //         return EBPF_NO_MEMORY;
+    //     }
+    //     memset(local_value, 0, target_value_size);
+    //     if ((value_to_store != NULL) && (value_size > 0)) {
+    //         memcpy(local_value, value_to_store, min(value_size, target_value_size));
+    //     }
+    //     value_to_store = local_value;
+    // }
+
+    const uint8_t* new_value = out_value ? out_value : value;
+    ebpf_custom_map_operation_context_t operation_context = {value_size, (uint8_t*)new_value, flags};
+
+    result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
+    // ebpf_lock_unlock(&custom_map->lock, lock_state);
+
+Exit:
+    ebpf_lock_unlock(&custom_map->lock, lock_state);
+    ebpf_free(out_value);
 
     return result;
 }
@@ -4250,20 +4304,22 @@ _custom_hash_map_notification(
 
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        ebpf_assert(op_context != NULL);
-        uint8_t* out_value = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
-        size_t out_value_size =
-            UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
-        result = custom_map->provider_dispatch->process_map_add_element(
-            custom_map->provider_context,
-            custom_map->core_map.custom_map_context,
-            custom_map->core_map.ebpf_map_definition.key_size,
-            key,
-            custom_map->core_map.ebpf_map_definition.value_size,
-            op_context->value,
-            out_value_size,
-            out_value,
-            op_context->flags);
+        // Ignore allocate notification.
+
+        // ebpf_assert(op_context != NULL);
+        // uint8_t* out_value = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
+        // size_t out_value_size =
+        //     UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
+        // result = custom_map->provider_dispatch->process_map_add_element(
+        //     custom_map->provider_context,
+        //     custom_map->core_map.custom_map_context,
+        //     custom_map->core_map.ebpf_map_definition.key_size,
+        //     key,
+        //     custom_map->core_map.ebpf_map_definition.value_size,
+        //     op_context->value,
+        //     out_value_size,
+        //     out_value,
+        //     op_context->flags);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
@@ -4389,9 +4445,21 @@ ebpf_custom_map_create(
         goto Done;
     }
 
+    // If the provider does not support updating original value, ensure value size matches.
+    if (!UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) &&
+        actual_value_size != map_definition->value_size) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Provider returned invalid value size for custom map type",
+            custom_map->core_map.ebpf_map_definition.type);
+
+        goto Done;
+    }
+
     // Create hash map.
     result = _ebpf_custom_map_create_hash_map(map_definition, actual_value_size, &custom_map->core_map);
-
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -4576,19 +4644,6 @@ _ebpf_custom_map_client_detach_provider(_In_ void* client_binding_context)
     return STATUS_SUCCESS;
 }
 
-// static ebpf_result_t
-// _ebpf_custom_map_update_element_with_handle(
-//     _In_ ebpf_map_t* map, _In_ const uint8_t* key, uintptr_t value_handle, ebpf_map_option_t option)
-// {
-//     UNREFERENCED_PARAMETER(map);
-//     UNREFERENCED_PARAMETER(key);
-//     UNREFERENCED_PARAMETER(value_handle);
-//     UNREFERENCED_PARAMETER(option);
-
-//     // custom maps don't support handle-based updates by default
-//     return EBPF_OPERATION_NOT_SUPPORTED;
-// }
-
 static ebpf_result_t
 _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
 {
@@ -4754,7 +4809,11 @@ ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(k
         ebpf_custom_map_operation_context_t operation_context = {0};
         operation_context.flags = flags;
 
-        return _delete_hash_map_entry_operation_context(&custom_map->core_map, (uint8_t*)&operation_context, key);
+        ebpf_lock_state_t lock_state = ebpf_lock_lock(&custom_map->lock);
+        ebpf_result_t result =
+            _delete_hash_map_entry_operation_context(&custom_map->core_map, (uint8_t*)&operation_context, key);
+        ebpf_lock_unlock(&custom_map->lock, lock_state);
+        return result;
     } else {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,

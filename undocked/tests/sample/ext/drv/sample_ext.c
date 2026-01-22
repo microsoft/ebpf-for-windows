@@ -72,13 +72,22 @@ static void*
 _sample_ext_helper_map_lookup_element(
     _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3);
 
+static int32_t
+_sample_ext_helper_map_get_value(
+    _In_ const void* map,
+    _In_ const uint8_t* key,
+    _Out_writes_(value_size) uint8_t* value,
+    size_t value_size,
+    uint64_t dummy_param1);
+
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
     (void*)&_sample_ebpf_extension_find,
     (void*)&_sample_ebpf_extension_replace,
     (void*)&_sample_ebpf_extension_helper_implicit_1,
     (void*)&_sample_ebpf_extension_helper_implicit_2,
-    (void*)&_sample_ext_helper_map_lookup_element};
+    (void*)&_sample_ext_helper_map_lookup_element,
+    (void*)&_sample_ext_helper_map_get_value};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -1226,15 +1235,7 @@ _sample_ext_helper_map_get_value(
     uint8_t* local_value = NULL;
     ebpf_result_t result = (*map_context)->client_dispatch->find_element_function(map, key, &local_value);
 
-    if (result != EBPF_SUCCESS) {
-        return -1;
-    }
-
-    if (result != EBPF_SUCCESS) {
-        return -1;
-    }
-
-    if (local_value == NULL) {
+    if (result != EBPF_SUCCESS || local_value == NULL) {
         return -1;
     }
 
