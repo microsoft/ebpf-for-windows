@@ -227,11 +227,15 @@ When both CONNECT and CONNECT_AUTHORIZATION programs are attached to the same cg
 
 ### Verdict Flow and Interaction
 
-The verdict from the CONNECT layer determines whether CONNECT_AUTHORIZATION programs are invoked:
+CONNECT and CONNECT_AUTHORIZATION programs are invoked at different points in the stack, but their decisions apply to the same outbound connection attempt.
 
-- **`BPF_SOCK_ADDR_VERDICT_REJECT`** from CONNECT → Outbound connection blocked, CONNECT_AUTHORIZATION programs **not invoked**
-- **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** from CONNECT → Outbound connection authorized, CONNECT_AUTHORIZATION programs **not invoked** (optimization)
-- **`BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`** from CONNECT → CONNECT_AUTHORIZATION programs **are invoked** for additional authorization
+The CONNECT verdict does **not** prevent CONNECT_AUTHORIZATION programs from running (including for `PROCEED_HARD`). CONNECT_AUTHORIZATION exists specifically so that a later-stage program can make the final decision using route-dependent metadata.
+
+When both are present, the effective decision is:
+
+- If any stage returns **`BPF_SOCK_ADDR_VERDICT_REJECT`**, the connection is blocked.
+- Otherwise, a **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** decision may be used to produce a hard-permit (terminating) decision in WFP.
+- Otherwise, the connection proceeds as a soft-permit.
 
 #### Behavior When No CONNECT Program Is Attached
 
