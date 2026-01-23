@@ -43,7 +43,7 @@ eBPF programs that need to make authorization decisions based on these propertie
 
 ## Solution: CONNECT_AUTHORIZATION Attach Types
 
-The new `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_AUTHORIZATION` attach types address this limitation by operating at the **authorization layer** in WFP.
+The new `BPF_CGROUP_INET4_CONNECT_AUTHORIZATION` and `BPF_CGROUP_INET6_CONNECT_AUTHORIZATION` attach types address this limitation by operating at the **connect-authorization** WFP layers (`FWPM_LAYER_ALE_AUTH_CONNECT_V4` / `FWPM_LAYER_ALE_AUTH_CONNECT_V6`).
 
 ### Key Characteristics
 
