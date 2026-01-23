@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace {
 struct unique_handle
@@ -182,8 +183,12 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
     std::string command_line = "\"" + helper_path + "\" " + mode;
     std::cout << "Spawning child process: " << command_line << std::endl;
 
+    // CreateProcessA may modify the command line buffer, so we need a mutable copy
+    std::vector<char> command_line_buffer(command_line.begin(), command_line.end());
+    command_line_buffer.push_back('\0');
+
     if (!CreateProcessA(
-            nullptr, const_cast<char*>(command_line.c_str()), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+            nullptr, command_line_buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         std::cerr << "Failed to spawn child process, error: " << GetLastError() << std::endl;
         return nullptr;
     }
@@ -355,8 +360,20 @@ main(int argc, char* argv[])
                 return 1;
             }
             Sleep(2000); // Let driver stabilize
+        } else if (stop_result == ERROR_ACCESS_DENIED) {
+            std::cerr << "FAIL: Access denied trying to stop ebpfcore - test requires administrator privileges!" << std::endl;
+            TerminateProcess(child_process.get(), 1);
+            return 1;
+        } else if (stop_result == ERROR_SERVICE_DOES_NOT_EXIST) {
+            std::cerr << "FAIL: ebpfcore service does not exist - environment issue!" << std::endl;
+            TerminateProcess(child_process.get(), 1);
+            return 1;
+        } else if (stop_result == ERROR_DEPENDENT_SERVICES_RUNNING || stop_result == ERROR_SERVICE_CANNOT_ACCEPT_CTRL) {
+            // These are expected errors when the service cannot be stopped due to dependencies or state
+            std::cout << "PASS: Stop correctly failed with error code: " << stop_result << " (service in use)" << std::endl;
         } else {
-            std::cout << "PASS: Stop correctly failed with error code: " << stop_result << std::endl;
+            // Other errors - could be expected blocking or unexpected failures
+            std::cout << "INFO: Stop failed with error code: " << stop_result << std::endl;
         }
 
         // Signal child to exit
