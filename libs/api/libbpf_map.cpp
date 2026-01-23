@@ -584,10 +584,13 @@ ring_buffer__free(struct ring_buffer* ring_buffer)
     }
     ring_buffer->subscriptions.clear();
 
-    // Clean up sync map resources
+    // Clean up sync map resources (wait handle and mapped buffers)
     for (auto& map_info : ring_buffer->sync_maps) {
-        (void)ebpf_ring_buffer_map_unmap_buffer(
-            map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
+        (void)ebpf_map_set_wait_handle(map_info.map_fd, 0, ebpf_handle_invalid);
+        if (map_info.consumer_page) {
+            (void)ebpf_ring_buffer_map_unmap_buffer(
+                map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
+        }
     }
     ring_buffer->sync_maps.clear();
 
