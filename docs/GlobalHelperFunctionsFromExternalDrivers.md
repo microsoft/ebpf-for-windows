@@ -49,8 +49,8 @@ This creates barriers for independent driver development and limits the extensib
 - Provider lifecycle events (attach/detach) **MUST** be handled independently for each provider
 
 ### R7: Program Integrity
-- Programs **MUST** execute with the same global helper function information that was available during compilation
-- The system **MUST** ensure consistency between compile-time and runtime global helper function availability
+- Programs **MUST** execute with global helper function signature information that matches what was used during program verification and native image generation
+- The system **MUST** reject program load if the resolved runtime signature/ABI of any global helper does not match the signature/ABI assumed during verification and native image generation
 - Program verification **MUST** account for global helper functions from external drivers
 
 ## Success Criteria
