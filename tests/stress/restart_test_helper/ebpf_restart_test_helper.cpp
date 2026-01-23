@@ -285,6 +285,8 @@ mode_open_handles()
     unique_fd map_fd(create_test_map());
     if (map_fd.get() < 0) {
         std::cerr << "Failed to create map, error: " << map_fd.get() << std::endl;
+        // Signal controller even on failure to avoid timeout
+        signal_controller(SIGNAL_READY_HANDLES_OPEN);
         return 1;
     }
 
