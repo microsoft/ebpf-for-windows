@@ -15,6 +15,8 @@ This creates barriers for independent driver development and limits the extensib
 
 ## Requirements
 
+The requirements in this section describe properties the system must have, not a single mandated implementation approach. Any design that satisfies these requirements (for example, a BTF-based identification and signature mechanism) is acceptable.
+
 ### R1: External Driver Global Helper Registration
 - Drivers outside of `ebpfcore.sys` **MUST** be able to register global helper functions
 - The system **MUST** support global helper function registration without requiring pre-coordination
