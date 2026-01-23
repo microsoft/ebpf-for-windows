@@ -69,7 +69,6 @@ This creates barriers for independent driver development and limits the extensib
 - Provider lifecycle events (registration, re-registration, and unregistration) **MUST NOT** cause running programs to crash, hang, or exhibit undefined behavior
 - Provider unregistration **MUST** block new invocations of affected eBPF programs and **MUST** wait for in-flight invocations to complete before the provider is unloaded
 - After a provider is registered again, new invocations of affected eBPF programs **MAY** resume if the provider's helper function signatures/ABIs remain compatible with what was verified and assumed during native image generation
-- System performance is not significantly impacted by global helper function resolution
 
 ### SC4: Ecosystem Growth
 - Independent software vendors can develop eBPF extensions with custom global helper functions without platform dependencies
