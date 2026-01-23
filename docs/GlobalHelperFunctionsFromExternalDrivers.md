@@ -28,7 +28,7 @@ This creates barriers for independent driver development and limits the extensib
 - The eBPF runtime **MUST** manage helper registration automatically (for example, maintaining a registry of providers and helper metadata/signatures) without requiring manual ID allocation or coordination
 
 ### R3: Per-Program Global Helper Resolution
-- Each eBPF program **MUST** have access to a consistent set of global helper functions for its lifetime
+- Each eBPF program **MUST** have access to a consistent set of global helper functions for its lifetime (from successful load/attach until detach/unload)
 - The system **MUST** resolve global helper function references during program loading
 - Programs **MUST** be able to access global helpers from both `ebpfcore.sys` and external drivers
 
