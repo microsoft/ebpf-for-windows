@@ -53,14 +53,19 @@ This creates barriers for independent driver development and limits the extensib
 - The system **MUST** reject program load if the resolved runtime signature/ABI of any global helper does not match the signature/ABI assumed during verification and native image generation
 - Program verification **MUST** account for global helper functions from external drivers
 
+### R8: Standards Consistency
+- The global helper function identification and signature mechanism **SHOULD** be consistent with the BPF ISA standard (for example, using BTF-based identification as described in RFC 9669)
+- For new global helpers, helper identity **SHOULD** be based on stable type/signature identifiers (for example, BTF-based IDs) rather than centrally allocated numeric helper IDs
+- Helper function names **MAY** be used as source-level identifiers in C, but **MUST NOT** be the sole mechanism used to identify a helper at verification/load time
+
 ## Success Criteria
 
 ### SC1: Driver Independence
 - Third-party drivers can register custom global helper functions without coordination with Microsoft or other driver developers
-- Global helper function name conflicts are detected and rejected at registration time with clear error messages
+- Conflicts that prevent unambiguous helper resolution (for example, duplicate stable helper identifiers within the same provider identity) are detected and rejected at registration time with clear error messages
 
 ### SC2: Developer Experience
-- eBPF program developers can use descriptive global helper function names in their C code
+- eBPF program developers can call global helper functions using familiar C function names in their C code
 - Compilation and loading processes handle global helper function resolution transparently
 - Error messages provide clear diagnostics for unavailable global helper functions
 
@@ -91,7 +96,12 @@ This creates barriers for independent driver development and limits the extensib
 
 ## Implementation Notes
 
-While this document focuses on requirements rather than implementation details, it should be noted that BTF (BPF Type Format) IDs represent one possible mechanism that could be leveraged to implement helper function identification and resolution without requiring pre-coordination between drivers.
+While this document focuses on requirements rather than implementation details, it should be noted that BTF (BPF Type Format) provides a standard mechanism to describe helper function signatures and identify them in a way that is consistent with the BPF ISA standard.
+
+In particular, this design is intended to be compatible with a BTF-based approach:
+- Providers can publish helper function prototypes via BTF so the verifier can validate helper calls against the expected signature.
+- Helper identity can be expressed using stable identifiers derived from BTF (noting that raw BTF IDs are scoped to a given BTF object, so the overall identity may need to incorporate provider identity and/or a stable BTF identity).
+- R7 then ensures that if a provider changes a helper's signature/ABI, programs verified and native-image-generated against the old signature are rejected at load time.
 
 ## Conclusion
 
