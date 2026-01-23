@@ -17,4 +17,6 @@ jobs:
     with:
       run_on_fork: true
     secrets: inherit
-    permissions: inherit
+    permissions:
+      contents: read
+      issues: write
