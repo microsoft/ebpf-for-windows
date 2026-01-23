@@ -2,7 +2,7 @@
 
 ## Summary
 
-This proposal introduces functionality to embed the SHA-256 hash of the original ELF file into the generated PE (Portable Executable) image during the eBPF compilation process. This enhancement provides traceability and integrity verification capabilities, allowing users to verify that a compiled PE image corresponds to a specific ELF source file.
+This proposal introduces functionality to embed the SHA-256 hash of the original ELF file into the generated PE (Portable Executable) image during the eBPF compilation process. This enhancement provides traceability and provenance verification, allowing users to verify that a compiled PE image was generated from a specific ELF input file.
 
 ## Background
 
@@ -69,7 +69,7 @@ netsh ebpf show hash [filename=]<path> [hashonly]
 
 **Parameters:**
 - `filename`: Required path to the PE file
-- `hashonly`: Optional keyword parameter (specified without any prefix) to output only the embedded ELF hash value as a hexadecimal string. The format of this string matches the `Hash` field from PowerShell `Get-FileHash`, but the value itself is the hash of the original ELF file (for example, `program.o`), not the PE file (for example, `program.sys`). To verify integrity, compare this value against `Get-FileHash` of the original ELF file
+- `hashonly`: Optional keyword flag. Specify this by adding the literal word `hashonly` (with no `=` and no value) to the command line to output only the embedded ELF hash value as a hexadecimal string. The format of this string matches the `Hash` field from PowerShell `Get-FileHash`, but the value itself is the hash of the original ELF file (for example, `program.o`), not the PE file (for example, `program.sys`). To verify integrity, compare this value against `Get-FileHash` of the original ELF file
 
 **Example Output:**
 
