@@ -23,8 +23,8 @@ This creates barriers for independent driver development and limits the extensib
 
 ### R2: Elimination of Central Coordination
 - Driver developers **MUST NOT** be required to coordinate helper function registration with other drivers
-- The system **MUST** reject registration attempts when multiple drivers try to register helper functions with the same name
-- Helper function names **MUST** be globally unique across all registered providers
+- The system **MUST** support global helper registration even when multiple drivers register helper functions with the same name
+- Global helper function identity **MUST NOT** rely solely on the helper function name (for example, it can be based on a stable ID such as a BTF ID and/or provider identity)
 - Helper function registration **MUST** be managed automatically by the system
 
 ### R3: Per-Program Global Helper Resolution
