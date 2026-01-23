@@ -117,42 +117,29 @@ struct unique_sc_handle
 #define SIGNAL_READY_PINNED_OBJECTS "Global\\EBPF_RESTART_TEST_PINNED_OBJECTS"
 #define SIGNAL_CONTROLLER_DONE "Global\\EBPF_RESTART_TEST_CONTROLLER_DONE"
 
-// Helper function to wait for a named event with timeout
-static bool
-wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
+// Helper function to create a named event for IPC
+// Events are created by controller, opened by helper
+static unique_handle
+create_signal_event(const char* event_name)
 {
-    ULONGLONG start_tick = GetTickCount64();
-    unique_handle event;
-
-    // Retry until the helper-created event exists or timeout expires.
-    while (true) {
-        event.reset(OpenEventA(SYNCHRONIZE, FALSE, signal_name));
-        if (event) {
-            break;
-        }
-
-        DWORD error = GetLastError();
-        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
-            ULONGLONG elapsed = GetTickCount64() - start_tick;
-            if (elapsed >= timeout_ms) {
-                std::cerr << "Timeout waiting for event to be created: " << signal_name << std::endl;
-                return false;
-            }
-            Sleep(100);
-            continue;
-        }
-
-        std::cerr << "Failed to open event: " << signal_name << ", error: " << error << std::endl;
-        return false;
+    unique_handle event(CreateEventA(nullptr, TRUE, FALSE, event_name));
+    if (!event) {
+        std::cerr << "Failed to create event: " << event_name << ", error: " << GetLastError() << std::endl;
     }
+    return event;
+}
 
-    ULONGLONG elapsed = GetTickCount64() - start_tick;
-    DWORD remaining_timeout = (elapsed >= timeout_ms) ? 0 : (DWORD)(timeout_ms - elapsed);
-
-    DWORD result = WaitForSingleObject(event.get(), remaining_timeout);
+// Helper function to wait for a named event with timeout
+// The event must be pre-created before calling this
+static bool
+wait_for_signal(HANDLE event, const char* signal_name, DWORD timeout_ms = 30000)
+{
+    DWORD result = WaitForSingleObject(event, timeout_ms);
 
     if (result == WAIT_OBJECT_0) {
         std::cout << "Received signal: " << signal_name << std::endl;
+        // Reset for potential reuse
+        ResetEvent(event);
         return true;
     } else if (result == WAIT_TIMEOUT) {
         std::cerr << "Timeout waiting for signal: " << signal_name << std::endl;
@@ -160,20 +147,6 @@ wait_for_child_signal(const char* signal_name, DWORD timeout_ms = 30000)
     } else {
         std::cerr << "Error waiting for signal: " << signal_name << ", error: " << GetLastError() << std::endl;
         return false;
-    }
-}
-
-// Helper function to signal the child process
-static void
-signal_child_done()
-{
-    unique_handle event(CreateEventA(nullptr, TRUE, FALSE, SIGNAL_CONTROLLER_DONE));
-    if (!event) {
-        std::cerr << "Failed to create controller done event, error: " << GetLastError() << std::endl;
-        return;
-    }
-    if (!SetEvent(event.get())) {
-        std::cerr << "Failed to signal controller done event, error: " << GetLastError() << std::endl;
     }
 }
 
@@ -186,14 +159,20 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
 
     // Get the path to the helper executable (should be in the same directory as the controller)
     char exe_path[MAX_PATH];
-    GetModuleFileNameA(nullptr, exe_path, MAX_PATH);
+    DWORD path_len = GetModuleFileNameA(nullptr, exe_path, MAX_PATH);
+    if (path_len == 0 || path_len >= MAX_PATH) {
+        std::cerr << "Failed to get module filename, error: " << GetLastError() << std::endl;
+        return nullptr;
+    }
+
     std::string exe_dir = exe_path;
     size_t last_slash = exe_dir.find_last_of("\\/");
     if (last_slash != std::string::npos) {
         exe_dir = exe_dir.substr(0, last_slash);
     }
 
-    std::string command_line = exe_dir + "\\ebpf_restart_test_helper.exe " + mode;
+    std::string helper_path = exe_dir + "\\ebpf_restart_test_helper.exe";
+    std::string command_line = "\"" + helper_path + "\" " + mode;
     std::cout << "Spawning child process: " << command_line << std::endl;
 
     if (!CreateProcessA(
@@ -308,6 +287,17 @@ main(int argc, char* argv[])
     std::cout << "This controller does NOT load ebpfapi.dll to avoid holding driver references." << std::endl;
     std::cout << std::endl;
 
+    // Create IPC events upfront to avoid race conditions
+    // These events are created by the controller and opened by the helper
+    unique_handle event_handles_open = create_signal_event(SIGNAL_READY_HANDLES_OPEN);
+    unique_handle event_pinned_objects = create_signal_event(SIGNAL_READY_PINNED_OBJECTS);
+    unique_handle event_controller_done = create_signal_event(SIGNAL_CONTROLLER_DONE);
+
+    if (!event_handles_open || !event_pinned_objects || !event_controller_done) {
+        std::cerr << "FAIL: Could not create IPC events" << std::endl;
+        return 1;
+    }
+
     int exit_code = 0;
 
     // Test 1: Stop with open handles (should fail)
@@ -324,7 +314,7 @@ main(int argc, char* argv[])
         }
 
         // Wait for child to signal it has handles open
-        if (!wait_for_child_signal(SIGNAL_READY_HANDLES_OPEN)) {
+        if (!wait_for_signal(event_handles_open.get(), SIGNAL_READY_HANDLES_OPEN)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
             TerminateProcess(child_process.get(), 1);
             return 1;
@@ -344,7 +334,9 @@ main(int argc, char* argv[])
         }
 
         // Signal child to exit
-        signal_child_done();
+        if (!SetEvent(event_controller_done.get())) {
+            std::cerr << "Failed to signal child to exit, error: " << GetLastError() << std::endl;
+        }
 
         // Wait for child to exit
         DWORD wait_result = WaitForSingleObject(child_process.get(), 5000);
@@ -357,6 +349,9 @@ main(int argc, char* argv[])
         } else if (wait_result == WAIT_FAILED) {
             std::cerr << "ERROR: WaitForSingleObject failed for child process, error: " << GetLastError() << std::endl;
         }
+
+        // Reset the done event for next test
+        ResetEvent(event_controller_done.get());
     }
 
     // Test 2: Stop after child exits (should succeed or fail gracefully)
@@ -404,7 +399,7 @@ main(int argc, char* argv[])
         }
 
         // Wait for child to signal it has pinned objects and released handles
-        if (!wait_for_child_signal(SIGNAL_READY_PINNED_OBJECTS)) {
+        if (!wait_for_signal(event_pinned_objects.get(), SIGNAL_READY_PINNED_OBJECTS)) {
             std::cerr << "FAIL: Did not receive signal from child" << std::endl;
             TerminateProcess(child_process.get(), 1);
             return 1;
