@@ -125,6 +125,9 @@
     <ClCompile Include="ebpf_restart_test_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="$(SolutionDir)ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>

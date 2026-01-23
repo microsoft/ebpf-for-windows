@@ -172,7 +172,9 @@ signal_child_done()
         std::cerr << "Failed to create controller done event, error: " << GetLastError() << std::endl;
         return;
     }
-    SetEvent(event.get());
+    if (!SetEvent(event.get())) {
+        std::cerr << "Failed to signal controller done event, error: " << GetLastError() << std::endl;
+    }
 }
 
 // Helper function to spawn child process

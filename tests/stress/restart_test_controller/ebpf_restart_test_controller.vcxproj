@@ -120,5 +120,8 @@
   <ItemGroup>
     <ClCompile Include="ebpf_restart_test_controller.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
