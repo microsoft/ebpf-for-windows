@@ -121,14 +121,14 @@ size_t _ebpf_native_global_variable_section_info_supported_size[] = {EBPF_NATIVE
     EBPF_SIZE_INCLUDING_FIELD(global_variable_section_data_t, address_of_map_value)
 size_t _ebpf_native_global_variable_section_data_supported_size[] = {EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_SIZE_0};
 
-#define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, dispatch_table)
+#define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_dispatch)
 size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_data_t, dispatch_table)
 size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
 #define EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_dispatch_table_t, process_map_delete_element)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, process_map_delete_element)
 size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 \
@@ -794,7 +794,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
 }
 
 static bool
-_ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch_table_t* dispatch_table)
+_ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_base_map_provider_dispatch_table_t* dispatch_table)
 {
     if (dispatch_table == NULL ||
         !_ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DISPATCH_TABLE, &dispatch_table->header)) {
@@ -802,11 +802,11 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_map_provider_dispatch
     }
 
     // Create a local copy of the dispatch table.
-    ebpf_map_provider_dispatch_table_t local_dispatch_table = {0};
+    ebpf_base_map_provider_dispatch_table_t local_dispatch_table = {0};
     memcpy(
         &local_dispatch_table,
         dispatch_table,
-        min(dispatch_table->header.size, sizeof(ebpf_map_provider_dispatch_table_t)));
+        min(dispatch_table->header.size, sizeof(ebpf_base_map_provider_dispatch_table_t)));
 
     if (local_dispatch_table.header.version == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
         if (local_dispatch_table.header.size == EBPF_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
@@ -830,5 +830,5 @@ ebpf_validate_map_provider_data(_In_ const ebpf_map_provider_data_t* map_provide
     return (
         (map_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DATA, &map_provider_data->header) &&
-        (_ebpf_validate_map_provider_dispatch_table(map_provider_data->dispatch_table)));
+        (_ebpf_validate_map_provider_dispatch_table(map_provider_data->base_provider_dispatch)));
 }

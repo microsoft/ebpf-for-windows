@@ -310,7 +310,7 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_process_map_find_element_t process_map_find_element;
     ebpf_process_map_add_element_t process_map_add_element;
     ebpf_process_map_delete_element_t process_map_delete_element;
-} ebpf_map_provider_dispatch_table_t;
+} ebpf_base_map_provider_dispatch_table_t;
 
 /**
  * @brief Allocate memory under epoch control.
@@ -387,7 +387,7 @@ typedef struct _ebpf_map_provider_data
     uint32_t map_type;           // Custom map type implemented by the provider.
     uint32_t base_map_type;      // Base map type used to implement the custom map.
     bool updates_original_value; // Whether the provider updates the original values stored in the map.
-    ebpf_map_provider_dispatch_table_t* dispatch_table;
+    ebpf_base_map_provider_dispatch_table_t* base_provider_dispatch;
 } ebpf_map_provider_data_t;
 
 /**

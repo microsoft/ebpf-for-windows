@@ -190,7 +190,7 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_upd
     _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
-static ebpf_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table = {
+static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table = {
     .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _test_sample_hash_map_create,
     .process_map_delete = _test_sample_hash_map_delete,

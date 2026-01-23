@@ -4032,9 +4032,9 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_custom_map
 {
     ebpf_core_map_t core_map; // Base map structure
 
-    ebpf_lock_t lock;                                      // Synchronization lock
-    ebpf_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
-    void* provider_context;                                // Provider context returned during attach
+    ebpf_lock_t lock;                                           // Synchronization lock
+    ebpf_base_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
+    void* provider_context;                                     // Provider context returned during attach
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
@@ -4517,7 +4517,7 @@ _ebpf_custom_map_client_attach_provider(
     NTSTATUS status = STATUS_SUCCESS;
     void* provider_binding_context;
     void* provider_dispatch;
-    ebpf_map_provider_dispatch_table_t* provider_dispatch_table = NULL;
+    ebpf_base_map_provider_dispatch_table_t* provider_dispatch_table = NULL;
     bool lock_acquired = false;
     ebpf_lock_state_t state = 0;
 
@@ -4559,8 +4559,8 @@ _ebpf_custom_map_client_attach_provider(
 
     // Provider supports the requested map type.
     // Create a cache-aligned copy of the dispatch table for hot path performance.
-    provider_dispatch_table = (ebpf_map_provider_dispatch_table_t*)ebpf_allocate_cache_aligned_with_tag(
-        sizeof(ebpf_map_provider_dispatch_table_t), EBPF_POOL_TAG_CUSTOM_MAP);
+    provider_dispatch_table = (ebpf_base_map_provider_dispatch_table_t*)ebpf_allocate_cache_aligned_with_tag(
+        sizeof(ebpf_base_map_provider_dispatch_table_t), EBPF_POOL_TAG_CUSTOM_MAP);
     if (!provider_dispatch_table) {
         status = STATUS_NO_MEMORY;
         goto Done;
@@ -4588,8 +4588,8 @@ _ebpf_custom_map_client_attach_provider(
 
     memcpy(
         provider_dispatch_table,
-        provider_data->dispatch_table,
-        min(sizeof(ebpf_map_provider_dispatch_table_t), provider_data->dispatch_table->header.size));
+        provider_data->base_provider_dispatch,
+        min(sizeof(ebpf_base_map_provider_dispatch_table_t), provider_data->base_provider_dispatch->header.size));
     custom_map->provider_dispatch = provider_dispatch_table;
     provider_dispatch_table = NULL;
 
@@ -4715,7 +4715,7 @@ ebpf_custom_map_find_entry(
     }
 
     // Get provider dispatch.
-    ebpf_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
+    ebpf_base_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL);
     // Call provider's find function
     __analysis_assume(provider_dispatch != NULL);
@@ -4853,7 +4853,7 @@ ebpf_custom_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _eb
     ebpf_program_type_t program_type = ebpf_program_type_uuid(program);
 
     // Get provider dispatch.
-    ebpf_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
+    ebpf_base_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
     // Call provider's associate program function
     __analysis_assume(provider_dispatch != NULL);

@@ -177,7 +177,7 @@ _sample_map_associate_program(
 // static uint32_t _sample_supported_map_types[2] = {BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, BPF_MAP_TYPE_SAMPLE_HASH_MAP};
 
 // Sample map extension data
-static ebpf_map_provider_dispatch_table_t _sample_map_dispatch_table = {
+static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _sample_map_create,
     .process_map_delete = _sample_map_delete,

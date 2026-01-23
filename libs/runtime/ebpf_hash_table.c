@@ -652,6 +652,17 @@ _ebpf_hash_table_replace_bucket(
     }
 
     // ANUSA TODO: Call delete notification for old_data here if operation is EBPF_HASH_BUCKET_OPERATION_DELETE.
+    // if (operation == EBPF_HASH_BUCKET_OPERATION_DELETE && old_data && hash_table->notification_callback) {
+    //     result = hash_table->notification_callback(
+    //         hash_table->notification_context,
+    //         operation_context,
+    //         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+    //         key,
+    //         old_data);
+    //     if (result != EBPF_SUCCESS) {
+    //         goto Done;
+    //     }
+    // }
 
     switch (operation) {
     case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
@@ -679,7 +690,18 @@ _ebpf_hash_table_replace_bucket(
         if (index == old_bucket_count) {
             result = EBPF_KEY_NOT_FOUND;
         } else {
-            _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+            if (hash_table->notification_callback) {
+                // Ignore return value from free notification.
+                result = hash_table->notification_callback(
+                    hash_table->notification_context,
+                    operation_context,
+                    EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                    key,
+                    old_data);
+                if (result == EBPF_SUCCESS) {
+                    _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+                }
+            }
         }
         break;
     default:
@@ -714,15 +736,15 @@ Done:
                 key,
                 new_data);
         }
-        if (old_data) {
-            // Ignore return value from free notification.
-            hash_table->notification_callback(
-                hash_table->notification_context,
-                operation_context,
-                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
-                key,
-                old_data);
-        }
+        // if (old_data) {
+        //     // Ignore return value from free notification.
+        //     hash_table->notification_callback(
+        //         hash_table->notification_context,
+        //         operation_context,
+        //         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+        //         key,
+        //         old_data);
+        // }
     }
 
     // Free new_data if any. This occurs if the insert failed.
