@@ -47,7 +47,6 @@ This creates barriers for independent driver development and limits the extensib
 - eBPF programs **MUST** be able to utilize global helper functions from multiple providers simultaneously
 - The system **MUST** support discovery and resolution of global helper functions across all registered providers
 - Provider lifecycle events (attach/detach) **MUST** be handled independently for each provider
-- Global helper function name conflicts between providers **MUST** be detected and rejected during registration
 
 ### R7: Program Integrity
 - Programs **MUST** execute with the same global helper function information that was available during compilation
