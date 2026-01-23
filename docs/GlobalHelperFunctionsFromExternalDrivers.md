@@ -25,7 +25,7 @@ This creates barriers for independent driver development and limits the extensib
 - Driver developers **MUST NOT** be required to coordinate helper function registration with other drivers
 - The system **MUST** support global helper registration even when multiple drivers register helper functions with the same name
 - Global helper function identity **MUST NOT** rely solely on the helper function name (for example, it can be based on a stable ID such as a BTF ID and/or provider identity)
-- Helper function registration **MUST** be managed automatically by the system
+- The eBPF runtime **MUST** manage helper registration automatically (for example, maintaining a registry of providers and helper metadata/signatures) without requiring manual ID allocation or coordination
 
 ### R3: Per-Program Global Helper Resolution
 - Each eBPF program **MUST** have access to a consistent set of global helper functions for its lifetime
