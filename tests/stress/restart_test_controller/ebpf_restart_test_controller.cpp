@@ -125,6 +125,13 @@ create_signal_event(const char* event_name)
     unique_handle event(CreateEventA(nullptr, TRUE, FALSE, event_name));
     if (!event) {
         std::cerr << "Failed to create event: " << event_name << ", error: " << GetLastError() << std::endl;
+    } else {
+        // If event already existed, reset it to ensure known initial state
+        DWORD last_error = GetLastError();
+        if (last_error == ERROR_ALREADY_EXISTS) {
+            std::cout << "Event " << event_name << " already exists, resetting to non-signaled state" << std::endl;
+            ResetEvent(event.get());
+        }
     }
     return event;
 }
@@ -325,10 +332,29 @@ main(int argc, char* argv[])
         std::cout << "Stop result with open handles: " << stop_result << std::endl;
 
         // We expect the stop to fail (non-zero result)
-        if (stop_result == 0) {
+        // ERROR_SERVICE_NOT_ACTIVE means service was already stopped - this is unexpected
+        if (stop_result == ERROR_SERVICE_NOT_ACTIVE) {
+            std::cerr << "FAIL: ebpfcore service was already stopped before test started!" << std::endl;
+            std::cerr << "Attempting to restart service..." << std::endl;
+            DWORD start_result = start_ebpfcore();
+            if (start_result != 0) {
+                std::cerr << "FAIL: Could not restart ebpfcore, error: " << start_result << std::endl;
+            }
+            TerminateProcess(child_process.get(), 1);
+            return 1;
+        } else if (stop_result == 0) {
             std::cerr << "WARNING: ebpfcore stopped successfully despite open handles - this may indicate a regression!"
                       << std::endl;
             exit_code = 1;
+            // Restart ebpfcore before continuing to avoid breaking subsequent tests
+            std::cout << "Restarting ebpfcore to restore test environment..." << std::endl;
+            DWORD start_result = start_ebpfcore();
+            if (start_result != 0) {
+                std::cerr << "ERROR: Could not restart ebpfcore, error: " << start_result << std::endl;
+                TerminateProcess(child_process.get(), 1);
+                return 1;
+            }
+            Sleep(2000); // Let driver stabilize
         } else {
             std::cout << "PASS: Stop correctly failed with error code: " << stop_result << std::endl;
         }

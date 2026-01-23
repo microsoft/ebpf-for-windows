@@ -316,10 +316,22 @@ mode_pin_objects()
 {
     std::cout << "Mode: PIN_OBJECTS - Creating, pinning, and releasing objects" << std::endl;
 
+    // First, try to unpin any existing objects from previous runs to make this idempotent
+    ebpf_result_t unpin_result = ebpf_object_unpin(PIN_PATH_MAP);
+    if (unpin_result == EBPF_SUCCESS) {
+        std::cout << "Unpinned existing map from previous run" << std::endl;
+    }
+    unpin_result = ebpf_object_unpin(PIN_PATH_PROGRAM);
+    if (unpin_result == EBPF_SUCCESS) {
+        std::cout << "Unpinned existing program from previous run" << std::endl;
+    }
+
     // Create a map
     unique_fd map_fd(create_test_map());
     if (map_fd.get() < 0) {
         std::cerr << "Failed to create map, error: " << map_fd.get() << std::endl;
+        // Signal controller even on failure to avoid timeout
+        signal_controller(SIGNAL_READY_PINNED_OBJECTS);
         return 1;
     }
 
@@ -329,6 +341,8 @@ mode_pin_objects()
     int result = bpf_obj_pin(map_fd.get(), PIN_PATH_MAP);
     if (result < 0) {
         std::cerr << "Failed to pin map, error: " << result << std::endl;
+        // Signal controller even on failure to avoid timeout
+        signal_controller(SIGNAL_READY_PINNED_OBJECTS);
         return 1;
     }
 
