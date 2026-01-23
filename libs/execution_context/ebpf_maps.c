@@ -1952,12 +1952,12 @@ _update_entry_per_cpu(
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     uint8_t* target;
-    if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+    if (table->find_entry(map, key, 0, &target) != EBPF_SUCCESS) {
         ebpf_result_t return_value = table->update_entry(map, key, NULL, option);
         if (return_value != EBPF_SUCCESS) {
             return return_value;
         }
-        if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+        if (table->find_entry(map, key, 0, &target) != EBPF_SUCCESS) {
             return EBPF_NO_MEMORY;
         }
     }
@@ -3666,7 +3666,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, true, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, EBPF_MAP_FIND_FLAG_DELETE, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3694,7 +3694,7 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, false, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, 0, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
