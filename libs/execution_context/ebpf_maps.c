@@ -1878,7 +1878,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     ebpf_core_object_t* object = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, (uint8_t**)&object);
+    ebpf_result_t result = _find_hash_map_entry(map, key, EBPF_MAP_FIND_FLAG_DELETE, (uint8_t**)&object);
     if (result == EBPF_SUCCESS) {
         ebpf_assert(object != NULL);
         EBPF_OBJECT_RELEASE_REFERENCE(object);
@@ -3141,7 +3141,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_LRU_PERCPU_HASH,
         .create_map = _create_lru_hash_map,
         .delete_map = _delete_hash_map,
-        .find_entry = _find_hash_map_entry,
+        .find_entry = _find_lru_hash_map_entry,
         .update_entry = _update_hash_map_entry,
         .update_entry_per_cpu = _update_entry_per_cpu,
         .delete_entry = _delete_hash_map_entry,
