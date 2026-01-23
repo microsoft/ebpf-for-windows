@@ -171,8 +171,8 @@ struct unique_bpf_object
 };
 } // namespace
 
-#define PIN_PATH_MAP "/ebpf/test/restart_map"
-#define PIN_PATH_PROGRAM "/ebpf/test/restart_prog"
+#define PIN_PATH_MAP "/ebpf/global/restart_map"
+#define PIN_PATH_PROGRAM "/ebpf/global/restart_prog"
 
 // Signal names for IPC with controller process
 #define SIGNAL_READY_HANDLES_OPEN "Global\\EBPF_RESTART_TEST_HANDLES_OPEN"
@@ -189,9 +189,10 @@ enum class OperationMode
 static void
 signal_controller(const char* signal_name)
 {
-    unique_handle event(CreateEventA(nullptr, TRUE, FALSE, signal_name));
+    // Open the pre-created event from the controller
+    unique_handle event(OpenEventA(EVENT_MODIFY_STATE, FALSE, signal_name));
     if (!event) {
-        std::cerr << "Failed to create event: " << signal_name << ", error: " << GetLastError() << std::endl;
+        std::cerr << "Failed to open event: " << signal_name << ", error: " << GetLastError() << std::endl;
         return;
     }
     if (!SetEvent(event.get())) {
@@ -202,27 +203,10 @@ signal_controller(const char* signal_name)
 static void
 wait_for_controller()
 {
-    ULONGLONG start_tick = GetTickCount64();
-    unique_handle event;
-
-    while (true) {
-        event.reset(OpenEventA(SYNCHRONIZE, FALSE, SIGNAL_CONTROLLER_DONE));
-        if (event) {
-            break;
-        }
-
-        DWORD error = GetLastError();
-        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_INVALID_NAME) {
-            ULONGLONG elapsed = GetTickCount64() - start_tick;
-            if (elapsed >= 30000) {
-                std::cerr << "Timeout waiting for controller event" << std::endl;
-                return;
-            }
-            Sleep(100);
-            continue;
-        }
-
-        std::cerr << "Failed to open event for waiting, error: " << error << std::endl;
+    // Open the pre-created event from the controller
+    unique_handle event(OpenEventA(SYNCHRONIZE, FALSE, SIGNAL_CONTROLLER_DONE));
+    if (!event) {
+        std::cerr << "Failed to open controller done event, error: " << GetLastError() << std::endl;
         return;
     }
 
