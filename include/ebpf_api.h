@@ -67,14 +67,14 @@ extern "C"
     } ebpf_api_program_info_t;
 
     /**
-      * @brief Get list of programs and stats in an eBPF file.
-      * @param[in] file Name of file containing eBPF programs.
-      * @param[in] verbose Obtain additional info about the programs.
-      * @param[out] infos On success points to a list of eBPF programs.
-      * The caller is responsible for freeing the list via ebpf_free_programs().
-      * @param[out] error_message On failure points to a text description of
-      *  the error.
-      */
+     * @brief Get list of programs and stats in an eBPF file.
+     * @param[in] file Name of file containing eBPF programs.
+     * @param[in] verbose Obtain additional info about the programs.
+     * @param[out] infos On success points to a list of eBPF programs.
+     * The caller is responsible for freeing the list via ebpf_free_programs().
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     */
     _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_programs(
         _In_z_ const char* file,
@@ -821,12 +821,14 @@ extern "C"
         perf_buffer_lost_fn lost_cb,
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
+
     /**
-     * @brief Get the wait handle for a ring buffer map (works with ring buffer manager).
+     * @brief Get the wait handle for a ring buffer manager.
      *
-     * Gets the wait handle for the first ring buffer map in the manager.
-     * For multiple maps, this returns the wait handle for the first map only.
-     * Use ebpf_map_set_wait_handle() for individual map control.
+     * Gets the shared wait handle for the ring buffer manager.
+     * - All maps in the manager share the same wait handle for producers to signal.
+     *
+     * Use ebpf_map_set_wait_handle() to set the wait handle for a specific map.
      *
      * @param[in] rb Ring buffer manager.
      *

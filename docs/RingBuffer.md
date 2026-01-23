@@ -252,17 +252,19 @@ ebpf_ring_buffer__new(
 
 ```c
 /**
- * Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
+ * @brief Get the wait handle for a ring buffer manager.
  *
- * Get's the wait handle maintained by the ring buffer manager.
+ * Gets the shared wait handle for the ring buffer manager.
+ * - All maps in the manager share the same wait handle for producers to signal.
  *
- * Multiple calls will return the same handle, the ring buffer manager will close the handle when destroyed.
+ * Use ebpf_map_set_wait_handle() to set the wait handle for a specific map.
  *
- * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] rb Ring buffer manager.
  *
- * @returns Wait handle
+ * @returns Wait handle for the first map, or INVALID_HANDLE_VALUE on error.
  */
-ebpf_handle ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
+ebpf_handle_t
+ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT;
 
 /**
  * @brief Ring buffer consumer page definition.

@@ -918,10 +918,10 @@ struct ring_buffer_opts
 #define ring_buffer_opts__last_field sz
 
 /**
- * @brief Creates a new ring buffer manager (Linux-compatible).
+ * @brief Creates a new ring buffer manager with synchronous callbacks.
  *
  * This function uses synchronous callbacks by default to match Linux behavior.
- * For async callbacks, use ebpf_ring_buffer__new with RINGBUF_FLAG_AUTO_CALLBACK.
+ * For async callbacks, use ebpf_ring_buffer__new with EBPF_RINGBUF_FLAG_AUTO_CALLBACK.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function.
