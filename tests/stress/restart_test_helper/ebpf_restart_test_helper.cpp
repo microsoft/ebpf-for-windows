@@ -194,7 +194,9 @@ signal_controller(const char* signal_name)
         std::cerr << "Failed to create event: " << signal_name << ", error: " << GetLastError() << std::endl;
         return;
     }
-    SetEvent(event.get());
+    if (!SetEvent(event.get())) {
+        std::cerr << "Failed to set event: " << signal_name << ", error: " << GetLastError() << std::endl;
+    }
 }
 
 static void
@@ -309,7 +311,7 @@ mode_open_handles()
     bpf_object* program_object_raw = nullptr;
     load_test_program(program_fd, program_object_raw);
     unique_bpf_object program_object(program_object_raw);
-    if (program_fd > 0) {
+    if (program_fd >= 0) {
         std::cout << "Loaded program with fd: " << program_fd << std::endl;
     }
 
@@ -354,7 +356,7 @@ mode_pin_objects()
     // Try to load and pin a program (optional)
     int program_fd = -1;
     bpf_object* program_object_raw = nullptr;
-    if (load_test_program(program_fd, program_object_raw) == 0 && program_fd > 0) {
+    if (load_test_program(program_fd, program_object_raw) == 0 && program_fd >= 0) {
         unique_bpf_object program_object(program_object_raw);
         unique_fd program_handle(program_fd);
         result = bpf_obj_pin(program_handle.get(), PIN_PATH_PROGRAM);
