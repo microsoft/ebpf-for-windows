@@ -36,7 +36,7 @@ This creates barriers for independent driver development and limits the extensib
 - Existing global helper functions **MUST** continue to work unchanged
 - Existing driver code **MUST NOT** require modification to continue functioning
 - Existing compiled programs **MUST** remain compatible
-- Mixed usage of existing and new global helper functions **MUST** be supported within the same program
+- Consequently, programs can use existing and new global helper functions together within the same program
 
 ### R5: C Program Support
 - eBPF programs written in C **MUST** be able to call global helper functions using standard function call syntax
