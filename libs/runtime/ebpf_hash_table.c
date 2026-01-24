@@ -603,6 +603,8 @@ _ebpf_hash_table_replace_bucket(
     uint8_t* new_data = NULL;
     ebpf_hash_bucket_header_t* old_bucket = NULL;
     ebpf_hash_bucket_header_t* new_bucket = NULL;
+    bool new_data_initialized = false;
+    // bool skip_old_data_callback = false;
 
     bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
 
@@ -634,6 +636,8 @@ _ebpf_hash_table_replace_bucket(
                 new_data);
             if (result != EBPF_SUCCESS) {
                 goto Done;
+            } else {
+                new_data_initialized = true;
             }
         }
     }
@@ -650,19 +654,6 @@ _ebpf_hash_table_replace_bucket(
             break;
         }
     }
-
-    // ANUSA TODO: Call delete notification for old_data here if operation is EBPF_HASH_BUCKET_OPERATION_DELETE.
-    // if (operation == EBPF_HASH_BUCKET_OPERATION_DELETE && old_data && hash_table->notification_callback) {
-    //     result = hash_table->notification_callback(
-    //         hash_table->notification_context,
-    //         operation_context,
-    //         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
-    //         key,
-    //         old_data);
-    //     if (result != EBPF_SUCCESS) {
-    //         goto Done;
-    //     }
-    // }
 
     switch (operation) {
     case EBPF_HASH_BUCKET_OPERATION_INSERT_OR_UPDATE:
@@ -690,18 +681,19 @@ _ebpf_hash_table_replace_bucket(
         if (index == old_bucket_count) {
             result = EBPF_KEY_NOT_FOUND;
         } else {
+            result = EBPF_SUCCESS;
             if (hash_table->notification_callback) {
-                // Ignore return value from free notification.
                 result = hash_table->notification_callback(
                     hash_table->notification_context,
                     operation_context,
                     EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
                     key,
                     old_data);
-                if (result == EBPF_SUCCESS) {
-                    _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
-                }
             }
+            if (result == EBPF_SUCCESS) {
+                _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+            }
+            old_data = NULL;
         }
         break;
     default:
@@ -727,7 +719,7 @@ Done:
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
     if (hash_table->notification_callback) {
-        if (new_data) {
+        if (new_data && new_data_initialized) {
             // Ignore return value from free notification.
             hash_table->notification_callback(
                 hash_table->notification_context,
@@ -736,15 +728,15 @@ Done:
                 key,
                 new_data);
         }
-        // if (old_data) {
-        //     // Ignore return value from free notification.
-        //     hash_table->notification_callback(
-        //         hash_table->notification_context,
-        //         operation_context,
-        //         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
-        //         key,
-        //         old_data);
-        // }
+        if (old_data) {
+            // Ignore return value from free notification.
+            hash_table->notification_callback(
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                key,
+                old_data);
+        }
     }
 
     // Free new_data if any. This occurs if the insert failed.

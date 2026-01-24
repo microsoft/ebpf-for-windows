@@ -260,7 +260,7 @@ typedef class _test_sample_map_provider
         test_sample_map_provider_t* map_provider = (test_sample_map_provider_t*)provider_context;
         ebpf_map_client_data_t* client_data =
             (ebpf_map_client_data_t*)client_registration_instance->NpiSpecificCharacteristics;
-        ebpf_map_client_dispatch_table_t* client_dispatch_table = client_data->dispatch_table;
+        ebpf_base_map_client_dispatch_table_t* client_dispatch_table = client_data->dispatch_table;
 
         map_provider->set_dispatch_table(client_dispatch_table);
         map_provider->set_map_context_offset(client_data->map_context_offset);
@@ -284,12 +284,12 @@ typedef class _test_sample_map_provider
     }
 
     void
-    set_dispatch_table(_In_ ebpf_map_client_dispatch_table_t* client_dispatch_table)
+    set_dispatch_table(_In_ ebpf_base_map_client_dispatch_table_t* client_dispatch_table)
     {
-        memcpy(&_client_dispatch_table, client_dispatch_table, sizeof(ebpf_map_client_dispatch_table_t));
+        memcpy(&_client_dispatch_table, client_dispatch_table, sizeof(ebpf_base_map_client_dispatch_table_t));
     }
 
-    ebpf_map_client_dispatch_table_t*
+    ebpf_base_map_client_dispatch_table_t*
     dispatch_table()
     {
         return &_client_dispatch_table;
@@ -325,7 +325,7 @@ typedef class _test_sample_map_provider
         (PNPI_PROVIDER_CLEANUP_BINDING_CONTEXT_FN)_map_provider_cleanup_binding_context,
         {0, sizeof(NPI_REGISTRATION_INSTANCE), &EBPF_MAP_INFO_EXTENSION_IID, &_map_module_id, 0, NULL}};
 
-    ebpf_map_client_dispatch_table_t _client_dispatch_table = {};
+    ebpf_base_map_client_dispatch_table_t _client_dispatch_table = {};
 
     static uint64_t _map_context_offset;
     bool _object_map = false;

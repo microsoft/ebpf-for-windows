@@ -143,7 +143,7 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION 1
 #define EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_dispatch)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_table)
 #define EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_map_provider_data_t)
 #define EBPF_MAP_PROVIDER_DATA_HEADER             \
     {EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION,      \
@@ -169,8 +169,8 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION 1
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, find_element_function)
-#define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_map_client_dispatch_table_t)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_client_dispatch_table_t, find_element_function)
+#define EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_base_map_client_dispatch_table_t)
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER             \
     {EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION,      \
      EBPF_MAP_CLIENT_DISPATCH_TABLE_CURRENT_VERSION_SIZE, \

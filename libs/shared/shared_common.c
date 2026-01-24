@@ -121,7 +121,7 @@ size_t _ebpf_native_global_variable_section_info_supported_size[] = {EBPF_NATIVE
     EBPF_SIZE_INCLUDING_FIELD(global_variable_section_data_t, address_of_map_value)
 size_t _ebpf_native_global_variable_section_data_supported_size[] = {EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_SIZE_0};
 
-#define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_dispatch)
+#define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_table)
 size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_data_t, dispatch_table)
@@ -132,7 +132,7 @@ size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
 
 #define EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0 \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_dispatch_table_t, epoch_free_cache_aligned)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_client_dispatch_table_t, epoch_free_cache_aligned)
 size_t _ebpf_map_client_dispatch_table_supported_size[] = {EBPF_MAP_CLIENT_DISPATCH_TABLE_SIZE_0};
 
 struct _ebpf_extension_data_structure_supported_sizes
@@ -830,5 +830,5 @@ ebpf_validate_map_provider_data(_In_ const ebpf_map_provider_data_t* map_provide
     return (
         (map_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_MAP_PROVIDER_DATA, &map_provider_data->header) &&
-        (_ebpf_validate_map_provider_dispatch_table(map_provider_data->base_provider_dispatch)));
+        (_ebpf_validate_map_provider_dispatch_table(map_provider_data->base_provider_table)));
 }

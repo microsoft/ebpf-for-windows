@@ -6,8 +6,8 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
-#define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
-#define EBPF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
+#define EBPF_MAP_FLAG_HELPER 0x01      /* Called by a BPF program. */
+#define EBPF_MAP_OPERATION_UPDATE 0x02 /* Update operation. */
 
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
 
@@ -197,6 +197,10 @@ typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post
  * @param[in] value_size The size of the value in bytes to be returned. Set to 0 in case of a helper function call.
  * @param[out] value Pointer to the value to be returned. NULL if this is a helper function call.
  * @param[in] flags Find flags.
+ *    EBPF_MAP_FLAG_HELPER - The find is invoked from a BPF program.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
  */
 typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
     _In_ void* binding_context,
@@ -220,6 +224,7 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
  * @param[in] value Optionally, the value to associate with the key.
  * @param[in] option Update option.
  * @param[in] flags Update flags.
+ *      EBPF_MAP_FLAG_HELPER - The update is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
@@ -235,14 +240,15 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
     _Out_writes_opt_(out_value_size) uint8_t* out_value,
-    // size_t value_size,
-    // // _In_reads_opt_(value_size) const uint8_t* old_value,
-    // _Inout_updates_(value_size) uint8_t* new_value,
-    // ebpf_map_option_t option,
     uint32_t flags);
 
 /**
  * @brief Process map entry deletion.
+ * This function can be called in two scenarios:
+ *      1. Normal map entry delete operation.
+ *      2. A delete as part of an update operation (i.e., when updating an existing entry).
+ * In the latter case, the flag EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. In this
+ * case the extension cannot fail the call.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
@@ -251,7 +257,9 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * associated value is deleted.
  * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
  * @param[out] value Pointer to the value associated with the key.
- * @param[in] flags Delete flags.
+ * @param[in] flags Delete flags. Possible values:
+ *      EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation.
+ *      EBPF_MAP_FLAG_HELPER - The delete is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
@@ -296,6 +304,12 @@ typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
  */
 typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
     _In_ void* binding_context, _In_ void* map_context, _In_ const ebpf_program_type_t* program_type);
+
+typedef struct _ebpf_base_map_provider_properties
+{
+    ebpf_extension_header_t header;
+    bool updates_original_value; // Whether the map supports lookup from BPF programs.
+} ebpf_base_map_provider_properties_t;
 
 /**
  * Dispatch table implemented by the eBPF extension to provide map operations.
@@ -376,7 +390,7 @@ typedef struct _ebpf_map_client_dispatch_table
     epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
     epoch_free_t epoch_free;
     epoch_free_cache_aligned_t epoch_free_cache_aligned;
-} ebpf_map_client_dispatch_table_t;
+} ebpf_base_map_client_dispatch_table_t;
 
 /**
  * @brief Custom map provider data.
@@ -384,10 +398,11 @@ typedef struct _ebpf_map_client_dispatch_table
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    uint32_t map_type;           // Custom map type implemented by the provider.
-    uint32_t base_map_type;      // Base map type used to implement the custom map.
+    uint32_t map_type;      // Custom map type implemented by the provider.
+    uint32_t base_map_type; // Base map type used to implement the custom map.
+    // ebpf_base_map_provider_properties_t base_properties; // Base map provider properties.
     bool updates_original_value; // Whether the provider updates the original values stored in the map.
-    ebpf_base_map_provider_dispatch_table_t* base_provider_dispatch;
+    ebpf_base_map_provider_dispatch_table_t* base_provider_table; ///< Pointer to base map provider dispatch table.
 } ebpf_map_provider_data_t;
 
 /**
@@ -397,7 +412,7 @@ typedef struct _ebpf_map_client_data
 {
     ebpf_extension_header_t header; ///< Standard extension header containing version and size information.
     uint64_t map_context_offset;    ///< Offset within the map structure where the provider context data is stored.
-    ebpf_map_client_dispatch_table_t* dispatch_table; ///< Pointer to client dispatch table.
+    ebpf_base_map_client_dispatch_table_t* base_client_table; ///< Pointer to base map client dispatch table.
 } ebpf_map_client_data_t;
 
 #define MAP_CONTEXT(map_pointer, offset) ((void**)(((uint8_t*)(map_pointer)) + (offset)))

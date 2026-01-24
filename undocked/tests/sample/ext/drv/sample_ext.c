@@ -105,13 +105,13 @@ static const ebpf_helper_function_addresses_t _sample_global_helper_function_add
 typedef struct _sample_hash_map_context
 {
     sample_core_map_t core;
-    ebpf_map_client_dispatch_table_t* client_dispatch;
+    ebpf_base_map_client_dispatch_table_t* client_dispatch;
 } sample_map_context_t;
 
 // typedef struct _sample_array_map
 // {
 //     sample_base_array_map_t base;
-//     ebpf_map_client_dispatch_table_t* client_dispatch;
+//     ebpf_base_map_client_dispatch_table_t* client_dispatch;
 // } sample_array_map_t;
 
 // Map provider function declarations
@@ -162,14 +162,6 @@ _sample_map_delete_entry(
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags);
 
-// static ebpf_result_t
-// _sample_map_get_next_key_and_value(
-//     _In_ void* map,
-//     size_t key_size,
-//     _In_ const uint8_t* previous_key,
-//     _Out_writes_(key_size) uint8_t* next_key,
-//     _Outptr_opt_ uint8_t** next_value);
-
 static ebpf_result_t
 _sample_map_associate_program(
     _In_ void* binding_context, _In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
@@ -203,7 +195,7 @@ static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_hash_map_prov
 
 typedef struct _sample_extension_map_provider_binding_context
 {
-    ebpf_map_client_dispatch_table_t client_dispatch_table;
+    ebpf_base_map_client_dispatch_table_t client_dispatch_table;
 } sample_extension_map_provider_binding_context_t;
 
 // Forward declarations for map provider
@@ -741,7 +733,7 @@ _sample_ebpf_extension_map_provider_attach_client(
     memcpy(
         &local_provider_context->client_dispatch_table,
         client_data->dispatch_table,
-        min(sizeof(ebpf_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
+        min(sizeof(ebpf_base_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
 
     // As per contract, map context offset is same for all the map instances created by the client.
     // Save it in a global variable.
@@ -1065,7 +1057,7 @@ _sample_hash_map_create(
     UNREFERENCED_PARAMETER(map_type);
     UNREFERENCED_PARAMETER(binding_context);
 
-    ebpf_map_client_dispatch_table_t* client_dispatch_table =
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table =
         &((sample_extension_map_provider_binding_context_t*)binding_context)->client_dispatch_table;
 
     // This is an object map. Both key and value sizes should be 4 bytes.
@@ -1108,7 +1100,7 @@ _sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* ma
         return;
     }
 
-    ebpf_map_client_dispatch_table_t* client_dispatch_table = context->client_dispatch;
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table = context->client_dispatch;
     client_dispatch_table->epoch_free_cache_aligned(context);
 }
 
@@ -1173,7 +1165,7 @@ _sample_hash_map_find_entry(
 //     return EBPF_SUCCESS;
 
 //     sample_hash_map_t* sample_map = (sample_hash_map_t*)map;
-//     ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
+//     ebpf_base_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
 //     return _sample_hash_map_update_entry_common(
 //         client_dispatch_table, &sample_map->base, key_size, key, value_size, value, option, flags);
@@ -1184,7 +1176,7 @@ _sample_hash_map_find_entry(
 // uint8_t* key, uint32_t flags)
 // {
 //     sample_hash_map_t* sample_map = (sample_hash_map_t*)map_context;
-//     ebpf_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
+//     ebpf_base_map_client_dispatch_table_t* client_dispatch_table = sample_map->client_dispatch;
 
 //     return _sample_hash_map_delete_entry_common(client_dispatch_table, &sample_map->base, key_size, key, flags);
 // }
@@ -1260,7 +1252,7 @@ _sample_ext_helper_map_get_value(
 
 //     UNREFERENCED_PARAMETER(map_type);
 
-//     ebpf_map_client_dispatch_table_t* client_dispatch_table =
+//     ebpf_base_map_client_dispatch_table_t* client_dispatch_table =
 //         &((sample_extension_map_provider_binding_context_t*)binding_context)->client_dispatch_table;
 
 //     if (key_size != sizeof(uint32_t) || value_size == 0 || max_entries == 0) {
@@ -1306,7 +1298,7 @@ _sample_ext_helper_map_get_value(
 // _sample_array_map_delete(_In_ _Post_invalid_ void* map)
 // {
 //     sample_array_map_t* array_map = (sample_array_map_t*)map;
-//     ebpf_map_client_dispatch_table_t* client_dispatch_table = array_map->client_dispatch;
+//     ebpf_base_map_client_dispatch_table_t* client_dispatch_table = array_map->client_dispatch;
 
 //     if (array_map->base.data != NULL) {
 //         client_dispatch_table->epoch_free_cache_aligned(array_map->base.data);

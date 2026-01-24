@@ -31,7 +31,7 @@ typedef struct _ebpf_core_map
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
-    uint8_t* custom_map_context; // Pointer to custom map context, if any. *Should be* NULL for regular maps.
+    uint8_t* custom_map_context; // Pointer to custom map context, if any. *Must be* NULL for regular maps.
 } ebpf_core_map_t;
 
 static inline bool
@@ -4009,7 +4009,7 @@ ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_ad
 static ebpf_result_t
 _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
-static ebpf_map_client_dispatch_table_t _ebpf_custom_map_client_dispatch_table = {
+static ebpf_base_map_client_dispatch_table_t _ebpf_custom_map_client_dispatch_table = {
     EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
     _ebpf_custom_map_find_element,
     ebpf_epoch_allocate_with_tag,
@@ -4102,9 +4102,10 @@ _ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_custom_map_t* map)
 
 typedef struct _ebpf_custom_map_operation_context
 {
-    size_t value_size;
-    uint8_t* value;
+    // size_t value_size;
+    // uint8_t* value;
     int flags;
+    bool is_update;
 } ebpf_custom_map_operation_context_t;
 
 static ebpf_result_t
@@ -4226,6 +4227,7 @@ _ebpf_custom_map_update_hash_map_entry(
 
     if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
         // If provider updates original value, allocate a local buffer to hold the new value.
+        // Note that this code path is only valid for update from user mode, not in hot path (e.g., helper calls).
         out_value = (uint8_t*)ebpf_allocate_with_tag(custom_map->actual_value_size, EBPF_POOL_TAG_MAP);
         if (out_value == NULL) {
             return EBPF_NO_MEMORY;
@@ -4278,7 +4280,8 @@ _ebpf_custom_map_update_hash_map_entry(
     // }
 
     const uint8_t* new_value = out_value ? out_value : value;
-    ebpf_custom_map_operation_context_t operation_context = {value_size, (uint8_t*)new_value, flags};
+    // ebpf_custom_map_operation_context_t operation_context = {value_size, (uint8_t*)new_value, flags};
+    ebpf_custom_map_operation_context_t operation_context = {flags, true};
 
     result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
     // ebpf_lock_unlock(&custom_map->lock, lock_state);
@@ -4304,22 +4307,10 @@ _custom_hash_map_notification(
 
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        // Ignore allocate notification.
-
-        // ebpf_assert(op_context != NULL);
-        // uint8_t* out_value = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
-        // size_t out_value_size =
-        //     UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
-        // result = custom_map->provider_dispatch->process_map_add_element(
-        //     custom_map->provider_context,
-        //     custom_map->core_map.custom_map_context,
-        //     custom_map->core_map.ebpf_map_definition.key_size,
-        //     key,
-        //     custom_map->core_map.ebpf_map_definition.value_size,
-        //     op_context->value,
-        //     out_value_size,
-        //     out_value,
-        //     op_context->flags);
+        // Ignore allocate notification as it is handled separately.
+        break;
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
+        // Ignore lookup notification as it is handled separately.
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
@@ -4334,9 +4325,6 @@ _custom_hash_map_notification(
             custom_map->actual_value_size,
             value,
             op_context->flags);
-        break;
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        // Ignore lookup notification as it is handled separately.
         break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -4588,8 +4576,8 @@ _ebpf_custom_map_client_attach_provider(
 
     memcpy(
         provider_dispatch_table,
-        provider_data->base_provider_dispatch,
-        min(sizeof(ebpf_base_map_provider_dispatch_table_t), provider_data->base_provider_dispatch->header.size));
+        provider_data->base_provider_table,
+        min(sizeof(ebpf_base_map_provider_dispatch_table_t), provider_data->base_provider_table->header.size));
     custom_map->provider_dispatch = provider_dispatch_table;
     provider_dispatch_table = NULL;
 

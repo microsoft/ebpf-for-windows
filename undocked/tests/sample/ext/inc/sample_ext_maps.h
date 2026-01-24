@@ -262,7 +262,7 @@ typedef struct _sample_hash_map_entry
 
 static ebpf_result_t
 _sample_object_hash_map_delete_entry_common(
-    ebpf_map_client_dispatch_table_t* client_dispatch_table,
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table,
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags)
@@ -316,7 +316,7 @@ _sample_object_hash_map_find_entry_common(
 
 static ebpf_result_t
 _sample_object_hash_map_update_entry_common(
-    ebpf_map_client_dispatch_table_t* client_dispatch_table,
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table,
     size_t in_value_size,
     _In_reads_(in_value_size) const uint8_t* in_value,
     size_t out_value_size,
