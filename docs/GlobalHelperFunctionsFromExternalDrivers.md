@@ -6,12 +6,12 @@ This document outlines the requirements for enabling drivers outside of `ebpfcor
 
 ## Problem Statement
 
-The current eBPF for Windows global helper function system requires:
-- **Global helpers hosted only in `ebpfcore.sys`** limiting extensibility by third-party drivers
-- **Pre-coordination of helper function registration** to prevent conflicts
-- **Static management** making it difficult for external drivers to expose custom global helper functions
+The current eBPF for Windows global helper function system has the following limitations:
+- **Global helper IDs and prototypes are centrally defined in `ebpfcore.sys`** — while extensions can override existing helper implementations via `ebpf_program_data_t.global_helper_function_addresses`, they cannot independently define new global helper IDs or prototypes without central coordination
+- **Pre-coordination is required for new global helpers** — introducing a new global helper requires updating central definitions, preventing independent driver development
+- **Static ID allocation** — new helper IDs must be allocated centrally, creating a coordination bottleneck
 
-This creates barriers for independent driver development and limits the extensibility of the eBPF ecosystem by preventing external drivers from contributing global helper functions.
+This creates barriers for independent driver development and limits the extensibility of the eBPF ecosystem by preventing external drivers from contributing new global helper functions without prior coordination with the core platform.
 
 ## Requirements
 
@@ -28,6 +28,8 @@ The requirements in this section describe properties the system must have, not a
 - The system **MUST** support global helper registration even when multiple drivers register helper functions with the same name
 - Global helper function identity **MUST NOT** rely solely on the helper function name (for example, it can be based on a stable ID such as a BTF ID and/or provider identity)
 - The eBPF runtime **MUST** manage helper registration automatically (for example, maintaining a registry of providers and helper metadata/signatures) without requiring manual ID allocation or coordination
+- The system **MUST** provide a deterministic resolution mechanism for global helper calls, based on a stable, provider-qualified identity (for example, combining provider identity with a BTF-based helper identifier), so that programs can unambiguously reference the intended helper implementation
+- If, at program load or helper resolution time, a global helper reference cannot be uniquely resolved to a single implementation (for example, due to ambiguous identity or a missing provider), the system **MUST** reject program load and return a clear, specific error indicating the resolution failure
 
 ### R3: Per-Program Global Helper Resolution
 - Each eBPF program **MUST** have access to a consistent set of global helper functions for its lifetime (from successful load/attach until detach/unload)
@@ -72,10 +74,19 @@ The requirements in this section describe properties the system must have, not a
 - Error messages provide clear diagnostics for unavailable global helper functions
 
 ### SC3: System Stability
+
+For the purposes of this section:
+- An **invocation** of an eBPF program is a single execution of that program's entry point triggered by a hook (e.g., packet arrival, syscall, timer event), from the first instruction until the program returns.
+- An eBPF program is **affected** by a provider lifecycle event if it was successfully bound to at least one global helper function supplied by that provider at verification/load time.
+
+Requirements:
 - Global helper function availability remains stable throughout each program's lifetime
 - Provider lifecycle events (registration, re-registration, and unregistration) **MUST NOT** cause running programs to crash, hang, or exhibit undefined behavior
-- Provider unregistration **MUST** block new invocations of affected eBPF programs and **MUST** wait for in-flight invocations to complete before the provider is unloaded
-- After a provider is registered again, new invocations of affected eBPF programs **MAY** resume if the provider's helper function signatures/ABIs remain compatible with what was verified and assumed during native image generation
+- During provider unregistration:
+  - The system **MUST** wait for all in-flight invocations of affected programs to complete before the provider is unloaded
+  - New invocations of affected programs **MUST** be blocked, including new program loads that would bind to the unregistering provider's helpers, new attaches of already-loaded affected programs, and new executions of already-attached affected programs
+  - Blocked operations **MUST** fail with a documented error indicating the provider is temporarily unavailable
+- After a provider is registered again, new invocations **MAY** resume if the provider's helper signatures/ABIs remain compatible with what was verified during native image generation
 
 ### SC4: Ecosystem Growth
 - Independent software vendors can develop eBPF extensions with custom global helper functions without platform dependencies
