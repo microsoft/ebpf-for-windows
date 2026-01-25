@@ -260,7 +260,7 @@ typedef class _test_sample_map_provider
         test_sample_map_provider_t* map_provider = (test_sample_map_provider_t*)provider_context;
         ebpf_map_client_data_t* client_data =
             (ebpf_map_client_data_t*)client_registration_instance->NpiSpecificCharacteristics;
-        ebpf_base_map_client_dispatch_table_t* client_dispatch_table = client_data->dispatch_table;
+        ebpf_base_map_client_dispatch_table_t* client_dispatch_table = client_data->base_client_table;
 
         map_provider->set_dispatch_table(client_dispatch_table);
         map_provider->set_map_context_offset(client_data->map_context_offset);
@@ -411,6 +411,14 @@ _test_sample_hash_map_delete_entry(
     UNREFERENCED_PARAMETER(value_size);
 
     printf("ANUSA: _test_sample_hash_map_delete_entry invoked\n");
+
+    // Allocate dummy memory to trigger fault injection if enabled.
+    void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
+    if (dummy_memory == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    } else {
+        ebpf_free(dummy_memory);
+    }
 
     if (!provider->object_map()) {
         // Nothing to do.
@@ -620,6 +628,14 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_fin
     UNREFERENCED_PARAMETER(flags);
 
     printf("ANUSA: _test_sample_hash_map_find_entry invoked\n");
+
+    // Allocate dummy memory to trigger fault injection if enabled.
+    void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
+    if (dummy_memory == NULL) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    } else {
+        ebpf_free(dummy_memory);
+    }
 
     if (!provider->object_map()) {
         // Assert that out_value is NULL.

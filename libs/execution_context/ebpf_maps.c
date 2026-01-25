@@ -40,6 +40,19 @@ _ebpf_map_type_is_custom(uint32_t map_type)
     return map_type > BPF_MAP_TYPE_MAX;
 }
 
+static __forceinline uint32_t
+_get_provider_flags(uint32_t flags, bool is_update)
+{
+    uint32_t provider_flags = 0;
+    if (flags & EBPF_MAP_FLAG_HELPER) {
+        provider_flags |= EBPF_MAP_OPERATION_HELPER;
+    }
+    if (is_update) {
+        provider_flags |= EBPF_MAP_OPERATION_UPDATE;
+    }
+    return provider_flags;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_custom_map_find_entry(
     _Inout_ ebpf_map_t* map,
@@ -4221,8 +4234,11 @@ _ebpf_custom_map_update_hash_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
     uint8_t* out_value = NULL;
+    uint32_t provider_flags;
 
     UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(value_size);
+
     ebpf_custom_map_t* custom_map = EBPF_FROM_FIELD(ebpf_custom_map_t, core_map, map);
 
     if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
@@ -4239,6 +4255,7 @@ _ebpf_custom_map_update_hash_map_entry(
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&custom_map->lock);
 
     // Invoke provider to process the update.
+    provider_flags = _get_provider_flags(flags, false);
     size_t out_value_size =
         UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
     result = custom_map->provider_dispatch->process_map_add_element(
@@ -4250,7 +4267,7 @@ _ebpf_custom_map_update_hash_map_entry(
         value,
         out_value_size,
         out_value,
-        flags);
+        provider_flags);
 
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -4304,6 +4321,7 @@ _custom_hash_map_notification(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_custom_map_t* custom_map = (ebpf_custom_map_t*)context;
     ebpf_custom_map_operation_context_t* op_context = (ebpf_custom_map_operation_context_t*)operation_context;
+    uint32_t provider_flags;
 
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
@@ -4317,6 +4335,7 @@ _custom_hash_map_notification(
             // This is a delete notification related to lookup with delete.
             break;
         }
+        provider_flags = _get_provider_flags(op_context->flags, op_context->is_update);
         result = custom_map->provider_dispatch->process_map_delete_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
@@ -4324,7 +4343,7 @@ _custom_hash_map_notification(
             key,
             custom_map->actual_value_size,
             value,
-            op_context->flags);
+            provider_flags);
         break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -4680,6 +4699,7 @@ ebpf_custom_map_find_entry(
     ebpf_custom_map_t* custom_map = CONTAINING_RECORD(map, ebpf_custom_map_t, core_map);
     ebpf_result_t result = EBPF_OPERATION_NOT_SUPPORTED;
     uint8_t* data = NULL;
+    uint32_t provider_flags = _get_provider_flags(flags, false);
 
     // If the map is configured to update the original value, and this is a helper call, fail the call.
     if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) && (flags & EBPF_MAP_FLAG_HELPER)) {
@@ -4725,7 +4745,7 @@ ebpf_custom_map_find_entry(
             data,
             out_value_size,
             value_pointer,
-            (uint32_t)flags);
+            provider_flags);
         if (result != EBPF_SUCCESS) {
             return result;
         }

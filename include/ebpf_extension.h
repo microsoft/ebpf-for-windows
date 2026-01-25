@@ -6,7 +6,7 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
-#define EBPF_MAP_FLAG_HELPER 0x01      /* Called by a BPF program. */
+#define EBPF_MAP_OPERATION_HELPER 0x01 /* Called by a BPF program. */
 #define EBPF_MAP_OPERATION_UPDATE 0x02 /* Update operation. */
 
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();

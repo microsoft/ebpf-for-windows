@@ -732,8 +732,8 @@ _sample_ebpf_extension_map_provider_attach_client(
 
     memcpy(
         &local_provider_context->client_dispatch_table,
-        client_data->dispatch_table,
-        min(sizeof(ebpf_base_map_client_dispatch_table_t), client_data->dispatch_table->header.total_size));
+        client_data->base_client_table,
+        min(sizeof(ebpf_base_map_client_dispatch_table_t), client_data->base_client_table->header.total_size));
 
     // As per contract, map context offset is same for all the map instances created by the client.
     // Save it in a global variable.
@@ -1401,7 +1401,7 @@ _sample_map_find_entry(
     sample_map_context_t* context = (sample_map_context_t*)map_context;
 
     // As this is an object map, block lookup from BPF program.
-    if ((flags & EBPF_MAP_FLAG_HELPER)) {
+    if ((flags & EBPF_MAP_OPERATION_HELPER)) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
@@ -1435,7 +1435,7 @@ _sample_map_update_entry(
     sample_map_context_t* context = (sample_map_context_t*)map_context;
 
     // Disallow update from BPF program as this is an object map.
-    if (flags & EBPF_MAP_FLAG_HELPER) {
+    if (flags & EBPF_MAP_OPERATION_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
@@ -1465,7 +1465,7 @@ _sample_map_delete_entry(
     sample_map_context_t* context = (sample_map_context_t*)map_context;
 
     // Disallow delete from BPF program as this is an object map.
-    if (flags & EBPF_MAP_FLAG_HELPER) {
+    if (flags & EBPF_MAP_OPERATION_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 

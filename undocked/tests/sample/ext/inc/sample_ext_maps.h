@@ -59,7 +59,7 @@ typedef struct _sample_hash_map_entry
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
-//     if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != map->core.key_size) {
+//     if (!(flags & EBPF_MAP_OPERATION_HELPER) && key_size != map->core.key_size) {
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
@@ -90,7 +90,8 @@ typedef struct _sample_hash_map_entry
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
-//     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->core.key_size || value_size != map->core.value_size)) {
+//     if (!(flags & EBPF_MAP_OPERATION_HELPER) && (key_size != map->core.key_size || value_size !=
+//     map->core.value_size)) {
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
@@ -116,7 +117,7 @@ typedef struct _sample_hash_map_entry
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
-//     if (!(flags & EBPF_MAP_FLAG_HELPER) && key_size != map->core.key_size) {
+//     if (!(flags & EBPF_MAP_OPERATION_HELPER) && key_size != map->core.key_size) {
 //         return EBPF_INVALID_ARGUMENT;
 //     }
 
@@ -267,7 +268,7 @@ _sample_object_hash_map_delete_entry_common(
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags)
 {
-    if (flags & EBPF_MAP_FLAG_HELPER) {
+    if (flags & EBPF_MAP_OPERATION_HELPER) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
