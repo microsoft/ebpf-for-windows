@@ -9,7 +9,7 @@
 #include "libbpf_internal.h"
 #include "platform.h"
 
-#include <windows.h>
+#include <windows.h> // per .clang-format windows should be included early.
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -20,16 +20,16 @@
 // issue #351 until we can compile and use libbpf.c directly.
 
 // Shared mapping structure for ring direct access (synchronous mode).
-struct ebpf_ring_mapping
+typedef struct _ebpf_ring_mapping
 {
     fd_t map_fd;
-    void* sample_fn; // ring_buffer_sample_fn or perf_buffer_sample_fn
+    void* sample_fn; // ring_buffer_sample_fn or perf_buffer_sample_fn.
     void* ctx;
     ebpf_ring_buffer_consumer_page_t* consumer_page;
     const ebpf_ring_buffer_producer_page_t* producer_page;
     const uint8_t* data;
     uint64_t data_size;
-};
+} ebpf_ring_mapping_t;
 
 int
 bpf_map_create(
@@ -376,7 +376,7 @@ typedef struct ring_buffer
     std::vector<ebpf_map_subscription_t*> subscriptions;
 
     // Synchronous mode mapping info.
-    std::vector<ebpf_ring_mapping> sync_maps;
+    std::vector<ebpf_ring_mapping_t> sync_maps;
     ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
 
     bool is_async_mode = false; // True for async callbacks, false for sync processing.
@@ -404,7 +404,7 @@ _convert_to_ebpf_perf_opts(_In_ const struct perf_buffer_opts* linux_opts)
 
 // Helper function to process ring buffer records from memory pages.
 static int
-_process_ring_records(_In_ const ebpf_ring_mapping& mapping)
+_process_ring_records(_In_ const ebpf_ring_mapping_t& mapping)
 {
     if (!mapping.consumer_page || !mapping.producer_page || !mapping.data || !mapping.sample_fn) {
         return -EINVAL;
@@ -437,14 +437,15 @@ _process_ring_records(_In_ const ebpf_ring_mapping& mapping)
 
             // Call the user callback with the record data.
             int result = ((ring_buffer_sample_fn)mapping.sample_fn)(mapping.ctx, (void*)record->data, data_length);
-            if (result < 0) {
-                // User callback requested to stop processing.
-                break;
-            }
-
             // Increment consumer_offset and update shared offset to return the space to the ring.
             consumer_offset += record_size;
             WriteULong64Release(&mapping.consumer_page->consumer_offset, consumer_offset);
+
+            if (result < 0) {
+                // User callback requested to stop processing.
+                return result;
+            }
+
             records_processed++;
         }
 
@@ -505,7 +506,7 @@ ebpf_ring_buffer__new(
                 goto Exit;
             }
         } else {
-            // Set up for synchronous mode - create shared wait handle for all maps
+            // Set up for synchronous mode - create shared wait handle for all maps.
             HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
             if (wait_handle == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -513,8 +514,8 @@ ebpf_ring_buffer__new(
             }
             ring_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
 
-            // Set up the first map
-            ebpf_ring_mapping map_info{};
+            // Set up the first map.
+            ebpf_ring_mapping_t map_info{};
             map_info.map_fd = map_fd;
             map_info.sample_fn = (void*)sample_cb;
             map_info.ctx = ctx;
@@ -532,13 +533,13 @@ ebpf_ring_buffer__new(
                     ring_buffer->wait_handle = ebpf_handle_invalid;
                 });
 
-            // Set the shared wait handle for this map to receive notifications
+            // Set the shared wait handle for this map to receive notifications.
             result = ebpf_map_set_wait_handle(map_fd, 0, ring_buffer->wait_handle);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
 
-            // Get direct memory access to the ring buffer map
+            // Get direct memory access to the ring buffer map.
             result = ebpf_ring_buffer_map_map_buffer(
                 map_fd,
                 reinterpret_cast<void**>(&map_info.consumer_page),
@@ -578,13 +579,13 @@ ring_buffer__free(struct ring_buffer* ring_buffer)
         return;
     }
 
-    // Clean up async subscriptions
+    // Clean up async subscriptions.
     for (auto& subscription : ring_buffer->subscriptions) {
         ebpf_map_unsubscribe(subscription);
     }
     ring_buffer->subscriptions.clear();
 
-    // Clean up sync map resources (wait handle and mapped buffers)
+    // Clean up sync map resources (wait handle and mapped buffers).
     for (auto& map_info : ring_buffer->sync_maps) {
         (void)ebpf_map_set_wait_handle(map_info.map_fd, 0, ebpf_handle_invalid);
         if (map_info.consumer_page) {
@@ -594,7 +595,7 @@ ring_buffer__free(struct ring_buffer* ring_buffer)
     }
     ring_buffer->sync_maps.clear();
 
-    // Clean up shared wait handle
+    // Clean up shared wait handle.
     if (ring_buffer->wait_handle != ebpf_handle_invalid) {
         CloseHandle(reinterpret_cast<HANDLE>(ring_buffer->wait_handle));
         ring_buffer->wait_handle = ebpf_handle_invalid;
@@ -616,7 +617,7 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
     }
 
     // Add to sync mode - use the shared wait handle.
-    ebpf_ring_mapping map_info{};
+    ebpf_ring_mapping_t map_info{};
     map_info.map_fd = map_fd;
     map_info.sample_fn = (void*)sample_cb;
     map_info.ctx = ctx;
@@ -694,11 +695,11 @@ ring_buffer__consume(struct ring_buffer* rb)
     }
 
     int total_records = 0;
-    // Process all available data from all ring buffers
+    // Process all available data from all ring buffers.
     for (const auto& map_info : rb->sync_maps) {
-        int result = _process_ring_records(map_info); // Process all records
+        int result = _process_ring_records(map_info); // Process all records.
         if (result < 0) {
-            return result; // Return error
+            return result; // Return error.
         }
         total_records += result;
     }
@@ -742,7 +743,7 @@ _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_
         return EBPF_OBJECT_NOT_FOUND;
     }
 
-    // Return buffer info for the specified map
+    // Return buffer info for the specified map.
     const auto& map_info = rb->sync_maps[index];
     *consumer_page = static_cast<ebpf_ring_buffer_consumer_page_t*>(map_info.consumer_page);
     *producer_page = static_cast<const ebpf_ring_buffer_producer_page_t*>(map_info.producer_page);

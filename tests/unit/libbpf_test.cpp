@@ -11,11 +11,11 @@
 #include "common_tests.h"
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
-#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
 #include "platform.h"
 #include "program_helper.h"
+#include "spec/vm_isa.hpp"
 #include "test_helper.hpp"
 
 #include <chrono>
@@ -894,7 +894,7 @@ struct ring_buffer_test_callback_context
     std::mutex mutex;
 
     void
-    add_record(const void* data, size_t size)
+    add_record(_In_ const void* data, size_t size)
     {
         std::lock_guard<std::mutex> lock(mutex);
         const uint8_t* bytes = static_cast<const uint8_t*>(data);
@@ -917,7 +917,7 @@ struct ring_buffer_test_callback_context
 };
 
 static int
-ring_buffer_test_callback(void* ctx, void* data, size_t size)
+ring_buffer_test_callback(_In_ void* ctx, _In_ void* data, size_t size)
 {
     auto* context = static_cast<ring_buffer_test_callback_context*>(ctx);
     if (context->should_stop) {
@@ -933,7 +933,7 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    // Create a ring buffer map
+    // Create a ring buffer map.
     const uint32_t max_entries = 128 * 1024;
     int map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf", 0, 0, max_entries, nullptr);
     REQUIRE(map_fd > 0);

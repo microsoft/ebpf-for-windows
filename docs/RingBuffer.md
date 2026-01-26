@@ -174,7 +174,7 @@ int ring_buffer__add(struct ring_buffer *rb, int map_fd, ring_buffer_sample_fn s
  * If timeout_ms is zero, poll will not wait but only invoke the callback on records that are ready.
  * If timeout_ms is -1, poll will wait until data is ready (no timeout).
  *
- * This function is only supported when automatic callbacks are disabled.
+ * This function is only supported when automatic callbacks are not enabled.
  *
  * @note Discarded records are skipped over and ignored (not included in the return count).
  *
@@ -207,13 +207,13 @@ void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
 
 
 //
-// Windows-specific Ring Buffer APIs
+// Windows-specific Ring Buffer APIs.
 //
 
 /**
  * @brief Ring buffer options structure.
  *
- * This structure extends ring_buffer_opts with ebpf-for-windows-specific fields.
+ * This structure extends ring_buffer_opts with Windows-specific fields.
  * The first field(s) must match ring_buffer_opts exactly for compatibility.
  */
 struct ebpf_ring_buffer_opts
@@ -432,7 +432,7 @@ For(;;) {
     // Wait for rb to notify -- or we could spin/poll until *prod_offset > *cons_offset.
     DWORD wait_status = WaitForSingleObject(wait_handle, INFINITE);
 
-    if (wait_status != WAIT_OBJECT_0) { // No notification
+    if (wait_status != WAIT_OBJECT_0) { // No notification.
       uint32_t wait_err = GetLastError();
       if (wait_err == /* terminal error */) {
         // … log error …
@@ -485,22 +485,22 @@ Exit:
 #### Polling ring buffer consumer (using ringbuf manager, matches Linux code)
 
 ```c
-// sample callback
+// Sample callback.
 int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
   // … business logic to handle record …
   return 0;
 }
 
-// consumer code
+// Consumer code.
 fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd == ebpf_fd_invalid) return 1;
 
 struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn, nullptr, nullptr);
 if (rb == NULL) return 1;
 
-// now loop as long as there isn't an error
+// Now loop as long as there isn't an error.
 while(ring_buffer__poll(rb, -1) >= 0) {
-  // data processed by event callback
+  // Data processed by event callback.
 }
 
 ring_buffer__free(rb);
@@ -509,20 +509,20 @@ ring_buffer__free(rb);
 #### Asynchronous ring buffer consumer (Windows-specific)
 
 ```c
-// sample callback - this will be called automatically for each record
+// Sample callback - this will be called automatically for each record.
 int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
   // … business logic to handle record …
   return 0;
 }
 
-// consumer code
+// Consumer code.
 fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd == ebpf_fd_invalid) return 1;
 
-// Set up Windows-specific ring buffer options for automatic callbacks
+// Set up Windows-specific ring buffer options for automatic callbacks.
 struct ebpf_ring_buffer_opts opts = {};
 opts.sz = sizeof(opts);
-opts.flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK; // Enable automatic callbacks
+opts.flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK; // Enable automatic callbacks.
 
 struct ring_buffer *rb = ebpf_ring_buffer__new(map_fd, ring_buffer_sample_fn, nullptr, &opts);
 if (rb == NULL) return 1;
@@ -532,8 +532,8 @@ if (rb == NULL) return 1;
 // The ring buffer manager handles the processing automatically.
 
 // Keep the application running while callbacks are processed
-// (actual application logic would determine when to exit)
-Sleep(60000); // Sleep for 60 seconds or until application should exit
+// (actual application logic would determine when to exit).
+Sleep(60000); // Sleep for 60 seconds or until application should exit.
 
 ring_buffer__free(rb);
 ```
@@ -547,7 +547,7 @@ size_t page_size = 4096;
 int map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd < 0) return 1;
 
-// Fetch map info to get max_entries
+// Fetch map info to get max_entries.
 struct bpf_map_info info = {};
 uint32_t info_len = sizeof(info);
 if (bpf_obj_get_info_by_fd(map_fd, &info, &info_len) != 0) {
@@ -593,7 +593,7 @@ For(;;) {
   if (!have_data) { // Only wait if we have already caught up.
     struct epoll_event events[1];
     int nfds = epoll_wait(epoll_fd, events, 1, -1);
-    if (nfds == 0) { // No signal
+    if (nfds == 0) { // No signal.
         continue;
     } else if (nfds < 0) {
       // … handle any terminal errors …
@@ -622,7 +622,7 @@ For(;;) {
 
   // Check if the record is locked.
   if (record_header & (1U << 31)) {
-      // Record is locked, wait for it to be unlocked
+      // Record is locked, wait for it to be unlocked.
       continue;
   }
 
