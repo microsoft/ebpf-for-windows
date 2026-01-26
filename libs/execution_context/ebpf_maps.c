@@ -1708,7 +1708,7 @@ _find_lru_hash_map_entry(
 
     if (delete_on_success) {
         // Delete is atomic.
-        // Only return value of both find and delete succeeded.
+        // Only return value if both find and delete succeeded.
         if (_delete_hash_map_entry(map, key) != EBPF_SUCCESS) {
             value = NULL;
         }
@@ -3666,7 +3666,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, EBPF_MAP_FIND_FLAG_DELETE, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, flags | EBPF_MAP_FIND_FLAG_DELETE, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3694,7 +3694,7 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, 0, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, flags, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
