@@ -133,7 +133,7 @@ To help prioritize issues, the triage drivers and maintainers MUST use *special 
 ### P1:
 This label represents highest priority. This label should ONLY be applied to bugs or features with quantifiable business impact. Quantifiable business impact may include number of users, business blocked, or deployment blocked. Bugs with only qualitative impact (descriptions without numbers) will be ranked lower than quantifiable P1 bugs. `P1` issues MUST be set to the *current milestone*.
 ### P2:
-This label is used for the next level of priority. Issues marked as `P2` will be set to future milestones (preferred).
+This label is used for the next level of priority. Issues marked as `P2` will be set to future milestones.
 ### P3:
 This label is used for low priority issues. Issues marked as `P3` can be set to future milestones beyond 3 months or the `Backlog` milestone.
 
