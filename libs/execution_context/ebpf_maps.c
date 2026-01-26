@@ -4159,7 +4159,7 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             next_key,
             map->actual_value_size,
             value,
-            0);
+            EBPF_MAP_OPERATION_MAP_CLEANUP);
 
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)core_map->data, NULL, previous_key));
@@ -4332,7 +4332,7 @@ _custom_hash_map_notification(
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
-            // This is a delete notification related to lookup with delete.
+            // Skip free notification if no operation context is provided.
             break;
         }
         provider_flags = _get_provider_flags(op_context->flags, op_context->is_update);

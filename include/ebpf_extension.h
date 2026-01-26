@@ -6,8 +6,9 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
-#define EBPF_MAP_OPERATION_HELPER 0x01 /* Called by a BPF program. */
-#define EBPF_MAP_OPERATION_UPDATE 0x02 /* Update operation. */
+#define EBPF_MAP_OPERATION_HELPER 0x01      /* Called by a BPF program. */
+#define EBPF_MAP_OPERATION_UPDATE 0x02      /* Update operation. */
+#define EBPF_MAP_OPERATION_MAP_CLEANUP 0x04 /* Map cleanup operation. */
 
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
 
@@ -244,11 +245,13 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
 
 /**
  * @brief Process map entry deletion.
- * This function can be called in two scenarios:
+ * This function can be called in below three scenarios:
  *      1. Normal map entry delete operation.
  *      2. A delete as part of an update operation (i.e., when updating an existing entry).
- * In the latter case, the flag EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. In this
- * case the extension cannot fail the call.
+ *      3. A delete as part of a map cleanup operation.
+ * When delete is part of update operation, flag EBPF_MAP_OPERATION_UPDATE is set in the flags parameter.
+ * When map cleanup is in progress, flag EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter.
+ * In both these cases, the extension must not fail the delete operation.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
@@ -259,6 +262,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * @param[out] value Pointer to the value associated with the key.
  * @param[in] flags Delete flags. Possible values:
  *      EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation.
+ *      EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation.
  *      EBPF_MAP_FLAG_HELPER - The delete is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.

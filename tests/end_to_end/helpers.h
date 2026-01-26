@@ -410,14 +410,18 @@ _test_sample_hash_map_delete_entry(
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(value_size);
 
-    printf("ANUSA: _test_sample_hash_map_delete_entry invoked\n");
+    if (provider->object_map() && (flags & EBPF_MAP_OPERATION_HELPER)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
 
     // Allocate dummy memory to trigger fault injection if enabled.
-    void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
-    if (dummy_memory == NULL) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    } else {
-        ebpf_free(dummy_memory);
+    if (!(flags & EBPF_MAP_OPERATION_UPDATE) && !(flags & EBPF_MAP_OPERATION_MAP_CLEANUP)) {
+        void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
+        if (dummy_memory == NULL) {
+            return EBPF_OPERATION_NOT_SUPPORTED;
+        } else {
+            ebpf_free(dummy_memory);
+        }
     }
 
     if (!provider->object_map()) {
@@ -627,8 +631,6 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_fin
     UNREFERENCED_PARAMETER(in_value_size);
     UNREFERENCED_PARAMETER(flags);
 
-    printf("ANUSA: _test_sample_hash_map_find_entry invoked\n");
-
     // Allocate dummy memory to trigger fault injection if enabled.
     void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
     if (dummy_memory == NULL) {
@@ -666,8 +668,6 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_upd
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(flags);
-
-    printf("ANUSA: _test_sample_hash_map_update_entry invoked\n");
 
     if (!provider->object_map()) {
         // Assert that out_value is NULL.

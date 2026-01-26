@@ -690,11 +690,12 @@ _ebpf_hash_table_replace_bucket(
                     EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
                     key,
                     old_data);
+                old_data_notified = true;
                 if (result != EBPF_SUCCESS) {
                     // Do not modify the hash table if the delete notification fails.
-                    goto Done;
+                    // goto Done;
+                    break;
                 }
-                old_data_notified = true;
             }
             // No failure path after successful delete notification.
             _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
