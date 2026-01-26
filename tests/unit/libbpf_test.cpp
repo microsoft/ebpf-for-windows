@@ -959,13 +959,13 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
         struct ring_buffer* rb = ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, nullptr);
         REQUIRE(rb != nullptr);
 
-        // Test ring_buffer__poll with timeout 0 (non-blocking)
+        // Test ring_buffer__poll with timeout 0 (non-blocking).
         int result = ring_buffer__poll(rb, 0);
-        REQUIRE(result >= 0); // Should not error, but may be 0 records
+        REQUIRE(result >= 0); // Should not error, but may be 0 records.
 
-        // Test ring_buffer__consume
+        // Test ring_buffer__consume.
         result = ring_buffer__consume(rb);
-        REQUIRE(result >= 0); // Should not error, but may be 0 records
+        REQUIRE(result >= 0); // Should not error, but may be 0 records.
 
         ring_buffer__free(rb);
     }
@@ -975,15 +975,15 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
         struct ring_buffer* rb = ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, nullptr);
         REQUIRE(rb != nullptr);
 
-        // Create another ring buffer map
+        // Create another ring buffer map.
         int map_fd2 = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf2", 0, 0, max_entries, nullptr);
         REQUIRE(map_fd2 > 0);
 
-        // Add the second map to the ring buffer manager
+        // Add the second map to the ring buffer manager.
         int result = ring_buffer__add(rb, map_fd2, ring_buffer_test_callback, &callback_context);
         REQUIRE(result == 0);
 
-        // Test that polling works with multiple maps
+        // Test that polling works with multiple maps.
         result = ring_buffer__poll(rb, 0);
         REQUIRE(result >= 0);
 
@@ -999,7 +999,7 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    // Create a ring buffer map
+    // Create a ring buffer map.
     const uint32_t max_entries = 128 * 1024;
     int map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf", 0, 0, max_entries, nullptr);
     REQUIRE(map_fd > 0);
@@ -1025,11 +1025,11 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Test Windows-specific poll function
+        // Test Windows-specific poll function.
         int result = ring_buffer__poll(rb, 0);
         REQUIRE(result >= 0);
 
-        // Test Windows-specific consume function
+        // Test Windows-specific consume function.
         result = ring_buffer__consume(rb);
         REQUIRE(result >= 0);
 
@@ -1044,15 +1044,15 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Create another ring buffer map
+        // Create another ring buffer map.
         int map_fd2 = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf2", 0, 0, max_entries, nullptr);
         REQUIRE(map_fd2 > 0);
 
-        // Add the second map to the ring buffer manager
+        // Add the second map to the ring buffer manager.
         int result = ring_buffer__add(rb, map_fd2, ring_buffer_test_callback, &callback_context);
         REQUIRE(result == 0);
 
-        // Test that polling works with multiple maps
+        // Test that polling works with multiple maps.
         result = ring_buffer__poll(rb, 0);
         REQUIRE(result >= 0);
 
@@ -1068,7 +1068,7 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    // Create a ring buffer map
+    // Create a ring buffer map.
     const uint32_t max_entries = 128 * 1024;
     int map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf", 0, 0, max_entries, nullptr);
     REQUIRE(map_fd > 0);
@@ -1087,18 +1087,18 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
         REQUIRE(data != nullptr);
         REQUIRE(data_size > 0);
 
-        // Test that we can read the producer/consumer offsets
+        // Test that we can read the producer/consumer offsets.
         auto* consumer_page = static_cast<volatile uint64_t*>(consumer);
         auto* producer_page = static_cast<const volatile uint64_t*>(producer);
 
         uint64_t consumer_offset = ReadULong64Acquire(consumer_page);
         uint64_t producer_offset = ReadULong64Acquire(producer_page);
 
-        // Initial offsets should be 0
+        // Initial offsets should be 0.
         REQUIRE(consumer_offset == 0);
         REQUIRE(producer_offset == 0);
 
-        // Clean up
+        // Clean up.
         result = ebpf_ring_buffer_map_unmap_buffer(map_fd, consumer, producer, data);
         REQUIRE(result == EBPF_SUCCESS);
     }
@@ -1116,7 +1116,7 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
 
     SECTION("ebpf_map_set_wait_handle should set wait handle")
     {
-        // Create a dummy event handle for testing
+        // Create a dummy event handle for testing.
         HANDLE event_handle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
         REQUIRE(event_handle != nullptr);
 
@@ -1145,7 +1145,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    // Create a ring buffer map
+    // Create a ring buffer map.
     const uint32_t max_entries = 128 * 1024;
     int map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf", 0, 0, max_entries, nullptr);
     REQUIRE(map_fd > 0);
@@ -1160,11 +1160,11 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Get the wait handle
+        // Get the wait handle.
         ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(rb);
         REQUIRE(wait_handle != ebpf_handle_invalid);
 
-        // The handle should be a valid Windows event handle
+        // The handle should be a valid Windows event handle.
         REQUIRE(WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 0) == WAIT_TIMEOUT);
 
         ring_buffer__free(rb);
@@ -1178,7 +1178,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Get the wait handle - should be invalid for async mode
+        // Get the wait handle - should be invalid for async mode.
         ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(rb);
         REQUIRE(wait_handle == ebpf_handle_invalid);
 
@@ -1204,7 +1204,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         const uint8_t* data = nullptr;
         uint64_t data_size = 0;
 
-        // Get buffer info for index 0 (first map)
+        // Get buffer info for index 0 (first map).
         ebpf_result_t result = ebpf_ring_buffer_get_buffer(rb, 0, &consumer_page, &producer_page, &data, &data_size);
         REQUIRE(result == EBPF_SUCCESS);
         REQUIRE(consumer_page != nullptr);
@@ -1212,11 +1212,11 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         REQUIRE(data != nullptr);
         REQUIRE(data_size > 0);
 
-        // Test that we can read the offsets
+        // Test that we can read the offsets.
         uint64_t consumer_offset = consumer_page->consumer_offset;
         uint64_t producer_offset = producer_page->producer_offset;
 
-        // Initial offsets should be 0
+        // Initial offsets should be 0.
         REQUIRE(consumer_offset == 0);
         REQUIRE(producer_offset == 0);
 
@@ -1231,15 +1231,15 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
             ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
         REQUIRE(rb != nullptr);
 
-        // Create another ring buffer map
+        // Create another ring buffer map.
         int map_fd2 = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf2", 0, 0, max_entries, nullptr);
         REQUIRE(map_fd2 > 0);
 
-        // Add the second map to the ring buffer manager
+        // Add the second map to the ring buffer manager.
         int add_result = ring_buffer__add(rb, map_fd2, ring_buffer_test_callback, &callback_context);
         REQUIRE(add_result == 0);
 
-        // Test getting buffer info for both maps
+        // Test getting buffer info for both maps.
         ebpf_ring_buffer_consumer_page_t* consumer_page1 = nullptr;
         const ebpf_ring_buffer_producer_page_t* producer_page1 = nullptr;
         const uint8_t* data1 = nullptr;
@@ -1250,7 +1250,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         const uint8_t* data2 = nullptr;
         uint64_t data_size2 = 0;
 
-        // Get buffer info for index 0 (first map)
+        // Get buffer info for index 0 (first map).
         ebpf_result_t result1 =
             ebpf_ring_buffer_get_buffer(rb, 0, &consumer_page1, &producer_page1, &data1, &data_size1);
         REQUIRE(result1 == EBPF_SUCCESS);
@@ -1259,7 +1259,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         REQUIRE(data1 != nullptr);
         REQUIRE(data_size1 > 0);
 
-        // Get buffer info for index 1 (second map)
+        // Get buffer info for index 1 (second map).
         ebpf_result_t result2 =
             ebpf_ring_buffer_get_buffer(rb, 1, &consumer_page2, &producer_page2, &data2, &data_size2);
         REQUIRE(result2 == EBPF_SUCCESS);
@@ -1268,7 +1268,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         REQUIRE(data2 != nullptr);
         REQUIRE(data_size2 > 0);
 
-        // The two maps should have different buffer addresses
+        // The two maps should have different buffer addresses.
         REQUIRE(consumer_page1 != consumer_page2);
         REQUIRE(producer_page1 != producer_page2);
         REQUIRE(data1 != data2);
@@ -1290,7 +1290,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         const uint8_t* data = nullptr;
         uint64_t data_size = 0;
 
-        // Try to get buffer info for invalid index (should fail)
+        // Try to get buffer info for invalid index (should fail).
         ebpf_result_t result = ebpf_ring_buffer_get_buffer(rb, 999, &consumer_page, &producer_page, &data, &data_size);
         REQUIRE(result == EBPF_OBJECT_NOT_FOUND);
 
@@ -1310,7 +1310,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         const uint8_t* data = nullptr;
         uint64_t data_size = 0;
 
-        // Should fail for async mode
+        // Should fail for async mode.
         ebpf_result_t result = ebpf_ring_buffer_get_buffer(rb, 0, &consumer_page, &producer_page, &data, &data_size);
         REQUIRE(result == EBPF_INVALID_ARGUMENT);
 
