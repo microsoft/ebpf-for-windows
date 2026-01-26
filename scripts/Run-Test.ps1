@@ -101,7 +101,7 @@ if ($null -ne $procdump_process) {
             }
         }
     } catch {
-        # Ignore failures (e.g. ProcDump already exited).
+        # Ignore failures (e.g., ProcDump already exited).
     }
 }
 

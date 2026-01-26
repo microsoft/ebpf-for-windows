@@ -116,10 +116,10 @@ _epoch_skew_test_work_item_callback(_Inout_ void* context)
     if (context == nullptr) {
         return;
     }
-    auto* ctx = (epoch_skew_test_callback_context_t*)context;
-    ctx->callback_invoked->store(true, std::memory_order_release);
-    if (ctx->reader_active->load(std::memory_order_acquire)) {
-        ctx->callback_while_reader_active->store(true, std::memory_order_release);
+    auto* callback_context = (epoch_skew_test_callback_context_t*)context;
+    callback_context->callback_invoked->store(true, std::memory_order_release);
+    if (callback_context->reader_active->load(std::memory_order_acquire)) {
+        callback_context->callback_while_reader_active->store(true, std::memory_order_release);
     }
 }
 
@@ -129,24 +129,24 @@ _epoch_spin_test_work_item_callback(_Inout_ void* context)
     if (context == nullptr) {
         return;
     }
-    auto* ctx = (epoch_spin_test_context_t*)context;
-    if (ctx->object != nullptr && ctx->object_size != 0) {
+    auto* callback_context = (epoch_spin_test_context_t*)context;
+    if (callback_context->object != nullptr && callback_context->object_size != 0) {
         // The test uses VirtualAlloc'd objects and turns them into a guard page before freeing.
         // This makes an unsafe early reclamation much more likely to manifest as an access violation
         // (reader touches freed memory) instead of silently reading stale bytes from an allocator pool.
         DWORD old_protection = 0;
-        (void)VirtualProtect(ctx->object, ctx->object_size, PAGE_NOACCESS, &old_protection);
-        (void)VirtualFree(ctx->object, 0, MEM_RELEASE);
+        (void)VirtualProtect(callback_context->object, callback_context->object_size, PAGE_NOACCESS, &old_protection);
+        (void)VirtualFree(callback_context->object, 0, MEM_RELEASE);
     }
-    ctx->work_items_invoked->fetch_add(1, std::memory_order_relaxed);
-    if (ctx->reader_active->load(std::memory_order_acquire)) {
-        ctx->callbacks_while_reader_active->fetch_add(1, std::memory_order_relaxed);
+    callback_context->work_items_invoked->fetch_add(1, std::memory_order_relaxed);
+    if (callback_context->reader_active->load(std::memory_order_acquire)) {
+        callback_context->callbacks_while_reader_active->fetch_add(1, std::memory_order_relaxed);
     }
-    delete ctx;
+    delete callback_context;
 }
 
 static bool
-_try_get_environment_variable_u32(const char* name, uint32_t& value)
+_try_get_environment_variable_u32(_In_z_ const char* name, _Out_ uint32_t* value)
 {
     char buffer[64] = {0};
     DWORD length = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
@@ -160,12 +160,12 @@ _try_get_environment_variable_u32(const char* name, uint32_t& value)
         return false;
     }
 
-    value = static_cast<uint32_t>(parsed);
+    *value = static_cast<uint32_t>(parsed);
     return true;
 }
 
 static bool
-_environment_variable_equals(const char* name, const char* expected)
+_environment_variable_equals(_In_z_ const char* name, _In_z_ const char* expected)
 {
     char buffer[64] = {0};
     DWORD length = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
@@ -180,7 +180,7 @@ static uint32_t
 _get_epoch_spin_test_duration_seconds()
 {
     uint32_t seconds = 0;
-    if (_try_get_environment_variable_u32("EBPF_EPOCH_SPIN_TEST_SECONDS", seconds) && seconds > 0) {
+    if (_try_get_environment_variable_u32("EBPF_EPOCH_SPIN_TEST_SECONDS", &seconds) && seconds > 0) {
         return seconds;
     }
 
