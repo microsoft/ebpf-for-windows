@@ -85,8 +85,8 @@ Requirements:
 - During provider unregistration:
   - The system **MUST** wait for all in-flight invocations of affected programs to complete before the provider is unloaded
   - New invocations of affected programs **MUST** be blocked, including new program loads that would bind to the unregistering provider's helpers, new attaches of already-loaded affected programs, and new executions of already-attached affected programs
-  - Blocked operations **MUST** fail with a documented error indicating the provider is temporarily unavailable
-- After a provider is registered again, new invocations **MAY** resume if the provider's helper signatures/ABIs remain compatible with what was verified during native image generation
+  - Blocked operations **MUST** fail immediately (fail fast) with a documented, retryable error indicating that the provider is temporarily unavailable; blocked operations **MUST NOT** wait for provider unregistration or re-registration to complete
+- After a provider is registered again, new invocations initiated after successful re-registration **MAY** resume if the provider's helper signatures/ABIs remain compatible with what was verified during native image generation; operations that failed while the provider was unavailable are not automatically retried
 
 ### SC4: Ecosystem Growth
 - Independent software vendors can develop eBPF extensions with custom global helper functions without platform dependencies
@@ -115,6 +115,15 @@ In particular, this design is intended to be compatible with a BTF-based approac
 - Providers can publish helper function prototypes via BTF so the verifier can validate helper calls against the expected signature.
 - Helper identity can be expressed using stable identifiers derived from BTF (noting that raw BTF IDs are scoped to a given BTF object, so the overall identity may need to incorporate provider identity and/or a stable BTF identity).
 - R7 then ensures that if a provider changes a helper's signature/ABI, programs verified and native-image-generated against the old signature are rejected at load time.
+
+### Source-Level Disambiguation
+
+When multiple providers register helpers with the same C function name, disambiguation at the source level can be achieved through:
+- **Provider-specific header files**: Each provider supplies a header file that declares its helpers with provider-qualified metadata (for example, via attributes or macros that embed provider identity into the compiled program's BTF or relocation data).
+- **Toolchain-level mapping**: The compilation toolchain can emit provider-qualified identifiers in the program's BTF or relocation records, allowing the loader to resolve the correct implementation.
+- **Explicit provider binding at load time**: The program loader API can accept an optional provider binding that specifies which provider(s) should be used for helper resolution when names collide.
+
+The specific mechanism is an implementation choice; the requirement (R2) is that the system must support deterministic resolution and reject ambiguous references with a clear error.
 
 ## Conclusion
 
