@@ -147,8 +147,6 @@ typedef struct _ebpf_execution_context_state
  * @param[out] map_context Provider-defined per-map context. The eBPF core will pass this back to subsequent map
  *             operations and will eventually pass it to ebpf_process_map_delete_t.
  *
- * (ANUSA TODO: Add this detail in the md file for extensions to follow)
-
  * Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user.
  * Whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program,
  * and program can read or modify the value in place.

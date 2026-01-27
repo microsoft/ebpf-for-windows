@@ -726,7 +726,7 @@ Done:
     if (hash_table->notification_callback) {
         if (new_data && new_data_notified) {
             // Ignore return value from FREE notification during cleanup.
-            hash_table->notification_callback(
+            (void)hash_table->notification_callback(
                 hash_table->notification_context,
                 operation_context,
                 EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
@@ -736,7 +736,7 @@ Done:
         if (old_data && !old_data_notified) {
             // Old data leaves the hash table due to an update/replace.
             // Ignore return value from FREE notification.
-            hash_table->notification_callback(
+            (void)hash_table->notification_callback(
                 hash_table->notification_context,
                 operation_context,
                 EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
