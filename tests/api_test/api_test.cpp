@@ -23,7 +23,6 @@
 #include <ws2tcpip.h>
 #include <chrono>
 #include <io.h>
-#include <iomanip>
 #include <lsalookup.h>
 #include <mstcpip.h>
 #include <mutex>
@@ -2274,7 +2273,6 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     int result;
     fd_t program_fd;
     bpf_link_ptr link;
-    // int iteration = 10;
     bpf_object* object = nullptr;
 
     UNREFERENCED_PARAMETER(type);

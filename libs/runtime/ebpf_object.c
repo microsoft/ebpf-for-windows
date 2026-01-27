@@ -346,16 +346,6 @@ ebpf_object_release_reference(
     }
 
     if (new_ref_count == 0) {
-        if (object->type == EBPF_OBJECT_MAP) {
-            EBPF_LOG_MESSAGE_POINTER_ENUM(
-                EBPF_TRACELOG_LEVEL_VERBOSE,
-                EBPF_TRACELOG_KEYWORD_BASE,
-                "eBPF map object reference count reached zero",
-                object,
-                object->type);
-            int x = 2;
-            UNREFERENCED_PARAMETER(x);
-        }
         _ebpf_object_tracking_list_remove(object);
         _update_reference_history(object, EBPF_OBJECT_DESTROY, file_id, line);
         if (object->notify_reference_count_zeroed) {

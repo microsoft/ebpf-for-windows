@@ -693,7 +693,6 @@ _ebpf_hash_table_replace_bucket(
                 old_data_notified = true;
                 if (result != EBPF_SUCCESS) {
                     // Do not modify the hash table if the delete notification fails.
-                    // goto Done;
                     break;
                 }
             }

@@ -123,8 +123,5 @@
     <CustomBuild Include="custom_map_invalid.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="custom_map_operations.c">
-      <Filter>Source Files</Filter>
-    </CustomBuild>
   </ItemGroup>
 </Project>

@@ -590,51 +590,52 @@ initialized as follows:
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    size_t supported_map_type_count;                                            // Number of supported map types
-    _Field_size_(supported_map_type_count) const uint32_t* supported_map_types; // Array of supported map types
-    ebpf_map_provider_dispatch_table_t* dispatch_table;
+    uint32_t map_type;                                    ///< Custom map type implemented by the provider.
+    uint32_t base_map_type;                               ///< Base map type used to implement the custom map.
+    ebpf_base_map_provider_properties_t* base_properties; ///< Base map provider properties.
+    ebpf_base_map_provider_dispatch_table_t* base_provider_table; ///< Pointer to base map provider dispatch table.
 } ebpf_map_provider_data_t;
 
 #### `ebpf_map_provider_data_t` Struct
 This structure is used to specify all the custom map types that the extension supports. It contains the following fields:
-* `supported_map_type_count`
-* `supported_map_types`
-* `dispatch_table`
+* `map_type`
+* `base_map_type`
+* `base_properties`
+* `base_provider_table`
 
-The `supported_map_type_count` field contains the number of custom maps that the extension supports.
-The `supported_map_types` is a pointer to an array containing the map types of the custom maps that the extension supports.
-The `dispatch_table` is a pointer to the provider dispatch table that the extension provides for operations on the supported maps.
+The `map_type` is the custom map type ID that the provider wants to implement.
+The `base_map_type` is the base map type on which the custom map type will be based on. Currently only BPF_MAP_TYPE_HASH is supported.
+The `base_properties` is a pointer to a struct container map properties specified by the provider.
+The `base_provider_table` is a pointer to the provider dispatch table that the extension provides for operations on the map.
 
 #### Map ID
-eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4095 (BPF_MAP_TYPE_MAX) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_MAX for any custom map they implement.
+eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4096 (BPF_MAP_TYPE_CUSTOM_START) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_CUSTOM_START for any custom map they implement.
 
-Note: Though this is not required, extensions *can* register their map types by creating a pull request to eBPF-for-Windows
-repo and updating `ebpf_map_type_t` enum in ebpf_structs.h. This helps in any map type collision with another extension.
+Note: Extensions are **required** register the custom map types by creating a pull request to eBPF-for-Windows repo and
+updating `ebpf_map_type_t` enum in ebpf_structs.h. Map creation will fail if the map type is not registered.
 
-#### `ebpf_map_provider_dispatch_table_t` Struct
+#### `ebpf_base_map_provider_dispatch_table_t` Struct
 ```
 typedef struct _ebpf_map_provider_dispatch_table
 {
     ebpf_extension_header_t header;
     _Notnull_ ebpf_process_map_create_t process_map_create;
-    _Notnull_ ebpf_map_delete_t delete_map_function;
+    _Notnull_ ebpf_process_map_delete_t process_map_delete;
     _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
-    ebpf_map_find_element_t find_element_function;
-    ebpf_map_update_element_t update_element_function;
-    ebpf_map_delete_element_t delete_element_function;
-    ebpf_map_get_next_key_and_value_t get_next_key_and_value_function;
-} ebpf_map_provider_dispatch_table_t;
+    ebpf_process_map_find_element_t process_map_find_element;
+    ebpf_process_map_add_element_t process_map_add_element;
+    ebpf_process_map_delete_element_t process_map_delete_element;
+} ebpf_base_map_provider_dispatch_table_t;
 ```
 This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
-1. `process_map_create` - Called by eBPF runtime to create the map.
-2. `delete_map_function` - Called by eBPF runtime to delete the map.
+1. `process_map_create` - Called by eBPF runtime to process map creation.
+2. `process_map_delete` - Called by eBPF runtime to process map deletion.
 3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
-4. `find_element_function` - Function to find an entry.
-5. `update_element_function` - Function to update an entry.
-5. `delete_element_function` - Function to delete an entry.
-6. `get_next_key_and_value_function` - Function to get the next key and value.
+4. `process_map_find_element` - Function to process a map entry lookup operation.
+5. `process_map_add_element` - Function to process a map entry add operation.
+5. `process_map_delete_element` - Function to process a map entry delete operation.
 
-When `process_map_create` is invoked, the extension will allocate a map, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
+When `process_map_create` is invoked, the extension will allocate a map context, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the other APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
 
 #### `ebpf_map_client_data_t` Struct
 `ebpf_map_client_data_t` is the client data that is provided by eBPFCore to the extension when it attaches to the NMR provider. It is defined as below:
@@ -644,7 +645,7 @@ typedef struct _ebpf_map_client_data
 {
     ebpf_extension_header_t header; ///< Standard extension header containing version and size information.
     uint64_t map_context_offset;    ///< Offset within the map structure where the provider context data is stored.
-    ebpf_map_client_dispatch_table_t* dispatch_table; ///< Pointer to client dispatch table.
+    ebpf_base_map_client_dispatch_table_t* base_client_table; ///< Pointer to base map client dispatch table.
 } ebpf_map_client_data_t;
 ```
 
@@ -652,20 +653,24 @@ typedef struct _ebpf_map_client_data
 custom map is being used in a helper function. This value is constant for all the bindings from eBPFCore to the
 extension for all custom map types and instances.
 
-`dispatch_table` is the client dispatch table provided by eBPFCore to the extension. It is defined as below:
+`base_client_table` is the client dispatch table provided by eBPFCore to the extension. It is defined as below:
 ```
 typedef struct _ebpf_map_client_dispatch_table
 {
     ebpf_extension_header_t header;
+    ebpf_map_find_element_t find_element_function;
     epoch_allocate_with_tag_t epoch_allocate_with_tag;
     epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
     epoch_free_t epoch_free;
     epoch_free_cache_aligned_t epoch_free_cache_aligned;
-} ebpf_map_client_dispatch_table_t;
+} ebpf_base_map_client_dispatch_table_t;
 ```
 The client dispatch table provides *epoch based memory management* APIs that extension can use for allocating
 memory when implementing custom maps.
 See [Epoch based memory management](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/EpochBasedMemoryManagement.md) for more details on this topic.
+
+Along with that, the client dispatch table also contains the below function:
+`find_element_function` - Used by extension to query a map value given the key.
 
 ### 2.8 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper

@@ -3815,11 +3815,6 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
     uint32_t count = 0;
     uint32_t* prev_key = nullptr;
 
-    // // First call with nullptr should return key 0.
-    // int result = bpf_map_get_next_key(custom_map_fd, nullptr, &next_key);
-    // require_and_close((result == 0), custom_map_fd);
-    // require_and_close((next_key == 0), custom_map_fd);
-
     // Iterate through all keys in the map.
     prev_key = nullptr;
     count = 0;
@@ -3953,7 +3948,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result != 0), custom_map_fd);
     }
 
-    // Clean up
+    // Clean up.
     Platform::_close(custom_map_fd);
 }
 
@@ -4132,7 +4127,6 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
     fd_t config_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "config_map");
     require_and_close_object(config_map_fd > 0);
     uint32_t config_key = 0;
-    // uint32_t config_value = type == BPF_MAP_TYPE_SAMPLE_ARRAY_MAP ? 1 : 2;
     uint32_t config_value = 2;
     require_and_close_object((bpf_map_update_elem(config_map_fd, &config_key, &config_value, 0) == 0));
 

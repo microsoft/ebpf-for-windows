@@ -245,7 +245,6 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  *      1. Normal map element deletion.
  *      2. Deletion performed as part of an update operation (replacing an existing entry).
  *      3. Deletion performed as part of map cleanup.
- *
  * When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter.
  * When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter.
  * In both these cases, the provider must not fail the deletion.
@@ -309,16 +308,20 @@ typedef struct _ebpf_map_provider_dispatch_table
 
 /**
  * @brief Allocate memory under epoch control.
+ *
  * @param[in] size Size of memory to allocate
  * @param[in] tag Pool tag to use.
+ *
  * @returns Pointer to memory block allocated, or null on failure.
  */
 typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_with_tag_t)(size_t size, uint32_t tag);
 
 /**
  * @brief Allocate cache aligned memory under epoch control.
+ *
  * @param[in] size Size of memory to allocate
  * @param[in] tag Pool tag to use.
+ *
  * @returns Pointer to memory block allocated, or null on failure.
  */
 typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_cache_aligned_with_tag_t)(size_t size, uint32_t tag);
@@ -372,10 +375,9 @@ typedef struct _ebpf_map_client_dispatch_table
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    uint32_t map_type;                                    // Custom map type implemented by the provider.
-    uint32_t base_map_type;                               // Base map type used to implement the custom map.
-    ebpf_base_map_provider_properties_t* base_properties; // Base map provider properties.
-    // bool updates_original_value; // Whether the provider updates the original values stored in the map.
+    uint32_t map_type;                                            ///< Custom map type implemented by the provider.
+    uint32_t base_map_type;                                       ///< Base map type used to implement the custom map.
+    ebpf_base_map_provider_properties_t* base_properties;         ///< Base map provider properties.
     ebpf_base_map_provider_dispatch_table_t* base_provider_table; ///< Pointer to base map provider dispatch table.
 } ebpf_map_provider_data_t;
 

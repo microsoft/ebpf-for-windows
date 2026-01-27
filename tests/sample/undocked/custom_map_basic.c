@@ -25,14 +25,6 @@
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 
-// struct
-// {
-//     __uint(type, BPF_MAP_TYPE_SAMPLE_HASH_MAP);
-//     __type(key, uint32_t);
-//     __type(value, uint32_t);
-//     __uint(max_entries, 1);
-// } sample_array_map SEC(".maps");
-
 struct
 {
     __uint(type, BPF_MAP_TYPE_SAMPLE_HASH_MAP);
