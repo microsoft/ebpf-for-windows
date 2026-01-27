@@ -2,19 +2,18 @@
 
 NOTE: With [#4640](https://github.com/microsoft/ebpf-for-windows/pull/4640) The default behavior has been changed to be linux-compatible.
 - Code expecting asynchonous callbacks should switch to `ebpf_ring_buffer__new` with `EBPF_RINGBUF_FLAG_AUTO_CALLBACK` set in the opts flags.
-- The synchronous API has not been implemented yet, so `ring_buffer__new` will return a not implemented error.
 
 ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for user-mode code.
 
 *More documentation on user-mode API to be added later.*
 
-## Synchronous Consumer Support (proposal)
+## Synchronous Consumer Support
 
-The current ring buffer uses automatically invoked callbacks to read the ring buffer.
+The ebpf-for-windows ring buffer originally used automatically invoked callbacks to read the ring buffer.
 In contrast linux only supports synchronous ring buffer consumers using either the libbpf interface or directly
 accessing the shared memory, with a wait handle to block and wait for new data.
 
-This proposal adds support for synchronous callbacks (like libbpf on linux) and direct mapped memory access while preserving asynchronous callback support.
+ebpf-for-windows now uses linux-compatible synchronous callbacks by default, with the existing asynchronous callbacks supported via a flag.
 
 Asynchronous callback consumer:
 
