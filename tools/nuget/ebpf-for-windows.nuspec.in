@@ -70,5 +70,6 @@
 		<file src="..\..\external\bpftool\libbpf\src\strset.h" target="build\native\include\libbpf\src"/>
 		<file src="..\..\external\bpftool\libbpf\src\usdt.bpf.h" target="build\native\include\libbpf\src"/>
 		<file src="..\..\external\ebpf-verifier\src\ebpf_base.h" target="build\native\include"/>
+		<file src="..\..\external\ebpf-verifier\src\spec\*.h" target="build\native\include\spec"/>
 	</files>
 </package>
