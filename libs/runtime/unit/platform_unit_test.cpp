@@ -113,9 +113,6 @@ typedef struct _epoch_spin_test_context
 static void
 _epoch_skew_test_work_item_callback(_Inout_ void* context)
 {
-    if (context == nullptr) {
-        return;
-    }
     auto* callback_context = (epoch_skew_test_callback_context_t*)context;
     callback_context->callback_invoked->store(true, std::memory_order_release);
     if (callback_context->reader_active->load(std::memory_order_acquire)) {
@@ -126,9 +123,6 @@ _epoch_skew_test_work_item_callback(_Inout_ void* context)
 static void
 _epoch_spin_test_work_item_callback(_Inout_ void* context)
 {
-    if (context == nullptr) {
-        return;
-    }
     auto* callback_context = (epoch_spin_test_context_t*)context;
     if (callback_context->object != nullptr && callback_context->object_size != 0) {
         // The test uses VirtualAlloc'd objects and turns them into a guard page before freeing.
@@ -828,6 +822,9 @@ TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
                     memory_to_free = nullptr;
 
                     // Retire a work item as an observable proxy for reclamation.
+                    // The work item callback will fire when the epoch advances past the retire stamp.
+                    // We use this to detect if reclamation happens while a reader is still active.
+                    // Note: The work item doesn't free additional memory - it just observes timing.
                     work_item = ebpf_epoch_allocate_work_item(
                         &callback_context,
                         reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_skew_test_work_item_callback));
