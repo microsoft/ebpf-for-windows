@@ -139,8 +139,7 @@ _epoch_spin_test_work_item_callback(_Inout_ void* context)
     delete callback_context;
 }
 
-static bool
-_try_get_environment_variable_u32(_In_z_ const char* name, _Out_ uint32_t* value)
+_Success_(return) static bool _try_get_environment_variable_u32(_In_z_ const char* name, _Out_ uint32_t* value)
 {
     char buffer[64] = {0};
     DWORD length = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
