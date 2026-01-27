@@ -3347,7 +3347,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    // Check if this is an custom map type first
+    // Check if this is a custom map type first
     if (_ebpf_map_type_is_custom(type)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_MAP, "Creating custom map of type", type);
@@ -4431,7 +4431,7 @@ ebpf_custom_map_create(
 
 Done:
     if (custom_map) {
-        if (custom_map_context) {
+        if (custom_map_context && custom_map->provider_dispatch) {
             // Clean up custom map data if map creation failed.
             custom_map->provider_dispatch->process_map_delete(custom_map->provider_context, custom_map_context);
         }

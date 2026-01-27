@@ -55,9 +55,9 @@ The steps for authoring an eBPF extension are:
 1. Register the NPI provider.
 2. Author any program type specific Helper Functions.
 3. Author any custom maps.
-3. Invoke eBPF programs from hook(s).
-4. Register program and attach types.
-5. Register custom map types, if any.
+4. Invoke eBPF programs from hook(s).
+5. Register program and attach types.
+6. Register custom map types, if any.
 
 The following sections describe these steps in detail.
 
@@ -605,13 +605,13 @@ This structure is used to specify all the custom map types that the extension su
 
 The `map_type` is the custom map type ID that the provider wants to implement.
 The `base_map_type` is the base map type on which the custom map type will be based on. Currently only BPF_MAP_TYPE_HASH is supported.
-The `base_properties` is a pointer to a struct container map properties specified by the provider.
+The `base_properties` is a pointer to a struct containing map properties specified by the provider.
 The `base_provider_table` is a pointer to the provider dispatch table that the extension provides for operations on the map.
 
 #### Map ID
 eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4096 (BPF_MAP_TYPE_CUSTOM_START) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_CUSTOM_START for any custom map they implement.
 
-Note: Extensions are **required** register the custom map types by creating a pull request to eBPF-for-Windows repo and
+Note: Extensions are **required** to register the custom map types by creating a pull request to eBPF-for-Windows repo and
 updating `ebpf_map_type_t` enum in ebpf_structs.h. Map creation will fail if the map type is not registered.
 
 #### `ebpf_base_map_provider_dispatch_table_t` Struct
@@ -699,10 +699,10 @@ The parameter and return types for these helper functions must adhere to the `eb
 `ebpf_return_type_t` enums.
 
 ### 2.9 Helper functions that use custom maps.
-If the extension is implementing a helper function that takes an custom map as input, when the helper function is
+If the extension is implementing a helper function that takes a custom map as input, when the helper function is
 invoked, it will **not** get the map context that it had passed earlier to eBPFCore. It will instead get a pointer to
 a separate map structure that eBPFCore maintains. Using this pointer, and the `map_context_offset` provided in the
-`map_client_data`, extensions will need to get their map context. `MAP_CONTEXT()` macro is provied in `ebpf_extensions.h`
+`map_client_data`, extensions will need to get their map context. `MAP_CONTEXT()` macro is provided in `ebpf_extensions.h`
 for extensions to get their map context. Extensions should validate that the map context they got back is NULL or not,
 and handle it appropriately.
 

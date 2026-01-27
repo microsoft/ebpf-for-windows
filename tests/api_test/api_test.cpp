@@ -2386,7 +2386,7 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     REQUIRE(result == 0);
 
     // Validate that the program failed by checking the result map.
-    validate_result_map(0);
+    validate_result_map(OPERATION_FAILURE);
 
     // Now invoke "test_map_update_element" program. The value should be set to 42.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_update_element"));
