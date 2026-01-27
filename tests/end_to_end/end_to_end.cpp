@@ -3963,6 +3963,29 @@ TEST_CASE("custom_maps_user_apis", "[custom_maps]")
     _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false);
 }
 
+TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    test_sample_map_provider_t sample_map_provider_unregistered;
+    REQUIRE(
+        sample_map_provider_unregistered.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED, false) == EBPF_SUCCESS);
+
+    // Try to create map of unregistered custom map type. This should fail.
+    fd_t invalid_map_fd = bpf_map_create(
+        (enum bpf_map_type)BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED,
+        "invalid_map",
+        sizeof(uint32_t),
+        sizeof(uint32_t),
+        10,
+        nullptr);
+    REQUIRE(invalid_map_fd < 0);
+}
+
 TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
 {
     _test_helper_end_to_end test_helper;
@@ -4175,16 +4198,6 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
     uint32_t expected_value = object_map ? 1234 : value;
     validate_result_map(OPERATION_SUCCESS);
     validate_result_value_map(expected_value);
-
-    // // Lookup the sample map value and validate it is updated.
-    // if (object_map) {
-    //     validate_sample_map_value(1234);
-    //     validate_result_map(OPERATION_FAILURE);
-    // } else {
-    //     validate_sample_map_value(value + iteration);
-    //     validate_result_map(OPERATION_SUCCESS);
-    //     value += iteration;
-    // }
 
     // Now invoke "test_map_read_helper_increment_invalid" program. Map lookup should fail in this case.
     program_fd = bpf_program__fd(

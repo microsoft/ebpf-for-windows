@@ -170,7 +170,7 @@ _sample_map_associate_program(
 
 // Sample map extension data
 static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
-    EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
+    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _sample_map_create,
     .process_map_delete = _sample_map_delete,
     .associate_program_function = _sample_map_associate_program,
@@ -178,11 +178,15 @@ static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .process_map_add_element = _sample_map_update_entry,
     .process_map_delete_element = _sample_map_delete_entry};
 
-// static ebpf_map_provider_data_t _sample_array_map_provider_data = {
-//     EBPF_MAP_PROVIDER_DATA_HEADER, BPF_MAP_TYPE_SAMPLE_ARRAY_MAP, &_sample_map_dispatch_table};
+static ebpf_base_map_provider_properties_t _sample_map_provider_properties = {
+    EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
 
 static ebpf_map_provider_data_t _sample_hash_map_provider_data = {
-    EBPF_MAP_PROVIDER_DATA_HEADER, BPF_MAP_TYPE_SAMPLE_HASH_MAP, BPF_MAP_TYPE_HASH, true, &_sample_map_dispatch_table};
+    EBPF_MAP_PROVIDER_DATA_HEADER,
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP,
+    BPF_MAP_TYPE_HASH,
+    &_sample_map_provider_properties,
+    &_sample_map_dispatch_table};
 
 // Map provider context structure
 typedef struct _sample_ebpf_extension_map_provider

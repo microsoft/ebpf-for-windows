@@ -20,6 +20,8 @@ static uint32_t map_pool_tag = EBPF_TEST_POOL_TAG;
 #include "usersim/ke.h"
 #include "xdp_hooks.h"
 
+#define BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED 0xFFFC
+
 // We need the NET_BUFFER typedefs without the other NT kernel defines that
 // ndis.h might pull in and conflict with user-mode headers.
 #ifndef _NDIS_
@@ -191,7 +193,7 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_upd
     uint32_t flags);
 
 static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_table = {
-    .header = EBPF_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
+    .header = EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _test_sample_hash_map_create,
     .process_map_delete = _test_sample_hash_map_delete,
     .associate_program_function = _test_sample_map_associate_program,
@@ -199,11 +201,14 @@ static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_ta
     .process_map_add_element = _test_sample_hash_map_update_entry,
     .process_map_delete_element = _test_sample_hash_map_delete_entry};
 
+static ebpf_base_map_provider_properties_t _test_sample_hash_map_provider_properties = {
+    EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
+
 static ebpf_map_provider_data_t _test_sample_hash_map_provider_data = {
     EBPF_MAP_PROVIDER_DATA_HEADER,
     BPF_MAP_TYPE_SAMPLE_HASH_MAP,
     BPF_MAP_TYPE_HASH,
-    true,
+    &_test_sample_hash_map_provider_properties,
     &_test_sample_hash_map_dispatch_table};
 
 typedef class _test_sample_map_provider
@@ -228,14 +233,15 @@ typedef class _test_sample_map_provider
     initialize(uint32_t map_type, bool object_map)
     {
         _object_map = object_map;
-        if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED) {
             _map_provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics =
                 &_test_sample_hash_map_provider_data;
+            _test_sample_hash_map_provider_data.map_type = map_type;
         } else {
-            return EBPF_OPERATION_NOT_SUPPORTED;
+            return EBPF_INVALID_ARGUMENT;
         }
 
-        _test_sample_hash_map_provider_data.updates_original_value = object_map ? true : false;
+        _test_sample_hash_map_provider_data.base_properties->updates_original_value = object_map ? true : false;
 
         // Register as NMR provider
         NTSTATUS status = NmrRegisterProvider(&_map_provider_characteristics, this, &_map_provider_handle);

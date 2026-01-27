@@ -35,9 +35,16 @@ typedef struct _ebpf_core_map
 } ebpf_core_map_t;
 
 static inline bool
+_ebpf_map_type_is_valid(uint32_t map_type)
+{
+    return (map_type > BPF_MAP_TYPE_UNSPEC && map_type < BPF_MAP_TYPE_MAX) ||
+           (map_type > BPF_MAP_TYPE_CUSTOM_START && map_type < BPF_MAP_TYPE_CUSTOM_MAX);
+}
+
+static inline bool
 _ebpf_map_type_is_custom(uint32_t map_type)
 {
-    return map_type > BPF_MAP_TYPE_MAX;
+    return map_type > BPF_MAP_TYPE_CUSTOM_START;
 }
 
 static __forceinline uint32_t
@@ -3336,6 +3343,12 @@ ebpf_map_create(
     ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
     ebpf_notify_user_reference_count_zeroed_t zero_user_function = NULL;
 
+    if (!_ebpf_map_type_is_valid(type)) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid map type", type);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     // Check if this is an custom map type first
     if (_ebpf_map_type_is_custom(type)) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -4023,7 +4036,7 @@ static ebpf_result_t
 _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
 static ebpf_base_map_client_dispatch_table_t _ebpf_custom_map_client_dispatch_table = {
-    EBPF_MAP_CLIENT_DISPATCH_TABLE_HEADER,
+    EBPF_BASE_MAP_CLIENT_DISPATCH_TABLE_HEADER,
     _ebpf_custom_map_find_element,
     ebpf_epoch_allocate_with_tag,
     ebpf_epoch_allocate_cache_aligned_with_tag,
@@ -4525,6 +4538,7 @@ _ebpf_custom_map_client_attach_provider(
     void* provider_binding_context;
     void* provider_dispatch;
     ebpf_base_map_provider_dispatch_table_t* provider_dispatch_table = NULL;
+    ebpf_base_map_provider_properties_t properties = {0};
     bool lock_acquired = false;
     ebpf_lock_state_t state = 0;
 
@@ -4589,9 +4603,12 @@ _ebpf_custom_map_client_attach_provider(
     }
 
     custom_map->base_map_type = provider_data->base_map_type;
+    memcpy(
+        &properties,
+        provider_data->base_properties,
+        min(sizeof(ebpf_base_map_provider_properties_t), provider_data->base_properties->header.size));
     custom_map->provider_flags =
-        provider_data->updates_original_value ? EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE : 0;
-    // custom_map->updates_original_value = provider_data->updates_original_value;
+        properties.updates_original_value ? EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE : 0;
 
     memcpy(
         provider_dispatch_table,
@@ -4678,7 +4695,7 @@ _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* ke
             EBPF_TRACELOG_KEYWORD_MAP,
             "Unsupported base map type for custom map",
             custom_map->base_map_type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        return EBPF_INVALID_OBJECT;
     }
 
     *value = data;
@@ -4735,7 +4752,6 @@ ebpf_custom_map_find_entry(
                                     : 0;
 
         // Call provider's find function to process the found element.
-        // ANUSA TODO: Decide if process_map_find_element should return a value, or it should be void.
         result = provider_dispatch->process_map_find_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,

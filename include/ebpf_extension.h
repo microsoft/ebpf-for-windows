@@ -136,27 +136,25 @@ typedef struct _ebpf_execution_context_state
 #define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)
 
 /**
- * @brief Process map creation.
+ * @brief Process map creation notification.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_type The type of map to create.
  * @param[in] key_size The size of the key in bytes.
- * @param[in] value_size The size of the value in bytes.
+ * @param[in] value_size The value size requested by the caller in bytes.
  * @param[in] max_entries The maximum number of entries in the map.
- * @param[out] actual_value_size The actual size of the value in bytes.
- * @param[out] map_context The map context.
+ * @param[out] actual_value_size The value size in bytes that will actually be stored in the map.
+ * @param[out] map_context Provider-defined per-map context. The eBPF core will pass this back to subsequent map
+ *             operations and will eventually pass it to ebpf_process_map_delete_t.
  *
  * (ANUSA TODO: Add this detail in the md file for extensions to follow)
+
  * Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user.
  * Whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program,
  * and program can read or modify the value in place.
  *
- * Therefore, for maps where extension intends to *modify* the actual value being stored in the map, there are
- * 2 options:
- * 1. Disallow map lookup / update operations from BPF program. This can be determined via the flags passed to the
- * extension. For example, map lookup for XSK map is not allowed from kernel mode.
- * 2. If BPF program is allowed to lookup / update map, then the extension must ensure that the value in the map
- * contains the actual value, followed by any supplementary data required by the extension.
+ * Therefore, for maps where extension intends to *modify* the actual value being stored in the map,
+ * map CRUD operations from BPF programs are disallowed by eBPF runtime.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
@@ -172,7 +170,7 @@ typedef ebpf_result_t (*ebpf_process_map_create_t)(
     _Outptr_ void** map_context);
 
 /**
- * @brief Delete an eBPF map.
+ * @brief Process a map delete notification.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The map context to delete.
@@ -180,28 +178,23 @@ typedef ebpf_result_t (*ebpf_process_map_create_t)(
 typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
 
 /**
- * @brief Process map entry lookup.
- *        The extension behavior can vary based on whether extension modifies the actual value being stored in the map
- * or not.:
- *        1. If the extension does not intend to modify the value being returned, it can return pointer to in_value.
- *        2. In case the exten
- *        In case of helper function call, key_size and value_size will be 0, and pointer to data will directly be
- * provided to the BPF program. In case of normal map operation, key_size and value_size will be non-zero. Provider
- * needs to populate the value buffer.
+ * @brief Find (lookup) an element in a provider-backed map.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
- * @param[in] key_size The size of the key in bytes. Set to 0 in case of a helper function call.
+ * @param[in] key_size The size of the key in bytes.
  * @param[in] key Optionally, pointer to the key being looked up.
- * @param[in] actual_value_size The size of the actual value in bytes stored in the map.
- * @param[in] actual_value Pointer to the actual value stored in the map.
- * @param[in] value_size The size of the value in bytes to be returned. Set to 0 in case of a helper function call.
- * @param[out] value Pointer to the value to be returned. NULL if this is a helper function call.
- * @param[in] flags Find flags.
- *    EBPF_MAP_FLAG_HELPER - The find is invoked from a BPF program.
+ * @param[in] in_value_size The size in bytes of the provider's stored value buffer.
+ * @param[in] in_value Pointer to the provider's stored value buffer for the entry.
+ * @param[in] out_value_size The size in bytes of the output value buffer.
+ * @param[out] out_value Optional output buffer to receive the value bytes.
+ * @param[in] flags Find flags. Supported values:
+ *      EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
  */
 typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
     _In_ void* binding_context,
@@ -215,20 +208,22 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
     uint32_t flags);
 
 /**
- * @brief Process map entry update.
+ * @brief Add or update (insert/replace) an element in a provider-backed map.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
- * @param[in] key_size The size of the key in bytes. Set to 0 in case of a helper function call.
- * @param[in] key Optionally, the key to update.
- * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
- * @param[in] value Optionally, the value to associate with the key.
- * @param[in] option Update option.
- * @param[in] flags Update flags.
- *      EBPF_MAP_FLAG_HELPER - The update is invoked from a BPF program.
+ * @param[in] key_size The size of the key in bytes.
+ * @param[in] key Pointer to the key being updated (may be NULL for helper-mode operations, depending on the base map
+ *             implementation).
+ * @param[in] in_value_size The size in bytes of the input value.
+ * @param[in] in_value Pointer to the input value bytes.
+ * @param[in] out_value_size The size in bytes of the destination (stored) value buffer.
+ * @param[out] out_value Pointer to the destination (stored) value buffer to populate.
+ * @param[in] flags Update flags. Supported values:
+ *      EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
@@ -244,31 +239,31 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
     uint32_t flags);
 
 /**
- * @brief Process map entry deletion.
- * This function can be called in below three scenarios:
- *      1. Normal map entry delete operation.
- *      2. A delete as part of an update operation (i.e., when updating an existing entry).
- *      3. A delete as part of a map cleanup operation.
- * When delete is part of update operation, flag EBPF_MAP_OPERATION_UPDATE is set in the flags parameter.
- * When map cleanup is in progress, flag EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter.
- * In both these cases, the extension must not fail the delete operation.
+ * @brief Delete an element from a provider-backed map.
+ *
+ * This function can be called in three scenarios:
+ *      1. Normal map element deletion.
+ *      2. Deletion performed as part of an update operation (replacing an existing entry).
+ *      3. Deletion performed as part of map cleanup.
+ *
+ * When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter.
+ * When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter.
+ * In both these cases, the provider must not fail the deletion.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
- * @param[in] key_size The size of the key in bytes. Set to 0 in case of a helper function call.
- * @param[in] key Optionally, the key to delete. If the key is not found, the map is unchanged. If the key is found, the
- * associated value is deleted.
- * @param[in] value_size The size of the value in bytes. Set to 0 in case of a helper function call.
- * @param[out] value Pointer to the value associated with the key.
+ * @param[in] key_size The size of the key in bytes.
+ * @param[in] key Pointer to the key to delete. If the key is not found, the map is unchanged.
+ * @param[in] value_size The size in bytes of the provider's stored value buffer.
+ * @param[in] value Pointer to the provider's stored value buffer for the entry being deleted.
  * @param[in] flags Delete flags. Possible values:
  *      EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation.
  *      EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation.
- *      EBPF_MAP_FLAG_HELPER - The delete is invoked from a BPF program.
+ *      EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program.
  *
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
- *
+ * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  */
 typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     _In_ void* binding_context,
@@ -278,24 +273,6 @@ typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags);
-
-// /**
-//  * @brief Get the next key and value in the eBPF map.
-//  *
-//  * @param[in] map The eBPF map to query.
-//  * @param[in] previous_key The previous key. If NULL, get the first key.
-//  * @param[out] next_key The next key in the map.
-//  *
-//  * @retval EBPF_SUCCESS The operation was successful.
-//  * @retval EBPF_OBJECT_NOT_FOUND No more keys in the map.
-//  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
-//  */
-// typedef ebpf_result_t (*ebpf_map_get_next_key_and_value_t)(
-//     _In_ void* map,
-//     size_t key_size,
-//     _In_reads_opt_(key_size) const uint8_t* previous_key,
-//     _Out_writes_(key_size) uint8_t* next_key,
-//     _Outptr_opt_ uint8_t** next_value);
 
 /**
  * @brief Get the next key in the eBPF map.
@@ -358,26 +335,19 @@ typedef void (*epoch_free_t)(_In_opt_ void* memory);
  */
 typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
 
-// typedef ebpf_result_t (*ebpf_get_map_context_t)(_In_ const void* map, _Outptr_ void** map_context);
-
 /**
- * @brief Find an element in the eBPF map (client version).
+ * @brief Find an element in an eBPF map (client/runtime helper version).
  *
  * @param[in] map The eBPF map to query.
- * @param[in] map_context Optional map context.
- * @param[in] key_size The size of the key in bytes.
- * @param[in] key Optionally, the key to search for.
- * @param[out] value Pointer to the value associated with the key.
+ * @param[in] key Pointer to the key to search for.
+ * @param[out] value Receives a pointer to the value associated with the key.
  *
  * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_OBJECT_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
+ * @retval EBPF_INVALID_OBJECT An invalid map was provided.
  */
 typedef ebpf_result_t (*ebpf_map_find_element_t)(
-    _In_ const void* map,
-    // size_t key_size,
-    _In_ const uint8_t* key,
-    // size_t value_size,
-    _Outptr_ uint8_t** value);
+    _In_ const void* map, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
 /**
  * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
@@ -402,10 +372,10 @@ typedef struct _ebpf_map_client_dispatch_table
 typedef struct _ebpf_map_provider_data
 {
     ebpf_extension_header_t header;
-    uint32_t map_type;      // Custom map type implemented by the provider.
-    uint32_t base_map_type; // Base map type used to implement the custom map.
-    // ebpf_base_map_provider_properties_t base_properties; // Base map provider properties.
-    bool updates_original_value; // Whether the provider updates the original values stored in the map.
+    uint32_t map_type;                                    // Custom map type implemented by the provider.
+    uint32_t base_map_type;                               // Base map type used to implement the custom map.
+    ebpf_base_map_provider_properties_t* base_properties; // Base map provider properties.
+    // bool updates_original_value; // Whether the provider updates the original values stored in the map.
     ebpf_base_map_provider_dispatch_table_t* base_provider_table; ///< Pointer to base map provider dispatch table.
 } ebpf_map_provider_data_t;
 
