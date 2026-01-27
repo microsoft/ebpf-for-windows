@@ -107,6 +107,7 @@ _ebpf_state_get_entry(
 
             return_value = ebpf_hash_table_update(
                 _ebpf_state_thread_table,
+                NULL,
                 (const uint8_t*)&current_thread_id,
                 (const uint8_t*)&new_entry,
                 EBPF_HASH_TABLE_OPERATION_INSERT);

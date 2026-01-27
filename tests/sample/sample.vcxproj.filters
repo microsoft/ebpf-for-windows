@@ -117,5 +117,11 @@
     <CustomBuild Include="multiple_programs.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="custom_map_basic.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="custom_map_invalid.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

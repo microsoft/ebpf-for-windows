@@ -601,7 +601,7 @@ _ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* mod
         ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
         // Delete entry from hash table.
         ebpf_assert_success(
-            ebpf_hash_table_delete(_ebpf_native_client_table, (const uint8_t*)&module->client_module_id));
+            ebpf_hash_table_delete(_ebpf_native_client_table, NULL, (const uint8_t*)&module->client_module_id));
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
 
         EBPF_LOG_MESSAGE_GUID(
@@ -910,7 +910,7 @@ _ebpf_native_provider_attach_client_callback(
     }
     // Delete the entry from the authorized module table if it exists.
     (void)ebpf_hash_table_delete(
-        _ebpf_native_authorized_module_table, (const uint8_t*)&client_context->client_module_id);
+        _ebpf_native_authorized_module_table, NULL, (const uint8_t*)&client_context->client_module_id);
 
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     if (result != EBPF_SUCCESS) {
@@ -951,6 +951,7 @@ _ebpf_native_provider_attach_client_callback(
     }
     result = ebpf_hash_table_update(
         _ebpf_native_client_table,
+        NULL,
         (const uint8_t*)client_module_id,
         (const uint8_t*)&client_context,
         EBPF_HASH_TABLE_OPERATION_INSERT);
@@ -2425,6 +2426,7 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
     result = ebpf_hash_table_update(
         _ebpf_native_authorized_module_table,
+        NULL,
         (const uint8_t*)module_id,
         (const uint8_t*)&entry,
         EBPF_HASH_TABLE_OPERATION_ANY);
@@ -2483,7 +2485,7 @@ _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* cont
         if (current_time - authorized_entry->insertion_time > EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS) {
             // Delete the entry from the authorized module table.
             ebpf_result_t delete_result =
-                ebpf_hash_table_delete(_ebpf_native_authorized_module_table, (uint8_t*)&previous_key);
+                ebpf_hash_table_delete(_ebpf_native_authorized_module_table, NULL, (uint8_t*)&previous_key);
             if (delete_result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
