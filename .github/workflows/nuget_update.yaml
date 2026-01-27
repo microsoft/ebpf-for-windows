@@ -38,7 +38,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
         with:
           # Only check out main repo, not submodules.
           ref: ${{ github.event.workflow_run.head_branch }}
@@ -61,7 +61,7 @@ jobs:
           nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Update NuGet packages
