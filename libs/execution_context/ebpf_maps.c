@@ -36,7 +36,7 @@ typedef struct _ebpf_core_map
 static inline bool
 _ebpf_map_type_is_valid(uint32_t map_type)
 {
-    return (map_type > BPF_MAP_TYPE_UNSPEC && map_type < BPF_MAP_TYPE_MAX) ||
+    return (map_type < BPF_MAP_TYPE_MAX) ||
            (map_type > BPF_MAP_TYPE_CUSTOM_START && map_type < BPF_MAP_TYPE_CUSTOM_MAX);
 }
 
