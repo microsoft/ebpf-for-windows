@@ -23,12 +23,16 @@ image that can be loaded and used as an eBPF program.
 
 # Usage
 
-From the root of the eBPF-For-Windows project (from a VS Developer Command Prompt), after building the project, run:
+After building the eBPF for Windows project, the `Convert-BpfToNative.ps1` script is generated in the build output directory (e.g., `x64\Release\`). 
+
+From a VS Developer Command Prompt, navigate to your build output directory where your `.o` file is located, and run:
 ```
-powershell scripts\Convert-BpfToNative.ps1 -FileName my_program
+cd x64\Release
+powershell .\Convert-BpfToNative.ps1 -FileName my_program
 ```
-Where my_program is the name of your BPF program without the extension. This will produce a native image in x64\Release
-with name of my_program.sys.
+Where my_program is the name of your BPF program without the extension. This will produce a native image `my_program.sys` in the same directory.
+
+> **Note:** The `.o` file must be in the same directory as `Convert-BpfToNative.ps1` for the conversion to work.
 
 # Native Code Generation Pipeline
 
