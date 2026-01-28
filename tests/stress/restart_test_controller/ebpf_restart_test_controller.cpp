@@ -187,8 +187,7 @@ spawn_child_process(const std::string& mode, PROCESS_INFORMATION& pi)
     std::vector<char> command_line_buffer(command_line.begin(), command_line.end());
     command_line_buffer.push_back('\0');
 
-    if (!CreateProcessA(
-            nullptr, command_line_buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+    if (!CreateProcessA(nullptr, command_line_buffer.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
         std::cerr << "Failed to spawn child process, error: " << GetLastError() << std::endl;
         return nullptr;
     }
@@ -350,8 +349,12 @@ main(int argc, char* argv[])
         } else if (stop_result == 0) {
             std::cerr << "WARNING: ebpfcore stopped successfully despite open handles - this may indicate a regression!"
                       << std::endl;
+            // Use exit_code = 1 instead of return 1 here because this indicates a potential regression
+            // (driver stopped despite open handles), but we want to continue running subsequent tests
+            // to gather more diagnostic information. Other failures use return 1 to exit immediately
+            // as they indicate environment or permission issues that would cause all tests to fail.
             exit_code = 1;
-            // Restart ebpfcore before continuing to avoid breaking subsequent tests
+            // Restart ebpfcore before continuing to avoid breaking subsequent tests.
             std::cout << "Restarting ebpfcore to restore test environment..." << std::endl;
             DWORD start_result = start_ebpfcore();
             if (start_result != 0) {
@@ -361,7 +364,8 @@ main(int argc, char* argv[])
             }
             Sleep(2000); // Let driver stabilize
         } else if (stop_result == ERROR_ACCESS_DENIED) {
-            std::cerr << "FAIL: Access denied trying to stop ebpfcore - test requires administrator privileges!" << std::endl;
+            std::cerr << "FAIL: Access denied trying to stop ebpfcore - test requires administrator privileges!"
+                      << std::endl;
             TerminateProcess(child_process.get(), 1);
             return 1;
         } else if (stop_result == ERROR_SERVICE_DOES_NOT_EXIST) {
@@ -370,7 +374,8 @@ main(int argc, char* argv[])
             return 1;
         } else if (stop_result == ERROR_DEPENDENT_SERVICES_RUNNING || stop_result == ERROR_SERVICE_CANNOT_ACCEPT_CTRL) {
             // These are expected errors when the service cannot be stopped due to dependencies or state
-            std::cout << "PASS: Stop correctly failed with error code: " << stop_result << " (service in use)" << std::endl;
+            std::cout << "PASS: Stop correctly failed with error code: " << stop_result << " (service in use)"
+                      << std::endl;
         } else {
             // Other errors - could be expected blocking or unexpected failures
             std::cout << "INFO: Stop failed with error code: " << stop_result << std::endl;
