@@ -2623,11 +2623,15 @@ _delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     }
     ebpf_lock_unlock(&ring_buffer_map->async.lock, state);
     // Cancel all pending async query operations.
+    // Enter epoch to protect access to epoch-managed async tracker hash table.
+    ebpf_epoch_state_t epoch_state = {0};
+    ebpf_epoch_enter(&epoch_state);
     for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
         ebpf_core_map_async_query_context_t* context =
             EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
         ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
     }
+    ebpf_epoch_exit(&epoch_state);
     ebpf_epoch_free(ring_buffer_map);
     EBPF_LOG_EXIT();
 }
@@ -2825,7 +2829,7 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
     uint32_t ring_count = perf_event_array_map->ring_count;
 
-    // Cancel any outstanting contexts and free each ring.
+    // Cancel any outstanding contexts and free each ring.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
         // Snap the async context list.
@@ -2841,12 +2845,16 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         ebpf_lock_unlock(&ring->async.lock, state);
 
         // Cancel all pending async query operations.
+        // Enter epoch to protect access to epoch-managed async tracker hash table.
+        ebpf_epoch_state_t epoch_state = {0};
+        ebpf_epoch_enter(&epoch_state);
         for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list;
              temp_entry = temp_entry->Flink) {
             ebpf_core_map_async_query_context_t* context =
                 EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
         }
+        ebpf_epoch_exit(&epoch_state);
         ebpf_ring_buffer_destroy(ring->ring);
         ring->ring = NULL;
     }
