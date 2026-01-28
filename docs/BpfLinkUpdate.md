@@ -1,6 +1,6 @@
 # BPF_LINK_UPDATE (Atomic link program replacement)
 
-This document describes support for atomically updating the program attached to an existing eBPF link. The behavior matches the intent of Linux `bpf_link_update()` / `BPF_LINK_UPDATE`: the link identity stays the same while the program executed through that link changes.
+This document specifies atomic update of the program attached to an existing eBPF link. The behavior matches the intent of Linux `bpf_link_update()` / `BPF_LINK_UPDATE`: the link identity stays the same while the program executed through that link changes.
 
 ## Overview
 
@@ -17,7 +17,7 @@ This provides an atomic “replace program” operation for link-based attachmen
 
 ### `bpf()` syscall command
 
-The `bpf()` syscall compatibility layer supports a `BPF_LINK_UPDATE` command.
+The feature uses a `BPF_LINK_UPDATE` command in the `bpf()` syscall compatibility layer.
 
 Inputs:
 - `link_fd`: a file descriptor that refers to a link.
@@ -30,7 +30,7 @@ Supported flags:
 
 ### libbpf-style helper
 
-The libbpf-compatible API supports a `bpf_link_update()` helper that maps to `BPF_LINK_UPDATE`.
+The libbpf-compatible API includes a `bpf_link_update()` helper that maps to `BPF_LINK_UPDATE`.
 
 ## Semantics
 
