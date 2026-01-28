@@ -7,169 +7,11 @@
  * This process loads ebpfapi.dll and operates in different modes to test driver restart scenarios.
  */
 
-#include "bpf/bpf.h"
-#include "bpf/libbpf.h"
-#include "ebpf_api.h"
+#include "common_tests.h"
 
-#include <windows.h>
 #include <cstdlib>
-#include <io.h>
 #include <iostream>
-#include <memory>
 #include <string>
-
-namespace {
-struct unique_handle
-{
-    unique_handle() = default;
-    explicit unique_handle(HANDLE handle) : _handle(handle) {}
-    ~unique_handle() { reset(); }
-
-    unique_handle(const unique_handle&) = delete;
-    unique_handle&
-    operator=(const unique_handle&) = delete;
-
-    unique_handle(unique_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
-    unique_handle&
-    operator=(unique_handle&& other) noexcept
-    {
-        if (this != &other) {
-            reset();
-            _handle = other._handle;
-            other._handle = nullptr;
-        }
-        return *this;
-    }
-
-    void
-    reset(HANDLE handle = nullptr) noexcept
-    {
-        if (_handle != nullptr && _handle != INVALID_HANDLE_VALUE) {
-            CloseHandle(_handle);
-        }
-        _handle = handle;
-    }
-
-    HANDLE
-    get() const noexcept { return _handle; }
-    explicit
-    operator bool() const noexcept
-    {
-        return _handle != nullptr && _handle != INVALID_HANDLE_VALUE;
-    }
-
-  private:
-    HANDLE _handle{nullptr};
-};
-
-struct unique_fd
-{
-    unique_fd() = default;
-    explicit unique_fd(int fd) : _fd(fd) {}
-    ~unique_fd() { reset(); }
-
-    unique_fd(const unique_fd&) = delete;
-    unique_fd&
-    operator=(const unique_fd&) = delete;
-
-    unique_fd(unique_fd&& other) noexcept : _fd(other._fd) { other._fd = -1; }
-    unique_fd&
-    operator=(unique_fd&& other) noexcept
-    {
-        if (this != &other) {
-            reset();
-            _fd = other._fd;
-            other._fd = -1;
-        }
-        return *this;
-    }
-
-    void
-    reset(int fd = -1) noexcept
-    {
-        if (_fd >= 0) {
-            _close(_fd);
-        }
-        _fd = fd;
-    }
-
-    int
-    get() const noexcept
-    {
-        return _fd;
-    }
-    int
-    release() noexcept
-    {
-        int fd = _fd;
-        _fd = -1;
-        return fd;
-    }
-
-    explicit
-    operator bool() const noexcept
-    {
-        return _fd >= 0;
-    }
-
-  private:
-    int _fd{-1};
-};
-
-struct unique_bpf_object
-{
-    unique_bpf_object() = default;
-    explicit unique_bpf_object(bpf_object* object) : _object(object) {}
-    ~unique_bpf_object() { reset(); }
-
-    unique_bpf_object(const unique_bpf_object&) = delete;
-    unique_bpf_object&
-    operator=(const unique_bpf_object&) = delete;
-
-    unique_bpf_object(unique_bpf_object&& other) noexcept : _object(other._object) { other._object = nullptr; }
-    unique_bpf_object&
-    operator=(unique_bpf_object&& other) noexcept
-    {
-        if (this != &other) {
-            reset();
-            _object = other._object;
-            other._object = nullptr;
-        }
-        return *this;
-    }
-
-    void
-    reset(bpf_object* object = nullptr) noexcept
-    {
-        if (_object != nullptr) {
-            bpf_object__close(_object);
-        }
-        _object = object;
-    }
-
-    bpf_object*
-    get() const noexcept
-    {
-        return _object;
-    }
-    bpf_object*
-    release() noexcept
-    {
-        bpf_object* object = _object;
-        _object = nullptr;
-        return object;
-    }
-
-    explicit
-    operator bool() const noexcept
-    {
-        return _object != nullptr;
-    }
-
-  private:
-    bpf_object* _object{nullptr};
-};
-} // namespace
 
 #define PIN_PATH_MAP "/ebpf/global/restart_map"
 #define PIN_PATH_PROGRAM "/ebpf/global/restart_prog"
@@ -246,7 +88,7 @@ load_test_program(int& program_fd, bpf_object*& object_out)
     int result;
 
     // Try to open and load the program
-    unique_bpf_object object(bpf_object__open(program_path));
+    bpf_object_ptr object(bpf_object__open(program_path));
     if (!object) {
         std::cerr << "Failed to open program: " << program_path << std::endl;
         return -1;
@@ -296,7 +138,7 @@ mode_open_handles()
     int program_fd = -1;
     bpf_object* program_object_raw = nullptr;
     load_test_program(program_fd, program_object_raw);
-    unique_bpf_object program_object(program_object_raw);
+    bpf_object_ptr program_object(program_object_raw);
     if (program_fd >= 0) {
         std::cout << "Loaded program with fd: " << program_fd << std::endl;
     }
@@ -357,7 +199,7 @@ mode_pin_objects()
     int program_fd = -1;
     bpf_object* program_object_raw = nullptr;
     if (load_test_program(program_fd, program_object_raw) == 0 && program_fd >= 0) {
-        unique_bpf_object program_object(program_object_raw);
+        bpf_object_ptr program_object(program_object_raw);
         unique_fd program_handle(program_fd);
         result = bpf_obj_pin(program_handle.get(), PIN_PATH_PROGRAM);
         if (result < 0) {

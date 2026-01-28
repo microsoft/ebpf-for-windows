@@ -10,108 +10,11 @@
  * do load ebpfapi.dll to create test conditions.
  */
 
-#include <windows.h>
+#include "unique_handles.h"
+
 #include <iostream>
 #include <string>
 #include <vector>
-
-namespace {
-struct unique_handle
-{
-    unique_handle() = default;
-    explicit unique_handle(HANDLE handle) : _handle(handle) {}
-    ~unique_handle() { reset(); }
-
-    unique_handle(const unique_handle&) = delete;
-    unique_handle&
-    operator=(const unique_handle&) = delete;
-
-    unique_handle(unique_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
-    unique_handle&
-    operator=(unique_handle&& other) noexcept
-    {
-        if (this != &other) {
-            reset();
-            _handle = other._handle;
-            other._handle = nullptr;
-        }
-        return *this;
-    }
-
-    void
-    reset(HANDLE handle = nullptr) noexcept
-    {
-        if (_handle != nullptr && _handle != INVALID_HANDLE_VALUE) {
-            CloseHandle(_handle);
-        }
-        _handle = handle;
-    }
-
-    HANDLE
-    get() const noexcept { return _handle; }
-
-    HANDLE
-    release() noexcept
-    {
-        HANDLE handle = _handle;
-        _handle = nullptr;
-        return handle;
-    }
-
-    explicit
-    operator bool() const noexcept
-    {
-        return _handle != nullptr && _handle != INVALID_HANDLE_VALUE;
-    }
-
-  private:
-    HANDLE _handle{nullptr};
-};
-
-struct unique_sc_handle
-{
-    unique_sc_handle() = default;
-    explicit unique_sc_handle(SC_HANDLE handle) : _handle(handle) {}
-    ~unique_sc_handle() { reset(); }
-
-    unique_sc_handle(const unique_sc_handle&) = delete;
-    unique_sc_handle&
-    operator=(const unique_sc_handle&) = delete;
-
-    unique_sc_handle(unique_sc_handle&& other) noexcept : _handle(other._handle) { other._handle = nullptr; }
-    unique_sc_handle&
-    operator=(unique_sc_handle&& other) noexcept
-    {
-        if (this != &other) {
-            reset();
-            _handle = other._handle;
-            other._handle = nullptr;
-        }
-        return *this;
-    }
-
-    void
-    reset(SC_HANDLE handle = nullptr) noexcept
-    {
-        if (_handle != nullptr) {
-            CloseServiceHandle(_handle);
-        }
-        _handle = handle;
-    }
-
-    SC_HANDLE
-    get() const noexcept { return _handle; }
-
-    explicit
-    operator bool() const noexcept
-    {
-        return _handle != nullptr;
-    }
-
-  private:
-    SC_HANDLE _handle{nullptr};
-};
-} // namespace
 
 // Signal names for IPC with child process.
 #define SIGNAL_READY_HANDLES_OPEN "Global\\EBPF_RESTART_TEST_HANDLES_OPEN"
