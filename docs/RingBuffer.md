@@ -93,7 +93,7 @@ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length, size_t flags)
 ```
 
-**Note:** The currently internal `ebpf_ring_buffer_record.h` with helpers for working with raw records will also be made public.
+**Note:** The helpers in `ebpf_ring_buffer_record.h` can be used for working with raw records in the shared memory.
 
 #### Updated libbpf API for callback consumer
 
