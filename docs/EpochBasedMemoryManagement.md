@@ -16,31 +16,139 @@ being a tradeoff between performance and code complexity.
 
 In the context of this project's epoch memory management module
 (referred to as epoch module herein), the term epoch is intended to
-mean a period of indeterminate length. At the heart of the epoch module
-are two clocks:
+mean a period of indeterminate length.
 
-1)  _ebpf_current_epoch
+The epoch module is implemented as a per-CPU design for participant tracking and
+deferred-reclamation queues: each CPU maintains its own epoch state list and free list.
 
-2)  _ebpf_release_epoch
+Epoch *numbering* is driven by a single globally published epoch value that is advanced
+by CPU 0 during an inter-CPU propose/commit cycle. Each CPU also caches this value in a
+per-CPU `current_epoch`, which may temporarily lag until it processes the latest message.
 
-The first clock (_ebpf_current_epoch) tracks the current "time" in the
-system, with this being a clock that monotonically increases. The second clock
-(_ebpf_release_epoch) tracks the highest epoch that no longer has any
-code executing in it.
+At a high level, the epoch module provides:
+
+- A way to mark an execution context as being "in an epoch" (read-side critical section).
+- A way to defer frees until it is safe to reclaim memory.
+- A way to schedule callbacks to run once an epoch has been retired.
+
+## Core concepts (as implemented)
+
+### Per-CPU state
+
+Each CPU maintains:
+
+- A list of active epoch participants on that CPU (the epoch state list).
+- A per-CPU free list containing allocations/work-items waiting to be reclaimed.
+- A per-CPU `current_epoch` value (a cache of the globally published epoch).
+- A per-CPU `released_epoch` value (the newest epoch that is safe to reclaim).
+
+In addition to the per-CPU state, there is a globally published epoch value used as the
+source of truth for:
+
+- `ebpf_epoch_enter()` stamping the `epoch_state->epoch` value.
+- Retirement stamping when an allocation/work item is inserted into a free list.
+
+The propose/commit protocol computes a safe global minimum for release. Per-CPU `current_epoch`
+values are synchronized via inter-CPU messaging but may temporarily lag the globally
+published epoch.
 
 Every execution context (a thread at passive IRQL or a DPC running at
 dispatch IRQL) is associated with the point in time when execution began
-(i.e., the value of the _ebpf_current_epoch clock at the point where it
-began execution). All memory that the execution context could touch
-during its execution is part of that epoch.
+(i.e., the globally published epoch value observed in `ebpf_epoch_enter`).
+All memory that the execution context could touch during its execution is part
+of that epoch.
+
+### Enter/exit tracking
+
+Callers bracket epoch-protected access with:
+
+- `ebpf_epoch_enter(&epoch_state)`
+- `ebpf_epoch_exit(&epoch_state)`
+
+On enter, the epoch module:
+
+- Temporarily raises IRQL to DISPATCH_LEVEL (if needed).
+- Captures the current CPU id and the globally published epoch into the provided `epoch_state`.
+- Inserts `epoch_state` into that CPU's epoch state list.
+
+On exit, the module removes `epoch_state` from the list and may arm a timer to
+trigger an epoch computation if there is pending reclamation work.
+
+Special case: if a thread entered an epoch at IRQL < DISPATCH_LEVEL and later
+exits on a different CPU, the exit operation is forwarded (via the inter-CPU
+work queue) to the CPU where the enter occurred so the correct per-CPU list is updated.
+
+### Per-CPU work queues
+
+The epoch module uses a per-CPU *timed work queue* to drive its inter-CPU messaging and to
+process certain epoch operations on the correct target CPU.
+
+Each CPU has its own queue. Work items on that queue are processed:
+
+- Opportunistically, when `ebpf_epoch_exit()` flushes the current CPU's queue before returning.
+- As a backstop, when the queue's timer expires (batching multiple messages).
+
+This model allows the epoch module to batch background work under load (timer-driven) while still
+ensuring prompt processing at key correctness boundaries (exit-driven flush).
 
 When memory is no longer needed, it is first made non-reachable (all
 pointers to it are removed) after which it is stamped with the current
 epoch and inserted into a "free list". The timestamp the is point in time
 when the memory transitioned from visible -> non-visible and as such
 can only be returned to the OS once no active execution context could be
-using that memory (i.e., when memory timestamp <=
-_ebpf_release_epoch).
+using that memory.
+
+In the implementation, an allocation/work item is stamped with `freed_epoch` at the moment it is queued,
+using the globally published epoch value (so retirements are never stamped with an epoch older than a
+concurrent reader may have observed), and it becomes eligible for reclamation when `freed_epoch <= released_epoch`,
+where `released_epoch` is computed via the propose/commit epoch computation described below.
+
+## Epoch computation (propose/commit)
+
+Reclamation is driven by an epoch computation cycle that is initiated when there are items
+waiting on a CPU's free list.
+
+### Triggering
+
+When an item is inserted into a free list (or when an epoch is exited), the CPU may arm a timer
+if the following conditions are met:
+
+1. Rundown is not in progress.
+2. The timer is not already armed.
+3. The local free list is not empty.
+
+The timer's DPC is targeted to CPU 0. When the timer fires, it initiates an epoch computation
+cycle by queuing a `PROPOSE_RELEASE_EPOCH` message to CPU 0's per-CPU work queue.
+The propose/commit message sequence is then forwarded CPU-by-CPU using the same work queues.
+
+### Propose phase
+
+During the propose phase, the system determines the **safe release epoch** by passing a
+`PROPOSE_RELEASE_EPOCH` message sequentially across all CPUs, starting with CPU 0. The message
+carries the proposed release-epoch value.
+
+- CPU 0 atomically increments the globally published current epoch, updates its local current epoch
+    cache, and initializes the message's proposed release epoch to that new value.
+- Each subsequent CPU updates its local current epoch cache to the value carried in the message.
+- Every CPU, including CPU 0, computes the minimum epoch from its local epoch-state list. If this
+    minimum is lower than the message's proposed epoch, the message is updated with that lower value.
+- The CPU then forwards the (potentially updated) message to the next CPU.
+
+After the final CPU processes the message, it converts it into a `COMMIT_RELEASE_EPOCH` message
+containing the final proposed release epoch and sends it back to CPU 0. This begins the commit
+phase of the cycle.
+
+### Commit phase
+
+On commit, each CPU:
+
+1. Clears the local `timer_armed` flag.
+2. Computes `released_epoch = proposed_release_epoch - 1`.
+3. Releases eligible items from the local free list while the head item satisfies `freed_epoch <= released_epoch`.
+4. Rearms the timer if there is still pending work.
+
+Finally, an "epoch computation complete" message clears the in-progress flag (on CPU 0)
+so another cycle may run.
 
 
 ## Work items
@@ -48,16 +156,31 @@ _ebpf_release_epoch).
 In some cases code that uses the epoch module requires more complex
 behavior than simply freeing memory on epoch expiry. To permit this
 behavior, the epoch module exposes ebpf_epoch_schedule_work_item which
-can be used to run a block of work when the current epoch becomes
-inactive (i.e., when no other execution contexts are active in this
-epoch). This is implemented as a special entry in the free list that
-causes a callback to be invoked instead of freeing the memory. The callback
+can be used to run a block of work when it is safe to do so.
+
+This is implemented as a special entry in the free list. When the entry becomes eligible
+for reclamation (i.e., `freed_epoch <= released_epoch` on a CPU during commit), the module
+queues a preemptible work item that runs the callback on a worker context. The callback
 can then perform additional cleanup of state as needed.
 
+## Synchronization
+
+For passive-level callers, the epoch module provides `ebpf_epoch_synchronize()`.
+This function blocks until an epoch computation has run and a synchronization object
+queued to the epoch free list has been processed, providing a way to wait for previously
+queued epoch work to become reclaimable.
+
+**Important:** Work item callbacks run **outside of any epoch** by default.
+If a work item callback needs to access epoch-managed data structures
+(such as hash tables created with `ebpf_hash_table_create` using the default
+epoch-based allocator), the callback must explicitly call `ebpf_epoch_enter()`
+and `ebpf_epoch_exit()` to ensure proper epoch protection and avoid
+use-after-free issues.
+
 ## Future investigations
-The use of a common clock leads to contention when the memory state changes
-(i.e., when memory is freed). One possible work around might be to move from a
-clock driven by state change to one derived from a hardware clock. Initial
-prototyping seems to indicate that the use of "QueryPerformanceCounter" and its
-kernel equivalent are more expensive than using a state driven clock, but more
-investigation is probably warranted.
+The implementation currently performs epoch computations via inter-CPU messaging and
+per-CPU list scans. Potential areas for future investigation include:
+
+- Reducing contention or overhead in the propose/commit cycle as CPU count increases.
+- Evaluating whether alternative time sources (hardware-backed clocks) can reduce state-change-driven contention,
+    noting that QueryPerformanceCounter and its kernel equivalent may have higher overhead than a state-driven clock.
