@@ -74,6 +74,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Data Structures</a> &#124;
 <a href="#func-members">Functions</a>  </div>
   <div class="headertitle"><div class="title">libbpf.h File Reference</div></div>
 </div><!--header-->
@@ -82,6 +83,12 @@ $(function() {
 </div>
 <p><a href="libbpf_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structring__buffer__opts.html">ring_buffer_opts</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ring buffer options structure (Linux-compatible, limited functionality).  <a href="structring__buffer__opts.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a790b79f11425c20954eda1d438489036" id="r_a790b79f11425c20954eda1d438489036"><td class="memItemLeft" align="right" valign="top"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a790b79f11425c20954eda1d438489036">bpf_program__flags</a> (const struct bpf_program *prog)</td></tr>
@@ -277,7 +284,13 @@ Functions</h2></td></tr>
 <tr class="memitem:a64a0e9275ed02a9f30291ae5dd777452" id="r_a64a0e9275ed02a9f30291ae5dd777452"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a64a0e9275ed02a9f30291ae5dd777452">libbpf_prog_type_by_name</a> (const char *name, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> *prog_type, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> *expected_attach_type)</td></tr>
 <tr class="memdesc:a64a0e9275ed02a9f30291ae5dd777452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a program type and expected attach type by name.  <br /></td></tr>
 <tr class="separator:a64a0e9275ed02a9f30291ae5dd777452"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr><td colspan="2"><div class="groupHeader">System-related functions</div></td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader">System-related functions</h2></td></tr>
+<tr class="memitem:a5bc343e99603bfe47f402cd8b6340795" id="r_a5bc343e99603bfe47f402cd8b6340795"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5bc343e99603bfe47f402cd8b6340795">ring_buffer_opts__last_field</a>&#160;&#160;&#160;sz</td></tr>
+<tr class="separator:a5bc343e99603bfe47f402cd8b6340795"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee4c7ee017c3df69d037bc6b78980e0c" id="r_aee4c7ee017c3df69d037bc6b78980e0c"><td class="memItemLeft" align="right" valign="top">typedef int(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>) (void *ctx, void *data, size_t size)</td></tr>
+<tr class="memdesc:aee4c7ee017c3df69d037bc6b78980e0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ring buffer callback function type.  <br /></td></tr>
+<tr class="separator:aee4c7ee017c3df69d037bc6b78980e0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ae394e7b2a465a2bf7f30e2a5b4c4bd" id="r_a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a6ae394e7b2a465a2bf7f30e2a5b4c4bd">libbpf_get_error</a> (const void *ptr)</td></tr>
 <tr class="memdesc:a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a negative error code based on errno and a possibly null pointer.  <br /></td></tr>
 <tr class="separator:a6ae394e7b2a465a2bf7f30e2a5b4c4bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -287,13 +300,69 @@ Functions</h2></td></tr>
 <tr class="memitem:a952441cb1b1f252e10b100c2657e6242" id="r_a952441cb1b1f252e10b100c2657e6242"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a952441cb1b1f252e10b100c2657e6242">libbpf_num_possible_cpus</a> (void)</td></tr>
 <tr class="memdesc:a952441cb1b1f252e10b100c2657e6242"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of processors on the current system.  <br /></td></tr>
 <tr class="separator:a952441cb1b1f252e10b100c2657e6242"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23c29b5bb71c56a972c7583ee3171e5a" id="r_a23c29b5bb71c56a972c7583ee3171e5a"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">ring_buffer__new</a> (int map_fd, <a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a> sample_cb, void *ctx, const struct ring_buffer_opts *opts)</td></tr>
-<tr class="memdesc:a23c29b5bb71c56a972c7583ee3171e5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new ring buffer manager.  <br /></td></tr>
+<tr class="memitem:a23c29b5bb71c56a972c7583ee3171e5a" id="r_a23c29b5bb71c56a972c7583ee3171e5a"><td class="memItemLeft" align="right" valign="top">struct ring_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">ring_buffer__new</a> (int map_fd, <a class="el" href="libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a> sample_cb, void *ctx, const struct <a class="el" href="structring__buffer__opts.html">ring_buffer_opts</a> *opts)</td></tr>
+<tr class="memdesc:a23c29b5bb71c56a972c7583ee3171e5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new ring buffer manager with synchronous callbacks.  <br /></td></tr>
 <tr class="separator:a23c29b5bb71c56a972c7583ee3171e5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aefa69c1f9215694101e13e013db737d9" id="r_aefa69c1f9215694101e13e013db737d9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aefa69c1f9215694101e13e013db737d9">ring_buffer__add</a> (struct ring_buffer *rb, int map_fd, <a class="el" href="libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a> sample_cb, void *ctx)</td></tr>
+<tr class="memdesc:aefa69c1f9215694101e13e013db737d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add another ring buffer map to the ring buffer manager.  <br /></td></tr>
+<tr class="separator:aefa69c1f9215694101e13e013db737d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa387d349828c9ca240eddf92f078eee1" id="r_aa387d349828c9ca240eddf92f078eee1"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aa387d349828c9ca240eddf92f078eee1">ring_buffer__poll</a> (struct ring_buffer *rb, int timeout_ms)</td></tr>
+<tr class="memdesc:aa387d349828c9ca240eddf92f078eee1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Poll ring buffer for available data and consume records by calling sample_cb.  <br /></td></tr>
+<tr class="separator:aa387d349828c9ca240eddf92f078eee1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75ddeaad6bf65f873173c89d937e45c5" id="r_a75ddeaad6bf65f873173c89d937e45c5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a75ddeaad6bf65f873173c89d937e45c5">ring_buffer__consume</a> (struct ring_buffer *rb)</td></tr>
+<tr class="memdesc:a75ddeaad6bf65f873173c89d937e45c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Consume all available records without waiting.  <br /></td></tr>
+<tr class="separator:a75ddeaad6bf65f873173c89d937e45c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5ede3a39d4e4a364fac4155aca3303cc" id="r_a5ede3a39d4e4a364fac4155aca3303cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">ring_buffer__free</a> (struct ring_buffer *rb)</td></tr>
-<tr class="memdesc:a5ede3a39d4e4a364fac4155aca3303cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees a new ring buffer manager.  <br /></td></tr>
+<tr class="memdesc:a5ede3a39d4e4a364fac4155aca3303cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Frees a ring buffer manager.  <br /></td></tr>
 <tr class="separator:a5ede3a39d4e4a364fac4155aca3303cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a5bc343e99603bfe47f402cd8b6340795" name="a5bc343e99603bfe47f402cd8b6340795"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5bc343e99603bfe47f402cd8b6340795">&#9670;&#160;</a></span>ring_buffer_opts__last_field</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ring_buffer_opts__last_field&#160;&#160;&#160;sz</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Typedef Documentation</h2>
+<a id="aee4c7ee017c3df69d037bc6b78980e0c" name="aee4c7ee017c3df69d037bc6b78980e0c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aee4c7ee017c3df69d037bc6b78980e0c">&#9670;&#160;</a></span>ring_buffer_sample_fn</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef int(* ring_buffer_sample_fn) (void *ctx, void *data, size_t size)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Ring buffer callback function type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to context passed to <a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a" title="Creates a new ring buffer manager with synchronous callbacks.">ring_buffer__new()</a>. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Pointer to ring buffer record data. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size of ring buffer record data.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Success. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>Error; stops processing. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ab10dd31881e90cb8ba93ffb77b92308b" name="ab10dd31881e90cb8ba93ffb77b92308b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab10dd31881e90cb8ba93ffb77b92308b">&#9670;&#160;</a></span>bpf_link__destroy()</h2>
@@ -2807,6 +2876,92 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
+<a id="aefa69c1f9215694101e13e013db737d9" name="aefa69c1f9215694101e13e013db737d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aefa69c1f9215694101e13e013db737d9">&#9670;&#160;</a></span>ring_buffer__add()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ring_buffer__add </td>
+          <td>(</td>
+          <td class="paramtype">struct ring_buffer *&#160;</td>
+          <td class="paramname"><em>rb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>&#160;</td>
+          <td class="paramname"><em>sample_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add another ring buffer map to the ring buffer manager. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Ring buffer manager. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Pointer to ring buffer notification callback function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to sample_cb callback function context.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Success. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>Error. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a75ddeaad6bf65f873173c89d937e45c5" name="a75ddeaad6bf65f873173c89d937e45c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75ddeaad6bf65f873173c89d937e45c5">&#9670;&#160;</a></span>ring_buffer__consume()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ring_buffer__consume </td>
+          <td>(</td>
+          <td class="paramtype">struct ring_buffer *&#160;</td>
+          <td class="paramname"><em>rb</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Consume all available records without waiting. </p>
+<dl class="section note"><dt>Note</dt><dd>Discarded records are skipped over and ignored (not included in the return count).</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Ring buffer manager.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Number of records consumed, or a negative error code. </dd></dl>
+
+</div>
+</div>
 <a id="a5ede3a39d4e4a364fac4155aca3303cc" name="a5ede3a39d4e4a364fac4155aca3303cc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5ede3a39d4e4a364fac4155aca3303cc">&#9670;&#160;</a></span>ring_buffer__free()</h2>
 
@@ -2823,7 +2978,7 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Frees a new ring buffer manager. </p>
+<p>Frees a ring buffer manager. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Pointer to ring buffer to be freed. </td></tr>
@@ -2848,7 +3003,7 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c">ring_buffer_sample_fn</a>&#160;</td>
           <td class="paramname"><em>sample_cb</em>, </td>
         </tr>
         <tr>
@@ -2860,7 +3015,7 @@ bpf_object__unpin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const struct ring_buffer_opts *&#160;</td>
+          <td class="paramtype">const struct <a class="el" href="structring__buffer__opts.html">ring_buffer_opts</a> *&#160;</td>
           <td class="paramname"><em>opts</em>&#160;</td>
         </tr>
         <tr>
@@ -2871,17 +3026,57 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Creates a new ring buffer manager. </p>
+<p>Creates a new ring buffer manager with synchronous callbacks. </p>
+<p>This function uses synchronous callbacks by default to match Linux behavior. For async callbacks, use ebpf_ring_buffer__new with EBPF_RINGBUF_FLAG_AUTO_CALLBACK.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to ring buffer map. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Pointer to ring buffer notification callback function. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to sample_cb callback function. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Ring buffer options.</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to sample_cb callback function context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>Ring buffer options (currently unused, pass NULL).</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to ring buffer manager. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to ring buffer manager, or NULL on error. </dd></dl>
+
+</div>
+</div>
+<a id="aa387d349828c9ca240eddf92f078eee1" name="aa387d349828c9ca240eddf92f078eee1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa387d349828c9ca240eddf92f078eee1">&#9670;&#160;</a></span>ring_buffer__poll()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ring_buffer__poll </td>
+          <td>(</td>
+          <td class="paramtype">struct ring_buffer *&#160;</td>
+          <td class="paramname"><em>rb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>timeout_ms</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Poll ring buffer for available data and consume records by calling sample_cb. </p>
+<dl class="section note"><dt>Note</dt><dd>Discarded records are skipped over and ignored (not included in the return count).</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Ring buffer manager. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">timeout_ms</td><td>Maximum time to wait for data (in milliseconds), or -1 to wait indefinitely, or 0 to not wait.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Number of records consumed, or a negative error code. </dd></dl>
 
 </div>
 </div>

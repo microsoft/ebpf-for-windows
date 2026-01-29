@@ -15,13 +15,18 @@ var searchData=
   ['repeat_12',['repeat',['../structsys__bpf__prog__run__attr__t.html#a153cb28c91c5620600b33567531e6cc5',1,'sys_bpf_prog_run_attr_t']]],
   ['repeat_5fcount_13',['repeat_count',['../struct__ebpf__test__run__options.html#a8e027a0ee6669a9b7df45f5284b99922',1,'_ebpf_test_run_options']]],
   ['required_5firql_14',['required_irql',['../struct__ebpf__program__data.html#aec159955027f0e7091b007ec7b5d3654',1,'_ebpf_program_data']]],
-  ['reserved_15',['reserved',['../struct___i_p_v4___h_e_a_d_e_r.html#a35b4094f12494615424086c3b48d435a',1,'_IPV4_HEADER::Reserved'],['../structtcphdr.html#ad2e5203dadd75ca2bc75780ab05a3af5',1,'tcphdr::reserved'],['../union__program__data__capabilities.html#a748ce31e07ce5775ef035bf3729db88c',1,'_program_data_capabilities::reserved']]],
+  ['reserved_15',['reserved',['../structtcphdr.html#ad2e5203dadd75ca2bc75780ab05a3af5',1,'tcphdr::reserved'],['../union__program__data__capabilities.html#a748ce31e07ce5775ef035bf3729db88c',1,'_program_data_capabilities::reserved'],['../struct___i_p_v4___h_e_a_d_e_r.html#a35b4094f12494615424086c3b48d435a',1,'_IPV4_HEADER::Reserved']]],
   ['return_5ftype_16',['return_type',['../struct__ebpf__helper__function__prototype.html#a0ea99651ae0c2156811e30b551d92e43',1,'_ebpf_helper_function_prototype']]],
   ['return_5fvalue_17',['return_value',['../struct__ebpf__test__run__options.html#a8035af26233214764cba3d29d2725432',1,'_ebpf_test_run_options']]],
   ['retval_18',['retval',['../structsys__bpf__prog__run__attr__t.html#a5e18df635cbcd3ce68edb83c13828ed3',1,'sys_bpf_prog_run_attr_t']]],
   ['revision_19',['revision',['../struct__bpf2c__version.html#a8ae84369bccb3346eb2aa3ce84e60758',1,'_bpf2c_version']]],
-  ['ring_5fbuffer_5f_5ffree_20',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
-  ['ring_5fbuffer_5f_5fnew_21',['ring_buffer__new',['../libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a',1,'libbpf.h']]],
-  ['ring_5fbuffer_5fsample_5ffn_22',['ring_buffer_sample_fn',['../ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c',1,'ebpf_api.h']]],
-  ['rst_23',['rst',['../structtcphdr.html#a51d32749a117f110f44de2d3aded7ef8',1,'tcphdr']]]
+  ['ring_5fbuffer_5f_5fadd_20',['ring_buffer__add',['../libbpf_8h.html#aefa69c1f9215694101e13e013db737d9',1,'libbpf.h']]],
+  ['ring_5fbuffer_5f_5fconsume_21',['ring_buffer__consume',['../libbpf_8h.html#a75ddeaad6bf65f873173c89d937e45c5',1,'libbpf.h']]],
+  ['ring_5fbuffer_5f_5ffree_22',['ring_buffer__free',['../libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc',1,'libbpf.h']]],
+  ['ring_5fbuffer_5f_5fnew_23',['ring_buffer__new',['../libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a',1,'libbpf.h']]],
+  ['ring_5fbuffer_5f_5fpoll_24',['ring_buffer__poll',['../libbpf_8h.html#aa387d349828c9ca240eddf92f078eee1',1,'libbpf.h']]],
+  ['ring_5fbuffer_5fopts_25',['ring_buffer_opts',['../structring__buffer__opts.html',1,'']]],
+  ['ring_5fbuffer_5fopts_5f_5flast_5ffield_26',['ring_buffer_opts__last_field',['../libbpf_8h.html#a5bc343e99603bfe47f402cd8b6340795',1,'libbpf.h']]],
+  ['ring_5fbuffer_5fsample_5ffn_27',['ring_buffer_sample_fn',['../libbpf_8h.html#aee4c7ee017c3df69d037bc6b78980e0c',1,'ring_buffer_sample_fn:&#160;libbpf.h'],['../ebpf__api_8h.html#aee4c7ee017c3df69d037bc6b78980e0c',1,'ring_buffer_sample_fn:&#160;ebpf_api.h']]],
+  ['rst_28',['rst',['../structtcphdr.html#a51d32749a117f110f44de2d3aded7ef8',1,'tcphdr']]]
 ];

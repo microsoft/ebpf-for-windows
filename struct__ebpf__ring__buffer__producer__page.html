@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: Globals</title>
+<title>eBPF for Windows: _ebpf_ring_buffer_producer_page Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -46,7 +46,6 @@ $(function() {
 /* @license-end */
 </script>
 <div id="main-nav"></div>
-</div><!-- top -->
 <!-- window showing the filter options -->
 <div id="MSearchSelectWindow"
      onmouseover="return searchBox.OnSearchSelectShow()"
@@ -68,15 +67,47 @@ $(function() {
 </div>
 </div>
 
+</div><!-- top -->
+<div class="header">
+  <div class="summary">
+<a href="#pub-attribs">Data Fields</a>  </div>
+  <div class="headertitle"><div class="title">_ebpf_ring_buffer_producer_page Struct Reference</div></div>
+</div><!--header-->
 <div class="contents">
-<div class="textblock">Here is a list of all functions with links to the files they belong to:</div>
 
-<h3><a id="index_r" name="index_r"></a>- r -</h3><ul>
-<li>ring_buffer__add()&#160;:&#160;<a class="el" href="libbpf_8h.html#aefa69c1f9215694101e13e013db737d9">libbpf.h</a></li>
-<li>ring_buffer__consume()&#160;:&#160;<a class="el" href="libbpf_8h.html#a75ddeaad6bf65f873173c89d937e45c5">libbpf.h</a></li>
-<li>ring_buffer__free()&#160;:&#160;<a class="el" href="libbpf_8h.html#a5ede3a39d4e4a364fac4155aca3303cc">libbpf.h</a></li>
-<li>ring_buffer__new()&#160;:&#160;<a class="el" href="libbpf_8h.html#a23c29b5bb71c56a972c7583ee3171e5a">libbpf.h</a></li>
-<li>ring_buffer__poll()&#160;:&#160;<a class="el" href="libbpf_8h.html#aa387d349828c9ca240eddf92f078eee1">libbpf.h</a></li>
+<p>Ring buffer producer page definition (public API).  
+ <a href="struct__ebpf__ring__buffer__producer__page.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="ebpf__api_8h_source.html">ebpf_api.h</a>&gt;</code></p>
+<table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
+Data Fields</h2></td></tr>
+<tr class="memitem:a5b6dbc25ef771d0f17205f8a3571b6e9" id="r_a5b6dbc25ef771d0f17205f8a3571b6e9"><td class="memItemLeft" align="right" valign="top">volatile uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__ring__buffer__producer__page.html#a5b6dbc25ef771d0f17205f8a3571b6e9">producer_offset</a></td></tr>
+<tr class="memdesc:a5b6dbc25ef771d0f17205f8a3571b6e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Producer(s) have reserved up to this offset.  <br /></td></tr>
+<tr class="separator:a5b6dbc25ef771d0f17205f8a3571b6e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Ring buffer producer page definition (public API). </p>
+<p>Definition of the producer-writeable portion of the ring buffer metadata. This page is read+write for the producer and read-only for the consumer. </p>
+</div><h2 class="groupheader">Field Documentation</h2>
+<a id="a5b6dbc25ef771d0f17205f8a3571b6e9" name="a5b6dbc25ef771d0f17205f8a3571b6e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5b6dbc25ef771d0f17205f8a3571b6e9">&#9670;&#160;</a></span>producer_offset</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">volatile uint64_t _ebpf_ring_buffer_producer_page::producer_offset</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Producer(s) have reserved up to this offset. </p>
+
+</div>
+</div>
+<hr/>The documentation for this struct was generated from the following file:<ul>
+<li>include/<a class="el" href="ebpf__api_8h_source.html">ebpf_api.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

@@ -38,5 +38,5 @@ var searchData=
   ['sys_5fbpf_5fprog_5finfo_5ft_35',['sys_bpf_prog_info_t',['../structsys__bpf__prog__info__t.html',1,'']]],
   ['sys_5fbpf_5fprog_5fload_5fattr_5ft_36',['sys_bpf_prog_load_attr_t',['../structsys__bpf__prog__load__attr__t.html',1,'']]],
   ['sys_5fbpf_5fprog_5frun_5fattr_5ft_37',['sys_bpf_prog_run_attr_t',['../structsys__bpf__prog__run__attr__t.html',1,'']]],
-  ['sz_38',['sz',['../structebpf__ring__buffer__opts.html#ab2044e1ce2525ab67173a0a3710d06e1',1,'ebpf_ring_buffer_opts::sz'],['../structebpf__perf__buffer__opts.html#a6de1b82c00be9bef60a45f0b35b92ddf',1,'ebpf_perf_buffer_opts::sz']]]
+  ['sz_38',['sz',['../structebpf__perf__buffer__opts.html#a6de1b82c00be9bef60a45f0b35b92ddf',1,'ebpf_perf_buffer_opts::sz'],['../structebpf__ring__buffer__opts.html#ab2044e1ce2525ab67173a0a3710d06e1',1,'ebpf_ring_buffer_opts::sz'],['../structring__buffer__opts.html#ad8371a4f46cca8b2dbbbc5bfb5704ba2',1,'ring_buffer_opts::sz']]]
 ];

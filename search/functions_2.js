@@ -41,12 +41,14 @@ var searchData=
   ['ebpf_5fprogram_5fsynchronize_38',['ebpf_program_synchronize',['../ebpf__api_8h.html#ada486478edf1b7ce57d26175fdcc2df3',1,'ebpf_api.h']]],
   ['ebpf_5fprogram_5ftest_5frun_39',['ebpf_program_test_run',['../ebpf__api_8h.html#a9436237eddbf00d5ff983812910903f2',1,'ebpf_api.h']]],
   ['ebpf_5fring_5fbuffer_5f_5fnew_40',['ebpf_ring_buffer__new',['../ebpf__api_8h.html#afa992c96d30c64eeefa0bdfb30d7d12f',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5fmap_5fbuffer_41',['ebpf_ring_buffer_map_map_buffer',['../ebpf__api_8h.html#aea5c8ecf68bd8b24565370bb79cc53ea',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5funmap_5fbuffer_42',['ebpf_ring_buffer_map_unmap_buffer',['../ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d',1,'ebpf_api.h']]],
-  ['ebpf_5fring_5fbuffer_5fmap_5fwrite_43',['ebpf_ring_buffer_map_write',['../ebpf__api_8h.html#a3b2aa710f3a51e37cf91f5061c3be300',1,'ebpf_api.h']]],
-  ['ebpf_5fstore_5fdelete_5fprogram_5finformation_44',['ebpf_store_delete_program_information',['../ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fdelete_5fsection_5finformation_45',['ebpf_store_delete_section_information',['../ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fglobal_5fhelper_5finformation_46',['ebpf_store_update_global_helper_information',['../ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fprogram_5finformation_5farray_47',['ebpf_store_update_program_information_array',['../ebpf__store__helper_8h.html#acaa601b7cbf1a2833d98ab812e271a77',1,'ebpf_store_helper.h']]],
-  ['ebpf_5fstore_5fupdate_5fsection_5finformation_48',['ebpf_store_update_section_information',['../ebpf__store__helper_8h.html#a0acd3f23560694f25c0fe93bdb2a1f3c',1,'ebpf_store_helper.h']]]
+  ['ebpf_5fring_5fbuffer_5fget_5fbuffer_41',['ebpf_ring_buffer_get_buffer',['../ebpf__api_8h.html#a521be3f2b0fa9f98155f2fdba012e7b9',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fget_5fwait_5fhandle_42',['ebpf_ring_buffer_get_wait_handle',['../ebpf__api_8h.html#a02df506d6082caf1204093f70a4cb0c9',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5fmap_5fbuffer_43',['ebpf_ring_buffer_map_map_buffer',['../ebpf__api_8h.html#aea5c8ecf68bd8b24565370bb79cc53ea',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5funmap_5fbuffer_44',['ebpf_ring_buffer_map_unmap_buffer',['../ebpf__api_8h.html#ad8054e5b8ecc8497b8157c140d1e407d',1,'ebpf_api.h']]],
+  ['ebpf_5fring_5fbuffer_5fmap_5fwrite_45',['ebpf_ring_buffer_map_write',['../ebpf__api_8h.html#a3b2aa710f3a51e37cf91f5061c3be300',1,'ebpf_api.h']]],
+  ['ebpf_5fstore_5fdelete_5fprogram_5finformation_46',['ebpf_store_delete_program_information',['../ebpf__store__helper_8h.html#a83060ad08f2e024d37d1c1673229db3c',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fdelete_5fsection_5finformation_47',['ebpf_store_delete_section_information',['../ebpf__store__helper_8h.html#ad5f74d4ca63d4db326791eecb87424dd',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fglobal_5fhelper_5finformation_48',['ebpf_store_update_global_helper_information',['../ebpf__store__helper_8h.html#ac1f7c8f5ce16a53eebb619bd0ccc1030',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fprogram_5finformation_5farray_49',['ebpf_store_update_program_information_array',['../ebpf__store__helper_8h.html#acaa601b7cbf1a2833d98ab812e271a77',1,'ebpf_store_helper.h']]],
+  ['ebpf_5fstore_5fupdate_5fsection_5finformation_50',['ebpf_store_update_section_information',['../ebpf__store__helper_8h.html#a0acd3f23560694f25c0fe93bdb2a1f3c',1,'ebpf_store_helper.h']]]
 ];
