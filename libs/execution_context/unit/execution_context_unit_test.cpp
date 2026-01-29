@@ -1253,7 +1253,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     size_t data_size = 0;
     REQUIRE(
         ebpf_ring_buffer_map_map_user(
-            map.get(), (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
+            map.get(), 0, (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
 
     // Use the mapped producer pointer to read the record.
     auto record = ebpf_ring_buffer_next_record(data, 64 * 1024, *consumer, *producer);
@@ -1266,8 +1266,8 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
 
     // Unmap the ring buffer.
     REQUIRE(
-        ebpf_ring_buffer_map_unmap_user(map.get(), (const void*)consumer, (const void*)producer, (const void*)data) ==
-        EBPF_SUCCESS);
+        ebpf_ring_buffer_map_unmap_user(
+            map.get(), 0, (const void*)consumer, (const void*)producer, (const void*)data) == EBPF_SUCCESS);
 }
 
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
@@ -1857,6 +1857,133 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     // Cleanup and final checks will be done in the scope_exit block above.
 }
 
+TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    uint32_t cpu_count = ebpf_get_cpu_count();
+    REQUIRE(cpu_count > 0);
+
+    // Create a wait event for synchronous signaling
+    _wait_event event;
+
+    struct _mapped_ring
+    {
+        uint32_t cpu_id{};
+        volatile size_t* consumer{};
+        volatile size_t* producer{};
+        uint8_t* data{};
+        size_t data_size{};
+        bool mapped = false;
+    };
+
+    std::vector<_mapped_ring> mapped_rings(cpu_count);
+
+    // Cleanup guard to unmap all rings on exit
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            for (auto& ring : mapped_rings) {
+                if (ring.mapped) {
+                    (void)ebpf_map_set_wait_handle_internal(map.get(), ring.cpu_id, ebpf_handle_invalid, 0);
+                    (void)ebpf_ring_buffer_map_unmap_user(
+                        map.get(),
+                        ring.cpu_id,
+                        (const void*)ring.consumer,
+                        (const void*)ring.producer,
+                        (const void*)ring.data);
+                    ring.mapped = false;
+                }
+            }
+        });
+
+    // Map each per-CPU ring buffer
+    for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+        auto& ring = mapped_rings[cpu_id];
+        ring.cpu_id = cpu_id;
+
+        // Set wait handle for this CPU's buffer
+        REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), cpu_id, event.handle(), 0) == EBPF_SUCCESS);
+
+        // Map the ring buffer memory
+        REQUIRE(
+            ebpf_ring_buffer_map_map_user(
+                map.get(),
+                cpu_id,
+                (void**)&ring.consumer,
+                (void**)&ring.producer,
+                (const uint8_t**)&ring.data,
+                &ring.data_size) == EBPF_SUCCESS);
+        ring.mapped = true;
+
+        REQUIRE(ring.consumer != nullptr);
+        REQUIRE(ring.producer != nullptr);
+        REQUIRE(ring.data != nullptr);
+        REQUIRE(ring.data_size > 0);
+
+        // Verify initial offsets are 0
+        REQUIRE(ReadULong64Acquire(ring.consumer) == 0);
+        REQUIRE(ReadULong64Acquire(ring.producer) == 0);
+    }
+
+    struct
+    {
+        EBPF_CONTEXT_HEADER; // Unused for this test.
+        int unused;
+    } context{0};
+
+    void* ctx = &context.unused;
+
+    // Write unique values to each CPU's ring
+    std::vector<uint64_t> expected_values(cpu_count);
+    for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+        // Set the CPU affinity to write to specific CPU's ring
+        scoped_cpu_affinity cpu_affinity(cpu_id);
+
+        // Write a unique value for this CPU
+        uint64_t value = 100 + (uint64_t)cpu_id;
+        expected_values[cpu_id] = value;
+
+        uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+        REQUIRE(
+            ebpf_perf_event_array_map_output_with_capture(
+                ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
+    }
+
+    // Verify each CPU's ring received the correct value
+    for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+        auto& ring = mapped_rings[cpu_id];
+
+        CAPTURE(cpu_id);
+
+        // Read the record from this CPU's ring
+        auto record = ebpf_ring_buffer_next_record(
+            ring.data, ring.data_size, ReadULong64Acquire(ring.consumer), ReadULong64Acquire(ring.producer));
+
+        REQUIRE(record != nullptr);
+        REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
+        REQUIRE(!ebpf_ring_buffer_record_is_discarded(record));
+        REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(uint64_t));
+
+        // Verify the value matches what we wrote to this specific CPU
+        uint64_t received_value = *(uint64_t*)(record->data);
+        REQUIRE(received_value == expected_values[cpu_id]);
+    }
+
+    // Cleanup will be done in the scope_exit block above
+}
+
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
@@ -2267,10 +2394,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             completion) == EBPF_ARITHMETIC_OVERFLOW);
 }
 
-#define EBPF_PROGRAM_TYPE_TEST_GUID                                                    \
-    {                                                                                  \
-        0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
-    }
+#define EBPF_PROGRAM_TYPE_TEST_GUID {0x8ee1b757, 0xc0b2, 0x4c84, {0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9}}
 
 void
 test_register_provider(

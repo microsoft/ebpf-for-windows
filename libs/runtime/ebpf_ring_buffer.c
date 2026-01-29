@@ -477,6 +477,18 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     }
 }
 
+ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer)
+{
+    return ring_buffer->producer_page;
+}
+
+ebpf_perf_event_array_producer_page_t*
+ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer)
+{
+    return (ebpf_perf_event_array_producer_page_t*)ring_buffer->producer_page;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_set_wait_handle(
     _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t wait_handle, uint64_t flags)
@@ -490,12 +502,7 @@ ebpf_ring_buffer_set_wait_handle(
 
     PKEVENT wait_event = NULL;
     NTSTATUS status = ObReferenceObjectByHandle(
-        (HANDLE)wait_handle,
-        EVENT_MODIFY_STATE,
-        *ExEventObjectType,
-        UserMode,
-        (PVOID*)&wait_event,
-        NULL);
+        (HANDLE)wait_handle, EVENT_MODIFY_STATE, *ExEventObjectType, UserMode, (PVOID*)&wait_event, NULL);
 
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ObReferenceObjectByHandle, status);
@@ -666,7 +673,7 @@ ebpf_ring_buffer_reserve(
             // We successfully allocated the space -- now we need to lock the record and *then* update producer offset.
 
             ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
-            record->header.page_offset = (uint32_t)(((uint8_t *)record - ring->data) / PAGE_SIZE);
+            record->header.page_offset = (uint32_t)(((uint8_t*)record - ring->data) / PAGE_SIZE);
 
             // Initialize the record header.
             // - We can no-fence write here, the write-release below ensures the locked header is visible first.
@@ -746,7 +753,7 @@ ebpf_ring_buffer_reserve_exclusive(
     _ring_write_producer_reserve_offset_nofence(ring, new_reserve_offset);
 
     ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
-    record->header.page_offset = (uint32_t)(((uint8_t *)record - ring->data) / PAGE_SIZE);
+    record->header.page_offset = (uint32_t)(((uint8_t*)record - ring->data) / PAGE_SIZE);
 
     // Initialize the record header.
     // - We can no-fence write here, the write-release below ensures the locked header is visible first.

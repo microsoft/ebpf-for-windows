@@ -55,6 +55,29 @@ void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
 
 /**
+ * @brief Get the shared producer page for the ring buffer.
+ *
+ * Extensions to the producer page (e.g. lost counter) should be after the first cache line to avoid
+ * false sharing with the producer offset.
+ *
+ * @param[in, out] ring_buffer Ring buffer to query.
+ * @retval Pointer to the producer page, or NULL if not found.
+ */
+ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
+
+/**
+ * @brief Get the shared producer page for the perf event array.
+ *
+ * TODO(before merge): should this be in a separate file?
+ *
+ * @param[in, out] ring_buffer Ring buffer to query.
+ * @retval Pointer to the producer page, or NULL if not found.
+ */
+ebpf_perf_event_array_producer_page_t*
+ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
+
+/**
  * @brief Set the wait handle for the ring buffer.
  *
  * This is used to notify the consumer when a record is available.

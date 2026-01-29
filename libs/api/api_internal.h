@@ -643,6 +643,45 @@ bool
 ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) noexcept;
 
 /**
+ * @brief Internal function to map a ring buffer or perf event array map buffer with a specific index.
+ *
+ * @param[in] map_fd File descriptor to map.
+ * @param[in] index Index (CPU ID for perf event array maps, must be 0 for ring buffer maps).
+ * @param[out] consumer Pointer to the consumer buffer.
+ * @param[out] producer Pointer to the producer buffer.
+ * @param[out] data Pointer to the mapped data buffer.
+ * @param[out] data_size Size of the mapped data buffer.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are invalid.
+ * @retval EBPF_INVALID_FD Invalid file descriptor.
+ */
+_Must_inspect_result_ ebpf_result_t
+_ebpf_ring_buffer_map_map_buffer_with_index(
+    fd_t map_fd,
+    uint64_t index,
+    _Outptr_result_maybenull_ void** consumer,
+    _Outptr_result_maybenull_ const void** producer,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size) noexcept;
+
+/**
+ * @brief Internal function to unmap a ring buffer or perf event array map buffer with a specific index.
+ *
+ * @param[in] map_fd File descriptor to map.
+ * @param[in] index Index (CPU ID for perf event array maps, must be 0 for ring buffer maps).
+ * @param[in] consumer Pointer to the consumer buffer.
+ * @param[in] producer Pointer to the producer buffer.
+ * @param[in] data Pointer to the data buffer.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_FD Invalid file descriptor.
+ */
+_Must_inspect_result_ ebpf_result_t
+_ebpf_ring_buffer_map_unmap_buffer_with_index(
+    fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) noexcept;
+
+/**
  * @brief Get list of programs and stats in an ELF eBPF file.
  * @param[in] file Name of ELF file containing eBPF program.
  * @param[in] section Optionally, the name of the section to query.
