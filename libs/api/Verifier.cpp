@@ -19,6 +19,7 @@
 
 #include <ElfWrapper.h>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <sys/stat.h>
@@ -306,18 +307,50 @@ load_byte_code(
         }
 
         std::vector<prevail::RawProgram> raw_programs;
+        std::vector<uint8_t> elf_data;
+        std::string object_name;
 
-        // If file_or_buffer is a string, it is a file name.
+        // Convert file path to buffer, or use the provided buffer directly.
         if (std::holds_alternative<std::string>(file_or_buffer)) {
-            raw_programs =
-                read_elf(std::get<std::string>(file_or_buffer), section_name_string, "", verifier_options, platform);
+            const std::string& file_path = std::get<std::string>(file_or_buffer);
+            object_name = file_path;
+
+            std::ifstream file_stream(file_path, std::ios::binary | std::ios::ate);
+            if (!file_stream) {
+                *error_message = allocate_string(std::string("error: failed to open file: ") + file_path);
+                result = EBPF_FILE_NOT_FOUND;
+                goto Exit;
+            }
+            std::streamsize file_size = file_stream.tellg();
+            file_stream.seekg(0, std::ios::beg);
+            elf_data.resize(static_cast<size_t>(file_size));
+            if (!file_stream.read(reinterpret_cast<char*>(elf_data.data()), file_size)) {
+                *error_message = allocate_string(std::string("error: failed to read file: ") + file_path);
+                result = EBPF_FILE_NOT_FOUND;
+                goto Exit;
+            }
         } else {
-            std::stringstream buffer_stream;
-            // If file_or_buffer is a vector, it is a buffer.
-            auto& buffer = std::get<std::vector<uint8_t>>(file_or_buffer);
-            buffer_stream = std::stringstream(std::string(buffer.begin(), buffer.end()));
-            raw_programs = read_elf(buffer_stream, "memory", section_name_string, "", verifier_options, platform);
+            elf_data = std::get<std::vector<uint8_t>>(file_or_buffer);
+            object_name = "memory";
         }
+
+        // Validate the ELF structure before passing to ELFIO to prevent crashes
+        // from malformed ELF files (e.g., invalid relocation sections).
+        if (elf_data.size() > UINT32_MAX) {
+            *error_message = allocate_string(
+                std::string("error: ELF file ") + object_name + " is too large");
+            result = EBPF_ELF_PARSING_FAILED;
+            goto Exit;
+        }
+        if (!ElfCheckElf(elf_data.size(), elf_data.data(), static_cast<uint32_t>(elf_data.size()))) {
+            *error_message = allocate_string(
+                std::string("error: ELF file ") + object_name + " is malformed: " + _elf_everparse_error);
+            result = EBPF_ELF_PARSING_FAILED;
+            goto Exit;
+        }
+
+        std::stringstream elf_stream(std::string(elf_data.begin(), elf_data.end()));
+        raw_programs = read_elf(elf_stream, object_name, section_name_string, "", verifier_options, platform);
 
         if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
