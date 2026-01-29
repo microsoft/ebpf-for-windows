@@ -1,13 +1,13 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include <Windows.h>
-#include <comdef.h>
-#include <dia2.h>
-
 #include "libbtf/btf.h"
 #include "libbtf/btf_type_data.h"
 #include "libbtf/btf_write.h"
+
+#include <windows.h>
+#include <comdef.h>
+#include <dia2.h>
 
 #include <algorithm>
 #include <fstream>
@@ -23,7 +23,13 @@
 class com_initializer
 {
   public:
-    com_initializer() { CoInitialize(nullptr); }
+    com_initializer()
+    {
+        HRESULT hr = CoInitialize(nullptr);
+        if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
+            throw std::runtime_error("Failed to initialize COM");
+        }
+    }
     ~com_initializer() { CoUninitialize(); }
 };
 
@@ -70,6 +76,11 @@ class pdb_to_btf_converter
             }
 
             out.write(reinterpret_cast<const char*>(btf_bytes.data()), btf_bytes.size());
+
+            if (!out.good()) {
+                std::cerr << "Failed to write to output file: " << output_path << std::endl;
+                return false;
+            }
 
             std::cout << "Successfully wrote " << btf_bytes.size() << " bytes to " << output_path << std::endl;
             return true;
@@ -178,7 +189,7 @@ class pdb_to_btf_converter
 
         libbtf::btf_kind_int int_type{};
         int_type.size_in_bytes = static_cast<uint32_t>(size);
-        int_type.field_width_in_bits = static_cast<uint8_t>(size * 8);
+        int_type.field_width_in_bits = static_cast<uint8_t>(size * 8 > 255 ? 255 : size * 8);
         int_type.offset_from_start_in_bits = 0;
 
         switch (base_type) {
@@ -344,7 +355,9 @@ class pdb_to_btf_converter
             ULONG fetched = 0;
 
             while (SUCCEEDED(enum_children->Next(1, &child, &fetched)) && fetched == 1) {
-                libbtf::btf_kind_union_member member{};
+                DWORD location_type = 0;
+                if (SUCCEEDED(child->get_locationType(&location_type)) && location_type == LocIsThisRel) {
+                    libbtf::btf_kind_union_member member{};
 
                 _bstr_t member_name;
                 if (SUCCEEDED(child->get_name(member_name.GetAddress()))) {
@@ -358,7 +371,9 @@ class pdb_to_btf_converter
 
                 member.offset_from_start_in_bits = 0; // Union members all start at offset 0
 
-                union_type.members.push_back(member);
+                    union_type.members.push_back(member);
+                }
+
                 child.Release();
             }
         }
@@ -380,7 +395,7 @@ class pdb_to_btf_converter
             enum_type.name = name;
         }
         enum_type.size_in_bytes = static_cast<uint32_t>(size);
-        enum_type.is_signed = false;
+        enum_type.is_signed = false; // Will be updated if negative values are found
 
         // Enumerate values
         CComPtr<IDiaEnumSymbols> enum_children;
@@ -399,13 +414,41 @@ class pdb_to_btf_converter
                     }
 
                     VARIANT value_variant;
+                    VariantInit(&value_variant);
                     if (SUCCEEDED(child->get_value(&value_variant))) {
-                        if (value_variant.vt == VT_I4 || value_variant.vt == VT_I2 || value_variant.vt == VT_I1) {
-                            member.value = static_cast<uint32_t>(value_variant.lVal);
-                        } else if (value_variant.vt == VT_UI4 || value_variant.vt == VT_UI2 ||
-                                   value_variant.vt == VT_UI1) {
-                            member.value = static_cast<uint32_t>(value_variant.ulVal);
+                        int32_t signed_value = 0;
+                        switch (value_variant.vt) {
+                        case VT_I1:
+                            signed_value = value_variant.cVal;
+                            break;
+                        case VT_I2:
+                            signed_value = value_variant.iVal;
+                            break;
+                        case VT_I4:
+                        case VT_INT:
+                            signed_value = value_variant.lVal;
+                            break;
+                        case VT_UI1:
+                            member.value = value_variant.bVal;
+                            break;
+                        case VT_UI2:
+                            member.value = value_variant.uiVal;
+                            break;
+                        case VT_UI4:
+                        case VT_UINT:
+                            member.value = value_variant.ulVal;
+                            break;
                         }
+
+                        // Check for negative values
+                        if (value_variant.vt == VT_I1 || value_variant.vt == VT_I2 || value_variant.vt == VT_I4 ||
+                            value_variant.vt == VT_INT) {
+                            if (signed_value < 0) {
+                                enum_type.is_signed = true;
+                            }
+                            member.value = static_cast<uint32_t>(signed_value);
+                        }
+
                         VariantClear(&value_variant);
                     }
 
@@ -502,7 +545,7 @@ class pdb_to_btf_converter
         // Check if already exists
         try {
             return _btf_data.get_id(name);
-        } catch (...) {
+        } catch (const std::exception&) {
             // Doesn't exist, create it
             libbtf::btf_kind_int int_type{};
             int_type.name = name;
@@ -539,11 +582,17 @@ parse_arguments(int argc, char* argv[], options& opts)
             size_t end = roots_str.find(',');
 
             while (end != std::string::npos) {
-                opts.root_names.push_back(roots_str.substr(start, end - start));
+                std::string root = roots_str.substr(start, end - start);
+                if (!root.empty()) {
+                    opts.root_names.push_back(root);
+                }
                 start = end + 1;
                 end = roots_str.find(',', start);
             }
-            opts.root_names.push_back(roots_str.substr(start));
+            std::string last_root = roots_str.substr(start);
+            if (!last_root.empty()) {
+                opts.root_names.push_back(last_root);
+            }
         } else if (arg == "--help" || arg == "-h") {
             return false;
         }
