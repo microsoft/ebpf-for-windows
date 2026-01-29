@@ -1317,29 +1317,501 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
         ring_buffer__free(rb);
     }
 
-    SECTION("ebpf_ring_buffer_get_buffer with null parameters should fail")
+    // No null parameter tests (violates SAL).
+
+    Platform::_close(map_fd);
+}
+
+// Test helper for perf buffer callback.
+// FIXME: this is WIP and doesn't actually test all functionality yet.
+struct perf_buffer_test_callback_context
+{
+    std::vector<std::tuple<int, std::vector<uint8_t>>> received_records; // (cpu, data)
+    std::atomic<size_t> lost_count{0};
+    int error_return = 0;
+    bool should_stop = false;
+    std::mutex mutex;
+
+    void
+    add_record(int cpu, const void* data, size_t size)
     {
-        ebpf_ring_buffer_opts ring_opts = {.sz = sizeof(ring_opts), .flags = 0};
+        std::lock_guard<std::mutex> lock(mutex);
+        const uint8_t* bytes = static_cast<const uint8_t*>(data);
+        received_records.emplace_back(cpu, std::vector<uint8_t>(bytes, bytes + size));
+    }
 
-        struct ring_buffer* rb =
-            ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
-        REQUIRE(rb != nullptr);
+    size_t
+    get_record_count()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return received_records.size();
+    }
 
-        // Test with various null parameters (need to disable warnings since these violate SAL annotations).
-#pragma warning(push)
-#pragma warning(disable : 6387)
-        ebpf_result_t result = ebpf_ring_buffer_get_buffer(nullptr, 0, nullptr, nullptr, nullptr, nullptr);
-        REQUIRE(result == EBPF_INVALID_ARGUMENT);
+    void
+    add_lost(size_t count)
+    {
+        lost_count += count;
+    }
 
-        ebpf_ring_buffer_consumer_page_t* consumer_page = nullptr;
-        result = ebpf_ring_buffer_get_buffer(rb, 0, &consumer_page, nullptr, nullptr, nullptr);
-        REQUIRE(result == EBPF_INVALID_ARGUMENT);
-#pragma warning(pop)
+    void
+    clear()
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        received_records.clear();
+        lost_count = 0;
+    }
+};
 
-        ring_buffer__free(rb);
+static void
+perf_buffer_test_sample_callback(void* ctx, int cpu, void* data, uint32_t size)
+{
+    auto* context = static_cast<perf_buffer_test_callback_context*>(ctx);
+    if (context->should_stop) {
+        return; // Stop processing.
+    }
+
+    context->add_record(cpu, data, size);
+}
+
+static void
+perf_buffer_test_lost_callback(void* ctx, int cpu, uint64_t cnt)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    auto* context = static_cast<perf_buffer_test_callback_context*>(ctx);
+    context->add_lost(static_cast<size_t>(cnt));
+}
+
+TEST_CASE("perf buffer Linux-compatible APIs", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create a perf event array map.
+    const uint32_t max_entries = 64 * 1024;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("perf_buffer__new with null sample_cb should fail")
+    {
+        struct perf_buffer* pb =
+            perf_buffer__new(map_fd, 0, nullptr, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EINVAL);
+    }
+
+    SECTION("perf_buffer__new with null lost_cb should fail")
+    {
+        struct perf_buffer* pb =
+            perf_buffer__new(map_fd, 0, perf_buffer_test_sample_callback, nullptr, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EINVAL);
+    }
+
+    SECTION("perf_buffer__new with non-zero page_cnt should fail")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 16, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EINVAL);
+    }
+
+    SECTION("perf_buffer__new with invalid map_fd should fail")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            -1, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EBADF);
+    }
+
+    SECTION("perf_buffer__new with wrong map type should fail")
+    {
+        // Create a ring buffer map (wrong type for perf_buffer).
+        int ringbuf_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "TestRingBuf", 0, 0, 128 * 1024, nullptr);
+        REQUIRE(ringbuf_fd > 0);
+
+        struct perf_buffer* pb = perf_buffer__new(
+            ringbuf_fd,
+            0,
+            perf_buffer_test_sample_callback,
+            perf_buffer_test_lost_callback,
+            &callback_context,
+            nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EINVAL);
+
+        Platform::_close(ringbuf_fd);
+    }
+
+    SECTION("perf_buffer__new should create perf buffer manager")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Test perf_buffer__poll with timeout 0 (non-blocking).
+        int result = perf_buffer__poll(pb, 0);
+        REQUIRE(result >= 0); // Should not error, but may be 0 records.
+
+        // Test perf_buffer__consume.
+        result = perf_buffer__consume(pb);
+        REQUIRE(result >= 0); // Should not error, but may be 0 records.
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__buffer_cnt should return CPU count")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Buffer count should match the number of CPUs.
+        size_t buffer_cnt = perf_buffer__buffer_cnt(pb);
+        int cpu_count = libbpf_num_possible_cpus();
+        REQUIRE(cpu_count > 0);
+        REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__consume_buffer with valid CPU index should succeed")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Consume from CPU 0.
+        int result = perf_buffer__consume_buffer(pb, 0);
+        REQUIRE(result >= 0);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__consume_buffer with invalid CPU index should fail")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Consume from invalid CPU index.
+        int result = perf_buffer__consume_buffer(pb, 9999);
+        REQUIRE(result < 0);
+        REQUIRE(errno == EINVAL);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer operations should not crash with empty buffer")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Poll and consume on empty buffer should succeed with 0 records.
+        int poll_result = perf_buffer__poll(pb, 0);
+        REQUIRE(poll_result >= 0);
+
+        int consume_result = perf_buffer__consume(pb);
+        REQUIRE(consume_result >= 0);
+
+        // Consume from specific CPU should also succeed.
+        int consume_cpu_result = perf_buffer__consume_buffer(pb, 0);
+        REQUIRE(consume_cpu_result >= 0);
+
+        perf_buffer__free(pb);
     }
 
     Platform::_close(map_fd);
+}
+
+TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create a perf event array map.
+    const uint32_t max_entries = 64 * 1024;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("ebpf_perf_buffer__new with AUTO_CALLBACK flag")
+    {
+        ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("ebpf_perf_buffer__new with default flags")
+    {
+        ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        // Test Windows-specific poll function.
+        int result = perf_buffer__poll(pb, 0);
+        REQUIRE(result >= 0);
+
+        // Test Windows-specific consume function.
+        result = perf_buffer__consume(pb);
+        REQUIRE(result >= 0);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("ebpf_perf_buffer__new with null opts should create sync mode")
+    {
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // In sync mode, wait handle should be valid.
+        ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+        REQUIRE(wait_handle != ebpf_handle_invalid);
+
+        perf_buffer__free(pb);
+    }
+
+    Platform::_close(map_fd);
+}
+
+TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create a perf event array map.
+    const uint32_t max_entries = 64 * 1024;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("ebpf_perf_buffer_get_wait_handle should return valid handle for sync mode")
+    {
+        ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        // Get the wait handle.
+        ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+        REQUIRE(wait_handle != ebpf_handle_invalid);
+
+        // The handle should be a valid Windows event handle.
+        REQUIRE(WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 0) == WAIT_TIMEOUT);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("ebpf_perf_buffer_get_wait_handle should return invalid handle for async mode")
+    {
+        ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        // Get the wait handle - should be invalid for async mode.
+        ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+        REQUIRE(wait_handle == ebpf_handle_invalid);
+
+        perf_buffer__free(pb);
+    }
+
+    // No test for null perf buffer (violates SAL).
+    Platform::_close(map_fd);
+}
+
+TEST_CASE("perf buffer lost callback", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create a perf event array map.
+    const uint32_t max_entries = 64 * 1024;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("lost callback should be accepted during creation")
+    {
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Verify the callback context is initialized properly.
+        REQUIRE(callback_context.lost_count == 0);
+        REQUIRE(callback_context.get_record_count() == 0);
+
+        perf_buffer__free(pb);
+    }
+
+    Platform::_close(map_fd);
+}
+
+TEST_CASE("perf buffer error handling", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const uint32_t max_entries = 64 * 1024;
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("perf_buffer__new should reject closed file descriptor")
+    {
+        int temp_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TempPerfBuf", 0, 0, max_entries, nullptr);
+        REQUIRE(temp_fd > 0);
+        Platform::_close(temp_fd);
+
+        // Try to create perf buffer with closed fd.
+        struct perf_buffer* pb = perf_buffer__new(
+            temp_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EBADF);
+    }
+
+    SECTION("multiple perf buffers can be created for different maps")
+    {
+        int map_fd2 = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf2", 0, 0, max_entries, nullptr);
+        REQUIRE(map_fd2 > 0);
+
+        // Create first perf buffer.
+        struct perf_buffer* pb1 = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb1 != nullptr);
+
+        // Create second perf buffer for different map.
+        struct perf_buffer* pb2 = perf_buffer__new(
+            map_fd2, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb2 != nullptr);
+
+        // Both should be valid and independent.
+        REQUIRE(pb1 != pb2);
+
+        perf_buffer__free(pb1);
+        perf_buffer__free(pb2);
+        Platform::_close(map_fd2);
+    }
+
+    SECTION("ebpf_perf_buffer__new with invalid opts size should fail")
+    {
+        ebpf_perf_buffer_opts invalid_opts{.sz = 1, .flags = 0}; // Invalid size
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd,
+            0,
+            perf_buffer_test_sample_callback,
+            perf_buffer_test_lost_callback,
+            &callback_context,
+            &invalid_opts);
+        REQUIRE(pb == nullptr);
+        REQUIRE(errno == EINVAL);
+    }
+
+    SECTION("ebpf_perf_buffer__new with unknown flags should be accepted or fail gracefully")
+    {
+        // Test with a flag value that's not defined.
+        ebpf_perf_buffer_opts opts_with_unknown_flag{.sz = sizeof(ebpf_perf_buffer_opts), .flags = 0xFFFFFFFF};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd,
+            0,
+            perf_buffer_test_sample_callback,
+            perf_buffer_test_lost_callback,
+            &callback_context,
+            &opts_with_unknown_flag);
+        // Implementation may accept or reject unknown flags.
+        // If rejected, should return NULL with errno set.
+        if (pb == nullptr) {
+            REQUIRE((errno == EINVAL || errno == ENOTSUP));
+        } else {
+            perf_buffer__free(pb);
+        }
+    }
+
+    Platform::_close(map_fd);
+}
+
+TEST_CASE("perf buffer resource cleanup", "[libbpf][perf_event_array]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const uint32_t max_entries = 64 * 1024;
+    perf_buffer_test_callback_context callback_context;
+
+    SECTION("perf_buffer__free with NULL should be safe")
+    {
+        // Should not crash.
+        perf_buffer__free(nullptr);
+        REQUIRE(true); // If we get here, it didn't crash.
+    }
+
+    SECTION("perf_buffer__free should clean up resources properly")
+    {
+        int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+        REQUIRE(map_fd > 0);
+
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Free the perf buffer before closing the map.
+        perf_buffer__free(pb);
+
+        // Map should still be valid and closeable.
+        int close_result = Platform::_close(map_fd);
+        REQUIRE(close_result == 0);
+    }
+
+    SECTION("cleanup after failed creation should not leak")
+    {
+        // Try to create with invalid fd - should fail cleanly.
+        struct perf_buffer* pb = perf_buffer__new(
+            -1, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb == nullptr);
+
+        // Calling free on NULL should be safe (tested above, but ensure no issues).
+        perf_buffer__free(pb);
+        REQUIRE(true);
+    }
+
+    SECTION("map can be closed while perf buffer is active")
+    {
+        int map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, "TestPerfBuf", 0, 0, max_entries, nullptr);
+        REQUIRE(map_fd > 0);
+
+        struct perf_buffer* pb = perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, nullptr);
+        REQUIRE(pb != nullptr);
+
+        // Close the map fd while perf buffer is still active.
+        int close_result = Platform::_close(map_fd);
+        REQUIRE(close_result == 0);
+
+        // Perf buffer should still be valid (holds its own reference).
+        // Operations should not crash.
+        int poll_result = perf_buffer__poll(pb, 0);
+        REQUIRE(poll_result >= 0);
+
+        // Clean up perf buffer.
+        perf_buffer__free(pb);
+    }
 }
 
 static void
