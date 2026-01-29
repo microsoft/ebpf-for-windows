@@ -9,6 +9,7 @@
 #include "bpf/libbpf.h"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "ebpf_core_structs.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_structs.h"
@@ -22,6 +23,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <chrono>
+#include <functional>
 #include <io.h>
 #include <lsalookup.h>
 #include <mstcpip.h>
@@ -50,6 +52,32 @@ static service_install_helper
 
 static service_install_helper
     _ebpf_extension_driver_helper(EBPF_EXTENSION_DRIVER_NAME, EBPF_EXTENSION_DRIVER_BINARY_NAME, SERVICE_KERNEL_DRIVER);
+
+using jit_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_JIT>;
+using native_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_NATIVE>;
+using interpret_t = std::integral_constant<ebpf_execution_type_t, EBPF_EXECUTION_INTERPRET>;
+
+#if defined(CONFIG_BPF_JIT_DISABLED) && defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t
+#elif defined(CONFIG_BPF_JIT_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t, interpret_t
+#elif defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define ENABLED_EXECUTION_TYPES native_t, jit_t
+#else
+#define ENABLED_EXECUTION_TYPES native_t, jit_t, interpret_t
+#endif
+
+static std::string
+_get_program_file_name(_In_z_ const char* base_file_name, ebpf_execution_type_t execution_type)
+{
+    std::string file_name = base_file_name;
+    if (execution_type == EBPF_EXECUTION_NATIVE) {
+        file_name += EBPF_PROGRAM_FILE_EXTENSION_NATIVE;
+    } else {
+        file_name += EBPF_PROGRAM_FILE_EXTENSION_JIT;
+    }
+    return file_name;
+}
 
 static void
 _test_program_load(
@@ -247,6 +275,278 @@ TEST_CASE("test_ebpf_map_next_previous_native", "[test_ebpf_map_next_previous]")
     native_module_helper_t bindmonitor_helper;
     bindmonitor_helper.initialize("bindmonitor", EBPF_EXECUTION_NATIVE);
     test_map_next_previous(bindmonitor_helper.get_file_name().c_str(), BIND_MONITOR_MAP_COUNT);
+}
+
+// Synchronous ring buffer API test function.
+TEMPLATE_TEST_CASE("ring_buffer_sync_api", "[ring_buffer]", ENABLED_EXECUTION_TYPES)
+{
+    ebpf_execution_type_t execution_type = TestType::value;
+    std::string file_name = _get_program_file_name("bindmonitor_ringbuf", execution_type);
+    const uint16_t base_test_port = 12300;
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    // Create a synchronous ring buffer (default mode without auto-callback flag).
+    ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = 0};
+
+    uint32_t event_count = 0;
+    const uint32_t expected_events = 10;
+
+    auto ring = ebpf_ring_buffer__new(
+        process_map_fd,
+        [](void* ctx, void* /*data*/, size_t /*size */) {
+            uint32_t* count = reinterpret_cast<uint32_t*>(ctx);
+            (*count)++;
+            return 0;
+        },
+        &event_count,
+        &ring_opts);
+    REQUIRE(ring != nullptr);
+
+    // Test ebpf_ring_buffer_get_wait_handle.
+    ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
+    REQUIRE(wait_handle != ebpf_handle_invalid);
+
+    // Generate event to consume by triggering socket bind.
+    perform_socket_bind(base_test_port, true);
+
+    // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
+    DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000); // 5 second timeout.
+    REQUIRE(wait_result == WAIT_OBJECT_0);
+
+    int consume_result = ring_buffer__consume(ring);
+    REQUIRE(consume_result > 0);
+    REQUIRE(event_count > 0);
+
+    // Generate some additional events.
+    for (uint16_t i = 1; i < expected_events; i++) {
+        perform_socket_bind(base_test_port + i, true);
+    }
+
+    // Test 2: Use poll API in a loop until we get all expected events.
+    int total_events_polled = 0;
+    int max_iterations = 20;
+    int iteration = 0;
+
+    while (event_count < expected_events && iteration < max_iterations) {
+        int poll_result = ring_buffer__poll(ring, 200); // 200ms timeout.
+        REQUIRE(poll_result >= 0);
+
+        if (poll_result == 0) {
+            // Timeout - no events available right now.
+            iteration++;
+            continue;
+        }
+
+        total_events_polled += poll_result;
+        iteration++;
+    }
+
+    REQUIRE(total_events_polled > 0);
+    REQUIRE(event_count >= expected_events);
+
+    // Clean up.
+    ring_buffer__free(ring);
+}
+
+// Test synchronous ring buffer consume API.
+TEST_CASE("ring_buffer_sync_consume", "[ring_buffer]")
+{
+    // Create a ring buffer map for testing.
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_ringbuf", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Create synchronous ring buffer.
+    ebpf_ring_buffer_opts ring_opts = {.sz = sizeof(ring_opts), .flags = 0};
+
+    struct test_context
+    {
+        uint32_t event_count = 0;
+        std::vector<std::string> received_data;
+    };
+    test_context context;
+
+    auto ring = ebpf_ring_buffer__new(
+        map_fd,
+        [](void* ctx, void* data, size_t size) {
+            auto* test_ctx = reinterpret_cast<test_context*>(ctx);
+            std::string record_data(reinterpret_cast<const char*>(data), size);
+            test_ctx->received_data.push_back(record_data);
+            test_ctx->event_count++;
+            return 0;
+        },
+        &context,
+        &ring_opts);
+    REQUIRE(ring != nullptr);
+
+    // Test ebpf_ring_buffer_get_buffer with index 0.
+    const ebpf_ring_buffer_producer_page_t* producer_ptr = nullptr;
+    ebpf_ring_buffer_consumer_page_t* consumer_ptr = nullptr;
+    const uint8_t* data_ptr = nullptr;
+    uint64_t data_size = 0;
+
+    ebpf_result_t result = ebpf_ring_buffer_get_buffer(ring, 0, &consumer_ptr, &producer_ptr, &data_ptr, &data_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(producer_ptr != nullptr);
+    REQUIRE(consumer_ptr != nullptr);
+    REQUIRE(data_ptr != nullptr);
+    REQUIRE(data_size > 0);
+
+    // Write test data to the ring buffer.
+    std::vector<std::string> test_messages = {"First message", "Second message", "Third message"};
+
+    for (const auto& msg : test_messages) {
+        result = ebpf_ring_buffer_map_write(map_fd, msg.c_str(), msg.length());
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+
+    // Use ring_buffer__consume to process all available events.
+    int consume_result = ring_buffer__consume(ring);
+    REQUIRE(consume_result >= 0);
+
+    // Verify we received all the test messages.
+    REQUIRE(context.event_count == test_messages.size());
+    REQUIRE(context.received_data.size() == test_messages.size());
+
+    for (size_t i = 0; i < test_messages.size(); i++) {
+        REQUIRE(context.received_data[i] == test_messages[i]);
+    }
+
+    // Clean up.
+    ring_buffer__free(ring);
+    _close(map_fd);
+}
+
+// Test synchronous ring buffer with multiple maps.
+TEST_CASE("ring_buffer_sync_multiple_maps", "[ring_buffer]")
+{
+    fd_t map_fd1 = -1;
+    fd_t map_fd2 = -1;
+    ring_buffer* ring = nullptr;
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            if (ring != nullptr) {
+                ring_buffer__free(ring);
+            }
+            if (map_fd1 > 0) {
+                _close(map_fd1);
+            }
+            if (map_fd2 > 0) {
+                _close(map_fd2);
+            }
+        });
+    // Create multiple ring buffer maps for testing.
+    map_fd1 = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_ringbuf1", 0, 0, 32 * 1024, nullptr);
+    REQUIRE(map_fd1 > 0);
+
+    map_fd2 = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_ringbuf2", 0, 0, 32 * 1024, nullptr);
+    REQUIRE(map_fd2 > 0);
+
+    // Create synchronous ring buffer with first map.
+    ebpf_ring_buffer_opts ring_opts = {.sz = sizeof(ring_opts), .flags = 0};
+
+    struct multi_map_context
+    {
+        uint32_t event_count = 0;
+        std::vector<std::string> received_data;
+    };
+    multi_map_context context;
+
+    ring = ebpf_ring_buffer__new(
+        map_fd1,
+        [](void* ctx, void* data, size_t size) {
+            auto* test_ctx = reinterpret_cast<multi_map_context*>(ctx);
+            std::string record_data(reinterpret_cast<const char*>(data), size);
+            test_ctx->received_data.push_back(record_data);
+            test_ctx->event_count++;
+            return 0;
+        },
+        &context,
+        &ring_opts);
+    REQUIRE(ring != nullptr);
+
+    // Add second map to the ring buffer.
+    int add_result = ring_buffer__add(
+        ring,
+        map_fd2,
+        [](void* ctx, void* data, size_t size) {
+            auto* test_ctx = reinterpret_cast<multi_map_context*>(ctx);
+            std::string record_data(reinterpret_cast<const char*>(data), size);
+            test_ctx->received_data.push_back(record_data);
+            test_ctx->event_count++;
+            return 0;
+        },
+        &context);
+    REQUIRE(add_result == 0);
+
+    // Test ebpf_ring_buffer_get_wait_handle for shared wait handle.
+    ebpf_handle_t wait_handle = ebpf_ring_buffer_get_wait_handle(ring);
+    REQUIRE(wait_handle != ebpf_handle_invalid);
+
+    // Test ebpf_ring_buffer_get_buffer for each map.
+    for (int i = 0; i < 2; i++) {
+        const ebpf_ring_buffer_producer_page_t* producer_ptr = nullptr;
+        ebpf_ring_buffer_consumer_page_t* consumer_ptr = nullptr;
+        const uint8_t* data_ptr = nullptr;
+        uint64_t data_size = 0;
+
+        ebpf_result_t result =
+            ebpf_ring_buffer_get_buffer(ring, i, &consumer_ptr, &producer_ptr, &data_ptr, &data_size);
+        REQUIRE(result == EBPF_SUCCESS);
+        REQUIRE(producer_ptr != nullptr);
+        REQUIRE(consumer_ptr != nullptr);
+        REQUIRE(data_ptr != nullptr);
+        REQUIRE(data_size > 0);
+    }
+
+    // Test invalid index.
+    {
+        const ebpf_ring_buffer_producer_page_t* producer_ptr = nullptr;
+        ebpf_ring_buffer_consumer_page_t* consumer_ptr = nullptr;
+        const uint8_t* data_ptr = nullptr;
+        uint64_t data_size = 0;
+
+        ebpf_result_t result =
+            ebpf_ring_buffer_get_buffer(ring, 2, &consumer_ptr, &producer_ptr, &data_ptr, &data_size);
+        REQUIRE(result == EBPF_OBJECT_NOT_FOUND);
+    }
+
+    // Write test data to both ring buffers.
+    std::string msg1 = "Message from map1";
+    std::string msg2 = "Message from map2";
+
+    ebpf_result_t result1 = ebpf_ring_buffer_map_write(map_fd1, msg1.c_str(), msg1.length());
+    REQUIRE(result1 == EBPF_SUCCESS);
+
+    ebpf_result_t result2 = ebpf_ring_buffer_map_write(map_fd2, msg2.c_str(), msg2.length());
+    REQUIRE(result2 == EBPF_SUCCESS);
+
+    // Use ring_buffer__consume to process all available events.
+    int consume_result = ring_buffer__consume(ring);
+    REQUIRE(consume_result >= 0);
+
+    // Verify we received messages from both maps.
+    REQUIRE(context.event_count == 2);
+    REQUIRE(context.received_data.size() == 2);
+
+    // Check that we got data from both maps.
+    bool found_map1 = false, found_map2 = false;
+    for (const auto& data : context.received_data) {
+        if (data == msg1)
+            found_map1 = true;
+        if (data == msg2)
+            found_map2 = true;
+    }
+    REQUIRE(found_map1);
+    REQUIRE(found_map2);
 }
 
 TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")

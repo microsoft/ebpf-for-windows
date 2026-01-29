@@ -2086,29 +2086,10 @@ run_ring_buffer_stress_test(
         failed_returns,
         failed_waits,
         reserve_count);
-    std::cout << " == test case " << parameters->test_name << " (" << std::endl
-              << parameters->test_string << ")" << std::endl;
-    std::cout << "Consumer late: " << consumer_late << std::endl
-              << "Late producer threads: " << late_producer_threads << std::endl
-              << "Producer loops: " << producer_loops << std::endl
-              << "Consumer loops: " << consumer_loops << std::endl
-              << "Consumer records: " << consumer_records << std::endl
-              << "Locked records read: " << locked_records_read << std::endl
-              << "Discarded records read: " << discarded_records_read << std::endl
-              << "Empty records read: " << empty_records_read << std::endl
-              << "Failed returns: " << failed_returns << std::endl
-              << "Failed waits: " << failed_waits << std::endl;
-
     if (use_output) {
         CAPTURE(output_count);
-        std::cout << "Output count: " << output_count << std::endl;
     } else {
         CAPTURE(reserve_count, submit_count, discard_count, failed_submits, failed_discards);
-        std::cout << "Reserve count: " << reserve_count << std::endl
-                  << "Submit count: " << submit_count << std::endl
-                  << "Discard count: " << discard_count << std::endl
-                  << "Failed submits: " << failed_submits << std::endl
-                  << "Failed discards: " << failed_discards << std::endl;
     }
 
     // Read any remaining records.
@@ -2143,10 +2124,6 @@ run_ring_buffer_stress_test(
         }
     }
     CAPTURE(remaining_records, remaining_discards, remaining_locked, remaining_failed_returns);
-    std::cout << "Remaining records: " << remaining_records << std::endl
-              << "Remaining discards: " << remaining_discards << std::endl
-              << "Remaining locked: " << remaining_locked << std::endl
-              << "Remaining failed returns: " << remaining_failed_returns << std::endl;
 
     REQUIRE(blocked_threads == 0);
 
