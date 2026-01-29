@@ -189,7 +189,7 @@ class pdb_to_btf_converter
 
         libbtf::btf_kind_int int_type{};
         int_type.size_in_bytes = static_cast<uint32_t>(size);
-        int_type.field_width_in_bits = static_cast<uint8_t>(size * 8 > 255 ? 255 : size * 8);
+        int_type.field_width_in_bits = static_cast<uint8_t>(size * 8);
         int_type.offset_from_start_in_bits = 0;
 
         switch (base_type) {
@@ -359,17 +359,17 @@ class pdb_to_btf_converter
                 if (SUCCEEDED(child->get_locationType(&location_type)) && location_type == LocIsThisRel) {
                     libbtf::btf_kind_union_member member{};
 
-                _bstr_t member_name;
-                if (SUCCEEDED(child->get_name(member_name.GetAddress()))) {
-                    member.name = static_cast<const char*>(member_name);
-                }
+                    _bstr_t member_name;
+                    if (SUCCEEDED(child->get_name(member_name.GetAddress()))) {
+                        member.name = static_cast<const char*>(member_name);
+                    }
 
-                CComPtr<IDiaSymbol> member_type;
-                if (SUCCEEDED(child->get_type(&member_type))) {
-                    member.type = convert_symbol(member_type);
-                }
+                    CComPtr<IDiaSymbol> member_type;
+                    if (SUCCEEDED(child->get_type(&member_type))) {
+                        member.type = convert_symbol(member_type);
+                    }
 
-                member.offset_from_start_in_bits = 0; // Union members all start at offset 0
+                    member.offset_from_start_in_bits = 0; // Union members all start at offset 0
 
                     union_type.members.push_back(member);
                 }
@@ -417,16 +417,20 @@ class pdb_to_btf_converter
                     VariantInit(&value_variant);
                     if (SUCCEEDED(child->get_value(&value_variant))) {
                         int32_t signed_value = 0;
+                        bool is_signed_type = false;
                         switch (value_variant.vt) {
                         case VT_I1:
                             signed_value = value_variant.cVal;
+                            is_signed_type = true;
                             break;
                         case VT_I2:
                             signed_value = value_variant.iVal;
+                            is_signed_type = true;
                             break;
                         case VT_I4:
                         case VT_INT:
                             signed_value = value_variant.lVal;
+                            is_signed_type = true;
                             break;
                         case VT_UI1:
                             member.value = value_variant.bVal;
@@ -440,9 +444,8 @@ class pdb_to_btf_converter
                             break;
                         }
 
-                        // Check for negative values
-                        if (value_variant.vt == VT_I1 || value_variant.vt == VT_I2 || value_variant.vt == VT_I4 ||
-                            value_variant.vt == VT_INT) {
+                        // Check for negative values in signed types
+                        if (is_signed_type) {
                             if (signed_value < 0) {
                                 enum_type.is_signed = true;
                             }
@@ -545,8 +548,8 @@ class pdb_to_btf_converter
         // Check if already exists
         try {
             return _btf_data.get_id(name);
-        } catch (const std::exception&) {
-            // Doesn't exist, create it
+        } catch (const std::runtime_error&) {
+            // Type doesn't exist, create it
             libbtf::btf_kind_int int_type{};
             int_type.name = name;
             int_type.size_in_bytes = size_bytes;
@@ -568,6 +571,8 @@ class pdb_to_btf_converter
 bool
 parse_arguments(int argc, char* argv[], options& opts)
 {
+    bool help_requested = false;
+
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
 
@@ -594,8 +599,14 @@ parse_arguments(int argc, char* argv[], options& opts)
                 opts.root_names.push_back(last_root);
             }
         } else if (arg == "--help" || arg == "-h") {
-            return false;
+            help_requested = true;
+            break;
         }
+    }
+
+    // If help was requested, return true to indicate successful parse (but help needed)
+    if (help_requested) {
+        return false;
     }
 
     if (opts.pdb_path.empty() || opts.output_path.empty() || opts.root_names.empty()) {
