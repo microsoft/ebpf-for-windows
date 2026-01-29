@@ -30,7 +30,25 @@ Supported flags:
 
 ### libbpf-style helper
 
-The libbpf-compatible API includes a `bpf_link_update()` helper that maps to `BPF_LINK_UPDATE`.
+The libbpf-compatible API includes a `bpf_link_update()` helper that maps to `BPF_LINK_UPDATE`:
+
+```c
+int bpf_link_update(int link_fd, int new_prog_fd, const struct bpf_link_update_opts *opts);
+```
+
+The `bpf_link_update_opts` structure provides optional parameters:
+
+```c
+struct bpf_link_update_opts {
+    size_t sz;           // Size of this struct for forward/backward compatibility.
+    __u32 flags;         // Behavior flags (e.g., BPF_F_REPLACE).
+    __u32 old_prog_fd;   // Expected old program FD (used with BPF_F_REPLACE).
+};
+```
+
+When `opts` is `NULL`, the update uses default behavior (unconditional replacement).
+
+**Return value:** Returns 0 on success, or a negative error code on failure (with errno set).
 
 ## Semantics
 
@@ -57,7 +75,7 @@ The link object does not change. All properties of the link that are independent
 
 The new program is compatible with the link’s attach type and the hook’s expected program type. If the new program is not compatible, the update fails.
 
-### Expected-old-program check (replace)
+### Old program validation (conditional replace)
 
 When `BPF_F_REPLACE` is used with an `old_prog_fd`, the update succeeds only if the link currently refers to that exact program. If the link refers to a different program, the update fails.
 
@@ -79,13 +97,20 @@ A link update fails with an error when any of the following occurs:
 
 1. Create a link by attaching a program.
 2. Load a second program that is compatible with the same attach point.
-3. Call `bpf_link_update(link_fd, new_prog_fd, 0, 0)`.
+3. Call `bpf_link_update(link_fd, new_prog_fd, NULL)`.
 
 The link stays attached and subsequent traffic executes the new program.
 
 ### Conditional replace (compare-and-swap)
 
-Call `bpf_link_update(link_fd, new_prog_fd, BPF_F_REPLACE, old_prog_fd)`.
+```c
+struct bpf_link_update_opts opts = {
+    .sz = sizeof(opts),
+    .flags = BPF_F_REPLACE,
+    .old_prog_fd = old_prog_fd,
+};
+int err = bpf_link_update(link_fd, new_prog_fd, &opts);
+```
 
 If the link’s program is not `old_prog_fd`, the call fails and the link remains unchanged.
 
