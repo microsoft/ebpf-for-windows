@@ -170,6 +170,13 @@ This function blocks until an epoch computation has run and a synchronization ob
 queued to the epoch free list has been processed, providing a way to wait for previously
 queued epoch work to become reclaimable.
 
+**Important:** Work item callbacks run **outside of any epoch** by default.
+If a work item callback needs to access epoch-managed data structures
+(such as hash tables created with `ebpf_hash_table_create` using the default
+epoch-based allocator), the callback must explicitly call `ebpf_epoch_enter()`
+and `ebpf_epoch_exit()` to ensure proper epoch protection and avoid
+use-after-free issues.
+
 ## Future investigations
 The implementation currently performs epoch computations via inter-CPU messaging and
 per-CPU list scans. Potential areas for future investigation include:

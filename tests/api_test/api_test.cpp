@@ -758,16 +758,27 @@ run_thread_start_time_test(IPPROTO protocol, bool is_ipv6)
 
         std::cout << "bpf_map_delete_elem(thread_start_time_map)\n";
         REQUIRE(bpf_map_delete_elem(bpf_map__fd(map), &key) == 0);
-        // Verify PID/start time values.
-        unsigned long tid = GetCurrentThreadId();
-        long long start_time = 0;
-        FILETIME creation, exit, kernel, user;
-        if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
-            start_time = static_cast<long long>(creation.dwLowDateTime) |
-                         (static_cast<long long>(creation.dwHighDateTime) << 32);
+        
+        // Verify thread ID and start time values.
+        // For TCP connections, the hook may run on a worker thread, not the caller thread.
+        // For UDP connections, the hook runs synchronously on the caller thread.
+        if (protocol == IPPROTO_TCP) {
+            // For TCP, verify that the thread ID is valid (non-zero) rather than matching a specific value.
+            REQUIRE(found_value.current_tid > 0);
+            // For TCP, verify that the start time is valid (non-zero).
+            REQUIRE(found_value.start_time > 0);
+        } else {
+            // For UDP, verify exact match since the hook runs synchronously.
+            unsigned long tid = GetCurrentThreadId();
+            long long start_time = 0;
+            FILETIME creation, exit, kernel, user;
+            if (GetThreadTimes(GetCurrentThread(), &creation, &exit, &kernel, &user)) {
+                start_time = static_cast<long long>(creation.dwLowDateTime) |
+                             (static_cast<long long>(creation.dwHighDateTime) << 32);
+            }
+            REQUIRE(tid == found_value.current_tid);
+            REQUIRE(start_time == found_value.start_time);
         }
-        REQUIRE(tid == found_value.current_tid);
-        REQUIRE(start_time == found_value.start_time);
     }
 }
 
@@ -2030,6 +2041,60 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
     _close(map_fd);
 }
 
+/**
+ * @brief Test that user mode reads (via bpf_map_lookup_elem) do not affect LRU state,
+ * while kernel mode accesses (from eBPF programs) do affect LRU eviction order.
+ * This ensures diagnostic tools can enumerate LRU maps without polluting the cache.
+ */
+TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
+{
+    // Create small LRU map that can only hold 4 entries.
+    const uint32_t max_entries = 4;
+    bpf_map_create_opts opts = {0};
+    int map_fd =
+        bpf_map_create(BPF_MAP_TYPE_LRU_HASH, "lru_test", sizeof(uint32_t), sizeof(uint32_t), max_entries, &opts);
+    REQUIRE(map_fd > 0);
+
+    // Populate map with 4 entries (keys 0-3, values 100-103).
+    for (uint32_t i = 0; i < max_entries; i++) {
+        uint32_t value = 100 + i;
+        REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
+    }
+
+    // Verify all entries exist.
+    for (uint32_t i = 0; i < max_entries; i++) {
+        uint32_t value = 0;
+        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        REQUIRE(value == (100 + i));
+    }
+
+    // User mode reads: Enumerate all entries via bpf_map_lookup_elem.
+    // This should NOT affect LRU order (keys stay in insertion order: 0,1,2,3).
+    for (uint32_t i = 0; i < max_entries; i++) {
+        uint32_t value = 0;
+        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+    }
+
+    // Insert a new entry (key 4).
+    // - Since map is full, oldest entry (key 0) should be evicted (user mode reads do not affect LRU).
+    uint32_t new_key = 4;
+    uint32_t new_value = 104;
+    REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
+
+    // Verify key 0 was evicted (should not exist).
+    uint32_t lookup_key = 0;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) != 0); // Should fail.
+
+    // Verify keys 1, 2, 3, 4 still exist.
+    for (uint32_t i = 1; i <= 4; i++) {
+        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        REQUIRE(value == (100 + i));
+    }
+
+    _close(map_fd);
+}
+
 // Test eBPF program synchronization API.
 TEST_CASE("ebpf_program_synchronize", "[ebpf_api]")
 {
@@ -2261,4 +2326,52 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     // Clean up strings.
     ebpf_free_string(report);
     ebpf_free_string(error_message);
+}
+
+/**
+ * @brief Test that user mode updates (via bpf_map_update_elem) DO affect LRU state.
+ * Only read operations should skip LRU updates.
+ */
+TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
+{
+    // Create small LRU map that can only hold 4 entries.
+    const uint32_t max_entries = 4;
+    bpf_map_create_opts opts = {0};
+    int map_fd =
+        bpf_map_create(BPF_MAP_TYPE_LRU_HASH, "lru_test", sizeof(uint32_t), sizeof(uint32_t), max_entries, &opts);
+    REQUIRE(map_fd > 0);
+
+    // Populate map with 4 entries (keys 0-3).
+    for (uint32_t i = 0; i < max_entries; i++) {
+        uint32_t value = 100 + i;
+        REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
+    }
+
+    // User mode update: Update key 0 (oldest entry).
+    // This SHOULD mark it as recently used.
+    uint32_t update_key = 0;
+    uint32_t update_value = 200;
+    REQUIRE(bpf_map_update_elem(map_fd, &update_key, &update_value, BPF_EXIST) == 0);
+
+    // Insert a new entry (key 4).
+    // Since key 0 was just updated, key 1 should now be the oldest and get evicted.
+    uint32_t new_key = 4;
+    uint32_t new_value = 104;
+    REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
+
+    // Verify key 1 was evicted (should not exist).
+    uint32_t lookup_key = 1;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) != 0); // Should fail.
+
+    // Verify key 0 still exists with updated value.
+    REQUIRE(bpf_map_lookup_elem(map_fd, &update_key, &value) == 0);
+    REQUIRE(value == 200);
+
+    // Verify keys 2, 3, 4 exist.
+    for (uint32_t i = 2; i <= 4; i++) {
+        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+    }
+
+    _close(map_fd);
 }
