@@ -6,7 +6,7 @@ BPF objects are by default system-wide entities that can be opened via several l
 an fd to the object). While this is useful for the general case, there are some scenarios where BPF applications need to
 be able to partition themselves from other BPF applications to prevent naming collisions.
 
-To achieve this a BPF application can switch to a designated namespace. Namespaces are identified by a GUID, with the
+To achieve this, a BPF application can switch to a designated namespace. Namespaces are identified by a GUID, with the
 default namespace having the zero GUID (all fields in the GUID are zero). All libbpf APIs that return fds are relative
 to the namespace that the application has specified.
 
@@ -63,7 +63,39 @@ the desired namespace using new netsh commands, such as `netsh ebpf set namespac
 operations within the session to be performed in the selected namespace. Additional commands and usage examples will be
 provided in the netsh documentation as this feature is implemented.
 
+#### Namespace discoverability
+Namespace GUIDs are application-defined and not centrally registered. Administrators who need to manage BPF objects in
+a specific namespace should consult the application's documentation to obtain its namespace GUID. Applications are
+encouraged to document their namespace GUID in their installation or configuration materials.
+
+For extension writers that use namespaces, a recommended pattern is to author a netsh subcontext under the `ebpf`
+context. The subcontext can register the same commands as the parent ebpf context, with each command implementation
+setting the appropriate namespace GUID, executing the parent command, and restoring the namespace. This allows
+administrators to switch into the extension's context and use familiar ebpf commands without manually specifying the
+namespace GUID.
+
 ### eBPF bpftool support
 Support for eBPF namespaces is a Windows-specific feature. However, bpftool is intended to be a cross-platform tool
 and, for consistency, will not support custom namespaces on Windows. It will always interact with the default (zero
 GUID) namespace.
+
+#### netsh vs bpftool feature parity
+Since bpftool will only operate in the default namespace, users who need namespace support must use netsh. The
+following bpftool features are not currently available in the netsh eBPF extension and would need to be added to avoid
+usability regressions for namespace users:
+
+| Feature Category | bpftool | netsh | Notes |
+|-----------------|---------|-------|-------|
+| List programs | ✓ | ✓ | |
+| List maps | ✓ | ✓ | |
+| List links | ✓ | ✓ | |
+| Pin/unpin objects | ✓ | ✓ | |
+| Show disassembly | ✓ | ✓ | |
+| Map create | ✓ | ✗ | Prerequisite for namespace support |
+| Map update/lookup/delete | ✓ | ✗ | Prerequisite for namespace support |
+| Program dump (xlated/jited) | ✓ | ✗ | |
+| Program attach/detach | ✓ | ✗ | Prerequisite for namespace support |
+| Batch operations | ✓ | ✗ | |
+
+The minimum prerequisite features for namespace support are map CRUD operations and program attach/detach, as these
+are essential for managing BPF objects in a non-default namespace.
