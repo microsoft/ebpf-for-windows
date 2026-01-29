@@ -143,7 +143,7 @@
     <ClCompile Include="pdb2btf.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\ebpf-verifier\external\libbtf\build\libbtf\libbtf.vcxproj">
+    <ProjectReference Include="..\..\external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj">
       <Project>{c034859f-e0d6-3ae6-b4fe-71b012fdc618}</Project>
     </ProjectReference>
   </ItemGroup>
