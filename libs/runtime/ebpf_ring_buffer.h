@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_api.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_shared_framework.h"
 
@@ -17,21 +18,8 @@ enum ebpf_ringbuf_wait_flags
     EBPF_RINGBUF_FLAG_FORCE_WAKEUP = (1ULL << 1),
 };
 
-typedef struct _ebpf_ring_buffer_consumer_page
-{
-    volatile size_t consumer_offset; ///< Consumer has read up to this offset.
-} ebpf_ring_buffer_consumer_page_t;
-
-static_assert(
-    sizeof(ebpf_ring_buffer_consumer_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_consumer_page_t is larger than PAGE_SIZE");
-
-typedef struct _ebpf_ring_buffer_producer_page
-{
-    volatile size_t producer_offset; ///< Producer(s) have reserved up to this offset.
-} ebpf_ring_buffer_producer_page_t;
-
-static_assert(
-    sizeof(ebpf_ring_buffer_producer_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_producer_page_t is larger than PAGE_SIZE");
+// Ring buffer page types are defined in ebpf_api.h.
+// ebpf_ring_buffer_consumer_page_t and ebpf_ring_buffer_producer_page_t.
 
 typedef struct _ebpf_ring_buffer_kernel_page
 {

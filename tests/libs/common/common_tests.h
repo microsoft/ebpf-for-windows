@@ -11,6 +11,7 @@
 #include "bpf/libbpf.h"
 #include "ebpf_api.h"
 #include "ebpf_result.h"
+#include "unique_handles.h"
 
 #include <windows.h>
 #include <crtdbg.h>
