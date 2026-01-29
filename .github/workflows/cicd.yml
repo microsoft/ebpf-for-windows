@@ -220,7 +220,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/${{ needs.get_bpf_conformance_version.outputs.version }}/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
-      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
+      # Exclude rfc9669_ldxs* tests until signed load instructions (LDXSB/LDXSH/LDXSW) are implemented.
+      # See: https://github.com/microsoft/ebpf-for-windows/issues/4960
+      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include" --exclude_regex "rfc9669_ldxs"
       name: bpf2c_conformance
       build_artifact: Build-x64
       environment: '["windows-2022"]'
