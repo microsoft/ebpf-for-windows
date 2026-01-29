@@ -44,6 +44,14 @@ extern "C"
 #define READ_ONCE_8(destination, source, offset) \
     destination = (uint8_t)ReadNoFence8((volatile const char*)(source + offset))
 
+// Sign-extending load macros for RFC 9669 LDXSB/LDXSH/LDXSW instructions.
+#define READ_ONCE_S32(destination, source, offset) \
+    destination = (uint64_t)(int64_t)(int32_t)ReadNoFence((volatile const long*)(source + offset))
+#define READ_ONCE_S16(destination, source, offset) \
+    destination = (uint64_t)(int64_t)(int16_t)ReadNoFence16((volatile const short*)(source + offset))
+#define READ_ONCE_S8(destination, source, offset) \
+    destination = (uint64_t)(int64_t)(int8_t)ReadNoFence8((volatile const char*)(source + offset))
+
 #define WRITE_ONCE_64(destination, source, offset) \
     WriteNoFence64((volatile long long*)(destination + offset), (long long)source)
 #define WRITE_ONCE_32(destination, source, offset) WriteNoFence((volatile long*)(destination + offset), (long)source)
