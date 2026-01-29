@@ -6,10 +6,10 @@
 #include "libbtf/btf_write.h"
 
 #include <windows.h>
+#include <algorithm>
+#include <atlbase.h>
 #include <comdef.h>
 #include <dia2.h>
-
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -48,7 +48,8 @@ class pdb_to_btf_converter
     pdb_to_btf_converter(IDiaSession* session) : _session(session) {}
 
     // Main conversion entry point
-    bool convert(const std::vector<std::string>& root_names, const std::string& output_path)
+    bool
+    convert(const std::vector<std::string>& root_names, const std::string& output_path)
     {
         try {
             // Get global scope
@@ -92,7 +93,8 @@ class pdb_to_btf_converter
     }
 
   private:
-    bool process_root_symbol(IDiaSymbol* global_scope, const std::string& name)
+    bool
+    process_root_symbol(IDiaSymbol* global_scope, const std::string& name)
     {
         CComPtr<IDiaEnumSymbols> enum_symbols;
         _bstr_t bstr_name(name.c_str());
@@ -119,7 +121,8 @@ class pdb_to_btf_converter
         return true;
     }
 
-    libbtf::btf_type_id convert_symbol(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_symbol(IDiaSymbol* symbol)
     {
         if (!symbol) {
             return 0; // void type
@@ -179,7 +182,8 @@ class pdb_to_btf_converter
         return btf_id;
     }
 
-    libbtf::btf_type_id convert_base_type(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_base_type(IDiaSymbol* symbol)
     {
         ULONGLONG size = 0;
         symbol->get_length(&size);
@@ -233,7 +237,8 @@ class pdb_to_btf_converter
         return _btf_data.append(int_type);
     }
 
-    libbtf::btf_type_id convert_pointer_type(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_pointer_type(IDiaSymbol* symbol)
     {
         CComPtr<IDiaSymbol> pointee;
         if (FAILED(symbol->get_type(&pointee))) {
@@ -246,7 +251,8 @@ class pdb_to_btf_converter
         return _btf_data.append(ptr_type);
     }
 
-    libbtf::btf_type_id convert_array_type(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_array_type(IDiaSymbol* symbol)
     {
         CComPtr<IDiaSymbol> element_type_symbol;
         if (FAILED(symbol->get_type(&element_type_symbol))) {
@@ -269,7 +275,8 @@ class pdb_to_btf_converter
         return _btf_data.append(array_type);
     }
 
-    libbtf::btf_type_id convert_udt(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_udt(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
         symbol->get_name(name_bstr.GetAddress());
@@ -290,7 +297,8 @@ class pdb_to_btf_converter
         return 0;
     }
 
-    libbtf::btf_type_id convert_struct(IDiaSymbol* symbol, const std::string& name, ULONGLONG size)
+    libbtf::btf_type_id
+    convert_struct(IDiaSymbol* symbol, const std::string& name, ULONGLONG size)
     {
         libbtf::btf_kind_struct struct_type{};
         if (!name.empty()) {
@@ -325,7 +333,7 @@ class pdb_to_btf_converter
                     }
 
                     // Handle bitfields
-                    ULONGLONG bit_position = 0;
+                    DWORD bit_position = 0;
                     if (SUCCEEDED(child->get_bitPosition(&bit_position))) {
                         member.offset_from_start_in_bits += static_cast<uint32_t>(bit_position);
                     }
@@ -340,7 +348,8 @@ class pdb_to_btf_converter
         return _btf_data.append(struct_type);
     }
 
-    libbtf::btf_type_id convert_union(IDiaSymbol* symbol, const std::string& name, ULONGLONG size)
+    libbtf::btf_type_id
+    convert_union(IDiaSymbol* symbol, const std::string& name, ULONGLONG size)
     {
         libbtf::btf_kind_union union_type{};
         if (!name.empty()) {
@@ -381,7 +390,8 @@ class pdb_to_btf_converter
         return _btf_data.append(union_type);
     }
 
-    libbtf::btf_type_id convert_enum(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_enum(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
         symbol->get_name(name_bstr.GetAddress());
@@ -465,7 +475,8 @@ class pdb_to_btf_converter
         return _btf_data.append(enum_type);
     }
 
-    libbtf::btf_type_id convert_typedef(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_typedef(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
         symbol->get_name(name_bstr.GetAddress());
@@ -483,7 +494,8 @@ class pdb_to_btf_converter
         return _btf_data.append(typedef_type);
     }
 
-    libbtf::btf_type_id convert_function_type(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_function_type(IDiaSymbol* symbol)
     {
         libbtf::btf_kind_function_prototype proto{};
 
@@ -520,7 +532,8 @@ class pdb_to_btf_converter
         return _btf_data.append(proto);
     }
 
-    libbtf::btf_type_id convert_function(IDiaSymbol* symbol)
+    libbtf::btf_type_id
+    convert_function(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
         symbol->get_name(name_bstr.GetAddress());
@@ -541,7 +554,8 @@ class pdb_to_btf_converter
         return _btf_data.append(func);
     }
 
-    libbtf::btf_type_id get_or_create_int_type(uint32_t size_bytes, bool is_signed)
+    libbtf::btf_type_id
+    get_or_create_int_type(uint32_t size_bytes, bool is_signed)
     {
         std::string name = (is_signed ? "int" : "uint") + std::to_string(size_bytes * 8) + "_t";
 
@@ -553,7 +567,7 @@ class pdb_to_btf_converter
             libbtf::btf_kind_int int_type{};
             int_type.name = name;
             int_type.size_in_bytes = size_bytes;
-            int_type.field_width_in_bits = size_bytes * 8;
+            int_type.field_width_in_bits = static_cast<uint8_t>(size_bytes * 8);
             int_type.offset_from_start_in_bits = 0;
             int_type.is_signed = is_signed;
             int_type.is_char = false;
