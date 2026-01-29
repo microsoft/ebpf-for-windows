@@ -63,6 +63,15 @@ place_holder_errno()
 
 #define UBPF_STACK_SIZE 512
 
+// UINTPTR_MAX is not defined in Windows kernel headers, so define it here.
+#ifndef UINTPTR_MAX
+#ifdef _WIN64
+#define UINTPTR_MAX 0xffffffffffffffffULL
+#else
+#define UINTPTR_MAX 0xffffffffU
+#endif
+#endif
+
 static enum Registers
 map_register(int r)
 {
