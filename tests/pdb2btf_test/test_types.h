@@ -1,6 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#pragma once
+
 // Test types for pdb2btf conversion
 
 #include <stdint.h>
