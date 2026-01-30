@@ -1087,7 +1087,7 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
-    context->test_event_count = 2; // Expect 2 events for TCP connection (outbound and inbound)
+    context->test_event_count = 2; // Expect 2 events for TCP connection (outbound and inbound).
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "flow_id_monitor");
     SAFE_REQUIRE(_program != nullptr);

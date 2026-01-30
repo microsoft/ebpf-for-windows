@@ -542,12 +542,16 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    local_flow_context->parameters.flow_id = incoming_metadata_values->flowHandle;
+    // Initialize flow_id to 0 and only set if the metadata field is present.
+    local_flow_context->parameters.flow_id = 0;
+    if (FWPS_IS_METADATA_FIELD_PRESENT(incoming_metadata_values, FWPS_METADATA_FIELD_FLOW_HANDLE)) {
+        local_flow_context->parameters.flow_id = incoming_metadata_values->flowHandle;
+    }
     local_flow_context->parameters.layer_id = incoming_fixed_values->layerId;
     local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
     // Store the flow_id in the sock_ops context for the helper function.
-    local_flow_context->context.flow_id = incoming_metadata_values->flowHandle;
+    local_flow_context->context.flow_id = local_flow_context->parameters.flow_id;
 
     status = FwpsFlowAssociateContext(
         local_flow_context->parameters.flow_id,
