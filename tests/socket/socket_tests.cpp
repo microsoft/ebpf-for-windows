@@ -785,7 +785,7 @@ helper_functions_validation_test(
 
     // Attach the auth connect program at the appropriate AUTH_CONNECT layer.
     bpf_attach_type auth_connect_attach_type =
-        (address_family == AF_INET) ? BPF_CGROUP_INET4_AUTH_CONNECT : BPF_CGROUP_INET6_AUTH_CONNECT;
+        (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(auth_connect_program)), 0, auth_connect_attach_type, 0);
     SAFE_REQUIRE(result == 0);
@@ -936,7 +936,10 @@ TEST_CASE(
 
     // Attach the conditional auth program.
     int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)), 0, BPF_CGROUP_INET4_AUTH_CONNECT, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
+        0,
+        BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+        0);
     SAFE_REQUIRE(result == 0);
 
     // Create test sockets.
