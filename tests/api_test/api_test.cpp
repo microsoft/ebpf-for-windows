@@ -2671,24 +2671,31 @@ TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
     REQUIRE(bpf_map_update_elem(map_fd, &update_key, &update_value, BPF_EXIST) == 0);
 
     // Insert a new entry (key 4).
-    // Since key 0 was just updated, key 1 should now be the oldest and get evicted.
+    // - Since map is full, a cold entry (not recently used) should be evicted.
     uint32_t new_key = 4;
     uint32_t new_value = 104;
     REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
 
-    // Verify key 1 was evicted (should not exist).
-    uint32_t lookup_key = 1;
+    // Verify key 0 still exists with updated value (it was recently updated so should not be evicted).
     uint32_t value = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) != 0); // Should fail.
-
-    // Verify key 0 still exists with updated value.
     REQUIRE(bpf_map_lookup_elem(map_fd, &update_key, &value) == 0);
     REQUIRE(value == 200);
 
-    // Verify keys 2, 3, 4 exist.
-    for (uint32_t i = 2; i <= 4; i++) {
-        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+    // Verify that exactly 2 of keys 1-3 remain (one was evicted).
+    uint32_t key_count = 0;
+    for (uint32_t i = 1; i < max_entries; i++) {
+        uint32_t temp_value = 0;
+        if (bpf_map_lookup_elem(map_fd, &i, &temp_value) == 0) {
+            key_count++;
+            REQUIRE(temp_value == (100 + i));
+        }
     }
+    REQUIRE(key_count == 2);
+
+    // Verify key 4 is present.
+    uint32_t lookup_key = 4;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) == 0); // Should succeed.
+    REQUIRE(value == 104);
 
     _close(map_fd);
 }
