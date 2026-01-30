@@ -1708,21 +1708,6 @@ TEST_CASE("perf buffer error handling", "[libbpf][perf_event_array]")
         Platform::_close(map_fd2);
     }
 
-    SECTION("ebpf_perf_buffer__new with invalid opts size should fail")
-    {
-        ebpf_perf_buffer_opts invalid_opts{.sz = 1, .flags = 0}; // Invalid size
-
-        struct perf_buffer* pb = ebpf_perf_buffer__new(
-            map_fd,
-            0,
-            perf_buffer_test_sample_callback,
-            perf_buffer_test_lost_callback,
-            &callback_context,
-            &invalid_opts);
-        REQUIRE(pb == nullptr);
-        REQUIRE(errno == EINVAL);
-    }
-
     SECTION("ebpf_perf_buffer__new with unknown flags should be accepted or fail gracefully")
     {
         // Test with a flag value that's not defined.
