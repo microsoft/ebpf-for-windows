@@ -5,6 +5,7 @@
 #include "libbtf/btf_type_data.h"
 #include "libbtf/btf_write.h"
 
+#define NOMINMAX
 #include <windows.h>
 #include <algorithm>
 #include <atlbase.h>
