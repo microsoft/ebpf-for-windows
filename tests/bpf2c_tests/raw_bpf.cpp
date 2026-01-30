@@ -126,6 +126,10 @@ prepare_ubpf_vm(const std::vector<ebpf_inst> instructions)
     auto vm = ubpf_create();
     char* error = nullptr;
     REQUIRE(vm != nullptr);
+
+    // Disable read-only bytecode feature as it uses mmap which is not implemented in the Windows shim.
+    ubpf_toggle_readonly_bytecode(vm, false);
+
     for (auto& [key, value] : helper_functions) {
         REQUIRE(ubpf_register(vm, key, "unnamed", value) == 0);
     }
