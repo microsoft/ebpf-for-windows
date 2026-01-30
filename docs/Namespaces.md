@@ -1,160 +1,94 @@
-# Namespaces for BPF objects
-This document describes how eBPF for Windows implements namespaces.
+# BPF Object Namespaces
 
 ## Overview
-BPF objects are by default system-wide entities that can be opened via several libbpf APIs (meaning the caller receives
-an fd to the object). While this is useful for the general case, there are some scenarios where BPF applications need to
-be able to partition themselves from other BPF applications to prevent naming collisions.
 
-To achieve this, a BPF application can switch to a designated namespace. Namespaces are identified by a GUID, with the
-default namespace having the null GUID (GUID_NULL, all bytes zero). All libbpf APIs that return fds are relative
-to the namespace that the application has specified.
+Namespaces provide logical isolation of BPF objects (programs, maps, links) between applications. Each namespace is identified by a GUID, with the null GUID (`GUID_NULL`) representing the default namespace. Applications that do not explicitly set a namespace operate in the default namespace, ensuring full backward compatibility.
 
-## Backward Compatibility
-Existing applications that do not use namespace APIs automatically operate in the default (null GUID) namespace. No
-code changes are required for existing eBPF programs and maps—they continue to function as before, with all objects
-created in and resolved from the default namespace. The namespace feature is entirely opt-in; applications must
-explicitly call `ebpf_set_namespace` to switch to a non-default namespace.
+## Use Cases
 
-## Security Considerations
-Namespaces provide logical partitioning of BPF object identifiers and pin paths. They are not a replacement for existing
-operating system security mechanisms (for example, access control lists or privilege checks), and all such mechanisms
-continue to apply to namespace-aware operations.
+1. **Multi-tenant isolation**: Multiple security products can deploy BPF programs on the same system without ID or pin path collisions.
+2. **Testing isolation**: Test suites can run in a dedicated namespace without interfering with production BPF objects.
+3. **Application partitioning**: An application can ensure its BPF objects are not visible to or affected by other applications.
 
-From the perspective of BPF object lookup and enumeration, namespaces are isolated: a lookup by ID or pin path will only
-succeed if the object's namespace matches the effective namespace of the caller. Cross-namespace object resolution is
-not supported by these APIs.
+## Requirements
 
-The ability to create a new namespace or to change the effective namespace of a process is subject to the same security
-policy as other privileged eBPF management operations. Implementations are expected to restrict namespace management to
-callers that have sufficient rights (for example, administrative privileges or an approved service account).
-Unprivileged processes cannot arbitrarily assume another process's namespace.
+| ID | Requirement |
+|----|-------------|
+| R1 | Each BPF object SHALL be associated with exactly one namespace GUID at creation time. |
+| R2 | The default namespace SHALL be the null GUID (`GUID_NULL`). |
+| R3 | Object ID lookups SHALL only return objects whose namespace matches the caller's current namespace. |
+| R4 | Pin path lookups SHALL only return objects whose namespace matches the caller's current namespace. |
+| R5 | The same pin path string MAY exist in multiple namespaces without conflict. |
+| R6 | Existing handles to BPF objects SHALL remain valid after a namespace switch. |
+| R7 | A namespace switch SHALL NOT modify existing objects; it only affects subsequent operations. |
+| R8 | Namespace management SHALL require the same privileges as other eBPF management operations. |
+| R9 | Applications not using namespace APIs SHALL operate in the default namespace with no code changes. |
 
-All permission checks that are performed today when accessing BPF objects (such as validating caller identity, access
-rights, or capabilities) are performed in addition to the namespace comparison. Namespace matching never bypasses or
-weakens those existing checks; it only narrows which objects are considered candidates for lookup.
+## API Specification
 
-## Namespace Lifecycle
-Namespaces are implicit and identified solely by their GUID. There is no explicit creation or deletion of namespaces:
+### ebpf_set_namespace
 
-- A namespace comes into existence when the first object is created with that namespace GUID.
-- A namespace ceases to be relevant when no objects exist with that namespace GUID.
-- Objects persist until explicitly freed (handles closed, programs unloaded, maps deleted) regardless of whether any
-  process currently has that namespace set as its effective namespace.
-- Switching away from a namespace does not affect objects in that namespace; they remain accessible to any process
-  that subsequently switches to that namespace GUID.
-
-This design avoids the need for namespace management APIs beyond `ebpf_set_namespace` and ensures that namespace
-cleanup is automatic and tied to normal object lifecycle management.
-
-## Design Details
-Each BPF object will have a namespace identifier associated with it. Each new object created is marked with the current
-namespace identifier. All calls to the execution context to open objects are relative to the current namespace.
-
-Namespace filtering is performed at the lookup level using a constant-time GUID comparison, adding minimal overhead to
-object resolution. The default (null GUID) namespace is the common case and can be optimized with fast-path checks.
-
-### Namespace in ebpf_core_object_t
-All user-accessible BPF objects embed the ebpf_core_object_t structure:
+Sets the current namespace for the calling process.
 
 ```c
-typedef struct _ebpf_core_object
-{
-    ebpf_base_object_t base;        ///< Base object for all reference counted eBPF objects.
-    ebpf_object_type_t type;        ///< Type of this object.
-    ebpf_free_object_t free_object; ///< Function to free this object.
-    ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed; ///< Function to notify the object that the
-                                                                        ///< reference count has reached zero.
-    ebpf_notify_user_reference_count_zeroed_t notify_user_reference_count_zeroed; ///< Function to notify the object
-                                                                                  ///< that the user reference count
-                                                                                  ///< has reached zero.
-    ebpf_object_get_program_type_t get_program_type;     ///< Function to get the program type of this object.
-    ebpf_id_t id;                                        ///< ID of this object.
-    ebpf_list_entry_t object_list_entry;                 ///< Entry in the object list.
-    volatile int32_t pinned_path_count;                  ///< Number of pinned paths for this object.
-    struct _ebpf_epoch_work_item* free_object_work_item; ///< Work item to free this object when the epoch ends.
-    GUID namespace;                                      ///< The namespace this object is part of. Null GUID by default.
-} ebpf_core_object_t;
+ebpf_result_t ebpf_set_namespace(_In_ const GUID* namespace_guid);
 ```
 
-Each namespace will be identified by a GUID, with the null GUID denoting the default namespace. When resolving an
-object ID to an object, the current process's namespace will be compared against the namespace of the object and will
-only resolve the object if the namespace matches.
+| Aspect | Behavior |
+|--------|----------|
+| Scope | Per-process (all threads share the namespace) |
+| Persistence | Until changed or process exits |
+| Default | Null GUID if never called |
+| Effect on existing objects | None—existing handles remain valid |
+| Effect on new objects | Created in the new namespace |
+| Effect on lookups | Only objects in the new namespace are visible |
 
-### Object ID APIs
-The following APIs can be used to locate objects and are namespace-aware. These APIs implicitly use the caller's
-current namespace (as set by `ebpf_set_namespace`) rather than taking an explicit namespace parameter.
+### Namespace-Aware APIs
 
-1) ebpf_object_reference_next_object - Find the next object in the caller's namespace.
-2) ebpf_object_reference_by_id - Find the object by ID if it is in the caller's namespace.
-3) ebpf_object_get_next_id - Find the next object by ID within the caller's namespace.
+The following APIs implicitly use the caller's current namespace:
 
+| Category | APIs |
+|----------|------|
+| Object lookup | `ebpf_object_reference_by_id`, `ebpf_object_reference_next_object`, `ebpf_object_get_next_id` |
+| Pinning | `ebpf_pinning_table_insert`, `ebpf_pinning_table_find`, `ebpf_pinning_table_delete`, `ebpf_pinning_table_enumerate_entries`, `ebpf_pinning_table_get_next_path` |
 
-### Pinning APIs
-The pinning table is partitioned by namespace. Pin paths are scoped to the caller's namespace, so the same path string
-can exist in different namespaces without conflict. The following APIs are namespace aware.
-1) ebpf_pinning_table_insert - Insert an entry into the pinning table.
-2) ebpf_pinning_table_find - Find the object by pin path and return it if the namespace matches or return not found.
-3) ebpf_pinning_table_delete - Remove an entry from the pinning table.
-4) ebpf_pinning_table_enumerate_entries - Enumerate all pinning paths within the caller's namespace.
-5) ebpf_pinning_table_get_next_path - Get the next pinning path within the caller's namespace.
+## Behavior Specification
 
-### Namespace APIs
-The following APIs can be used to associate the process with a namespace.
+1. **Namespace assignment**: When a BPF object is created, it inherits the caller's current namespace GUID.
+2. **Lookup isolation**: ID and pin path lookups compare the caller's namespace against the object's namespace; mismatches return "not found."
+3. **Handle semantics**: Once a handle is obtained, it references the object directly regardless of subsequent namespace switches.
+4. **Implicit namespaces**: Namespaces are not explicitly created or deleted. A namespace exists as long as objects with that GUID exist.
+5. **Cross-namespace access**: Not supported via lookup APIs. Direct handle passing between processes is unaffected.
 
-1) **ebpf_set_namespace** - Switch to the specified namespace.
+## Acceptance Criteria
 
-   - **Scope**: Sets the namespace for the calling process. All threads in the process share the same current namespace.
-   - **Persistence**: The namespace setting persists for the lifetime of the process, or until `ebpf_set_namespace` is
-     called again to switch to a different namespace.
-   - **Implementation**: Exposed as a user-mode API (in `ebpfapi.dll`) that communicates the requested namespace GUID
-     to the eBPF kernel execution context (`ebpfcore.sys`) via IOCTL.
-   - **Effect on existing objects**: Existing BPF objects are not modified when the process switches namespaces.
-     Objects retain the namespace GUID that was current when they were created. Existing handles remain valid and
-     continue to reference the same underlying objects. A namespace switch only affects subsequent lookups and the
-     namespace assigned to newly created objects.
+| ID | Criterion |
+|----|-----------|
+| AC1 | An application in namespace A cannot enumerate or open by ID any object created in namespace B. |
+| AC2 | An application in namespace A cannot find by pin path any object pinned in namespace B. |
+| AC3 | Two applications can pin objects at the same path in different namespaces without error. |
+| AC4 | After calling `ebpf_set_namespace`, newly created objects have the new namespace GUID. |
+| AC5 | After calling `ebpf_set_namespace`, existing handles continue to work. |
+| AC6 | An application that never calls `ebpf_set_namespace` operates identically to pre-namespace behavior. |
+| AC7 | Unprivileged callers receive an access denied error when calling `ebpf_set_namespace`. |
 
-### eBPF netsh support
-The eBPF netsh extension will be updated to support switching to a designated namespace. Users will be able to specify
-the desired namespace using new netsh commands, such as `netsh ebpf set namespace {12345678-1234-1234-1234-123456789abc}`,
-where the GUID is provided in standard Windows GUID text format (including braces and hyphens). This allows subsequent
-eBPF operations within the session to be performed in the selected namespace. Additional commands and usage examples
-will be provided in the netsh documentation as this feature is implemented.
+## Security Considerations
 
-#### Namespace discoverability
-Namespace GUIDs are application-defined and not centrally registered. Administrators who need to manage BPF objects in
-a specific namespace should consult the application's documentation to obtain its namespace GUID. Applications are
-encouraged to document their namespace GUID in their installation or configuration materials.
+- Namespaces provide **logical isolation**, not security isolation. Existing ACLs and privilege checks still apply.
+- `ebpf_set_namespace` requires administrative privileges.
+- Namespace matching narrows lookup scope but does not bypass permission checks.
 
-For extension writers that use namespaces, a recommended pattern is to author a netsh subcontext under the `ebpf`
-context. The subcontext can register the same commands as the parent ebpf context, with each command implementation
-setting the appropriate namespace GUID, executing the parent command, and restoring the namespace. This allows
-administrators to switch into the extension's context and use familiar ebpf commands without manually specifying the
-namespace GUID.
+## Tooling
 
-### eBPF bpftool support
-Support for eBPF namespaces is a Windows-specific feature. The bpftool command-line interface is kept aligned with the
-Linux bpftool interface, which does not have GUID-based namespaces. To maintain command-line compatibility with Linux
-bpftool and avoid platform-specific flags, namespace management on Windows is provided via the netsh eBPF extension
-instead. bpftool will always interact with the default (null GUID) namespace.
+### netsh
 
-#### netsh vs bpftool feature parity
-Since bpftool will only operate in the default namespace, users who need namespace support must use netsh. The
-following bpftool features are not currently available in the netsh eBPF extension and would need to be added to avoid
-usability regressions for namespace users:
+```
+netsh ebpf set namespace {GUID}
+netsh ebpf show namespace
+```
 
-| Feature Category | bpftool | netsh | Notes |
-|-----------------|---------|-------|-------|
-| List programs | ✓ | ✓ | |
-| List maps | ✓ | ✓ | |
-| List links | ✓ | ✓ | |
-| Pin/unpin objects | ✓ | ✓ | |
-| Show disassembly | ✓ | ✓ | |
-| Map create | ✓ | ✗ | Prerequisite for namespace support |
-| Map update/lookup/delete | ✓ | ✗ | Prerequisite for namespace support |
-| Program dump (xlated/jited) | ✓ | ✗ | |
-| Program attach/detach | ✓ | ✗ | Prerequisite for namespace support |
-| Batch operations | ✓ | ✗ | |
+Namespace GUIDs are application-defined. Administrators should consult application documentation for the appropriate GUID.
 
-The minimum prerequisite features for namespace support are map CRUD operations and program attach/detach, as these
-are essential for managing BPF objects in a non-default namespace.
+### bpftool
+
+bpftool always operates in the default namespace to maintain Linux CLI compatibility. Use netsh for namespace-aware operations.
