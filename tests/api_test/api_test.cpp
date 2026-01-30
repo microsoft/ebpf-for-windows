@@ -2368,7 +2368,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(value == (100 + i));
     }
 
-    // update key 0 to update its LRU status (it should not be evicted next).
+    // Update key 0 to update its LRU status (it should not be evicted next).
     uint32_t key_zero = 0;
     uint32_t updated_value = 200;
     REQUIRE(bpf_map_update_elem(map_fd, &key_zero, &updated_value, BPF_ANY) == 0);
@@ -2394,7 +2394,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     }
     REQUIRE(key_count == 2);
 
-    // Verify key 4 is present
+    // Verify key 4 is present.
     uint32_t lookup_key = 4;
     uint32_t value = 0;
     REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) == 0); // Should succeed.
