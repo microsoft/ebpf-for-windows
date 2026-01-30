@@ -6,6 +6,7 @@
 #include "libbtf/btf_write.h"
 
 #define NOMINMAX
+
 #include <windows.h>
 #include <algorithm>
 #include <atlbase.h>
@@ -160,7 +161,9 @@ class pdb_to_btf_converter
 
         // Check cache
         DWORD symbol_id = 0;
-        symbol->get_symIndexId(&symbol_id);
+        if (FAILED(symbol->get_symIndexId(&symbol_id))) {
+            return 0; // Cannot identify symbol
+        }
 
         auto it = _symbol_cache.find(symbol_id);
         if (it != _symbol_cache.end()) {
@@ -216,10 +219,14 @@ class pdb_to_btf_converter
     convert_base_type(IDiaSymbol* symbol)
     {
         ULONGLONG size = 0;
-        symbol->get_length(&size);
+        if (FAILED(symbol->get_length(&size))) {
+            return 0;
+        }
 
         DWORD base_type = 0;
-        symbol->get_baseType(&base_type);
+        if (FAILED(symbol->get_baseType(&base_type))) {
+            return 0;
+        }
 
         libbtf::btf_kind_int int_type{};
         int_type.size_in_bytes = safe_size_cast(size);
@@ -291,10 +298,14 @@ class pdb_to_btf_converter
         }
 
         ULONGLONG size = 0;
-        symbol->get_length(&size);
+        if (FAILED(symbol->get_length(&size))) {
+            return 0;
+        }
 
         ULONGLONG element_size = 0;
-        element_type_symbol->get_length(&element_size);
+        if (FAILED(element_type_symbol->get_length(&element_size))) {
+            element_size = 0; // Use 0 to indicate unknown element size
+        }
 
         uint32_t count = (element_size > 0) ? safe_size_cast(size / element_size) : 0;
 
@@ -310,14 +321,20 @@ class pdb_to_btf_converter
     convert_udt(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
-        symbol->get_name(name_bstr.GetAddress());
+        if (FAILED(symbol->get_name(name_bstr.GetAddress()))) {
+            return 0;
+        }
         std::string name = static_cast<const char*>(name_bstr);
 
         DWORD udt_kind = 0;
-        symbol->get_udtKind(&udt_kind);
+        if (FAILED(symbol->get_udtKind(&udt_kind))) {
+            return 0;
+        }
 
         ULONGLONG size = 0;
-        symbol->get_length(&size);
+        if (FAILED(symbol->get_length(&size))) {
+            return 0;
+        }
 
         if (udt_kind == UdtStruct || udt_kind == UdtClass) {
             return convert_struct(symbol, name, size);
@@ -431,11 +448,15 @@ class pdb_to_btf_converter
     convert_enum(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
-        symbol->get_name(name_bstr.GetAddress());
+        if (FAILED(symbol->get_name(name_bstr.GetAddress()))) {
+            return 0;
+        }
         std::string name = static_cast<const char*>(name_bstr);
 
         ULONGLONG size = 0;
-        symbol->get_length(&size);
+        if (FAILED(symbol->get_length(&size))) {
+            return 0;
+        }
 
         libbtf::btf_kind_enum enum_type{};
         if (!name.empty()) {
@@ -523,7 +544,9 @@ class pdb_to_btf_converter
     convert_typedef(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
-        symbol->get_name(name_bstr.GetAddress());
+        if (FAILED(symbol->get_name(name_bstr.GetAddress()))) {
+            return 0;
+        }
         std::string name = static_cast<const char*>(name_bstr);
 
         CComPtr<IDiaSymbol> underlying_type;
@@ -580,7 +603,9 @@ class pdb_to_btf_converter
     convert_function(IDiaSymbol* symbol)
     {
         _bstr_t name_bstr;
-        symbol->get_name(name_bstr.GetAddress());
+        if (FAILED(symbol->get_name(name_bstr.GetAddress()))) {
+            return 0;
+        }
         std::string name = static_cast<const char*>(name_bstr);
 
         CComPtr<IDiaSymbol> function_type;
