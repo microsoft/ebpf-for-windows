@@ -322,7 +322,17 @@ load_byte_code(
                 goto Exit;
             }
             std::streamsize file_size = file_stream.tellg();
+            if (file_size < 0 || !file_stream) {
+                *error_message = allocate_string(std::string("error: failed to determine file size: ") + file_path);
+                result = EBPF_FILE_NOT_FOUND;
+                goto Exit;
+            }
             file_stream.seekg(0, std::ios::beg);
+            if (!file_stream) {
+                *error_message = allocate_string(std::string("error: failed to seek in file: ") + file_path);
+                result = EBPF_FILE_NOT_FOUND;
+                goto Exit;
+            }
             elf_data.resize(static_cast<size_t>(file_size));
             if (!file_stream.read(reinterpret_cast<char*>(elf_data.data()), file_size)) {
                 *error_message = allocate_string(std::string("error: failed to read file: ") + file_path);
@@ -337,8 +347,7 @@ load_byte_code(
         // Validate the ELF structure before passing to ELFIO to prevent crashes
         // from malformed ELF files (e.g., invalid relocation sections).
         if (elf_data.size() > UINT32_MAX) {
-            *error_message = allocate_string(
-                std::string("error: ELF file ") + object_name + " is too large");
+            *error_message = allocate_string(std::string("error: ELF file ") + object_name + " is too large");
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
         }
