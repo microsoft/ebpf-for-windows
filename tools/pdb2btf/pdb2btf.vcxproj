@@ -155,8 +155,11 @@
     <ClCompile Include="pdb2btf.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\resource\resource.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\..\external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj">
-      <Project>{c034859f-e0d6-3ae6-b4fe-71b012fdc618}</Project>
+      <Project>{CDAF684D-2751-3403-9AC7-6D453187C3C5}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
