@@ -32,6 +32,7 @@ typedef struct _ebpf_ring_mapping
     uint64_t data_size;
     bool is_perf_buffer; // true if this is for perf buffer, false for ring buffer.
     uint32_t cpu_id;     // CPU ID for perf buffer callbacks.
+    uint64_t lost_count; // Latest lost count for perf buffer (for detecting new drops).
 } ebpf_ring_mapping_t;
 
 int
@@ -407,7 +408,7 @@ _convert_to_ebpf_perf_opts(_In_ const struct perf_buffer_opts* linux_opts)
 
 // Helper function to process ring records from memory pages (shared by ring buffer and perf buffer).
 static int
-_process_ring_records(_In_ const ebpf_ring_mapping_t& mapping)
+_process_ring_records(_In_ ebpf_ring_mapping_t& mapping)
 {
     if (!mapping.consumer_page || !mapping.producer_page || !mapping.data || !mapping.sample_fn) {
         return -EINVAL;
@@ -416,6 +417,20 @@ _process_ring_records(_In_ const ebpf_ring_mapping_t& mapping)
     // Get current consumer and producer offsets from shared pages.
     uint64_t consumer_offset = ReadULong64Acquire(&mapping.consumer_page->consumer_offset);
     uint64_t producer_offset = ReadULong64Acquire(&mapping.producer_page->producer_offset);
+
+    // Detect newly lost events for perf buffer.
+    if (mapping.is_perf_buffer) {
+        // Following the ring producer page are perf event array specific fields (lost record count).
+        auto perf_producer_page = reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(mapping.producer_page);
+        uint64_t lost_count = perf_producer_page->lost_records;
+        uint64_t new_lost_records = lost_count - mapping.lost_count;
+        if (new_lost_records > 0) {
+            // Call lost events callback: void (*)(void* ctx, int cpu, uint64_t lost).
+            ((perf_buffer_lost_fn)mapping.lost_fn)(mapping.ctx, mapping.cpu_id, new_lost_records);
+            // Update lost count to current producer offset.
+            mapping.lost_count = producer_offset;
+        }
+    }
 
     int records_processed = 0;
     const ebpf_ring_buffer_record_t* record{};
@@ -727,7 +742,7 @@ ring_buffer__consume(struct ring_buffer* rb)
 
     int total_records = 0;
     // Process all available data from all ring buffers.
-    for (const auto& map_info : rb->sync_maps) {
+    for (auto& map_info : rb->sync_maps) {
         int result = _process_ring_records(map_info); // Process all records.
         if (result < 0) {
             return result; // Return error.
@@ -925,6 +940,7 @@ ebpf_perf_buffer__new(
                 current_map_info.ctx = ctx;
                 current_map_info.is_perf_buffer = true;
                 current_map_info.cpu_id = cpu_id;
+                current_map_info.lost_count = 0;
 
                 // Set the shared wait handle for this CPU to receive notifications.
                 result = ebpf_map_set_wait_handle(map_fd, cpu_id, perf_buffer->wait_handle);
@@ -1037,7 +1053,7 @@ perf_buffer__consume(struct perf_buffer* pb)
 
     int total_records = 0;
     // Process all available data from all ring buffers.
-    for (const auto& map_info : pb->sync_maps) {
+    for (auto& map_info : pb->sync_maps) {
         int result = _process_ring_records(map_info); // Process all records.
         if (result < 0) {
             return result; // Return error.
@@ -1056,7 +1072,7 @@ perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
     }
 
     // Process available data from the specific CPU buffer.
-    const auto& map_info = pb->sync_maps[cpu];
+    auto& map_info = pb->sync_maps[cpu];
     return _process_ring_records(map_info); // Process all records.
 }
 
