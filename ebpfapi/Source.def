@@ -138,6 +138,8 @@ EXPORTS
     ebpf_program_query_info
     ebpf_program_synchronize
     ebpf_ring_buffer__new
+    ebpf_ring_buffer_get_buffer
+    ebpf_ring_buffer_get_wait_handle
     ebpf_ring_buffer_map_map_buffer
     ebpf_ring_buffer_map_unmap_buffer
     ebpf_ring_buffer_map_write
@@ -156,5 +158,8 @@ EXPORTS
     libbpf_strerror
     perf_buffer__free
     perf_buffer__new
+    ring_buffer__add
+    ring_buffer__consume
     ring_buffer__free
     ring_buffer__new
+    ring_buffer__poll

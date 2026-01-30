@@ -14,6 +14,10 @@ struct bpf_object;
 
 typedef struct _ebpf_map_subscription ebpf_map_subscription_t;
 
+// Forward declaration for ring buffer callback function type.
+// This matches the typedef in bpf/libbpf.h: typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size).
+typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
+
 typedef struct bpf_program
 {
     struct bpf_object* object;

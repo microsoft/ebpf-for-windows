@@ -417,7 +417,7 @@ typedef struct _ebpf_map_metadata_table
     void (*delete_map)(_In_ _Post_invalid_ ebpf_core_map_t* map);
     ebpf_result_t (*associate_program)(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program);
     ebpf_result_t (*find_entry)(
-        _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data);
+        _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data);
     ebpf_result_t (*update_entry)(
         _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option);
     ebpf_result_t (*update_entry_with_handle)(
@@ -574,9 +574,10 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_array_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
     uint32_t key_value;
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
     if (!map || !key || delete_on_success) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -595,12 +596,12 @@ _find_array_map_entry(
 
 static ebpf_result_t
 _find_object_array_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     ebpf_assert(map->ebpf_map_definition.value_size == sizeof(ebpf_id_t));
 
-    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, &value);
+    ebpf_result_t result = _find_array_map_entry(map, key, flags, &value);
 
     if (result != EBPF_SUCCESS) {
         return result;
@@ -1028,7 +1029,7 @@ _delete_array_map_entry_with_reference(
     uint8_t* entry;
     ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-    result = _find_array_map_entry(map, key, false, &entry);
+    result = _find_array_map_entry(map, key, 0, &entry);
     if (result == EBPF_SUCCESS) {
         ebpf_core_object_t* object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)entry);
         _delete_array_map_entry(map, key);
@@ -1069,7 +1070,7 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
 
     ebpf_core_object_t* object = NULL;
     uint8_t* value = NULL;
-    if (_find_array_map_entry(map, (uint8_t*)&index, false, &value) == EBPF_SUCCESS) {
+    if (_find_array_map_entry(map, (uint8_t*)&index, 0, &value) == EBPF_SUCCESS) {
         object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)value);
     }
 
@@ -1439,7 +1440,8 @@ _lru_hash_table_notification(
         _uninitialize_lru_entry(lru_map, entry);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        _insert_into_hot_list(lru_map, partition, entry);
+        // USE notifications are handled in _find_lru_hash_map_entry()
+        // to differentiate between kernel mode (eBPF program) and user mode accesses.
         break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -1653,10 +1655,11 @@ _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 }
 
 static ebpf_result_t
-_find_hash_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+_find_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
+
     if (!map || !key) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -1684,6 +1687,40 @@ _find_hash_map_entry(
         *data = value;
     }
 
+    return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_find_lru_hash_map_entry(
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
+{
+    uint8_t* value = NULL;
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
+    bool is_kernel_mode_access = (flags & EBPF_MAP_FLAG_HELPER) != 0;
+
+    if (!map || !key) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
+        value = NULL;
+    }
+
+    if (delete_on_success) {
+        // Delete is atomic.
+        // Only return value if both find and delete succeeded.
+        if (_delete_hash_map_entry(map, key) != EBPF_SUCCESS) {
+            value = NULL;
+        }
+    } else if (value != NULL && is_kernel_mode_access) {
+        // For LRU maps, update the hot list only for kernel mode accesses.
+        ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)map;
+        ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
+        uint32_t partition = ebpf_get_current_cpu() % lru_map->partition_count;
+        _insert_into_hot_list(lru_map, partition, entry);
+    }
+
+    *data = value;
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
@@ -1841,7 +1878,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
 
     ebpf_core_object_t* object = NULL;
-    ebpf_result_t result = _find_hash_map_entry(map, key, true, (uint8_t**)&object);
+    ebpf_result_t result = _find_hash_map_entry(map, key, EBPF_MAP_FIND_FLAG_DELETE, (uint8_t**)&object);
     if (result == EBPF_SUCCESS) {
         ebpf_assert(object != NULL);
         EBPF_OBJECT_RELEASE_REFERENCE(object);
@@ -1915,12 +1952,12 @@ _update_entry_per_cpu(
 
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     uint8_t* target;
-    if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+    if (table->find_entry(map, key, 0, &target) != EBPF_SUCCESS) {
         ebpf_result_t return_value = table->update_entry(map, key, NULL, option);
         if (return_value != EBPF_SUCCESS) {
             return return_value;
         }
-        if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+        if (table->find_entry(map, key, 0, &target) != EBPF_SUCCESS) {
             return EBPF_NO_MEMORY;
         }
     }
@@ -1985,9 +2022,9 @@ Exit:
 }
 
 static ebpf_result_t
-_find_lpm_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+_find_lpm_map_entry(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
     if (!map || !key || delete_on_success) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -2007,7 +2044,7 @@ _find_lpm_map_entry(
     ebpf_bitmap_start_reverse_search_at((ebpf_bitmap_t*)trie_map->data, &cursor, original_prefix_length);
     lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
     while (lpm_key->prefix_length != MAXUINT32) {
-        if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
+        if (_find_hash_map_entry(map, key, flags & ~EBPF_MAP_FIND_FLAG_DELETE, &value) == EBPF_SUCCESS) {
             break;
         }
         lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
@@ -2134,8 +2171,9 @@ _delete_circular_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
 static ebpf_result_t
 _find_circular_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
     if (!map) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -2585,11 +2623,15 @@ _delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     }
     ebpf_lock_unlock(&ring_buffer_map->async.lock, state);
     // Cancel all pending async query operations.
+    // Enter epoch to protect access to epoch-managed async tracker hash table.
+    ebpf_epoch_state_t epoch_state = {0};
+    ebpf_epoch_enter(&epoch_state);
     for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
         ebpf_core_map_async_query_context_t* context =
             EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
         ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
     }
+    ebpf_epoch_exit(&epoch_state);
     ebpf_epoch_free(ring_buffer_map);
     EBPF_LOG_EXIT();
 }
@@ -2787,7 +2829,7 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 
     uint32_t ring_count = perf_event_array_map->ring_count;
 
-    // Cancel any outstanting contexts and free each ring.
+    // Cancel any outstanding contexts and free each ring.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
         // Snap the async context list.
@@ -2803,12 +2845,16 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         ebpf_lock_unlock(&ring->async.lock, state);
 
         // Cancel all pending async query operations.
+        // Enter epoch to protect access to epoch-managed async tracker hash table.
+        ebpf_epoch_state_t epoch_state = {0};
+        ebpf_epoch_enter(&epoch_state);
         for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list;
              temp_entry = temp_entry->Flink) {
             ebpf_core_map_async_query_context_t* context =
                 EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
         }
+        ebpf_epoch_exit(&epoch_state);
         ebpf_ring_buffer_destroy(ring->ring);
         ring->ring = NULL;
     }
@@ -3075,7 +3121,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_LRU_HASH,
         .create_map = _create_lru_hash_map,
         .delete_map = _delete_hash_map,
-        .find_entry = _find_hash_map_entry,
+        .find_entry = _find_lru_hash_map_entry,
         .update_entry = _update_hash_map_entry,
         .delete_entry = _delete_hash_map_entry,
         .next_key_and_value = _next_hash_map_key_and_value,
@@ -3103,7 +3149,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_LRU_PERCPU_HASH,
         .create_map = _create_lru_hash_map,
         .delete_map = _delete_hash_map,
-        .find_entry = _find_hash_map_entry,
+        .find_entry = _find_lru_hash_map_entry,
         .update_entry = _update_hash_map_entry,
         .update_entry_per_cpu = _update_entry_per_cpu,
         .delete_entry = _delete_hash_map_entry,
@@ -3313,7 +3359,7 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    ebpf_result_t result = table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+    ebpf_result_t result = table->find_entry(map, key, flags, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3628,7 +3674,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, true, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, flags | EBPF_MAP_FIND_FLAG_DELETE, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -3656,7 +3702,7 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = table->find_entry(map, NULL, false, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, flags, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
