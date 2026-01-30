@@ -30,8 +30,14 @@ class com_initializer
         if (FAILED(hr) && hr != RPC_E_CHANGED_MODE) {
             throw std::runtime_error("Failed to initialize COM");
         }
+        _initialized = (hr != RPC_E_CHANGED_MODE);
     }
-    ~com_initializer() { CoUninitialize(); }
+    ~com_initializer()
+    {
+        if (_initialized) {
+            CoUninitialize();
+        }
+    }
 
     // Prevent copying/moving to avoid double-uninitialization
     com_initializer(const com_initializer&) = delete;
@@ -40,6 +46,9 @@ class com_initializer
     com_initializer(com_initializer&&) = delete;
     com_initializer&
     operator=(com_initializer&&) = delete;
+
+  private:
+    bool _initialized = false;
 };
 
 // Command-line options
@@ -354,10 +363,16 @@ class pdb_to_btf_converter
                         member.offset_from_start_in_bits = offset * 8;
                     }
 
-                    // Handle bitfields
+                    // Handle bitfields - BTF encodes bitfield size in upper 8 bits of offset
                     DWORD bit_position = 0;
                     if (SUCCEEDED(child->get_bitPosition(&bit_position))) {
                         member.offset_from_start_in_bits += static_cast<uint32_t>(bit_position);
+
+                        // Get bitfield size and encode in upper 8 bits per BTF specification
+                        ULONGLONG bitfield_size = 0;
+                        if (SUCCEEDED(child->get_length(&bitfield_size)) && bitfield_size > 0) {
+                            member.offset_from_start_in_bits |= (static_cast<uint32_t>(bitfield_size) & 0xFF) << 24;
+                        }
                     }
 
                     struct_type.members.push_back(member);
@@ -682,42 +697,47 @@ main(int argc, char* argv[])
         return 1;
     }
 
-    com_initializer com;
+    try {
+        com_initializer com;
 
-    // Create DIA data source
-    CComPtr<IDiaDataSource> data_source;
-    HRESULT hr = CoCreateInstance(
-        CLSID_DiaSource, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IDiaDataSource), (void**)&data_source);
+        // Create DIA data source
+        CComPtr<IDiaDataSource> data_source;
+        HRESULT hr = CoCreateInstance(
+            CLSID_DiaSource, nullptr, CLSCTX_INPROC_SERVER, __uuidof(IDiaDataSource), (void**)&data_source);
 
-    if (FAILED(hr)) {
-        std::cerr << "Failed to create DIA data source. Make sure msdia140.dll is registered." << std::endl;
+        if (FAILED(hr)) {
+            std::cerr << "Failed to create DIA data source. Make sure msdia140.dll is registered." << std::endl;
+            return 1;
+        }
+
+        // Load PDB
+        _bstr_t pdb_path(opts.pdb_path.c_str());
+        hr = data_source->loadDataFromPdb(pdb_path);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to load PDB: " << opts.pdb_path << std::endl;
+            return 1;
+        }
+
+        // Open session
+        CComPtr<IDiaSession> session;
+        hr = data_source->openSession(&session);
+        if (FAILED(hr)) {
+            std::cerr << "Failed to open DIA session" << std::endl;
+            return 1;
+        }
+
+        std::cout << "Successfully loaded PDB: " << opts.pdb_path << std::endl;
+
+        // Convert PDB to BTF
+        pdb_to_btf_converter converter(session);
+        if (!converter.convert(opts.root_names, opts.output_path)) {
+            std::cerr << "Conversion failed" << std::endl;
+            return 1;
+        }
+
+        return 0;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return 1;
     }
-
-    // Load PDB
-    _bstr_t pdb_path(opts.pdb_path.c_str());
-    hr = data_source->loadDataFromPdb(pdb_path);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to load PDB: " << opts.pdb_path << std::endl;
-        return 1;
-    }
-
-    // Open session
-    CComPtr<IDiaSession> session;
-    hr = data_source->openSession(&session);
-    if (FAILED(hr)) {
-        std::cerr << "Failed to open DIA session" << std::endl;
-        return 1;
-    }
-
-    std::cout << "Successfully loaded PDB: " << opts.pdb_path << std::endl;
-
-    // Convert PDB to BTF
-    pdb_to_btf_converter converter(session);
-    if (!converter.convert(opts.root_names, opts.output_path)) {
-        std::cerr << "Conversion failed" << std::endl;
-        return 1;
-    }
-
-    return 0;
 }
