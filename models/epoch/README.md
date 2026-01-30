@@ -24,13 +24,13 @@ Files:
 
 ### 2) Run TLC from the repo root
 
-From the repo root, run (replace the jar path with where you put it). If you already have `models\tla2tools.jar`, you can use that directly:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
 - Fixed design (expected to PASS):
-  - `java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\epoch\EpochModel.cfg models\epoch\EpochModel.tla`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto -config models\epoch\EpochModel.cfg models\epoch\EpochModel.tla`
 
 - Buggy design (expected to FAIL with a counterexample):
-  - `java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\epoch\EpochModel_buggy.cfg models\epoch\EpochModel.tla`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto -config models\epoch\EpochModel_buggy.cfg models\epoch\EpochModel.tla`
 
 What you should see:
 - PASS case ends with `Model checking completed. No error has been found.`

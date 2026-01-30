@@ -17,14 +17,14 @@ The model focuses on a safety property: while a reader is inside an epoch, it mu
 
 ## Running TLC
 
-From the repo root:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
 ```powershell
 # Safe config: should pass.
-java -jar models\tla2tools.jar -config models\hash_table\HashTableModel.cfg models\hash_table\HashTableModel.tla
+java -jar tla2tools.jar -config models\hash_table\HashTableModel.cfg models\hash_table\HashTableModel.tla
 
 # Buggy config: should fail (Safety invariant violation).
-java -jar models\tla2tools.jar -config models\hash_table\HashTableModel_buggy_use_after_exit.cfg models\hash_table\HashTableModel.tla
+java -jar tla2tools.jar -config models\hash_table\HashTableModel_buggy_use_after_exit.cfg models\hash_table\HashTableModel.tla
 ```
 
 Notes:

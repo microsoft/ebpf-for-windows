@@ -23,13 +23,13 @@ The model captures the key intended contract:
 
 ## Running TLC locally
 
-From the repo root:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
 - Safe model (expected PASS):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\object_array_map\ObjectArrayMapModel.tla -config models\object_array_map\ObjectArrayMapModel.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\object_array_map\ObjectArrayMapModel.tla -config models\object_array_map\ObjectArrayMapModel.cfg`
 
 - Buggy model (expected FAIL):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\object_array_map\ObjectArrayMapModel.tla -config models\object_array_map\ObjectArrayMapModel_buggy_read_outside_epoch.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\object_array_map\ObjectArrayMapModel.tla -config models\object_array_map\ObjectArrayMapModel_buggy_read_outside_epoch.cfg`
 
 ## Notes / limitations
 

@@ -56,9 +56,15 @@ for model_dir in models/*/ ; do
     sed -i -e 's/[[:space:]]\+$//' "${out_dir}/${spec_root}.tex"
 
     if [[ ${status} -ne 0 ]]; then
-      echo "TLATeX failed for ${tla}" >&2
-      cat "${log_file}" >&2
-      exit 1
+      # TLATeX exits non-zero when LaTeX is not installed, but still produces the .tex file.
+      # Check for this specific case and allow it; fail on all other errors.
+      if grep -q "latex.*not found\|Cannot run.*latex" "${log_file}" 2>/dev/null; then
+        echo "Note: LaTeX not found, but .tex file was produced successfully."
+      else
+        echo "TLATeX failed for ${tla}" >&2
+        cat "${log_file}" >&2
+        exit 1
+      fi
     fi
 
     # Keep the committed output clean: remove transient build artifacts if they exist.

@@ -38,7 +38,7 @@ This repo does **not** vendor the TLA+ tools jar. It is downloaded from the offi
 2. Download the `tla2tools.jar` artifact for the desired version.  
 3. Place it at:
 
-   - `models/tla2tools.jar`
+   - `.\tla2tools.jar`
 
 With `tla2tools.jar` in place, you can run TLC from the repo root using the model’s `.cfg` file:
 Run TLC from the repo root using the model’s `.cfg` file:

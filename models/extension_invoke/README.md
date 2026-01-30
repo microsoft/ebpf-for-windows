@@ -23,13 +23,13 @@ The model demonstrates why the barrier property matters:
 
 ## Running TLC locally
 
-From the repo root:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
 - Safe model (expected PASS):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\extension_invoke\ExtensionInvokeModel.tla -config models\extension_invoke\ExtensionInvokeModel.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\extension_invoke\ExtensionInvokeModel.tla -config models\extension_invoke\ExtensionInvokeModel.cfg`
 
 - Buggy model (expected FAIL):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\extension_invoke\ExtensionInvokeModel.tla -config models\extension_invoke\ExtensionInvokeModel_buggy_epoch_enter_not_barrier.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\extension_invoke\ExtensionInvokeModel.tla -config models\extension_invoke\ExtensionInvokeModel_buggy_epoch_enter_not_barrier.cfg`
 
 ## Notes / limitations
 

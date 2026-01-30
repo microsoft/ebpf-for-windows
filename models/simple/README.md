@@ -25,13 +25,13 @@ This folder contains a tiny TLA+ spec you can run with TLC.
 
 ## How to run (command line, Windows)
 
-From the repo root:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
-`java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\simple\Counter.cfg models\simple\Counter.tla`
+`java -cp tla2tools.jar tlc2.TLC -workers auto -config models\simple\Counter.cfg models\simple\Counter.tla`
 
 To see a real counterexample (expected to FAIL with an invariant violation):
 
-`java -cp models\tla2tools.jar tlc2.TLC -workers auto -config models\simple\Failure_buggy.cfg models\simple\Failure.tla`
+`java -cp tla2tools.jar tlc2.TLC -workers auto -config models\simple\Failure_buggy.cfg models\simple\Failure.tla`
 
 Note: TLC treats the filename you pass as the module name. If you run `... counter.tla`, TLC expects the top-level module to be `counter`, which will fail for this spec (module name is `Counter`).
 

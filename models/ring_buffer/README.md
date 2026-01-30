@@ -26,15 +26,15 @@ This is meant to capture the essential guarantee provided by the acquire/release
 
 ## Running TLC locally
 
-From the repo root:
+From the repo root (with `tla2tools.jar` placed at the repo root):
 
 - Safe model (expected PASS):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\ring_buffer\RingBufferModel.tla -config models\ring_buffer\RingBufferModel.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\ring_buffer\RingBufferModel.tla -config models\ring_buffer\RingBufferModel.cfg`
 
 - Buggy model (expected FAIL):
-  - `"C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot\bin\java.exe" -cp models\tla2tools.jar tlc2.TLC -workers auto models\ring_buffer\RingBufferModel.tla -config models\ring_buffer\RingBufferModel_buggy_publish_before_lock.cfg`
+  - `java -cp tla2tools.jar tlc2.TLC -workers auto models\ring_buffer\RingBufferModel.tla -config models\ring_buffer\RingBufferModel_buggy_publish_before_lock.cfg`
 
-If Java is already on your `PATH`, you can replace the quoted `java.exe` path with `java`.
+If Java is already on your `PATH`, you can use `java` directly.
 
 ## Notes / limitations
 
