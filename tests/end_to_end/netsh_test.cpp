@@ -1129,7 +1129,7 @@ TEST_CASE("show hash nosuchfile.o", "[netsh][hash]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"nosuchfile.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
+    REQUIRE(output == "Error: No such file or directory opening nosuchfile.o\n");
 }
 
 TEST_CASE("show hash bpf.o", "[netsh][hash]")
@@ -1140,7 +1140,7 @@ TEST_CASE("show hash bpf.o", "[netsh][hash]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "No hash section found in bpf.o\n");
+    REQUIRE(output == "Error: No hash section found in bpf.o\n");
 }
 
 TEST_CASE("show hash PE file with hash section", "[netsh][hash]")
@@ -1166,7 +1166,7 @@ TEST_CASE("show hash PE file without hash section", "[netsh][hash]")
     // Test with a PE file that doesn't have a hash section.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"EbpfApi.dll", nullptr, nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "No hash section found in EbpfApi.dll\n");
+    REQUIRE(output == "Error: No hash section found in EbpfApi.dll\n");
 }
 
 TEST_CASE("show hash PE file with hash section hashonly", "[netsh][hash]")
@@ -1201,7 +1201,7 @@ TEST_CASE("show hash PE file without hash section hashonly", "[netsh][hash]")
     // Test with a PE file that doesn't have a hash section, hashonly format.
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"EbpfApi.dll", L"hashonly", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "No hash section found in EbpfApi.dll\n");
+    REQUIRE(output == "Error: No hash section found in EbpfApi.dll\n");
 }
 
 TEST_CASE("show hash nosuchfile.o hashonly", "[netsh][hash]")
@@ -1212,5 +1212,5 @@ TEST_CASE("show hash nosuchfile.o hashonly", "[netsh][hash]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_hash, L"nosuchfile.o", L"hashonly", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    REQUIRE(output == "error: No such file or directory opening nosuchfile.o\n");
+    REQUIRE(output == "Error: No such file or directory opening nosuchfile.o\n");
 }

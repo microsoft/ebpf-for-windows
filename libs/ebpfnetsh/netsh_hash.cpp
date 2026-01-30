@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-// The following function uses Windows-specific types as an input to match
-// definition of "FN_HANDLE_CMD" in public file of NetSh.h.
+// The following function uses Windows-specific types as inputs to match
+// the definition of "FN_HANDLE_CMD" in the public NetSh.h file.
 unsigned long
 handle_ebpf_show_hash(
     IN LPCWSTR machine,
@@ -68,18 +68,18 @@ handle_ebpf_show_hash(
     ebpf_result_t result = ebpf_api_get_data_section(filename.c_str(), "hash", nullptr, &hash_size);
 
     if (result == EBPF_INVALID_OBJECT) {
-        std::cout << "error: No such file or directory opening " << filename << std::endl;
+        std::cout << "Error: No such file or directory opening " << filename << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     } else if (result == EBPF_OBJECT_NOT_FOUND) {
-        std::cout << "No hash section found in " << filename << std::endl;
+        std::cout << "Error: No hash section found in " << filename << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     } else if (result != EBPF_SUCCESS) {
-        std::cout << "Error reading hash from " << filename << ": " << result << std::endl;
+        std::cout << "Error: Reading hash from " << filename << " failed: " << result << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 
     if (hash_size == 0) {
-        std::cout << "Hash section is empty in " << filename << std::endl;
+        std::cout << "Error: Hash section is empty in " << filename << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 
@@ -88,12 +88,14 @@ handle_ebpf_show_hash(
     result = ebpf_api_get_data_section(filename.c_str(), "hash", hash_data.data(), &hash_size);
 
     if (result != EBPF_SUCCESS) {
-        std::cout << "Error reading hash data from " << filename << ": " << result << std::endl;
+        std::cout << "Error: Reading hash data from " << filename << " failed: " << result << std::endl;
         return ERROR_SUPPRESS_OUTPUT;
     }
 
     // Truncate hash to size of a SHA-256 hash if larger.
     if (hash_size > 32) {
+        std::cerr << "Warning: Hash data (" << hash_size << " bytes) truncated to 32 bytes (SHA-256 size)."
+                  << std::endl;
         hash_size = 32;
     }
 

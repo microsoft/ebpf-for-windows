@@ -5317,6 +5317,7 @@ ebpf_api_get_data_section(
     }
 
     // Determine file type by extension.
+    // Note: file_path is guaranteed to be null-terminated by the _In_z_ SAL annotation.
     std::string path(file_path);
     bool is_pe_file = false;
     if (path.size() > 4) {
@@ -5332,7 +5333,7 @@ ebpf_api_get_data_section(
     if (is_pe_file) {
         // Parse PE file using pe-parse library.
         std::scoped_lock pe_parse_lock(_pe_parse_mutex);
-        parsed_pe* pe = ParsePEFromFile(file_path);
+        std::unique_ptr<parsed_pe, decltype(&DestructParsedPE)> pe(ParsePEFromFile(file_path), DestructParsedPE);
         if (pe == nullptr) {
             EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
         }
@@ -5341,10 +5342,9 @@ ebpf_api_get_data_section(
         ebpf_section_data_context_t section_context = {
             .section_name = section_name, .section_found = false, .section_size = 0, .section_data = nullptr};
 
-        IterSec(pe, _ebpf_pe_find_section, &section_context);
+        IterSec(pe.get(), _ebpf_pe_find_section, &section_context);
 
         if (!section_context.section_found) {
-            DestructParsedPE(pe);
             EBPF_RETURN_RESULT(EBPF_OBJECT_NOT_FOUND);
         }
 
@@ -5355,15 +5355,12 @@ ebpf_api_get_data_section(
         } else if (*data_size < section_context.section_size) {
             // Buffer too small.
             *data_size = section_context.section_size;
-            DestructParsedPE(pe);
             EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
         } else {
             // Copy data to buffer.
             memcpy(data, section_context.section_data, section_context.section_size);
             *data_size = section_context.section_size;
         }
-
-        DestructParsedPE(pe);
     } else {
         // Parse ELF file using ELFIO library.
         ELFIO::elfio reader;
