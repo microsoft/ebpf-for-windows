@@ -31,6 +31,14 @@ class com_initializer
         }
     }
     ~com_initializer() { CoUninitialize(); }
+
+    // Prevent copying/moving to avoid double-uninitialization
+    com_initializer(const com_initializer&) = delete;
+    com_initializer&
+    operator=(const com_initializer&) = delete;
+    com_initializer(com_initializer&&) = delete;
+    com_initializer&
+    operator=(com_initializer&&) = delete;
 };
 
 // Command-line options
@@ -46,6 +54,18 @@ class pdb_to_btf_converter
 {
   public:
     pdb_to_btf_converter(IDiaSession* session) : _session(session) {}
+
+    // Safe size conversion from ULONGLONG to uint32_t with overflow check
+    // BTF size_in_bytes fields are uint32_t; types > 4GB are not supported
+    static uint32_t
+    safe_size_cast(ULONGLONG size)
+    {
+        if (size > UINT32_MAX) {
+            std::cerr << "Warning: type size " << size << " exceeds uint32_t max, truncating" << std::endl;
+            return UINT32_MAX;
+        }
+        return static_cast<uint32_t>(size);
+    }
 
     // Main conversion entry point
     bool
@@ -192,8 +212,9 @@ class pdb_to_btf_converter
         symbol->get_baseType(&base_type);
 
         libbtf::btf_kind_int int_type{};
-        int_type.size_in_bytes = static_cast<uint32_t>(size);
-        int_type.field_width_in_bits = static_cast<uint8_t>(size * 8);
+        int_type.size_in_bytes = safe_size_cast(size);
+        // BTF field_width_in_bits is uint8_t; cap at 255 for types > 31 bytes
+        int_type.field_width_in_bits = static_cast<uint8_t>(std::min(size * 8, static_cast<ULONGLONG>(255)));
         int_type.offset_from_start_in_bits = 0;
 
         switch (base_type) {
@@ -265,7 +286,7 @@ class pdb_to_btf_converter
         ULONGLONG element_size = 0;
         element_type_symbol->get_length(&element_size);
 
-        uint32_t count = (element_size > 0) ? static_cast<uint32_t>(size / element_size) : 0;
+        uint32_t count = (element_size > 0) ? safe_size_cast(size / element_size) : 0;
 
         libbtf::btf_kind_array array_type{};
         array_type.element_type = convert_symbol(element_type_symbol);
@@ -304,7 +325,7 @@ class pdb_to_btf_converter
         if (!name.empty()) {
             struct_type.name = name;
         }
-        struct_type.size_in_bytes = static_cast<uint32_t>(size);
+        struct_type.size_in_bytes = safe_size_cast(size);
 
         // Enumerate members
         CComPtr<IDiaEnumSymbols> enum_children;
@@ -355,7 +376,7 @@ class pdb_to_btf_converter
         if (!name.empty()) {
             union_type.name = name;
         }
-        union_type.size_in_bytes = static_cast<uint32_t>(size);
+        union_type.size_in_bytes = safe_size_cast(size);
 
         // Enumerate members
         CComPtr<IDiaEnumSymbols> enum_children;
@@ -404,7 +425,7 @@ class pdb_to_btf_converter
         if (!name.empty()) {
             enum_type.name = name;
         }
-        enum_type.size_in_bytes = static_cast<uint32_t>(size);
+        enum_type.size_in_bytes = safe_size_cast(size);
         enum_type.is_signed = false; // Will be updated if negative values are found
 
         // Enumerate values
@@ -451,6 +472,13 @@ class pdb_to_btf_converter
                         case VT_UI4:
                         case VT_UINT:
                             member.value = value_variant.ulVal;
+                            break;
+                        case VT_I8:
+                            signed_value = static_cast<int32_t>(value_variant.llVal);
+                            is_signed_type = true;
+                            break;
+                        case VT_UI8:
+                            member.value = static_cast<uint32_t>(value_variant.ullVal);
                             break;
                         }
 
@@ -567,7 +595,8 @@ class pdb_to_btf_converter
             libbtf::btf_kind_int int_type{};
             int_type.name = name;
             int_type.size_in_bytes = size_bytes;
-            int_type.field_width_in_bits = static_cast<uint8_t>(size_bytes * 8);
+            // BTF field_width_in_bits is uint8_t; cap at 255 for types > 31 bytes
+            int_type.field_width_in_bits = static_cast<uint8_t>(std::min(size_bytes * 8, 255u));
             int_type.offset_from_start_in_bits = 0;
             int_type.is_signed = is_signed;
             int_type.is_char = false;
