@@ -2692,3 +2692,83 @@ TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
 
     _close(map_fd);
 }
+
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor_signed.sys can be loaded.
+ * It requires that bindmonitor_signed.sys exists in the test directory.
+ *
+ * IMPORTANT: This test requires a production-signed bindmonitor_signed.sys with:
+ * - Valid digital signature from "Microsoft Corporation eBPF Verification" CA
+ * - Code Signing EKU (1.3.6.1.5.5.7.3.3)
+ * - eBPF Verification EKU (1.3.6.1.4.1.311.133.1)
+ * - Root CA chain to Microsoft Root CA 2011
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the production-signed bindmonitor_signed.sys
+    result = program_load_helper("bindmonitor_signed.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    
+    if (result != 0) {
+        printf("ERROR: Failed to load production-signed bindmonitor_signed.sys (error %d)\n", result);
+        printf("Ensure that bindmonitor_signed.sys exists and is production-signed.\n");
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // Verify the program loaded correctly
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+    
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+
+    printf("SUCCESS: Proof of verification passed for production-signed bindmonitor_signed.sys\n");
+
+    bpf_object__close(object);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the test-signed (non-production-signed) bindmonitor.sys
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        printf("ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!\n");
+        printf("The proof of verification system should reject non-production-signed binaries.\n");
+        bpf_object__close(object);
+    } else {
+        printf("SUCCESS: Test-signed bindmonitor.sys was correctly rejected (error %d)\n", result);
+    }
+    
+    REQUIRE(result != 0);
+}
