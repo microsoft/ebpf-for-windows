@@ -45,6 +45,9 @@ typedef class _ebpf_program_test_state
         ubpf_vm* vm = ubpf_create();
         REQUIRE(vm != nullptr);
 
+        // Disable read-only bytecode feature as it uses mmap which is not implemented in the Windows shim.
+        ubpf_toggle_readonly_bytecode(vm, false);
+
         char* error_message = nullptr;
         std::vector<uint8_t> machine_code(1024);
         size_t machine_code_size = machine_code.size();

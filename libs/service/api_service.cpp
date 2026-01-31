@@ -372,6 +372,9 @@ ebpf_verify_and_load_program(
                 goto Exit;
             }
 
+            // Disable read-only bytecode feature as it uses mmap which is not implemented in the Windows shim.
+            ubpf_toggle_readonly_bytecode(vm, false);
+
             for (uint32_t helper_id = 0; (size_t)helper_id < helper_id_address.size(); helper_id++) {
                 if (ubpf_register(
                         vm, helper_id, nullptr, reinterpret_cast<external_function_t>(helper_id_address[helper_id])) <
