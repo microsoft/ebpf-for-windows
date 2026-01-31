@@ -65,4 +65,7 @@ artifacts/
 
 # Visual Code.
 **/.vscode/**/*
+
+states/**
+models/**/states/**
 _codeql_detected_source_root
