@@ -22,6 +22,9 @@
     <ClCompile Include="elf.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="netsh_hash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="programs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -43,6 +46,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="elf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="netsh_hash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="programs.h">
