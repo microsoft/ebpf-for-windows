@@ -902,6 +902,52 @@ extern "C"
      */
     ebpf_handle_t
     ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get pointers to the consumer, producer, and data regions for a specific ring buffer map.
+     *
+     * Gets mapped memory pointers for the specified ring buffer map in the manager.
+     * For multiple maps, use the index parameter to select which map to access.
+     *
+     * @param[in] rb Ring buffer manager.
+     * @param[in] index Index of the map in the ring buffer manager (0-based).
+     * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
+     * @param[out] producer_page Pointer to start of read-only mapped producer page.
+     * @param[out] data Pointer to start of read-only double-mapped data pages.
+     * @param[out] data_size Size of the mapped data buffer.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_OBJECT_NOT_FOUND No maps in the ring buffer manager or index out of range.
+     * @retval other An error occurred.
+     */
+    _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
+        _In_ struct ring_buffer* rb,
+        _In_ uint32_t index,
+        _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
+        _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
+        _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+        _Out_opt_ uint64_t* data_size) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Extract data from a named section in a PE or ELF file.
+     * @param[in] file_path Path to the PE or ELF file.
+     * @param[in] section_name Name of the section to extract.
+     * @param[out] data Pointer to buffer to receive section data. If NULL, only the size is returned.
+     * @param[in,out] data_size On input, size of the buffer. On output, actual size of section data.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER The buffer is too small. data_size contains required size.
+     * @retval EBPF_INVALID_ARGUMENT Invalid parameters.
+     * @retval EBPF_OBJECT_NOT_FOUND Section not found in file.
+     * @retval EBPF_INVALID_OBJECT File format is invalid or unsupported.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_api_get_data_section(
+        _In_z_ const char* file_path,
+        _In_z_ const char* section_name,
+        _Out_writes_bytes_opt_(*data_size) uint8_t* data,
+        _Inout_ size_t* data_size) EBPF_NO_EXCEPT;
+
 #ifdef __cplusplus
 }
 #endif
