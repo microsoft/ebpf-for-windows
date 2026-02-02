@@ -3694,5 +3694,75 @@ _test_prog_array_map_user_reference(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_prog_get_next_id(0, &start_id) < 0);
 }
 
+TEST_CASE("ebpf_api_get_data_section", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Test with PE files that exist (from the build output).
+    const char* pe_file_path = "map.sys";
+    std::vector<uint8_t> data;
+    size_t data_size = 0;
+    ebpf_result_t result;
+
+    // Test 1: Valid PE file with existing section (should return EBPF_SUCCESS with the size > 0).
+    result = ebpf_api_get_data_section(pe_file_path, "hash", nullptr, &data_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(data_size > 0);
+
+    // Allocate buffer and get the data.
+    data.resize(data_size);
+    size_t buffer_size = data_size;
+    result = ebpf_api_get_data_section(pe_file_path, "hash", data.data(), &buffer_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(buffer_size == data_size);
+
+    // Test 2: Invalid file path (should return EBPF_INVALID_OBJECT).
+    result = ebpf_api_get_data_section("nonexistent_file.sys", "hash", nullptr, &data_size);
+    REQUIRE(result == EBPF_INVALID_OBJECT);
+
+    // Test 3: Try another PE file with nonexistent section.
+    const char* pe_file_path2 = "ebpfcore.sys";
+    result = ebpf_api_get_data_section(pe_file_path2, "hash", nullptr, &data_size);
+    REQUIRE(result == EBPF_OBJECT_NOT_FOUND);
+
+    // Test 4: Valid ELF file with valid section.
+    const char* elf_file_path = "map.o";
+    result = ebpf_api_get_data_section(elf_file_path, "maps", nullptr, &data_size);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Allocate buffer and get the data.
+    data.resize(data_size);
+    buffer_size = data_size;
+    result = ebpf_api_get_data_section(elf_file_path, "maps", data.data(), &buffer_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(buffer_size == data_size);
+
+    // Test 5: Valid ELF file with nonexistent section.
+    result = ebpf_api_get_data_section(elf_file_path, "nonexistent_section", nullptr, &data_size);
+    REQUIRE(result == EBPF_OBJECT_NOT_FOUND);
+
+    // Test 6: Invalid ELF file path.
+    result = ebpf_api_get_data_section("nonexistent_file.o", "maps", nullptr, &data_size);
+    REQUIRE(result == EBPF_INVALID_OBJECT);
+
+    // Test 7: Input buffer too small (ELF).
+    result = ebpf_api_get_data_section(elf_file_path, "maps", nullptr, &data_size);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    data.resize(data_size - 1); // Intentionally make buffer smaller.
+    buffer_size = data_size - 1;
+    result = ebpf_api_get_data_section(elf_file_path, "maps", data.data(), &buffer_size);
+    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+
+    // Test 8: Input buffer too small (PE).
+    result = ebpf_api_get_data_section(pe_file_path, "hash", nullptr, &data_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    data.resize(data_size - 1); // Intentionally make buffer smaller.
+    buffer_size = data_size - 1;
+    result = ebpf_api_get_data_section(pe_file_path, "hash", data.data(), &buffer_size);
+    REQUIRE(result == EBPF_INSUFFICIENT_BUFFER);
+}
+
 DECLARE_JIT_TEST_CASES(
     "prog_array_map_user_reference", "[end_to_end][user_reference]", _test_prog_array_map_user_reference);
