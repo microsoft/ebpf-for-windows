@@ -2698,12 +2698,6 @@ TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
  *
  * This test validates that a production-signed bindmonitor_signed.sys can be loaded.
  * It requires that bindmonitor_signed.sys exists in the test directory.
- *
- * IMPORTANT: This test requires a production-signed bindmonitor_signed.sys with:
- * - Valid digital signature from "Microsoft Corporation eBPF Verification" CA
- * - Code Signing EKU (1.3.6.1.5.5.7.3.3)
- * - eBPF Verification EKU (1.3.6.1.4.1.311.133.1)
- * - Root CA chain to Microsoft Root CA 2011
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
