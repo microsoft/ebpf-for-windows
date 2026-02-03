@@ -2389,11 +2389,8 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
     REQUIRE(
         program_load_helper(
-            _native_helper.get_file_name().c_str(),
-            BPF_PROG_TYPE_SAMPLE,
-            EBPF_EXECUTION_NATIVE,
-            &object,
-            &program_fd) == 0);
+            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+        0);
 
     // Get the LRU map from the loaded program.
     struct bpf_map* lru_map = bpf_object__find_map_by_name(object, "lru_map");
@@ -2409,18 +2406,23 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 
     // Kernel-mode lookup of keys 20-99 by invoking eBPF program.
     // These lookups should affect LRU state (add to hot list and update timestamp).
-    sample_program_context_t ctx = {0};
-    ctx.uint32_data = user_mode_keys;   // Start key: 20.
-    ctx.uint16_data = kernel_mode_keys; // Number of keys: 80.
+    struct
+    {
+        EBPF_CONTEXT_HEADER;
+        bind_md_t context;
+    } ctx_header = {0};
+    bind_md_t* ctx = &ctx_header.context;
+    ctx->process_id = user_mode_keys;              // Start key: 20.
+    ctx->socket_address_length = kernel_mode_keys; // Number of keys: 80.
 
     bpf_test_run_opts test_run_opts = {0};
-    test_run_opts.ctx_in = &ctx;
-    test_run_opts.ctx_size_in = sizeof(ctx);
+    test_run_opts.ctx_in = ctx;
+    test_run_opts.ctx_size_in = sizeof(*ctx);
     test_run_opts.repeat = 1;
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
     REQUIRE(result == 0);
-    REQUIRE(test_run_opts.retval == kernel_mode_keys); // Should find all 80 keys.
+    REQUIRE((uint32_t)test_run_opts.retval == kernel_mode_keys); // Should find all 80 keys.
 
     // User-mode lookup of keys 0-19.
     // These lookups should NOT affect LRU state.
