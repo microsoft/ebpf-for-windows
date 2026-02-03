@@ -674,7 +674,8 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
-      gather_dumps: true
+      # Dumps are gathered inside the VM, not on the runner.
+      gather_dumps: false
 
   performance:
     needs: regular
