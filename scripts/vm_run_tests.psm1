@@ -50,8 +50,8 @@ function Invoke-OnHostOrVM {
 function Generate-KernelDumpOnVM {
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
-        Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue
-        Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName -Force -WarningAction SilentlyContinue
+        Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue -Scope Global
+        Import-Module "$WorkingDirectory\run_driver_tests.psm1" -ArgumentList $WorkingDirectory, $LogFileName -Force -WarningAction SilentlyContinue -Scope Global
         Generate-KernelDump
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName)
