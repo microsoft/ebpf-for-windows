@@ -2626,10 +2626,12 @@ _delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     // Enter epoch to protect access to epoch-managed async tracker hash table.
     ebpf_epoch_state_t epoch_state = {0};
     ebpf_epoch_enter(&epoch_state);
-    for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
+    while (!ebpf_list_is_empty(&temp_list)) {
         ebpf_core_map_async_query_context_t* context =
-            EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
+            EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_list.Flink);
         ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
+        ebpf_list_remove_entry(&context->entry);
+        ebpf_free(context);
     }
     ebpf_epoch_exit(&epoch_state);
     ebpf_epoch_free(ring_buffer_map);
@@ -2848,11 +2850,12 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         // Enter epoch to protect access to epoch-managed async tracker hash table.
         ebpf_epoch_state_t epoch_state = {0};
         ebpf_epoch_enter(&epoch_state);
-        for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list;
-             temp_entry = temp_entry->Flink) {
+        while (!ebpf_list_is_empty(&temp_list)) {
             ebpf_core_map_async_query_context_t* context =
-                EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
+                EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_list.Flink);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
+            ebpf_list_remove_entry(&context->entry);
+            ebpf_free(context);
         }
         ebpf_epoch_exit(&epoch_state);
         ebpf_ring_buffer_destroy(ring->ring);
