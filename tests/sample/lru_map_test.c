@@ -1,0 +1,40 @@
+// Copyright (c) eBPF for Windows contributors
+// SPDX-License-Identifier: MIT
+
+// eBPF program for testing LRU map behavior with kernel-mode access.
+// This program performs lookups on an LRU hash map to verify that
+// kernel-mode lookups affect LRU state (unlike user-mode lookups).
+
+#include "bpf_helpers.h"
+#include "sample_ext_helpers.h"
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 100);
+} lru_map SEC(".maps");
+
+SEC("sample_ext")
+int
+lru_lookup_program(sample_program_context_t* context)
+{
+    // Look up keys in LRU map starting from context->uint32_data.
+    uint32_t key = context->uint32_data;
+    uint64_t num_keys = (uint64_t)context->uint16_data;
+    if (num_keys >= 10000) {
+        return -1;
+    }
+    uint32_t found_count = 0;
+    for (uint64_t i = 0; i < num_keys; i++) {
+        uint32_t* value = bpf_map_lookup_elem(&lru_map, &key);
+        if (value != NULL) {
+            found_count++;
+        }
+        key++;
+    }
+
+    // Return number of keys found.
+    return found_count;
+}
