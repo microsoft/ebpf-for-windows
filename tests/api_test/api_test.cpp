@@ -16,6 +16,7 @@
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "program_helper.h"
+#include "sample_ext_helpers.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "watchdog.h"
@@ -2049,28 +2050,219 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     const int overflow_event_count = 64;
     std::string large_msg(large_event_size, 'X');
 
-    for (int i = 0; i < overflow_event_count; i++) {
-        write_result = ebpf_perf_event_array_map_write(map_fd, large_msg.c_str(), large_msg.length());
-        // Some writes may fail due to buffer overflow, which is expected.
-        // We don't check the result here as we're testing lost event handling.
+    // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
+    HANDLE thread_handle = GetCurrentThread();
+    for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
+        DWORD_PTR previous_mask = SetThreadAffinityMask(thread_handle, (1ULL << cpu_id));
+        REQUIRE(previous_mask != 0);
+
+        for (int i = 0; i < overflow_event_count; i++) {
+            write_result = ebpf_perf_event_array_map_write(map_fd, large_msg.c_str(), large_msg.length());
+            // Some writes may fail due to buffer overflow, which is expected.
+            // We don't check the result here as we're testing lost event handling.
+        }
+
+        // Restore previous affinity mask.
+        SetThreadAffinityMask(thread_handle, previous_mask);
+
+        // Now consume and verify lost events were detected.
+        consume_result = perf_buffer__consume(pb);
+
+        CAPTURE(cpu_id, consume_result, context.event_count, context.lost_count);
+
+        REQUIRE(consume_result == 32);
+
+        // Verify that lost events were properly counted.
+        // The buffer should have overflowed, resulting in lost events.
+        REQUIRE(context.lost_count == 32);
+
+        // The total of events received plus lost should equal what we wrote.
+        // Note: context.event_count includes the initial event written.
+        uint64_t total_events = context.event_count + context.lost_count;
+        REQUIRE(total_events > overflow_event_count);
+
+        context.lost_count = 0;  // Reset for next CPU.
+        context.event_count = 0; // Reset for next CPU.
     }
-
-    // Now consume and verify lost events were detected.
-    consume_result = perf_buffer__consume(pb);
-    REQUIRE(consume_result >= 0);
-
-    // Verify that lost events were properly counted.
-    // The buffer should have overflowed, resulting in lost events.
-    REQUIRE(context.lost_count == 32);
-
-    // The total of events received plus lost should approximately equal what we wrote.
-    // Note: context.event_count includes the initial event written.
-    uint64_t total_events = context.event_count + context.lost_count;
-    REQUIRE(total_events > overflow_event_count);
 
     // Clean up.
     perf_buffer__free(pb);
     _close(map_fd);
+}
+
+// Test lost/dropped record handling through the synchronous perf buffer API.
+// Tests three phases: normal operation, buffer overflow with lost events, and recovery.
+TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
+{
+    struct context_t
+    {
+        std::atomic<uint32_t> event_count{0};
+        std::atomic<uint64_t> lost_count{0};
+        std::atomic<uint32_t> total_polled_events{0};
+        std::mutex phase_mutex;
+        std::condition_variable phase_cv;
+        std::atomic<bool> block_callback{false};
+        std::atomic<bool> terminate_flag{false};
+    };
+
+    const size_t event_data_size = 504;
+
+    // Load native perf_event_burst program.
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    int map_fd = ebpf_fd_invalid;
+    native_module_helper_t native_helper;
+
+    native_helper.initialize("perf_event_burst", EBPF_EXECUTION_NATIVE);
+
+    int result = program_load_helper(
+        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd > 0);
+
+    struct bpf_map* burst_map = bpf_object__find_map_by_name(object, "burst_test_map");
+    REQUIRE(burst_map != nullptr);
+    map_fd = bpf_map__fd(burst_map);
+    REQUIRE(map_fd > 0);
+
+    // Create synchronous perf buffer with callbacks.
+    context_t context;
+    ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
+    auto sample_callback = [](void* ctx, int, void*, uint32_t) {
+        auto& context = *reinterpret_cast<context_t*>(ctx);
+        // Sample callback blocks when requested to trigger buffer overflow.
+        if (context.block_callback.load()) {
+            std::unique_lock<std::mutex> lock(context.phase_mutex);
+            while (context.block_callback.load()) {
+                context.phase_cv.wait_for(lock, std::chrono::milliseconds(500));
+            }
+        }
+        context.event_count++;
+    };
+    auto lost_callback = [](void* ctx, int, uint64_t count) {
+        auto& context = *reinterpret_cast<context_t*>(ctx);
+        context.lost_count += count;
+    };
+    struct perf_buffer* pb = ebpf_perf_buffer__new(map_fd, 0, sample_callback, lost_callback, &context, &perf_opts);
+    REQUIRE(pb != nullptr);
+
+    // RAII cleanup for resources.
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (pb != nullptr) {
+            perf_buffer__free(pb);
+        }
+        if (object != nullptr) {
+            bpf_object__close(object);
+        }
+        if (map_fd != ebpf_fd_invalid) {
+            _close(map_fd);
+        }
+    });
+
+    // Spawn consumer thread to poll perf buffer.
+    std::thread consumer_thread([&]() {
+        for (int iteration = 0; !context.terminate_flag.load() && iteration < 100; iteration++) {
+            int poll_result = perf_buffer__poll(pb, 100);
+            REQUIRE(poll_result >= 0);
+            context.total_polled_events += poll_result;
+        }
+    });
+
+    auto thread_cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        context.block_callback.store(false);
+        context.phase_cv.notify_all();
+        if (consumer_thread.joinable()) {
+            consumer_thread.join();
+        }
+    });
+
+    // Prepare data buffer for sending.
+    std::vector<uint8_t> event_data(event_data_size);
+    for (size_t i = 0; i < event_data_size; i++) {
+        event_data[i] = static_cast<uint8_t>(i & 0xFF);
+    }
+
+    struct phase_config_t
+    {
+        bool block_callback;
+        uint32_t burst_count;
+        uint32_t iterations;
+        bool expect_overflow;
+    };
+
+    uint32_t num_cpus = static_cast<uint32_t>(libbpf_num_possible_cpus());
+    // Execute test phases: normal operation, overflow with lost events, recovery.
+    phase_config_t phases[] = {
+        {false, 32, 1, false},      // First write events with simultaneous consumer.
+        {true, 32, 1, false},       // Block in consumer callback, write enough to not overflow.
+        {true, 33, num_cpus, true}, // Block consumer callback and write enough to guarantee overflow.
+        {false, 32, 1, false},      // Ensure recovery after unblocking consumer.
+    };
+
+    for (const auto& phase : phases) {
+        uint32_t events_start = context.event_count.load();
+        uint64_t lost_start = context.lost_count.load();
+        uint32_t polled_start = context.total_polled_events.load();
+
+        if (phase.block_callback) {
+            std::lock_guard<std::mutex> lock(context.phase_mutex);
+            context.block_callback = true;
+        }
+
+        uint32_t phase_written = 0;
+        uint32_t phase_failed_writes = 0;
+        for (uint32_t i = 0; i < phase.iterations; i++) {
+            struct
+            {
+                EBPF_CONTEXT_HEADER;
+                bind_md_t context;
+            } ctx_header = {0};
+
+            ctx_header.context.process_id = phase.burst_count;
+            ctx_header.context.app_id_start = event_data.data();
+            ctx_header.context.app_id_end = event_data.data() + event_data.size();
+
+            bpf_test_run_opts opts = {0};
+            opts.sz = sizeof(opts);
+            opts.ctx_in = &ctx_header;
+            opts.ctx_size_in = sizeof(ctx_header);
+            opts.data_in = event_data.data();
+            opts.data_size_in = static_cast<uint32_t>(event_data.size());
+
+            int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
+            REQUIRE(invoke_result == 0);
+            REQUIRE(opts.retval >= 0);
+            phase_failed_writes += opts.retval;
+            phase_written += phase.burst_count;
+        }
+
+        if (phase.expect_overflow) {
+            REQUIRE(phase_failed_writes > 0);
+        } else {
+            REQUIRE(phase_failed_writes == 0);
+        }
+
+        if (phase.block_callback) { // Unblock consumer to flush all records.
+            std::lock_guard<std::mutex> lock(context.phase_mutex);
+            context.block_callback = false;
+            context.phase_cv.notify_all();
+        }
+        for (int i = 0; i < 50 && (context.event_count.load() + context.lost_count.load()) <
+                                      (events_start + lost_start + phase_written);
+             i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        uint32_t phase_events = context.event_count.load() - events_start;
+        uint64_t phase_lost = context.lost_count.load() - lost_start;
+        uint32_t phase_polled = context.total_polled_events.load() - polled_start;
+        CAPTURE(phase_written, phase_failed_writes, phase_events, phase_lost, phase_polled);
+        // Validate kernel and usermode results match.
+        REQUIRE(phase_failed_writes == phase_lost);
+        REQUIRE(phase_events + phase_lost == phase_written);
+        REQUIRE(phase_polled == phase_events);
+    }
 }
 
 TEST_CASE("Test program order", "[native_tests]")
