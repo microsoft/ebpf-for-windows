@@ -2369,8 +2369,9 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 
     // Load eBPF program that performs kernel-mode lookups.
     struct bpf_object* object = nullptr;
-    fd_t program_fd;
-    int map_fd = ebpf_fd_invalid;
+    fd_t program_fd = ebpf_fd_invalid;
+    fd_t map_fd = ebpf_fd_invalid;
+    native_module_helper_t _native_helper;
 
     // Setup cleanup guard to ensure resources are freed on any exit path.
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
@@ -2385,7 +2386,14 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
             }
         });
 
-    REQUIRE(program_load_helper("lru_map_test.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_JIT, &object, &program_fd) == 0);
+    _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
+    REQUIRE(
+        program_load_helper(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd) == 0);
 
     // Get the LRU map from the loaded program.
     struct bpf_map* lru_map = bpf_object__find_map_by_name(object, "lru_map");
