@@ -2052,7 +2052,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
     HANDLE thread_handle = GetCurrentThread();
     for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
-        context.lost_count = 0;  // Reset counts.
+        context.lost_count = 0; // Reset counts.
         context.event_count = 0;
 
         DWORD_PTR previous_mask = SetThreadAffinityMask(thread_handle, (1ULL << cpu_id));
@@ -2138,7 +2138,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         }
         context.event_count.fetch_add(1);
     };
-    auto lost_callback = [](void* ctx, int, uint64_t count) {
+    auto lost_callback = [](void* ctx, int /*cpu*/, uint64_t count) {
         auto& context = *reinterpret_cast<context_t*>(ctx);
         context.lost_count.fetch_add(count);
     };

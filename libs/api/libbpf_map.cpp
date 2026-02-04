@@ -961,6 +961,8 @@ ebpf_perf_buffer__new(
                 // Initialize lost_count to current value to avoid reporting historical losses.
                 auto perf_producer_page =
                     reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(current_map_info.producer_page);
+
+                _Analysis_assume_(perf_producer_page != nullptr); // Guaranteed by success above.
                 current_map_info.lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
 
                 try {
