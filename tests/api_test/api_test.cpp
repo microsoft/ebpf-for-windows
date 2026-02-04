@@ -2178,9 +2178,6 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         if (object != nullptr) {
             bpf_object__close(object);
         }
-        if (map_fd != ebpf_fd_invalid) {
-            _close(map_fd);
-        }
     });
 
     // Spawn consumer thread to poll perf buffer.
