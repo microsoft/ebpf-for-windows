@@ -2227,8 +2227,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
             opts.sz = sizeof(opts);
             opts.ctx_in = &ctx_header;
             opts.ctx_size_in = sizeof(ctx_header);
+            opts.ctx_out = &ctx_header;
+            opts.ctx_size_out = sizeof(ctx_header);
             opts.data_in = event_data.data();
             opts.data_size_in = static_cast<uint32_t>(event_data.size());
+            opts.data_out = event_data.data();
 
             int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
             REQUIRE(invoke_result == 0);
