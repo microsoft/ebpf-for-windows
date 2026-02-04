@@ -1751,7 +1751,7 @@ TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TY
     // Create a synchronous perf buffer (default mode without auto-callback flag).
     ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = 0};
 
-    perf_buffer_sync_test_context_t context;
+    perf_buffer_sync_test_context_t context{};
     const uint32_t expected_events = 10;
     context.expected_event_count = expected_events;
 
@@ -2138,11 +2138,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
                 context.phase_cv.wait_for(lock, std::chrono::milliseconds(500));
             }
         }
-        context.event_count++;
+        context.event_count.fetch_add(1);
     };
     auto lost_callback = [](void* ctx, int, uint64_t count) {
         auto& context = *reinterpret_cast<context_t*>(ctx);
-        context.lost_count += count;
+        context.lost_count.fetch_add(count);
     };
     struct perf_buffer* pb = ebpf_perf_buffer__new(map_fd, 0, sample_callback, lost_callback, &context, &perf_opts);
     REQUIRE(pb != nullptr);
@@ -2159,10 +2159,10 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
 
     // Spawn consumer thread to poll perf buffer.
     std::thread consumer_thread([&]() {
-        for (int iteration = 0; !context.terminate_flag.load() && iteration < 100; iteration++) {
+        for (int iteration = 0; !context.terminate_flag.load() && iteration < 200; iteration++) {
             int poll_result = perf_buffer__poll(pb, 100);
             REQUIRE(poll_result >= 0);
-            context.total_polled_events += poll_result;
+            context.total_polled_events.fetch_add(poll_result);
         }
     });
 
@@ -2203,8 +2203,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         uint32_t polled_start = context.total_polled_events.load();
 
         if (phase.block_callback) {
-            std::lock_guard<std::mutex> lock(context.phase_mutex);
-            context.block_callback = true;
+            context.block_callback.store(true);
         }
 
         uint32_t phase_written = 0;
@@ -2231,9 +2230,10 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
             opts.data_out = event_data.data();
 
             int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
+            int32_t burst_result = reinterpret_cast<int32_t>(opts.retval);
             REQUIRE(invoke_result == 0);
-            REQUIRE(opts.retval >= 0);
-            phase_failed_writes += opts.retval;
+            REQUIRE(burst_result >= 0);
+            phase_failed_writes += burst_result;
             phase_written += phase.burst_count;
         }
 
@@ -2245,13 +2245,13 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
 
         if (phase.block_callback) { // Unblock consumer to flush all records.
             std::lock_guard<std::mutex> lock(context.phase_mutex);
-            context.block_callback = false;
+            context.block_callback.store(false);
             context.phase_cv.notify_all();
         }
         for (int i = 0; i < 50 && (context.event_count.load() + context.lost_count.load()) <
                                       (events_start + lost_start + phase_written);
              i++) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
         uint32_t phase_events = context.event_count.load() - events_start;
