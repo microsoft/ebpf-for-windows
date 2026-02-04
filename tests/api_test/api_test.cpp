@@ -1730,7 +1730,7 @@ perf_buffer_sync_lost_callback(void* ctx, int cpu, uint64_t count)
 {
     UNREFERENCED_PARAMETER(cpu);
     auto* context = reinterpret_cast<perf_buffer_sync_test_context_t*>(ctx);
-    context->lost_count += count;
+    context->lost_count.fetch_add(count);
 }
 
 // Test synchronous perf buffer API with real program.
@@ -2127,7 +2127,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     REQUIRE(map_fd > 0);
 
     // Create synchronous perf buffer with callbacks.
-    context_t context;
+    context_t context{};
     ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
     auto sample_callback = [](void* ctx, int, void*, uint32_t) {
         auto& context = *reinterpret_cast<context_t*>(ctx);
@@ -2167,6 +2167,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     });
 
     auto thread_cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        context.terminate_flag.store(true);
         context.block_callback.store(false);
         context.phase_cv.notify_all();
         if (consumer_thread.joinable()) {
@@ -2221,13 +2222,14 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
 
             bpf_test_run_opts opts = {0};
             opts.sz = sizeof(opts);
-            opts.ctx_in = &ctx_header;
+            opts.ctx_in = &ctx_header.context;
             opts.ctx_size_in = sizeof(ctx_header);
             opts.ctx_out = &ctx_header;
             opts.ctx_size_out = sizeof(ctx_header);
             opts.data_in = event_data.data();
             opts.data_size_in = static_cast<uint32_t>(event_data.size());
             opts.data_out = event_data.data();
+            opts.data_size_out = static_cast<uint32_t>(event_data.size());
 
             int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
             int32_t burst_result = static_cast<int32_t>(opts.retval);
