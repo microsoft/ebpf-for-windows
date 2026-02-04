@@ -2230,7 +2230,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
             opts.data_out = event_data.data();
 
             int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
-            int32_t burst_result = reinterpret_cast<int32_t>(opts.retval);
+            int32_t burst_result = static_cast<int32_t>(opts.retval);
             REQUIRE(invoke_result == 0);
             REQUIRE(burst_result >= 0);
             phase_failed_writes += burst_result;
