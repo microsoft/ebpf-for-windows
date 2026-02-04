@@ -2041,7 +2041,6 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     int consume_result = perf_buffer__consume(pb);
     REQUIRE(consume_result >= 0);
     REQUIRE(context.event_count == 1);
-
     REQUIRE(context.lost_count == 0);
 
     // Trigger lost events by filling the buffer beyond capacity.
@@ -2053,6 +2052,9 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
     HANDLE thread_handle = GetCurrentThread();
     for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
+        context.lost_count = 0;  // Reset counts.
+        context.event_count = 0;
+
         DWORD_PTR previous_mask = SetThreadAffinityMask(thread_handle, (1ULL << cpu_id));
         REQUIRE(previous_mask != 0);
 
@@ -2077,12 +2079,8 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
         REQUIRE(context.lost_count == 32);
 
         // The total of events received plus lost should equal what we wrote.
-        // Note: context.event_count includes the initial event written.
         uint64_t total_events = context.event_count + context.lost_count;
-        REQUIRE(total_events > overflow_event_count);
-
-        context.lost_count = 0;  // Reset for next CPU.
-        context.event_count = 0; // Reset for next CPU.
+        REQUIRE(total_events == overflow_event_count);
     }
 
     // Clean up.
