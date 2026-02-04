@@ -2378,9 +2378,6 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
-            if (map_fd != ebpf_fd_invalid) {
-                _close(map_fd);
-            }
             if (object != nullptr) {
                 bpf_object__close(object);
             }
