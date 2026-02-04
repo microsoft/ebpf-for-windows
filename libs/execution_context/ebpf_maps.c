@@ -2439,7 +2439,7 @@ _query_perf_event_array_map(
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[(uint32_t)index];
     ebpf_ring_buffer_query(ring->ring, &async_query_result->consumer, &async_query_result->producer);
     ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
-    async_query_result->lost_count = producer_page->lost_records;
+    async_query_result->lost_count = ReadULong64Acquire(&producer_page->lost_records);
 }
 
 static void
@@ -3043,7 +3043,8 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
     ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length);
     if (result != EBPF_SUCCESS) {
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
-        producer_page->lost_records++;
+        uint64_t lost = ReadULong64Acquire(&producer_page->lost_records);
+        WriteULong64Release(&producer_page->lost_records, lost + 1);
         goto Exit;
     }
     memcpy(record_data, data, length);
@@ -3128,7 +3129,8 @@ ebpf_perf_event_array_map_output_with_capture(
     result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
     if (result != EBPF_SUCCESS) {
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
-        producer_page->lost_records++;
+        uint64_t lost = ReadULong64Acquire(&producer_page->lost_records);
+        WriteULong64Release(&producer_page->lost_records, lost + 1);
         goto Exit;
     }
     memcpy(record_data, data, length);

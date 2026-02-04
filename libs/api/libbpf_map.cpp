@@ -422,7 +422,7 @@ _process_ring_records(_In_ ebpf_ring_mapping_t& mapping)
     if (mapping.is_perf_buffer) {
         // Following the ring producer page are perf event array specific fields (lost record count).
         auto perf_producer_page = reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(mapping.producer_page);
-        uint64_t lost_count = perf_producer_page->lost_records;
+        uint64_t lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
         uint64_t new_lost_records = lost_count - mapping.lost_count;
         if (new_lost_records > 0) {
             // Call lost events callback: void (*)(void* ctx, int cpu, uint64_t lost).
@@ -940,7 +940,6 @@ ebpf_perf_buffer__new(
                 current_map_info.ctx = ctx;
                 current_map_info.is_perf_buffer = true;
                 current_map_info.cpu_id = cpu_id;
-                current_map_info.lost_count = 0;
 
                 // Set the shared wait handle for this CPU to receive notifications.
                 result = ebpf_map_set_wait_handle(map_fd, cpu_id, perf_buffer->wait_handle);
@@ -959,6 +958,11 @@ ebpf_perf_buffer__new(
                 if (result != EBPF_SUCCESS) {
                     goto Exit;
                 }
+
+                // Initialize lost_count to current value to avoid reporting historical losses.
+                auto perf_producer_page =
+                    reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(current_map_info.producer_page);
+                current_map_info.lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
 
                 try {
                     perf_buffer->sync_maps.push_back(current_map_info);
