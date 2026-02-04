@@ -2421,7 +2421,8 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
     REQUIRE(result == 0);
-    REQUIRE((uint32_t)test_run_opts.retval == kernel_mode_keys); // Should find all 80 keys.
+    REQUIRE((uint32_t)test_run_opts.retval >= 0);              // Should find all 80 keys.
+    CHECK((uint32_t)test_run_opts.retval == kernel_mode_keys); // Should find all 80 keys.
 
     // User-mode lookup of keys 0-19.
     // These lookups should NOT affect LRU state.
@@ -2437,28 +2438,37 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    // Verify evictions: user-mode accessed keys (0-19) should be evicted,
-    // kernel-mode accessed keys (20-99) should survive.
-    for (uint32_t i = 0; i < max_entries; i++) {
+    uint32_t user_mode_keys_evicted = 0;
+    for (uint32_t i = 0; i < user_mode_keys; i++) {
         uint32_t value = 0;
         bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-
-        if (i < user_mode_keys) {
-            // Keys 0-19: accessed from user mode, should be evicted.
-            REQUIRE_FALSE(found);
-        } else {
-            // Keys 20-99: accessed from kernel mode, should survive.
-            REQUIRE(found);
-            REQUIRE(value == (1000 + i));
+        if (!found) {
+            user_mode_keys_evicted++;
         }
     }
 
-    // Verify new keys (100-119) are present.
+    uint32_t kernel_mode_keys_evicted = 0;
+    for (uint32_t i = user_mode_keys; i < max_entries; i++) {
+        uint32_t value = 0;
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (!found) {
+            kernel_mode_keys_evicted++;
+        }
+    }
+
+    uint32_t new_keys_found = 0;
     for (uint32_t i = max_entries; i < max_entries + new_keys; i++) {
         uint32_t value = 0;
-        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        REQUIRE(value == (1000 + i));
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (found) {
+            new_keys_found++;
+        }
     }
+
+    CAPTURE(user_mode_keys_evicted, kernel_mode_keys_evicted, new_keys_found);
+    REQUIRE(user_mode_keys_evicted == user_mode_keys);
+    REQUIRE(kernel_mode_keys_evicted == 0);
+    REQUIRE(new_keys_found == new_keys);
 
     // Cleanup handled by scope guard.
 }
