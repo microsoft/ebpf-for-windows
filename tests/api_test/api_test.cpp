@@ -2421,8 +2421,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
     REQUIRE(result == 0);
-    REQUIRE((uint32_t)test_run_opts.retval >= 0);              // Should find all 80 keys.
-    CHECK((uint32_t)test_run_opts.retval == kernel_mode_keys); // Should find all 80 keys.
+    CHECK((int32_t)test_run_opts.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
 
     // User-mode lookup of keys 0-19.
     // These lookups should NOT affect LRU state.

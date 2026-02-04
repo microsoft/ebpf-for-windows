@@ -23,7 +23,7 @@ lru_lookup_program(bind_md_t* context)
     // Look up keys in LRU map starting from context->process_id (start key).
     uint32_t key = (uint32_t)context->process_id;
     uint64_t num_keys = (uint64_t)context->socket_address_length;
-    if (num_keys >= 250) { // Limit for verification.
+    if (num_keys > 253) { // Limit for verification (254/255 hit loop count failure).
         return (bind_action_t)-1;
     }
     uint32_t found_count = 0;
