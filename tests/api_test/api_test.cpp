@@ -2418,6 +2418,8 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     bpf_test_run_opts test_run_opts = {0};
     test_run_opts.ctx_in = ctx;
     test_run_opts.ctx_size_in = sizeof(*ctx);
+    test_run_opts.ctx_out = ctx;
+    test_run_opts.ctx_size_out = sizeof(*ctx);
     test_run_opts.repeat = 1;
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
