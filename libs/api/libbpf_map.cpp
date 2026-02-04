@@ -427,8 +427,7 @@ _process_ring_records(_In_ ebpf_ring_mapping_t& mapping)
         if (new_lost_records > 0) {
             // Call lost events callback: void (*)(void* ctx, int cpu, uint64_t lost).
             ((perf_buffer_lost_fn)mapping.lost_fn)(mapping.ctx, mapping.cpu_id, new_lost_records);
-            // Update lost count to current producer offset.
-            mapping.lost_count = producer_offset;
+            mapping.lost_count = lost_count;
         }
     }
 
