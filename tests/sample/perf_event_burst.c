@@ -34,7 +34,7 @@ perf_event_burst(bind_md_t* ctx)
         return -1;
     }
 
-    // 32-bit record header has 2 flags, so limit data size to 1GB.
+    // The 2 high bits of the 32-bit record header are flags, so record size is limited to 30 bits (1GB).
     uint64_t data_size = (uint64_t)(data_end - data_start);
     if (data_size >= ((uint64_t)1 << 30)) {
         return -1;
