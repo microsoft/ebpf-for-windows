@@ -35,7 +35,7 @@ struct test_failure : std::exception
 /**
  * @brief RAII class to set CPU affinity for the current thread.
  *
- * Sets the CPU in constructor if spefieid or in switch_cpu method.
+ * Sets the CPU in constructor if specified or in switch_cpu method.
  *
  * Restores the original CPU affinity in the destructor.
  */

@@ -1007,7 +1007,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         // otherwise this test case would need to take a dependency on NtQueryInformationProcess
         // which per documentation can change at any time.
         REQUIRE(0 < found_value.start_key);
-        
+
         // For TCP connections, the hook may run on a worker thread/process, not the caller process.
         // For UDP connections, the hook runs synchronously on the caller process.
         if (protocol == IPPROTO_TCP) {
@@ -2073,7 +2073,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     // Trigger lost events by filling the buffer beyond capacity.
     // Write 64 504-byte events without consuming to overflow the 16KB buffer.
     const size_t large_event_size = 504;   // 512 bytes minus 8 byte header.
-    const size_t per_cpu_event_count = 64; // There is only space for 32 per ring.
+    const size_t per_cpu_event_count = 64; // Ring only has space for 32 events, so should drop 32.
     std::string large_msg(large_event_size, 'X');
 
     // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
