@@ -2050,7 +2050,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     // Trigger lost events by filling the buffer beyond capacity.
     // Write 64 504-byte events without consuming to overflow the 16KB buffer.
     const size_t large_event_size = 504;   // 512 bytes minus 8 byte header.
-    const size_t per_cpu_event_count = 64; // There is only space for 32 per ring.
+    const size_t per_cpu_event_count = 64; // Ring only has space for 32 events, so should drop 32.
     std::string large_msg(large_event_size, 'X');
 
     // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
