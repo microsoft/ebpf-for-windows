@@ -15,7 +15,11 @@ static bool
 _is_native_program(_In_z_ const char* file_name)
 {
     std::string file_name_string(file_name);
-    std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
+    size_t last_dot = file_name_string.find_last_of(".");
+    if (last_dot == std::string::npos) {
+        return false;
+    }
+    std::string file_extension = file_name_string.substr(last_dot + 1);
     if (file_extension == "sys") {
         return true;
     }
@@ -53,6 +57,7 @@ inline _Success_(return == 0) int program_load_helper(
     const char* actual_file_name = nullptr;
 
     if (copy_file && _is_native_program(file_name)) {
+        REQUIRE(execution_type == EBPF_EXECUTION_NATIVE);
         std::string file_name_without_extension = _get_file_name_without_extension(file_name);
         _native_helper.initialize(file_name_without_extension.c_str(), execution_type);
         actual_file_name_string = _native_helper.get_file_name();
