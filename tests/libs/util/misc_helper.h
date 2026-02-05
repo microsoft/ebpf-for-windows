@@ -34,17 +34,43 @@ struct test_failure : std::exception
 
 /**
  * @brief RAII class to set CPU affinity for the current thread.
+ *
+ * Sets the CPU in constructor if spefieid or in switch_cpu method.
+ *
+ * Restores the original CPU affinity in the destructor.
  */
 struct scoped_cpu_affinity
 {
-    HANDLE thread_handle;
-    DWORD_PTR original_mask;
+    HANDLE thread_handle;    ///< Handle to the current thread.
+    DWORD_PTR original_mask; ///< Original CPU affinity mask to restore on destruction.
+    /**
+     * @brief Initialize the object without setting CPU affinity.
+     *
+     * Call switch_cpu method to set CPU affinity after construction.
+     */
     scoped_cpu_affinity() : thread_handle(GetCurrentThread()), original_mask(0) {}
+
+    /**
+     * @brief Initializes the object and sets CPU affinity to the specified CPU index.
+     *
+     * @param i CPU index to set affinity to.
+     */
     scoped_cpu_affinity(uint32_t i) : thread_handle(GetCurrentThread())
     {
         original_mask = SetThreadAffinityMask(thread_handle, (1ULL << i));
         REQUIRE(original_mask != 0);
     }
+
+    /**
+     * @brief Switch CPU affinity to the specified CPU index.
+     *
+     * Changes the CPU affinity of the current thread to the specified CPU index.
+     * Can be called multiple times to switch between CPUs.
+     *
+     * The destructor will restore the original CPU affinity regardless of how many times this method is called.
+     *
+     * @param i CPU index to set affinity to.
+     */
     void
     switch_cpu(uint32_t i)
     {
@@ -54,6 +80,12 @@ struct scoped_cpu_affinity
             original_mask = previous_mask;
         }
     }
+
+    /**
+     * @brief Destructor that restores the original CPU affinity.
+     *
+     * Restores the original CPU affinity mask if it was changed in the constructor or switch_cpu method.
+     */
     ~scoped_cpu_affinity()
     {
         if (original_mask != 0) {
