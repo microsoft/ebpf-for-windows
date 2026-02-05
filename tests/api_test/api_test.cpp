@@ -2023,7 +2023,7 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     // Create synchronous perf buffer.
     ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
 
-    perf_buffer_sync_test_context_t context;
+    perf_buffer_sync_test_context_t context{};
 
     auto pb = ebpf_perf_buffer__new(
         map_fd, 0, perf_buffer_sync_sample_callback, perf_buffer_sync_lost_callback, &context, &perf_opts);
@@ -2033,9 +2033,13 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
     REQUIRE(context.lost_count == 0);
     REQUIRE(context.event_count == 0);
 
+    size_t writes_attempted = 0;
+    size_t failed_writes = 0;
+
     // Write some data and consume normally.
     std::string msg = "Test lost callback";
     ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
+    writes_attempted++;
     REQUIRE(write_result == EBPF_SUCCESS);
 
     int consume_result = perf_buffer__consume(pb);
@@ -2045,42 +2049,36 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 
     // Trigger lost events by filling the buffer beyond capacity.
     // Write 64 504-byte events without consuming to overflow the 16KB buffer.
-    const size_t large_event_size = 504; // 512 bytes minus 8 byte header.
-    const int overflow_event_count = 64;
+    const size_t large_event_size = 504;   // 512 bytes minus 8 byte header.
+    const size_t per_cpu_event_count = 64; // There is only space for 32 per ring.
     std::string large_msg(large_event_size, 'X');
 
     // Loop over cpus, setting cpu affinity to overflow each ring by 32 events.
-    HANDLE thread_handle = GetCurrentThread();
-    for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
-        context.lost_count = 0; // Reset counts.
-        context.event_count = 0;
+    {
+        scoped_cpu_affinity cpu_affinity{};
+        for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
+            cpu_affinity.switch_cpu(cpu_id);
 
-        DWORD_PTR previous_mask = SetThreadAffinityMask(thread_handle, (1ULL << cpu_id));
-        REQUIRE(previous_mask != 0);
+            for (size_t i = 0; i < per_cpu_event_count; i++) {
+                write_result = ebpf_perf_event_array_map_write(map_fd, large_msg.c_str(), large_msg.length());
+                writes_attempted++;
+                if (write_result != 0) {
+                    failed_writes++;
+                }
+            }
 
-        for (int i = 0; i < overflow_event_count; i++) {
-            write_result = ebpf_perf_event_array_map_write(map_fd, large_msg.c_str(), large_msg.length());
-            // Some writes may fail due to buffer overflow, which is expected.
-            // We don't check the result here as we're testing lost event handling.
+            // Now consume and verify lost events were detected.
+            consume_result = perf_buffer__consume(pb);
+
+            uint64_t received_so_far = context.event_count;
+            uint64_t lost_so_far = context.lost_count;
+            CAPTURE(cpu_id, consume_result, received_so_far, lost_so_far, writes_attempted, failed_writes);
+
+            // Validate that events counts match up.
+            REQUIRE(consume_result == 32); // should have consumed 32.
+            REQUIRE(failed_writes == lost_so_far);
+            REQUIRE(writes_attempted == received_so_far + lost_so_far);
         }
-
-        // Restore previous affinity mask.
-        SetThreadAffinityMask(thread_handle, previous_mask);
-
-        // Now consume and verify lost events were detected.
-        consume_result = perf_buffer__consume(pb);
-
-        CAPTURE(cpu_id, consume_result, context.event_count, context.lost_count);
-
-        REQUIRE(consume_result == 32);
-
-        // Verify that lost events were properly counted.
-        // The buffer should have overflowed, resulting in lost events.
-        REQUIRE(context.lost_count == 32);
-
-        // The total of events received plus lost should equal what we wrote.
-        uint64_t total_events = context.event_count + context.lost_count;
-        REQUIRE(total_events == overflow_event_count);
     }
 
     // Clean up.
@@ -2157,7 +2155,8 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
 
     // Spawn consumer thread to poll perf buffer.
     std::thread consumer_thread([&]() {
-        for (int iteration = 0; !context.terminate_flag.load() && iteration < 200; iteration++) {
+        auto timeout_time = std::chrono::steady_clock::now() + 20s;
+        while (!context.terminate_flag.load() && std::chrono::steady_clock::now() < timeout_time) {
             int poll_result = perf_buffer__poll(pb, 100);
             REQUIRE(poll_result >= 0);
             context.total_polled_events.fetch_add(poll_result);
@@ -2248,10 +2247,10 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
             context.block_callback.store(false);
             context.phase_cv.notify_all();
         }
-        for (int i = 0; i < 50 && (context.event_count.load() + context.lost_count.load()) <
-                                      (events_start + lost_start + phase_written);
+        for (int i = 0; i < 5 && (context.event_count.load() + context.lost_count.load()) <
+                                     (events_start + lost_start + phase_written);
              i++) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::sleep_for(1s);
         }
 
         uint32_t phase_events = context.event_count.load() - events_start;
