@@ -93,6 +93,6 @@ bind_action_t
 BindMonitor_Callee32(bind_md_t* ctx)
 {
     // This function is the last tail call function for the bind hook.
-    // This function returns BIND_PERMIT to allow the bind request to proceed.
-    return BIND_PERMIT;
+    // This function returns BIND_PERMIT_SOFT to allow the bind request to proceed.
+    return BIND_PERMIT_SOFT;
 }

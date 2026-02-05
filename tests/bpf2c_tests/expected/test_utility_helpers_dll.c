@@ -7,7 +7,7 @@
 #include "bpf2c.h"
 
 #include <stdio.h>
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers.
 #include <windows.h>
 
 #define metadata_table test_utility_helpers##_metadata_table

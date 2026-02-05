@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2  # v2.13.3
+        uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9  # v2.14.1
         with:
           egress-policy: audit
 
@@ -47,7 +47,7 @@ jobs:
           paths_ignore: '["**.md", "**/docs/**"]'
 
       # Checking out the branch is needed to correctly log security alerts.
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           # Only check out main repo, not submodules.
@@ -55,7 +55,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -81,6 +81,6 @@ jobs:
 
       - name: Upload results to Security tab
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/upload-sarif@cf1bb45a277cb3c205638b2cd5c984db1c46a412
+        uses: github/codeql-action/upload-sarif@b20883b0cd1f46c72ae0ba6d1090936928f9fa30
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}

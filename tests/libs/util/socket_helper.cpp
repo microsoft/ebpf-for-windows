@@ -81,9 +81,15 @@ clean_up_socket(_Inout_ SOCKET& socket)
 }
 
 _base_socket::_base_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    socket_family_t _family,
+    _In_ const sockaddr_storage& _source_address,
+    int expected_bind_error)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
-      local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0)
+      local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0),
+      _actual_bind_error(0), _bind_succeeded(false)
 {
     int error = 0;
 
@@ -112,12 +118,37 @@ _base_socket::_base_socket(
     for (int i = 0; i < 5; ++i) {
         error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
         if (error == 0) {
+            _bind_succeeded = true;
+            _actual_bind_error = 0;
             break;
         }
-        if (WSAGetLastError() != WSAENOBUFS) {
-            FAIL("Failed to bind socket with error: " << WSAGetLastError());
+
+        _actual_bind_error = WSAGetLastError();
+
+        // If expecting a bind error, capture it and validate later.
+        if (expected_bind_error != 0) {
+            _bind_succeeded = false;
+            // Still retry on WSAENOBUFS as it may be transient.
+            if (_actual_bind_error != WSAENOBUFS) {
+                break;
+            }
+        } else {
+            // Default behavior: FAIL on non-transient errors.
+            if (_actual_bind_error != WSAENOBUFS) {
+                FAIL("Failed to bind socket with error: " << _actual_bind_error);
+            }
         }
-        Sleep(1000); // Wait for a short duration before retrying.
+        Sleep(1000);
+    }
+
+    // Validate expected bind error.
+    if (expected_bind_error != 0) {
+        if (_bind_succeeded) {
+            FAIL("Expected bind to fail with error " << expected_bind_error << " but it succeeded");
+        }
+        if (_actual_bind_error != expected_bind_error) {
+            FAIL("Expected bind error " << expected_bind_error << " but got " << _actual_bind_error);
+        }
     }
 }
 
@@ -126,13 +157,13 @@ _base_socket::~_base_socket() { clean_up_socket(socket); }
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
 {
-    // Query the current local address from the socket
+    // Query the current local address from the socket.
     int error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
     if (error != 0) {
         FAIL("Failed to query local address of socket with error: " << WSAGetLastError());
     }
 
-    // Return the freshly queried address
+    // Return the freshly queried address.
     address = (PSOCKADDR)&local_address;
     address_length = local_address_size;
 }
@@ -145,8 +176,14 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 }
 
 _client_socket::_client_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
-    : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    socket_family_t _family,
+    _In_ const sockaddr_storage& _source_address,
+    int expected_bind_error)
+    : _base_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error}, overlapped{},
+      receive_posted(false)
 {
 }
 
@@ -240,8 +277,10 @@ _datagram_client_socket::_datagram_client_socket(
     uint16_t _port,
     socket_family_t _family,
     bool _connected_udp,
-    const sockaddr_storage& _source_address)
-    : _client_socket{_sock_type, _protocol, _port, _family, _source_address}, connected_udp{_connected_udp}
+    _In_ const sockaddr_storage& _source_address,
+    int expected_bind_error)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error},
+      connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -302,8 +341,13 @@ _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_
 }
 
 _stream_client_socket::_stream_client_socket(
-    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& source_address)
-    : _client_socket{_sock_type, _protocol, _port, _family, source_address}, connectex(nullptr)
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    socket_family_t _family,
+    _In_ const sockaddr_storage& source_address,
+    int expected_bind_error)
+    : _client_socket{_sock_type, _protocol, _port, _family, source_address, expected_bind_error}, connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -402,8 +446,9 @@ _stream_client_socket::complete_async_send(int timeout_in_ms, expected_result_t 
     }
 }
 
-_server_socket::_server_socket(int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
-    : _base_socket{_sock_type, _protocol, _port, Dual, local_address}, overlapped{}
+_server_socket::_server_socket(
+    int _sock_type, int _protocol, uint16_t _port, _In_ const sockaddr_storage& local_address, int expected_bind_error)
+    : _base_socket{_sock_type, _protocol, _port, Dual, local_address, expected_bind_error}, overlapped{}
 {
     overlapped.hEvent = INVALID_HANDLE_VALUE;
     receive_message = nullptr;
@@ -477,8 +522,8 @@ _server_socket::complete_async_receive(bool timeout_expected)
 }
 
 _datagram_server_socket::_datagram_server_socket(
-    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
-    : _server_socket{_sock_type, _protocol, _port, local_address}, sender_address{},
+    int _sock_type, int _protocol, uint16_t _port, _In_ const sockaddr_storage& local_address, int expected_bind_error)
+    : _server_socket{_sock_type, _protocol, _port, local_address, expected_bind_error}, sender_address{},
       sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
@@ -486,11 +531,11 @@ _datagram_server_socket::_datagram_server_socket(
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
 
-    // Enable redirect context for UDP sockets
+    // Enable redirect context for UDP sockets.
     if (protocol == IPPROTO_UDP) {
         DWORD option_value = 1;
 
-        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets
+        // Enable IPv4 redirect context only for IPv4 and Dual stack sockets.
         if (family == IPv4 || family == Dual) {
             int result = setsockopt(
                 socket,
@@ -503,7 +548,7 @@ _datagram_server_socket::_datagram_server_socket(
             }
         }
 
-        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets
+        // Enable IPv6 redirect context only for IPv6 and Dual stack sockets.
         if (family == IPv6 || family == Dual) {
             int result = setsockopt(
                 socket,
@@ -533,7 +578,7 @@ _datagram_server_socket::post_async_receive()
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
     }
 
-    // Set up WSAMSG structure for WSARecvMsg
+    // Set up WSAMSG structure for WSARecvMsg.
     recv_msg.name = (LPSOCKADDR)&sender_address;
     recv_msg.namelen = sender_address_size;
     recv_msg.lpBuffers = &wsa_recv_buffer;
@@ -541,7 +586,7 @@ _datagram_server_socket::post_async_receive()
     recv_msg.Control = wsa_control_buffer;
     recv_msg.dwFlags = 0;
 
-    // Post an asynchronous receive using WSARecvMsg to get ancillary data
+    // Post an asynchronous receive using WSARecvMsg to get ancillary data.
     error = receive_message(socket, &recv_msg, nullptr, &overlapped, nullptr);
 
     if (error != 0) {
@@ -658,9 +703,9 @@ _datagram_server_socket::close()
 }
 
 _stream_server_socket::_stream_server_socket(
-    int _sock_type, int _protocol, uint16_t _port, const sockaddr_storage& local_address)
-    : _server_socket{_sock_type, _protocol, _port, local_address}, acceptex(nullptr), accept_socket(INVALID_SOCKET),
-      message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
+    int _sock_type, int _protocol, uint16_t _port, _In_ const sockaddr_storage& local_address, int expected_bind_error)
+    : _server_socket{_sock_type, _protocol, _port, local_address, expected_bind_error}, acceptex(nullptr),
+      accept_socket(INVALID_SOCKET), message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");

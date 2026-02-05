@@ -38,7 +38,7 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-// Extern variable defined in ebpf_core_jit.h
+// Extern variable defined in ebpf_core_jit.h.
 bool ebpf_platform_hypervisor_code_integrity_enabled = true;
 static bool _ebpf_platform_test_signing_enabled = true;
 
@@ -2973,6 +2973,7 @@ ebpf_core_get_protocol_handler_properties(
     switch (_ebpf_protocol_handlers[operation_id].call_type) {
     case EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC:
     case EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC:
+    case EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY_ASYNC:
         *async = true;
         break;
     default:

@@ -182,22 +182,27 @@ ebpf_verify_program(
             throw std::runtime_error("Unspecified program type.");
         }
         const auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
-        auto invariants = prevail::analyze(program);
+        auto analysis_result = prevail::analyze(program);
         if (options.verbosity_opts.print_invariants) {
-            print_invariants(os, program, options.verbosity_opts.simplify, invariants);
+            print_invariants(os, program, options.verbosity_opts.simplify, analysis_result);
         }
-        bool pass;
+        bool pass = !analysis_result.failed;
         if (options.verbosity_opts.print_failures) {
-            auto report = invariants.check_assertions(program);
             prevail::thread_local_options.verbosity_opts.print_line_info = true;
-            print_warnings(os, report);
-            pass = report.verified();
-            stats->total_warnings = (int)report.warning_set().size();
-            stats->total_unreachable = (int)report.reachability_set().size();
-        } else {
-            pass = invariants.verified(program);
+            if (auto verification_error = analysis_result.find_first_error()) {
+                print_error(os, *verification_error);
+            }
+            // Count unreachable labels reported by the analysis result.
+            stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
         }
-        stats->max_loop_count = invariants.max_loop_count();
+        // Get the warning count by counting invariants with errors.
+        stats->total_warnings = 0;
+        for (const auto& invariant : analysis_result.invariants) {
+            if (invariant.second.error.has_value()) {
+                stats->total_warnings++;
+            }
+        }
+        stats->max_loop_count = analysis_result.max_loop_count;
         return pass;
     } catch (prevail::UnmarshalError& e) {
         os << "error: " << e.what() << std::endl;
@@ -208,11 +213,15 @@ ebpf_verify_program(
 prevail::ebpf_verifier_options_t
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 {
-    prevail::ebpf_verifier_options_t verifier_options = {0};
-    verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
+    prevail::ebpf_verifier_options_t verifier_options{};
     verifier_options.cfg_opts.check_for_termination = true;
+    verifier_options.cfg_opts.must_have_exit = true;
     verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
-    verifier_options.mock_map_fds = true;
     verifier_options.verbosity_opts.print_line_info = true;
+    verifier_options.mock_map_fds = true;
+    verifier_options.strict = false;
+    verifier_options.allow_division_by_zero = true;
+    verifier_options.setup_constraints = true;
+    verifier_options.big_endian = false;
     return verifier_options;
 }

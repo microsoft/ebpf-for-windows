@@ -19,7 +19,8 @@
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_parse.h"
 #include "libbtf/btf_type_data.h"
-#include "spec_type_descriptors.hpp"
+#include "src/spec/type_descriptors.hpp"
+#include "src/spec/vm_isa.hpp"
 #undef ebpf_inst
 
 #include <windows.h>
@@ -45,6 +46,11 @@ using namespace prevail;
 #define LINE_BREAK_WIDTH 120
 
 #define EBPF_MODE_ATOMIC 0xc0
+
+// Sign-extending load opcodes (RFC 9669)
+#define EBPF_OP_LDXSW (INST_CLS_LDX | INST_MODE_MEMSX | INST_SIZE_W)
+#define EBPF_OP_LDXSH (INST_CLS_LDX | INST_MODE_MEMSX | INST_SIZE_H)
+#define EBPF_OP_LDXSB (INST_CLS_LDX | INST_MODE_MEMSX | INST_SIZE_B)
 
 #define EBPF_ATOMIC_FETCH 0x01
 #define EBPF_ATOMIC_ADD 0x00
@@ -120,7 +126,7 @@ static const std::string _predicate_format_string[] = {
 
 #define ADD_OPCODE(X) {static_cast<uint8_t>(X), std::string(#X)}
 
-// remove EBPF_ATOMIC_ prefix
+// Remove EBPF_ATOMIC_ prefix.
 #define ADD_ATOMIC_OPCODE(X) {static_cast<int32_t>(X), std::string(#X).substr(12)}
 
 static std::map<int32_t, std::string> _atomic_opcode_name_strings = {
@@ -154,7 +160,8 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_MOD64_REG),  ADD_OPCODE(EBPF_OP_XOR64_IMM), ADD_OPCODE(EBPF_OP_XOR64_REG),
     ADD_OPCODE(EBPF_OP_MOV64_IMM),  ADD_OPCODE(EBPF_OP_MOV64_REG), ADD_OPCODE(EBPF_OP_ARSH64_IMM),
     ADD_OPCODE(EBPF_OP_ARSH64_REG), ADD_OPCODE(EBPF_OP_LDXW),      ADD_OPCODE(EBPF_OP_LDXH),
-    ADD_OPCODE(EBPF_OP_LDXB),       ADD_OPCODE(EBPF_OP_LDXDW),     ADD_OPCODE(EBPF_OP_STW),
+    ADD_OPCODE(EBPF_OP_LDXB),       ADD_OPCODE(EBPF_OP_LDXDW),     ADD_OPCODE(EBPF_OP_LDXSW),
+    ADD_OPCODE(EBPF_OP_LDXSH),      ADD_OPCODE(EBPF_OP_LDXSB),     ADD_OPCODE(EBPF_OP_STW),
     ADD_OPCODE(EBPF_OP_STH),        ADD_OPCODE(EBPF_OP_STB),       ADD_OPCODE(EBPF_OP_STDW),
     ADD_OPCODE(EBPF_OP_STXW),       ADD_OPCODE(EBPF_OP_STXH),      ADD_OPCODE(EBPF_OP_STXB),
     ADD_OPCODE(EBPF_OP_STXDW),      ADD_OPCODE(EBPF_OP_LDDW),      ADD_OPCODE(EBPF_OP_JA),
@@ -478,7 +485,7 @@ bpf_code_generator::visit_symbols(symbol_visitor_t visitor, const unsafe_string&
             throw bpf_code_generator_exception("invalid symbol value");
         }
 
-        // Check for overflow of value + size
+        // Check for overflow of value + size.
         if ((value + size) < value) {
             throw bpf_code_generator_exception("invalid symbol value");
         }
@@ -522,7 +529,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             if (map.name.empty()) {
                 map.name = "__anonymous_" + std::to_string(++anonymous_map_count);
             }
-            // Skip the global variable maps as they are handled seperately.
+            // Skip the global variable maps as they are handled separately.
             if (map.name == ".bss" || map.name == ".data" || map.name == ".rodata") {
                 continue;
             }
@@ -533,7 +540,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 .key_size = map.key_size,
                 .value_size = map.value_size,
                 .max_entries = map.max_entries,
-                .inner_map_fd = map.inner_map_type_id != 0 ? map.inner_map_type_id : -1,
+                .inner_map_fd = static_cast<int>(map.inner_map_type_id != 0 ? map.inner_map_type_id : -1),
             });
         }
         auto map_name_to_index = map_offsets;
@@ -1076,7 +1083,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
     auto helper_array_prefix = "runtime_context->helper_data[{}]";
 
-    // Encode instructions
+    // Encode instructions.
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         auto& inst = output.instruction;
@@ -1373,32 +1380,36 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
             }
         } break;
         case INST_CLS_LDX: {
-            std::string size_type;
             std::string size_num;
             std::string destination = get_register_name(inst.dst);
             std::string source = get_register_name(inst.src);
             std::string offset = "OFFSET(" + std::to_string(inst.offset) + ")";
+            bool is_sign_extend = (inst.opcode & INST_MODE_MASK) == INST_MODE_MEMSX;
             switch (inst.opcode & INST_SIZE_DW) {
             case INST_SIZE_B:
-                size_type = "uint8_t";
                 size_num = "8";
                 break;
             case INST_SIZE_H:
-                size_type = "uint16_t";
                 size_num = "16";
                 break;
             case INST_SIZE_W:
-                size_type = "uint32_t";
                 size_num = "32";
                 break;
             case INST_SIZE_DW:
-                size_type = "uint64_t";
                 size_num = "64";
+                // Sign-extending a 64-bit value is a no-op, treat as regular load.
+                is_sign_extend = false;
                 break;
             default:
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
-            output.lines.push_back(std::format("READ_ONCE_{}({}, {}, {});", size_num, destination, source, offset));
+            if (is_sign_extend) {
+                // Sign-extending load (RFC 9669): read the value and sign-extend to 64 bits.
+                output.lines.push_back(
+                    std::format("READ_ONCE_S{}({}, {}, {});", size_num, destination, source, offset));
+            } else {
+                output.lines.push_back(std::format("READ_ONCE_{}({}, {}, {});", size_num, destination, source, offset));
+            }
         } break;
         case INST_CLS_ST:
         case INST_CLS_STX: {

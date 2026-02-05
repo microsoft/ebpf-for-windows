@@ -24,15 +24,21 @@
 #include <winsock2.h>
 #include <Windows.h>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <complex>
 #include <condition_variable>
+#include <cstdlib>
+#include <cstring>
 #include <fstream>
+#include <intrin.h>
 #include <iostream>
 #include <mutex>
+#include <new>
 #include <numeric>
 #include <sddl.h>
+#include <stop_token>
 #include <thread>
 #include <vector>
 
@@ -87,6 +93,101 @@ typedef class _signal
     std::condition_variable condition_variable;
     bool signaled = false;
 } signal_t;
+
+typedef struct _epoch_skew_test_callback_context
+{
+    std::atomic<bool>* callback_invoked;
+    std::atomic<bool>* callback_while_reader_active;
+    std::atomic<bool>* reader_active;
+} epoch_skew_test_callback_context_t;
+
+typedef struct _epoch_spin_test_context
+{
+    void* object;
+    size_t object_size;
+    std::atomic<bool>* reader_active;
+    std::atomic<uint64_t>* work_items_invoked;
+    std::atomic<uint64_t>* callbacks_while_reader_active;
+} epoch_spin_test_context_t;
+
+static void
+_epoch_skew_test_work_item_callback(_Inout_ void* context)
+{
+    auto* callback_context = (epoch_skew_test_callback_context_t*)context;
+    callback_context->callback_invoked->store(true, std::memory_order_release);
+    if (callback_context->reader_active->load(std::memory_order_acquire)) {
+        callback_context->callback_while_reader_active->store(true, std::memory_order_release);
+    }
+}
+
+static void
+_epoch_spin_test_work_item_callback(_Inout_ void* context)
+{
+    auto* callback_context = (epoch_spin_test_context_t*)context;
+    if (callback_context->object != nullptr && callback_context->object_size != 0) {
+        // The test uses VirtualAlloc'd objects and turns them into a guard page before freeing.
+        // This makes an unsafe early reclamation much more likely to manifest as an access violation
+        // (reader touches freed memory) instead of silently reading stale bytes from an allocator pool.
+        DWORD old_protection = 0;
+        (void)VirtualProtect(callback_context->object, callback_context->object_size, PAGE_NOACCESS, &old_protection);
+        (void)VirtualFree(callback_context->object, 0, MEM_RELEASE);
+    }
+    callback_context->work_items_invoked->fetch_add(1, std::memory_order_relaxed);
+    if (callback_context->reader_active->load(std::memory_order_acquire)) {
+        callback_context->callbacks_while_reader_active->fetch_add(1, std::memory_order_relaxed);
+    }
+    delete callback_context;
+}
+
+_Success_(return) static bool _try_get_environment_variable_u32(_In_z_ const char* name, _Out_ uint32_t* value)
+{
+    char buffer[64] = {0};
+    DWORD length = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
+    if (length == 0 || length >= sizeof(buffer)) {
+        return false;
+    }
+
+    char* end = nullptr;
+    unsigned long parsed = std::strtoul(buffer, &end, 10);
+    if (end == buffer) {
+        return false;
+    }
+
+    *value = static_cast<uint32_t>(parsed);
+    return true;
+}
+
+static bool
+_environment_variable_equals(_In_z_ const char* name, _In_z_ const char* expected)
+{
+    char buffer[64] = {0};
+    DWORD length = GetEnvironmentVariableA(name, buffer, static_cast<DWORD>(sizeof(buffer)));
+    if (length == 0 || length >= sizeof(buffer)) {
+        return false;
+    }
+
+    return _stricmp(buffer, expected) == 0;
+}
+
+static uint32_t
+_get_epoch_spin_test_duration_seconds()
+{
+    uint32_t seconds = 0;
+    if (_try_get_environment_variable_u32("EBPF_EPOCH_SPIN_TEST_SECONDS", &seconds) && seconds > 0) {
+        return seconds;
+    }
+
+    // In CI, run longer: 120s for PR/manual runs, 600s for scheduled.
+    if (_environment_variable_equals("GITHUB_ACTIONS", "true")) {
+        if (_environment_variable_equals("GITHUB_EVENT_NAME", "schedule")) {
+            return 600;
+        }
+        return 120;
+    }
+
+    // Keep local runs short by default.
+    return 5;
+}
 
 class _test_helper
 {
@@ -636,6 +737,509 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
+}
+
+// This test validates a regression scenario for a potential correctness hazard
+// where one CPU hands out a newer epoch to readers while another CPU may still stamp retirements
+// with an older epoch due to delayed processing of the propose message.
+//
+// The test verifies that the epoch implementation correctly prevents premature reclamation by
+// ensuring a work item callback never runs while a reader is still active in a newer epoch.
+TEST_CASE("epoch_test_epoch_skew_reclamation_hazard", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    const uint32_t cpu_count = ebpf_get_cpu_count();
+    if (cpu_count < 4) {
+        return;
+    }
+
+    const uint32_t reader_cpu = 0;
+    const uint32_t lagging_cpu = cpu_count - 1;
+
+    auto read_epoch_on_cpu = [](uint32_t cpu_id) -> uint64_t {
+        GROUP_AFFINITY old_thread_affinity;
+        ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(cpu_id, &old_thread_affinity));
+        ebpf_epoch_state_t epoch_state = {};
+        ebpf_epoch_enter(&epoch_state);
+        uint64_t epoch = epoch_state.epoch;
+        ebpf_epoch_exit(&epoch_state);
+        ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
+        return epoch;
+    };
+
+    // Use multiple attempts to reduce the chance of timing-related false negatives.
+    // The test is still expected to be deterministic in practice due to the explicit
+    // lagging-CPU blocking below.
+    bool hazard_observed = false;
+    size_t hazard_attempt = SIZE_MAX;
+    const size_t max_attempts = 25;
+
+    for (size_t attempt = 0; attempt < max_attempts && !hazard_observed; attempt++) {
+        void* memory = ebpf_epoch_allocate(16);
+        REQUIRE(memory != nullptr);
+        std::atomic<void*> published_pointer{memory};
+
+        std::atomic<bool> reader_active{false};
+        std::atomic<bool> reader_entered_new_epoch{false};
+        std::atomic<bool> callback_invoked{false};
+        std::atomic<bool> callback_while_reader_active{false};
+        std::atomic<bool> work_item_scheduled{false};
+        std::atomic<bool> thread_error{false};
+        epoch_skew_test_callback_context_t callback_context = {
+            &callback_invoked, &callback_while_reader_active, &reader_active};
+
+        std::atomic<bool> stop_reader{false};
+        std::atomic<bool> stop_hog{false};
+        std::atomic<bool> do_retire{false};
+        std::atomic<bool> retire_done{false};
+
+        const uint64_t start_epoch = read_epoch_on_cpu(reader_cpu);
+
+        // Hog the lagging CPU so it cannot process the propose message until after retirement.
+        // Use std::jthread so we always join during exception unwinding.
+        std::jthread hog_thread([&](std::stop_token stop_token) {
+            GROUP_AFFINITY old_thread_affinity;
+            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(lagging_cpu, &old_thread_affinity));
+
+            const int original_priority = GetThreadPriority(GetCurrentThread());
+            // Keep the hog period short and bounded.
+            SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
+
+            ebpf_epoch_work_item_t* work_item = nullptr;
+            void* memory_to_free = memory;
+            volatile uint32_t spin = 0;
+
+            while (!stop_hog.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
+                if (do_retire.load(std::memory_order_acquire) && !retire_done.load(std::memory_order_acquire)) {
+                    // Make the object non-reachable.
+                    published_pointer.store(nullptr, std::memory_order_release);
+
+                    // Retire memory on the lagging CPU.
+                    ebpf_epoch_free(memory_to_free);
+                    memory_to_free = nullptr;
+
+                    // Retire a work item as an observable proxy for reclamation.
+                    // The work item callback will fire when the epoch advances past the retire stamp.
+                    // We use this to detect if reclamation happens while a reader is still active.
+                    // Note: The work item doesn't free additional memory - it just observes timing.
+                    work_item = ebpf_epoch_allocate_work_item(
+                        &callback_context,
+                        reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_skew_test_work_item_callback));
+                    if (work_item == nullptr) {
+                        thread_error.store(true, std::memory_order_release);
+                        retire_done.store(true, std::memory_order_release);
+                        break;
+                    }
+                    ebpf_epoch_schedule_work_item(work_item);
+                    work_item = nullptr;
+
+                    work_item_scheduled.store(true, std::memory_order_release);
+
+                    retire_done.store(true, std::memory_order_release);
+                }
+
+                // Busy loop to keep the CPU occupied.
+                spin++;
+                std::atomic_signal_fence(std::memory_order_seq_cst);
+            }
+
+            // Restore thread priority and affinity.
+            SetThreadPriority(GetCurrentThread(), original_priority);
+            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
+
+            // If retirement never happened, ensure the allocation is not leaked.
+            if (memory_to_free != nullptr) {
+                ebpf_epoch_free(memory_to_free);
+            }
+        });
+
+        // Trigger an epoch computation cycle asynchronously by inserting an item into the free list.
+        // This arms the epoch timer (targeted to CPU 0) without blocking the calling thread.
+        void* epoch_trigger_allocation = ebpf_epoch_allocate(8);
+        REQUIRE(epoch_trigger_allocation != nullptr);
+        ebpf_epoch_free(epoch_trigger_allocation);
+
+        std::jthread reader_thread([&](std::stop_token stop_token) {
+            GROUP_AFFINITY old_thread_affinity;
+            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(reader_cpu, &old_thread_affinity));
+
+            ebpf_epoch_state_t epoch_state = {};
+            while (!stop_reader.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
+                memset(&epoch_state, 0, sizeof(epoch_state));
+                ebpf_epoch_enter(&epoch_state);
+                if (epoch_state.epoch > start_epoch) {
+                    // Stay in this epoch until the test completes.
+                    reader_active.store(true, std::memory_order_release);
+                    reader_entered_new_epoch.store(true, std::memory_order_release);
+                    (void)published_pointer.load(std::memory_order_acquire);
+                    break;
+                }
+                ebpf_epoch_exit(&epoch_state);
+                std::this_thread::yield();
+            }
+
+            // Hold the epoch until the main test thread asks us to exit.
+            while (!stop_reader.load(std::memory_order_acquire) && !stop_token.stop_requested()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+
+            if (reader_active.load(std::memory_order_acquire)) {
+                ebpf_epoch_exit(&epoch_state);
+                reader_active.store(false, std::memory_order_release);
+            }
+            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
+        });
+
+        // Wait until the reader is in a newer epoch on CPU 0 (bounded).
+        for (size_t wait = 0; wait < 500 && !reader_entered_new_epoch.load(std::memory_order_acquire); wait++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        if (!reader_entered_new_epoch.load(std::memory_order_acquire)) {
+            stop_hog.store(true, std::memory_order_release);
+            stop_reader.store(true, std::memory_order_release);
+            reader_thread.join();
+            hog_thread.join();
+            ebpf_epoch_synchronize();
+            continue;
+        }
+
+        // Retire while lagging CPU is still blocked.
+        do_retire.store(true, std::memory_order_release);
+
+        // Ensure retirement has been performed before allowing the lagging CPU to process messages.
+        for (size_t spin = 0; spin < 5000 && !retire_done.load(std::memory_order_acquire); spin++) {
+            std::this_thread::yield();
+        }
+        if (!retire_done.load(std::memory_order_acquire)) {
+            stop_hog.store(true, std::memory_order_release);
+            stop_reader.store(true, std::memory_order_release);
+            reader_thread.join();
+            hog_thread.join();
+            ebpf_epoch_synchronize();
+            continue;
+        }
+
+        // Allow lagging CPU to process the propose/commit messages and complete the epoch computation.
+        stop_hog.store(true, std::memory_order_release);
+
+        // Give the system some time to run the epoch computation. If the current implementation is unsafe,
+        // it may reclaim the work item while the reader is still inside the newer epoch.
+        for (size_t wait = 0; wait < 500; wait++) {
+            if (callback_while_reader_active.load(std::memory_order_acquire)) {
+                break;
+            }
+            if (callback_invoked.load(std::memory_order_acquire)) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        stop_reader.store(true, std::memory_order_release);
+        reader_thread.join();
+        hog_thread.join();
+
+        if (thread_error.load(std::memory_order_acquire)) {
+            ebpf_epoch_synchronize();
+            continue;
+        }
+
+        // If the callback ran while the reader was still inside the newer epoch, the hazard was observed.
+        if (callback_while_reader_active.load(std::memory_order_acquire)) {
+            hazard_observed = true;
+            hazard_attempt = attempt;
+        }
+
+        // Drain any pending work from this attempt. At this point the reader has exited its epoch,
+        // so it is safe to wait for synchronization.
+        if (work_item_scheduled.load(std::memory_order_acquire) && !thread_error.load(std::memory_order_acquire)) {
+            for (size_t wait = 0; wait < 2000 && !callback_invoked.load(std::memory_order_acquire); wait++) {
+                ebpf_epoch_synchronize();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            if (!callback_invoked.load(std::memory_order_acquire)) {
+                INFO("work item callback did not run after reader exited");
+            }
+            REQUIRE(callback_invoked.load(std::memory_order_acquire));
+        } else {
+            ebpf_epoch_synchronize();
+        }
+    }
+
+    // If the hazard is observed, the current implementation permits reclamation while a reader
+    // remains in a newer epoch.
+    if (hazard_observed) {
+        INFO("hazard observed on attempt " << hazard_attempt);
+    }
+    REQUIRE_FALSE(hazard_observed);
+}
+
+// A long-running stress test for epoch reclamation under sustained load.
+//
+// Reviewer intent (simplified): "two threads on two CPUs; one deletes shared memory, the other acquires it; run long
+// enough and an unsafe epoch implementation will eventually hit the race." This test implements that pattern.
+//
+// Design:
+// - Reader (CPU0): enters an epoch and repeatedly reads fields from a shared pointer.
+// - Writer (CPU1): swaps the shared pointer and schedules deletion of the old object as an epoch work item.
+// - Main thread: periodically calls ebpf_epoch_synchronize() to force epoch recomputation/progress.
+//
+// Rationale for VirtualAlloc + PAGE_NOACCESS + VirtualFree:
+// Using the epoch allocator for the test object would often keep freed objects readable/writable in a pool, making a
+// use-after-free bug hard to detect (the reader might just see stale bytes and keep running). By allocating objects
+// from the OS and marking them no-access before releasing them, an unsafe early reclamation is far more likely to
+// fail loudly (access violation) when the reader touches memory that was reclaimed too soon.
+TEST_CASE("epoch_test_spin_reclamation_stress", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    const uint32_t cpu_count = ebpf_get_cpu_count();
+    if (cpu_count < 2) {
+        return;
+    }
+
+    const uint32_t reader_cpu = 0;
+    const uint32_t writer_cpu = 1;
+
+    SYSTEM_INFO system_info{};
+    GetSystemInfo(&system_info);
+    const size_t page_size = system_info.dwPageSize;
+
+    struct epoch_spin_shared_object_t
+    {
+        volatile uint64_t magic;
+        volatile uint64_t generation;
+    };
+    constexpr uint64_t EPOCH_SPIN_OBJECT_MAGIC = 0xE0C41E0C'BEEFBEEF;
+
+    // Allocate each shared object from the OS so we can make reclamation visible (guard + free).
+    auto allocate_object = [&]() -> epoch_spin_shared_object_t* {
+        void* memory = VirtualAlloc(nullptr, page_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+        if (memory == nullptr) {
+            return nullptr;
+        }
+        auto* obj = reinterpret_cast<epoch_spin_shared_object_t*>(memory);
+        obj->magic = EPOCH_SPIN_OBJECT_MAGIC;
+        obj->generation = 0;
+        return obj;
+    };
+
+    std::atomic<bool> stop{false};
+    std::atomic<bool> reader_active{false};
+    std::atomic<uint64_t> work_items_scheduled{0};
+    std::atomic<uint64_t> work_items_invoked{0};
+    std::atomic<uint64_t> callbacks_while_reader_active{0};
+    std::atomic<bool> thread_error{false};
+
+    std::mutex deferred_free_lock;
+    std::vector<void*> deferred_free_objects;
+
+    // Keep the number of outstanding work items bounded so the test can run for long durations
+    // without accumulating unbounded memory or taking excessive time to drain at the end.
+    constexpr uint64_t max_outstanding_work_items = 256;
+    // Also cap how many OS allocations we are willing to hold onto if scheduling stalls.
+    // If epoch work items stop being invoked, the previous logic could allocate unbounded pages
+    // and eventually exhaust system commit (causing unrelated processes to fail-fast).
+    constexpr size_t max_deferred_frees = 4096;
+
+    std::atomic<epoch_spin_shared_object_t*> shared_object{allocate_object()};
+    if (shared_object.load(std::memory_order_acquire) == nullptr) {
+        return;
+    }
+
+    const uint32_t duration_seconds = _get_epoch_spin_test_duration_seconds();
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(duration_seconds);
+
+    std::jthread reader_thread([&](std::stop_token stop_token) {
+        GROUP_AFFINITY old_thread_affinity;
+        if (ebpf_set_current_thread_cpu_affinity(reader_cpu, &old_thread_affinity) != EBPF_SUCCESS) {
+            std::cerr << "Failed to set reader thread affinity to CPU " << reader_cpu << std::endl;
+            thread_error.store(true, std::memory_order_release);
+            return;
+        }
+
+        while (!stop.load(std::memory_order_acquire) && !stop_token.stop_requested() &&
+               (std::chrono::steady_clock::now() < deadline)) {
+            ebpf_epoch_scope_t epoch_scope;
+            reader_active.store(true, std::memory_order_release);
+
+            epoch_spin_shared_object_t* obj = shared_object.load(std::memory_order_acquire);
+            if (obj != nullptr) {
+                // Intentionally touch the memory multiple times while in an epoch.
+                // If reclamation is unsafe, an early free can manifest as an AV during these reads.
+                for (size_t i = 0; i < 8; i++) {
+                    const uint64_t magic = obj->magic;
+                    if (magic != EPOCH_SPIN_OBJECT_MAGIC) {
+                        thread_error.store(true, std::memory_order_release);
+                        break;
+                    }
+                    (void)obj->generation;
+                    std::this_thread::yield();
+                }
+                if (thread_error.load(std::memory_order_acquire)) {
+                    break;
+                }
+            }
+
+            reader_active.store(false, std::memory_order_release);
+            std::this_thread::yield();
+        }
+
+        reader_active.store(false, std::memory_order_release);
+        ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
+    });
+
+    std::jthread writer_thread([&](std::stop_token stop_token) {
+        GROUP_AFFINITY old_thread_affinity;
+
+        if (ebpf_set_current_thread_cpu_affinity(writer_cpu, &old_thread_affinity) != EBPF_SUCCESS) {
+            std::cerr << "Failed to set writer thread affinity to CPU " << writer_cpu << std::endl;
+            thread_error.store(true, std::memory_order_release);
+            return;
+        }
+
+        std::vector<epoch_spin_shared_object_t*> deferred_frees;
+        uint64_t generation = 1;
+
+        auto try_schedule_free = [&](epoch_spin_shared_object_t* obj) -> bool {
+            if (obj == nullptr) {
+                return true;
+            }
+
+            // Throttle outstanding work items.
+            uint64_t scheduled = work_items_scheduled.load(std::memory_order_relaxed);
+            uint64_t invoked = work_items_invoked.load(std::memory_order_relaxed);
+            if (scheduled > invoked && (scheduled - invoked) > max_outstanding_work_items) {
+                return false;
+            }
+
+            auto* callback_context = new (std::nothrow) epoch_spin_test_context_t;
+            if (callback_context == nullptr) {
+                return false;
+            }
+            *callback_context = {obj, page_size, &reader_active, &work_items_invoked, &callbacks_while_reader_active};
+
+            ebpf_epoch_work_item_t* work_item = ebpf_epoch_allocate_work_item(
+                callback_context, reinterpret_cast<const void (*)(_Inout_ void*)>(_epoch_spin_test_work_item_callback));
+            if (work_item == nullptr) {
+                delete callback_context;
+                return false;
+            }
+
+            ebpf_epoch_schedule_work_item(work_item);
+            work_items_scheduled.fetch_add(1, std::memory_order_relaxed);
+            return true;
+        };
+
+        while (!stop.load(std::memory_order_acquire) && !stop_token.stop_requested() &&
+               (std::chrono::steady_clock::now() < deadline) && !thread_error.load(std::memory_order_acquire)) {
+            // Retry deferred frees first.
+            if (!deferred_frees.empty()) {
+                if (try_schedule_free(deferred_frees.back())) {
+                    deferred_frees.pop_back();
+                    continue;
+                }
+
+                if (deferred_frees.size() > max_deferred_frees) {
+                    std::cerr << "Deferred frees exceeded limit (" << deferred_frees.size()
+                              << "); epoch work items may be stalled" << std::endl;
+                    thread_error.store(true, std::memory_order_release);
+                    break;
+                }
+
+                // Avoid allocating more memory while we are unable to schedule frees.
+                // Help the system make progress and try again.
+                ebpf_epoch_synchronize();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+
+            epoch_spin_shared_object_t* new_obj = allocate_object();
+            if (new_obj == nullptr) {
+                std::this_thread::yield();
+                continue;
+            }
+            new_obj->generation = generation++;
+
+            epoch_spin_shared_object_t* old_obj = shared_object.exchange(new_obj, std::memory_order_acq_rel);
+            if (old_obj != nullptr && !try_schedule_free(old_obj)) {
+                deferred_frees.push_back(old_obj);
+                if (deferred_frees.size() > max_deferred_frees) {
+                    std::cerr << "Deferred frees exceeded limit (" << deferred_frees.size()
+                              << "); epoch work items may be stalled" << std::endl;
+                    thread_error.store(true, std::memory_order_release);
+                    break;
+                }
+            }
+        }
+
+        // Best-effort cleanup of any deferred frees by scheduling.
+        while (!deferred_frees.empty() && try_schedule_free(deferred_frees.back())) {
+            deferred_frees.pop_back();
+        }
+
+        // Any remaining deferred objects will be released by the main thread after stopping and synchronizing.
+        if (!deferred_frees.empty()) {
+            std::lock_guard lock(deferred_free_lock);
+            deferred_free_objects.reserve(deferred_free_objects.size() + deferred_frees.size());
+            for (auto* obj : deferred_frees) {
+                deferred_free_objects.push_back(obj);
+            }
+        }
+
+        ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
+    });
+
+    // Periodically force epoch recomputation to accelerate reclamation and increase chances of hitting skew.
+    while (std::chrono::steady_clock::now() < deadline) {
+        ebpf_epoch_synchronize();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    stop.store(true, std::memory_order_release);
+    reader_thread.request_stop();
+    writer_thread.request_stop();
+    reader_thread.join();
+    writer_thread.join();
+
+    // Drain any remaining scheduled work items before exiting the test to ensure callbacks don't outlive context.
+    const auto drain_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    while (
+        (work_items_invoked.load(std::memory_order_acquire) < work_items_scheduled.load(std::memory_order_acquire)) &&
+        (std::chrono::steady_clock::now() < drain_deadline)) {
+        ebpf_epoch_synchronize();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    // Ensure no reader remains in an epoch before freeing any remaining object.
+    ebpf_epoch_synchronize();
+
+    epoch_spin_shared_object_t* remaining = shared_object.exchange(nullptr, std::memory_order_acq_rel);
+    if (remaining != nullptr) {
+        (void)VirtualFree(remaining, 0, MEM_RELEASE);
+    }
+
+    {
+        std::lock_guard lock(deferred_free_lock);
+        for (void* obj : deferred_free_objects) {
+            if (obj != nullptr) {
+                (void)VirtualFree(obj, 0, MEM_RELEASE);
+            }
+        }
+        deferred_free_objects.clear();
+    }
+
+    INFO(
+        "epoch spin test ran for " << duration_seconds
+                                   << "s, scheduled=" << work_items_scheduled.load(std::memory_order_acquire)
+                                   << ", invoked=" << work_items_invoked.load(std::memory_order_acquire)
+                                   << ", callbacks_while_reader_active="
+                                   << callbacks_while_reader_active.load(std::memory_order_acquire));
+
+    REQUIRE(work_items_invoked.load(std::memory_order_acquire) >= work_items_scheduled.load(std::memory_order_acquire));
+    REQUIRE_FALSE(thread_error.load(std::memory_order_acquire));
 }
 
 static auto provider_function = []() { return EBPF_SUCCESS; };
@@ -1482,29 +2086,10 @@ run_ring_buffer_stress_test(
         failed_returns,
         failed_waits,
         reserve_count);
-    std::cout << " == test case " << parameters->test_name << " (" << std::endl
-              << parameters->test_string << ")" << std::endl;
-    std::cout << "Consumer late: " << consumer_late << std::endl
-              << "Late producer threads: " << late_producer_threads << std::endl
-              << "Producer loops: " << producer_loops << std::endl
-              << "Consumer loops: " << consumer_loops << std::endl
-              << "Consumer records: " << consumer_records << std::endl
-              << "Locked records read: " << locked_records_read << std::endl
-              << "Discarded records read: " << discarded_records_read << std::endl
-              << "Empty records read: " << empty_records_read << std::endl
-              << "Failed returns: " << failed_returns << std::endl
-              << "Failed waits: " << failed_waits << std::endl;
-
     if (use_output) {
         CAPTURE(output_count);
-        std::cout << "Output count: " << output_count << std::endl;
     } else {
         CAPTURE(reserve_count, submit_count, discard_count, failed_submits, failed_discards);
-        std::cout << "Reserve count: " << reserve_count << std::endl
-                  << "Submit count: " << submit_count << std::endl
-                  << "Discard count: " << discard_count << std::endl
-                  << "Failed submits: " << failed_submits << std::endl
-                  << "Failed discards: " << failed_discards << std::endl;
     }
 
     // Read any remaining records.
@@ -1539,10 +2124,6 @@ run_ring_buffer_stress_test(
         }
     }
     CAPTURE(remaining_records, remaining_discards, remaining_locked, remaining_failed_returns);
-    std::cout << "Remaining records: " << remaining_records << std::endl
-              << "Remaining discards: " << remaining_discards << std::endl
-              << "Remaining locked: " << remaining_locked << std::endl
-              << "Remaining failed returns: " << remaining_failed_returns << std::endl;
 
     REQUIRE(blocked_threads == 0);
 

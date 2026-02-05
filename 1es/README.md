@@ -123,3 +123,19 @@ and `1ES.ImageOverride` values as specified in the specific testcase)
 dynamic name which may change whenver a new 1ES image is used.
 - Existing tests were updated to use `contains(inputs.environment, '1ES')` as an indicator that the
 job is using the 1ES runner (and negation of this condition to indicate it is not using the 1ES runner).
+
+## Known Issues
+### Credentials expiring on inner VM
+Symptom: Tests will fail with `The credential is invalid`, for example:
+```
+[08:47:30] :: Invoking command on VM: runner_vm (IsRemote: False)
+The credential is invalid.
+At D:\a\_work\ebpf-for-windows\ebpf-for-windows\x64\Release\common.psm1:460 char:5
++     $JobOutput = Receive-Job -Job $job
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OpenError: (runner_vm:String) [], PSDirectException
+    + FullyQualifiedErrorId : PSSessionStateBroken
+    + PSComputerName        : localhost
+```
+
+Resolution: In the Azure portal, navigate to the 1ES image (in the eBPF team subscription, in the ebpf-cicd-rg resource group) and then rebuild the image: Settings > Image > Rebuild Image. Likely all images will need re-building. This will take a few hours, but once re-built, the credentials should again be valid.

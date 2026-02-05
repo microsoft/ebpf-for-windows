@@ -17,4 +17,7 @@
 #undef min
 #undef max
 #include "ebpf_verifier.hpp"
+#include "platform.hpp"
+#define FALSE 0
+#define TRUE 1
 #pragma warning(pop)

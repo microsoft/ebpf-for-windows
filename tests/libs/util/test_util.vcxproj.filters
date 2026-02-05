@@ -6,6 +6,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="capture_helper.cpp" />
+    <ClCompile Include="filter_helper.cpp" />
     <ClCompile Include="ioctl_helper.cpp" />
     <ClCompile Include="netsh_helper.cpp" />
     <ClCompile Include="service_helper.cpp" />
@@ -15,6 +16,7 @@
     <ClCompile Include="native_helper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="filter_helper.h" />
     <ClInclude Include="ioctl_helper.h" />
     <ClInclude Include="service_helper.h" />
     <ClInclude Include="socket_helper.h" />

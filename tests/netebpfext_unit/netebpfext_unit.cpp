@@ -105,7 +105,7 @@ TEST_CASE("bind_invoke", "[netebpfext]")
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify a bind that should be allowed.
-    client_context->bind_action = BIND_PERMIT;
+    client_context->bind_action = BIND_PERMIT_SOFT;
     FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters); // TODO(issue #526): support IPv6.
     REQUIRE(result == FWP_ACTION_PERMIT);
 
@@ -259,6 +259,40 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(output_context.socket_address_length == 8);
     REQUIRE(output_context.operation == BIND_OPERATION_UNBIND);
     REQUIRE(output_context.protocol == IPPROTO_UDP);
+}
+
+TEST_CASE("bind_hard_soft_permit", "[netebpfext][bind]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
+    test_bind_client_context_header_t client_context_header = {0};
+    test_bind_client_context_t* client_context = &client_context_header.context;
+    fwp_classify_parameters_t parameters = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
+        (netebpfext_helper_base_client_context_t*)client_context);
+
+    netebpfext_initialize_fwp_classify_parameters(&parameters);
+
+    // Test BIND_PERMIT_SOFT (should allow override by lower-priority filters).
+    client_context->bind_action = BIND_PERMIT_SOFT;
+    FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+    // Note: We can't directly test FWPS_RIGHT_ACTION_WRITE in unit tests as that's internal WFP state.
+
+    // Test BIND_PERMIT_HARD (should block lower-priority filters).
+    client_context->bind_action = BIND_PERMIT_HARD;
+    result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+    // Note: BIND_PERMIT_HARD should clear FWPS_RIGHT_ACTION_WRITE but we can't test that directly.
+
+    // Test backward compatibility: BIND_PERMIT should behave like BIND_PERMIT_SOFT.
+    client_context->bind_action = BIND_PERMIT;
+    result = helper.test_bind_ipv4(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
 #pragma endregion bind
@@ -430,6 +464,13 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
+    // Test hard permit for recv_accept
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
     // Classify operations for redirect.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
 
@@ -437,6 +478,13 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     result = helper.test_cgroup_inet6_connect(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test redirect for recv_accept
+    result = helper.test_cgroup_inet4_recv_accept(&parameters);
+    REQUIRE(result == FWP_ACTION_PERMIT);
+
+    result = helper.test_cgroup_inet6_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Test eBPF program invocation failure.
@@ -517,13 +565,6 @@ sock_addr_thread_function(
         }
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
-
-        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive.
-        // Workaround for now - map to block.
-        if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
-            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
-            expected_result = FWP_ACTION_BLOCK;
-        }
 
         if (result != expected_result) {
             if (fault_injection_enabled) {

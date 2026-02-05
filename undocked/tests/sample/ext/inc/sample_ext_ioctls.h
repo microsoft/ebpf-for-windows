@@ -16,7 +16,7 @@
 #define SAMPLE_EBPF_EXT_DEVICE_WIN32_NAME L"\\\\.\\" SAMPLE_EBPF_EXT_DEVICE_BASE_NAME
 
 //
-// IOCTL Codes
+// IOCTL Codes.
 //
 
 typedef enum _sample_ebpf_ext_control_code

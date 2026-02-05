@@ -5,7 +5,6 @@
 
 #include "api_common.hpp"
 #include "ebpf_api.h"
-#include "spec_type_descriptors.hpp"
 
 #if !defined(EBPF_API_LOCKING)
 #define EBPF_API_LOCKING
@@ -14,6 +13,10 @@
 struct bpf_object;
 
 typedef struct _ebpf_map_subscription ebpf_map_subscription_t;
+
+// Forward declaration for ring buffer callback function type.
+// This matches the typedef in bpf/libbpf.h: typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size).
+typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 
 typedef struct bpf_program
 {

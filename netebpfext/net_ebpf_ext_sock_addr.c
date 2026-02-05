@@ -1557,6 +1557,21 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
 // WFP callout callback functions.
 //
 
+/**
+ * @brief WFP classify function for recv_accept authorization.
+ *
+ * This function is invoked when a server socket receives an inbound connection request
+ * (TCP accept() or first unicast UDP packet from a unique remote address/port tuple).
+ * It calls attached eBPF programs to determine whether to allow or block the connection.
+ *
+ * @param[in] incoming_fixed_values Fixed values from the classify request.
+ * @param[in] incoming_metadata_values Metadata values from the classify request.
+ * @param[in,out] layer_data Layer-specific data.
+ * @param[in] classify_context Context information for the classify.
+ * @param[in] filter The filter that triggered this callout.
+ * @param[in] flow_context Flow context (unused).
+ * @param[in,out] classify_output Output structure containing the action to take.
+ */
 void
 net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -1631,9 +1646,20 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    classify_output->actionType = (result == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) ? FWP_ACTION_PERMIT : FWP_ACTION_BLOCK;
-    if (classify_output->actionType == FWP_ACTION_BLOCK) {
+    // Set action type based on verdict
+    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
+    switch (result) {
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        break;
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        classify_output->actionType = FWP_ACTION_PERMIT;
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    default:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
     }
 
     _net_ebpf_ext_log_sock_addr_classify(

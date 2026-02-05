@@ -51,5 +51,5 @@ func(bind_md_t* ctx)
         bpf_map_update_elem(&pidtgid_map, &key, &value, 0);
     }
 
-    return BIND_PERMIT;
+    return BIND_PERMIT_SOFT;
 }

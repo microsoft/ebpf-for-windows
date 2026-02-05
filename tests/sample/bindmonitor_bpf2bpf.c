@@ -63,7 +63,7 @@ BindMonitor_Caller(bind_md_t* ctx)
         // The variable should have been preserved across the call.
         return BIND_REDIRECT;
     }
-    return BIND_PERMIT;
+    return BIND_PERMIT_SOFT;
 }
 
 __attribute__((noinline)) bind_action_t __attribute__((optnone))
@@ -140,5 +140,5 @@ BindMonitor_Callee7(uint64_t* pid)
     inner_cookie2[0] = 0x77;
     inner_cookie2[1] = 0x77;
 
-    return (*pid == 0) ? BIND_DENY : BIND_PERMIT;
+    return (*pid == 0) ? BIND_DENY : BIND_PERMIT_SOFT;
 }

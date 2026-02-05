@@ -6,6 +6,9 @@ param (
     [parameter(Mandatory = $false)][string] $Architecture = "x64"
 )
 
+# Ensure errors are treated as terminating exceptions
+$ErrorActionPreference = "Stop"
+
 # This script assumes it is called from the root of the repository, but it can be called from any directory.
 # To handle this, we first get the directory where the script is located and then change the parent directory to the root of the repository.
 

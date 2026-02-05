@@ -147,9 +147,114 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
     LOG_INFO("{} done. Iterations: {}", test_params.file_name.c_str(), count);
 }
 
+static void
+_droppacket_stress_thread_function(const stress_test_thread_context& test_params)
+{
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    if (hook.initialize() != EBPF_SUCCESS) {
+        LOG_ERROR("{}({}): hook.initialize() failed.", __func__, test_params.thread_index);
+        (*test_params.failure_count)++;
+        return;
+    }
+    int ebpf_error = 0;
+    ebpf_result_t ebpf_result = EBPF_SUCCESS;
+    uint32_t count{0};
+    using sc = std::chrono::steady_clock;
+    auto endtime = sc::now() + std::chrono::minutes(test_params.duration_minutes);
+    while (sc::now() < endtime) {
+
+        LOG_VERBOSE(
+            "{}({}): Instantiating _program_load. Iteration #: {}", __func__, test_params.thread_index, count++);
+
+        auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
+            LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+            (*test_params.failure_count)++;
+
+            return;
+        };
+
+        auto [result, _] = _program_load(test_params.file_name, test_params.program_type, test_params.execution_type);
+        if (std::holds_alternative<int>(result)) {
+            auto error = std::get<int>(result);
+            log_error_and_increment_failure_count(error, "_program_load");
+        }
+
+        const auto& local_program_object_info = std::get<program_object_info>(result);
+
+        // Set interface to filter on.
+        fd_t interface_index_map_fd =
+            bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "interface_index_map");
+        uint32_t key = 0;
+
+        // We need the interface index number to be a non-negative value, unique to each thread.  Although meant for a
+        // different purpose, the 'thread_index' member of the test_params struct happens to fit this requirement,
+        // so we use it here as well.
+        uint32_t if_index = test_params.thread_index;
+        ebpf_error = bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_update_elem(interface_index_map_fd)");
+
+        // Attach only to the single interface being tested.
+        bpf_link* link = nullptr;
+        ebpf_result = hook.attach_link(local_program_object_info.fd, &if_index, sizeof(if_index), &link);
+        log_error_and_increment_failure_count(ebpf_result, "hook.attach_link()");
+
+        // Do a basic map i/o test.
+        fd_t dropped_packet_map_fd =
+            bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "dropped_packet_map");
+        log_error_and_increment_failure_count(dropped_packet_map_fd, "bpf_object__find_map_fd_by_name()");
+
+        key = 0;
+        uint64_t value = 1000;
+
+        ebpf_error = bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_update_elem(dropped_packet_map_fd)");
+
+        ebpf_error = bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_lookup_elem(dropped_packet_map_fd)");
+
+        if (value != 1000) {
+            LOG_ERROR(
+                "{}({}): bpf_map_lookup_elem(dropped_packet_map_fd) returned unexpected value: {}",
+                __func__,
+                test_params.thread_index,
+                value);
+            (*test_params.failure_count)++;
+
+            return;
+        }
+
+        // Do some more basic validations.
+        ebpf_error = bpf_map_delete_elem(dropped_packet_map_fd, &key);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_delete_elem(dropped_packet_map_fd)");
+
+        ebpf_error = bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_lookup_elem(dropped_packet_map_fd)");
+        if (value != 0) {
+            LOG_ERROR(
+                "{}({}): bpf_map_lookup_elem(dropped_packet_map_fd) returned unexpected value: {}",
+                __func__,
+                test_params.thread_index,
+                value);
+            (*test_params.failure_count)++;
+
+            return;
+        }
+
+        if (link) {
+            // Detach link.
+            hook.detach_link(link);
+            hook.close_link(link);
+        }
+    }
+
+    LOG_INFO("{} done. Iterations: {}", test_params.file_name.c_str(), count);
+}
+
 // Note: The 'native_file_name' and 'extension_name' members of the _test_program_info struct is not used by the
 // user-mode tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
+    {{"droppacket"},
+     {{"droppacket.o"}, {}, {}, _droppacket_stress_thread_function, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT}},
     {{"bindmonitor_tailcall"},
      {{"bindmonitor_tailcall.o"},
       {},
@@ -179,6 +284,7 @@ query_supported_program_names()
 // macros (based on this framework) during the creation of these objects;
 static std::unique_ptr<_test_helper_end_to_end> _test_helper;
 static std::unique_ptr<program_info_provider_t> _bind_program_info_provider;
+static std::unique_ptr<program_info_provider_t> _xdp_program_info_provider;
 
 static test_control_info _test_control_info{0};
 
@@ -196,6 +302,12 @@ um_test_init()
         REQUIRE(local_bind_program_info_provider != nullptr);
         REQUIRE(local_bind_program_info_provider->initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
         _bind_program_info_provider.reset(local_bind_program_info_provider);
+
+        program_info_provider_t* local_xdp_program_info_provider = new program_info_provider_t();
+        REQUIRE(local_xdp_program_info_provider != nullptr);
+        REQUIRE(local_xdp_program_info_provider->initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+        _xdp_program_info_provider.reset(local_xdp_program_info_provider);
+
         _test_control_info = get_test_control_info();
         if (_test_control_info.programs.size()) {
 
@@ -210,7 +322,7 @@ um_test_init()
         } else {
 
             // No programs specified on the command line, so use the preferred default.
-            _test_control_info.programs.push_back({"bindmonitor_tailcall"});
+            _test_control_info.programs.push_back({"droppacket"});
         }
 
         LOG_INFO("test programs:");
@@ -229,6 +341,7 @@ void
 test_process_cleanup()
 {
     // We need to explicitly 'free' these resources in tests that run against the user-mode 'usersim' framework.
+    _xdp_program_info_provider.reset(nullptr);
     _bind_program_info_provider.reset(nullptr);
     _test_helper.reset(nullptr);
 }

@@ -565,7 +565,7 @@ _ebpf_map_lookup_element_batch_helper(
 
     while (count_returned < input_count) {
         // Fetch the next batch of entries.
-        size_t entries_to_fetch = min(input_count - count_returned, max_entries_per_batch);
+        size_t entries_to_fetch = std::min(input_count - count_returned, max_entries_per_batch);
 
         ebpf_protocol_buffer_t request_buffer(
             EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_request, previous_key) +
@@ -773,7 +773,7 @@ _update_map_element_batch(
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_update = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_update = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data) +
@@ -1103,7 +1103,7 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     try {
         for (size_t key_index = 0; key_index < input_count;) {
             // Compute the number of entries to update in this batch.
-            size_t entries_to_delete = min(input_count - key_index, max_entries_per_batch);
+            size_t entries_to_delete = std::min(input_count - key_index, max_entries_per_batch);
 
             request_buffer.resize(
                 EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys) + key_size * entries_to_delete);
@@ -1898,6 +1898,10 @@ ebpf_api_get_pinned_map_info(
     ebpf_map_info_t* local_map_info = nullptr;
     size_t output_buffer_length = 4 * 1024;
     uint8_t attempt_count = 0;
+
+    if (map_count == nullptr || map_info == nullptr) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
 
     ebpf_assert(map_count);
     ebpf_assert(map_info);
@@ -2911,6 +2915,9 @@ ebpf_enumerate_programs(
     _Outptr_result_maybenull_z_ const char** error_message) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
+    ebpf_assert(file);
+    ebpf_assert(infos);
+    ebpf_assert(error_message);
     std::string file_name_string(file);
     std::string file_extension = file_name_string.substr(file_name_string.find_last_of(".") + 1);
     if (file_extension == "dll" || file_extension == "sys") {
@@ -3067,6 +3074,11 @@ _ebpf_is_map_in_map(_In_ const ebpf_map_t* map) noexcept
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type) NO_EXCEPT_TRY
 {
+    if (execution_type != EBPF_EXECUTION_ANY && execution_type != EBPF_EXECUTION_JIT &&
+        execution_type != EBPF_EXECUTION_INTERPRET && execution_type != EBPF_EXECUTION_NATIVE) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     if (Platform::_is_native_program(object->file_name)) {
         if (execution_type == EBPF_EXECUTION_INTERPRET || execution_type == EBPF_EXECUTION_JIT) {
             return EBPF_INVALID_ARGUMENT;
