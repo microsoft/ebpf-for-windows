@@ -227,6 +227,11 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
+    // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
+    uint32_t interface_type;          ///< Interface type.
+    uint32_t tunnel_type;             ///< Tunnel type (0 if not a tunnel).
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID.
+    uint32_t sub_interface_index;     ///< Sub-interface index.
 } net_ebpf_sock_addr_t;
 
 /**
@@ -340,6 +345,34 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
     return sock_addr_ctx->transport_endpoint_handle;
 }
 
+static uint32_t
+_ebpf_sock_addr_get_interface_type(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->interface_type;
+}
+
+static uint32_t
+_ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->tunnel_type;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->next_hop_interface_luid;
+}
+
+static uint32_t
+_ebpf_sock_addr_get_sub_interface_index(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->sub_interface_index;
+}
+
 static int
 _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
 {
@@ -449,12 +482,33 @@ const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
-    &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT};
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
+    &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION};
 
 const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
-    BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET4_RECV_ACCEPT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET6_RECV_ACCEPT};
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION};
 
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
+
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_authorization_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_AUTH_CONNECT_V4,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
+     L"net eBPF sock_addr hook",
+     L"net eBPF sock_addr hook WFP filter"}};
+
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_authorization_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_AUTH_CONNECT_V6,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
+     L"net eBPF sock_addr hook",
+     L"net eBPF sock_addr hook WFP filter"}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V4,
@@ -518,6 +572,12 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
     {&EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT,
      EBPF_COUNT_OF(_cgroup_inet6_recv_accept_filter_parameters),
      &_cgroup_inet6_recv_accept_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+     EBPF_COUNT_OF(_cgroup_inet4_connect_authorization_filter_parameters),
+     &_cgroup_inet4_connect_authorization_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+     EBPF_COUNT_OF(_cgroup_inet6_connect_authorization_filter_parameters),
+     &_cgroup_inet6_connect_authorization_filter_parameters[0]},
 };
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
@@ -551,7 +611,13 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static voi
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_set_redirect_context,
+    (void*)_ebpf_sock_addr_get_interface_type,
+    (void*)_ebpf_sock_addr_get_tunnel_type,
+    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
+    (void*)_ebpf_sock_addr_get_sub_interface_index,
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -650,7 +716,9 @@ _net_ebpf_ext_is_cgroup_connect_attach_type(_In_ const ebpf_attach_type_t* attac
 {
     return (
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
-        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0);
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0);
 }
 
 //
@@ -724,7 +792,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     // filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
         local_filter_context->base.wfp_engine_handle,
-        filter_parameters_array->count, // filter_count
+        filter_parameters_array->count, // Filter count.
         filter_parameters_array->filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
@@ -1349,7 +1417,7 @@ _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(net_ebpf_ext
 }
 
 const wfp_ale_layer_fields_t wfp_connection_fields[] = {
-    // EBPF_HOOK_ALE_AUTH_CONNECT_V4
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V4.
     {FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_REMOTE_ADDRESS,
@@ -1359,9 +1427,13 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_CONNECT_V4_ALE_USER_ID,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V4_FLAGS},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_FLAGS,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_TUNNEL_TYPE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_IP_NEXTHOP_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V4_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_AUTH_CONNECT_V6
+    // EBPF_HOOK_ALE_AUTH_CONNECT_V6.
     {FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_REMOTE_ADDRESS,
@@ -1371,9 +1443,13 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_CONNECT_V6_ALE_USER_ID,
-     FWPS_FIELD_ALE_AUTH_CONNECT_V6_FLAGS},
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_FLAGS,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_TUNNEL_TYPE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_IP_NEXTHOP_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_CONNECT_V6_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V4.
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_IP_REMOTE_ADDRESS,
@@ -1383,9 +1459,13 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_COMPARTMENT_ID,
      0, // No interface luid in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_ALE_USER_ID,
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V4_FLAGS,
+     0,  // No interface type in this layer.
+     0,  // No tunnel type in this layer.
+     0,  // No next-hop interface in this layer.
+     0}, // No sub-interface index in this layer.
 
-    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6
+    // EBPF_HOOK_ALE_CONNECT_REDIRECT_V6.
     {FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_IP_REMOTE_ADDRESS,
@@ -1395,9 +1475,13 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_COMPARTMENT_ID,
      0, // No interface luid in this layer.
      FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_ALE_USER_ID,
-     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_FLAGS},
+     FWPS_FIELD_ALE_CONNECT_REDIRECT_V6_FLAGS,
+     0,  // No interface type in this layer.
+     0,  // No tunnel type in this layer.
+     0,  // No next-hop interface in this layer.
+     0}, // No sub-interface index in this layer.
 
-    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4.
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_REMOTE_ADDRESS,
@@ -1407,9 +1491,13 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_ALE_USER_ID,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS},
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_FLAGS,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_TUNNEL_TYPE,
+     0, // No next-hop interface for recv_accept.
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V4_SUB_INTERFACE_INDEX},
 
-    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6
+    // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6.
     {FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_PORT,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_REMOTE_ADDRESS,
@@ -1419,7 +1507,11 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_ALE_USER_ID,
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_FLAGS,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_TUNNEL_TYPE,
+     0, // No next-hop interface for recv_accept.
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX}};
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -1431,6 +1523,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
     net_ebpf_extension_sock_addr_connection_direction_t direction =
         _net_ebpf_extension_sock_addr_get_connection_direction_from_hook_id(hook_id);
+
+    // Verify hook_id is within the valid range for the wfp_connection_fields array.
+    ASSERT(hook_id >= EBPF_HOOK_ALE_AUTH_CONNECT_V4 && hook_id <= EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6);
+
     const wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
 
     uint16_t source_ip_address_field =
@@ -1494,6 +1590,32 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
     // Store the FLAGS field.
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
+
+    // Copy additional network layer properties (available for AUTH_CONNECT and AUTH_RECV_ACCEPT layers).
+    if (fields->interface_type_field != 0) {
+        sock_addr_ctx->interface_type = incoming_values[fields->interface_type_field].value.uint32;
+    } else {
+        sock_addr_ctx->interface_type = (uint32_t)-1;
+    }
+
+    if (fields->tunnel_type_field != 0) {
+        sock_addr_ctx->tunnel_type = incoming_values[fields->tunnel_type_field].value.uint32;
+    } else {
+        sock_addr_ctx->tunnel_type = (uint32_t)-1;
+    }
+
+    // Next hop can be NULL.
+    if ((fields->next_hop_interface_field != 0) && (incoming_values[fields->next_hop_interface_field].value.uint64)) {
+        sock_addr_ctx->next_hop_interface_luid = *incoming_values[fields->next_hop_interface_field].value.uint64;
+    } else {
+        sock_addr_ctx->next_hop_interface_luid = (uint64_t)-1;
+    }
+
+    if (fields->sub_interface_index_field != 0) {
+        sock_addr_ctx->sub_interface_index = incoming_values[fields->sub_interface_index_field].value.uint32;
+    } else {
+        sock_addr_ctx->sub_interface_index = (uint32_t)-1;
+    }
 }
 
 static void
@@ -1515,7 +1637,7 @@ _get_verdict_priority(uint32_t verdict)
 {
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_REJECT:
-        return 3; // Highest priority
+        return 3; // Highest priority.
     case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
         return 2;
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
@@ -1537,6 +1659,10 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     bpf_sock_addr_t local_context = *sock_addr_ctx;
     bool redirected = FALSE;
     bool address_changed = FALSE;
+
+    // original_context must be set by the caller before invoking programs.
+    // It points to a caller's stack variable and is only valid during synchronous program invocation.
+    ASSERT(original_context != NULL);
 
     _net_ebpf_ext_sock_addr_redirected(original_context, &local_context, &redirected, &address_changed);
     context->redirected = redirected;
@@ -1674,6 +1800,20 @@ Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }
 
+static bool
+_net_ebpf_extension_sock_addr_is_auth_connect_program(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+{
+    // hook_client->client_module_id contains the attach type GUID.
+    return (memcmp(
+                &hook_client->attach_type,
+                &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+                sizeof(ebpf_attach_type_t)) == 0) ||
+           (memcmp(
+                &hook_client->attach_type,
+                &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+                sizeof(ebpf_attach_type_t)) == 0);
+}
+
 /*
  * Default action is BLOCK. If this callout is being invoked, it means at least one
  * eBPF program is attached. Hence no connection should be allowed unless allowed by
@@ -1695,6 +1835,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    ebpf_result_t program_result;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
@@ -1743,11 +1884,43 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         goto Exit;
     }
 
+    // First, try to find and use existing connection context from redirect layer.
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
+    // AUTH_CONNECT programs are only invoked for PROCEED_SOFT verdicts because:
+    // - PROCEED_HARD indicates the redirect layer already made a definitive authorization
+    //   decision and no further checks are needed (optimization to skip AUTH layer).
+    // - REJECT verdicts are already final and don't need additional authorization.
+    // - PROCEED_SOFT indicates the connection should proceed but may benefit from
+    //   additional authorization checks at the AUTH layer with full network context.
+    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
+        // Note: sock_addr_ctx_original is a stack-local variable. The pointer stored in
+        // net_ebpf_sock_addr_ctx.original_context is only valid during the synchronous
+        // program invocation below and must not be stored or used after this scope.
+        bpf_sock_addr_t sock_addr_ctx_original;
+        memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+        net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
+
+        program_result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+            sock_addr_ctx, &filter_context->base, &verdict, _net_ebpf_extension_sock_addr_is_auth_connect_program);
+        if (program_result == EBPF_OBJECT_NOT_FOUND) {
+            // No eBPF program is attached to this filter, leave the verdict as is.
+        } else if (program_result != EBPF_SUCCESS) {
+            // We failed to invoke at least one program in the chain, block the request.
+            verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
+    } else {
+        // Attach point not invoked due to prior verdict.
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "AUTH_CONNECT attach point skipped due to prior verdict",
+            verdict);
+    }
+
 Exit:
-    // Set action type based on verdict
+    // Set action type based on verdict.
     // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
     switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
@@ -1764,7 +1937,7 @@ Exit:
     }
 
     _net_ebpf_ext_log_sock_addr_classify(
-        "auth_classify",
+        "auth_connect_classify",
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx,
         NULL,
@@ -1992,6 +2165,15 @@ _cache_connection_context_verdict(
     }
 }
 
+static bool
+_net_ebpf_extension_sock_addr_is_connect_program(_In_ const net_ebpf_extension_hook_client_t* hook_client)
+{
+    // hook_client->client_module_id contains the attach type GUID.
+    return (memcmp(&hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(ebpf_attach_type_t)) ==
+            0) ||
+           (memcmp(&hook_client->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(ebpf_attach_type_t)) == 0);
+}
+
 /*
  * For every eBPF sock_addr program attached to INET_CONNECT attach point (for a given compartment), a WFP filter
  * is added to the WFP CONNECT_REDIRECT (with the compartment Id as filter condition). So, this classify callback
@@ -2153,13 +2335,16 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         _convert_ipv4_mapped_to_ipv4(sock_addr_ctx);
     }
 
+    // Note: sock_addr_ctx_original is a stack-local variable. The pointer stored in
+    // net_ebpf_sock_addr_ctx.original_context is only valid during the synchronous
+    // program invocation below and must not be stored or used after this scope.
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
     net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
     // This parameter is not used. Verdict in net_ebpf_sock_addr_ctx is used instead as long as it's valid.
     uint32_t ignored_verdict;
-    result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(
-        sock_addr_ctx, &filter_context->base, &ignored_verdict);
+    result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+        sock_addr_ctx, &filter_context->base, &ignored_verdict, _net_ebpf_extension_sock_addr_is_connect_program);
 
     if (net_ebpf_sock_addr_ctx.verdict >= 0) {
         verdict = net_ebpf_sock_addr_ctx.verdict;
