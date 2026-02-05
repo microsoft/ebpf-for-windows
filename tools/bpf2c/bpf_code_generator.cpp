@@ -1700,12 +1700,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     // Emit C file.
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
-    output_stream << "static void" << std::endl
-                  << "_get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
-                  << std::endl;
-    output_stream << "{" << std::endl;
+    // Emit hash data in its own section.
     if (elf_file_hash.has_value()) {
-        output_stream << INDENT "const uint8_t hash_buffer[] = {" << std::endl;
+        output_stream << "#pragma const_seg(push, \"hash\")" << std::endl;
+        output_stream << "const uint8_t _elf_hash[] = {" << std::endl;
         for (size_t i = 0; i < elf_file_hash.value().size(); i++) {
             if (i % 16 == 0) {
                 output_stream << INDENT "";
@@ -1715,9 +1713,19 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 output_stream << std::endl;
             }
         }
-        output_stream << INDENT "};" << std::endl;
-        output_stream << INDENT "*hash = hash_buffer;" << std::endl;
-        output_stream << INDENT "*size = sizeof(hash_buffer);" << std::endl;
+        output_stream << "};" << std::endl;
+        output_stream << "#pragma const_seg(pop)" << std::endl;
+        output_stream << "#pragma comment(linker, \"/INCLUDE:_elf_hash\")" << std::endl;
+        output_stream << std::endl;
+    }
+
+    output_stream << "static void" << std::endl
+                  << "_get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ size_t* size)"
+                  << std::endl;
+    output_stream << "{" << std::endl;
+    if (elf_file_hash.has_value()) {
+        output_stream << INDENT "*hash = _elf_hash;" << std::endl;
+        output_stream << INDENT "*size = sizeof(_elf_hash);" << std::endl;
     } else {
         output_stream << INDENT "*hash = NULL;" << std::endl;
         output_stream << INDENT "*size = 0;" << std::endl;
