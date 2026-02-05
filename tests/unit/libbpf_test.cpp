@@ -1323,7 +1323,6 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
 }
 
 // Test helper for perf buffer callback.
-// FIXME: this is WIP and doesn't actually test all functionality yet.
 struct perf_buffer_test_callback_context
 {
     std::vector<std::tuple<int, std::vector<uint8_t>>> received_records; // (cpu, data)

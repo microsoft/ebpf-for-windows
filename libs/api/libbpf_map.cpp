@@ -1007,6 +1007,7 @@ perf_buffer__free(struct perf_buffer* pb)
 
     // Clean up sync mappings.
     for (auto& map_info : pb->sync_maps) {
+        (void)ebpf_map_set_wait_handle(map_info.map_fd, 0, ebpf_handle_invalid);
         (void)_ebpf_ring_buffer_map_unmap_buffer_with_index(
             map_info.map_fd, map_info.cpu_id, map_info.consumer_page, map_info.producer_page, map_info.data);
     }
