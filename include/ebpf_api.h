@@ -740,7 +740,7 @@ extern "C"
     typedef struct _ebpf_perf_event_array_producer_page
     {
         volatile uint64_t producer_offset; ///< Producer(s) have reserved up to this offset.
-        uint64_t pad[7];                   ///< Padding to 64 bytes (cache line).
+        uint64_t pad[7];                   ///< Padding to 64 bytes (to place lost_records in next cache line).
         volatile uint64_t lost_records;    ///< Number of lost records.
     } ebpf_perf_event_array_producer_page_t;
 
