@@ -126,6 +126,10 @@ prepare_ubpf_vm(const std::vector<ebpf_inst> instructions)
     auto vm = ubpf_create();
     char* error = nullptr;
     REQUIRE(vm != nullptr);
+
+    // Disable read-only bytecode feature as it uses mmap which is not implemented in the Windows shim.
+    ubpf_toggle_readonly_bytecode(vm, false);
+
     for (auto& [key, value] : helper_functions) {
         REQUIRE(ubpf_register(vm, key, "unnamed", value) == 0);
     }
@@ -229,39 +233,41 @@ run_bpf_code_generator_test(const std::string& data_file)
     REQUIRE(system(test_command.c_str()) == 0);
 }
 
-#define DECLARE_NATIVE_TEST(FILE)                                                                       \
-    TEST_CASE(FILE "_native", "[bpf_code_generator]")                                                   \
-    {                                                                                                   \
-        run_bpf_code_generator_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR \
-                                    "tests" SEPARATOR "" FILE ".data");                                 \
-    }
+// Path to ubpf tests directory (tests that remain in ubpf/tests/)
+#define UBPF_TEST_PATH ".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR
+
+// Path to bpf_conformance tests directory (tests moved to ubpf/external/bpf_conformance/tests/)
+#define CONFORMANCE_TEST_PATH                                                                \
+    ".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "external" SEPARATOR \
+    "bpf_conformance" SEPARATOR "tests" SEPARATOR
+
+#define DECLARE_NATIVE_TEST_PATH(FILE, PATH) \
+    TEST_CASE(FILE "_native", "[bpf_code_generator]") { run_bpf_code_generator_test(PATH "" FILE ".data"); }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-#define DECLARE_JIT_TEST(FILE)                                                                                  \
-    TEST_CASE(FILE "_jit", "[ubpf_jit]")                                                                        \
-    {                                                                                                           \
-        run_ubpf_jit_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR \
-                          "" FILE ".data");                                                                     \
-    }
+#define DECLARE_JIT_TEST_PATH(FILE, PATH) \
+    TEST_CASE(FILE "_jit", "[ubpf_jit]") { run_ubpf_jit_test(PATH "" FILE ".data"); }
 #else
-#define DECLARE_JIT_TEST(FILE)
+#define DECLARE_JIT_TEST_PATH(FILE, PATH)
 #endif
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define DECLARE_INTERPRET_TEST(FILE)                                                                                  \
-    TEST_CASE(FILE "_interpret", "[ubpf_interpret]")                                                                  \
-    {                                                                                                                 \
-        run_ubpf_interpret_test(".." SEPARATOR ".." SEPARATOR "external" SEPARATOR "ubpf" SEPARATOR "tests" SEPARATOR \
-                                "" FILE ".data");                                                                     \
-    }
+#define DECLARE_INTERPRET_TEST_PATH(FILE, PATH) \
+    TEST_CASE(FILE "_interpret", "[ubpf_interpret]") { run_ubpf_interpret_test(PATH "" FILE ".data"); }
 #else
-#define DECLARE_INTERPRET_TEST(FILE)
+#define DECLARE_INTERPRET_TEST_PATH(FILE, PATH)
 #endif
 
-#define DECLARE_TEST(FILE)    \
-    DECLARE_NATIVE_TEST(FILE) \
-    DECLARE_JIT_TEST(FILE)    \
-    DECLARE_INTERPRET_TEST(FILE)
+#define DECLARE_TEST_PATH(FILE, PATH)    \
+    DECLARE_NATIVE_TEST_PATH(FILE, PATH) \
+    DECLARE_JIT_TEST_PATH(FILE, PATH)    \
+    DECLARE_INTERPRET_TEST_PATH(FILE, PATH)
+
+// Tests in external/ubpf/tests/
+#define DECLARE_UBPF_TEST(FILE) DECLARE_TEST_PATH(FILE, UBPF_TEST_PATH)
+
+// Tests in external/ubpf/external/bpf_conformance/tests/
+#define DECLARE_TEST(FILE) DECLARE_TEST_PATH(FILE, CONFORMANCE_TEST_PATH)
 
 // Tests are dependent on the collateral from the https://github.com/iovisor/ubpf project.
 // Most uBPF tests are declared as a block of assembly, an expected result and a block of memory
@@ -285,30 +291,31 @@ DECLARE_TEST("alu64-arith")
 DECLARE_TEST("alu64-bit")
 // Test doesn't declare expected result.
 // DECLARE_TEST("alu64")
-DECLARE_TEST("arsh-reg")
-DECLARE_TEST("arsh")
-DECLARE_TEST("arsh32-high-shift")
-DECLARE_TEST("arsh64")
+DECLARE_UBPF_TEST("arsh-reg")
+DECLARE_UBPF_TEST("arsh")
+DECLARE_UBPF_TEST("arsh32-high-shift")
+DECLARE_UBPF_TEST("arsh64")
 DECLARE_TEST("be16-high")
 DECLARE_TEST("be16")
 DECLARE_TEST("be32-high")
 DECLARE_TEST("be32")
 DECLARE_TEST("be64")
-DECLARE_TEST("call-memfrob")
-DECLARE_TEST("call-save")
-DECLARE_TEST("call")
-DECLARE_TEST("call_unwind")
+// Test removed in ubpf update (consolidated with bpf_conformance).
+// DECLARE_TEST("call-memfrob")
+// DECLARE_TEST("call-save")
+// DECLARE_TEST("call")
+// DECLARE_TEST("call_unwind")
 DECLARE_TEST("call_unwind_fail")
 DECLARE_TEST("div32-high-divisor")
 DECLARE_TEST("div32-imm")
 DECLARE_TEST("div32-reg")
 DECLARE_TEST("div64-imm")
 DECLARE_TEST("div64-reg")
-DECLARE_TEST("div-by-zero-imm")
-DECLARE_TEST("div-by-zero-reg")
+DECLARE_UBPF_TEST("div-by-zero-imm")
+DECLARE_UBPF_TEST("div-by-zero-reg")
 DECLARE_TEST("div64-by-zero-reg")
-DECLARE_TEST("div64-by-zero-imm")
-DECLARE_TEST("early-exit")
+DECLARE_UBPF_TEST("div64-by-zero-imm")
+DECLARE_UBPF_TEST("early-exit")
 // Malformed byte code tests - Verifier rejects prior to bpf2c.
 // DECLARE_TEST("err-call-bad-imm")
 // DECLARE_TEST("err-call-unreg")
@@ -325,7 +332,8 @@ DECLARE_TEST("early-exit")
 // DECLARE_TEST("err-unknown-opcode")
 DECLARE_TEST("exit-not-last")
 DECLARE_TEST("exit")
-DECLARE_TEST("ja")
+// Test removed in ubpf update (consolidated with bpf_conformance).
+// DECLARE_TEST("ja")
 DECLARE_TEST("jeq-imm")
 DECLARE_TEST("jeq-reg")
 DECLARE_TEST("jge-imm")
@@ -365,18 +373,19 @@ DECLARE_TEST("ldxw")
 DECLARE_TEST("le16")
 DECLARE_TEST("le32")
 DECLARE_TEST("le64")
-DECLARE_TEST("lsh-reg")
+// Test removed in ubpf update (consolidated with bpf_conformance).
+// DECLARE_TEST("lsh-reg")
 // bpf2c generated code doesn't pass length as r2.
 // DECLARE_TEST("mem-len")
 DECLARE_TEST("mod")
 DECLARE_TEST("mod32")
 DECLARE_TEST("mod64")
-DECLARE_TEST("mod-by-zero-imm")
+DECLARE_UBPF_TEST("mod-by-zero-imm")
 DECLARE_TEST("mod-by-zero-reg")
-DECLARE_TEST("mod64-by-zero-imm")
+DECLARE_UBPF_TEST("mod64-by-zero-imm")
 DECLARE_TEST("mod64-by-zero-reg")
 DECLARE_TEST("mov")
-DECLARE_TEST("mul-loop")
+DECLARE_UBPF_TEST("mul-loop")
 DECLARE_TEST("mul32-imm")
 DECLARE_TEST("mul32-reg-overflow")
 DECLARE_TEST("mul32-reg")
@@ -387,16 +396,17 @@ DECLARE_TEST("neg64")
 DECLARE_TEST("prime")
 // Test doesn't support reload directive.
 // DECLARE_TEST("reload")
-DECLARE_TEST("rsh-reg")
-DECLARE_TEST("rsh32")
+DECLARE_UBPF_TEST("rsh-reg")
+// Test removed in ubpf update (consolidated with bpf_conformance).
+// DECLARE_TEST("rsh32")
 // Test doesn't declare expected result.
 // DECLARE_TEST("st")
 DECLARE_TEST("stack")
-DECLARE_TEST("stack2")
+DECLARE_UBPF_TEST("stack2")
 DECLARE_TEST("stb")
 DECLARE_TEST("stdw")
 DECLARE_TEST("sth")
-DECLARE_TEST("string-stack")
+DECLARE_UBPF_TEST("string-stack")
 DECLARE_TEST("stw")
 // Test doesn't declare expected result.
 // DECLARE_TEST("stx")
