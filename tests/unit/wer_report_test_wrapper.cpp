@@ -167,6 +167,10 @@ TEST_CASE("wer_report_fatal_exception", "[wer_report]")
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
 
+    WerReportCreate_test_expected_event_type = L"Test Application Crash";
+    WerReportCreate_test_expected_report_type = WerReportApplicationCrash;
+    WerReportAddDump_test_expected_exception_param = true;
+
     // Invoke the registered vectored exception handler.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(WerReportCreate_test_called);
@@ -188,6 +192,10 @@ TEST_CASE("wer_report_non_fatal_exception", "[wer_report]")
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
 
+    WerReportCreate_test_expected_event_type = L"Test Application Crash";
+    WerReportCreate_test_expected_report_type = WerReportApplicationCrash;
+    WerReportAddDump_test_expected_exception_param = true;
+
     // Invoke the registered vectored exception handler.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(!WerReportCreate_test_called);
@@ -208,6 +216,10 @@ TEST_CASE("wer_report_failure", "[wer_report]")
     WerReportCreate_test_called = false;
     WerReportAddDump_test_called = false;
     WerReportSubmit_test_called = false;
+
+    WerReportCreate_test_expected_event_type = L"Test Application Crash";
+    WerReportCreate_test_expected_report_type = WerReportApplicationCrash;
+    WerReportAddDump_test_expected_exception_param = true;
 
     // Fail WerReportCreate.
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
