@@ -1237,8 +1237,8 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
-        total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_addresses = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1260,7 +1260,8 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_ids =
+            (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1377,6 +1378,9 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
     // memory out of bounds. Currently this is flagging valid access checks and
     // failing.
     ubpf_toggle_bounds_check(program->code_or_vm.vm, false);
+
+    // Disable read-only bytecode feature as it uses mmap which is not available in kernel mode.
+    ubpf_toggle_readonly_bytecode(program->code_or_vm.vm, false);
 
     ubpf_set_error_print(program->code_or_vm.vm, ebpf_log_function);
 
