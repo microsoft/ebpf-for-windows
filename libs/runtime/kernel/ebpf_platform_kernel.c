@@ -8,6 +8,85 @@
 extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
+ebpf_result_t
+ntstatus_to_ebpf_result(NTSTATUS status)
+{
+    switch (status) {
+    case STATUS_SUCCESS:
+        return EBPF_SUCCESS;
+    case STATUS_VERIFIER_STOP:
+        return EBPF_VERIFICATION_FAILED;
+    case STATUS_NONE_MAPPED:
+        return EBPF_JIT_COMPILATION_FAILED;
+    case STATUS_GENERIC_COMMAND_FAILED:
+        return EBPF_PROGRAM_LOAD_FAILED;
+    case STATUS_INVALID_HANDLE:
+        return EBPF_INVALID_FD;
+    case STATUS_INVALID_DEVICE_REQUEST:
+        return EBPF_INVALID_OBJECT;
+    case STATUS_INVALID_PARAMETER:
+        return EBPF_INVALID_ARGUMENT;
+    case STATUS_OBJECT_PATH_NOT_FOUND:
+        return EBPF_OBJECT_NOT_FOUND;
+    case STATUS_OBJECTID_EXISTS:
+        return EBPF_OBJECT_ALREADY_EXISTS;
+    case STATUS_NO_SUCH_FILE:
+        return EBPF_FILE_NOT_FOUND;
+    case STATUS_OBJECT_NAME_EXISTS:
+        return EBPF_ALREADY_PINNED;
+    case STATUS_RESOURCE_NOT_OWNED:
+        return EBPF_NOT_PINNED;
+    case STATUS_NO_MEMORY:
+        return EBPF_NO_MEMORY;
+    case STATUS_TOO_MANY_COMMANDS:
+        return EBPF_PROGRAM_TOO_LARGE;
+    case RPC_NT_CALL_FAILED:
+        return EBPF_RPC_EXCEPTION;
+    case STATUS_ALREADY_INITIALIZED:
+        return EBPF_ALREADY_INITIALIZED;
+    case STATUS_INVALID_IMAGE_FORMAT:
+        return EBPF_ELF_PARSING_FAILED;
+    case STATUS_UNSUCCESSFUL:
+        return EBPF_FAILED;
+    case STATUS_NOT_SUPPORTED:
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    case STATUS_NOT_FOUND:
+        return EBPF_KEY_NOT_FOUND;
+    case STATUS_ACCESS_DENIED:
+        return EBPF_ACCESS_DENIED;
+    case STATUS_CONTENT_BLOCKED:
+        return EBPF_BLOCKED_BY_POLICY;
+    case STATUS_INTEGER_OVERFLOW:
+        return EBPF_ARITHMETIC_OVERFLOW;
+    case STATUS_DRIVER_UNABLE_TO_LOAD:
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    case STATUS_BUFFER_OVERFLOW:
+        return EBPF_INSUFFICIENT_BUFFER;
+    case STATUS_NO_MORE_MATCHES:
+        return EBPF_NO_MORE_KEYS;
+    case STATUS_ALREADY_REGISTERED:
+        return EBPF_KEY_ALREADY_EXISTS;
+    case STATUS_TOO_MANY_NODES:
+        return EBPF_NO_MORE_TAIL_CALLS;
+    case STATUS_PENDING:
+        return EBPF_PENDING;
+    case STATUS_INSUFFICIENT_RESOURCES:
+        return EBPF_OUT_OF_SPACE;
+    case STATUS_CANCELLED:
+        return EBPF_CANCELED;
+    case STATUS_ACCESS_VIOLATION:
+        return EBPF_INVALID_POINTER;
+    case STATUS_TIMEOUT:
+        return EBPF_TIMEOUT;
+    case STATUS_INVALID_DEVICE_STATE:
+        return EBPF_STALE_ID;
+    case STATUS_INVALID_STATE_TRANSITION:
+        return EBPF_INVALID_STATE;
+    default:
+        return EBPF_FAILED;
+    }
+}
+
 struct _ebpf_ring_descriptor
 {
     MDL* kernel_mdl;
