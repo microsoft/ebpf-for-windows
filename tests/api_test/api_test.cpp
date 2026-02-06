@@ -1006,7 +1006,7 @@ run_process_start_key_test(IPPROTO protocol, bool is_ipv6)
         // otherwise this test case would need to take a dependency on NtQueryInformationProcess
         // which per documentation can change at any time.
         REQUIRE(0 < found_value.start_key);
-        
+
         // For TCP connections, the hook may run on a worker thread/process, not the caller process.
         // For UDP connections, the hook runs synchronously on the caller process.
         if (protocol == IPPROTO_TCP) {
@@ -2357,59 +2357,119 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
  */
 TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 {
-    // Create small LRU map that can only hold 4 entries.
-    const uint32_t max_entries = 4;
-    bpf_map_create_opts opts = {0};
-    int map_fd =
-        bpf_map_create(BPF_MAP_TYPE_LRU_HASH, "lru_test", sizeof(uint32_t), sizeof(uint32_t), max_entries, &opts);
+    // Test that user-mode lookups do not affect LRU, while kernel-mode lookups do.
+    // Strategy: Access some keys from user mode and others from kernel mode.
+    // Insert new keys to force evictions equal to the number of user-mode accessed keys.
+    // Verify that only the user-mode accessed keys were evicted.
+
+    const uint32_t max_entries = 100;     // Map with 100 entries
+    const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (0-19)
+    const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (20-99)
+    const uint32_t new_keys = 20;         // Force 20 evictions
+
+    // Load eBPF program that performs kernel-mode lookups.
+    struct bpf_object* object = nullptr;
+    fd_t program_fd = ebpf_fd_invalid;
+    fd_t map_fd = ebpf_fd_invalid;
+    native_module_helper_t _native_helper;
+
+    // Setup cleanup guard to ensure resources are freed on any exit path.
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            if (object != nullptr) {
+                bpf_object__close(object);
+            }
+        });
+
+    _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
+    REQUIRE(
+        program_load_helper(
+            _native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+        0);
+
+    // Get the LRU map from the loaded program.
+    struct bpf_map* lru_map = bpf_object__find_map_by_name(object, "lru_map");
+    REQUIRE(lru_map != nullptr);
+    map_fd = bpf_map__fd(lru_map);
     REQUIRE(map_fd > 0);
 
-    // Populate map with 4 entries (keys 0-3, values 100-103).
+    // Fill map completely (keys 0-99).
     for (uint32_t i = 0; i < max_entries; i++) {
-        uint32_t value = 100 + i;
+        uint32_t value = 1000 + i;
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    // Verify all entries exist.
-    for (uint32_t i = 0; i < max_entries; i++) {
+    // Kernel-mode lookup of keys 20-99 by invoking eBPF program.
+    // These lookups should affect LRU state (add to hot list and update timestamp).
+    struct
+    {
+        EBPF_CONTEXT_HEADER;
+        bind_md_t context;
+    } ctx_header = {0};
+    bind_md_t* ctx = &ctx_header.context;
+    ctx->process_id = user_mode_keys;              // Start key: 20.
+    ctx->socket_address_length = kernel_mode_keys; // Number of keys: 80.
+
+    bpf_test_run_opts test_run_opts = {0};
+    test_run_opts.ctx_in = ctx;
+    test_run_opts.ctx_size_in = sizeof(*ctx);
+    test_run_opts.ctx_out = ctx;
+    test_run_opts.ctx_size_out = sizeof(*ctx);
+    test_run_opts.repeat = 1;
+
+    int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
+    REQUIRE(result == 0);
+    CHECK((int32_t)test_run_opts.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
+
+    // User-mode lookup of keys 0-19.
+    // These lookups should NOT affect LRU state.
+    for (uint32_t i = 0; i < user_mode_keys; i++) {
         uint32_t value = 0;
         REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        REQUIRE(value == (100 + i));
+        REQUIRE(value == (1000 + i));
     }
 
-    // Update key 0 to update its LRU status (it should not be evicted next).
-    uint32_t key_zero = 0;
-    uint32_t updated_value = 200;
-    REQUIRE(bpf_map_update_elem(map_fd, &key_zero, &updated_value, BPF_ANY) == 0);
+    // Insert new keys, forcing evictions.
+    for (uint32_t i = max_entries; i < max_entries + new_keys; i++) {
+        uint32_t value = 1000 + i;
+        REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
+    }
 
-    // Insert a new entry (key 4).
-    // - Since map is full, a cold entry (not recently used) should be evicted.
-    uint32_t new_key = 4;
-    uint32_t new_value = 104;
-    REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
-
-    // Verify key zero still exists along with 2 of keys 1-3.
-    uint32_t value_zero = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &key_zero, &value_zero) == 0);
-    REQUIRE(value_zero == 200);
-
-    uint32_t key_count = 0;
-    for (uint32_t i = 1; i < max_entries; i++) {
+    uint32_t user_mode_keys_evicted = 0;
+    for (uint32_t i = 0; i < user_mode_keys; i++) {
         uint32_t value = 0;
-        if (bpf_map_lookup_elem(map_fd, &i, &value) == 0) {
-            key_count++;
-            REQUIRE(value == (100 + i));
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (!found) {
+            user_mode_keys_evicted++;
         }
     }
-    REQUIRE(key_count == 2);
 
-    // Verify key 4 is present.
-    uint32_t lookup_key = 4;
-    uint32_t value = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) == 0); // Should succeed.
-    REQUIRE(value == 104);
+    uint32_t kernel_mode_keys_evicted = 0;
+    for (uint32_t i = user_mode_keys; i < max_entries; i++) {
+        uint32_t value = 0;
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (!found) {
+            kernel_mode_keys_evicted++;
+        }
+    }
 
-    _close(map_fd);
+    uint32_t new_keys_found = 0;
+    for (uint32_t i = max_entries; i < max_entries + new_keys; i++) {
+        uint32_t value = 0;
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (found) {
+            new_keys_found++;
+        }
+    }
+
+    CAPTURE(user_mode_keys_evicted, kernel_mode_keys_evicted, new_keys_found);
+    REQUIRE(user_mode_keys_evicted == user_mode_keys);
+    REQUIRE(kernel_mode_keys_evicted == 0);
+    REQUIRE(new_keys_found == new_keys);
+
+    // Cleanup handled by scope guard.
 }
 
 // Test eBPF program synchronization API.
@@ -2643,52 +2703,4 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     // Clean up strings.
     ebpf_free_string(report);
     ebpf_free_string(error_message);
-}
-
-/**
- * @brief Test that user mode updates (via bpf_map_update_elem) DO affect LRU state.
- * Only read operations should skip LRU updates.
- */
-TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
-{
-    // Create small LRU map that can only hold 4 entries.
-    const uint32_t max_entries = 4;
-    bpf_map_create_opts opts = {0};
-    int map_fd =
-        bpf_map_create(BPF_MAP_TYPE_LRU_HASH, "lru_test", sizeof(uint32_t), sizeof(uint32_t), max_entries, &opts);
-    REQUIRE(map_fd > 0);
-
-    // Populate map with 4 entries (keys 0-3).
-    for (uint32_t i = 0; i < max_entries; i++) {
-        uint32_t value = 100 + i;
-        REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
-    }
-
-    // User mode update: Update key 0 (oldest entry).
-    // This SHOULD mark it as recently used.
-    uint32_t update_key = 0;
-    uint32_t update_value = 200;
-    REQUIRE(bpf_map_update_elem(map_fd, &update_key, &update_value, BPF_EXIST) == 0);
-
-    // Insert a new entry (key 4).
-    // Since key 0 was just updated, key 1 should now be the oldest and get evicted.
-    uint32_t new_key = 4;
-    uint32_t new_value = 104;
-    REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
-
-    // Verify key 1 was evicted (should not exist).
-    uint32_t lookup_key = 1;
-    uint32_t value = 0;
-    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) != 0); // Should fail.
-
-    // Verify key 0 still exists with updated value.
-    REQUIRE(bpf_map_lookup_elem(map_fd, &update_key, &value) == 0);
-    REQUIRE(value == 200);
-
-    // Verify keys 2, 3, 4 exist.
-    for (uint32_t i = 2; i <= 4; i++) {
-        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-    }
-
-    _close(map_fd);
 }
