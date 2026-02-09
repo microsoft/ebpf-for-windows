@@ -119,7 +119,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\shim;$(SolutionDir)include\kernel;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\sys;$(SolutionDir)resource</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\shim;$(SolutionDir)include\kernel;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\sys;$(SolutionDir)resource;$(SolutionDir)external\ebpf-extension-common;$(SolutionDir)external\ebpf-extension-common\include</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </ClCompile>
     <Midl>
@@ -167,6 +167,11 @@
   </ItemGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\external\ebpf-extension-common\sys\ebpf_extension_common_km.vcxproj">
+      <Project>{A9C1C11D-8B8E-4F3A-9D5C-6E7F8B9A0C1D}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h" />

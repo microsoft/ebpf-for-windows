@@ -7,6 +7,7 @@
  * Windows.
  */
 
+#include "ebpf_ext_common_test.h"
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_sock_addr.h"
 
@@ -1214,6 +1215,14 @@ net_ebpf_ext_sock_addr_register_providers()
     bool is_cgroup_connect_attach_type = false;
 
     NET_EBPF_EXT_LOG_ENTRY();
+
+    // Call the test function from ebpf-extension-common
+    int test_value = ebpf_ext_common_test_function();
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        "ebpf_ext_common_test_function returned",
+        test_value);
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_data};
