@@ -165,6 +165,19 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile $installerPath -UseBasicParsing
           Write-Host "Downloaded LLVM installer to $installerPath"
 
+      - name: Verify LLVM installer hash
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-18.1.8-win64.exe"
+          $expectedHash = "94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f"
+          $actualHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
+          Write-Host "Expected SHA256: $expectedHash"
+          Write-Host "Actual SHA256:   $actualHash"
+          if ($actualHash -ne $expectedHash) {
+            throw "LLVM installer hash mismatch! Expected $expectedHash but got $actualHash"
+          }
+          Write-Host "Hash verification passed"
+
       - name: Install LLVM 18.1.8
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
