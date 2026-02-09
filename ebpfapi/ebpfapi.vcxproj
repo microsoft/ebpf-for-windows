@@ -192,7 +192,7 @@
     <ProjectReference Include="..\external\ebpf-verifier\build\prevail.vcxproj">
       <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj">
+    <ProjectReference Include="..\external\ebpf-verifier\build\libbtf\libbtf\libbtf.vcxproj">
       <Project>{bc45d39c-f956-3951-bd46-44eae20ec7c9}</Project>
     </ProjectReference>
     <ProjectReference Include="..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
