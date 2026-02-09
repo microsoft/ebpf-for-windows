@@ -985,15 +985,6 @@ extern "C"
     void
     ebpf_close_file_mapping(_In_opt_ HANDLE file_handle, _In_opt_ HANDLE mapping_handle, _In_opt_ void* base_address);
 
-    /**
-     * @brief Map an NTSTATUS code to an ebpf_result_t.
-     *
-     * @param[in] status NTSTATUS to map.
-     * @return The ebpf_result_t code.
-     */
-    ebpf_result_t
-    ntstatus_to_ebpf_result(NTSTATUS status);
-
 #ifdef __cplusplus
 }
 #endif
