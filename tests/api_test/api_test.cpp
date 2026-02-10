@@ -2354,18 +2354,26 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
  * @brief Test that user mode reads (via bpf_map_lookup_elem) do not affect LRU state,
  * while kernel mode accesses (from eBPF programs) do affect LRU eviction order.
  * This ensures diagnostic tools can enumerate LRU maps without polluting the cache.
+ *
+ * Test steps:
+ * 1) Fill LRU map with 100 entries (keys 0-99).
+ * 2) Access keys 80-99 from kernel mode (via eBPF program) to force generation rollover.
+ * 3) Access keys 0-79 from kernel mode to add them to hotlist with new generation.
+ * 4) Access keys 80-99 from user mode (bpf_map_lookup_elem) - these should be found but should NOT affect LRU state.
+ * 5) Add 20 new entries (keys 100-119).
+ * 6) Scan keys 0-119 and validate only the user-mode accessed keys were evicted (80-99).
+ *
  */
 TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 {
-    // Test that user-mode lookups do not affect LRU, while kernel-mode lookups do.
-    // Strategy: Access some keys from user mode and others from kernel mode.
-    // Insert new keys to force evictions equal to the number of user-mode accessed keys.
-    // Verify that only the user-mode accessed keys were evicted.
-
     const uint32_t max_entries = 100;     // Map with 100 entries
     const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (0-79)
     const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (80-99)
     const uint32_t new_keys = 20;         // Force 20 evictions
+
+    const uint32_t first_kernel_mode_key = 0;                                      // 0
+    const uint32_t first_user_mode_key = first_kernel_mode_key + kernel_mode_keys; // 80
+    const uint32_t first_new_key = first_user_mode_key + user_mode_keys;           // 100
 
     // Load eBPF program that performs kernel-mode lookups.
     struct bpf_object* object = nullptr;
@@ -2401,16 +2409,16 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    // Kernel-mode lookup of keys 0-79 by invoking eBPF program.
-    // These lookups should affect LRU state (add to hot list and update timestamp).
+    // First, do kernel-mode access of keys 80-99 to add them to hot list and force generation rollover.
+    // - Without forcing the rollover, keys already in the hot list will not be updated.
     struct
     {
         EBPF_CONTEXT_HEADER;
         sample_program_context_t context;
     } ctx_header = {0};
     sample_program_context_t* ctx = &ctx_header.context;
-    ctx->uint32_data = 0;                          // Start key: 0.
-    ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
+    ctx->uint32_data = first_user_mode_key;      // Start key: 80.
+    ctx->uint16_data = (uint16_t)user_mode_keys; // Number of keys: 20.
 
     bpf_test_run_opts test_run_opts = {0};
     test_run_opts.ctx_in = ctx;
@@ -2421,46 +2429,74 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
     REQUIRE(result == 0);
-    CHECK((int32_t)test_run_opts.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
+    CHECK((int32_t)test_run_opts.retval == (int32_t)user_mode_keys);
+
+    // Now do kernel-mode lookup of keys 0-79.
+    // These lookups should affect LRU state (add to hot list with new generation).
+    ctx->uint32_data = first_kernel_mode_key;      // Start key: 0.
+    ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
+
+    bpf_test_run_opts test_run_opts2 = {0};
+    test_run_opts2.ctx_in = ctx;
+    test_run_opts2.ctx_size_in = sizeof(*ctx);
+    test_run_opts2.ctx_out = ctx;
+    test_run_opts2.ctx_size_out = sizeof(*ctx);
+    test_run_opts2.repeat = 1;
+
+    result = bpf_prog_test_run_opts(program_fd, &test_run_opts2);
+    REQUIRE(result == 0);
+    CHECK((int32_t)test_run_opts2.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
 
     // User-mode lookup of keys 80-99.
     // These lookups should NOT affect LRU state.
-    for (uint32_t i = kernel_mode_keys; i < max_entries; i++) {
+    for (uint32_t i = first_user_mode_key; i < first_user_mode_key + user_mode_keys; i++) {
         uint32_t value = 0;
+        CAPTURE(i);
         REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
         REQUIRE(value == (1000 + i));
     }
 
     // Insert new keys, forcing evictions.
-    for (uint32_t i = max_entries; i < max_entries + new_keys; i++) {
+    for (uint32_t i = first_new_key; i < first_new_key + new_keys; i++) {
         uint32_t value = 1000 + i;
+        CAPTURE(i);
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
     uint32_t kernel_mode_keys_evicted = 0;
-    for (uint32_t i = 0; i < kernel_mode_keys; i++) {
+    for (uint32_t i = first_kernel_mode_key; i < first_kernel_mode_key + kernel_mode_keys; i++) {
         uint32_t value = 0;
-        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        if (!found) {
+        result = bpf_map_lookup_elem(map_fd, &i, &value);
+        CAPTURE(i);
+        CHECK(result == 0);
+        if (result != 0) {
+            REQUIRE(result == -ENOENT);
             kernel_mode_keys_evicted++;
         }
     }
 
     uint32_t user_mode_keys_evicted = 0;
-    for (uint32_t i = kernel_mode_keys; i < max_entries; i++) {
+    for (uint32_t i = first_user_mode_key; i < first_user_mode_key + user_mode_keys; i++) {
         uint32_t value = 0;
-        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        if (!found) {
+        result = bpf_map_lookup_elem(map_fd, &i, &value);
+        CAPTURE(i);
+        CHECK(result != 0);
+        if (result != 0) {
+            REQUIRE(result == -ENOENT);
             user_mode_keys_evicted++;
         }
     }
 
     uint32_t new_keys_found = 0;
-    for (uint32_t i = max_entries; i < max_entries + new_keys; i++) {
+    for (uint32_t i = first_new_key; i < first_new_key + new_keys; i++) {
         uint32_t value = 0;
-        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        if (found) {
+        result = bpf_map_lookup_elem(map_fd, &i, &value);
+        CAPTURE(i);
+        CHECK(result == 0);
+        if (result == 0) {
             new_keys_found++;
+        } else {
+            REQUIRE(result == -ENOENT);
         }
     }
 

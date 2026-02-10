@@ -63,10 +63,24 @@ typedef struct _ebpf_core_object_map
  * of doubly-linked lists per partition. The hot list contains entries that have been accessed in the current
  * generation (where a generation is defined as a period of time during which max_entries /
  * (EBPF_LRU_GENERATION_COUNT*partition_count) elements have been accessed in the map), and the cold list contains
- * entries that have not been accessed in the current generation. When entries in the cold list are accessed, they are
- * moved to the hot list. When the hot list reaches max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into
- * the cold list, a new generation is started, and the hot list is cleared. When space is needed an entry is selected
- * from a cold list and is removed from the hash table.
+ * entries that have not been accessed in the current generation.
+ *
+ * LRU timestamp and generation updates:
+ * - New entries are initialized with the current generation and timestamp, and added to the hot list for the current
+ * partition.
+ * - Kernel-mode accesses (from eBPF programs, indicated by EBPF_MAP_FLAG_HELPER):
+ *   - If the entry is in the cold list: Update generation to current, update timestamp, move to hot list.
+ *   - If the entry is already in the hot list: No changes (generation and timestamp remain unchanged).
+ *   - If the entry is uninitialized in this partition: Initialize with current generation and timestamp, add to hot
+ * list.
+ * - User-mode accesses (from user-space applications, without EBPF_MAP_FLAG_HELPER):
+ *   - Do NOT update the entry's generation or timestamp.
+ *   - Do NOT move the entry between lists.
+ *   - This allows diagnostic tools to enumerate LRU maps without polluting the cache.
+ *
+ * When the hot list reaches max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list,
+ * a new generation is started, and the hot list is cleared. When space is needed, an entry is selected from the
+ * cold list and removed from the hash table.
  *
  * key history is stored along with the value in the map. The hash table then provides callbacks to the map to update
  * the key history when an entry is accessed, updated, or deleted.
