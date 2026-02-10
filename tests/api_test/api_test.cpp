@@ -2701,6 +2701,9 @@ TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
     int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
@@ -2735,6 +2738,9 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     printf("SUCCESS: Proof of verification passed for production-signed bindmonitor_signed.sys\n");
 
     bpf_object__close(object);
+
+    // Disable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(0) == EBPF_SUCCESS);
 }
 
 /**
@@ -2748,6 +2754,9 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
  */
 TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
 {
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
     int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
@@ -2765,4 +2774,7 @@ TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verificatio
     }
     
     REQUIRE(result != 0);
+
+    // Disable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(0) == EBPF_SUCCESS);
 }

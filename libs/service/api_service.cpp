@@ -34,7 +34,7 @@ extern "C"
 
 static bool _ebpf_service_test_signing_enabled = false;
 static bool _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
-static bool _ebpf_service_proof_of_verification_enabled = false;
+static uint32_t _ebpf_service_proof_of_verification_value = 0;
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
@@ -626,8 +626,8 @@ ebpf_verify_sys_file_signature(
     std::string required_subject(subject_name);
     std::set<std::string> required_eku_set;
 
-    if (_ebpf_service_test_signing_enabled && !_ebpf_service_proof_of_verification_enabled) {
-        // Test signing is enabled AND proof of verification is NOT enabled, so we don't verify the signature.
+    if (_ebpf_service_test_signing_enabled && _ebpf_service_proof_of_verification_value == 0) {
+        // Test signing is enabled AND proof of verification is not set, so we don't verify the signature.
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
@@ -840,7 +840,7 @@ _initialize_test_signing_state()
 {
     _ebpf_service_test_signing_enabled = false;
     _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
-    _ebpf_service_proof_of_verification_enabled = false;
+    _ebpf_service_proof_of_verification_value = 0;
 
     ebpf_operation_get_code_integrity_state_request_t request{
         sizeof(ebpf_operation_get_code_integrity_state_request_t),
@@ -873,7 +873,7 @@ _initialize_test_signing_state()
             EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
             &proof_of_verification_value);
         if (result == EBPF_SUCCESS) {
-            _ebpf_service_proof_of_verification_enabled = proof_of_verification_value;
+            _ebpf_service_proof_of_verification_value = proof_of_verification_value;
         }
         ebpf_close_registry_key(parameters_key);
     }
