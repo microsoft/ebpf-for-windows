@@ -5,7 +5,9 @@
 #include "api_service.h"
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
+#include "ebpf_registry_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_windows.h"
 #include "hash.h"
 #include "map_descriptors.hpp"
 #include "platform.h"
@@ -32,6 +34,7 @@ extern "C"
 
 static bool _ebpf_service_test_signing_enabled = false;
 static bool _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
+static bool _ebpf_service_proof_of_verification_enabled = false;
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
@@ -623,8 +626,8 @@ ebpf_verify_sys_file_signature(
     std::string required_subject(subject_name);
     std::set<std::string> required_eku_set;
 
-    if (_ebpf_service_test_signing_enabled) {
-        // Test signing is enabled, so we don't verify the signature.
+    if (_ebpf_service_test_signing_enabled && !_ebpf_service_proof_of_verification_enabled) {
+        // Test signing is enabled AND proof of verification is NOT enabled, so we don't verify the signature.
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
@@ -837,6 +840,7 @@ _initialize_test_signing_state()
 {
     _ebpf_service_test_signing_enabled = false;
     _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = false;
+    _ebpf_service_proof_of_verification_enabled = false;
 
     ebpf_operation_get_code_integrity_state_request_t request{
         sizeof(ebpf_operation_get_code_integrity_state_request_t),
@@ -854,6 +858,25 @@ _initialize_test_signing_state()
 
     _ebpf_service_test_signing_enabled = reply.test_signing_enabled;
     _ebpf_service_hypervisor_kernel_mode_code_enforcement_enabled = reply.hypervisor_code_integrity_enabled;
+
+    // Check registry for proof of verification setting
+    ebpf_store_key_t parameters_key = nullptr;
+    ebpf_result_t result = ebpf_open_registry_key(
+        ebpf_store_hklm_root_key,
+        EBPF_PARAMETERS_REGISTRY_PATH,
+        KEY_READ,
+        &parameters_key);
+    if (result == EBPF_SUCCESS) {
+        uint32_t proof_of_verification_value = 0;
+        result = ebpf_read_registry_value_dword(
+            parameters_key,
+            EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
+            &proof_of_verification_value);
+        if (result == EBPF_SUCCESS) {
+            _ebpf_service_proof_of_verification_enabled = proof_of_verification_value;
+        }
+        ebpf_close_registry_key(parameters_key);
+    }
 
     return EBPF_SUCCESS;
 }
