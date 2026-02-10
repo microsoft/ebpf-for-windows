@@ -6,7 +6,7 @@
 // kernel-mode lookups affect LRU state (unlike user-mode lookups).
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
 struct
 {
@@ -16,13 +16,13 @@ struct
     __uint(max_entries, 100);
 } lru_map SEC(".maps");
 
-SEC("bind")
+SEC("sample_ext")
 bind_action_t
-lru_lookup_program(bind_md_t* context)
+lru_lookup_program(sample_program_context_t* context)
 {
     // Look up keys in LRU map starting from context->process_id (start key).
-    uint32_t key = (uint32_t)context->process_id;
-    uint64_t num_keys = (uint64_t)context->socket_address_length;
+    uint32_t key = context->uint32_data;
+    uint64_t num_keys = (uint64_t)context->uint16_data;
     if (num_keys > 253) { // Limit for verification (254/255 hit loop count failure).
         return (bind_action_t)-1;
     }

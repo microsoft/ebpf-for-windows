@@ -2406,11 +2406,11 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     struct
     {
         EBPF_CONTEXT_HEADER;
-        bind_md_t context;
+        sample_program_context_t context;
     } ctx_header = {0};
-    bind_md_t* ctx = &ctx_header.context;
-    ctx->process_id = user_mode_keys;              // Start key: 20.
-    ctx->socket_address_length = kernel_mode_keys; // Number of keys: 80.
+    sample_program_context_t* ctx = &ctx_header.context;
+    ctx->uint32_data = (uint32_t)user_mode_keys;   // Start key: 20.
+    ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
 
     bpf_test_run_opts test_run_opts = {0};
     test_run_opts.ctx_in = ctx;
