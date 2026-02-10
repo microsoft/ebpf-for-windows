@@ -2363,8 +2363,8 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     // Verify that only the user-mode accessed keys were evicted.
 
     const uint32_t max_entries = 100;     // Map with 100 entries
-    const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (0-19)
-    const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (20-99)
+    const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (0-79)
+    const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (80-99)
     const uint32_t new_keys = 20;         // Force 20 evictions
 
     // Load eBPF program that performs kernel-mode lookups.
@@ -2401,7 +2401,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    // Kernel-mode lookup of keys 20-99 by invoking eBPF program.
+    // Kernel-mode lookup of keys 0-79 by invoking eBPF program.
     // These lookups should affect LRU state (add to hot list and update timestamp).
     struct
     {
@@ -2409,7 +2409,7 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         sample_program_context_t context;
     } ctx_header = {0};
     sample_program_context_t* ctx = &ctx_header.context;
-    ctx->uint32_data = (uint32_t)user_mode_keys;   // Start key: 20.
+    ctx->uint32_data = 0;                          // Start key: 0.
     ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
 
     bpf_test_run_opts test_run_opts = {0};
@@ -2423,9 +2423,9 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     REQUIRE(result == 0);
     CHECK((int32_t)test_run_opts.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
 
-    // User-mode lookup of keys 0-19.
+    // User-mode lookup of keys 80-99.
     // These lookups should NOT affect LRU state.
-    for (uint32_t i = 0; i < user_mode_keys; i++) {
+    for (uint32_t i = kernel_mode_keys; i < max_entries; i++) {
         uint32_t value = 0;
         REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
         REQUIRE(value == (1000 + i));
@@ -2437,21 +2437,21 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    uint32_t user_mode_keys_evicted = 0;
-    for (uint32_t i = 0; i < user_mode_keys; i++) {
-        uint32_t value = 0;
-        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
-        if (!found) {
-            user_mode_keys_evicted++;
-        }
-    }
-
     uint32_t kernel_mode_keys_evicted = 0;
-    for (uint32_t i = user_mode_keys; i < max_entries; i++) {
+    for (uint32_t i = 0; i < kernel_mode_keys; i++) {
         uint32_t value = 0;
         bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
         if (!found) {
             kernel_mode_keys_evicted++;
+        }
+    }
+
+    uint32_t user_mode_keys_evicted = 0;
+    for (uint32_t i = kernel_mode_keys; i < max_entries; i++) {
+        uint32_t value = 0;
+        bool found = (bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+        if (!found) {
+            user_mode_keys_evicted++;
         }
     }
 
