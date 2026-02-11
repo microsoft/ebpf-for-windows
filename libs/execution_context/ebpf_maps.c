@@ -3321,10 +3321,9 @@ _ebpf_map_metadata_table_query(_In_ const ebpf_map_type_t type)
     }
 
     const ebpf_map_metadata_table_properties_t* const* properties = NULL;
-    if (ebpf_hash_table_find(
-            _ebpf_map_type_metadata_table,
-            (const uint8_t*)&type,
-            (uint8_t**)&properties) != EBPF_SUCCESS || properties == NULL) {
+    if (ebpf_hash_table_find(_ebpf_map_type_metadata_table, (const uint8_t*)&type, (uint8_t**)&properties) !=
+            EBPF_SUCCESS ||
+        properties == NULL) {
         return NULL;
     }
 
@@ -3332,7 +3331,8 @@ _ebpf_map_metadata_table_query(_In_ const ebpf_map_type_t type)
 }
 
 static _Must_inspect_result_ ebpf_result_t
-_ebpf_map_metadata_table_add(_In_ const ebpf_map_type_t type, _In_ const ebpf_map_metadata_table_properties_t* properties)
+_ebpf_map_metadata_table_add(
+    _In_ const ebpf_map_type_t type, _In_ const ebpf_map_metadata_table_properties_t* properties)
 {
     ebpf_assert(_ebpf_map_type_metadata_table != NULL);
     const ebpf_map_metadata_table_properties_t* value = properties;
@@ -3525,7 +3525,8 @@ ebpf_map_find_entry(
     ebpf_result_t result;
 
     if (MAP_IS_CUSTOM(map)) {
-        return ebpf_custom_map_find_entry(map, key_size, key, value_size, value, flags);;
+        return ebpf_custom_map_find_entry(map, key_size, key, value_size, value, flags);
+        ;
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
@@ -4097,7 +4098,7 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_custom_map
     size_t actual_value_size;
     uint32_t provider_flags;
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
-    uint32_t padding[8];                      // Padding to make structure size multiple of cache line size
+    uint32_t padding[8];                       // Padding to make structure size multiple of cache line size
 } ebpf_custom_map_t;
 
 static ebpf_map_client_data_t _ebpf_custom_map_client_data = {
