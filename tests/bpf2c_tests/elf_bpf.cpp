@@ -293,7 +293,7 @@ const std::map<std::string, std::string> _malformed_elf_expected_output{
     {"2775DA65BC9DC1B1BD6558C1B456C7532CD1BE02",
      "Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none reason constraint failed"},
     {"3688AF1375D9360872B65D0E67F31E5D9AA8166B",
-     "Unresolved external symbol bind_tail_call_map in section bind/5 at location 27"},
+     "Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field SH_ENTSIZE.refinement reason constraint failed"},
     {"9A0D5CC0FB24BC6AFB0415DC648388B961FE3E38",
      "Unresolved external symbol bind_tail_call_map in section bind/5 at location 27"},
 };

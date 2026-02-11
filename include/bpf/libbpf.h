@@ -896,23 +896,86 @@ libbpf_num_possible_cpus(void);
 /* Ring buffer APIs */
 
 /**
- * @brief Creates a new ring buffer manager.
+ * @brief Ring buffer callback function type.
+ *
+ * @param[in] ctx Pointer to context passed to ring_buffer__new().
+ * @param[in] data Pointer to ring buffer record data.
+ * @param[in] size Size of ring buffer record data.
+ *
+ * @retval 0 Success.
+ * @retval <0 Error; stops processing.
+ */
+typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
+
+/**
+ * @brief Ring buffer options structure (Linux-compatible, limited functionality).
+ */
+struct ring_buffer_opts
+{
+    size_t sz; /* Size of this struct, for forward/backward compatibility. */
+};
+
+#define ring_buffer_opts__last_field sz
+
+/**
+ * @brief Creates a new ring buffer manager with synchronous callbacks.
+ *
+ * This function uses synchronous callbacks by default to match Linux behavior.
+ * For async callbacks, use ebpf_ring_buffer__new with EBPF_RINGBUF_FLAG_AUTO_CALLBACK.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function.
- * @param[in] ctx Pointer to sample_cb callback function.
- * @param[in] opts Ring buffer options.
+ * @param[in] ctx Pointer to sample_cb callback function context.
+ * @param[in] opts Ring buffer options (currently unused, pass NULL).
  *
- * @returns Pointer to ring buffer manager.
+ * @returns Pointer to ring buffer manager, or NULL on error.
  */
 struct ring_buffer*
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* opts);
 
 /**
- * @brief Frees a new ring buffer manager.
+ * @brief Add another ring buffer map to the ring buffer manager.
+ *
+ * @param[in] rb Ring buffer manager.
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] ctx Pointer to sample_cb callback function context.
+ *
+ * @retval 0 Success.
+ * @retval <0 Error.
+ */
+int
+ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sample_cb, void* ctx);
+
+/**
+ * @brief Poll ring buffer for available data and consume records by calling sample_cb.
+ *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
+ *
+ * @param[in] rb Ring buffer manager.
+ * @param[in] timeout_ms Maximum time to wait for data (in milliseconds), or -1 to wait indefinitely, or 0 to not wait.
+ *
+ * @returns Number of records consumed, or a negative error code.
+ */
+int
+ring_buffer__poll(struct ring_buffer* rb, int timeout_ms);
+
+/**
+ * @brief Consume all available records without waiting.
+ *
+ * @note Discarded records are skipped over and ignored (not included in the return count).
+ *
+ * @param[in] rb Ring buffer manager.
+ *
+ * @returns Number of records consumed, or a negative error code.
+ */
+int
+ring_buffer__consume(struct ring_buffer* rb);
+
+/**
+ * @brief Frees a ring buffer manager.
  *
  * @param[in] rb Pointer to ring buffer to be freed.
- *
  */
 void
 ring_buffer__free(struct ring_buffer* rb);
