@@ -78,9 +78,9 @@ typedef struct _ebpf_core_object_map
  *   - Do NOT move the entry between lists.
  *   - This allows diagnostic tools to enumerate LRU maps without polluting the cache.
  *
- * When the hot list reaches max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list,
- * a new generation is started, and the hot list is cleared. When space is needed, an entry is selected from the
- * cold list and removed from the hash table.
+ * When the hot list reaches max_entries/partition_count/EBPF_LRU_GENERATION_COUNT,
+ * the hot list is merged into the cold list, a new generation is started, and the hot list is cleared.
+ * When space is needed, an entry is selected from the cold list and removed from the hash table.
  *
  * key history is stored along with the value in the map. The hash table then provides callbacks to the map to update
  * the key history when an entry is accessed, updated, or deleted.
