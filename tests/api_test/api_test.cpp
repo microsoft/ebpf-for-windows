@@ -2710,7 +2710,10 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
 
     // Attempt to load the production-signed bindmonitor_signed.sys
     result = program_load_helper("bindmonitor_signed.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
-    
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
     if (result != 0) {
         printf("ERROR: Failed to load production-signed bindmonitor_signed.sys (error %d)\n", result);
         printf("Ensure that bindmonitor_signed.sys exists and is production-signed.\n");
@@ -2731,16 +2734,13 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     REQUIRE(
         ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
         EBPF_SUCCESS);
-    
+
     REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
     _close(query_fd);
 
     printf("SUCCESS: Proof of verification passed for production-signed bindmonitor_signed.sys\n");
 
     bpf_object__close(object);
-
-    // Disable proof of verification via registry.
-    REQUIRE(ebpf_store_update_proof_of_verification(0) == EBPF_SUCCESS);
 }
 
 /**
@@ -2763,7 +2763,10 @@ TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verificatio
 
     // Attempt to load the test-signed (non-production-signed) bindmonitor.sys
     result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
-    
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
     // The load should fail because the binary is not production-signed
     if (result == 0) {
         printf("ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!\n");
@@ -2772,9 +2775,6 @@ TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verificatio
     } else {
         printf("SUCCESS: Test-signed bindmonitor.sys was correctly rejected (error %d)\n", result);
     }
-    
-    REQUIRE(result != 0);
 
-    // Disable proof of verification via registry.
-    REQUIRE(ebpf_store_update_proof_of_verification(0) == EBPF_SUCCESS);
+    REQUIRE(result != 0);
 }
