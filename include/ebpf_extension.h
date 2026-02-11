@@ -272,7 +272,7 @@ typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
     uint32_t flags);
 
 /**
- * @brief Get the next key in the eBPF map.
+ * @brief Associate a program type with the map, which allows the map to be used by programs of that type.
  *
  * @param[in] map The eBPF map to query.
  * @param[in] program_type The program type.

@@ -33,8 +33,7 @@ unsigned int map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 #define MAP_TYPE(context) (((sample_map_context_t*)(context))->core.map_type)
 
 // Define the sample map type
-// #define BPF_MAP_TYPE_SAMPLE_ARRAY_MAP 0xF000
-#define BPF_MAP_TYPE_SAMPLE_HASH_MAP 4097
+#define BPF_MAP_TYPE_SAMPLE_HASH_MAP 15
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
