@@ -336,9 +336,12 @@ function Run-KernelTests {
             "stress" {
                 # Set RestartExtension to true if options contains that string.
                 $RestartExtension = $Options -contains "RestartExtension"
+                # Set RestartEbpfCore to true if options contains that string.
+                $RestartEbpfCore = $Options -contains "RestartEbpfCore"
                 Invoke-CICDStressTests `
                     -VerboseLogs $VerboseLogs `
                     -RestartExtension $RestartExtension `
+                    -RestartEbpfCore $RestartEbpfCore `
                     2>&1 | Write-Log
             }
             "performance" {
