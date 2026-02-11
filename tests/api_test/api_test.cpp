@@ -2355,21 +2355,22 @@ TEST_CASE("ebpf_pinned_path_apis", "[ebpf_api]")
  * while kernel mode accesses (from eBPF programs) do affect LRU eviction order.
  * This ensures diagnostic tools can enumerate LRU maps without polluting the cache.
  *
+ * Both the test thread and bpf program are pinned to cpu zero for a deterministic test.
+ *
  * Test steps:
  * 1) Fill LRU map with 100 entries (keys 0-99).
- * 2) Access keys 80-99 from kernel mode (via eBPF program) to force generation rollover.
- * 3) Access keys 0-79 from kernel mode to add them to hotlist with new generation.
- * 4) Access keys 80-99 from user mode (bpf_map_lookup_elem) - these should be found but should NOT affect LRU state.
- * 5) Add 20 new entries (keys 100-119).
- * 6) Scan keys 0-119 and validate only the user-mode accessed keys were evicted (80-99).
+ * 2) Access keys 0-79 from kernel mode to update their timestamps.
+ * 3) Access keys 80-99 from user mode (bpf_map_lookup_elem) - these should be found but should NOT affect LRU state.
+ * 4) Add 20 new entries (keys 100-119).
+ * 5) Scan keys 0-119 and validate only the user-mode accessed keys were evicted (80-99).
  *
  */
 TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
 {
-    const uint32_t max_entries = 100;     // Map with 100 entries
-    const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (0-79)
-    const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (80-99)
-    const uint32_t new_keys = 20;         // Force 20 evictions
+    const uint32_t max_entries = 100;     // Map with 100 entries.
+    const uint32_t kernel_mode_keys = 80; // Keys accessed from kernel mode (0-79).
+    const uint32_t user_mode_keys = 20;   // Keys accessed from user mode (80-99).
+    const uint32_t new_keys = 20;         // Force 20 evictions.
 
     const uint32_t first_kernel_mode_key = 0;                                      // 0
     const uint32_t first_user_mode_key = first_kernel_mode_key + kernel_mode_keys; // 80
@@ -2381,14 +2382,18 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     fd_t map_fd = ebpf_fd_invalid;
     native_module_helper_t _native_helper;
 
+    HANDLE thread_handle{GetCurrentThread()};
+    // Pin test to cpu zero for deterministic test.
+    DWORD_PTR original_mask = SetThreadAffinityMask(thread_handle, (1ULL << 0));
+    REQUIRE(original_mask != 0);
     // Setup cleanup guard to ensure resources are freed on any exit path.
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
         reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) {
-            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
             if (object != nullptr) {
                 bpf_object__close(object);
             }
+            SetThreadAffinityMask(thread_handle, original_mask); // Restore cpu affinity.
         });
 
     _native_helper.initialize("lru_map_test", EBPF_EXECUTION_NATIVE);
@@ -2409,16 +2414,16 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
         REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
     }
 
-    // First, do kernel-mode access of keys 80-99 to add them to hot list and force generation rollover.
-    // - Without forcing the rollover, keys already in the hot list will not be updated.
+    // Now do kernel-mode lookup of keys 0-79.
+    // These lookups should affect LRU state (add to hot list with new generation).
     struct
     {
         EBPF_CONTEXT_HEADER;
         sample_program_context_t context;
     } ctx_header = {0};
     sample_program_context_t* ctx = &ctx_header.context;
-    ctx->uint32_data = first_user_mode_key;      // Start key: 80.
-    ctx->uint16_data = (uint16_t)user_mode_keys; // Number of keys: 20.
+    ctx->uint32_data = first_kernel_mode_key;      // Start key: 0.
+    ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
 
     bpf_test_run_opts test_run_opts = {0};
     test_run_opts.ctx_in = ctx;
@@ -2426,26 +2431,11 @@ TEST_CASE("lru_map_user_vs_kernel_access", "[lru]")
     test_run_opts.ctx_out = ctx;
     test_run_opts.ctx_size_out = sizeof(*ctx);
     test_run_opts.repeat = 1;
+    test_run_opts.cpu = 0; // Force execution on CPU 0.
 
     int result = bpf_prog_test_run_opts(program_fd, &test_run_opts);
     REQUIRE(result == 0);
-    CHECK((int32_t)test_run_opts.retval == (int32_t)user_mode_keys);
-
-    // Now do kernel-mode lookup of keys 0-79.
-    // These lookups should affect LRU state (add to hot list with new generation).
-    ctx->uint32_data = first_kernel_mode_key;      // Start key: 0.
-    ctx->uint16_data = (uint16_t)kernel_mode_keys; // Number of keys: 80.
-
-    bpf_test_run_opts test_run_opts2 = {0};
-    test_run_opts2.ctx_in = ctx;
-    test_run_opts2.ctx_size_in = sizeof(*ctx);
-    test_run_opts2.ctx_out = ctx;
-    test_run_opts2.ctx_size_out = sizeof(*ctx);
-    test_run_opts2.repeat = 1;
-
-    result = bpf_prog_test_run_opts(program_fd, &test_run_opts2);
-    REQUIRE(result == 0);
-    CHECK((int32_t)test_run_opts2.retval == (int32_t)kernel_mode_keys); // Should find all 80 keys.
+    CHECK((int32_t)test_run_opts.retval == (int32_t)kernel_mode_keys);
 
     // User-mode lookup of keys 80-99.
     // These lookups should NOT affect LRU state.
