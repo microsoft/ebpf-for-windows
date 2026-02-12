@@ -2376,9 +2376,17 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         if (phase.block_callback) { // Unblock consumer to flush all records.
             helper.unblock_callback();
         }
-        for (int i = 0; i < 5 && (helper.context.event_count.load() + helper.context.lost_count.load()) <
-                                     (events_start + lost_start + phase_written);
-             i++) {
+        // Wait for all callbacks to fire AND for poll to return (so total_polled_events is updated).
+        // The callbacks fire inside _process_ring_records (within poll), but total_polled_events
+        // is only updated after poll returns. We need to wait for both.
+        for (int i = 0; i < 5; i++) {
+            bool callbacks_done = (helper.context.event_count.load() + helper.context.lost_count.load()) >=
+                                  (events_start + lost_start + phase_written);
+            bool polled_done =
+                (total_polled_events.load() - polled_start) >= (helper.context.event_count.load() - events_start);
+            if (callbacks_done && polled_done) {
+                break;
+            }
             std::this_thread::sleep_for(1s);
         }
 
