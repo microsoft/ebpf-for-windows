@@ -4587,6 +4587,14 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // such, so that it gets freed when the user eventually unsubscribes.
             std::scoped_lock lock{async_query_context->lock};
             async_query_context->async_ioctl_failed = true;
+
+            // Notify unsubscribe that this context has failed and won't post new IOCTLs.
+            // Do NOT erase the context from the map here — this callback holds a raw pointer
+            // to the context owned by the map's unique_ptr, so erasing would be use-after-free.
+            {
+                std::scoped_lock subscription_lock{subscription->lock};
+                subscription->cleanup_complete_event.notify_all();
+            }
             EBPF_RETURN_RESULT(result);
         } else {
             TraceLoggingWrite(
@@ -4678,6 +4686,9 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // First, register wait for the new async IOCTL operation completion.
             result = register_wait_async_ioctl_operation(async_query_context->async_ioctl_completion);
             if (result != EBPF_SUCCESS) {
+                // Failed to register wait. Mark as failed and notify unsubscribe.
+                async_query_context->async_ioctl_failed = true;
+                subscription->cleanup_complete_event.notify_all();
                 EBPF_RETURN_RESULT(result);
             }
 
@@ -4698,6 +4709,8 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
                     result = EBPF_SUCCESS;
                 } else {
                     async_query_context->async_ioctl_failed = true;
+                    // Failed to post IOCTL. Notify unsubscribe.
+                    subscription->cleanup_complete_event.notify_all();
                 }
             }
         }
@@ -4936,9 +4949,31 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
 
     {
         std::unique_lock<std::mutex> lock_wait(subscription->lock);
-        // Wait for for all the notifications to be complete before freeing memory.
-        subscription->cleanup_complete_event.wait(
-            lock_wait, [subscription] { return subscription->async_query_contexts.size() == 0; });
+        // Wait for all remaining contexts to either complete cleanup or fail.
+        // A context is "done" when it has been erased (normal/canceled path) or marked as failed.
+        // Use timed wait as a safety net for truly catastrophic failures.
+        constexpr auto timeout = std::chrono::seconds(30);
+        auto all_done_or_failed = [subscription] {
+            for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
+                if (!ctx->async_ioctl_failed) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        if (!subscription->cleanup_complete_event.wait_for(lock_wait, timeout, all_done_or_failed)) {
+            // Timeout occurred - this should only happen under truly catastrophic failure.
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                EBPF_TRACELOG_EVENT_GENERIC_ERROR,
+                TraceLoggingLevel(WINEVENT_LEVEL_ERROR),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
+                TraceLoggingString(__FUNCTION__, "Timeout waiting for async query cleanup"),
+                TraceLoggingUInt32((uint32_t)subscription->async_query_contexts.size(), "remaining_contexts"));
+            cancel_result = false;
+        }
+        // Clean up remaining (failed or timed-out) contexts.
+        subscription->async_query_contexts.clear();
     }
 
     delete subscription;
