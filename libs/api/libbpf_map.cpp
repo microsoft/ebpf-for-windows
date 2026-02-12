@@ -886,17 +886,17 @@ ebpf_perf_buffer__new(
             }
         } else {
             // Synchronous mode - create per-CPU ring buffer mappings.
+            uint32_t cpu_count = libbpf_num_possible_cpus();
+
+            // Track current map_info for cleanup if push_back fails.
+            ebpf_ring_mapping_t current_map_info{};
+
             HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
             if (wait_handle == nullptr) {
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }
             perf_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
-
-            uint32_t cpu_count = libbpf_num_possible_cpus();
-
-            // Track current map_info for cleanup if push_back fails.
-            ebpf_ring_mapping_t current_map_info{};
 
             // Create cleanup guard to close wait handle, clear map wait handles, and unmap buffers on failure.
             auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(

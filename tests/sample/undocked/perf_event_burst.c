@@ -6,7 +6,7 @@
 // the count of failed writes (negative value indicates errors).
 
 #include "bpf_helpers.h"
-#include "ebpf_nethooks.h"
+#include "sample_ext_helpers.h"
 
 // Perf event array map for testing lost events.
 struct
@@ -15,15 +15,15 @@ struct
     __uint(max_entries, 16 * 1024);
 } burst_test_map SEC(".maps");
 
-SEC("bind")
+SEC("sample_ext")
 int
-perf_event_burst(bind_md_t* ctx)
+perf_event_burst(sample_program_context_t* ctx)
 {
-    // burst_count is passed in ctx->process_id field.
-    // Data to send is between ctx->app_id_start and ctx->app_id_end.
-    uint64_t burst_count = ctx->process_id;
-    uint8_t* data_start = ctx->app_id_start;
-    uint8_t* data_end = ctx->app_id_end;
+    // burst_count is passed in ctx->uint32_data field.
+    // Data to send is between ctx->data_start and ctx->data_end.
+    uint64_t burst_count = (uint64_t)ctx->uint32_data;
+    uint8_t* data_start = ctx->data_start;
+    uint8_t* data_end = ctx->data_end;
 
     // Validate data pointers.
     if (data_start == NULL || data_end == NULL || data_end <= data_start) {
