@@ -75,6 +75,10 @@ typedef struct _wfp_ale_layer_fields
     uint16_t interface_luid_field;
     uint16_t user_id_field;
     uint16_t flags_field;
+    uint16_t interface_type_field;
+    uint16_t tunnel_type_field;
+    uint16_t next_hop_interface_field;
+    uint16_t sub_interface_index_field;
 } wfp_ale_layer_fields_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters
