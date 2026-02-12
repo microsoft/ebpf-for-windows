@@ -1934,11 +1934,18 @@ TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
     helper.block_callback();
 
     // Write events per-CPU using affinity to overflow each ring.
+    size_t write_succeeded = 0;
+    size_t write_failed = 0;
     scoped_cpu_affinity cpu_affinity{};
     for (uint32_t cpu_id = 0; cpu_id < num_cpus; cpu_id++) {
         cpu_affinity.switch_cpu(cpu_id);
         for (size_t i = 0; i < per_cpu_event_count; i++) {
-            ebpf_perf_event_array_map_write(map_fd, large_message.c_str(), large_message.length());
+            if (ebpf_perf_event_array_map_write(map_fd, large_message.c_str(), large_message.length()) ==
+                EBPF_SUCCESS) {
+                write_succeeded++;
+            } else {
+                write_failed++;
+            }
         }
     }
 
@@ -1950,6 +1957,8 @@ TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
 
     // Validate exact event counts: each 16KB per-CPU ring holds exactly 32 records.
     uint32_t expected_lost = static_cast<uint32_t>(events_per_ring * num_cpus);
+    REQUIRE(write_succeeded == events_per_ring * num_cpus);
+    REQUIRE(write_failed == events_per_ring * num_cpus);
     REQUIRE(helper.context.lost_count == expected_lost);
     REQUIRE(helper.context.event_count == expected_lost);
     REQUIRE((helper.context.event_count + helper.context.lost_count) == total_events);
