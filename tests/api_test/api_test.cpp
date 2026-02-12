@@ -2730,3 +2730,137 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(report);
     ebpf_free_string(error_message);
 }
+
+/**
+ * @brief Test that user mode updates (via bpf_map_update_elem) DO affect LRU state.
+ * Only read operations should skip LRU updates.
+ */
+TEST_CASE("lru_map_user_update_affects_lru", "[lru]")
+{
+    // Create small LRU map that can only hold 4 entries.
+    const uint32_t max_entries = 4;
+    bpf_map_create_opts opts = {0};
+    int map_fd =
+        bpf_map_create(BPF_MAP_TYPE_LRU_HASH, "lru_test", sizeof(uint32_t), sizeof(uint32_t), max_entries, &opts);
+    REQUIRE(map_fd > 0);
+
+    // Populate map with 4 entries (keys 0-3).
+    for (uint32_t i = 0; i < max_entries; i++) {
+        uint32_t value = 100 + i;
+        REQUIRE(bpf_map_update_elem(map_fd, &i, &value, BPF_ANY) == 0);
+    }
+
+    // User mode update: Update key 0 (oldest entry).
+    // This SHOULD mark it as recently used.
+    uint32_t update_key = 0;
+    uint32_t update_value = 200;
+    REQUIRE(bpf_map_update_elem(map_fd, &update_key, &update_value, BPF_EXIST) == 0);
+
+    // Insert a new entry (key 4).
+    // Since key 0 was just updated, key 1 should now be the oldest and get evicted.
+    uint32_t new_key = 4;
+    uint32_t new_value = 104;
+    REQUIRE(bpf_map_update_elem(map_fd, &new_key, &new_value, BPF_ANY) == 0);
+
+    // Verify key 1 was evicted (should not exist).
+    uint32_t lookup_key = 1;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &lookup_key, &value) != 0); // Should fail.
+
+    // Verify key 0 still exists with updated value.
+    REQUIRE(bpf_map_lookup_elem(map_fd, &update_key, &value) == 0);
+    REQUIRE(value == 200);
+
+    // Verify keys 2, 3, 4 exist.
+    for (uint32_t i = 2; i <= 4; i++) {
+        REQUIRE(bpf_map_lookup_elem(map_fd, &i, &value) == 0);
+    }
+
+    _close(map_fd);
+}
+
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor_signed.sys can be loaded.
+ * It requires that bindmonitor_signed.sys exists in the test directory.
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the production-signed bindmonitor_signed.sys
+    result = program_load_helper("bindmonitor_signed.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
+    if (result != 0) {
+        printf("ERROR: Failed to load production-signed bindmonitor_signed.sys (error %d)\n", result);
+        printf("Ensure that bindmonitor_signed.sys exists and is production-signed.\n");
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // Verify the program loaded correctly
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+
+    printf("SUCCESS: Proof of verification passed for production-signed bindmonitor_signed.sys\n");
+
+    bpf_object__close(object);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the test-signed (non-production-signed) bindmonitor.sys
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        printf("ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!\n");
+        printf("The proof of verification system should reject non-production-signed binaries.\n");
+        bpf_object__close(object);
+    } else {
+        printf("SUCCESS: Test-signed bindmonitor.sys was correctly rejected (error %d)\n", result);
+    }
+
+    REQUIRE(result != 0);
+}
