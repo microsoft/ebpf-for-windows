@@ -4,7 +4,7 @@
 #include "ebpf_handle.h"
 #include "ebpf_tracelog.h"
 
-// Must be inclueded last to avoid macro redefinition errors for ntstatus.
+// Must be included last to avoid macro redefinition errors for ntstatus.
 #include "ebpf_error.h"
 
 _Must_inspect_result_ ebpf_result_t
