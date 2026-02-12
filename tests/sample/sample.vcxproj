@@ -45,6 +45,9 @@
     <ProjectGuid>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</ProjectGuid>
     <RootNamespace>sample</RootNamespace>
     <ClangFlags>-g -target bpf -O2 -Werror -I../../packages/clang.headers/include -I../../include -I../../external/bpftool</ClangFlags>
+    <!-- BPF header dependencies for incremental build correctness. Update if new headers are added. -->
+    <BpfHeaderDeps>$(SolutionDir)include\bpf_helpers.h;$(SolutionDir)include\bpf_helpers_platform.h;$(SolutionDir)include\bpf_helper_defs.h;$(SolutionDir)include\bpf_endian.h;$(SolutionDir)include\ebpf_structs.h;$(SolutionDir)include\ebpf_windows.h;$(SolutionDir)include\ebpf_nethooks.h;$(SolutionDir)include\net\ip.h;$(SolutionDir)include\net\if_ether.h;$(SolutionDir)include\net\udp.h;$(SolutionDir)tests\socket\socket_tests_common.h;$(SolutionDir)tests\include\xdp_hooks.h;$(SolutionDir)tests\sample\sample_common_routines.h;$(SolutionDir)tests\sample\sample_test_common.h</BpfHeaderDeps>
+    <BpfUndockedHeaderDeps>$(BpfHeaderDeps);$(SolutionDir)undocked\tests\sample\ext\inc\sample_ext_helpers.h</BpfUndockedHeaderDeps>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -123,6 +126,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <BpfNativeDeps>$(OutDir)Convert-BpfToNative.ps1</BpfNativeDeps>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
@@ -231,6 +237,7 @@
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -256,6 +263,7 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -277,6 +285,7 @@
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -308,6 +317,7 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -318,7 +328,8 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
-      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -327,52 +338,52 @@
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
-      <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
-      <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
-      <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
-      <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <CustomBuild Include="unsafe\*.c">
       <FileType>CppCode</FileType>
-      <Command>$(ClangExec) $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
@@ -387,6 +398,7 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
@@ -397,8 +409,9 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
-      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
+      <!-- Don't run bpf2c in parallelwhen built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
@@ -409,6 +422,7 @@
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
