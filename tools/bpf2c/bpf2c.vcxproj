@@ -172,15 +172,15 @@
       <Command Condition="'$(Configuration)'=='FuzzerDebug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)'=='Release'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)'=='NativeOnlyRelease'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
-      <AdditionalInputs Condition="'$(Configuration)'=='Debug'">
+      <AdditionalInputs Condition="'$(Configuration)'=='Debug'">$(SolutionDir)scripts\escape_text.ps1
       </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)'=='NativeOnlyDebug'">
+      <AdditionalInputs Condition="'$(Configuration)'=='NativeOnlyDebug'">$(SolutionDir)scripts\escape_text.ps1
       </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)'=='FuzzerDebug'">
+      <AdditionalInputs Condition="'$(Configuration)'=='FuzzerDebug'">$(SolutionDir)scripts\escape_text.ps1
       </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)'=='Release'">
+      <AdditionalInputs Condition="'$(Configuration)'=='Release'">$(SolutionDir)scripts\escape_text.ps1
       </AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)'=='NativeOnlyRelease'">
+      <AdditionalInputs Condition="'$(Configuration)'=='NativeOnlyRelease'">$(SolutionDir)scripts\escape_text.ps1
       </AdditionalInputs>
       <Outputs Condition="'$(Configuration)'=='Debug'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)'=='NativeOnlyDebug'">$(OutputPath)%(Filename).template</Outputs>
@@ -193,6 +193,7 @@
       <Command Condition="'$(Configuration)'=='Debug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)'=='NativeOnlyDebug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
       <Command Condition="'$(Configuration)'=='FuzzerDebug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\escape_text.ps1 %(Filename).c $(OutputPath)%(Filename).template</Command>
+      <AdditionalInputs>$(SolutionDir)scripts\escape_text.ps1</AdditionalInputs>
       <Outputs Condition="'$(Configuration)'=='Debug'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)'=='NativeOnlyDebug'">$(OutputPath)%(Filename).template</Outputs>
       <Outputs Condition="'$(Configuration)'=='FuzzerDebug'">$(OutputPath)%(Filename).template</Outputs>
@@ -203,6 +204,7 @@
     </CustomBuild>
     <CustomBuild Include="bpf2c.exe.manifest.in">
       <FileType>Document</FileType>
+      <AdditionalInputs>$(SolutionDir)scripts\Set-Version.ps1;$(SolutionDir)Directory.Build.props;$(SolutionDir)include\git_commit_id.h</AdditionalInputs>
       <Command Condition="'$(Configuration)'=='Debug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
       <Outputs Condition="'$(Configuration)'=='Debug'">$(OutputPath)bpf2c.exe.manifest</Outputs>
       <Command Condition="'$(Configuration)'=='Release'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile bpf2c.exe.manifest.in -OutputFile $(OutputPath)bpf2c.exe.manifest</Command>
