@@ -1842,6 +1842,10 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
         program_load_helper(
             "bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
+    // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
     // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
@@ -1866,9 +1870,6 @@ TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
     CAPTURE(helper.context.event_count, max_iterations, helper.context.lost_count);
     // trigger_ring_buffer_events rounds up per-thread work, so total events may exceed max_iterations.
     REQUIRE((helper.context.event_count + helper.context.lost_count) >= max_iterations);
-
-    // Clean up (perf buffer freed by helper destructor).
-    bpf_object__close(object);
 }
 
 // Async test: Consume events with async callbacks and validate data ordering.
@@ -2249,8 +2250,6 @@ TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
 // Tests three phases: normal operation, buffer overflow with lost events, and recovery.
 TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
 {
-    perf_buffer_test_helper helper(false); // Don't keep records
-
     const size_t event_data_size = 504;
 
     // Load native perf_event_burst program.
@@ -2267,17 +2266,20 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     REQUIRE(object != nullptr);
     REQUIRE(program_fd > 0);
 
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
+    // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
+    auto cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
     struct bpf_map* burst_map = bpf_object__find_map_by_name(object, "burst_test_map");
     REQUIRE(burst_map != nullptr);
     map_fd = bpf_map__fd(burst_map);
     REQUIRE(map_fd > 0);
 
+    perf_buffer_test_helper helper(false); // Don't keep records
+
     // Create synchronous perf buffer.
     auto pb = helper.create_perf_buffer(map_fd);
     REQUIRE(pb != nullptr);
-
-    // RAII cleanup for program object.
-    auto cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
 
     // Local tracking variables for consumer thread.
     std::atomic<bool> terminate_flag{false};
