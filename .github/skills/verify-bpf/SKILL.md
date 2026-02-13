@@ -18,15 +18,23 @@ native code) with bpf2c. On verification failure, diagnose using the PREVAIL ref
 - User asks to debug or fix a verification failure from bpf2c output
 - User mentions bpf2c, clang+bpf, or PREVAIL verification in the ebpf-for-windows context
 
+## Prerequisites
+
+- **clang.exe** — find the first existing path (highest priority first):
+  `packages\llvm.tools\clang.exe`, `"$env:ProgramFiles\LLVM\bin\clang.exe"`,
+  `"$(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)\VC\Tools\Llvm\bin\clang.exe"`
+- **bpf2c.exe** — if `x64\Debug\bpf2c.exe` is missing, build it:
+  `msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\bpf2c`
+
 ## Quick Reference
 
 ### 1. Compile: C → ELF (.o)
 
-Run from the **solution root directory**:
+Run from the **solution root directory** (use the clang path found above):
 
 ```powershell
 # Standard sample programs
-& 'C:\Program Files\LLVM\bin\clang.exe' -g -target bpf -O2 -Werror `
+& '<clang-path>' -g -target bpf -O2 -Werror `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket `
   -Itests\sample\ext\inc -Itests\include `
@@ -36,9 +44,6 @@ Run from the **solution root directory**:
 For **undocked** programs (`tests\sample\undocked\*.c`), also add:
 - `-Itests\sample`
 - `-Iundocked\tests\sample\ext\inc`
-
-> **Note:** The examples use `C:\Program Files\LLVM\bin\clang.exe`, the default
-> LLVM install location. Adjust the path if LLVM is installed elsewhere.
 
 ### 2. Verify: ELF (.o) → native C (via bpf2c)
 
@@ -97,7 +102,7 @@ On verification failure:
 
 ```powershell
 # Compile (undocked program — needs full include paths)
-& 'C:\Program Files\LLVM\bin\clang.exe' -g -target bpf -O2 -Werror `
+& '<clang-path>' -g -target bpf -O2 -Werror `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -Itests\sample -Iundocked\tests\sample\ext\inc `

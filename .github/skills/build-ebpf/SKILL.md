@@ -299,17 +299,21 @@ This script:
 ## BPF Program Compilation (clang → .o)
 
 When manually compiling BPF C programs with clang, use the full set of include paths
-from the `tests\sample\sample.vcxproj` CustomBuild rules:
+from the `tests\sample\sample.vcxproj` CustomBuild rules.
+
+**Locate clang.exe** — use the first existing path (highest priority first):
+`packages\llvm.tools\clang.exe`, `"$env:ProgramFiles\LLVM\bin\clang.exe"`,
+`"$(& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath)\VC\Tools\Llvm\bin\clang.exe"`
 
 ```powershell
 # Standard sample programs (tests\sample\*.c)
-& 'C:\Program Files\LLVM\bin\clang.exe' -g -target bpf -O2 -Werror `
+& '<clang-path>' -g -target bpf -O2 -Werror `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -c tests\sample\<name>.c -o x64\Debug\<name>.o
 
 # Undocked sample programs (tests\sample\undocked\*.c) — add extra includes
-& 'C:\Program Files\LLVM\bin\clang.exe' -g -target bpf -O2 -Werror `
+& '<clang-path>' -g -target bpf -O2 -Werror `
   -Iinclude -Iexternal\bpftool `
   -Itests\xdp -Itests\socket -Itests\sample\ext\inc -Itests\include `
   -Itests\sample -Iundocked\tests\sample\ext\inc `
@@ -318,6 +322,3 @@ from the `tests\sample\sample.vcxproj` CustomBuild rules:
 
 **Common mistake:** Using only `-Iinclude` will fail for programs that include
 `socket_tests_common.h`, `xdp_common.h`, or `sample_ext_helpers.h`.
-
-> **Note:** The examples use `C:\Program Files\LLVM\bin\clang.exe`, the default
-> LLVM install location. Adjust the path if LLVM is installed elsewhere.
