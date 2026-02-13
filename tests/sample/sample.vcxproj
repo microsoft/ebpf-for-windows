@@ -411,7 +411,7 @@
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <AdditionalInputs>$(BpfHeaderDeps)</AdditionalInputs>
-      <!-- Don't run bpf2c in parallelwhen built with fuzzing flags as this triggers failures. -->
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
