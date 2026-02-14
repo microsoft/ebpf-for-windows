@@ -2017,6 +2017,8 @@ thread_function_invoke_connection(std::stop_token token, ADDRESS_FAMILY address_
               << std::endl;
 }
 
+std::mutex output_synch;
+
 void
 thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, uint16_t destination_port)
 {
@@ -2053,14 +2055,26 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
         // Attach and detach the program in a loop.
         int result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
+        if (result != 0) {
+            std::unique_lock l(output_synch);
+            int err = errno;
+            std::cerr << "ATTACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+                      << " result=" << result << " errno=" << err << " iteration=" << count << std::endl;
+        }
         SAFE_REQUIRE(result == 0);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // No sleep - maximize contention for stress testing
 
         result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, attach_type);
+        if (result != 0) {
+            std::unique_lock l(output_synch);
+            int err = errno;
+            std::cerr << "DETACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+                      << " result=" << result << " errno=" << err << " iteration=" << count << std::endl;
+        }
         SAFE_REQUIRE(result == 0);
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        // No sleep - maximize contention for stress testing
 
         count++;
     }
@@ -2096,7 +2110,11 @@ thread_function_allow_block_connection(
     // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-
+    if (result != 0) {
+        int err = errno;
+        std::cerr << "ALLOW_BLOCK ATTACH FAILED: thread=" << std::this_thread::get_id()
+                  << " compartment=" << compartment_id << " result=" << result << " errno=" << err << std::endl;
+    }
     SAFE_REQUIRE(result == 0);
 
     // Configure policy map to allow the connection.

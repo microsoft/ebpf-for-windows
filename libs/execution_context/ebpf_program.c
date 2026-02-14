@@ -83,6 +83,10 @@ typedef struct _ebpf_program
 
     ebpf_trampoline_table_t* trampoline_table;
 
+    // Flag indicating that the helpers are ready for invocation.
+    // This is set after the trampoline table is populated.
+    volatile bool helpers_ready;
+
     // Array of helper function ids referred by this program.
     size_t helper_function_count;
     uint32_t* helper_function_ids;
@@ -547,6 +551,12 @@ _ebpf_program_type_specific_program_information_attach_provider(
         goto Done;
     }
 
+    // Mark helpers as ready for invocation. This must be done after _ebpf_program_update_helpers
+    // populates the trampoline table, to prevent invocations with stale/uninitialized addresses.
+    // Use a memory barrier to ensure the trampoline table writes are visible before this flag.
+    MemoryBarrier();
+    program->helpers_ready = true;
+
     program->bpf_prog_type = program->extension_program_data->program_info->program_type_descriptor->bpf_prog_type;
 
     ebpf_lock_unlock(&program->lock, state);
@@ -596,6 +606,8 @@ _ebpf_program_type_specific_program_information_detach_provider(_In_ void* clien
     ExWaitForRundownProtectionRelease(&program->program_information_rundown_reference);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    // Clear helpers_ready first to prevent new invocations.
+    program->helpers_ready = false;
     ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
     // Set the extension program data to NULL to prevent any further use of the program information by programs.
     program->extension_program_data = NULL;
@@ -1188,8 +1200,10 @@ _ebpf_program_update_jit_helpers(
     UNREFERENCED_PARAMETER(addresses);
     ebpf_program_t* program = (ebpf_program_t*)context;
     const ebpf_program_data_t* program_data = NULL;
+    const ebpf_program_data_t* general_helper_program_data = NULL;
     const ebpf_helper_function_addresses_t* helper_function_addresses = NULL;
     const ebpf_helper_function_addresses_t* global_helper_function_addresses = NULL;
+    const ebpf_helper_function_addresses_t* general_helper_function_addresses = NULL;
 
     size_t total_helper_count = 0;
     ebpf_helper_function_addresses_t* total_helper_function_addresses = NULL;
@@ -1207,11 +1221,18 @@ _ebpf_program_update_jit_helpers(
     }
     provider_data_referenced = true;
     program_data = program->extension_program_data;
+    general_helper_program_data = program->general_helper_program_data;
     helper_function_addresses = program_data->program_type_specific_helper_function_addresses;
     global_helper_function_addresses = program_data->global_helper_function_addresses;
+    if (general_helper_program_data != NULL) {
+        general_helper_function_addresses = general_helper_program_data->global_helper_function_addresses;
+    }
 
-    if (helper_function_addresses != NULL || global_helper_function_addresses != NULL) {
+    if (helper_function_addresses != NULL || global_helper_function_addresses != NULL ||
+        general_helper_function_addresses != NULL) {
         const ebpf_program_info_t* program_info = program_data->program_info;
+        const ebpf_program_info_t* general_program_info =
+            general_helper_program_data ? general_helper_program_data->program_info : NULL;
         const ebpf_helper_function_prototype_t* helper_prototypes = NULL;
         ebpf_assert(program_info != NULL);
         _Analysis_assume_(program_info != NULL);
@@ -1228,14 +1249,31 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
-        // Merge the helper function addresses into a single array.
+        // Calculate total helper count:
+        // - Program type specific helpers from extension
+        // - Global helper overrides from extension
+        // - General helpers from ebpfcore (not overridden by extension)
+        size_t extension_helper_count = 0;
         return_value = ebpf_safe_size_t_add(
             program->program_type_specific_helper_function_count,
             program->global_helper_function_count,
-            &total_helper_count);
+            &extension_helper_count);
         if (return_value != EBPF_SUCCESS) {
             goto Exit;
         }
+
+        size_t general_helper_count =
+            (general_program_info != NULL) ? general_program_info->count_of_global_helpers : 0;
+        return_value = ebpf_safe_size_t_add(extension_helper_count, general_helper_count, &total_helper_count);
+        if (return_value != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        if (total_helper_count == 0) {
+            return_value = EBPF_SUCCESS;
+            goto Exit;
+        }
+
 
         total_helper_function_addresses = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
             sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
@@ -1268,6 +1306,31 @@ _ebpf_program_update_jit_helpers(
         }
 
         uint32_t index = 0;
+
+        // Add general helpers from ebpfcore FIRST (these may be overridden by extension).
+        // We add these first so that extension overrides (processed later) will take precedence.
+        if (general_helper_function_addresses != NULL && general_program_info != NULL) {
+            helper_prototypes = general_program_info->global_helper_prototype;
+            if (helper_prototypes == NULL) {
+                EBPF_LOG_MESSAGE(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "general_program_info->global_helper_prototype can not be NULL");
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+            for (uint32_t general_helper_index = 0;
+                 general_helper_index < general_helper_function_addresses->helper_function_count;
+                 general_helper_index++) {
+                total_helper_function_ids[index] = helper_prototypes[general_helper_index].helper_id;
+                total_helper_function_addresses->helper_function_address[index] =
+                    general_helper_function_addresses->helper_function_address[general_helper_index];
+                index++;
+            }
+        }
+
+        // Add program type specific helpers from extension.
         if (helper_function_addresses != NULL) {
             helper_prototypes = program_info->program_type_specific_helper_prototype;
             if (helper_prototypes == NULL) {
@@ -1284,12 +1347,13 @@ _ebpf_program_update_jit_helpers(
                  program_helper_index < helper_function_addresses->helper_function_count;
                  program_helper_index++) {
                 total_helper_function_ids[index] = helper_prototypes[program_helper_index].helper_id;
-                total_helper_function_addresses->helper_function_address[program_helper_index] =
+                total_helper_function_addresses->helper_function_address[index] =
                     helper_function_addresses->helper_function_address[program_helper_index];
                 index++;
             }
         }
 
+        // Add global helper overrides from extension LAST (these override ebpfcore defaults).
         if (global_helper_function_addresses != NULL) {
             helper_prototypes = program_info->global_helper_prototype;
             if (helper_prototypes == NULL) {
@@ -1314,7 +1378,7 @@ _ebpf_program_update_jit_helpers(
 
         return_value = ebpf_update_trampoline_table(
             program->trampoline_table,
-            (uint32_t)total_helper_count,
+            (uint32_t)index, // Use actual count of helpers added
             total_helper_function_ids,
             total_helper_function_addresses);
         if (return_value != EBPF_SUCCESS) {
@@ -1542,6 +1606,14 @@ ebpf_program_invoke(
         return EBPF_EXTENSION_FAILED_TO_LOAD;
     }
 
+    // Check if helpers are ready (trampoline table is populated).
+    // This prevents invocation during the window between extension_program_data being set
+    // and the trampoline table being populated.
+    if (!program->helpers_ready) {
+        *result = 0;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
@@ -1682,7 +1754,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     EBPF_LOG_ENTRY();
 
     bool provider_data_referenced = false;
-    bool use_trampoline = false;
     bool found = false;
 
     if (ebpf_program_reference_providers((ebpf_program_t*)program) != EBPF_SUCCESS) {
@@ -1696,18 +1767,9 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     }
     provider_data_referenced = true;
 
-    use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
-    if (use_trampoline && !program->trampoline_table) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "The trampoline table is not initialized for JIT program");
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
     // First check the trampoline table for the helper function.
-    if (use_trampoline) {
+    // Only use trampoline for JIT mode - interpret mode needs direct addresses.
+    if (program->trampoline_table && program->parameters.code_type != EBPF_CODE_EBPF) {
         return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
         if (return_value == EBPF_SUCCESS) {
             helper_function_address_t local_address = {0};
@@ -1718,8 +1780,8 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
         }
     }
 
+    // Check the program data for the helper function if not found in the trampoline table.
     if (!found) {
-        // If the helper function is not found in the trampoline table, then get the address from the program data.
         helper_function_address_t local_address = {0};
         if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
             function_address = (uint64_t*)local_address.address;
@@ -1776,6 +1838,7 @@ Exit:
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_helper_function_ids(
     _Inout_ ebpf_program_t* program,
+    ebpf_code_type_t code_type,
     const size_t helper_function_count,
     _In_reads_(helper_function_count) const uint32_t* helper_function_ids)
 {
@@ -1810,6 +1873,31 @@ ebpf_program_set_helper_function_ids(
 
     for (size_t index = 0; index < helper_function_count; index++) {
         program->helper_function_ids[index] = helper_function_ids[index];
+    }
+
+    // For JIT mode, allocate and initialize the trampoline table now.
+    // This allows us to return stable trampoline entry addresses to the caller,
+    // even before the extension provider attaches and provides actual helper addresses.
+    // We put ALL helpers in the trampoline table because:
+    // 1. Program-type-specific helpers (ID > EBPF_MAX_GENERAL_HELPER_FUNCTION) are always from extensions
+    // 2. Global helpers (ID <= EBPF_MAX_GENERAL_HELPER_FUNCTION) may be overridden by extensions
+    // Since we don't know at this point which global helpers will be overridden, we trampoline all of them.
+    // For native code, trampolines are not needed as the code is compiled directly with the helper addresses.
+    if (code_type == EBPF_CODE_JIT) {
+        if (!program->trampoline_table && helper_function_count > 0) {
+            result = ebpf_allocate_trampoline_table(helper_function_count, &program->trampoline_table);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            result = ebpf_initialize_trampoline_table(
+                program->trampoline_table, (uint32_t)helper_function_count, helper_function_ids);
+            if (result != EBPF_SUCCESS) {
+                ebpf_free_trampoline_table(program->trampoline_table);
+                program->trampoline_table = NULL;
+                goto Exit;
+            }
+        }
     }
 
     program->helper_ids_set = true;
