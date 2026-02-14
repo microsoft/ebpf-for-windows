@@ -450,10 +450,23 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][int] $TestHangTimeout = (120*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
-          [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
+          [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
 
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    if ($RestartEbpfCore) {
+        Write-Log "Executing eBPF core restart stress test."
+
+        $LASTEXITCODE = 0
+
+        $TestCommand = ".\ebpf_restart_test_controller.exe"
+        Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+
+        Pop-Location
+        return
+    }
 
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
 

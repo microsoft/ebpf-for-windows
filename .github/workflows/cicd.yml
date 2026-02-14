@@ -669,7 +669,7 @@ jobs:
     with:
       name: km_ebpfcore_restart_test
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\ebpf_restart_test_controller.exe
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
