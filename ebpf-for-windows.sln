@@ -415,9 +415,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ubpf_fuzzer", "ubpf_fuzzer"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ubpf", "external\ubpf\build_fuzzer\vm\ubpf.vcxproj", "{2BAF5286-CE10-3554-9046-93EC88512D0B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpfverifier", "external\ubpf\build_fuzzer\external\ebpf-verifier\ebpfverifier.vcxproj", "{55FF9B28-F3A2-465B-9E35-D154F2380581}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prevail", "external\ubpf\build_fuzzer\external\ebpf-verifier\prevail.vcxproj", "{55FF9B28-F3A2-465B-9E35-D154F2380581}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbtf", "external\ubpf\build_fuzzer\external\ebpf-verifier\external\libbtf\libbtf\libbtf.vcxproj", "{8871710B-3DCA-3A66-97BD-659E2E33CFE5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbtf", "external\ubpf\build_fuzzer\external\ebpf-verifier\libbtf\libbtf\libbtf.vcxproj", "{8871710B-3DCA-3A66-97BD-659E2E33CFE5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win-c", "external\ubpf\build_fuzzer\vm\compat\libraries\win-c\win-c.vcxproj", "{BC776A96-A571-33B1-9EC3-697DFBEEBDB3}"
 EndProject
