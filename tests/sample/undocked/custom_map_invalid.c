@@ -1,9 +1,9 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-// clang -O2 -Werror -c divide_by_zero.c -o divide_by_zero_jit.o
+// clang -O2 -Werror -c custom_map_invalid.c -o custom_map_invalid_jit.o
 //
-// For bpf code: clang -target bpf -O2 -Werror -c divide_by_zero.c -o divide_by_zero.o
+// For bpf code: clang -target bpf -O2 -Werror -c custom_map_invalid.c -o custom_map_invalid.o
 // this passes the checker
 
 // Whenever this sample program changes, bpf2c_tests will fail unless the
