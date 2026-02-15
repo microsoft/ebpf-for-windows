@@ -286,7 +286,7 @@ typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
 typedef struct _ebpf_base_map_provider_properties
 {
     ebpf_extension_header_t header;
-    bool updates_original_value; // Whether the map supports lookup from BPF programs.
+    bool updates_original_value; // Whether the provider updates the original value during map operations, which controls whether BPF programs can perform map CRUD operations.
 } ebpf_base_map_provider_properties_t;
 
 /**
