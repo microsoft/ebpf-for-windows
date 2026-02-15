@@ -4,6 +4,7 @@
 
 #include <crtdbg.h>
 #include <csignal>
+#include <exception>
 #include <iostream>
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include <Windows.h>
@@ -44,6 +45,17 @@ class _wer_report
         char* buffer = nullptr;
         size_t size = 0;
 
+        // Always redirect CRT error output to STDERR so it's captured in CI logs.
+        // This is safe even when WER reporting is disabled.
+        _set_error_mode(_OUT_TO_STDERR);
+
+        // Route debug CRT report output (assertions, runtime errors) to STDERR instead
+        // of message boxes / debugger output.
+        _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+        _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+
         // Check if the EBPF_ENABLE_WER_REPORT is set to "yes".
         _dupenv_s(&buffer, &size, environment_variable_name);
         if (size == 0 || !buffer || _stricmp(environment_variable_value, buffer) != 0) {
@@ -52,10 +64,6 @@ class _wer_report
         }
         free(buffer);
 
-        // Redirect error output to STDERR so that it is captured in the console
-        // when running in CI/CD.
-        _set_error_mode(_OUT_TO_STDERR);
-
         // Add a hook to generate WER report on failed assertions and other
         //  failures raised by MSVC runtime.
         _CrtSetReportHook(_terminate_hook);
@@ -63,6 +71,10 @@ class _wer_report
         // Add a hook to generate WER report on noexcept violations and other
         // cases where the CRT calls std::abort().
         signal(SIGABRT, signal_handler);
+
+        // Catch std::terminate() so we can record a dump even when the process
+        // would otherwise exit without an SEH exception.
+        _previous_terminate_handler = std::set_terminate(_terminate_handler);
 
         // Reserve stack space for WER report generation.
         if (!SetThreadStackGuarantee(&guaranteed_stack_size)) {
@@ -78,6 +90,11 @@ class _wer_report
     {
         if (vectored_exception_handler_handle)
             RemoveVectoredExceptionHandler(vectored_exception_handler_handle);
+
+        if (_previous_terminate_handler) {
+            std::set_terminate(_previous_terminate_handler);
+            _previous_terminate_handler = nullptr;
+        }
     }
 
   private:
@@ -94,7 +111,8 @@ class _wer_report
         std::cerr << message;
         std::cerr.flush();
 
-        // Convert a CRT runtime error into a SEH exception.
+        // Convert a CRT runtime error into a SEH exception so Windows Error Reporting
+        // (LocalDumps) can capture a dump in CI.
         RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
         return 0;
     }
@@ -102,6 +120,13 @@ class _wer_report
     static void __cdecl signal_handler(int)
     {
         // Convert a SIGABRT signal into a SEH exception.
+        RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
+    }
+
+    static void
+    _terminate_handler()
+    {
+        std::cerr << "std::terminate() invoked" << std::endl;
         RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
     }
 
@@ -165,6 +190,7 @@ class _wer_report
         return EXCEPTION_CONTINUE_SEARCH;
     }
     void* vectored_exception_handler_handle;
+    std::terminate_handler _previous_terminate_handler = nullptr;
 };
 
 inline _wer_report _wer_report_singleton;

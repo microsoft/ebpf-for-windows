@@ -1379,6 +1379,9 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
     // failing.
     ubpf_toggle_bounds_check(program->code_or_vm.vm, false);
 
+    // Disable read-only bytecode feature as it uses mmap which is not available in kernel mode.
+    ubpf_toggle_readonly_bytecode(program->code_or_vm.vm, false);
+
     ubpf_set_error_print(program->code_or_vm.vm, ebpf_log_function);
 
     program->helper_function_addresses_changed_callback = _ebpf_program_update_interpret_helpers;

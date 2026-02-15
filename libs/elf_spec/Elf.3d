@@ -236,6 +236,22 @@ casetype _PROGRAM_HEADER_TABLE_OPT (UINT16 PhNum,
 
 #define SH_NOBITS        8
 
+//
+// Relocation section types that require entry size validation.
+//
+
+#define SHT_RELA         4
+#define SHT_REL          9
+
+//
+// Minimum entry sizes for relocation sections (64-bit ELF).
+// Elf64_Rel  = 16 bytes (r_offset + r_info)
+// Elf64_Rela = 24 bytes (r_offset + r_info + r_addend)
+//
+
+#define SIZEOF_ELF64_REL   16
+#define SIZEOF_ELF64_RELA  24
+
 /*
 
   Type for the Section Header table entry.
@@ -260,7 +276,18 @@ typedef struct _SECTION_HEADER_TABLE_ENTRY (UINT16 ShNum,
   ADDRESS       SH_ADDR;
 
   OFFSET        SH_OFFSET;
-  UINT64        SH_SIZE        { SH_TYPE == SH_NOBITS || (SH_SIZE <= ElfFileSize && SH_OFFSET <= ElfFileSize - SH_SIZE) };
+
+  //
+  // For relocation sections with data (SH_SIZE > 0), the offset must be
+  // within the file and must point past the ELF header (offset > 0).
+  // This prevents null pointer dereference when ELFIO's get_data()
+  // returns nullptr for sections with SH_OFFSET == 0.
+  //
+
+  UINT64        SH_SIZE
+    { SH_TYPE == SH_NOBITS ||
+      ((SH_SIZE <= ElfFileSize && SH_OFFSET <= ElfFileSize - SH_SIZE) &&
+       ((SH_TYPE != SHT_REL && SH_TYPE != SHT_RELA) || SH_SIZE == 0 || SH_OFFSET > 0)) };
 
   // It is another index in the Section Header Table.
 
@@ -269,7 +296,18 @@ typedef struct _SECTION_HEADER_TABLE_ENTRY (UINT16 ShNum,
   UINT32        SH_INFO;
 
   UINT64        SH_ADDRALIGN;
-  UINT64        SH_ENTSIZE;
+
+  //
+  // Validate SH_ENTSIZE for relocation sections:
+  // - SHT_REL sections must have SH_ENTSIZE >= sizeof(Elf64_Rel) = 16 bytes
+  // - SHT_RELA sections must have SH_ENTSIZE >= sizeof(Elf64_Rela) = 24 bytes
+  // - SH_SIZE must be a multiple of SH_ENTSIZE so sections consist of whole entries
+  //
+
+  UINT64        SH_ENTSIZE
+    { (SH_TYPE != SHT_REL && SH_TYPE != SHT_RELA) ||
+      (SH_TYPE == SHT_REL && SH_ENTSIZE >= SIZEOF_ELF64_REL && (SH_SIZE == 0 || SH_SIZE % SH_ENTSIZE == 0)) ||
+      (SH_TYPE == SHT_RELA && SH_ENTSIZE >= SIZEOF_ELF64_RELA && (SH_SIZE == 0 || SH_SIZE % SH_ENTSIZE == 0)) };
 } SECTION_HEADER_TABLE_ENTRY;
 
 
