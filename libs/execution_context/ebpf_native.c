@@ -2037,11 +2037,12 @@ ebpf_native_load(
 
     ebpf_result_t native_load_result = ebpf_native_load_driver(local_service_name);
     if (native_load_result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_WSTRING(
+        EBPF_LOG_MESSAGE_WSTRING_ERROR(
             EBPF_TRACELOG_LEVEL_WARNING,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_driver failed",
-            local_service_name);
+            local_service_name,
+            native_load_result);
     }
 
     // Find the native entry in hash table.
