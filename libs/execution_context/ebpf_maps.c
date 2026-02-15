@@ -1149,7 +1149,6 @@ _initialize_hash_map_internal(
     _Inout_ ebpf_core_map_t* map)
 {
     ebpf_result_t retval;
-    // ebpf_core_map_t* local_map = NULL;
 
     map->ebpf_map_definition = *map_definition;
     map->data = NULL;
@@ -4133,7 +4132,7 @@ static ebpf_map_type_t _supported_base_map_types[] = {BPF_MAP_TYPE_HASH};
 /**
  * @brief custom map structure with NMR client components.
  */
-__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_custom_map
+typedef struct _ebpf_custom_map
 {
     ebpf_core_map_t core_map; // Base map structure
 
@@ -4147,7 +4146,7 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_custom_map
     size_t actual_value_size;
     uint32_t provider_flags;
     EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
-    uint32_t padding[8];                       // Padding to make structure size multiple of cache line size
+    // uint32_t padding[8];                       // Padding to make structure size multiple of cache line size
 } ebpf_custom_map_t;
 
 static ebpf_map_client_data_t _ebpf_custom_map_client_data = {
@@ -4201,7 +4200,7 @@ _ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_custom_map_t* map)
     ebpf_lock_destroy(&map->lock);
     ebpf_free_cache_aligned(map->provider_dispatch);
     ebpf_free(map->core_map.name.value);
-    ebpf_free(map);
+    ebpf_free_cache_aligned(map);
 }
 
 typedef struct _ebpf_custom_map_operation_context
@@ -4429,7 +4428,8 @@ ebpf_custom_map_create(
     }
 
     // Allocate custom map
-    custom_map = (ebpf_custom_map_t*)ebpf_allocate_with_tag(sizeof(ebpf_custom_map_t), EBPF_POOL_TAG_CUSTOM_MAP);
+    custom_map =
+        (ebpf_custom_map_t*)ebpf_allocate_cache_aligned_with_tag(sizeof(ebpf_custom_map_t), EBPF_POOL_TAG_CUSTOM_MAP);
     if (!custom_map) {
         result = EBPF_NO_MEMORY;
         goto Done;

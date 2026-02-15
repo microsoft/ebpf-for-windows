@@ -12,7 +12,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
-#include "sample_ext_maps.h"
 #include "sample_ext_program_info.h"
 
 #define EBPF_SAMPLE_MAP_PROVIDER_GUID                                                  \

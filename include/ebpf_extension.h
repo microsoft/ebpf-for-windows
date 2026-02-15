@@ -274,7 +274,8 @@ typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
 /**
  * @brief Associate a program type with the map, which allows the map to be used by programs of that type.
  *
- * @param[in] map The eBPF map to query.
+ * @param[in] binding_context The binding context provided when the map provider was bound.
+ * @param[in] map_context The eBPF map context.
  * @param[in] program_type The program type.
  *
  * @retval EBPF_SUCCESS The operation was successful.
