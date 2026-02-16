@@ -2082,6 +2082,8 @@ _update_entry_per_cpu(
 {
 
     ebpf_assert(map->properties != NULL);
+    __analysis_assume(map->properties != NULL);
+
     uint8_t* target;
     if (map->properties->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
         ebpf_result_t return_value = map->properties->update_entry(map, key, NULL, option);
@@ -2378,7 +2380,9 @@ _map_async_query(
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map->properties != NULL);
+    __analysis_assume(map->properties != NULL);
     ebpf_assert(map->properties->query_ring_buffer != NULL);
+    __analysis_assume(map->properties->query_ring_buffer != NULL);
 
     ebpf_result_t result = EBPF_PENDING;
 
@@ -2440,7 +2444,10 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(map->properties != NULL);
+    __analysis_assume(map->properties != NULL);
     ebpf_assert(map->properties->query_ring_buffer != NULL);
+    __analysis_assume(map->properties->query_ring_buffer != NULL);
+
     // Skip if no async_contexts have ever been queued.
     if (!async_contexts->trip_wire) {
         return;
@@ -3396,7 +3403,9 @@ static _Must_inspect_result_ ebpf_result_t
 _ebpf_map_metadata_table_add(
     _In_ const ebpf_map_type_t type, _In_ const ebpf_map_metadata_table_properties_t* properties)
 {
-    ebpf_assert(_ebpf_map_type_metadata_table != NULL);
+    if (_ebpf_map_type_metadata_table == NULL) {
+        return EBPF_INVALID_STATE;
+    }
     const ebpf_map_metadata_table_properties_t* value = properties;
     return ebpf_hash_table_update(
         _ebpf_map_type_metadata_table,
@@ -3588,7 +3597,6 @@ ebpf_map_find_entry(
 
     if (MAP_IS_CUSTOM(map)) {
         return ebpf_custom_map_find_entry(map, key_size, key, value_size, value, flags);
-        ;
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
@@ -4284,8 +4292,7 @@ _ebpf_custom_map_delete_hash_map(_Inout_ ebpf_custom_map_t* map)
 }
 
 static ebpf_result_t
-_ebpf_custom_map_find_hash_map_entry(
-    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+_ebpf_custom_map_find_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _Outptr_ uint8_t** data)
 {
     uint8_t* value = NULL;
     if (!map || !key) {
@@ -4295,15 +4302,6 @@ _ebpf_custom_map_find_hash_map_entry(
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
-
-    if (delete_on_success) {
-        // Delete is atomic.
-        // Only return value if both find and delete succeeded.
-        if (_delete_hash_map_entry(map, key) != EBPF_SUCCESS) {
-            value = NULL;
-        }
-    }
-
     *data = value;
 
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
@@ -4739,7 +4737,7 @@ _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* ke
 
     if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
         // Find the entry in the hash table first.
-        result = _ebpf_custom_map_find_hash_map_entry(core_map, key, false, &data);
+        result = _ebpf_custom_map_find_hash_map_entry(core_map, key, &data);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -4778,8 +4776,7 @@ ebpf_custom_map_find_entry(
 
     if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
         // Find the entry in the hash table first.
-        result = _ebpf_custom_map_find_hash_map_entry(
-            &custom_map->core_map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &data);
+        result = _ebpf_custom_map_find_hash_map_entry(&custom_map->core_map, key, &data);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -4821,8 +4818,12 @@ ebpf_custom_map_find_entry(
     }
 
     if ((flags & EBPF_MAP_FIND_FLAG_DELETE)) {
-        // The entry has been deleted from the hash map.
-        memcpy(data, value, min(value_size, map->ebpf_map_definition.value_size));
+        if (custom_map->base_map_type == BPF_MAP_TYPE_HASH) {
+            result = ebpf_custom_map_delete_entry(map, key_size, key, flags);
+            if (result != EBPF_SUCCESS) {
+                return result;
+            }
+        }
     }
 
     // If it is a helper function call, return the pointer to the original data. Otherwise, copy the data to the output

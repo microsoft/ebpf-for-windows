@@ -3810,6 +3810,23 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result == 0), custom_map_fd);
     }
 
+    // Lookup and delete elements using bpf_map_lookup_and_delete_elem, and validate values.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = 0;
+        result = bpf_map_lookup_and_delete_elem(custom_map_fd, &key, &value);
+        require_and_close((result == 0), custom_map_fd);
+        require_and_close((value == i + 100), custom_map_fd);
+    }
+
+    // Re-insert the elements again for next tests.
+    for (uint32_t i = 0; i < map_size; i++) {
+        uint32_t key = i;
+        uint32_t value = i + 100;
+        result = bpf_map_update_elem(custom_map_fd, &key, &value, 0);
+        require_and_close((result == 0), custom_map_fd);
+    }
+
     // Test bpf_map_get_next_key on custom map.
     uint32_t next_key = 0;
     uint32_t count = 0;
