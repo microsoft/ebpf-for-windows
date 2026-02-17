@@ -789,15 +789,26 @@ function Create-VM {
 .PARAMETER VMSetupScript
     The path to the setup script to execute on the VM. Defaults to '.\configure_vm.ps1'.
 
+.PARAMETER FilesToCopy
+    An optional array of hashtables specifying files to copy to the VM before checkpointing.
+    Each hashtable should have 'Source' (host path) and 'Destination' (VM path) keys.
+
 .EXAMPLE
     Initialize-VM -VmName "MyVM" -VMCpuCount 4
+
+.EXAMPLE
+    $files = @(
+        @{ Source = 'C:\signed\bindmonitor_signed.sys'; Destination = 'C:\eBPF\bindmonitor_signed.sys' }
+    )
+    Initialize-VM -VmName "MyVM" -VMCpuCount 4 -FilesToCopy $files
 #>
 function Initialize-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
         [Parameter(Mandatory=$True)][int]$VMCpuCount,
         [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
-        [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1'
+        [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1',
+        [Parameter(Mandatory=$False)][array]$FilesToCopy=@()
     )
 
     try {
@@ -826,6 +837,20 @@ function Initialize-VM {
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
         Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+
+        # Copy any additional files to the VM before checkpointing.
+        if ($FilesToCopy.Count -gt 0) {
+            Write-Log "Copying $($FilesToCopy.Count) additional file(s) to VM: $VmName"
+            foreach ($file in $FilesToCopy) {
+                if (Test-Path $file.Source) {
+                    Write-Log "Copying $($file.Source) to $($file.Destination) on $VmName"
+                    Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $file.Source -DestinationPath $file.Destination -CreateFullPath -Force
+                    Write-Log "Successfully copied $($file.Source) to $VmName"
+                } else {
+                    Write-Log "Warning: Source file not found: $($file.Source)" -ForegroundColor Yellow
+                }
+            }
+        }
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
         for ($i = 0; $i -lt 5; $i += 1) {

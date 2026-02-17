@@ -92,9 +92,6 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalDependencies>ws2_32.lib;Secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)packages\AzureEdgeAndPlatform.EdgeOS.eBPFForWindows.samples.bindmonitor.$(Platform).Debug.1.0.0-58f638a\content\$(Platform)\bindmonitor.sys" "$(OutDir)bindmonitor_signed.sys*" /F /Y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <ClCompile>
@@ -107,9 +104,6 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalDependencies>ws2_32.lib;Secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)packages\AzureEdgeAndPlatform.EdgeOS.eBPFForWindows.samples.bindmonitor.$(Platform).Debug.1.0.0-58f638a\content\$(Platform)\bindmonitor.sys" "$(OutDir)bindmonitor_signed.sys*" /F /Y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <ClCompile>
@@ -122,9 +116,6 @@
       <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalDependencies>ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)packages\AzureEdgeAndPlatform.EdgeOS.eBPFForWindows.samples.bindmonitor.$(Platform).Debug.1.0.0-58f638a\content\$(Platform)\bindmonitor.sys" "$(OutDir)bindmonitor_signed.sys*" /F /Y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -140,9 +131,6 @@
       <AdditionalDependencies>ws2_32.lib;Secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration />
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)packages\AzureEdgeAndPlatform.EdgeOS.eBPFForWindows.samples.bindmonitor.$(Platform).1.0.0-58f638a\content\$(Platform)\bindmonitor.sys" "$(OutDir)bindmonitor_signed.sys*" /F /Y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
@@ -159,9 +147,6 @@
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)packages\AzureEdgeAndPlatform.EdgeOS.eBPFForWindows.samples.bindmonitor.$(Platform).1.0.0-58f638a\content\$(Platform)\bindmonitor.sys" "$(OutDir)bindmonitor_signed.sys*" /F /Y</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="api_test.cpp" />
