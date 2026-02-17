@@ -4781,12 +4781,7 @@ ebpf_custom_map_find_entry(
             return result;
         }
     } else {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Unsupported base map type for custom map",
-            custom_map->base_map_type);
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        __fastfail(FAST_FAIL_INVALID_ARG);
     }
 
     // Get provider dispatch.

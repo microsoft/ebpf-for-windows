@@ -14,11 +14,6 @@
 
 #define BPF_ENUM_TO_STRING(X) #X
 
-/**
- * @brief eBPF map type.
- * Global map types are defined in the range 1-4095.  The range 4096-65535 is reserved
- * for extensible map types.
- */
 typedef enum bpf_map_type
 {
     BPF_MAP_TYPE_UNSPEC = 0, ///< Unspecified map type.
