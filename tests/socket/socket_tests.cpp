@@ -28,6 +28,7 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <tuple>
 #include <variant>
 using namespace std::chrono_literals;
@@ -2049,16 +2050,31 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
     _update_map_entry_multi_attach(
         map_fd, address_family, htons(destination_port), htons(destination_port), IPPROTO_UDP, true);
 
+    fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
+
     while (!token.stop_requested()) {
         // Attach and detach the program in a loop.
-        int result = bpf_prog_attach(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        SAFE_REQUIRE(result == 0);
+        int result = bpf_prog_attach(prog_fd, compartment_id, attach_type, 0);
+        if (result != 0) {
+            int saved_errno = errno;
+            std::ostringstream oss;
+            oss << "ATTACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+                << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " result=" << result
+                << " errno=" << saved_errno << " iteration=" << count;
+            throw test_failure(oss.str());
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, attach_type);
-        SAFE_REQUIRE(result == 0);
+        result = bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+        if (result != 0) {
+            int saved_errno = errno;
+            std::ostringstream oss;
+            oss << "DETACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+                << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " result=" << result
+                << " errno=" << saved_errno << " iteration=" << count;
+            throw test_failure(oss.str());
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -2093,11 +2109,18 @@ thread_function_allow_block_connection(
     // Load the program.
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
-    // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
-    int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
+    fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
 
-    SAFE_REQUIRE(result == 0);
+    // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
+    int result = bpf_prog_attach(prog_fd, compartment_id, attach_type, 0);
+    if (result != 0) {
+        int saved_errno = errno;
+        std::ostringstream oss;
+        oss << "ALLOW_BLOCK ATTACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+            << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " protocol=" << protocol
+            << " result=" << result << " errno=" << saved_errno;
+        throw test_failure(oss.str());
+    }
 
     // Configure policy map to allow the connection.
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
