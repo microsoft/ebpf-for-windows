@@ -333,7 +333,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "usersim", "external\usersim
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbtf", "external\ebpf-verifier\build\external\libbtf\libbtf\libbtf.vcxproj", "{CDAF684D-2751-3403-9AC7-6D453187C3C5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libbtf", "external\ebpf-verifier\build\libbtf\libbtf\libbtf.vcxproj", "{CDAF684D-2751-3403-9AC7-6D453187C3C5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
