@@ -636,7 +636,7 @@ ebpf_verify_sys_file_signature(
             KEY_READ,
             &parameters_key);
         if (reg_result == EBPF_SUCCESS) {
-            ebpf_read_registry_value_dword(
+            (void)ebpf_read_registry_value_dword(
                 parameters_key,
                 EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
                 &proof_of_verification_value);
