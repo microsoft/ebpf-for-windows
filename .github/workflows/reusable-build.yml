@@ -99,7 +99,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e3f713f2d8f53843e71c69a996d56f51aa9adfb9  # v2.14.1
+        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e  # v2.14.2
         with:
           egress-policy: audit
 
@@ -137,7 +137,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/init@b20883b0cd1f46c72ae0ba6d1090936928f9fa30
+        uses: github/codeql-action/init@9e907b5e64f6b83e7804b09294d44122997950d6
         with:
           languages: 'cpp'
 
@@ -146,27 +146,53 @@ jobs:
         with:
           msbuild-architecture: x64
 
-      - name: Cache chocolatey packages
+      - name: Cache LLVM 18.1.8 installer
         if: steps.skip_check.outputs.should_skip != 'true'
+        id: cache-llvm
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
-        env:
-          cache-name: cache-choco-packages
         with:
-          path: C:\ProgramData\chocolatey
-          key: ${{ runner.os }}-choco-llvm-18.1.8
+          path: ${{ runner.temp }}\llvm-installer
+          key: ${{ runner.os }}-llvm-18.1.8-installer
+
+      - name: Download LLVM 18.1.8 installer
+        if: steps.skip_check.outputs.should_skip != 'true' && steps.cache-llvm.outputs.cache-hit != 'true'
+        run: |
+          $installerDir = "${{ runner.temp }}\llvm-installer"
+          New-Item -ItemType Directory -Force -Path $installerDir | Out-Null
+          $installerPath = "$installerDir\LLVM-18.1.8-win64.exe"
+          $url = "https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe"
+          Write-Host "Downloading LLVM 18.1.8 from $url"
+          Invoke-WebRequest -Uri $url -OutFile $installerPath -UseBasicParsing
+          Write-Host "Downloaded LLVM installer to $installerPath"
+
+      - name: Verify LLVM installer hash
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-18.1.8-win64.exe"
+          $expectedHash = "94af030060d88cc17e9f00ef1663ebdc1126b35e16bebdfa1e807984b70abd8f"
+          $actualHash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
+          Write-Host "Expected SHA256: $expectedHash"
+          Write-Host "Actual SHA256:   $actualHash"
+          if ($actualHash -ne $expectedHash) {
+            throw "LLVM installer hash mismatch! Expected $expectedHash but got $actualHash"
+          }
+          Write-Host "Hash verification passed"
 
       - name: Install LLVM 18.1.8
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
-          # Install LLVM 18.1.8 to ensure consistent version across runners
-          try {
-            choco install llvm --version=18.1.8 --allow-downgrade -y --force
-            # Add installed LLVM to PATH first so it takes precedence
-            echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            Write-Host "Successfully installed LLVM 18.1.8"
-          } catch {
-            Write-Warning "Failed to install LLVM 18.1.8 via chocolatey: $($_.Exception.Message)"
-            Write-Host "Continuing with pre-installed LLVM version"
+          $installerPath = "${{ runner.temp }}\llvm-installer\LLVM-18.1.8-win64.exe"
+          $installDir = "C:\Program Files\LLVM"
+          # Run silent install
+          Write-Host "Installing LLVM 18.1.8 to $installDir"
+          Start-Process -FilePath $installerPath -ArgumentList "/S", "/D=$installDir" -Wait -NoNewWindow
+          # Verify installation
+          if (Test-Path "$installDir\bin\clang.exe") {
+            $version = & "$installDir\bin\clang.exe" --version | Select-Object -First 1
+            Write-Host "Successfully installed: $version"
+            echo "$installDir\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          } else {
+            throw "LLVM installation failed - clang.exe not found"
           }
 
       - name: Add Visual Studio LLVM to path
@@ -356,4 +382,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/analyze@b20883b0cd1f46c72ae0ba6d1090936928f9fa30
+        uses: github/codeql-action/analyze@9e907b5e64f6b83e7804b09294d44122997950d6
