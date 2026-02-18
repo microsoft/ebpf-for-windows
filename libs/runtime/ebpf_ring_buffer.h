@@ -69,8 +69,6 @@ ebpf_ring_buffer_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
 /**
  * @brief Get the shared producer page for the perf event array.
  *
- * TODO(before merge): should this be in a separate file?
- *
  * @param[in, out] ring_buffer Ring buffer to query.
  * @retval Pointer to the producer page, or NULL if not found.
  */
