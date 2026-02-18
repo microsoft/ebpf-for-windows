@@ -744,6 +744,16 @@ extern "C"
         volatile uint64_t lost_records;    ///< Number of lost records.
     } ebpf_perf_event_array_producer_page_t;
 
+    // Compile-time asserts: perf event array producer page must begin with ring buffer producer page layout.
+    static_assert(
+        offsetof(ebpf_perf_event_array_producer_page_t, producer_offset) ==
+            offsetof(ebpf_ring_buffer_producer_page_t, producer_offset),
+        "ebpf_perf_event_array_producer_page_t.producer_offset must be at the same offset as in "
+        "ebpf_ring_buffer_producer_page_t");
+    static_assert(
+        sizeof(ebpf_ring_buffer_producer_page_t) <= sizeof(ebpf_perf_event_array_producer_page_t),
+        "ebpf_perf_event_array_producer_page_t must be at least as large as ebpf_ring_buffer_producer_page_t");
+
     /**
      * @brief Ring buffer sample callback function type.
      * @param[in] ctx User-provided context.
