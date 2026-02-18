@@ -286,6 +286,33 @@ while(perf_buffer__poll(pb, -1) >= 0) {
 perf_buffer__free(pb);
 ```
 
+#### Per-CPU buffer consumer (linux-compatible)
+
+```c
+// Consumer code.
+fd_t map_fd = bpf_obj_get(perf_map_name.c_str());
+if (map_fd == ebpf_fd_invalid) return 1;
+
+struct perf_buffer *pb = perf_buffer__new(map_fd, 0, perf_buffer_sample_fn, perf_buffer_lost_fn, nullptr, nullptr);
+if (pb == NULL) return 1;
+
+// Get the number of per-CPU buffers.
+size_t buffer_count = perf_buffer__buffer_cnt(pb);
+
+// Process records from specific CPU buffers.
+for (size_t i = 0; i < buffer_count; i++) {
+    int result = perf_buffer__consume_buffer(pb, i);
+    if (result < 0) {
+        // Error occurred processing this buffer.
+        continue;
+    }
+    // Records from CPU i were processed by callback.
+    // Note: instead of a loop, separate per-CPU consumer threads could be used to minimize contention.
+}
+
+perf_buffer__free(pb);
+```
+
 #### Asynchronous perf buffer consumer (Windows-specific)
 
 ```c
@@ -354,32 +381,6 @@ while (true) {
         // Wait failed or was abandoned
         break;
     }
-}
-
-perf_buffer__free(pb);
-```
-
-#### Per-CPU buffer consumer
-
-```c
-// consumer code
-fd_t map_fd = bpf_obj_get(perf_map_name.c_str());
-if (map_fd == ebpf_fd_invalid) return 1;
-
-struct perf_buffer *pb = perf_buffer__new(map_fd, 0, perf_buffer_sample_fn, perf_buffer_lost_fn, nullptr, nullptr);
-if (pb == NULL) return 1;
-
-// Get the number of per-CPU buffers
-size_t buffer_count = perf_buffer__buffer_cnt(pb);
-
-// Process records from specific CPU buffers
-for (size_t i = 0; i < buffer_count; i++) {
-    int result = perf_buffer__consume_buffer(pb, i);
-    if (result < 0) {
-        // Error occurred processing this buffer
-        continue;
-    }
-    // Records from CPU i were processed by callback
 }
 
 perf_buffer__free(pb);
