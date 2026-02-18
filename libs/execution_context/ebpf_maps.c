@@ -1678,6 +1678,14 @@ _find_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, 
         return EBPF_INVALID_ARGUMENT;
     }
 
+    if (IS_NESTED_HASH_MAP(map->ebpf_map_definition.type) && delete_on_success) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Lookup and delete not supported for nested hash map entries");
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     if (ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &value) != EBPF_SUCCESS) {
         value = NULL;
     }
