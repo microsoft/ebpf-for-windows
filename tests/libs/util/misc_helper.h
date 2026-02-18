@@ -57,6 +57,7 @@ struct scoped_cpu_affinity
      */
     scoped_cpu_affinity(uint32_t i) : thread_handle(GetCurrentThread())
     {
+        REQUIRE(i < (8 * sizeof(DWORD_PTR)));
         original_mask = SetThreadAffinityMask(thread_handle, (1ULL << i));
         REQUIRE(original_mask != 0);
     }
@@ -74,6 +75,7 @@ struct scoped_cpu_affinity
     void
     switch_cpu(uint32_t i)
     {
+        REQUIRE(i < (8 * sizeof(DWORD_PTR)));
         DWORD_PTR previous_mask = SetThreadAffinityMask(thread_handle, (1ULL << i));
         REQUIRE(previous_mask != 0);
         if (original_mask == 0) {

@@ -1090,11 +1090,12 @@ perf_buffer__buffer_cnt(const struct perf_buffer* pb)
     }
 
     if (pb->is_async_mode) {
-        // For async mode, return the number of subscriptions.
-        return pb->subscriptions.size();
+        // Async mode creates a single subscription covering all CPUs.
+        // Return the number of per-CPU buffers (one per CPU).
+        return libbpf_num_possible_cpus();
     }
 
-    // For sync mode, return the number of mapped buffers.
+    // For sync mode, sync_maps has one entry per CPU.
     return pb->sync_maps.size();
 }
 
