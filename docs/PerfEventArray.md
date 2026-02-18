@@ -307,7 +307,6 @@ for (size_t i = 0; i < buffer_count; i++) {
         continue;
     }
     // Records from CPU i were processed by callback.
-    // Note: instead of a loop, separate per-CPU consumer threads could be used to minimize contention.
 }
 
 perf_buffer__free(pb);
