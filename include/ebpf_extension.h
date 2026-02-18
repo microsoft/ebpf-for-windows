@@ -180,6 +180,9 @@ typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post
 /**
  * @brief Find (lookup) an element in a provider-backed map.
  *
+ * If the provider does not update the original value, i.e. `updates_original_value` is set to false in
+ * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
+ *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
  * @param[in] key_size The size of the key in bytes.
@@ -210,6 +213,9 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
 /**
  * @brief Add or update (insert/replace) an element in a provider-backed map.
  *
+ * If the provider does not update the original value, i.e. `updates_original_value` is set to false in
+ * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
+ *
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The eBPF map context.
  * @param[in] key_size The size of the key in bytes.
@@ -218,7 +224,7 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
  * @param[in] in_value_size The size in bytes of the input value.
  * @param[in] in_value Pointer to the input value bytes.
  * @param[in] out_value_size The size in bytes of the destination (stored) value buffer.
- * @param[out] out_value Pointer to the destination (stored) value buffer to populate.
+ * @param[out] out_value Optional pointer to the destination (stored) value buffer to populate.
  * @param[in] flags Update flags. Supported values:
  *      EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program.
  *

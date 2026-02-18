@@ -4160,17 +4160,16 @@ typedef struct _ebpf_custom_map
 {
     ebpf_core_map_t core_map; // Base map structure
 
-    ebpf_lock_t lock;                                           // Synchronization lock
-    ebpf_base_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table
-    void* provider_context;                                     // Provider context returned during attach
+    ebpf_lock_t lock;                                           // Synchronization lock.
+    ebpf_base_map_provider_dispatch_table_t* provider_dispatch; // Provider dispatch table.
+    void* provider_context;                                     // Provider context returned during attach.
     NPI_CLIENT_CHARACTERISTICS client_characteristics;
     HANDLE nmr_client_handle;
     NPI_MODULEID module_id;
     ebpf_map_type_t base_map_type;
     size_t actual_value_size;
     uint32_t provider_flags;
-    EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access
-    // uint32_t padding[8];                       // Padding to make structure size multiple of cache line size
+    EX_RUNDOWN_REF provider_rundown_reference; // Synchronization for provider access.
 } ebpf_custom_map_t;
 
 static ebpf_map_client_data_t _ebpf_custom_map_client_data = {
