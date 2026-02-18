@@ -657,6 +657,28 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_fin
     }
 }
 
+static ebpf_result_t
+_enter_exit_epoch(_In_ const ebpf_base_map_client_dispatch_table_t* dispatch_table)
+{
+    epoch_state_t epoch_state;
+
+    // Enter epoch.
+    dispatch_table->epoch_enter(&epoch_state);
+
+    // Allocate some memory.
+    void* memory = dispatch_table->epoch_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
+    if (memory == nullptr) {
+        return EBPF_NO_MEMORY;
+    }
+
+    // Free the memory.
+    dispatch_table->epoch_free(memory);
+
+    // Exit epoch.
+    dispatch_table->epoch_exit(&epoch_state);
+    return EBPF_SUCCESS;
+}
+
 _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_update_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -674,6 +696,12 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_upd
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(flags);
+
+    // Validate epoch enter/exit APIs work by calling them directly.
+    ebpf_result_t result = _enter_exit_epoch(provider->dispatch_table());
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
 
     if (!provider->object_map()) {
         // Assert that out_value is NULL.

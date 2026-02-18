@@ -4138,6 +4138,8 @@ _ebpf_custom_map_find_element(_In_ const ebpf_map_t* map, _In_ const uint8_t* ke
 static ebpf_base_map_client_dispatch_table_t _ebpf_custom_map_client_dispatch_table = {
     EBPF_BASE_MAP_CLIENT_DISPATCH_TABLE_HEADER,
     _ebpf_custom_map_find_element,
+    ebpf_epoch_enter,
+    ebpf_epoch_exit,
     ebpf_epoch_allocate_with_tag,
     ebpf_epoch_allocate_cache_aligned_with_tag,
     ebpf_epoch_free,

@@ -12,6 +12,8 @@
 
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
 
+typedef uint64_t epoch_state_t[4];
+
 typedef struct _ebpf_extension_dispatch_table
 {
     uint16_t version; ///< Version of the dispatch table.
@@ -118,7 +120,7 @@ typedef struct _ebpf_attach_provider_data
  */
 typedef struct _ebpf_execution_context_state
 {
-    uint64_t epoch_state[4];
+    epoch_state_t epoch_state;
     union
     {
         uint64_t thread;
@@ -287,7 +289,8 @@ typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
 typedef struct _ebpf_base_map_provider_properties
 {
     ebpf_extension_header_t header;
-    bool updates_original_value; // Whether the provider updates the original value during map operations, which controls whether BPF programs can perform map CRUD operations.
+    bool updates_original_value; // Whether the provider updates the original value during map operations, which
+                                 // controls whether BPF programs can perform map CRUD operations.
 } ebpf_base_map_provider_properties_t;
 
 /**
@@ -313,7 +316,7 @@ typedef struct _ebpf_map_provider_dispatch_table
  *
  * @returns Pointer to memory block allocated, or null on failure.
  */
-typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_with_tag_t)(size_t size, uint32_t tag);
+typedef _Ret_writes_maybenull_(size) void* (*ebpf_epoch_allocate_with_tag_t)(size_t size, uint32_t tag);
 
 /**
  * @brief Allocate cache aligned memory under epoch control.
@@ -323,19 +326,31 @@ typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_with_tag_t)(size_t s
  *
  * @returns Pointer to memory block allocated, or null on failure.
  */
-typedef _Ret_writes_maybenull_(size) void* (*epoch_allocate_cache_aligned_with_tag_t)(size_t size, uint32_t tag);
+typedef _Ret_writes_maybenull_(size) void* (*ebpf_epoch_allocate_cache_aligned_with_tag_t)(size_t size, uint32_t tag);
 
 /**
  * @brief Free memory under epoch control.
  * @param[in] memory Allocation to be freed once epoch ends.
  */
-typedef void (*epoch_free_t)(_In_opt_ void* memory);
+typedef void (*ebpf_epoch_free_t)(_In_opt_ void* memory);
 
 /**
  * @brief Free memory under epoch control.
  * @param[in] memory Allocation to be freed once epoch ends.
  */
-typedef void (*epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
+typedef void (*ebpf_epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
+
+/**
+ * @brief Enter an epoch-protected region.
+ * @param[in] epoch_state Pointer to epoch state to be filled in. Its size should be at least sizeof(epoch_state_t).
+ */
+typedef void (*ebpf_epoch_enter_t)(_Out_ void* epoch_state);
+
+/**
+ * @brief Exit an epoch-protected region.
+ * @param[in] epoch_state Pointer to epoch state returned by epoch_enter_t.
+ */
+typedef void (*ebpf_epoch_exit_t)(_In_ void* epoch_state);
 
 /**
  * @brief Find an element in an eBPF map (client/runtime helper version).
@@ -354,18 +369,38 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
 /**
  * Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.
  *
- * Note: `find_element_function` can only be invoked in the context of a BPF program
+ * Notes:
+ *
+ * `find_element_function` can only be invoked in the context of a BPF program
  *       (i.e., when called from within a BPF helper function). Calling it from
  *       non-BPF program contexts may lead to use-after-free errors.
+ *
+ * Functions `epoch_enter` and `epoch_exit` allow a thread to enter and exit an epoch-protected region,
+ * which is necessary when calling the epoch memory operations. These functions are re-entrant, but should
+ * always be called in pairs.
+ *
+ * These are the epoch memory related functions exposed by eBPF runtime:
+ * - `epoch_allocate_with_tag`: Allocate memory under epoch control with tag.
+ * - `epoch_allocate_cache_aligned_with_tag`: Allocate cache aligned memory under epoch control with tag.
+ * - `epoch_free`: Free memory under epoch control.
+ * - `epoch_free_cache_aligned`: Free cache aligned memory under epoch control.
+ *
+ * The epoch memory related functions (epoch_allocate_with_tag, epoch_allocate_cache_aligned_with_tag, epoch_free,
+ * epoch_free_cache_aligned) can only be called from epoch-protected regions. Provider dispatch function invocations,
+ * and helper function invocations already are epoch-protected, hence these APIs can be directly called in those
+ * contexts. If the provider intends to use these APIs outside the above mentioned contexts, it must ensure that the
+ * calls are made within an epoch-protected region.
  */
 typedef struct _ebpf_map_client_dispatch_table
 {
     ebpf_extension_header_t header;
     ebpf_map_find_element_t find_element_function;
-    epoch_allocate_with_tag_t epoch_allocate_with_tag;
-    epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
-    epoch_free_t epoch_free;
-    epoch_free_cache_aligned_t epoch_free_cache_aligned;
+    ebpf_epoch_enter_t epoch_enter;
+    ebpf_epoch_exit_t epoch_exit;
+    ebpf_epoch_allocate_with_tag_t epoch_allocate_with_tag;
+    ebpf_epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
+    ebpf_epoch_free_t epoch_free;
+    ebpf_epoch_free_cache_aligned_t epoch_free_cache_aligned;
 } ebpf_base_map_client_dispatch_table_t;
 
 /**
