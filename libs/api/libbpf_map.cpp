@@ -1027,7 +1027,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
 {
     // For async mode, polling doesn't make sense since callbacks are automatic.
     if (!pb || pb->sync_maps.empty() || pb->is_async_mode) {
-        return -EINVAL;
+        return libbpf_err(-EINVAL);
     }
 
     // First we reset the event and process any immediately available records.
@@ -1036,7 +1036,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
     ResetEvent(reinterpret_cast<HANDLE>(pb->wait_handle));
     int result = perf_buffer__consume(pb);
     if (result != 0 || timeout_ms == 0) {
-        return result; // Return records found or error.
+        return result; // Return records found or error (errno set by perf_buffer__consume on error).
     }
 
     DWORD wait_result = WaitForSingleObject(
@@ -1044,7 +1044,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
     if (wait_result == WAIT_OBJECT_0) {
         result = perf_buffer__consume(pb);
     } else if (wait_result != WAIT_TIMEOUT) {
-        result = -EINVAL; // Failed to wait, return error.
+        result = libbpf_err(-EINVAL); // Failed to wait, return error.
     } // Else timeout occurred and we will return 0 (no records).
 
     return result;
@@ -1054,7 +1054,7 @@ int
 perf_buffer__consume(struct perf_buffer* pb)
 {
     if (!pb || pb->sync_maps.empty() || pb->is_async_mode) {
-        return -EINVAL;
+        return libbpf_err(-EINVAL);
     }
 
     int total_records = 0;
@@ -1062,7 +1062,7 @@ perf_buffer__consume(struct perf_buffer* pb)
     for (auto& map_info : pb->sync_maps) {
         int result = _process_ring_records(map_info); // Process all records.
         if (result < 0) {
-            return result; // Return error.
+            return libbpf_err(result); // Return error with errno set.
         }
         total_records += result;
     }
@@ -1074,12 +1074,12 @@ int
 perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
 {
     if (!pb || pb->is_async_mode || cpu >= pb->sync_maps.size()) {
-        return -EINVAL;
+        return libbpf_err(-EINVAL);
     }
 
     // Process available data from the specific CPU buffer.
     auto& map_info = pb->sync_maps[cpu];
-    return _process_ring_records(map_info); // Process all records.
+    return libbpf_err(_process_ring_records(map_info)); // Process all records, set errno on error.
 }
 
 size_t
@@ -1111,35 +1111,4 @@ ebpf_perf_buffer_get_wait_handle(_In_ struct perf_buffer* pb) EBPF_NO_EXCEPT
     }
 
     return pb->wait_handle;
-}
-
-_Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_perf_buffer_get_buffer(
-    _In_ struct perf_buffer* pb,
-    _In_ uint32_t index,
-    _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
-    _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
-    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
-    _Out_opt_ uint64_t* data_size) EBPF_NO_EXCEPT
-{
-    if (!pb || !consumer_page || !producer_page || !data || !data_size) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    if (pb->is_async_mode) {
-        // For async mode, direct buffer access isn't currently supported.
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    if (index >= pb->sync_maps.size()) {
-        return EBPF_OBJECT_NOT_FOUND;
-    }
-
-    // Return buffer info for the specified map (CPU).
-    const auto& map_info = pb->sync_maps[index];
-    *consumer_page = static_cast<ebpf_ring_buffer_consumer_page_t*>(map_info.consumer_page);
-    *producer_page = static_cast<const ebpf_ring_buffer_producer_page_t*>(map_info.producer_page);
-    *data = map_info.data;
-    *data_size = map_info.data_size;
-
-    return EBPF_SUCCESS;
 }
