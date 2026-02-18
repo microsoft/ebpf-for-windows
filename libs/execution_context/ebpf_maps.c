@@ -2436,7 +2436,7 @@ _query_perf_event_array_map(
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
-    ebpf_assert((uint32_t)index <= perf_event_array_map->ring_count);
+    ebpf_assert((uint32_t)index < perf_event_array_map->ring_count);
 
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[(uint32_t)index];
     ebpf_ring_buffer_query(ring->ring, &async_query_result->consumer, &async_query_result->producer);
