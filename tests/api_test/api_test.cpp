@@ -2261,7 +2261,7 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     native_helper.initialize("perf_event_burst", EBPF_EXECUTION_NATIVE);
 
     int result = program_load_helper(
-        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(object != nullptr);
     REQUIRE(program_fd > 0);
@@ -2400,6 +2400,110 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         REQUIRE(phase_failed_writes == phase_lost);
         REQUIRE(phase_events + phase_lost == phase_written);
         REQUIRE(phase_polled == phase_events);
+    }
+}
+
+// Test that BPF_F_INDEX_MASK (explicit CPU index in flags) works for perf_event_output.
+// The BPF program targets a specific CPU via flags; the test validates that:
+// 1. Writing to the current CPU (matching opts.cpu) succeeds and the event is consumable.
+// 2. Writing to a different CPU (mismatching opts.cpu) fails in the BPF program.
+TEST_CASE("perf_buffer_cpu_target", "[perf_buffer]")
+{
+    // Load native perf_event_cpu_target program.
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    native_module_helper_t native_helper;
+
+    native_helper.initialize("perf_event_cpu_target", EBPF_EXECUTION_NATIVE);
+
+    int result = program_load_helper(
+        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd > 0);
+
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer.
+    auto cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    struct bpf_map* target_map = bpf_object__find_map_by_name(object, "cpu_target_map");
+    REQUIRE(target_map != nullptr);
+    int map_fd = bpf_map__fd(target_map);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_helper helper;
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Prepare event data buffer (mutable for data_out).
+    const size_t event_data_size = 20;
+    std::vector<uint8_t> event_data(event_data_size);
+    for (size_t i = 0; i < event_data_size; i++) {
+        event_data[i] = static_cast<uint8_t>(i & 0xFF);
+    }
+    std::string expected_payload(event_data.begin(), event_data.end());
+
+    // Helper to invoke the BPF program targeting a specific CPU index.
+    // run_cpu: CPU to run the program on (opts.cpu).
+    // target_cpu_index: CPU index to pass to the BPF program as the perf_event_output flag.
+    auto invoke_program = [&](uint32_t run_cpu, uint32_t target_cpu_index) -> int32_t {
+        struct
+        {
+            EBPF_CONTEXT_HEADER;
+            sample_program_context_t context;
+        } ctx_header = {0};
+
+        ctx_header.context.uint32_data = target_cpu_index;
+        ctx_header.context.data_start = event_data.data();
+        ctx_header.context.data_end = event_data.data() + event_data.size();
+
+        bpf_test_run_opts opts = {0};
+        opts.sz = sizeof(opts);
+        opts.ctx_in = &ctx_header.context;
+        opts.ctx_size_in = sizeof(ctx_header);
+        opts.ctx_out = &ctx_header;
+        opts.ctx_size_out = sizeof(ctx_header);
+        opts.data_in = event_data.data();
+        opts.data_size_in = static_cast<uint32_t>(event_data.size());
+        opts.data_out = event_data.data();
+        opts.data_size_out = static_cast<uint32_t>(event_data.size());
+        opts.cpu = run_cpu;
+
+        int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
+        REQUIRE(invoke_result == 0);
+        return static_cast<int32_t>(opts.retval);
+    };
+
+    uint32_t target_cpu = 0;
+
+    // Test 1: Write to current CPU (matching) should succeed.
+    {
+        int32_t bpf_result = invoke_program(target_cpu, target_cpu);
+        REQUIRE(bpf_result == 0);
+
+        // Consume the event from the target CPU's buffer.
+        int consume_result = perf_buffer__consume_buffer(pb, target_cpu);
+        REQUIRE(consume_result == 1);
+
+        // Verify event data.
+        REQUIRE(helper.context.event_count == 1);
+        helper.validate_data({expected_payload});
+    }
+
+    // Test 2: Write to a different CPU (mismatching) should fail.
+    {
+        int cpu_count = libbpf_num_possible_cpus();
+        REQUIRE(cpu_count > 1);
+
+        // Target CPU 1, but run on CPU 0 — the write should fail.
+        uint32_t wrong_cpu = 1;
+        int32_t bpf_result = invoke_program(target_cpu, wrong_cpu);
+        REQUIRE(bpf_result != 0);
+
+        // No new events should have been written to either buffer.
+        REQUIRE(perf_buffer__consume_buffer(pb, target_cpu) == 0);
+        REQUIRE(perf_buffer__consume_buffer(pb, wrong_cpu) == 0);
     }
 }
 
