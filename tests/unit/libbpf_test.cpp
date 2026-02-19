@@ -1926,8 +1926,17 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
         REQUIRE(errno == ENOENT);
     }
 
-    // Try deleting outer key that does exist.
+    // Try calling bpf_map_lookup_and_delete_elem on existing key, it should fail.
     outer_key = 0;
+    error = bpf_map_lookup_and_delete_elem(outer_map_fd, &outer_key, &inner_map_id);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    // Lookup should still succeed, proving that the key wasn't deleted.
+    REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
+    REQUIRE(inner_map_id > 0);
+
+    // Try deleting outer key that does exist.
     error = bpf_map_delete_elem(outer_map_fd, &outer_key);
     REQUIRE(error == 0);
 
@@ -2300,7 +2309,7 @@ _test_enumerate_link_IDs_with_bpf(ebpf_execution_type_t execution_type)
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t)"MyPath";
+    attr.obj_pin.pathname = (uintptr_t) "MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
