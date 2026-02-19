@@ -377,25 +377,25 @@ typedef ebpf_result_t (*ebpf_map_find_element_t)(
  *
  * Notes:
  *
- * `find_element_function` can only be invoked in the context of a BPF program
- *       (i.e., when called from within a BPF helper function). Calling it from
- *       non-BPF program contexts may lead to use-after-free errors.
- *
  * Functions `epoch_enter` and `epoch_exit` allow a thread to enter and exit an epoch-protected region,
  * which is necessary when calling the epoch memory operations. These functions are re-entrant, but should
  * always be called in pairs.
  *
- * These are the epoch memory related functions exposed by eBPF runtime:
+ * Below is the list of epoch memory related functions exposed by eBPF runtime:
  * - `epoch_allocate_with_tag`: Allocate memory under epoch control with tag.
  * - `epoch_allocate_cache_aligned_with_tag`: Allocate cache aligned memory under epoch control with tag.
  * - `epoch_free`: Free memory under epoch control.
  * - `epoch_free_cache_aligned`: Free cache aligned memory under epoch control.
  *
- * The epoch memory related functions (epoch_allocate_with_tag, epoch_allocate_cache_aligned_with_tag, epoch_free,
- * epoch_free_cache_aligned) can only be called from epoch-protected regions. Provider dispatch function invocations,
- * and helper function invocations already are epoch-protected, hence these APIs can be directly called in those
- * contexts. If the provider intends to use these APIs outside the above mentioned contexts, it must ensure that the
- * calls are made within an epoch-protected region.
+ * Each of the above four functions MUST be called within an epoch-protected region (i.e., after ebpf_epoch_enter()
+ * and before ebpf_epoch_exit()). Failure to do so may lead to undefined behavior.
+ * Provider dispatch function invocations (defined in ebpf_base_map_provider_dispatch_table_t), and BPF helper function
+ * callbacks already are epoch-protected, hence these APIs can be directly called in those contexts. If the provider
+ * intends to use these APIs outside the above mentioned contexts, it must ensure that the calls are made within an
+ * epoch-protected region.
+ *
+ * Similarly, `find_element_function` can only be invoked in an epoch-protected region, as explained above. Calling it
+ * from outside an epoch-protected region may lead to undefined behavior.
  */
 typedef struct _ebpf_map_client_dispatch_table
 {
