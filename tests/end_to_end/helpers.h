@@ -660,6 +660,7 @@ _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_fin
 static ebpf_result_t
 _enter_exit_epoch(_In_ const ebpf_base_map_client_dispatch_table_t* dispatch_table)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     epoch_state_t epoch_state;
 
     // Enter epoch.
@@ -668,15 +669,15 @@ _enter_exit_epoch(_In_ const ebpf_base_map_client_dispatch_table_t* dispatch_tab
     // Allocate some memory.
     void* memory = dispatch_table->epoch_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
     if (memory == nullptr) {
-        return EBPF_NO_MEMORY;
+        result = EBPF_NO_MEMORY;
+    } else {
+        // Free the memory immediately.
+        dispatch_table->epoch_free(memory);
     }
-
-    // Free the memory.
-    dispatch_table->epoch_free(memory);
 
     // Exit epoch.
     dispatch_table->epoch_exit(&epoch_state);
-    return EBPF_SUCCESS;
+    return result;
 }
 
 _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_update_entry(

@@ -609,10 +609,7 @@ The `base_properties` is a pointer to a struct containing map properties specifi
 The `base_provider_table` is a pointer to the provider dispatch table that the extension provides for operations on the map.
 
 #### Map ID
-eBPF-for-Windows runtime supports some global map types. eBPF-for-Windows has reserved the map IDs 1 to 4096 (BPF_MAP_TYPE_CUSTOM_START) for the global map types implemented in eBPF Core. Extensions need to use a map ID > BPF_MAP_TYPE_CUSTOM_START for any custom map they implement.
-
-Note: Extensions are **required** to register the custom map types by creating a pull request to eBPF-for-Windows repo and
-updating `ebpf_map_type_t` enum in ebpf_structs.h. Map creation will fail if the map type is not registered.
+Map ID for the custom maps also comes from the same map ID space as the global / native maps. Extensions are **required** to register the custom map types by creating a pull request to eBPF-for-Windows repo and updating `ebpf_map_type_t` enum in ebpf_structs.h. Map creation will fail if the map type is not registered.
 
 #### `ebpf_base_map_provider_dispatch_table_t` Struct
 ```
