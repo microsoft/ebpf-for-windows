@@ -1875,7 +1875,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     uint32_t cpu_count = ebpf_get_cpu_count();
     REQUIRE(cpu_count > 0);
 
-    // Create a wait event for synchronous signaling
+    // Create a wait event for synchronous signaling.
     _wait_event event;
 
     struct _mapped_ring
@@ -1890,7 +1890,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
 
     std::vector<_mapped_ring> mapped_rings(cpu_count);
 
-    // Cleanup guard to unmap all rings on exit
+    // Cleanup guard to unmap all rings on exit.
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
         reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) {
@@ -1908,15 +1908,15 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
             }
         });
 
-    // Map each per-CPU ring buffer
+    // Map each per-CPU ring buffer.
     for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
         auto& ring = mapped_rings[cpu_id];
         ring.cpu_id = cpu_id;
 
-        // Set wait handle for this CPU's buffer
+        // Set wait handle for this CPU's buffer.
         REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), cpu_id, event.handle(), 0) == EBPF_SUCCESS);
 
-        // Map the ring buffer memory
+        // Map the ring buffer memory.
         REQUIRE(
             ebpf_ring_buffer_map_map_user(
                 map.get(),
@@ -1932,7 +1932,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
         REQUIRE(ring.data != nullptr);
         REQUIRE(ring.data_size > 0);
 
-        // Verify initial offsets are 0
+        // Verify initial offsets are 0.
         REQUIRE(ReadULong64Acquire(ring.consumer) == 0);
         REQUIRE(ReadULong64Acquire(ring.producer) == 0);
     }
@@ -1945,13 +1945,13 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
 
     void* ctx = &context.unused;
 
-    // Write unique values to each CPU's ring
+    // Write unique values to each CPU's ring.
     std::vector<uint64_t> expected_values(cpu_count);
     for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
-        // Set the CPU affinity to write to specific CPU's ring
+        // Set the CPU affinity to write to specific CPU's ring.
         scoped_cpu_affinity cpu_affinity(cpu_id);
 
-        // Write a unique value for this CPU
+        // Write a unique value for this CPU.
         uint64_t value = 100 + (uint64_t)cpu_id;
         expected_values[cpu_id] = value;
 
@@ -1961,13 +1961,13 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
                 ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
     }
 
-    // Verify each CPU's ring received the correct value
+    // Verify each CPU's ring received the correct value.
     for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
         auto& ring = mapped_rings[cpu_id];
 
         CAPTURE(cpu_id);
 
-        // Read the record from this CPU's ring
+        // Read the record from this CPU's ring.
         auto record = ebpf_ring_buffer_next_record(
             ring.data, ring.data_size, ReadULong64Acquire(ring.consumer), ReadULong64Acquire(ring.producer));
 
@@ -1976,12 +1976,12 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
         REQUIRE(!ebpf_ring_buffer_record_is_discarded(record));
         REQUIRE(ebpf_ring_buffer_record_length(record) == sizeof(uint64_t));
 
-        // Verify the value matches what we wrote to this specific CPU
+        // Verify the value matches what we wrote to this specific CPU.
         uint64_t received_value = *(uint64_t*)(record->data);
         REQUIRE(received_value == expected_values[cpu_id]);
     }
 
-    // Cleanup will be done in the scope_exit block above
+    // Cleanup will be done in the scope_exit block above.
 }
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
