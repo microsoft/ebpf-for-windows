@@ -798,7 +798,7 @@ function Create-VM {
 
 .EXAMPLE
     $files = @(
-        @{ Source = 'C:\signed\bindmonitor_signed.sys'; Destination = 'C:\eBPF\bindmonitor_signed.sys' }
+        @{ Source = 'C:\work\bindmonitor_x64_signed.sys'; Destination = 'C:\eBPF\bindmonitor_x64_signed.sys' }
     )
     Initialize-VM -VmName "MyVM" -VMCpuCount 4 -FilesToCopy $files
 #>

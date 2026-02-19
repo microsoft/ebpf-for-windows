@@ -2706,28 +2706,28 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
  * @brief Test that validates production-signed native eBPF modules load successfully.
  *
  * This test validates that a production-signed bindmonitor driver can be loaded.
- * It requires that the signed driver exists in C:\eBPF\ (copied from ebpf-signed-drivers).
+ * It requires that the signed driver exists in C:\eBPF\ (copied from C:\work by Setup.ps1).
  */
 TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
 {
     // Select the architecture and build-type appropriate signed driver.
-#if defined(_AMD64_) && defined(_DEBUG)
-    const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_debug_signed.sys";
-#elif defined(_AMD64_)
-    const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_signed.sys";
-#elif defined(_ARM64_) && defined(_DEBUG)
-    const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_debug_signed.sys";
-#elif defined(_ARM64_)
-    const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_signed.sys";
-#else
-#error "Unsupported architecture"
-#endif
+    #if defined(_AMD64_) && defined(_DEBUG)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_debug_signed.sys";
+    #elif defined(_AMD64_)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_signed.sys";
+    #elif defined(_ARM64_) && defined(_DEBUG)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_debug_signed.sys";
+    #elif defined(_ARM64_)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_signed.sys";
+    #else
+    #error "Unsupported architecture"
+    #endif
 
     // Verify the signed driver file exists before attempting to load.
     printf("Checking for signed driver at: %s\n", signed_driver_path);
     if (_access(signed_driver_path, 0) != 0) {
         printf("ERROR: Signed driver file not found: %s\n", signed_driver_path);
-        printf("Ensure the signed driver exists in C:\\eBPF\\ (copied from ebpf-signed-drivers).\n");
+        printf("Ensure the signed driver exists in C:\\eBPF\\ (copied from C:\\work by Setup.ps1).\n");
         REQUIRE(false);
     }
     printf("Found signed driver file: %s\n", signed_driver_path);
