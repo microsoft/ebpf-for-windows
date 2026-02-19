@@ -1491,6 +1491,7 @@ ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* 
     }
 
     if (state->tail_call_state.count == (MAX_TAIL_CALL_CNT)) {
+        // TODO: Add a trace.
         return EBPF_NO_MORE_TAIL_CALLS;
     }
 
