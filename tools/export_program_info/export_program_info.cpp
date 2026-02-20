@@ -67,6 +67,14 @@ export_global_helper_information()
 }
 
 uint32_t
+export_proof_of_verification()
+{
+    // Initialize proof of verification setting to disabled (0).
+    // Tests can enable it as needed via the registry.
+    return ebpf_store_update_proof_of_verification(0);
+}
+
+uint32_t
 clear_ebpf_store()
 {
     ebpf_result_t result = EBPF_SUCCESS;

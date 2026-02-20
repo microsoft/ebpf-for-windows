@@ -32,6 +32,7 @@ typedef unsigned long long size_t;
 #define EBPF_ROOT_REGISTRY_PATH L"\\Registry\\Machine\\Software\\eBPF"
 #define EBPF_ROOT_RELATIVE_PATH L"Software\\eBPF"
 #define EBPF_STORE_REGISTRY_PATH L"Software\\eBPF\\Providers"
+#define EBPF_PARAMETERS_REGISTRY_PATH L"Software\\eBPF\\Parameters"
 
 #define EBPF_PROVIDERS_REGISTRY_KEY L"Providers"
 #define EBPF_SECTIONS_REGISTRY_KEY L"SectionData"
@@ -54,6 +55,8 @@ typedef unsigned long long size_t;
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 #define EBPF_HELPER_DATA_REALLOCATE_PACKET L"ReallocatePacket"
+
+#define EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE L"ProofOfVerification"
 
 #define EBPF_DATA_BPF_PROG_TYPE L"BpfProgType"
 #define EBPF_DATA_BPF_ATTACH_TYPE L"BpfAttachType"

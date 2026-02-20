@@ -76,6 +76,17 @@ extern "C"
     ebpf_result_t
     ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info);
 
+    /**
+     * @brief Update proof of verification setting in the eBPF store.
+     *
+     * @param[in] enable Non-zero to enable proof of verification (require signature checks),
+     *                   zero to disable (allow test signing to skip signature checks).
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_update_proof_of_verification(uint32_t enable);
+
 #ifdef __cplusplus
 }
 #endif
