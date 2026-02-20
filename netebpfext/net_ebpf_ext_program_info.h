@@ -32,6 +32,10 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 enum _sock_addr_helper_functions
 {
     SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
+    SOCK_ADDR_HELPER_GET_INTERFACE_TYPE,
+    SOCK_ADDR_HELPER_GET_TUNNEL_TYPE,
+    SOCK_ADDR_HELPER_GET_NEXT_HOP_INTERFACE_LUID,
+    SOCK_ADDR_HELPER_GET_SUB_INTERFACE_INDEX,
 };
 
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
@@ -40,7 +44,27 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
      BPF_FUNC_sock_addr_set_redirect_context,
      "bpf_sock_addr_set_redirect_context",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_addr_get_interface_type,
+     "bpf_sock_addr_get_interface_type",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_addr_get_tunnel_type,
+     "bpf_sock_addr_get_tunnel_type",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_addr_get_next_hop_interface_luid,
+     "bpf_sock_addr_get_next_hop_interface_luid",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_addr_get_sub_interface_index,
+     "bpf_sock_addr_get_sub_interface_index",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
 
 enum _sock_addr_global_helper_functions
 {
@@ -121,7 +145,19 @@ static const ebpf_program_section_info_t _ebpf_sock_addr_section_info[] = {
      &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
      &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
      BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
-     BPF_CGROUP_INET6_RECV_ACCEPT}};
+     BPF_CGROUP_INET6_RECV_ACCEPT},
+    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
+     L"cgroup/connect_authorization4",
+     &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET4_CONNECT_AUTHORIZATION},
+    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
+     L"cgroup/connect_authorization6",
+     &EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
+     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+     BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+     BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}};
 
 // SOCK_OPS program information.
 static const ebpf_context_descriptor_t _ebpf_sock_ops_context_descriptor = {

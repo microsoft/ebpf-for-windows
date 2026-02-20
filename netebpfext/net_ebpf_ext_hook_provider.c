@@ -210,6 +210,16 @@ ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context, _In_ net_ebpf_extension_wfp_filter_context_t* filter_context, _Out_ uint32_t* result)
 {
+    return net_ebpf_extension_hook_invoke_filtered_programs(program_context, filter_context, result, NULL);
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_invoke_filtered_programs(
+    _Inout_ void* program_context,
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result,
+    _In_opt_ bool (*filter_function)(_In_ const net_ebpf_extension_hook_client_t* hook_client))
+{
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
     bool lock_acquired = FALSE;
@@ -251,6 +261,12 @@ net_ebpf_extension_hook_invoke_programs(
     for (uint32_t i = 0; i < client_count; i++) {
         ASSERT(clients[i] != NULL);
 
+        if (filter_function != NULL) {
+            // If a filter function is provided, invoke it to see if we should invoke this program.
+            if (!filter_function(clients[i])) {
+                continue;
+            }
+        }
         program_result = _net_ebpf_extension_hook_invoke_single_program(clients[i], program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
@@ -280,8 +296,8 @@ _Function_class_(EXPAND_STACK_CALLOUT) static void _net_ebpf_extension_invoke_pr
     net_ebpf_extension_invoke_programs_parameters_t* parameters =
         (net_ebpf_extension_invoke_programs_parameters_t*)context;
 
-    ebpf_result_t result = net_ebpf_extension_hook_invoke_programs(
-        parameters->program_context, parameters->filter_context, &parameters->verdict);
+    ebpf_result_t result = net_ebpf_extension_hook_invoke_filtered_programs(
+        parameters->program_context, parameters->filter_context, &parameters->verdict, parameters->filter_function);
 
     parameters->result = result;
 }
@@ -292,10 +308,22 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Out_ uint32_t* result)
 {
+    return net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+        program_context, filter_context, result, NULL);
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
+    _Inout_ void* program_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result,
+    _In_opt_ bool (*filter_function)(_In_ const net_ebpf_extension_hook_client_t* hook_client))
+{
     NTSTATUS status = STATUS_SUCCESS;
     net_ebpf_extension_invoke_programs_parameters_t invoke_parameters = {0};
     invoke_parameters.filter_context = filter_context;
     invoke_parameters.program_context = (void*)program_context;
+    invoke_parameters.filter_function = filter_function;
 
 #pragma warning(push)
 #pragma warning(disable : 28160) //  Error annotation: DISPATCH_LEVEL is only supported on Windows 7 or later.
@@ -313,7 +341,10 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     }
 #pragma warning(pop)
 
-    *result = invoke_parameters.verdict;
+    if (invoke_parameters.result == EBPF_SUCCESS) {
+        // If the call succeeded, return the verdict.
+        *result = invoke_parameters.verdict;
+    }
 
     return invoke_parameters.result;
 }
@@ -442,6 +473,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
     hook_client->client_data = client_data;
+    hook_client->attach_type = local_provider_context->attach_type;
     client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
@@ -740,6 +772,7 @@ net_ebpf_extension_hook_provider_register(
     local_provider_context->dispatch = *dispatch;
     local_provider_context->custom_data = custom_data;
     local_provider_context->attach_capability = attach_capability;
+    local_provider_context->attach_type = parameters->provider_module_id->Guid;
 
     status = NmrRegisterProvider(characteristics, local_provider_context, &local_provider_context->nmr_provider_handle);
     if (!NT_SUCCESS(status)) {

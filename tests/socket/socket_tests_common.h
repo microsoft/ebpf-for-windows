@@ -107,3 +107,13 @@ typedef struct _bind_audit_entry
     uint32_t action_taken; ///< Action taken (bind_action_t values).
     uint64_t timestamp;    ///< Timestamp from bpf_ktime_get_ns().
 } bind_audit_entry_t;
+
+// Structure to store all helper function results for verification (matches eBPF program).
+typedef struct _helper_results
+{
+    uint32_t interface_type;
+    uint32_t tunnel_type;
+    uint64_t next_hop_interface_luid;
+    uint32_t sub_interface_index;
+    uint32_t connection_id;
+} helper_results_t;
