@@ -1017,6 +1017,34 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
         ring_buffer__free(rb);
     }
 
+    SECTION("ring_buffer__poll on async mode should return ENOTSUP")
+    {
+        ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+
+        struct ring_buffer* rb =
+            ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
+        REQUIRE(rb != nullptr);
+
+        int result = ring_buffer__poll(rb, 0);
+        REQUIRE(result == -ENOTSUP);
+
+        ring_buffer__free(rb);
+    }
+
+    SECTION("ring_buffer__consume on async mode should return ENOTSUP")
+    {
+        ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+
+        struct ring_buffer* rb =
+            ebpf_ring_buffer__new(map_fd, ring_buffer_test_callback, &callback_context, &ring_opts);
+        REQUIRE(rb != nullptr);
+
+        int result = ring_buffer__consume(rb);
+        REQUIRE(result == -ENOTSUP);
+
+        ring_buffer__free(rb);
+    }
+
     SECTION("ebpf_ring_buffer__new with default flags")
     {
         ebpf_ring_buffer_opts ring_opts = {.sz = sizeof(ring_opts), .flags = 0};
@@ -1544,6 +1572,51 @@ TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__poll on async mode should return ENOTSUP")
+    {
+        ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        int result = perf_buffer__poll(pb, 0);
+        REQUIRE(result < 0);
+        REQUIRE(errno == ENOTSUP);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__consume on async mode should return ENOTSUP")
+    {
+        ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        int result = perf_buffer__consume(pb);
+        REQUIRE(result < 0);
+        REQUIRE(errno == ENOTSUP);
+
+        perf_buffer__free(pb);
+    }
+
+    SECTION("perf_buffer__consume_buffer on async mode should return ENOTSUP")
+    {
+        ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+
+        struct perf_buffer* pb = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
+        REQUIRE(pb != nullptr);
+
+        int result = perf_buffer__consume_buffer(pb, 0);
+        REQUIRE(result < 0);
+        REQUIRE(errno == ENOTSUP);
 
         perf_buffer__free(pb);
     }
