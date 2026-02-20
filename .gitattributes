@@ -8,6 +8,9 @@
 *.sh                text eol=lf
 /scripts/**         text eol=lf
 
+# Generated TLATeX outputs should always have LFs (CI runs on Linux).
+models/**/tlatex/*.tex  text eol=lf
+
 # Windows build files should always have CRLFs.
 *.sln               text eol=crlf
 *.vcxproj           text eol=crlf
