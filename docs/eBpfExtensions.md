@@ -46,9 +46,9 @@ supports for an eBPF hook. Note that, there can be more than one attach types fo
 is adding a new attach type for an existing program type, then it only needs to implement the Hook NPI Provider.
 
 ### 1.3.3 eBPF Map Information NPI Provider
-The Map Info NPI contract is used by extension to provide an implementation for a map type that is not already
+The Map Information NPI contract is used by extension to provide an implementation for a map type that is not already
 implemented by the eBPF runtime. An example for this can be *BPF_MAP_TYPE_XSKMAP*. The eBPF extension must register
-a separate Map Info NPI provider module for each map type it implements.
+a separate Map Information NPI provider module for each map type it implements.
 
 ## 2 Authoring an eBPF Extension
 The steps for authoring an eBPF extension are:
@@ -580,7 +580,7 @@ the number of times the program has been invoked, so callers should limit the nu
 prevent long delays in batch end.
 
 ### 2.7 Map Information NPI Provider Registration
-When registering itself to the NMR, the Map Info NPI provider should have the
+When registering itself to the NMR, the Map Information NPI provider should have the
 [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance)
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_MAP_INFO_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
