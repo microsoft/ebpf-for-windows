@@ -648,8 +648,7 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
         return -EINVAL;
     }
 
-    if (rb->is_async_mode) {
-        // Multiple subscriptions for async ring buffers not implemented.
+    if (rb->is_async_mode) { // Multiple subscriptions for async ring buffers not implemented.
         return -ENOTSUP;
     }
 
@@ -710,8 +709,7 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
     if (!rb || rb->sync_maps.empty()) {
         return -EINVAL;
     }
-    // For async mode, polling doesn't make sense since callbacks are automatic.
-    if (rb->is_async_mode) {
+    if (rb->is_async_mode) { // For async mode, polling doesn't make sense since callbacks are automatic.
         return -ENOTSUP;
     }
 
@@ -741,7 +739,7 @@ ring_buffer__consume(struct ring_buffer* rb)
     if (!rb || rb->sync_maps.empty()) {
         return -EINVAL;
     }
-    if (rb->is_async_mode) {
+    if (rb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return -ENOTSUP;
     }
 
@@ -765,8 +763,7 @@ ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
         return ebpf_handle_invalid;
     }
 
-    if (rb->is_async_mode) {
-        // For async mode, the wait handle is not currently set.
+    if (rb->is_async_mode) { // For async mode, the wait handle is not currently set.
         return ebpf_handle_invalid;
     }
 
@@ -783,8 +780,7 @@ _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_
 {
     ebpf_assert(rb && consumer_page && producer_page && data && data_size);
 
-    if (rb->is_async_mode) {
-        // For async mode, direct buffer access isn't currently supported.
+    if (rb->is_async_mode) { // For async mode, direct buffer access isn't currently supported.
         return EBPF_INVALID_ARGUMENT;
     }
 
