@@ -23,6 +23,7 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <io.h>
@@ -1802,6 +1803,23 @@ class perf_buffer_test_helper
         }
     }
 
+    /// @brief Verify received data contains the expected messages (order-independent).
+    /// Use this when writes may land on different CPUs, since perf event arrays
+    /// are per-CPU and cross-CPU ordering is not guaranteed.
+    void
+    validate_data_unordered(_In_ const std::vector<std::string>& expected_messages)
+    {
+        std::lock_guard<std::mutex> guard(context.lock);
+        REQUIRE(context.received_data.size() == expected_messages.size());
+        auto sorted_received = context.received_data;
+        auto sorted_expected = expected_messages;
+        std::sort(sorted_received.begin(), sorted_received.end());
+        std::sort(sorted_expected.begin(), sorted_expected.end());
+        for (size_t i = 0; i < sorted_expected.size(); i++) {
+            REQUIRE(sorted_received[i] == sorted_expected[i]);
+        }
+    }
+
   private:
     perf_buffer* _buffer = nullptr;
     fd_t _map_fd = ebpf_fd_invalid;
@@ -1905,8 +1923,8 @@ TEST_CASE("perf_buffer_async_consume", "[perf_buffer]")
     REQUIRE(helper.context.event_count == test_messages.size());
     REQUIRE(helper.context.lost_count == 0);
 
-    // Validate data matches expected messages in order.
-    helper.validate_data(test_messages);
+    // Validate data matches expected messages (order not guaranteed across CPUs).
+    helper.validate_data_unordered(test_messages);
 }
 
 // Async test: Validate lost event callback in async mode.
@@ -2053,9 +2071,9 @@ TEST_CASE("perf_buffer_sync_consume", "[perf_buffer]")
     int consume_result = perf_buffer__consume(pb);
     REQUIRE(consume_result == static_cast<int>(test_messages.size()));
 
-    // Verify we received the test messages.
+    // Verify we received the test messages (order not guaranteed across CPUs).
     REQUIRE(helper.context.event_count == test_messages.size());
-    helper.validate_data(test_messages);
+    helper.validate_data_unordered(test_messages);
 }
 
 // Test synchronous perf buffer with per-CPU buffer consumption.
