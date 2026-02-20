@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <!-- Enable CPM only for main repo projects, not external submodules -->
+    <ManagePackageVersionsCentrally Condition="!$(MSBuildProjectFullPath.Contains('\external\'))">true</ManagePackageVersionsCentrally>
+    <ManagePackageVersionsCentrally Condition="$(MSBuildProjectFullPath.Contains('\external\'))">false</ManagePackageVersionsCentrally>
+    <!-- Set NuGetTargetMoniker to native for C++ projects -->
+    <NuGetTargetMoniker Condition="'$(NuGetTargetMoniker)' == '' AND !$(MSBuildProjectFullPath.Contains('\external\'))">native,Version=v0.0</NuGetTargetMoniker>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- WiX Toolset for installer -->
+    <PackageVersion Include="WiX" Version="3.14.1" />
+    <!-- EverParse for ELF spec parsing -->
+    <PackageVersion Include="EverParse" Version="2022.6.13" />
+    <!-- Windows SDK and WDK packages -->
+    <PackageVersion Include="Microsoft.Windows.SDK.CPP" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.SDK.CPP.arm64" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.SDK.CPP.x64" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.SDK.CPP.x86" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.WDK.ARM64" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.WDK.x64" Version="10.0.26100.6584" />
+    <PackageVersion Include="Microsoft.Windows.WDK.x86" Version="10.0.26100.6584" />
+  </ItemGroup>
+</Project>

@@ -178,7 +178,7 @@
     <ProjectReference Include="..\..\libs\api_common\api_common.vcxproj">
       <Project>{e79382b2-fed9-4cd4-9498-dbddd6c46c91}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libs\ebpfnetsh\ebpfnetsh.vcxproj">
+    <ProjectReference Include="..\..\libs\ebpfnetsh\netsh_static.vcxproj">
       <Project>{370e7d53-c97f-4077-a3d5-620c4fd87eed}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\libs\execution_context\user\execution_context_user.vcxproj">
