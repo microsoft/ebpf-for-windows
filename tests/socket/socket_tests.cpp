@@ -1023,6 +1023,146 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     SAFE_REQUIRE(result == 0);
 }
 
+// Custom event handler for flow ID validation
+int
+flow_id_ring_buffer_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, size_t size)
+{
+    ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
+
+    if ((data == nullptr) || (size == 0)) {
+        return 0;
+    }
+
+    if (event_context->canceled) {
+        // Ignore the callback as the subscription is canceled.
+        // Return error so that no further callback is made.
+        return -1;
+    }
+
+    if (event_context->matched_entry_count >= event_context->test_event_count) {
+        // Required number of event notifications already received.
+        return 0;
+    }
+
+    // Parse the flow_id_audit_entry_t from the ring buffer
+    struct flow_id_audit_entry_t
+    {
+        connection_tuple_t tuple;
+        uint64_t flow_id;
+        uint64_t process_id;
+        uint32_t operation;
+        bool outbound;
+        bool connected;
+    };
+
+    if (size != sizeof(flow_id_audit_entry_t)) {
+        // Unexpected entry size
+        return 0;
+    }
+
+    const flow_id_audit_entry_t* entry = reinterpret_cast<const flow_id_audit_entry_t*>(data);
+
+    // Validate that the flow ID is non-zero
+    if (entry->flow_id != 0) {
+        event_context->matched_entry_count++;
+
+        if (event_context->matched_entry_count == event_context->test_event_count) {
+            // If all the expected entries were received, fulfill the promise.
+            event_context->ring_buffer_event_promise.set_value();
+        }
+    }
+
+    return 0;
+}
+
+TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
+{
+    native_module_helper_t helper;
+    helper.initialize("sockops_flow_id", _is_main_thread);
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Ring buffer event callback context.
+    std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
+    context->test_event_count = 2; // Expect 2 events for TCP connection (outbound and inbound).
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, "flow_id_monitor");
+    SAFE_REQUIRE(_program != nullptr);
+
+    bpf_map* flow_id_map = bpf_object__find_map_by_name(object, "flow_id_map");
+    SAFE_REQUIRE(flow_id_map != nullptr);
+
+    // Attach the program.
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Get the std::future from the promise field in ring buffer event context, which should be in ready state
+    // once notifications for all events are received.
+    auto ring_buffer_event_callback = context->ring_buffer_event_promise.get_future();
+
+    // Create a new ring buffer manager and subscribe to ring buffer events (using async mode for automatic callbacks).
+    bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "flow_id_audit_map");
+    SAFE_REQUIRE(ring_buffer_map != nullptr);
+    ebpf_ring_buffer_opts ring_opts = {};
+    ring_opts.sz = sizeof(ring_opts);
+    ring_opts.flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK;
+    context->ring_buffer = ebpf_ring_buffer__new(
+        bpf_map__fd(ring_buffer_map),
+        (ring_buffer_sample_fn)flow_id_ring_buffer_event_handler,
+        context.get(),
+        &ring_opts);
+    SAFE_REQUIRE(context->ring_buffer != nullptr);
+
+    // Create a basic TCP connection to trigger the helper function.
+    stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
+    stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
+
+    PSOCKADDR local_address = nullptr;
+    int local_address_length = 0;
+    stream_client_socket.get_local_address(local_address, local_address_length);
+
+    connection_tuple_t tuple{};
+    tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    tuple.remote_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    tuple.local_port = INETADDR_PORT(local_address);
+    tuple.remote_port = htons(SOCKET_TEST_PORT);
+    tuple.protocol = IPPROTO_TCP;
+
+    // Post an asynchronous receive on the receiver socket.
+    stream_server_socket.post_async_receive();
+
+    // Send loopback message to test port.
+    const char* message = CLIENT_MESSAGE;
+    sockaddr_storage destination_address{};
+    IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
+
+    stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
+    // Receive the packet on test port.
+    stream_server_socket.complete_async_receive();
+
+    // Wait for event handler getting notifications for all flow ID audit events.
+    SAFE_REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+
+    // Mark the event context as canceled, such that the event callback stops processing events.
+    context->canceled = true;
+
+    // Unsubscribe.
+    context->unsubscribe();
+
+    // Verify that we got a flow ID stored in the map (should be non-zero).
+    uint64_t stored_flow_id = 0;
+    result = bpf_map_lookup_elem(bpf_map__fd(flow_id_map), &tuple, &stored_flow_id);
+
+    // Verify we get a non-zero flow ID.
+    if (result == 0) {
+        REQUIRE(stored_flow_id != 0);
+    }
+}
+
 // This function populates map policies for multi-attach tests.
 // It assumes that the destination and proxy are loopback addresses.
 static void
