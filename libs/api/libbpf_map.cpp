@@ -1034,8 +1034,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
     if (!pb || pb->sync_maps.empty()) {
         return libbpf_err(-EINVAL);
     }
-    // For async mode, polling doesn't make sense since callbacks are automatic.
-    if (pb->is_async_mode) {
+    if (pb->is_async_mode) { // For async mode, polling doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
     }
 
@@ -1065,7 +1064,7 @@ perf_buffer__consume(struct perf_buffer* pb)
     if (!pb || pb->sync_maps.empty()) {
         return libbpf_err(-EINVAL);
     }
-    if (pb->is_async_mode) {
+    if (pb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
     }
 
@@ -1088,7 +1087,7 @@ perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
     if (!pb || cpu >= pb->sync_maps.size()) {
         return libbpf_err(-EINVAL);
     }
-    if (pb->is_async_mode) {
+    if (pb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
     }
 
