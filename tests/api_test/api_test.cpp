@@ -2789,7 +2789,7 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Since it is an object map, update from BPF program is not allowed. Lookup the sample map value and validate the
+    // Since it is an object map, an update from a BPF program is not allowed. Look up the sample map value and validate the
     // result.
     validate_sample_map_value(1234);
     validate_result_map(OPERATION_FAILURE);
@@ -2801,7 +2801,7 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Since this is an object map, update from BPF program should fail via helper.
+    // Since this is an object map, an update from a BPF program should fail via helper.
     validate_sample_map_value(1234);
     validate_result_map(OPERATION_FAILURE);
 
@@ -2833,17 +2833,17 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Update is not supported for object maps, so value should remain unchanged.
+    // Update is not supported for object maps, so the value should remain unchanged.
     validate_sample_map_value(1234);
     validate_result_map(OPERATION_FAILURE);
 
-    // Now invoke "test_map_delete_element" program. The value should be deleted and set to 0.
+    // Now invoke the "test_map_delete_element" program. The value should be deleted and set to 0.
     program_fd = bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_delete_element"));
     REQUIRE(program_fd > 0);
     result = bpf_prog_test_run_opts(program_fd, &opts);
     REQUIRE(result == 0);
 
-    // Delete is not supported for object maps, so value should remain unchanged.
+    // Delete is not supported for object maps, so the value should remain unchanged.
     validate_sample_map_value(1234);
     validate_result_map(OPERATION_FAILURE);
 
@@ -2851,7 +2851,7 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, ebpf_execution_type_
     value = 200;
     REQUIRE((bpf_map_update_elem(sample_map_fd, &key, &value, 0) == 0));
 
-    // Invoke "test_map_find_and_delete_element" program.
+    // Invoke the "test_map_find_and_delete_element" program.
     program_fd =
         bpf_program__fd(bpf_object__find_program_by_name(unique_object.get(), "test_map_find_and_delete_element"));
     REQUIRE(program_fd > 0);

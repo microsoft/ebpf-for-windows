@@ -149,12 +149,12 @@ typedef struct _ebpf_execution_context_state
  * @param[out] map_context Provider-defined per-map context. The eBPF core will pass this back to subsequent map
  *             operations and will eventually pass it to ebpf_process_map_delete_t.
  *
- * Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user.
- * Whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program,
- * and program can read or modify the value in place.
+ * Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user,
+ * whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program,
+ * and the program can read or modify the value in place.
  *
- * Therefore, for maps where extension intends to *modify* the actual value being stored in the map,
- * map CRUD operations from BPF programs are disallowed by eBPF runtime.
+ * Therefore, for maps where an extension intends to *modify* the actual value being stored in the map,
+ * map CRUD operations from BPF programs are disallowed by the eBPF runtime.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
@@ -213,7 +213,7 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
 /**
  * @brief Add or update (insert/replace) an element in a provider-backed map.
  *
- * If the provider does not update the original value, i.e. `updates_original_value` is set to false in
+ * If the provider does not update the original value, i.e., `updates_original_value` is set to false in
  * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
@@ -317,7 +317,7 @@ typedef struct _ebpf_map_provider_dispatch_table
 /**
  * @brief Allocate memory under epoch control.
  *
- * @param[in] size Size of memory to allocate
+ * @param[in] size Size of memory to allocate.
  * @param[in] tag Pool tag to use.
  *
  * @returns Pointer to memory block allocated, or null on failure.
@@ -327,7 +327,7 @@ typedef _Ret_writes_maybenull_(size) void* (*ebpf_epoch_allocate_with_tag_t)(siz
 /**
  * @brief Allocate cache aligned memory under epoch control.
  *
- * @param[in] size Size of memory to allocate
+ * @param[in] size Size of memory to allocate.
  * @param[in] tag Pool tag to use.
  *
  * @returns Pointer to memory block allocated, or null on failure.
