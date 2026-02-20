@@ -405,6 +405,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
+    ebpf_code_type_t code_type,
     const size_t count_of_helpers,
     _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
     _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses)
@@ -417,7 +418,9 @@ ebpf_core_resolve_helper(
         goto Done;
     }
 
-    return_value = ebpf_program_set_helper_function_ids(program, count_of_helpers, helper_function_ids);
+    ebpf_assert(ebpf_program_get_code_type(program) != EBPF_CODE_NATIVE);
+
+    return_value = ebpf_program_set_helper_function_ids(program, code_type, count_of_helpers, helper_function_ids);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1161,7 +1164,8 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;
