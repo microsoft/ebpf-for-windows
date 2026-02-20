@@ -144,6 +144,11 @@ enum _sock_ops_global_helper_functions
     SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
 };
 
+enum _sock_ops_program_specific_helper_functions
+{
+    SOCK_OPS_PROGRAM_SPECIFIC_HELPER_GET_FLOW_ID,
+};
+
 // SOCK_OPS global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
     {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
@@ -152,11 +157,19 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
      .return_type = EBPF_RETURN_TYPE_INTEGER,
      .arguments = {},
      .implicit_context = true}};
+
+// SOCK_OPS program type specific helper function prototypes.
+static const ebpf_helper_function_prototype_t _ebpf_sock_ops_program_type_specific_helper_function_prototype[] = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_ops_get_flow_id,
+     "bpf_sock_ops_get_flow_id",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
     &_ebpf_sock_ops_program_type_descriptor,
-    0,
-    NULL,
+    EBPF_COUNT_OF(_ebpf_sock_ops_program_type_specific_helper_function_prototype),
+    _ebpf_sock_ops_program_type_specific_helper_function_prototype,
     EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_function_prototype),
     _ebpf_sock_ops_global_helper_function_prototype};
 

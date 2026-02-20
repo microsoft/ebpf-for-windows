@@ -22,6 +22,7 @@ typedef struct _net_ebpf_bpf_sock_ops
     EBPF_CONTEXT_HEADER;
     bpf_sock_ops_t context;
     uint64_t process_id;
+    uint64_t flow_id; ///< WFP flow ID associated with this connection.
 } net_ebpf_sock_ops_t;
 
 /**
@@ -87,6 +88,27 @@ _ebpf_sock_ops_get_current_pid_tgid(
 }
 
 //
+// SOCK_OPS Program-type specific helper function implementation.
+//
+static uint64_t
+_ebpf_sock_ops_get_flow_id(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_ops_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    net_ebpf_sock_ops_t* sock_ops_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_ops_t, context);
+    return sock_ops_ctx->flow_id;
+}
+
+//
 // SOCK_OPS Program Information NPI Provider.
 //
 
@@ -96,6 +118,13 @@ static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_ad
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_functions),
     (uint64_t*)_ebpf_sock_ops_global_helper_functions};
+
+static const void* _ebpf_sock_ops_program_type_specific_helper_functions[] = {(void*)_ebpf_sock_ops_get_flow_id};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_ops_program_type_specific_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_ebpf_sock_ops_program_type_specific_helper_functions),
+    (uint64_t*)_ebpf_sock_ops_program_type_specific_helper_functions};
 
 static ebpf_result_t
 _ebpf_sock_ops_context_create(
@@ -116,6 +145,8 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
+    .program_type_specific_helper_function_addresses =
+        &_ebpf_sock_ops_program_type_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
@@ -511,9 +542,16 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    local_flow_context->parameters.flow_id = incoming_metadata_values->flowHandle;
+    // Initialize flow_id to 0 and only set if the metadata field is present.
+    local_flow_context->parameters.flow_id = 0;
+    if (FWPS_IS_METADATA_FIELD_PRESENT(incoming_metadata_values, FWPS_METADATA_FIELD_FLOW_HANDLE)) {
+        local_flow_context->parameters.flow_id = incoming_metadata_values->flowHandle;
+    }
     local_flow_context->parameters.layer_id = incoming_fixed_values->layerId;
     local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
+
+    // Store the flow_id in the sock_ops context for the helper function.
+    local_flow_context->context.flow_id = local_flow_context->parameters.flow_id;
 
     status = FwpsFlowAssociateContext(
         local_flow_context->parameters.flow_id,
