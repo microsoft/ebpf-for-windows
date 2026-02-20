@@ -1,8 +1,8 @@
 # eBPF extensions
 
 ## 1 Overview
-An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks, helper functions and custom maps. The design
-of eBPF for Windows is such that an extension providing an implementation for hooks, helper functions and maps can be
+An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks, helper functions, and custom maps. The design
+of eBPF for Windows is such that an extension providing an implementation for hooks, helper functions, and maps can be
 developed and deployed without the need to modify either the eBPF execution context or the eBPF verifier.
 
 ## 1.1 Windows Network Module Registrar
@@ -25,8 +25,8 @@ and the various aspects of developing NMR modules as described in
 
 ## 1.3 NPI Contracts for eBPF Extensions
 eBPF Extensions need to implement *provider modules* for three types of NPIs. They are the **Program Information NPI**
-provider, **Hook NPI** provider and **Map Information NPI**.
-**Map Information NPI** is optional and only needs to be implemented if an extension want to add support for a
+provider, **Hook NPI** provider, and **Map Information NPI**.
+**Map Information NPI** is optional and only needs to be implemented if an extension wants to add support for a
 program type specific map. The following section explains when an extension must implement these providers.
 
 ### 1.3.1 eBPF Program Information NPI Provider

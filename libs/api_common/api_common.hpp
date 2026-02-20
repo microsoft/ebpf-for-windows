@@ -6,6 +6,13 @@
 #include "ebpf_execution_context.h"
 #include "ebpf_utilities.h"
 
+// Prevent bpf_conformance's ebpf_inst.h from being included, as it conflicts with
+// the ebpf_inst typedef used in this project (which aliases prevail::EbpfInst).
+// Both types have the same layout but different definitions cause C2371 errors.
+#ifndef BPF_CONFORMANCE_CORE_EBPF_INST_H
+#define BPF_CONFORMANCE_CORE_EBPF_INST_H
+#endif
+
 #pragma warning(push)
 #pragma warning(disable : 26439) // This kind of function should not throw. Declare it 'noexcept'.
 #pragma warning(disable : 26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the
