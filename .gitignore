@@ -68,3 +68,10 @@ artifacts/
 
 # CodeQL temporary files.
 _codeql_detected_source_root
+
+# TLC model checking output.
+states/**
+models/**/states/**
+
+# TLAPS proof cache.
+**/.tlacache/**
