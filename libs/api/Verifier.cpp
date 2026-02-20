@@ -728,9 +728,13 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
 
         bool res = ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
         if (!res) {
-            verifier_options.verbosity_opts.print_failures = true;
-            verifier_options.verbosity_opts.simplify = false;
-            (void)ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
+            // For failure_slice mode, the slice is already printed in ebpf_verify_program.
+            // For other modes, re-run with print_failures to show the error.
+            if (!verifier_options.verbosity_opts.collect_instruction_deps) {
+                verifier_options.verbosity_opts.print_failures = true;
+                verifier_options.verbosity_opts.simplify = false;
+                (void)ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
+            }
             error << "Verification failed";
             *error_message = allocate_string(error.str());
             *report = allocate_string(output.str());
