@@ -8,6 +8,11 @@
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
     <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
     <WDKVersion>10.0.26100.6584</WDKVersion>
+    <!-- Set default NuGetPackageRoot if not already set - use NUGET_PACKAGES env var or user profile -->
+    <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == '' AND '$(NUGET_PACKAGES)' != ''">$(NUGET_PACKAGES)</NuGetPackageRoot>
+    <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == ''">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <!-- Ensure trailing slash -->
+    <NuGetPackageRoot Condition="!$(NuGetPackageRoot.EndsWith('\'))">$(NuGetPackageRoot)\</NuGetPackageRoot>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
@@ -19,19 +24,19 @@
     <Message Importance="high" Text="PROCESSOR_ARCHITEW6432 is $(PROCESSOR_ARCHITEW6432)" />
   </Target>
 
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" />
+  <Import Project="$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="'$(MSBuildProjectName)' == 'setup_build' AND Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" />
+  <Import Project="$(NuGetPackageRoot)microsoft.windows.wdk.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="'$(MSBuildProjectName)' == 'setup_build' AND Exists('$(NuGetPackageRoot)microsoft.windows.wdk.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
+  <Import Project="$(NuGetPackageRoot)microsoft.windows.sdk.cpp.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props" Condition="'$(MSBuildProjectName)' == 'setup_build' AND Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
+    <Import Project="$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="'$(MSBuildProjectName)' == 'setup_build' AND Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
   </ImportGroup>
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild" Condition="'$(ConfigurationType)' != 'Utility'">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)microsoft.windows.sdk.cpp\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)microsoft.windows.sdk.cpp.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)microsoft.windows.sdk.cpp.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)microsoft.windows.wdk.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)microsoft.windows.wdk.$(Platform)\$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props'))" />
   </Target>
 </Project>

@@ -9,9 +9,9 @@ Updates the WDK version in all relevant files.
 This script updates the WDK version in all relevant files. It queries the NuGet package manager for the version of the
 'Microsoft.Windows.WDK.x64' package and updates the version number in the following files:
 - wdk.props
+- Directory.Packages.props
 - tools\bpf2c\templates\kernel_mode_bpf2c.vcxproj
 - tools\bpf2c\templates\user_mode_bpf2c.vcxproj
-- scripts\setup_build\packages.config
 
 The script creates a backup of each file before updating it. If an error occurs during the update, the script rolls back
 all changes.
@@ -187,6 +187,59 @@ rolls back the changes.
     }
 }
 
+function Update-DirectoryPackagesProps(
+    [string]$file_path,
+    [string]$version_number
+) {
+<#
+.SYNOPSIS
+Updates the WDK version in the Directory.Packages.props file.
+
+.DESCRIPTION
+Updates the WDK version in the Directory.Packages.props file by replacing the existing version number with the specified
+version number for all Windows SDK and WDK packages.
+
+.PARAMETER file_path
+The path to the Directory.Packages.props file to update.
+
+.PARAMETER version_number
+The new version number to set in the file.
+
+.NOTES
+This function creates a backup of the file before updating it. If an error occurs during the update, the function rolls
+back the changes.
+#>
+    if ([string]::IsNullOrWhiteSpace($file_path)) {
+        throw "File path cannot be empty"
+    }
+    if (-not ($version_number -match '^\d+\.\d+\.\d+\.\d+$')) {
+        throw "Invalid version format: $version_number"
+    }
+    if (-not (Test-Path $file_path)) {
+        throw "File not found: $file_path"
+    }
+    try {
+        # Create backup
+        $backup_path = "$file_path.bak"
+        Copy-Item $file_path $backup_path -Force
+        # Read the contents of the file
+        $file_content = Get-Content $file_path
+        # Replace the version number for SDK and WDK packages
+        $file_content = $file_content -replace '(<PackageVersion Include="Microsoft\.Windows\.(SDK\.CPP|WDK)\.[^"]*" Version=")[^"]+(")', "`${1}$version_number`${3}"
+        # Write the updated contents back to the file
+        Set-Content $file_path $file_content
+        # Print success message
+        Write-Output "Updated WDK version in $file_path to $version_number"
+    }
+    catch {
+        if (Test-Path $backup_path) {
+            Copy-Item $backup_path $file_path -Force
+            Remove-Item $backup_path
+        }
+        throw "Failed to update version in file: $file_path"
+    }
+}
+
 # List of files updated by the script used for rollback.
 $files_updated = @()
 
@@ -214,8 +267,8 @@ try {
     }
 
     # Generate the new packages.config file
-    Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config" -version_number $wdk_version_number
-    $files_updated += "$PSScriptRoot\..\scripts\setup_build\packages.config"
+    Update-DirectoryPackagesProps -file_path "$PSScriptRoot\..\Directory.Packages.props" -version_number $wdk_version_number
+    $files_updated += "$PSScriptRoot\..\Directory.Packages.props"
 
     # Print success message
     Write-Output "Updated WDK version in all files"

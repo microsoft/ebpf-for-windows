@@ -179,7 +179,7 @@
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\libs\ebpfnetsh\ebpfnetsh.vcxproj">
+    <ProjectReference Include="..\..\libs\ebpfnetsh\netsh_static.vcxproj">
       <Project>{370e7d53-c97f-4077-a3d5-620c4fd87eed}</Project>
     </ProjectReference>
   </ItemGroup>
