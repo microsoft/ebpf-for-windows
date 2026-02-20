@@ -4951,8 +4951,8 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
         std::unique_lock<std::mutex> lock_wait(subscription->lock);
         // Wait for all remaining contexts to either complete cleanup or fail.
         // A context is "done" when it has been erased (normal/canceled path) or marked as failed.
-        // Use timed wait as a safety net.
-        constexpr auto timeout = std::chrono::seconds(30);
+        // We wait indefinitely here — if a completion never arrives, a deadlock is preferable to
+        // use-after-free from freeing OVERLAPPED structures while IOCTLs are still pending.
         auto all_done_or_failed = [subscription] {
             for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
                 if (!ctx->async_ioctl_failed) {
@@ -4961,20 +4961,8 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
             }
             return true;
         };
-        if (!subscription->cleanup_complete_event.wait_for(lock_wait, timeout, all_done_or_failed)) {
-            // Timeout occurred - this indicates a bug, or that an async operation is taking an unusually long time to
-            // complete. Log the issue and proceed with cleanup.
-            TraceLoggingWrite(
-                ebpf_tracelog_provider,
-                EBPF_TRACELOG_EVENT_GENERIC_ERROR,
-                TraceLoggingLevel(WINEVENT_LEVEL_ERROR),
-                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
-                TraceLoggingString(__FUNCTION__, "Timeout waiting for async query cleanup"),
-                TraceLoggingUInt32((uint32_t)subscription->async_query_contexts.size(), "remaining_contexts"));
-            cancel_result = false;
-            assert(false && "Timeout waiting for async query cleanup");
-        }
-        // Clean up remaining (failed or timed-out) contexts.
+        subscription->cleanup_complete_event.wait(lock_wait, all_done_or_failed);
+        // Clean up remaining (failed) contexts.
         subscription->async_query_contexts.clear();
     }
 
