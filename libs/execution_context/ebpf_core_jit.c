@@ -139,8 +139,8 @@ ebpf_core_protocol_resolve_helper(
         }
     }
 
-    return_value =
-        ebpf_core_resolve_helper(request->program_handle, count_of_helpers, request_helper_ids, reply->address);
+    return_value = ebpf_core_resolve_helper(
+        request->program_handle, EBPF_CODE_JIT, count_of_helpers, request_helper_ids, reply->address);
 
 Done:
     if (return_value == EBPF_SUCCESS) {

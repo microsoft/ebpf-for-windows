@@ -237,6 +237,8 @@ extern "C"
      *  the helper IDs with the program object.
      *
      * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] code_type The intended code type (JIT or NATIVE). For JIT, a
+     *  trampoline table is allocated to provide stable addresses.
      * @param[in] count_of_helpers Number of helper function IDs.
      * @param[in] helper_function_ids Array of helper function IDs containing "count_of_helpers" IDs.
      * @param[out] helper_function_addresses Array of helper function addresses of size "count_of_helpers"
@@ -249,6 +251,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_core_resolve_helper(
         ebpf_handle_t program_handle,
+        ebpf_code_type_t code_type,
         const size_t count_of_helpers,
         _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
         _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses);

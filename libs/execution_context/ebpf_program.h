@@ -220,6 +220,8 @@ extern "C"
      *  uBPF whereas the array value is the actual helper ID.
      *
      * @param[in, out] program Program object to query this on.
+     * @param[in] code_type The intended code type (JIT or NATIVE). For JIT, a
+     *  trampoline table is allocated to provide stable addresses.
      * @param[in] helper_function_count Count of helper functions.
      * @param[in] helper_function_ids Array of helper function IDs to store.
      * @retval EBPF_SUCCESS The operation was successful.
@@ -229,6 +231,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_set_helper_function_ids(
         _Inout_ ebpf_program_t* program,
+        ebpf_code_type_t code_type,
         const size_t helper_function_count,
         _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
 
