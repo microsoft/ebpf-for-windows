@@ -3,6 +3,12 @@
 
 #pragma once
 
+// Prevent bpf_conformance's ebpf_inst.h from being included, as it conflicts with
+// the ebpf_inst typedef used in this project (which aliases prevail::EbpfInst).
+#ifndef BPF_CONFORMANCE_CORE_EBPF_INST_H
+#define BPF_CONFORMANCE_CORE_EBPF_INST_H
+#endif
+
 #include "platform.hpp"
 
 prevail::EbpfMapDescriptor&

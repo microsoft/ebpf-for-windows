@@ -1804,6 +1804,22 @@ _find_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, 
 }
 
 static ebpf_result_t
+_find_map_hash_map_entry(
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
+{
+    bool delete_on_success = (flags & EBPF_MAP_FIND_FLAG_DELETE) != 0;
+    if (delete_on_success) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Lookup and delete not supported for nested hash map entries");
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return _find_hash_map_entry(map, key, flags, data);
+}
+
+static ebpf_result_t
 _find_lru_hash_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, uint64_t flags, _Outptr_ uint8_t** data)
 {
@@ -3253,7 +3269,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
             {
                 .create_map = _create_object_hash_map,
                 .delete_map = _delete_object_hash_map,
-                .find_entry = _find_hash_map_entry,
+                .find_entry = _find_map_hash_map_entry,
                 .update_entry_with_handle = _update_map_hash_map_entry_with_handle,
                 .delete_entry = _delete_map_hash_map_entry,
                 .next_key_and_value = _next_hash_map_key_and_value,

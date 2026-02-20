@@ -26,7 +26,9 @@ $commands = @(
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",
-    "nuget restore ebpf-for-windows.sln"
+    "nuget restore ebpf-for-windows.sln",
+    "msbuild /t:restore external\usersim\src\usersim.vcxproj /p:Platform=$Architecture",
+    "msbuild /t:restore external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj /p:Platform=$Architecture"
 )
 
 # Loop through each command and run them sequentially without opening a new window
