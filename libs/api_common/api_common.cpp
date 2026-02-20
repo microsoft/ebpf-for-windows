@@ -192,8 +192,16 @@ ebpf_verify_program(
             if (auto verification_error = analysis_result.find_first_error()) {
                 print_error(os, *verification_error);
             }
-            // Count unreachable labels reported by the analysis result.
-            stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
+        }
+        // Count unreachable labels reported by the analysis result.
+        stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
+        // Handle failure slice output when collect_instruction_deps is enabled.
+        if (options.verbosity_opts.collect_instruction_deps && analysis_result.failed) {
+            prevail::AnalysisResult::SliceParams slice_params;
+            slice_params.max_steps = 200;
+            slice_params.max_slices = 1;
+            auto slices = analysis_result.compute_failure_slices(program, slice_params);
+            print_failure_slices(os, program, options.verbosity_opts.simplify, analysis_result, slices);
         }
         // Get the warning count by counting invariants with errors.
         stats->total_warnings = 0;
@@ -216,12 +224,16 @@ ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
     prevail::ebpf_verifier_options_t verifier_options{};
     verifier_options.cfg_opts.check_for_termination = true;
     verifier_options.cfg_opts.must_have_exit = true;
-    verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+    verifier_options.verbosity_opts.print_invariants = (verbosity >= EBPF_VERIFICATION_VERBOSITY_VERBOSE);
     verifier_options.verbosity_opts.print_line_info = true;
     verifier_options.mock_map_fds = true;
     verifier_options.strict = false;
     verifier_options.allow_division_by_zero = true;
     verifier_options.setup_constraints = true;
     verifier_options.big_endian = false;
+    if (verbosity == EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL) {
+        verifier_options.verbosity_opts.collect_instruction_deps = true;
+        verifier_options.verbosity_opts.simplify = false;
+    }
     return verifier_options;
 }
