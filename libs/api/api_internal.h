@@ -657,7 +657,7 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
  * @retval EBPF_INVALID_FD Invalid file descriptor.
  */
 _Must_inspect_result_ ebpf_result_t
-_ebpf_ring_buffer_map_map_buffer_with_index(
+ebpf_ring_buffer_map_map_buffer_with_index(
     fd_t map_fd,
     uint64_t index,
     _Outptr_result_maybenull_ void** consumer,
@@ -678,7 +678,7 @@ _ebpf_ring_buffer_map_map_buffer_with_index(
  * @retval EBPF_INVALID_FD Invalid file descriptor.
  */
 _Must_inspect_result_ ebpf_result_t
-_ebpf_ring_buffer_map_unmap_buffer_with_index(
+ebpf_ring_buffer_map_unmap_buffer_with_index(
     fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) noexcept;
 
 /**

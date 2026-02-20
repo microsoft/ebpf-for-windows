@@ -5233,7 +5233,7 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-_ebpf_ring_buffer_map_map_buffer_with_index(
+ebpf_ring_buffer_map_map_buffer_with_index(
     fd_t map_fd,
     uint64_t index,
     _Outptr_result_maybenull_ void** consumer,
@@ -5282,12 +5282,12 @@ ebpf_ring_buffer_map_map_buffer(
     _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
     _Out_ size_t* data_size) NO_EXCEPT_TRY
 {
-    return _ebpf_ring_buffer_map_map_buffer_with_index(map_fd, 0, consumer, producer, data, data_size);
+    return ebpf_ring_buffer_map_map_buffer_with_index(map_fd, 0, consumer, producer, data, data_size);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-_ebpf_ring_buffer_map_unmap_buffer_with_index(
+ebpf_ring_buffer_map_unmap_buffer_with_index(
     fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -5312,7 +5312,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
     NO_EXCEPT_TRY
 {
-    return _ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, 0, consumer, producer, data);
+    return ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, 0, consumer, producer, data);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 

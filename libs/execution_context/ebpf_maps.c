@@ -3045,8 +3045,7 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
     ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length);
     if (result != EBPF_SUCCESS) {
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
-        uint64_t lost = ReadULong64Acquire(&producer_page->lost_records);
-        WriteULong64Release(&producer_page->lost_records, lost + 1);
+        WriteULong64Release(&producer_page->lost_records, ReadULong64Acquire(&producer_page->lost_records) + 1);
         goto Exit;
     }
     memcpy(record_data, data, length);
@@ -3131,8 +3130,7 @@ ebpf_perf_event_array_map_output_with_capture(
     result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
     if (result != EBPF_SUCCESS) {
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
-        uint64_t lost = ReadULong64Acquire(&producer_page->lost_records);
-        WriteULong64Release(&producer_page->lost_records, lost + 1);
+        WriteULong64Release(&producer_page->lost_records, ReadULong64Acquire(&producer_page->lost_records) + 1);
         goto Exit;
     }
     memcpy(record_data, data, length);

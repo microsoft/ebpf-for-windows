@@ -408,7 +408,7 @@ _convert_to_ebpf_perf_opts(_In_ const struct perf_buffer_opts* linux_opts)
 
 // Helper function to process ring records from memory pages (shared by ring buffer and perf buffer).
 static int
-_process_ring_records(_In_ ebpf_ring_mapping_t& mapping)
+_process_ring_records(_Inout_ ebpf_ring_mapping_t& mapping)
 {
     if (!mapping.consumer_page || !mapping.producer_page || !mapping.data || !mapping.sample_fn) {
         return -EINVAL;
@@ -707,9 +707,12 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
 int
 ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
 {
-    // For async mode, polling doesn't make sense since callbacks are automatic.
-    if (!rb || rb->sync_maps.empty() || rb->is_async_mode) {
+    if (!rb || rb->sync_maps.empty()) {
         return -EINVAL;
+    }
+    // For async mode, polling doesn't make sense since callbacks are automatic.
+    if (rb->is_async_mode) {
+        return -ENOTSUP;
     }
 
     // First we reset the event and process any immediately available records.
@@ -726,7 +729,7 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
     if (wait_result == WAIT_OBJECT_0) {
         result = ring_buffer__consume(rb);
     } else if (wait_result != WAIT_TIMEOUT) {
-        result = -EINVAL; // Failed to wait, return error.
+        result = -EIO; // System wait failure.
     } // Else timeout occurred and we will return 0 (no records).
 
     return result;
@@ -735,8 +738,11 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
 int
 ring_buffer__consume(struct ring_buffer* rb)
 {
-    if (!rb || rb->sync_maps.empty() || rb->is_async_mode) {
+    if (!rb || rb->sync_maps.empty()) {
         return -EINVAL;
+    }
+    if (rb->is_async_mode) {
+        return -ENOTSUP;
     }
 
     int total_records = 0;
@@ -905,7 +911,7 @@ ebpf_perf_buffer__new(
                     // Clean up all successfully added mappings.
                     for (auto& map_info : perf_buffer->sync_maps) {
                         (void)ebpf_map_set_wait_handle(map_info.map_fd, map_info.cpu_id, ebpf_handle_invalid);
-                        (void)_ebpf_ring_buffer_map_unmap_buffer_with_index(
+                        (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
                             map_info.map_fd,
                             map_info.cpu_id,
                             map_info.consumer_page,
@@ -918,7 +924,7 @@ ebpf_perf_buffer__new(
                     if (current_map_info.consumer_page) {
                         (void)ebpf_map_set_wait_handle(
                             current_map_info.map_fd, current_map_info.cpu_id, ebpf_handle_invalid);
-                        (void)_ebpf_ring_buffer_map_unmap_buffer_with_index(
+                        (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
                             current_map_info.map_fd,
                             current_map_info.cpu_id,
                             current_map_info.consumer_page,
@@ -947,7 +953,7 @@ ebpf_perf_buffer__new(
                 }
 
                 // Get direct memory access to the perf buffer map for this CPU.
-                result = _ebpf_ring_buffer_map_map_buffer_with_index(
+                result = ebpf_ring_buffer_map_map_buffer_with_index(
                     map_fd,
                     cpu_id,
                     reinterpret_cast<void**>(&current_map_info.consumer_page),
@@ -1008,7 +1014,7 @@ perf_buffer__free(struct perf_buffer* pb)
     // Clean up sync mappings.
     for (auto& map_info : pb->sync_maps) {
         (void)ebpf_map_set_wait_handle(map_info.map_fd, map_info.cpu_id, ebpf_handle_invalid);
-        (void)_ebpf_ring_buffer_map_unmap_buffer_with_index(
+        (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
             map_info.map_fd, map_info.cpu_id, map_info.consumer_page, map_info.producer_page, map_info.data);
     }
     pb->sync_maps.clear();
@@ -1025,9 +1031,12 @@ perf_buffer__free(struct perf_buffer* pb)
 int
 perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
 {
-    // For async mode, polling doesn't make sense since callbacks are automatic.
-    if (!pb || pb->sync_maps.empty() || pb->is_async_mode) {
+    if (!pb || pb->sync_maps.empty()) {
         return libbpf_err(-EINVAL);
+    }
+    // For async mode, polling doesn't make sense since callbacks are automatic.
+    if (pb->is_async_mode) {
+        return libbpf_err(-ENOTSUP);
     }
 
     // First we reset the event and process any immediately available records.
@@ -1044,7 +1053,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
     if (wait_result == WAIT_OBJECT_0) {
         result = perf_buffer__consume(pb);
     } else if (wait_result != WAIT_TIMEOUT) {
-        result = libbpf_err(-EINVAL); // Failed to wait, return error.
+        result = libbpf_err(-EIO); // System wait failure.
     } // Else timeout occurred and we will return 0 (no records).
 
     return result;
@@ -1053,8 +1062,11 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
 int
 perf_buffer__consume(struct perf_buffer* pb)
 {
-    if (!pb || pb->sync_maps.empty() || pb->is_async_mode) {
+    if (!pb || pb->sync_maps.empty()) {
         return libbpf_err(-EINVAL);
+    }
+    if (pb->is_async_mode) {
+        return libbpf_err(-ENOTSUP);
     }
 
     int total_records = 0;
@@ -1073,8 +1085,11 @@ perf_buffer__consume(struct perf_buffer* pb)
 int
 perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
 {
-    if (!pb || pb->is_async_mode || cpu >= pb->sync_maps.size()) {
+    if (!pb || cpu >= pb->sync_maps.size()) {
         return libbpf_err(-EINVAL);
+    }
+    if (pb->is_async_mode) {
+        return libbpf_err(-ENOTSUP);
     }
 
     // Process available data from the specific CPU buffer.
