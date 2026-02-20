@@ -706,11 +706,14 @@ ring_buffer__add(struct ring_buffer* rb, int map_fd, ring_buffer_sample_fn sampl
 int
 ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
 {
-    if (!rb || rb->sync_maps.empty()) {
+    if (!rb) {
         return -EINVAL;
     }
     if (rb->is_async_mode) { // For async mode, polling doesn't make sense since callbacks are automatic.
         return -ENOTSUP;
+    }
+    if (rb->sync_maps.empty()) {
+        return -EINVAL;
     }
 
     // First we reset the event and process any immediately available records.
@@ -736,11 +739,14 @@ ring_buffer__poll(struct ring_buffer* rb, int timeout_ms)
 int
 ring_buffer__consume(struct ring_buffer* rb)
 {
-    if (!rb || rb->sync_maps.empty()) {
+    if (!rb) {
         return -EINVAL;
     }
     if (rb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return -ENOTSUP;
+    }
+    if (rb->sync_maps.empty()) {
+        return -EINVAL;
     }
 
     int total_records = 0;
@@ -1027,11 +1033,14 @@ perf_buffer__free(struct perf_buffer* pb)
 int
 perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
 {
-    if (!pb || pb->sync_maps.empty()) {
+    if (!pb) {
         return libbpf_err(-EINVAL);
     }
     if (pb->is_async_mode) { // For async mode, polling doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
+    }
+    if (pb->sync_maps.empty()) {
+        return libbpf_err(-EINVAL);
     }
 
     // First we reset the event and process any immediately available records.
@@ -1057,11 +1066,14 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms)
 int
 perf_buffer__consume(struct perf_buffer* pb)
 {
-    if (!pb || pb->sync_maps.empty()) {
+    if (!pb) {
         return libbpf_err(-EINVAL);
     }
     if (pb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
+    }
+    if (pb->sync_maps.empty()) {
+        return libbpf_err(-EINVAL);
     }
 
     int total_records = 0;
@@ -1080,11 +1092,14 @@ perf_buffer__consume(struct perf_buffer* pb)
 int
 perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
 {
-    if (!pb || cpu >= pb->sync_maps.size()) {
+    if (!pb) {
         return libbpf_err(-EINVAL);
     }
     if (pb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
+    }
+    if (cpu >= pb->sync_maps.size()) {
+        return libbpf_err(-EINVAL);
     }
 
     // Process available data from the specific CPU buffer.
