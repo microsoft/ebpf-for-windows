@@ -13,6 +13,13 @@
     <EbpfVersion Condition="'$(EbpfVersion_Modifier)' == ''">$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
     <EbpfVersion Condition="'$(EbpfVersion_Modifier)' != ''">$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)-$(EbpfVersion_Modifier)</EbpfVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- Set default NuGetPackageRoot if not already set - use NUGET_PACKAGES env var or user profile -->
+    <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == '' AND '$(NUGET_PACKAGES)' != ''">$(NUGET_PACKAGES)</NuGetPackageRoot>
+    <NuGetPackageRoot Condition="'$(NuGetPackageRoot)' == ''">$(UserProfile)\.nuget\packages\</NuGetPackageRoot>
+    <!-- Ensure trailing slash -->
+    <NuGetPackageRoot Condition="!$(NuGetPackageRoot.EndsWith('\'))">$(NuGetPackageRoot)\</NuGetPackageRoot>
+  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>

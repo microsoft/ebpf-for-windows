@@ -162,7 +162,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unit_tests", "tests\unit\te
 		{AF85C549-57CC-40A5-BDFC-DCF1998DE80F} = {AF85C549-57CC-40A5-BDFC-DCF1998DE80F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netsh_static", "libs\ebpfnetsh\ebpfnetsh.vcxproj", "{370E7D53-C97F-4077-A3D5-620C4FD87EED}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netsh_static", "libs\ebpfnetsh\netsh_static.vcxproj", "{370E7D53-C97F-4077-A3D5-620C4FD87EED}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
