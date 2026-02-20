@@ -170,10 +170,10 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                                                            Size\n"
-                  "             Section                 Program       Type  (bytes)\n"
-                  "====================  ======================  =========  =======\n"
-                  "               .text                    func     unspec       16\n"
+                  "                                                                     Size\n"
+                  "                       Section                   Program       Type  (bytes)\n"
+                  "==============================  ========================  =========  =======\n"
+                  "                         .text                      func     unspec       16\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -243,10 +243,10 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 
     // Expected output is a format string with the code size filled in.
     const std::string expected_output = "\n"
-                                        "                                                            Size\n"
-                                        "             Section                 Program       Type  (bytes)\n"
-                                        "====================  ======================  =========  =======\n"
-                                        "               .text                    func       bind  {:7}\n"
+                                        "                                                                     Size\n"
+                                        "                       Section                   Program       Type  (bytes)\n"
+                                        "==============================  ========================  =========  =======\n"
+                                        "                         .text                      func       bind  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -287,10 +287,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
 #endif
 
     const std::string expected_output = "\n"
-                                        "                                                            Size\n"
-                                        "             Section                 Program       Type  (bytes)\n"
-                                        "====================  ======================  =========  =======\n"
-                                        "          sample_ext           lookup_update     sample  {:7}\n"
+                                        "                                                                     Size\n"
+                                        "                       Section                   Program       Type  (bytes)\n"
+                                        "==============================  ========================  =========  =======\n"
+                                        "                    sample_ext             lookup_update     sample  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -341,12 +341,12 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
     // As a workaround, check for both the expected outputs.
     const std::string expected_output = "\n"
-                                        "                                                            Size\n"
-                                        "             Section                 Program       Type  (bytes)\n"
-                                        "====================  ======================  =========  =======\n"
-                                        "        sample_ext/0                 callee0     sample  {:7}\n"
-                                        "        sample_ext/1                 callee1     sample  {:7}\n"
-                                        "          sample_ext                  caller     sample  {:7}\n"
+                                        "                                                                     Size\n"
+                                        "                       Section                   Program       Type  (bytes)\n"
+                                        "==============================  ========================  =========  =======\n"
+                                        "                  sample_ext/0                   callee0     sample  {:7}\n"
+                                        "                  sample_ext/1                   callee1     sample  {:7}\n"
+                                        "                    sample_ext                    caller     sample  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -381,29 +381,31 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     // Code size is for MSVC 2022 version 17.14.0 and later.
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int old_code_size[] = {339, 363, 339, 363};
-    const int code_size[] = {339, 363, 339, 363};
+    const int old_code_size[] = {339, 363, 339, 363, 339, 363};
+    const int code_size[] = {339, 363, 339, 363, 339, 363};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int old_code_size[] = {961, 1036, 961, 1036};
-    const int code_size[] = {1089, 1224, 1089, 1224};
+    const int old_code_size[] = {961, 1036, 961, 1036, 961, 1036};
+    const int code_size[] = {1089, 1224, 1089, 1224, 1089, 1224};
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int old_code_size[] = {328, 344, 328, 344};
-    const int code_size[] = {328, 352, 328, 352};
+    const int old_code_size[] = {328, 344, 328, 344, 328, 344};
+    const int code_size[] = {328, 352, 328, 352, 328, 352};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int old_code_size[] = {1132, 1288, 1132, 1288};
-    const int code_size[] = {1132, 1288, 1132, 1288};
+    const int old_code_size[] = {1132, 1288, 1132, 1288, 1132, 1288};
+    const int code_size[] = {1132, 1288, 1132, 1288, 1132, 1288};
 #else
 #error "Unsupported architecture"
 #endif
 
     const std::string expected_output = "\n"
-                                        "                                                            Size\n"
-                                        "             Section                 Program       Type  (bytes)\n"
-                                        "====================  ======================  =========  =======\n"
-                                        "     cgroup/connect4      authorize_connect4  sock_addr  {:7}\n"
-                                        "     cgroup/connect6      authorize_connect6  sock_addr  {:7}\n"
-                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr  {:7}\n"
-                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr  {:7}\n"
+                                        "                                                                     Size\n"
+                                        "                       Section                   Program       Type  (bytes)\n"
+                                        "==============================  ========================  =========  =======\n"
+                                        "               cgroup/connect4        authorize_connect4  sock_addr  {:7}\n"
+                                        "               cgroup/connect6        authorize_connect6  sock_addr  {:7}\n"
+                                        "           cgroup/recv_accept4    authorize_recv_accept4  sock_addr  {:7}\n"
+                                        "           cgroup/recv_accept6    authorize_recv_accept6  sock_addr  {:7}\n"
+                                        " cgroup/connect_authorization4    connect_authorization4  sock_addr  {:7}\n"
+                                        " cgroup/connect_authorization6    connect_authorization6  sock_addr  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -413,12 +415,19 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "              hash    56      8     1000  socket_cookie_map\n";
 
     bool output_matches =
-        (output ==
-             std::vformat(
-                 expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])) ||
+        (output == std::vformat(
+                       expected_output,
+                       std::make_format_args(
+                           code_size[0], code_size[1], code_size[2], code_size[3], code_size[4], code_size[5])) ||
          output == std::vformat(
                        expected_output,
-                       std::make_format_args(old_code_size[0], old_code_size[1], old_code_size[2], old_code_size[3])));
+                       std::make_format_args(
+                           old_code_size[0],
+                           old_code_size[1],
+                           old_code_size[2],
+                           old_code_size[3],
+                           old_code_size[4],
+                           old_code_size[5])));
 
     if (!output_matches) {
         std::cerr << "Expected output:\n" << expected_output << "\n";

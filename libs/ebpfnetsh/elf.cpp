@@ -177,9 +177,9 @@ handle_ebpf_show_sections(
 
     if (level == VL_NORMAL) {
         std::cout << "\n";
-        std::cout << "                                                            Size\n";
-        std::cout << "             Section                 Program       Type  (bytes)\n";
-        std::cout << "====================  ======================  =========  =======\n";
+        std::cout << "                                                                     Size\n";
+        std::cout << "                       Section                   Program       Type  (bytes)\n";
+        std::cout << "==============================  ========================  =========  =======\n";
     }
     for (auto current_program = program_data; current_program != nullptr; current_program = current_program->next) {
         if (!section.empty() && strcmp(current_program->section_name, section.c_str()) != 0) {
@@ -190,7 +190,7 @@ handle_ebpf_show_sections(
             program_type_name = "unspec";
         }
         if (level == VL_NORMAL) {
-            std::cout << std::setw(20) << std::right << current_program->section_name << "  " << std::setw(22)
+            std::cout << std::setw(30) << std::right << current_program->section_name << "  " << std::setw(24)
                       << std::right << current_program->program_name << "  " << std::setw(9) << program_type_name
                       << "  " << std::setw(7) << current_program->raw_data_size << "\n";
         } else {
