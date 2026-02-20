@@ -61,10 +61,10 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
  * false sharing with the producer offset.
  *
  * @param[in, out] ring_buffer Ring buffer to query.
- * @retval Pointer to the producer page, or NULL if not found.
+ * @retval Pointer to the producer page.
  */
 ebpf_ring_buffer_producer_page_t*
-ebpf_ring_buffer_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
+ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
 
 /**
  * @brief Get the shared producer page for a perf event array map.
@@ -72,7 +72,7 @@ ebpf_ring_buffer_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
  * @note ring_buffer must correspond to a perf event array map ring.
  *
  * @param[in, out] ring_buffer Per-cpu perf event array map ring to query.
- * @retval Pointer to the producer page, or NULL if not found.
+ * @retval Pointer to the producer page.
  */
 ebpf_perf_event_array_producer_page_t*
 ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
