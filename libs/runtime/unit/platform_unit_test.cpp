@@ -2365,7 +2365,10 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     reserved_data = nullptr;
     REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &reserved_data, data.size()) == EBPF_SUCCESS);
     REQUIRE(reserved_data != nullptr);
+#pragma warning(push)
+#pragma warning(disable : 6001) // False positive: reserved_data is set by ebpf_ring_buffer_reserve on success.
     REQUIRE(ebpf_ring_buffer_discard(reserved_data, EBPF_RINGBUF_FLAG_FORCE_WAKEUP) == EBPF_SUCCESS);
+#pragma warning(pop)
     REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
     KeClearEvent(&event);
 
