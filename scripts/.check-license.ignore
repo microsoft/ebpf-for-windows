@@ -10,6 +10,7 @@
 .*\.rc$
 .*\.sln$
 .*\.vsdx$
+.*models/.*/tlatex/.*\.tex$
 
 # Directories with files that don't support embedding license info
 .*corpus
