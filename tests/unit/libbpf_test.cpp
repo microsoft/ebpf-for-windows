@@ -1390,7 +1390,7 @@ struct perf_buffer_test_callback_context
 };
 
 static void
-perf_buffer_test_sample_callback(void* ctx, int cpu, void* data, uint32_t size)
+perf_buffer_test_sample_callback(_In_ void* ctx, int cpu, _In_reads_bytes_(size) void* data, uint32_t size)
 {
     auto* context = static_cast<perf_buffer_test_callback_context*>(ctx);
     if (context->should_stop) {
@@ -1401,7 +1401,7 @@ perf_buffer_test_sample_callback(void* ctx, int cpu, void* data, uint32_t size)
 }
 
 static void
-perf_buffer_test_lost_callback(void* ctx, int cpu, uint64_t cnt)
+perf_buffer_test_lost_callback(_In_ void* ctx, int cpu, uint64_t cnt)
 {
     UNREFERENCED_PARAMETER(cpu);
     auto* context = static_cast<perf_buffer_test_callback_context*>(ctx);

@@ -53,7 +53,7 @@ struct scoped_cpu_affinity
     /**
      * @brief Initializes the object and sets CPU affinity to the specified CPU index.
      *
-     * @param i CPU index to set affinity to.
+     * @param[in] i CPU index to set affinity to.
      */
     scoped_cpu_affinity(uint32_t i) : thread_handle(GetCurrentThread())
     {
@@ -70,7 +70,7 @@ struct scoped_cpu_affinity
      *
      * The destructor will restore the original CPU affinity regardless of how many times this method is called.
      *
-     * @param i CPU index to set affinity to.
+     * @param[in] i CPU index to set affinity to.
      */
     void
     switch_cpu(uint32_t i)

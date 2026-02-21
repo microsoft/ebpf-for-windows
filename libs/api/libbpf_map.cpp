@@ -408,34 +408,35 @@ _convert_to_ebpf_perf_opts(_In_ const struct perf_buffer_opts* linux_opts)
 
 // Helper function to process ring records from memory pages (shared by ring buffer and perf buffer).
 static int
-_process_ring_records(_Inout_ ebpf_ring_mapping_t& mapping)
+_process_ring_records(_Inout_ ebpf_ring_mapping_t* mapping)
 {
-    if (!mapping.consumer_page || !mapping.producer_page || !mapping.data || !mapping.sample_fn) {
+    if (!mapping || !mapping->consumer_page || !mapping->producer_page || !mapping->data || !mapping->sample_fn) {
         return -EINVAL;
     }
 
     // Get current consumer and producer offsets from shared pages.
-    uint64_t consumer_offset = ReadULong64Acquire(&mapping.consumer_page->consumer_offset);
-    uint64_t producer_offset = ReadULong64Acquire(&mapping.producer_page->producer_offset);
+    uint64_t consumer_offset = ReadULong64Acquire(&mapping->consumer_page->consumer_offset);
+    uint64_t producer_offset = ReadULong64Acquire(&mapping->producer_page->producer_offset);
 
     // Detect newly lost events for perf buffer.
-    if (mapping.is_perf_buffer) {
+    if (mapping->is_perf_buffer) {
         // Following the ring producer page are perf event array specific fields (lost record count).
-        auto perf_producer_page = reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(mapping.producer_page);
+        auto perf_producer_page =
+            reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(mapping->producer_page);
         uint64_t lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
-        uint64_t new_lost_records = lost_count - mapping.lost_count;
+        uint64_t new_lost_records = lost_count - mapping->lost_count;
         if (new_lost_records > 0) {
             // Call lost events callback: void (*)(void* ctx, int cpu, uint64_t lost).
-            ((perf_buffer_lost_fn)mapping.lost_fn)(mapping.ctx, mapping.cpu_id, new_lost_records);
-            mapping.lost_count = lost_count;
+            ((perf_buffer_lost_fn)mapping->lost_fn)(mapping->ctx, mapping->cpu_id, new_lost_records);
+            mapping->lost_count = lost_count;
         }
     }
 
     int records_processed = 0;
     const ebpf_ring_buffer_record_t* record{};
     // Process available records.
-    while (nullptr !=
-           (record = ebpf_ring_buffer_next_record(mapping.data, mapping.data_size, consumer_offset, producer_offset))) {
+    while (nullptr != (record = ebpf_ring_buffer_next_record(
+                           mapping->data, mapping->data_size, consumer_offset, producer_offset))) {
         // Check if record is locked (still being written by producer).
         if (ebpf_ring_buffer_record_is_locked(record)) {
             break; // Records must be read in order, so we stop here.
@@ -448,32 +449,32 @@ _process_ring_records(_Inout_ ebpf_ring_mapping_t& mapping)
         if (ebpf_ring_buffer_record_is_discarded(record)) {
             // Increment consumer_offset and update shared offset to return the space to the ring.
             consumer_offset += record_size;
-            WriteULong64Release(&mapping.consumer_page->consumer_offset, consumer_offset);
+            WriteULong64Release(&mapping->consumer_page->consumer_offset, consumer_offset);
         } else {
             uint32_t data_length = ebpf_ring_buffer_record_length(record);
 
             // Call the appropriate user callback based on buffer type.
             int result = 0;
-            if (mapping.is_perf_buffer) {
+            if (mapping->is_perf_buffer) {
                 // Perf buffer callback: void (*)(void* ctx, int cpu, void* data, __u32 size)
-                ((perf_buffer_sample_fn)mapping.sample_fn)(
-                    mapping.ctx,
-                    mapping.cpu_id,
+                ((perf_buffer_sample_fn)mapping->sample_fn)(
+                    mapping->ctx,
+                    mapping->cpu_id,
                     (void*)record->data, // Point to data portion of record.
                     data_length);
                 // Perf buffer callbacks don't return values, so assume success.
                 result = 0;
             } else {
                 // Ring buffer callback: int (*)(void* ctx, void* data, size_t size)
-                result = ((ring_buffer_sample_fn)mapping.sample_fn)(
-                    mapping.ctx,
+                result = ((ring_buffer_sample_fn)mapping->sample_fn)(
+                    mapping->ctx,
                     (void*)record->data, // Point to data portion of record.
                     data_length);
             }
 
             // Increment consumer_offset and update shared offset to return the space to the ring.
             consumer_offset += record_size;
-            WriteULong64Release(&mapping.consumer_page->consumer_offset, consumer_offset);
+            WriteULong64Release(&mapping->consumer_page->consumer_offset, consumer_offset);
 
             if (result < 0) {
                 // User callback requested to stop processing.
@@ -485,7 +486,7 @@ _process_ring_records(_Inout_ ebpf_ring_mapping_t& mapping)
 
         if (consumer_offset >= producer_offset) {
             // Re-read producer offset to check for new data (but only if we need to).
-            producer_offset = ReadULong64Acquire(&mapping.producer_page->producer_offset);
+            producer_offset = ReadULong64Acquire(&mapping->producer_page->producer_offset);
         }
     }
 
@@ -752,7 +753,7 @@ ring_buffer__consume(struct ring_buffer* rb)
     int total_records = 0;
     // Process all available data from all ring buffers.
     for (auto& map_info : rb->sync_maps) {
-        int result = _process_ring_records(map_info); // Process all records.
+        int result = _process_ring_records(&map_info); // Process all records.
         if (result < 0) {
             return result; // Return error.
         }
@@ -778,7 +779,7 @@ ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
 
 _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
     _In_ struct ring_buffer* rb,
-    _In_ uint32_t index,
+    uint32_t index,
     _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
     _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
     _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
@@ -1079,7 +1080,7 @@ perf_buffer__consume(struct perf_buffer* pb)
     int total_records = 0;
     // Process all available data from all ring buffers.
     for (auto& map_info : pb->sync_maps) {
-        int result = _process_ring_records(map_info); // Process all records.
+        int result = _process_ring_records(&map_info); // Process all records.
         if (result < 0) {
             return libbpf_err(result); // Return error with errno set.
         }
@@ -1104,7 +1105,7 @@ perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
 
     // Process available data from the specific CPU buffer.
     auto& map_info = pb->sync_maps[cpu];
-    return libbpf_err(_process_ring_records(map_info)); // Process all records, set errno on error.
+    return libbpf_err(_process_ring_records(&map_info)); // Process all records, set errno on error.
 }
 
 size_t
@@ -1125,7 +1126,7 @@ perf_buffer__buffer_cnt(const struct perf_buffer* pb)
 }
 
 ebpf_handle_t
-ebpf_perf_buffer_get_wait_handle(_In_ struct perf_buffer* pb) EBPF_NO_EXCEPT
+ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT
 {
     if (!pb) {
         return ebpf_handle_invalid;

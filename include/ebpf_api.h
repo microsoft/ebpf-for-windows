@@ -820,7 +820,7 @@ extern "C"
      */
     _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
         _In_ struct ring_buffer* rb,
-        _In_ uint32_t index,
+        uint32_t index,
         _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
         _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
         _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
@@ -898,7 +898,7 @@ extern "C"
      * @returns Wait handle for the perf buffer manager, or INVALID_HANDLE_VALUE on error.
      */
     ebpf_handle_t
-    ebpf_perf_buffer_get_wait_handle(_In_ struct perf_buffer* pb) EBPF_NO_EXCEPT;
+    ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT;
 #ifdef __cplusplus
 }
 #endif
