@@ -753,6 +753,9 @@ extern "C"
     static_assert(
         sizeof(ebpf_ring_buffer_producer_page_t) <= sizeof(ebpf_perf_event_array_producer_page_t),
         "ebpf_perf_event_array_producer_page_t must be at least as large as ebpf_ring_buffer_producer_page_t");
+    static_assert(
+        offsetof(ebpf_perf_event_array_producer_page_t, lost_records) >= 64,
+        "lost_records must be in a separate cache line from producer_offset");
 
     /**
      * @brief Ring buffer sample callback function type.
