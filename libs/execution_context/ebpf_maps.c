@@ -3044,6 +3044,7 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
     uint8_t* record_data;
     ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length);
     if (result != EBPF_SUCCESS) {
+        // Non-atomic increment is safe: per-CPU counter updated at DISPATCH_LEVEL.
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
         WriteULong64Release(&producer_page->lost_records, ReadULong64Acquire(&producer_page->lost_records) + 1);
         goto Exit;
@@ -3129,6 +3130,7 @@ ebpf_perf_event_array_map_output_with_capture(
     uint8_t* record_data;
     result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
     if (result != EBPF_SUCCESS) {
+        // Non-atomic increment is safe: per-CPU counter updated at DISPATCH_LEVEL.
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
         WriteULong64Release(&producer_page->lost_records, ReadULong64Acquire(&producer_page->lost_records) + 1);
         goto Exit;

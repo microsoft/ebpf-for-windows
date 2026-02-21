@@ -483,7 +483,7 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     }
 }
 
-ebpf_ring_buffer_producer_page_t*
+const ebpf_ring_buffer_producer_page_t*
 ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer)
 {
     return ring_buffer->producer_page;

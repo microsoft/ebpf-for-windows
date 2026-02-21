@@ -60,10 +60,10 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
  * Extensions to the producer page (e.g., lost counter) should be after the first cache line to avoid
  * false sharing with the producer offset.
  *
- * @param[in, out] ring_buffer Ring buffer to query.
- * @retval Pointer to the producer page.
+ * @param[in] ring_buffer Ring buffer to query.
+ * @return Pointer to the producer page.
  */
-ebpf_ring_buffer_producer_page_t*
+const ebpf_ring_buffer_producer_page_t*
 ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
 
 /**
@@ -72,7 +72,7 @@ ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
  * @note ring_buffer must correspond to a perf event array map ring.
  *
  * @param[in, out] ring_buffer Per-cpu perf event array map ring to query.
- * @retval Pointer to the producer page.
+ * @return Pointer to the producer page.
  */
 ebpf_perf_event_array_producer_page_t*
 ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer);
