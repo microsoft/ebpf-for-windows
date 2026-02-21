@@ -109,7 +109,7 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     uint32_t
-    attach(bpf_program* program)
+    attach(_In_ const bpf_program* program)
     {
         return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);
     }
@@ -148,7 +148,7 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     void
-    detach_link(bpf_link* link)
+    detach_link(_Inout_ bpf_link* link)
     {
         if (ebpf_link_detach(link) != EBPF_SUCCESS) {
             throw std::runtime_error("ebpf_link_detach failed");
@@ -156,7 +156,7 @@ typedef class _single_instance_hook : public _hook_helper
     }
 
     void
-    close_link(bpf_link* link)
+    close_link(_Frees_ptr_ bpf_link* link)
     {
 #pragma warning(push)
 #pragma warning(disable : 6001) // Using uninitialized memory '*link'.
@@ -221,7 +221,7 @@ typedef class _single_instance_hook : public _hook_helper
         return batch_end_function(state);
     }
 
-    const ebpf_extension_data_t*
+    _Ret_maybenull_ const ebpf_extension_data_t*
     get_client_data() const
     {
         return client_data;
@@ -236,7 +236,7 @@ typedef class _single_instance_hook : public _hook_helper
         _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,
-        _Out_ const void** provider_dispatch)
+        _Outptr_result_maybenull_ const void** provider_dispatch)
     {
         auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
 

@@ -3764,7 +3764,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result == 0), custom_map_fd);
         require_and_close((value == i + 100), custom_map_fd);
     }
-    // Lookup an invalid key
+    // Look up an invalid key.
     {
         uint32_t key = map_size + 20;
         uint32_t value = 0;
@@ -3810,7 +3810,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result == 0), custom_map_fd);
     }
 
-    // Lookup and delete elements using bpf_map_lookup_and_delete_elem, and validate values.
+    // Look up and delete elements using bpf_map_lookup_and_delete_elem, and validate values.
     for (uint32_t i = 0; i < map_size; i++) {
         uint32_t key = i;
         uint32_t value = 0;
@@ -3904,7 +3904,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
     // Test bpf_map_delete_batch on custom map.
     {
         // Prepare data for delete batch test (map should still have data from previous test).
-        std::vector<uint32_t> delete_keys(map_size / 2); // Delete half the entries
+        std::vector<uint32_t> delete_keys(map_size / 2); // Delete half the entries.
         for (uint32_t i = 0; i < map_size / 2; i++) {
             delete_keys[i] = i;
         }
@@ -3922,10 +3922,10 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
             uint32_t value = 0;
             result = bpf_map_lookup_elem(custom_map_fd, &key, &value);
             if (i < map_size / 2) {
-                // For hash maps, lookup fails after deletion
+                // For hash maps, lookup fails after deletion.
                 require_and_close((result != 0), custom_map_fd);
             } else {
-                // Remaining keys should still exist with their values
+                // Remaining keys should still exist with their values.
                 require_and_close((result == 0), custom_map_fd);
                 require_and_close((value == i + 600), custom_map_fd);
             }
@@ -3937,7 +3937,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         // Re-populate the map with fresh data for lookup_and_delete test.
         for (uint32_t i = 0; i < map_size; i++) {
             uint32_t key = i;
-            uint32_t value = i + 700; // New values to distinguish from previous tests
+            uint32_t value = i + 700; // New values to distinguish from previous tests.
             result = bpf_map_update_elem(custom_map_fd, &key, &value, 0);
             require_and_close((result == 0), custom_map_fd);
         }
@@ -4082,10 +4082,8 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
     REQUIRE(result != 0);
 
-    // Initialize providers for both the map types, as the BPF program has both the map types.
-    // test_sample_map_provider_t sample_array_map_provider;
+    // Initialize provider for SAMPLE_HASH_MAP.
     test_sample_map_provider_t sample_hash_map_provider;
-    // REQUIRE(sample_array_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_ARRAY_MAP) == EBPF_SUCCESS);
     REQUIRE(sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, object_map) == EBPF_SUCCESS);
 
     auto require_and_close_object = [&](bool condition) {

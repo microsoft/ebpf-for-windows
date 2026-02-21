@@ -34,7 +34,7 @@ typedef struct _ebpf_core_map
     ebpf_map_definition_in_memory_t ebpf_map_definition;
     uint32_t original_value_size;
     uint8_t* data;
-    uint8_t* custom_map_context; // Pointer to custom map context, if any. *Must be* NULL for regular maps.
+    uint8_t* custom_map_context; // Pointer to custom map context, if any. Must be NULL for regular maps.
     const ebpf_map_metadata_table_properties_t* properties; // NULL for custom maps.
 } ebpf_core_map_t;
 
@@ -4456,7 +4456,7 @@ ebpf_custom_map_create(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 
-    // Allocate custom map
+    // Allocate custom map.
     custom_map =
         (ebpf_custom_map_t*)ebpf_allocate_cache_aligned_with_tag(sizeof(ebpf_custom_map_t), EBPF_POOL_TAG_CUSTOM_MAP);
     if (!custom_map) {
@@ -4619,7 +4619,7 @@ _ebpf_custom_map_client_attach_provider(
         goto Done;
     }
 
-    // Check if map type matches any of the supported types
+    // Check if map type matches any of the supported types.
     if ((uint32_t)custom_map->core_map.ebpf_map_definition.type != provider_data->map_type) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_VERBOSE,
@@ -4657,7 +4657,7 @@ _ebpf_custom_map_client_attach_provider(
         goto Done;
     }
 
-    // Acquire lock and update dispatch table
+    // Acquire lock and update dispatch table.
     state = ebpf_lock_lock(&custom_map->lock);
     lock_acquired = true;
 
@@ -4696,7 +4696,7 @@ _ebpf_custom_map_client_attach_provider(
         NmrClientAttachProvider(nmr_binding_handle, custom_map, NULL, &provider_binding_context, &provider_dispatch);
 #pragma warning(pop)
 
-    // Acquire lock to update state after successful attachment
+    // Acquire lock to update state after successful attachment.
     state = ebpf_lock_lock(&custom_map->lock);
     lock_acquired = true;
 
@@ -4731,7 +4731,7 @@ _ebpf_custom_map_client_detach_provider(_In_ void* client_binding_context)
 {
     ebpf_custom_map_t* map = (ebpf_custom_map_t*)client_binding_context;
 
-    // Wait for all provider operations to complete
+    // Wait for all provider operations to complete.
     ExWaitForRundownProtectionRelease(&map->provider_rundown_reference);
 
     return STATUS_SUCCESS;
@@ -4804,7 +4804,7 @@ ebpf_custom_map_find_entry(
     // Get provider dispatch.
     ebpf_base_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL);
-    // Call provider's find function
+    // Call the provider's find function.
     __analysis_assume(provider_dispatch != NULL);
     uint8_t* value_pointer = NULL;
     if (provider_dispatch->process_map_find_element != NULL) {
@@ -4944,7 +4944,7 @@ ebpf_custom_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _eb
     // Get provider dispatch.
     ebpf_base_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
     ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
-    // Call provider's associate program function
+    // Call the provider's associate program function.
     __analysis_assume(provider_dispatch != NULL);
     __analysis_assume(provider_dispatch->associate_program_function != NULL);
     result = provider_dispatch->associate_program_function(

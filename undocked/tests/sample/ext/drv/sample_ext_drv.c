@@ -53,9 +53,9 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _sample_ebpf_ext_driver_unloading_flag = TRUE;
 
-    sample_ebpf_extension_program_info_provider_unregister();
-
     sample_ebpf_extension_hook_provider_unregister();
+
+    sample_ebpf_extension_program_info_provider_unregister();
 
     sample_ebpf_extension_map_provider_unregister();
 }

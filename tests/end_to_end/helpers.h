@@ -122,6 +122,7 @@ typedef class _test_global_helper
     static uint64_t
     _sample_get_pid_tgid()
     {
+        // Return an arbitrary non-zero value for pid and tgid.
         return 9999;
     }
 } test_global_helper_t;
@@ -290,12 +291,12 @@ typedef class _test_sample_map_provider
     }
 
     void
-    set_dispatch_table(_In_ ebpf_base_map_client_dispatch_table_t* client_dispatch_table)
+    set_dispatch_table(_In_ const ebpf_base_map_client_dispatch_table_t* client_dispatch_table)
     {
         memcpy(&_client_dispatch_table, client_dispatch_table, sizeof(ebpf_base_map_client_dispatch_table_t));
     }
 
-    ebpf_base_map_client_dispatch_table_t*
+    _Ret_notnull_ ebpf_base_map_client_dispatch_table_t*
     dispatch_table()
     {
         return &_client_dispatch_table;

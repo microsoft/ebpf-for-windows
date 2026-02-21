@@ -338,13 +338,13 @@ typedef _Ret_writes_maybenull_(size) void* (*ebpf_epoch_allocate_cache_aligned_w
  * @brief Free memory under epoch control.
  * @param[in] memory Allocation to be freed once epoch ends.
  */
-typedef void (*ebpf_epoch_free_t)(_In_opt_ void* memory);
+typedef void (*ebpf_epoch_free_t)(_In_opt_ _Post_invalid_ void* memory);
 
 /**
  * @brief Free memory under epoch control.
  * @param[in] memory Allocation to be freed once epoch ends.
  */
-typedef void (*ebpf_epoch_free_cache_aligned_t)(_In_opt_ void* pointer);
+typedef void (*ebpf_epoch_free_cache_aligned_t)(_In_opt_ _Post_invalid_ void* pointer);
 
 /**
  * @brief Enter an epoch-protected region.
