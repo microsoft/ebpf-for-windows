@@ -99,7 +99,7 @@ accessing the shared memory, with epoll to wait for new data. ebpf-for-windows s
 
 1. Call `perf_buffer__new` or `ebpf_perf_buffer__new` to create the perf buffer.
 2. Call `ebpf_perf_buffer_get_wait_handle` to get the wait handle.
-3. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
+3. Call `WaitForSingleObject`/`WaitForMultipleObjects` as needed to wait for new data to be available.
 4. Call `perf_buffer__consume()` to process available records.
 
 ### Differences from Linux API
@@ -129,7 +129,7 @@ Linux perf buffer consumers can directly access the per-CPU ring buffer data by 
 **Windows does not support direct memory mapped access to perf event arrays** because the Windows perf event array implementation does not use the same memory layout as Linux. Instead, use the synchronous callback APIs with wait handles for similar functionality.
 
 For waiting on perf buffer data on Windows, use `ebpf_perf_buffer_get_wait_handle()` to get a HANDLE
-to use with `WaitForSingleObject`/`WaitForMultipleObject`.
+to use with `WaitForSingleObject`/`WaitForMultipleObjects`.
 
 ## bpf helpers
 
@@ -265,7 +265,7 @@ ebpf_perf_buffer__new(
     _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
 /**
- * @brief Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
+ * @brief Get the wait handle to use with WaitForSingleObject/WaitForMultipleObjects.
  *
  * @param[in] pb Pointer to perf buffer manager.
  * @returns Wait handle, or ebpf_handle_invalid if not available.
