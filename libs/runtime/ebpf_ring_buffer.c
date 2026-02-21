@@ -470,6 +470,12 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     if (ring) {
         EBPF_LOG_ENTRY();
 
+        // Release the event object reference if one was set via ebpf_ring_buffer_set_wait_handle.
+        if (ring->kernel_page && ring->kernel_page->wait_event != NULL) {
+            ObDereferenceObject(ring->kernel_page->wait_event);
+            ring->kernel_page->wait_event = NULL;
+        }
+
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
         ebpf_epoch_free(ring);
 
