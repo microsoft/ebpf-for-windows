@@ -270,7 +270,7 @@ ebpf_perf_buffer__new(
  * @param[in] pb Pointer to perf buffer manager.
  * @returns Wait handle, or ebpf_handle_invalid if not available.
  */
-ebpf_handle_t ebpf_perf_buffer_get_wait_handle(struct perf_buffer *pb);
+ebpf_handle_t ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer *pb);
 ```
 
 ### Perf buffer consumer examples
