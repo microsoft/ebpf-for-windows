@@ -4570,6 +4570,14 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // such, so that it gets freed when the user eventually unsubscribes.
             std::scoped_lock lock{async_query_context->lock};
             async_query_context->async_ioctl_failed = true;
+
+            // Notify unsubscribe that this context has failed and won't post new IOCTLs.
+            // Do NOT erase the context from the map here — this callback holds a raw pointer
+            // to the context owned by the map's unique_ptr, so erasing would be use-after-free.
+            {
+                std::scoped_lock subscription_lock{subscription->lock};
+                subscription->cleanup_complete_event.notify_all();
+            }
             EBPF_RETURN_RESULT(result);
         } else {
             TraceLoggingWrite(
@@ -4661,6 +4669,9 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // First, register wait for the new async IOCTL operation completion.
             result = register_wait_async_ioctl_operation(async_query_context->async_ioctl_completion);
             if (result != EBPF_SUCCESS) {
+                // Failed to register wait. Mark as failed and notify unsubscribe.
+                async_query_context->async_ioctl_failed = true;
+                subscription->cleanup_complete_event.notify_all();
                 EBPF_RETURN_RESULT(result);
             }
 
@@ -4681,6 +4692,8 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
                     result = EBPF_SUCCESS;
                 } else {
                     async_query_context->async_ioctl_failed = true;
+                    // Failed to post IOCTL. Notify unsubscribe.
+                    subscription->cleanup_complete_event.notify_all();
                 }
             }
         }
@@ -4919,9 +4932,21 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
 
     {
         std::unique_lock<std::mutex> lock_wait(subscription->lock);
-        // Wait for for all the notifications to be complete before freeing memory.
-        subscription->cleanup_complete_event.wait(
-            lock_wait, [subscription] { return subscription->async_query_contexts.size() == 0; });
+        // Wait for all remaining contexts to either complete cleanup or fail.
+        // A context is "done" when it has been erased (normal/canceled path) or marked as failed.
+        // We wait indefinitely here — if a completion never arrives, a deadlock is preferable to
+        // use-after-free from freeing OVERLAPPED structures while IOCTLs are still pending.
+        auto all_done_or_failed = [subscription] {
+            for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
+                if (!ctx->async_ioctl_failed) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        subscription->cleanup_complete_event.wait(lock_wait, all_done_or_failed);
+        // Clean up remaining (failed) contexts.
+        subscription->async_query_contexts.clear();
     }
 
     delete subscription;
@@ -5179,8 +5204,9 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_map_buffer(
+ebpf_ring_buffer_map_map_buffer_with_index(
     fd_t map_fd,
+    uint64_t index,
     _Outptr_result_maybenull_ void** consumer,
     _Outptr_result_maybenull_ const void** producer,
     _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
@@ -5202,7 +5228,7 @@ ebpf_ring_buffer_map_map_buffer(
     }
 
     ebpf_operation_ring_buffer_map_map_buffer_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle, index};
     ebpf_operation_ring_buffer_map_map_buffer_reply_t reply{};
 
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
@@ -5220,8 +5246,20 @@ ebpf_ring_buffer_map_map_buffer(
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
-    NO_EXCEPT_TRY
+ebpf_ring_buffer_map_map_buffer(
+    fd_t map_fd,
+    _Outptr_result_maybenull_ void** consumer,
+    _Outptr_result_maybenull_ const void** producer,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size) NO_EXCEPT_TRY
+{
+    return ebpf_ring_buffer_map_map_buffer_with_index(map_fd, 0, consumer, producer, data, data_size);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer_with_index(
+    fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -5232,6 +5270,7 @@ ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const v
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
         map_handle,
+        index,
         reinterpret_cast<uint64_t>(consumer),
         reinterpret_cast<uint64_t>(producer),
         reinterpret_cast<uint64_t>(data)};
@@ -5241,16 +5280,19 @@ ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const v
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
+    NO_EXCEPT_TRY
+{
+    return ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, 0, consumer, producer, data);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
-
-    if (index != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_RETURN_RESULT(result);
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
