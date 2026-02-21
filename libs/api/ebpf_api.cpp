@@ -2271,6 +2271,23 @@ _initialize_ebpf_object_native(
         goto Exit;
     }
 
+    // Populate _ebpf_maps so that native maps are discoverable by handle,
+    // consistent with the non-native flow in _ebpf_object_create_maps.
+    // On failure, the Exit block calls clean_up_ebpf_maps which erases
+    // these entries, so no leaks occur.
+    try {
+        std::unique_lock lock(_ebpf_state_mutex);
+        for (auto& map : object.maps) {
+            _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
     // The following should have already been populated by
     // _ebpf_enumerate_native_programs when opening the object.
     ebpf_assert(object.file_name != nullptr);
