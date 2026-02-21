@@ -57,7 +57,7 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
 /**
  * @brief Get the shared producer page for the ring buffer.
  *
- * Extensions to the producer page (e.g. lost counter) should be after the first cache line to avoid
+ * Extensions to the producer page (e.g., lost counter) should be after the first cache line to avoid
  * false sharing with the producer offset.
  *
  * @param[in, out] ring_buffer Ring buffer to query.

@@ -1658,7 +1658,7 @@ _try_notify_completion(_In_ perf_buffer_sync_test_context_t* context)
 }
 
 static void
-perf_buffer_sync_sample_callback(void* ctx, int cpu, void* data, uint32_t size)
+perf_buffer_sync_sample_callback(_In_ void* ctx, int cpu, _In_reads_bytes_(size) void* data, uint32_t size)
 {
     UNREFERENCED_PARAMETER(cpu);
     auto* context = reinterpret_cast<perf_buffer_sync_test_context_t*>(ctx);
@@ -1681,7 +1681,7 @@ perf_buffer_sync_sample_callback(void* ctx, int cpu, void* data, uint32_t size)
 }
 
 static void
-perf_buffer_sync_lost_callback(void* ctx, int cpu, uint64_t count)
+perf_buffer_sync_lost_callback(_In_ void* ctx, int cpu, uint64_t count)
 {
     UNREFERENCED_PARAMETER(cpu);
     auto* context = reinterpret_cast<perf_buffer_sync_test_context_t*>(ctx);
@@ -1708,7 +1708,9 @@ class perf_buffer_test_helper
     perf_buffer_test_helper&
     operator=(const perf_buffer_test_helper&) = delete;
 
-    /// @brief Create a perf buffer with RAII cleanup. Pass EBPF_PERFBUF_FLAG_AUTO_CALLBACK in flags for async mode.
+    /**
+     * @brief Create a perf buffer with RAII cleanup. Pass EBPF_PERFBUF_FLAG_AUTO_CALLBACK in flags for async mode.
+     */
     perf_buffer*
     create_perf_buffer(fd_t map_fd, uint32_t flags = 0)
     {
@@ -1719,10 +1721,13 @@ class perf_buffer_test_helper
         return _buffer;
     }
 
-    /// @brief Create a perf event array map and register it for RAII cleanup.
-    /// @return 0 on success, -errno on failure.
+    /**
+     * @brief Create a perf event array map and register it for RAII cleanup.
+     *
+     * @return 0 on success, -errno on failure.
+     */
     int
-    initialize_map(fd_t& map_fd, const char* name = nullptr, uint32_t max_entries = 0)
+    initialize_map(fd_t& map_fd, _In_opt_z_ const char* name = nullptr, uint32_t max_entries = 0)
     {
         uint32_t entries = max_entries > 0 ? max_entries : static_cast<uint32_t>(libbpf_num_possible_cpus());
         map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, name, 0, 0, entries, nullptr);
@@ -1734,8 +1739,15 @@ class perf_buffer_test_helper
         return -errno;
     }
 
-    /// @brief Poll until (event_count + lost_count) >= expected_total or timeout.
-    /// @return Total number of events polled (not including lost events).
+    /**
+     * @brief Poll until (event_count + lost_count) >= expected_total or timeout.
+     *
+     * @param[in] pb Perf buffer to poll.
+     * @param[in] expected_total Target total event count (received + lost).
+     * @param[in] poll_timeout_ms Timeout per poll call in milliseconds.
+     * @param[in] overall_timeout Overall timeout for the polling loop.
+     * @return Total number of events polled (not including lost events).
+     */
     int
     poll_until_count(
         _In_ perf_buffer* pb,
@@ -1759,7 +1771,9 @@ class perf_buffer_test_helper
         return total_polled;
     }
 
-    /// @brief Set callback blocking flag. The sample callback will block until unblock_callback() is called.
+    /**
+     * @brief Set callback blocking flag. The sample callback will block until unblock_callback() is called.
+     */
     void
     block_callback()
     {
@@ -1770,7 +1784,9 @@ class perf_buffer_test_helper
         context.block_callback.store(true, std::memory_order_release);
     }
 
-    /// @brief Clear callback blocking flag and wake any blocked callbacks.
+    /**
+     * @brief Clear callback blocking flag and wake any blocked callbacks.
+     */
     void
     unblock_callback()
     {
@@ -1783,7 +1799,11 @@ class perf_buffer_test_helper
         }
     }
 
-    /// @brief Set up promise/future for async completion when (event_count + lost_count) >= expected_events.
+    /**
+     * @brief Set up promise/future for async completion when (event_count + lost_count) >= expected_events.
+     *
+     * @param[in] expected_events Target event count to trigger completion.
+     */
     std::future<void>
     enable_async_completion(uint64_t expected_events)
     {
@@ -1792,7 +1812,11 @@ class perf_buffer_test_helper
         return _completion_promise.get_future();
     }
 
-    /// @brief Verify received data matches expected messages in order.
+    /**
+     * @brief Verify received data matches expected messages in order.
+     *
+     * @param[in] expected_messages Expected messages in order.
+     */
     void
     validate_data(_In_ const std::vector<std::string>& expected_messages)
     {
@@ -1803,9 +1827,14 @@ class perf_buffer_test_helper
         }
     }
 
-    /// @brief Verify received data contains the expected messages (order-independent).
-    /// Use this when writes may land on different CPUs, since perf event arrays
-    /// are per-CPU and cross-CPU ordering is not guaranteed.
+    /**
+     * @brief Verify received data contains the expected messages (order-independent).
+     *
+     * Use this when writes may land on different CPUs, since perf event arrays
+     * are per-CPU and cross-CPU ordering is not guaranteed.
+     *
+     * @param[in] expected_messages Expected messages (any order).
+     */
     void
     validate_data_unordered(_In_ const std::vector<std::string>& expected_messages)
     {

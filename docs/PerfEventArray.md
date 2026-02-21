@@ -203,22 +203,36 @@ perf_buffer__new(int map_fd, size_t page_cnt,
                  const struct perf_buffer_opts *opts);
 
 /**
- * @brief poll perfbuf for new data
+ * @brief Poll perfbuf for new data.
+ *
+ * @param[in] pb Pointer to perf buffer manager.
+ * @param[in] timeout_ms Timeout in milliseconds. Use -1 for infinite, 0 for non-blocking.
+ * @returns Number of records consumed, or negative error code.
  */
 int perf_buffer__poll(struct perf_buffer *pb, int timeout_ms);
 
 /**
- * @brief consume available records without waiting
+ * @brief Consume available records without waiting.
+ *
+ * @param[in] pb Pointer to perf buffer manager.
+ * @returns Number of records consumed, or negative error code.
  */
 int perf_buffer__consume(struct perf_buffer *pb);
 
 /**
- * @brief consume records from a specific per-CPU buffer
+ * @brief Consume records from a specific per-CPU buffer.
+ *
+ * @param[in] pb Pointer to perf buffer manager.
+ * @param[in] buf_idx Index of the per-CPU buffer to consume from.
+ * @returns Number of records consumed, or negative error code.
  */
 int perf_buffer__consume_buffer(struct perf_buffer *pb, size_t buf_idx);
 
 /**
- * @brief get number of per-CPU buffers
+ * @brief Get number of per-CPU buffers.
+ *
+ * @param[in] pb Pointer to perf buffer manager.
+ * @returns Number of per-CPU buffers.
  */
 size_t perf_buffer__buffer_cnt(struct perf_buffer *pb);
 
@@ -251,7 +265,10 @@ ebpf_perf_buffer__new(
     _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
 /**
- * Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
+ * @brief Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
+ *
+ * @param[in] pb Pointer to perf buffer manager.
+ * @returns Wait handle, or ebpf_handle_invalid if not available.
  */
 ebpf_handle_t ebpf_perf_buffer_get_wait_handle(struct perf_buffer *pb);
 ```
