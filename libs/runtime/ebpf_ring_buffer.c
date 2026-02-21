@@ -470,11 +470,17 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     if (ring) {
         EBPF_LOG_ENTRY();
 
+        // ebpf_ring_buffer_t is always zero-initialized by ebpf_epoch_allocate_with_tag, so
+        // fields are either NULL (partially initialized) or valid pointers (fully initialized).
+        // C6001 false positive: the analyzer can't see through the allocator's zero-init.
+#pragma warning(push)
+#pragma warning(disable : 6001)
         // Release the event object reference if one was set via ebpf_ring_buffer_set_wait_handle.
         if (ring->kernel_page && ring->kernel_page->wait_event != NULL) {
             ObDereferenceObject(ring->kernel_page->wait_event);
             ring->kernel_page->wait_event = NULL;
         }
+#pragma warning(pop)
 
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
         ebpf_epoch_free(ring);
