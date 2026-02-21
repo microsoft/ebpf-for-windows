@@ -656,10 +656,12 @@ typedef struct _ebpf_map_client_dispatch_table
 {
     ebpf_extension_header_t header;
     ebpf_map_find_element_t find_element_function;
-    epoch_allocate_with_tag_t epoch_allocate_with_tag;
-    epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
-    epoch_free_t epoch_free;
-    epoch_free_cache_aligned_t epoch_free_cache_aligned;
+    ebpf_epoch_enter_t epoch_enter;
+    ebpf_epoch_exit_t epoch_exit;
+    ebpf_epoch_allocate_with_tag_t epoch_allocate_with_tag;
+    ebpf_epoch_allocate_cache_aligned_with_tag_t epoch_allocate_cache_aligned_with_tag;
+    ebpf_epoch_free_t epoch_free;
+    ebpf_epoch_free_cache_aligned_t epoch_free_cache_aligned;
 } ebpf_base_map_client_dispatch_table_t;
 ```
 The client dispatch table provides *epoch based memory management* APIs that extension can use for allocating
