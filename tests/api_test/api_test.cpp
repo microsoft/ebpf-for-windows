@@ -1710,6 +1710,10 @@ class perf_buffer_test_helper
 
     /**
      * @brief Create a perf buffer with RAII cleanup. Pass EBPF_PERFBUF_FLAG_AUTO_CALLBACK in flags for async mode.
+     *
+     * @param[in] map_fd File descriptor of the perf event array map.
+     * @param[in] flags Perf buffer flags (0 for synchronous mode).
+     * @return Pointer to the created perf buffer, or null on failure.
      */
     perf_buffer*
     create_perf_buffer(fd_t map_fd, uint32_t flags = 0)
@@ -1724,6 +1728,9 @@ class perf_buffer_test_helper
     /**
      * @brief Create a perf event array map and register it for RAII cleanup.
      *
+     * @param[out] map_fd File descriptor of the created map.
+     * @param[in] name Optional map name.
+     * @param[in] max_entries Maximum number of entries (0 to use CPU count).
      * @return 0 on success, -errno on failure.
      */
     int
@@ -1803,6 +1810,7 @@ class perf_buffer_test_helper
      * @brief Set up promise/future for async completion when (event_count + lost_count) >= expected_events.
      *
      * @param[in] expected_events Target event count to trigger completion.
+     * @return Future that becomes ready when the expected event count is reached.
      */
     std::future<void>
     enable_async_completion(uint64_t expected_events)
