@@ -699,7 +699,7 @@ The parameter and return types for these helper functions must adhere to the `eb
 If the extension is implementing a helper function that takes a custom map as input, when the helper function is
 invoked, it will **not** get the map context that it had passed earlier to eBPFCore. It will instead get a pointer to
 a separate map structure that eBPFCore maintains. Using this pointer, and the `map_context_offset` provided in the
-`map_client_data`, extensions will need to get their map context. `MAP_CONTEXT()` macro is provided in `ebpf_extensions.h`
+`map_client_data`, extensions will need to get their map context. A `MAP_CONTEXT()` macro is provided in `ebpf_extensions.h`
 for extensions to get their map context. Extensions should validate that the map context they got back is NULL or not,
 and handle it appropriately.
 

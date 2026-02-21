@@ -4010,7 +4010,7 @@ TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
     test_sample_map_provider_t sample_map_provider;
     REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false) == EBPF_SUCCESS);
 
-    // 1. create an custom map.
+    // 1. Create a custom map.
     fd_t custom_map_fd =
         bpf_map_create(BPF_MAP_TYPE_SAMPLE_HASH_MAP, "custom_map", sizeof(uint32_t), sizeof(uint32_t), 10, nullptr);
     REQUIRE(custom_map_fd > 0);

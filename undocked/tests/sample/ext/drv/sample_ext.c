@@ -32,7 +32,7 @@ unsigned int map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
 
 #define MAP_TYPE(context) (((sample_map_context_t*)(context))->core.map_type)
 
-// Define the sample map type
+// Define the sample map type.
 #define BPF_MAP_TYPE_SAMPLE_HASH_MAP 15
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
@@ -99,7 +99,7 @@ static const ebpf_helper_function_addresses_t _sample_global_helper_function_add
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
 
 //
-// Sample Map Provider Implementation
+// Sample Map Provider Implementation.
 //
 typedef struct _sample_hash_map_context
 {
@@ -107,7 +107,7 @@ typedef struct _sample_hash_map_context
     ebpf_base_map_client_dispatch_table_t* client_dispatch;
 } sample_map_context_t;
 
-// Map provider function declarations
+// Map provider function declarations.
 static ebpf_result_t
 _sample_map_create(
     _In_ void* binding_context,
@@ -159,7 +159,7 @@ static ebpf_result_t
 _sample_map_associate_program(
     _In_ void* binding_context, _In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
 
-// Sample map extension data
+// Sample map extension data.
 static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
     .process_map_create = _sample_map_create,
@@ -179,7 +179,7 @@ static ebpf_map_provider_data_t _sample_hash_map_provider_data = {
     &_sample_map_provider_properties,
     &_sample_map_dispatch_table};
 
-// Map provider context structure
+// Map provider context structure.
 typedef struct _sample_ebpf_extension_map_provider
 {
     HANDLE nmr_provider_handle;
@@ -192,7 +192,7 @@ typedef struct _sample_extension_map_provider_binding_context
     ebpf_base_map_client_dispatch_table_t client_dispatch_table;
 } sample_extension_map_provider_binding_context_t;
 
-// Forward declarations for map provider
+// Forward declarations for map provider.
 static NTSTATUS
 _sample_ebpf_extension_map_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
@@ -210,18 +210,18 @@ static void
 _sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
 static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hash_map_provider_characteristics = {
-    0,                                    // Version
-    sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length
+    0,                                    // Version.
+    sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length.
     _sample_ebpf_extension_map_provider_attach_client,
     _sample_ebpf_extension_map_provider_detach_client,
     _sample_ebpf_extension_map_provider_cleanup_binding_context,
     {
-        0,                                 // Version
-        sizeof(NPI_REGISTRATION_INSTANCE), // Length
+        0,                                 // Version.
+        sizeof(NPI_REGISTRATION_INSTANCE), // Length.
         &EBPF_MAP_INFO_EXTENSION_IID,
         &_sample_ebpf_extension_map_provider_moduleid, // Module ID.
-        0,                                             // Number
-        &_sample_hash_map_provider_data                // Module context (extension data)
+        0,                                             // Number.
+        &_sample_hash_map_provider_data                // Module context (extension data).
     }};
 
 static ebpf_result_t
@@ -674,7 +674,7 @@ _sample_validate_client_map_data(_In_ const ebpf_map_client_data_t* client_data)
 }
 
 //
-// Map Provider Registration
+// Map Provider Registration.
 //
 
 static NTSTATUS
@@ -999,7 +999,7 @@ _sample_ebpf_extension_helper_implicit_2(
 }
 
 //
-// Sample Map Implementation Functions
+// Sample Map Implementation Functions.
 //
 static ebpf_result_t
 _sample_hash_map_create(
