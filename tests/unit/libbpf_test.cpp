@@ -1355,7 +1355,6 @@ struct perf_buffer_test_callback_context
 {
     std::vector<std::tuple<int, std::vector<uint8_t>>> received_records; // (cpu, data)
     std::atomic<size_t> lost_count{0};
-    int error_return = 0;
     bool should_stop = false;
     std::mutex mutex;
 

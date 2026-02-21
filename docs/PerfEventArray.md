@@ -279,7 +279,7 @@ ebpf_handle_t ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer *pb
 
 ```c
 // sample callback
-void perf_buffer_sample_fn(void *ctx, int cpu, void *data, size_t size) {
+void perf_buffer_sample_fn(void *ctx, int cpu, void *data, uint32_t size) {
   // … business logic to handle record …
 }
 
@@ -333,7 +333,7 @@ perf_buffer__free(pb);
 
 ```c
 // sample callback - this will be called automatically for each record
-void perf_buffer_sample_fn(void *ctx, int cpu, void *data, size_t size) {
+void perf_buffer_sample_fn(void *ctx, int cpu, void *data, uint32_t size) {
   // … business logic to handle record …
 }
 

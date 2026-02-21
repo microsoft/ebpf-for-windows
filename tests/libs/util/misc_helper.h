@@ -55,7 +55,7 @@ struct scoped_cpu_affinity
      *
      * @param[in] i CPU index to set affinity to.
      */
-    scoped_cpu_affinity(uint32_t i) : thread_handle(GetCurrentThread())
+    explicit scoped_cpu_affinity(uint32_t i) : thread_handle(GetCurrentThread())
     {
         REQUIRE(i < (8 * sizeof(DWORD_PTR)));
         original_mask = SetThreadAffinityMask(thread_handle, (1ULL << i));

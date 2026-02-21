@@ -553,10 +553,10 @@ ebpf_ring_buffer__new(
             ebpf_ring_mapping_t map_info{};
             map_info.map_fd = map_fd;
             map_info.sample_fn = (void*)sample_cb;
-            map_info.lost_fn = nullptr; // Not used for ring buffer
+            map_info.lost_fn = nullptr; // Not used for ring buffer.
             map_info.ctx = ctx;
-            map_info.is_perf_buffer = false; // This is a ring buffer
-            map_info.cpu_id = 0;             // Not used for ring buffer
+            map_info.is_perf_buffer = false; // This is a ring buffer.
+            map_info.cpu_id = 0;             // Not used for ring buffer.
 
             // Create cleanup guard to close wait handle, clear map wait handle, and unmap buffer on failure.
             auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
@@ -997,7 +997,7 @@ Exit:
         errno = ebpf_result_to_errno(result);
         EBPF_LOG_FUNCTION_ERROR(result);
     }
-    EBPF_RETURN_POINTER(perf_buffer_t*, local_perf_buffer);
+    EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
 }
 
 void

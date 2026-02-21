@@ -839,7 +839,7 @@ extern "C"
      *
      * @param[in] rb Ring buffer manager.
      *
-     * @returns Wait handle for the ring buffer manager, or INVALID_HANDLE_VALUE on error.
+     * @returns Wait handle for the ring buffer manager, or ebpf_handle_invalid on error.
      */
     ebpf_handle_t
     ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT;
@@ -898,7 +898,7 @@ extern "C"
      *
      * @param[in] pb Perf buffer manager.
      *
-     * @returns Wait handle for the perf buffer manager, or INVALID_HANDLE_VALUE on error.
+     * @returns Wait handle for the perf buffer manager, or ebpf_handle_invalid on error.
      */
     ebpf_handle_t
     ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT;
