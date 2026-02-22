@@ -338,7 +338,7 @@ typedef class _test_sample_map_provider
     bool _object_map = false;
 } test_sample_map_provider_t;
 
-// Definition of the static member variable - inline to avoid multiple definition errors
+// Definition of the static member variable - inline to avoid multiple definition errors.
 inline uint64_t _test_sample_map_provider::_map_context_offset = 0;
 
 static ebpf_result_t
