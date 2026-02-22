@@ -180,7 +180,7 @@ typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post
 /**
  * @brief Find (lookup) an element in a provider-backed map.
  *
- * If the provider does not update the original value, i.e. `updates_original_value` is set to false in
+ * If the provider does not update the original value, i.e., `updates_original_value` is set to false in
  * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
  *
  * @param[in] binding_context The binding context provided when the map provider was bound.
