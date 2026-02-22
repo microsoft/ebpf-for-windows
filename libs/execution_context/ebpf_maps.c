@@ -4223,10 +4223,10 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_custom_map_client_characteristics 
 static void
 _ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_custom_map_t* map)
 {
-    // Wait for rundown completion
+    // Wait for rundown completion.
     ExWaitForRundownProtectionRelease(&map->provider_rundown_reference);
 
-    // Deregister NMR client
+    // Deregister NMR client.
     if (map->nmr_client_handle) {
         NTSTATUS status = NmrDeregisterClient(map->nmr_client_handle);
         if (status == STATUS_PENDING) {
