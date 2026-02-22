@@ -3764,6 +3764,7 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
         require_and_close((result == 0), custom_map_fd);
         require_and_close((value == i + 100), custom_map_fd);
     }
+
     // Look up an invalid key.
     {
         uint32_t key = map_size + 20;
