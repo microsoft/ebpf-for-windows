@@ -19,6 +19,20 @@ extern "C"
     typedef struct _ebpf_core_map ebpf_map_t;
 
     /**
+     * @brief Initialize map subsystem global state.
+     *
+     * This currently initializes a map-type metadata lookup table.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_maps_initiate();
+
+    /**
+     * @brief Terminate map subsystem global state.
+     */
+    void
+    ebpf_maps_terminate();
+
+    /**
      * @brief Allocate a new map.
      *
      * @param[in] map_name Name of the map.
