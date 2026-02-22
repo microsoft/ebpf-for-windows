@@ -803,7 +803,7 @@ typedef class _test_sample_helper
         return ((uint64_t)sample_context->helper_data_2 + arg);
     }
 
-    static void*
+    _Ret_maybenull_ static void*
     _sample_helper_map_lookup_element(
         _In_ const void* map,
         _In_ const uint8_t* key,
