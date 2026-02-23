@@ -17,13 +17,13 @@
             </OOBE>
             <UserAccounts>
                 <AdministratorPassword>
-                    <Value>PLACEHOLDER_ADMIN_PASSWORD</Value>
+                    <Value>PLACEHOLDER_PASSWORD</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
                 <LocalAccounts>
                     <LocalAccount>
                         <Password>
-                            <Value>PLACEHOLDER_STANDARDUSER_PASSWORD</Value>
+                            <Value>PLACEHOLDER_PASSWORD</Value>
                             <PlainText>true</PlainText>
                         </Password>
                         <Description>Standard User Account</Description>
@@ -34,7 +34,7 @@
             </UserAccounts>
             <AutoLogon>
                 <Password>
-                    <Value>PLACEHOLDER_ADMIN_PASSWORD</Value>
+                    <Value>PLACEHOLDER_PASSWORD</Value>
                     <PlainText>true</PlainText>
                 </Password>
                 <Enabled>true</Enabled>
@@ -69,7 +69,7 @@
                 </SynchronousCommand>
                 <SynchronousCommand wcm:action="add">
                     <Order>6</Order>
-                    <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d PLACEHOLDER_ADMIN_PASSWORD /f</CommandLine>
+                    <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d PLACEHOLDER_PASSWORD /f</CommandLine>
                     <Description>Set default auto-logon password</Description>
                 </SynchronousCommand>
             </FirstLogonCommands>
