@@ -447,14 +447,22 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = (120*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
           [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
 
+
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    # run api test's ioctl_stress test.
+    $LASTEXITCODE = 0
+    $TestHangTimeout = 60*60 # 60 minutes hang timeout.
+    $api_stress_duration = 30*60 # 30 minutes test duration.
+    $TestCommand = "api_test.exe"
+    $TestArguments = "--stress-test-duration $api_stress_duration [stress]"
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     if ($RestartEbpfCore) {
         Write-Log "Executing eBPF core restart stress test."
@@ -462,6 +470,7 @@ function Invoke-CICDStressTests
         $LASTEXITCODE = 0
 
         $TestCommand = ".\ebpf_restart_test_controller.exe"
+        $TestHangTimeout = 120*60 # 120 minutes hang timeout.
         Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
         Pop-Location
@@ -472,6 +481,7 @@ function Invoke-CICDStressTests
 
     $LASTEXITCODE = 0
 
+    $TestHangTimeout = 120*60 # 120 minutes hang timeout.
     $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {

@@ -1,7 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#define CATCH_CONFIG_MAIN
+#define CATCH_CONFIG_RUNNER
 
 #include "api_internal.h"
 #include "api_test.h"
@@ -1359,6 +1359,8 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     */
 }
 
+static int _stress_test_duration = 60; // Default to 60 seconds.
+
 TEST_CASE("ioctl_stress", "[stress]")
 {
     // Load bindmonitor_ringbuf.sys
@@ -1453,8 +1455,8 @@ TEST_CASE("ioctl_stress", "[stress]")
         }
     }
 
-    // Wait for 60 seconds
-    std::this_thread::sleep_for(std::chrono::seconds(60));
+    // Wait for stress test duration.
+    std::this_thread::sleep_for(std::chrono::seconds(_stress_test_duration));
 
     stop_requested = true;
 
@@ -2700,4 +2702,25 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     // Clean up strings.
     ebpf_free_string(report);
     ebpf_free_string(error_message);
+}
+
+int
+main(int argc, char* argv[])
+{
+    Catch::Session session;
+
+    using namespace Catch::Clara;
+    auto cli = session.cli() |
+               Opt(_stress_test_duration, "stress test duration")["-stress-duration"]["--stress-test-duration"](
+                   "Duration to run stress tests in seconds. Only applicable for [stress] tests.");
+    session.cli(cli);
+
+    // Parse the command line.
+    int result = session.applyCommandLine(argc, argv);
+    if (result == 0) {
+        // Run the tests.
+        result = session.run();
+    }
+
+    return result;
 }
