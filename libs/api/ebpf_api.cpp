@@ -5295,18 +5295,16 @@ ebpf_ring_buffer_map_unmap_buffer_with_index(
     fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(consumer);
+    UNREFERENCED_PARAMETER(producer);
+    UNREFERENCED_PARAMETER(data);
+
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid)
         return EBPF_INVALID_FD;
     ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
-        sizeof(request),
-        ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
-        map_handle,
-        index,
-        reinterpret_cast<uint64_t>(consumer),
-        reinterpret_cast<uint64_t>(producer),
-        reinterpret_cast<uint64_t>(data)};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
     EBPF_RETURN_RESULT(result);
 }

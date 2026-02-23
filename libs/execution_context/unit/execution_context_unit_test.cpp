@@ -1265,9 +1265,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     REQUIRE(*(uint64_t*)(record->data) == value);
 
     // Unmap the ring buffer.
-    REQUIRE(
-        ebpf_ring_buffer_map_unmap_user(
-            map.get(), 0, (const void*)consumer, (const void*)producer, (const void*)data) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
 }
 
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
