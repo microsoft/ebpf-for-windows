@@ -1552,6 +1552,29 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         // If pin_path is set and the map is not yet pinned, pin it now.
         if (native_map->pin_path.value != NULL && !native_map->pinned) {
             result = ebpf_core_update_pinning(native_map->handle, &native_map->pin_path);
+            if (result == EBPF_OBJECT_ALREADY_EXISTS) {
+                // Race condition: another thread pinned a map with the same path between our
+                // reuse check and pin attempt. Close the map we just created and reuse the
+                // existing pinned map instead.
+                ebpf_assert_success(ebpf_handle_close(native_map->handle));
+                native_map->handle = ebpf_handle_invalid;
+
+                result = _ebpf_native_reuse_map(native_map);
+                if (result != EBPF_SUCCESS) {
+                    break;
+                }
+                if (!native_map->reused) {
+                    // The pinned map disappeared between our pin attempt and reuse attempt.
+                    EBPF_LOG_MESSAGE_GUID(
+                        EBPF_TRACELOG_LEVEL_ERROR,
+                        EBPF_TRACELOG_KEYWORD_NATIVE,
+                        "_ebpf_native_create_maps: Pinned map disappeared during race recovery",
+                        &module->client_module_id);
+                    result = EBPF_OBJECT_NOT_FOUND;
+                    break;
+                }
+                continue;
+            }
             if (result != EBPF_SUCCESS) {
                 break;
             }
