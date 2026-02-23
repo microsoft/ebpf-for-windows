@@ -1,9 +1,7 @@
 ﻿# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([Parameter(Mandatory=$True)] [string] $Admin,
-       [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
-       [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 $sleepSeconds = 10
@@ -56,8 +54,6 @@ function Wait-AllVMsReadyForCommands
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
-          [Parameter(Mandatory=$True)][string] $UserName,
-          [Parameter(Mandatory=$True)][SecureString] $AdminPassword,
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $totalSleepTime = 0
@@ -88,7 +84,7 @@ function Wait-AllVMsToInitialize
         throw ("Did not get heartbeat from one or more VMs 5 minutes after starting")
     }
 
-    $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
     Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
 
     # Enable guest-services on each VM.
@@ -158,9 +154,9 @@ function Initialize-AllVMs
     if (-not $VMIsRemote) {
         # Wait for VMs to be ready.
         Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
-        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $VMList
     } else {
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
         Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential
     }
 }
@@ -201,7 +197,7 @@ function Export-BuildArtifactsToVMs
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Exporting build artifacts to $VMName"
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
        if ($VMIsRemote) {
             $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
         } else {
@@ -269,7 +265,7 @@ function Install-eBPFComponentsOnVM
     )
 
     Write-Log "Installing eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
 
     $scriptBlock = {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
@@ -295,7 +291,7 @@ function Uninstall-eBPFComponentsOnVM
     param([parameter(Mandatory=$true)][string] $VMName)
 
     Write-Log "Unnstalling eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
@@ -315,7 +311,7 @@ function Stop-eBPFComponentsOnVM
           [parameter(Mandatory=$false)][bool] $GranularTracing = $false)
 
     Write-Log "Stopping eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
 
     Invoke-Command `
         -VMName $VMName `
@@ -408,7 +404,7 @@ function Import-ResultsFromVM
           [Parameter(Mandatory=$true)] $KmTracing)
 
     # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-    Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+    Wait-AllVMsToInitialize -VMList $VMList
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -417,7 +413,7 @@ function Import-ResultsFromVM
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName"
         }
 
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
         $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
@@ -617,7 +613,7 @@ function Initialize-NetworkInterfaces {
 
     if ($ExecuteOnVM) {
         # Execute on VMs.
-        $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
@@ -638,7 +634,7 @@ function Log-OSBuildInformationOnVM
     param([parameter(Mandatory=$true)][string] $VMName,
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
     Invoke-CommandOnVM -VMName $VMName -VMIsRemote:$VMIsRemote -Credential $TestCredential -ScriptBlock {
         $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
         Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
@@ -665,7 +661,7 @@ function Execute-CommandOnVM {
     )
 
     try {
-        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $vmCredential = Get-VMCredential -Username 'Administrator'
         Write-Log "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
@@ -688,9 +684,6 @@ function Execute-CommandOnVM {
 .PARAMETER VmName
     The name of the VM to create.
 
-.PARAMETER UserPassword
-    The plain text password to use for the user accounts on the VM.
-
 .PARAMETER VhdPath
     The path to the VHD file to use for the VM.
 
@@ -707,12 +700,11 @@ function Execute-CommandOnVM {
     The name of the switch to use for the VM.
 
 .EXAMPLE
-    Create-VM -VmName "MyVM" -UserPassword "Password -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
+    Create-VM -VmName "MyVM" -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
 #>
 function Create-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
-        [Parameter(Mandatory=$True)][string]$UserPassword,
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
         [Parameter(Mandatory=$True)][Int64]$VMMemory,
@@ -741,8 +733,10 @@ function Create-VM {
         Write-Log "Moving $UnattendPath file to $VmStoragePath"
         Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $UserPassword
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $UserPassword
+
+        # Replace password placeholder in unattend.xml with the canonical password from Get-VMPassword.
+        $password = Get-VMPassword
+        (Get-Content -Path $VmUnattendPath -Raw).Replace('PLACEHOLDER_PASSWORD', $password) | Set-Content -Path $VmUnattendPath
 
         # Configure the VHD with the unattend file.
         Write-Log "Mounting VHD and applying unattend file"
@@ -817,7 +811,7 @@ function Initialize-VM {
         # Start the VM
         Write-Log "Starting VM: $VmName"
         Start-VM -Name $VmName
-        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $vmList
 
         # Copy setup script to the VM and execute it.
         Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
@@ -825,7 +819,7 @@ function Initialize-VM {
         Execute-CommandOnVM -VMName $VmName -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine; cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
-        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $vmList
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
         for ($i = 0; $i -lt 5; $i += 1) {
@@ -981,7 +975,7 @@ function Enable-HVCIOnVM {
 
     try {
         Write-Log "Enabling HVCI on VM: $VmName"
-        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $vmCredential = Get-VMCredential -Username 'Administrator'
         $commandScriptBlock = {
             # Enable HVCI
             New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
@@ -1002,9 +996,9 @@ function Enable-HVCIOnVM {
     if (-not $VMIsRemote){
         # Wait for the VM to restart and be ready again
         Write-Log "Waiting for VM: $VmName to restart and be ready again"
-        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $VMList
     } else {
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
         Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
     }
 

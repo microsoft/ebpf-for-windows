@@ -125,12 +125,13 @@ dynamic name which may change whenver a new 1ES image is used.
 job is using the 1ES runner (and negation of this condition to indicate it is not using the 1ES runner).
 
 ## Inner VM Credential Management
-The inner VM uses a hardcoded well-known password (`P@ssw0rd!`) defined in `common.psm1`
-(`Get-VMPassword`). This password is used for both the Administrator and VMStandardUser accounts.
-For local development scenarios requiring a stronger password, all scripts accept an optional
-`-VMPassword` parameter (e.g. `-VMPassword 'MyStr0ng!Pass'`), which is passed through to
-`common.psm1` as a module parameter.
-The `unattend.xml` configures:
+The inner VM uses a hardcoded well-known password defined in the `Get-VMPassword` function in
+`common.psm1`. This password is used for both the Administrator and VMStandardUser accounts.
+Scripts should always call `Get-VMPassword` (or `Get-VMCredential`) rather than hardcoding the
+password string directly.
+The `unattend.xml` uses `PLACEHOLDER_PASSWORD` tokens that are replaced at VM creation time
+(in `Create-VM`) with the value from `Get-VMPassword`, ensuring a single source of truth.
+It configures:
 - OOBE auto-logon (via `<AutoLogon>`) for initial setup.
 - Winlogon registry-based auto-logon (via `FirstLogonCommands`) for persistent automatic console
   logon per https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon.

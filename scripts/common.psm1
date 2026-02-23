@@ -1,10 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory=$True)] [string] $LogFileName,
-       # Optional password for admin and standard user accounts on the inner test VM.
-       # If not provided, defaults to 'P@ssw0rd!' — a simple value since the VM is ephemeral and isolated.
-       [parameter(Mandatory=$False)] [string] $VMPasswordParam = '')
+param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
 #
 # Common helper functions.
@@ -79,15 +76,6 @@ function Start-ProcessWithTimeout
         if (Test-Path $tempOut) { Remove-Item $tempOut -Force -ErrorAction SilentlyContinue }
         if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
-}
-
-function New-Credential
-{
-    param([Parameter(Mandatory=$True)][string] $UserName,
-          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
-
-    $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
-    return $Credential
 }
 
 
@@ -402,8 +390,6 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnHost=$false,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true,
-           [Parameter(Mandatory = $false)] [PSCredential] $AdminTestVMCredential,
-           [Parameter(Mandatory = $false)] [PSCredential] $StandardUserTestVMCredential,
            [Parameter(Mandatory = $false)] [bool] $VMIsRemote=$false,
            [Parameter(Mandatory = $false)] [string] $TestWorkingDirectory="C:\ebpf",
            [Parameter(Mandatory = $false)] [string] $LogFileName="timeout_kernel_dump.log",
@@ -436,10 +422,6 @@ function Wait-TestJobToComplete
                             $true,                                     # ExecuteOnVM
                             $VMIsRemote,                               # VMIsRemote
                             $TestVMName,                               # VMName
-                            $AdminTestVMCredential.UserName,           # Admin
-                            $AdminTestVMCredential.Password,           # AdminPassword
-                            $StandardUserTestVMCredential.UserName,    # StandardUser
-                            $StandardUserTestVMCredential.Password,    # StandardUserPassword
                             $TestWorkingDirectory,                     # WorkingDirectory
                             $LogFileName,                              # LogFileName
                             $TestMode,                                 # TestMode
@@ -572,24 +554,27 @@ function Invoke-PsExecScript {
     }
 }
 
-# Initialize the VM password from the module parameter, or use the default.
-$script:VMPassword = if ($VMPasswordParam) { $VMPasswordParam } else { 'P@ssw0rd!' }
-
 <#
 .SYNOPSIS
-    Returns the VM password used for inner test VM accounts.
+    Returns the well-known password used for inner test VM accounts.
 
 .DESCRIPTION
-    Returns the password used for the inner test VM. The default is 'P@ssw0rd!' but can be
-    overridden by passing a second argument when importing common.psm1:
-        Import-Module .\common.psm1 -ArgumentList ($LogFileName, 'MyStr0ng!Pass')
+    Single source of truth for the VM password used by both the Administrator and
+    VMStandardUser accounts on the inner test VMs. All scripts that need the password
+    should call this function rather than hardcoding the value.
+
+    A simple well-known password is acceptable here because these are ephemeral nested
+    test VMs that are not network-accessible outside the host. They are created, used
+    for CI/CD test execution, and destroyed within a single pipeline run. The password
+    only needs to meet Windows complexity requirements and remain consistent between
+    the unattend.xml provisioning (via PLACEHOLDER_PASSWORD substitution in Create-VM)
+    and the PowerShell Direct credentials used by the test scripts.
 
 .OUTPUTS
-    [String]
-    The VM password.
+    [String] The VM password.
 #>
 function Get-VMPassword {
-    return $script:VMPassword
+    return 'P@ssw0rd!'
 }
 
 <#
@@ -609,7 +594,7 @@ function Get-VMCredential {
     param (
         [Parameter(Mandatory=$True)][string]$Username
     )
-    $securePassword = ConvertTo-SecureString -String $script:VMPassword -AsPlainText -Force
+    $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
     return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
 }
 
