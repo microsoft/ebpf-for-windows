@@ -666,7 +666,7 @@ Exit:
 bool
 _sample_validate_client_map_data(_In_ const ebpf_map_client_data_t* client_data)
 {
-    if (client_data->header.version != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION &&
+    if (client_data->header.version != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION ||
         client_data->header.size != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION_SIZE) {
         return false;
     }
