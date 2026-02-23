@@ -41,14 +41,26 @@ handle_ebpf_show_pins(
     // Read all pin paths.  Currently we get them in a non-deterministic
     // order, so we use a std::set to sort them in code point order.
     char pinpath[EBPF_MAX_PIN_PATH_LENGTH] = "";
-    ebpf_object_type_t object_type = EBPF_OBJECT_PROGRAM;
-    std::set<std::string> paths;
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    std::set<std::string> program_paths;
+    std::set<std::string> map_paths;
     while (ebpf_get_next_pinned_object_path(pinpath, pinpath, sizeof(pinpath), &object_type) == EBPF_SUCCESS) {
-        paths.insert(pinpath);
+        switch (object_type) {
+        case EBPF_OBJECT_PROGRAM:
+            program_paths.insert(pinpath);
+            break;
+        case EBPF_OBJECT_MAP:
+            map_paths.insert(pinpath);
+            break;
+        default:
+            // Ignore.
+            break;
+        }
+        object_type = EBPF_OBJECT_UNKNOWN;
     }
 
     // Now walk through all paths in code point order.
-    for (auto path : paths) {
+    for (auto path : program_paths) {
         int program_fd = bpf_obj_get(path.c_str());
         if (program_fd < 0) {
             continue;
@@ -61,6 +73,20 @@ handle_ebpf_show_pins(
         }
 
         Platform::_close(program_fd);
+    }
+    for (auto path : map_paths) {
+        int map_fd = bpf_obj_get(path.c_str());
+        if (map_fd < 0) {
+            continue;
+        }
+
+        struct bpf_map_info info = {};
+        uint32_t info_size = (uint32_t)sizeof(info);
+        if (bpf_obj_get_info_by_fd(map_fd, &info, &info_size) == 0) {
+            printf("%7u  Map      %s\n", info.id, path.c_str());
+        }
+
+        Platform::_close(map_fd);
     }
     return NO_ERROR;
 }
