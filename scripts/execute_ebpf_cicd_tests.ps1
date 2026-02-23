@@ -1,9 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
-       [Parameter(Mandatory = $false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
-       [Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
+param ([Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
        [Parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
        [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
@@ -17,7 +15,8 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][bool] $RunXdpTests = $false,
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        # This parameter is only used when ExecuteOnHost is false.
-       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote,
+       [Parameter(Mandatory = $false)][string] $VMPassword)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
@@ -25,19 +24,14 @@ $VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
-Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
+Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName, $VMPassword) -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-        $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
-    } else {
-        $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-        $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
-    }
+    $AdminTestVMCredential = Get-VMCredential -Username 'Administrator'
+    $StandardUserTestVMCredential = Get-VMCredential -Username 'VMStandardUser'
 } else {
     # Username and password are not used when running on host - use empty but non-null values.
     $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force

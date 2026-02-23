@@ -1,8 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory = $false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory = $false)][bool] $KmTracing = $true,
+param ([parameter(Mandatory = $false)][bool] $KmTracing = $true,
        [parameter(Mandatory = $false)][string] $KmTraceType = "file",
        [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
@@ -16,7 +15,8 @@ param ([parameter(Mandatory = $false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64",
        [Parameter(Mandatory = $false)][switch] $VMIsRemote,
-       [Parameter(Mandatory = $false)][switch] $GranularTracing
+       [Parameter(Mandatory = $false)][switch] $GranularTracing,
+       [Parameter(Mandatory = $false)][string] $VMPassword
 )
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
@@ -26,7 +26,7 @@ $VMIsRemote = [bool]$VMIsRemote
 Push-Location $WorkingDirectory
 
 # Load other utility modules.
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName, $VMPassword) -WarningAction SilentlyContinue
 
 Write-Log "ExecuteOnHost: $ExecuteOnHost"
 Write-Log "ExecuteOnVM: $ExecuteOnVM"
@@ -42,11 +42,7 @@ Write-Log "Architecture: $Architecture"
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $TestVMCredential = Retrieve-StoredCredential -Target $Target
-    } else {
-        $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-    }
+    $TestVMCredential = Get-VMCredential -Username 'Administrator'
 } else {
     # Username and password are not used when running on host - use empty but non-null values.
     $UserName = $env:USERNAME

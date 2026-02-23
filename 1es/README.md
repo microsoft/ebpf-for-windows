@@ -124,18 +124,21 @@ dynamic name which may change whenver a new 1ES image is used.
 - Existing tests were updated to use `contains(inputs.environment, '1ES')` as an indicator that the
 job is using the 1ES runner (and negation of this condition to indicate it is not using the 1ES runner).
 
-## Known Issues
-### Credentials expiring on inner VM
-Symptom: Tests will fail with `The credential is invalid`, for example:
-```
-[08:47:30] :: Invoking command on VM: runner_vm (IsRemote: False)
-The credential is invalid.
-At D:\a\_work\ebpf-for-windows\ebpf-for-windows\x64\Release\common.psm1:460 char:5
-+     $JobOutput = Receive-Job -Job $job
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : OpenError: (runner_vm:String) [], PSDirectException
-    + FullyQualifiedErrorId : PSSessionStateBroken
-    + PSComputerName        : localhost
-```
+## Inner VM Credential Management
+The inner VM uses a hardcoded well-known password (`P@ssw0rd!`) defined in `common.psm1`
+(`Get-VMPassword`). This password is used for both the Administrator and VMStandardUser accounts.
+For local development scenarios requiring a stronger password, all scripts accept an optional
+`-VMPassword` parameter (e.g. `-VMPassword 'MyStr0ng!Pass'`), which is passed through to
+`common.psm1` as a module parameter.
+The `unattend.xml` configures:
+- OOBE auto-logon (via `<AutoLogon>`) for initial setup.
+- Winlogon registry-based auto-logon (via `FirstLogonCommands`) for persistent automatic console
+  logon per https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon.
+- Password expiration disabled for both accounts.
 
-Resolution: In the Azure portal, navigate to the 1ES image (in the eBPF team subscription, in the ebpf-cicd-rg resource group) and then rebuild the image: Settings > Image > Rebuild Image. Likely all images will need re-building. This will take a few hours, but once re-built, the credentials should again be valid.
+This approach replaces the previous design that generated a unique password at image creation time
+and stored it in the Windows Credential Manager. That approach was fragile and caused recurring
+`The credential is invalid` failures when credentials expired.
+
+Note: PowerShell Direct (`Invoke-Command -VMName`) still requires explicit credentials even with
+auto-logon enabled. The hardcoded password ensures these credentials never expire or go out of sync.
