@@ -31,21 +31,18 @@ param(
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
-    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
+    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB,
+    [Parameter(Mandatory=$False)][string]$VMPassword
 )
 
 $ErrorActionPreference = "Stop"
 
 # Import helper functions.
 $logFileName = 'Setup.log'
-Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
-$password = New-UniquePassword
+Import-Module .\common.psm1 -Force -ArgumentList ($logFileName, $VMPassword) -WarningAction SilentlyContinue
+$password = Get-VMPassword
 $passwordSecureString = ConvertTo-SecureString -String $password -AsPlainText -Force
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $passwordSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
-
-# Create new credentials for the VM.
-$AdminUserCredential =  Generate-NewCredential -Username 'Administrator' -Password $password -Target 'TEST_VM'
-$StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Password $password -Target 'TEST_VM_STANDARD'
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath

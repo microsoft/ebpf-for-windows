@@ -1,28 +1,24 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory=$false)][bool] $KmTracing = $true,
+param ([parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+       [Parameter(Mandatory = $false)][string] $VMPassword)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
 
 Push-Location $WorkingDirectory
 
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName, $VMPassword) -WarningAction SilentlyContinue
 
 if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $TestVMCredential = Retrieve-StoredCredential -Target $Target
-    } else {
-        $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-    }
+    $TestVMCredential = Get-VMCredential -Username 'Administrator'
 } else {
     # Username and password are not used when running on host - use empty but non-null values.
     $UserName = $env:USERNAME

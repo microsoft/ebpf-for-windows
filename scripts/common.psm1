@@ -1,11 +1,15 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory=$True)] [string] $LogFileName)
+param ([parameter(Mandatory=$True)] [string] $LogFileName,
+       # Optional password for admin and standard user accounts on the inner test VM.
+       # If not provided, defaults to 'P@ssw0rd!' — a simple value since the VM is ephemeral and isolated.
+       [parameter(Mandatory=$False)] [string] $VMPasswordParam = '')
 
 #
 # Common helper functions.
 #
+
 
 function Write-Log
 {
@@ -568,124 +572,45 @@ function Invoke-PsExecScript {
     }
 }
 
-<#
-.SYNOPSIS
-    Imports the CredentialManager, and installs it if necessary.
-
-.DESCRIPTION
-    This function imports the CredentialManager module and installs it if it is not already installed. It also ensures that any dependencies are installed.
-#>
-function Get-CredentialManager {
-    # Import the CredentialManager module. Ensure any dependencies are installed.
-    Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-    Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-    if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
-        Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
-    }
-    Import-Module CredentialManager -ErrorAction Stop
-}
+# Initialize the VM password from the module parameter, or use the default.
+$script:VMPassword = if ($VMPasswordParam) { $VMPasswordParam } else { 'P@ssw0rd!' }
 
 <#
 .SYNOPSIS
-    Generates a strong password using the credential manager.
+    Returns the VM password used for inner test VM accounts.
 
 .DESCRIPTION
-    This function generates a strong password using the CredentialManager module.
+    Returns the password used for the inner test VM. The default is 'P@ssw0rd!' but can be
+    overridden by passing a second argument when importing common.psm1:
+        Import-Module .\common.psm1 -ArgumentList ($LogFileName, 'MyStr0ng!Pass')
 
 .OUTPUTS
     [String]
-    The generated strong password.
+    The VM password.
 #>
-function New-UniquePassword {
-    Get-CredentialManager
-    return Get-StrongPassword
+function Get-VMPassword {
+    return $script:VMPassword
 }
 
 <#
 .SYNOPSIS
-    Retrieves a credential from the Windows Credential Manager using PsExec.
-
-.PARAMETER Target
-    The name of the stored credential. Default is "MyStoredCredential".
-
-.DESCRIPTION
-    This function uses PsExec to run a PowerShell script in the LocalSystem account context to retrieve a credential from the Windows Credential Manager.
-
-.EXAMPLE
-    $credential = Retrieve-StoredCredential -Target "MyStoredCredential"
-#>
-function Retrieve-StoredCredential {
-    param (
-        [Parameter(Mandatory=$True)][string]$Target
-    )
-    Get-CredentialManager
-
-    $Script = @"
-        Import-Module CredentialManager -ErrorAction Stop;
-        `$Credential = Get-StoredCredential -Target '$Target';
-        `$UserName = `$Credential.UserName;
-        `$Password = `$Credential.GetNetworkCredential().Password;
-        \"`$UserName`n`$Password\"
-"@
-
-    # PSExec sometimes fails to fetch the output. Retry up to 3 times to improve reliability.
-    $attempt = 0
-    $maxRetries = 5
-    while ($attempt -lt $maxRetries) {
-        try {
-            $output = Invoke-PsExecScript -Script $Script
-            $lines = $output -split "`n"
-            $Username = $lines[0].Trim()
-            $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
-            if ($null -eq $Username -or $null -eq $Password) {
-                throw "Failed to retrieve the stored credential."
-            }
-            return [System.Management.Automation.PSCredential]::new($Username, $Password)
-        } catch {
-            $attempt++
-            if ($attempt -lt $maxRetries) {
-                Start-Sleep -Seconds 5
-            } else {
-                throw "Failed to retrieve the stored credential after $maxRetries attempts."
-            }
-        }
-    }
-}
-
-<#
-.SYNOPSIS
-    Stores a credential in the Windows Credential Manager using PsExec.
+    Creates a PSCredential for the specified VM user.
 
 .PARAMETER Username
     The username for the credential.
 
-.PARAMETER Password
-    The password for the credential as a secure string.
-
-.PARAMETER Target
-    The name of the stored credential. Default is "MyStoredCredential".
-
 .DESCRIPTION
-    This function uses PsExec to run a PowerShell script in the LocalSystem account context to store a credential in the Windows Credential Manager.
+    This function creates a PSCredential object using the VM password.
 
 .EXAMPLE
-    $securePassword = ConvertTo-SecureString "YourPassword" -AsPlainText -Force
-    $credential = Generate-NewCredential -Username "YourUsername" -Password $securePassword -Target "MyStoredCredential"
+    $credential = Get-VMCredential -Username 'Administrator'
 #>
-function Generate-NewCredential {
+function Get-VMCredential {
     param (
-        [Parameter(Mandatory=$True)][string]$Username,
-        [Parameter(Mandatory=$True)][string]$Password,
-        [Parameter(Mandatory=$True)][string]$Target
+        [Parameter(Mandatory=$True)][string]$Username
     )
-    Get-CredentialManager
-    $Script = @"
-        Import-Module CredentialManager -ErrorAction Stop;
-        New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password' -Persist LocalMachine;
-"@
-
-    $output = Invoke-PsExecScript -Script $Script
-    return (Retrieve-StoredCredential -Target $Target)
+    $securePassword = ConvertTo-SecureString -String $script:VMPassword -AsPlainText -Force
+    return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
 }
 
 

@@ -57,6 +57,21 @@
                     <CommandLine>powershell.exe -Command "Set-LocalUser -Name 'VMStandardUser' -PasswordNeverExpires $true"</CommandLine>
                     <Description>Disable password expiration for VMStandardUser</Description>
                 </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>4</Order>
+                    <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f</CommandLine>
+                    <Description>Enable persistent automatic logon via Winlogon</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>5</Order>
+                    <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d Administrator /f</CommandLine>
+                    <Description>Set default auto-logon username</Description>
+                </SynchronousCommand>
+                <SynchronousCommand wcm:action="add">
+                    <Order>6</Order>
+                    <CommandLine>reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d PLACEHOLDER_ADMIN_PASSWORD /f</CommandLine>
+                    <Description>Set default auto-logon password</Description>
+                </SynchronousCommand>
             </FirstLogonCommands>
         </component>
     </settings>
