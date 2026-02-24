@@ -8,6 +8,8 @@
 #include "bpf_helpers.h"
 #include "sample_ext_helpers.h"
 
+#define MAX_BURST_COUNT 100000
+
 // Perf event array map for testing lost events.
 struct
 {
@@ -30,7 +32,7 @@ perf_event_burst(sample_program_context_t* ctx)
         return -1;
     }
     // Limit burst count/data_size for verifier.
-    if (burst_count > 100000) {
+    if (burst_count > MAX_BURST_COUNT) {
         return -1;
     }
 
