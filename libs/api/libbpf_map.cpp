@@ -19,22 +19,6 @@
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
 // issue #351 until we can compile and use libbpf.c directly.
 
-// Shared mapping structure for ring direct access (synchronous mode).
-typedef struct _ebpf_ring_mapping
-{
-    fd_t map_fd;
-    void* sample_fn;                                 // ring_buffer_sample_fn or perf_buffer_sample_fn.
-    void* lost_fn;                                   // nullptr for ring buffer, perf_buffer_lost_fn for perf buffer.
-    void* ctx;                                       // User context passed to callbacks.
-    ebpf_ring_buffer_consumer_page_t* consumer_page; // Pointer to consumer page for direct access.
-    const ebpf_ring_buffer_producer_page_t* producer_page; // Pointer to producer page for direct access.
-    const uint8_t* data;                                   // Pointer to the start of the data region for direct access.
-    uint64_t data_size;                                    // Size of the data region in bytes.
-    bool is_perf_buffer;                                   // true if this is for perf buffer, false for ring buffer.
-    uint32_t cpu_id;                                       // CPU ID for perf buffer callbacks.
-    uint64_t lost_count; // Latest lost count for perf buffer (for detecting new drops).
-} ebpf_ring_mapping_t;
-
 int
 bpf_map_create(
     enum bpf_map_type map_type,
@@ -375,17 +359,6 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
     return libbpf_result_err(ebpf_get_next_map_id(start_id, next_id));
 }
 
-typedef struct ring_buffer
-{
-    std::vector<ebpf_map_subscription_t*> subscriptions;
-
-    // Synchronous mode mapping info.
-    std::vector<ebpf_ring_mapping_t> sync_maps;
-    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
-
-    bool is_async_mode = false; // True for async callbacks, false for sync processing.
-} ring_buffer_t;
-
 // Helper function to convert ring_buffer_opts to ebpf_ring_buffer_opts.
 static inline struct ebpf_ring_buffer_opts
 _convert_to_ebpf_opts(_In_ const struct ring_buffer_opts* linux_opts)
@@ -499,115 +472,6 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_opts(opts);
     return ebpf_ring_buffer__new(map_fd, sample_cb, ctx, &ebpf_opts);
-}
-
-_Ret_maybenull_ struct ring_buffer*
-ebpf_ring_buffer__new(
-    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
-    EBPF_NO_EXCEPT
-{
-    ebpf_result result = EBPF_SUCCESS;
-    ring_buffer_t* local_ring_buffer = nullptr;
-
-    if (sample_cb == nullptr) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    try {
-        std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
-
-        // Determine callback type based on flags.
-        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_RINGBUF_FLAG_AUTO_CALLBACK) != 0;
-
-        ring_buffer->is_async_mode = use_async_callbacks;
-
-        if (use_async_callbacks) {
-            // Use the existing async callback mechanism.
-            ebpf_map_subscription_t* subscription = nullptr;
-            uint32_t cpu_id = 0;
-
-            result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
-
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-
-            try {
-                ring_buffer->subscriptions.push_back(subscription);
-            } catch (const std::bad_alloc&) {
-                ebpf_map_unsubscribe(subscription);
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        } else {
-            // Set up for synchronous mode - create shared wait handle for all maps.
-            HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-            if (wait_handle == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-            ring_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
-
-            // Set up the first map.
-            ebpf_ring_mapping_t map_info{};
-            map_info.map_fd = map_fd;
-            map_info.sample_fn = (void*)sample_cb;
-            map_info.lost_fn = nullptr; // Not used for ring buffer.
-            map_info.ctx = ctx;
-            map_info.is_perf_buffer = false; // This is a ring buffer.
-            map_info.cpu_id = 0;             // Not used for ring buffer.
-
-            // Create cleanup guard to close wait handle, clear map wait handle, and unmap buffer on failure.
-            auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
-                reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
-                [&](void*) {
-                    (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
-                    if (map_info.consumer_page) {
-                        (void)ebpf_ring_buffer_map_unmap_buffer(
-                            map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
-                    }
-                    CloseHandle(reinterpret_cast<HANDLE>(ring_buffer->wait_handle));
-                    ring_buffer->wait_handle = ebpf_handle_invalid;
-                });
-
-            // Set the shared wait handle for this map to receive notifications.
-            result = ebpf_map_set_wait_handle(map_fd, 0, ring_buffer->wait_handle);
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-
-            // Get direct memory access to the ring buffer map.
-            result = ebpf_ring_buffer_map_map_buffer(
-                map_fd,
-                reinterpret_cast<void**>(&map_info.consumer_page),
-                reinterpret_cast<const void**>(&map_info.producer_page),
-                &map_info.data,
-                &map_info.data_size);
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-
-            try {
-                ring_buffer->sync_maps.push_back(map_info);
-                cleanup.release(); // Success - release cleanup guard.
-            } catch (const std::bad_alloc&) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        }
-
-        local_ring_buffer = ring_buffer.release();
-    } catch (const std::bad_alloc&) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-Exit:
-    if (result != EBPF_SUCCESS) {
-        errno = ebpf_result_to_errno(result);
-        EBPF_LOG_FUNCTION_ERROR(result);
-    }
-    EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
 }
 
 void
@@ -763,48 +627,6 @@ ring_buffer__consume(struct ring_buffer* rb)
     return total_records;
 }
 
-ebpf_handle_t
-ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
-{
-    if (!rb) {
-        return ebpf_handle_invalid;
-    }
-
-    if (rb->is_async_mode) { // For async mode, the wait handle is not currently set.
-        return ebpf_handle_invalid;
-    }
-
-    return rb->wait_handle;
-}
-
-_Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
-    _In_ struct ring_buffer* rb,
-    uint32_t index,
-    _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
-    _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
-    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
-    _Out_ uint64_t* data_size) EBPF_NO_EXCEPT
-{
-    ebpf_assert(rb && consumer_page && producer_page && data && data_size);
-
-    if (rb->is_async_mode) { // For async mode, direct buffer access isn't currently supported.
-        return EBPF_INVALID_ARGUMENT;
-    }
-
-    if (index >= rb->sync_maps.size()) {
-        return EBPF_OBJECT_NOT_FOUND;
-    }
-
-    // Return buffer info for the specified map.
-    const auto& map_info = rb->sync_maps[index];
-    *consumer_page = static_cast<ebpf_ring_buffer_consumer_page_t*>(map_info.consumer_page);
-    *producer_page = static_cast<const ebpf_ring_buffer_producer_page_t*>(map_info.producer_page);
-    *data = map_info.data;
-    *data_size = map_info.data_size;
-
-    return EBPF_SUCCESS;
-}
-
 const char*
 libbpf_bpf_map_type_str(enum bpf_map_type t)
 {
@@ -814,17 +636,6 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 
     return _ebpf_map_display_names[t];
 }
-
-typedef struct perf_buffer
-{
-    std::vector<ebpf_map_subscription_t*> subscriptions;
-
-    // Synchronous mode mapping info.
-    std::vector<ebpf_ring_mapping_t> sync_maps;
-    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
-
-    bool is_async_mode = false; // True for async callbacks, false for sync processing.
-} perf_buffer_t;
 
 struct perf_buffer*
 perf_buffer__new(
@@ -838,166 +649,6 @@ perf_buffer__new(
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_perf_opts(opts);
     return ebpf_perf_buffer__new(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
-}
-
-_Ret_maybenull_ struct perf_buffer*
-ebpf_perf_buffer__new(
-    int map_fd,
-    size_t page_cnt,
-    perf_buffer_sample_fn sample_cb,
-    perf_buffer_lost_fn lost_cb,
-    _In_opt_ void* ctx,
-    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    struct perf_buffer* local_perf_buffer = nullptr;
-
-    if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    if (page_cnt != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    try {
-        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_PERFBUF_FLAG_AUTO_CALLBACK) != 0;
-
-        std::unique_ptr<struct perf_buffer> perf_buffer = std::make_unique<struct perf_buffer>();
-
-        perf_buffer->is_async_mode = use_async_callbacks;
-
-        if (perf_buffer->is_async_mode) {
-            // Asynchronous mode - create subscription for all CPUs.
-            std::vector<uint32_t> cpu_ids;
-            uint32_t ring_count = libbpf_num_possible_cpus();
-
-            for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
-                cpu_ids.push_back(cpu_id);
-            }
-
-            ebpf_map_subscription_t* subscription = nullptr;
-            result = ebpf_map_subscribe(
-                map_fd, cpu_ids.data(), cpu_ids.size(), ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
-
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-
-            try {
-                perf_buffer->subscriptions.push_back(subscription);
-            } catch (const std::bad_alloc&) {
-                ebpf_map_unsubscribe(subscription);
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        } else {
-            // Synchronous mode - create per-CPU ring buffer mappings.
-            uint32_t cpu_count = libbpf_num_possible_cpus();
-
-            // Track current map_info for cleanup if push_back fails.
-            ebpf_ring_mapping_t current_map_info{};
-
-            HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
-            if (wait_handle == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-            perf_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
-
-            // Create cleanup guard to close wait handle, clear map wait handles, and unmap buffers on failure.
-            auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
-                reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
-                [&](void*) {
-                    // Clean up all successfully added mappings.
-                    for (auto& map_info : perf_buffer->sync_maps) {
-                        (void)ebpf_map_set_wait_handle(map_info.map_fd, map_info.cpu_id, ebpf_handle_invalid);
-                        (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
-                            map_info.map_fd,
-                            map_info.cpu_id,
-                            map_info.consumer_page,
-                            map_info.producer_page,
-                            map_info.data);
-                    }
-                    perf_buffer->sync_maps.clear();
-
-                    // Clean up current map_info if it was set up but not yet added.
-                    if (current_map_info.consumer_page) {
-                        (void)ebpf_map_set_wait_handle(
-                            current_map_info.map_fd, current_map_info.cpu_id, ebpf_handle_invalid);
-                        (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
-                            current_map_info.map_fd,
-                            current_map_info.cpu_id,
-                            current_map_info.consumer_page,
-                            current_map_info.producer_page,
-                            current_map_info.data);
-                    }
-
-                    CloseHandle(reinterpret_cast<HANDLE>(perf_buffer->wait_handle));
-                    perf_buffer->wait_handle = ebpf_handle_invalid;
-                });
-
-            // Create mapping for each CPU.
-            for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
-                current_map_info = {}; // Reset for this iteration.
-                current_map_info.map_fd = map_fd;
-                current_map_info.sample_fn = (void*)sample_cb;
-                current_map_info.lost_fn = (void*)lost_cb;
-                current_map_info.ctx = ctx;
-                current_map_info.is_perf_buffer = true;
-                current_map_info.cpu_id = cpu_id;
-
-                // Set the shared wait handle for this CPU to receive notifications.
-                result = ebpf_map_set_wait_handle(map_fd, cpu_id, perf_buffer->wait_handle);
-                if (result != EBPF_SUCCESS) {
-                    goto Exit;
-                }
-
-                // Get direct memory access to the perf buffer map for this CPU.
-                result = ebpf_ring_buffer_map_map_buffer_with_index(
-                    map_fd,
-                    cpu_id,
-                    reinterpret_cast<void**>(&current_map_info.consumer_page),
-                    reinterpret_cast<const void**>(&current_map_info.producer_page),
-                    &current_map_info.data,
-                    &current_map_info.data_size);
-                if (result != EBPF_SUCCESS) {
-                    goto Exit;
-                }
-
-                // Initialize lost_count to current value to avoid reporting historical losses.
-                auto perf_producer_page =
-                    reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(current_map_info.producer_page);
-
-                _Analysis_assume_(perf_producer_page != nullptr); // Guaranteed by success above.
-                current_map_info.lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
-
-                try {
-                    perf_buffer->sync_maps.push_back(current_map_info);
-                    current_map_info = {}; // Clear so cleanup guard doesn't double-free.
-                } catch (const std::bad_alloc&) {
-                    result = EBPF_NO_MEMORY;
-                    goto Exit;
-                }
-            }
-
-            cleanup.release(); // Success - release cleanup guard.
-        }
-
-        local_perf_buffer = perf_buffer.release();
-
-    } catch (const std::bad_alloc&) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-Exit:
-    if (result != EBPF_SUCCESS) {
-        errno = ebpf_result_to_errno(result);
-        EBPF_LOG_FUNCTION_ERROR(result);
-    }
-    EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
 }
 
 void
@@ -1123,19 +774,4 @@ perf_buffer__buffer_cnt(const struct perf_buffer* pb)
 
     // For sync mode, sync_maps has one entry per CPU.
     return pb->sync_maps.size();
-}
-
-ebpf_handle_t
-ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT
-{
-    if (!pb) {
-        return ebpf_handle_invalid;
-    }
-
-    if (pb->is_async_mode) {
-        // For async mode, the wait handle is not currently set.
-        return ebpf_handle_invalid;
-    }
-
-    return pb->wait_handle;
 }

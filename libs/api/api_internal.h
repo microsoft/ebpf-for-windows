@@ -775,3 +775,41 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
+
+// Shared mapping structure for ring direct access (synchronous mode).
+typedef struct _ebpf_ring_mapping
+{
+    fd_t map_fd;
+    void* sample_fn;                                 // ring_buffer_sample_fn or perf_buffer_sample_fn.
+    void* lost_fn;                                   // nullptr for ring buffer, perf_buffer_lost_fn for perf buffer.
+    void* ctx;                                       // User context passed to callbacks.
+    ebpf_ring_buffer_consumer_page_t* consumer_page; // Pointer to consumer page for direct access.
+    const ebpf_ring_buffer_producer_page_t* producer_page; // Pointer to producer page for direct access.
+    const uint8_t* data;                                   // Pointer to the start of the data region for direct access.
+    uint64_t data_size;                                    // Size of the data region in bytes.
+    bool is_perf_buffer;                                   // true if this is for perf buffer, false for ring buffer.
+    uint32_t cpu_id;                                       // CPU ID for perf buffer callbacks.
+    uint64_t lost_count; // Latest lost count for perf buffer (for detecting new drops).
+} ebpf_ring_mapping_t;
+
+typedef struct ring_buffer
+{
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    // Synchronous mode mapping info.
+    std::vector<ebpf_ring_mapping_t> sync_maps;
+    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
+
+    bool is_async_mode = false; // True for async callbacks, false for sync processing.
+} ring_buffer_t;
+
+typedef struct perf_buffer
+{
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    // Synchronous mode mapping info.
+    std::vector<ebpf_ring_mapping_t> sync_maps;
+    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
+
+    bool is_async_mode = false; // True for async callbacks, false for sync processing.
+} perf_buffer_t;
