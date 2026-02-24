@@ -579,23 +579,112 @@ function Get-VMPassword {
 
 <#
 .SYNOPSIS
+    Imports the CredentialManager, and installs it if necessary.
+
+.DESCRIPTION
+    This function imports the CredentialManager module and installs it if it is not already installed. It also ensures that any dependencies are installed.
+#>
+function Get-CredentialManager {
+    # Import the CredentialManager module. Ensure any dependencies are installed.
+    Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+    Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+    if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
+        Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
+    }
+    Import-Module CredentialManager -ErrorAction Stop
+}
+
+<#
+.SYNOPSIS
+    Retrieves a credential from the Windows Credential Manager using PsExec.
+
+.PARAMETER Target
+    The name of the stored credential. Default is "MyStoredCredential".
+
+.DESCRIPTION
+    This function uses PsExec to run a PowerShell script in the LocalSystem account context to retrieve a credential from the Windows Credential Manager.
+
+.EXAMPLE
+    $credential = Retrieve-StoredCredential -Target "MyStoredCredential"
+#>
+function Retrieve-StoredCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$Target
+    )
+    Get-CredentialManager
+
+    $Script = @"
+        Import-Module CredentialManager -ErrorAction Stop;
+        `$Credential = Get-StoredCredential -Target '$Target';
+        `$UserName = `$Credential.UserName;
+        `$Password = `$Credential.GetNetworkCredential().Password;
+        \"`$UserName`n`$Password\"
+"@
+
+    # PSExec sometimes fails to fetch the output. Retry up to 3 times to improve reliability.
+    $attempt = 0
+    $maxRetries = 5
+    while ($attempt -lt $maxRetries) {
+        try {
+            $output = Invoke-PsExecScript -Script $Script
+            $lines = $output -split "`n"
+            $Username = $lines[0].Trim()
+            $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+            if ($null -eq $Username -or $null -eq $Password) {
+                throw "Failed to retrieve the stored credential."
+            }
+            return [System.Management.Automation.PSCredential]::new($Username, $Password)
+        } catch {
+            $attempt++
+            if ($attempt -lt $maxRetries) {
+                Start-Sleep -Seconds 5
+            } else {
+                throw "Failed to retrieve the stored credential after $maxRetries attempts."
+            }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
     Creates a PSCredential for the specified VM user.
+
+.DESCRIPTION
+    For local VMs (PowerShell Direct), creates a PSCredential using the well-known
+    password from Get-VMPassword.
+
+    For remote VMs (WinRM), retrieves the credential from Windows Credential Manager
+    using the specified target name. The credential must have been previously stored
+    with New-StoredCredential using `-Persist LocalMachine`.
 
 .PARAMETER Username
     The username for the credential.
 
-.DESCRIPTION
-    This function creates a PSCredential object using the VM password.
+.PARAMETER VMIsRemote
+    When true, retrieves the credential from Credential Manager instead of using
+    the hardcoded password. Defaults to false.
 
 .EXAMPLE
     $credential = Get-VMCredential -Username 'Administrator'
+    $credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
 #>
 function Get-VMCredential {
     param (
-        [Parameter(Mandatory=$True)][string]$Username
+        [Parameter(Mandatory=$True)][string]$Username,
+        [Parameter(Mandatory=$false)][bool]$VMIsRemote = $false
     )
-    $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
-    return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
+    if ($VMIsRemote) {
+        # Determine the Credential Manager target based on username.
+        if ($Username -eq 'Administrator') {
+            $CredentialTarget = 'TEST_VM'
+        } else {
+            $CredentialTarget = 'TEST_VM_STANDARD'
+        }
+        return Retrieve-StoredCredential -Target $CredentialTarget
+    } else {
+        $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
+        return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
+    }
 }
 
 
