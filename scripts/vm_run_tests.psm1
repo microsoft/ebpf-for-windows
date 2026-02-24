@@ -334,12 +334,15 @@ function Run-KernelTests {
                     2>&1 | Write-Log
             }
             "stress" {
+                # Set MultiThred to true if options contains that string.
+                $MultiThread = $Options -contains "MultiThread"
                 # Set RestartExtension to true if options contains that string.
                 $RestartExtension = $Options -contains "RestartExtension"
                 # Set RestartEbpfCore to true if options contains that string.
                 $RestartEbpfCore = $Options -contains "RestartEbpfCore"
                 Invoke-CICDStressTests `
                     -VerboseLogs $VerboseLogs `
+                    -MultiThread $MultiThread `
                     -RestartExtension $RestartExtension `
                     -RestartEbpfCore $RestartEbpfCore `
                     2>&1 | Write-Log
