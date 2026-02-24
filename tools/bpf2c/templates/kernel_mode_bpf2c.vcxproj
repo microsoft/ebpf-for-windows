@@ -33,10 +33,10 @@
     <ResolveNuGetPackages>false</ResolveNuGetPackages>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(Platform)" Version="$(WDKVersion)"/>
-    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'" Version="$(WDKVersion)"/>
-    <PackageReference Include="Microsoft.Windows.WDK.$(Platform)" Version="$(WDKVersion)"/>
-    <PackageReference Include="Microsoft.Windows.WDK.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'" Version="$(WDKVersion)"/>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(Platform)"/>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'"/>
+    <PackageReference Include="Microsoft.Windows.WDK.$(Platform)"/>
+    <PackageReference Include="Microsoft.Windows.WDK.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{172DFDF9-3B0D-44AD-B780-92627EA469A2}</ProjectGuid>

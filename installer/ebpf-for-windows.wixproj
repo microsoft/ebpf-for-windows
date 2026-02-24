@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 -->
 <Project ToolsVersion="4.0" DefaultTargets="Build" InitialTargets="EnsureWixToolsetInstalled" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\Directory.Build.props" />
-  <Import Project="..\packages\wix.3.14.1\build\wix.props" Condition="Exists('..\packages\wix.3.14.1\build\wix.props')" />
+  <Import Project="$(NuGetPackageRoot)wix\3.14.1\build\wix.props" Condition="Exists('$(NuGetPackageRoot)wix\3.14.1\build\wix.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
@@ -151,7 +151,9 @@ SPDX-License-Identifier: MIT
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="packages.config" />
+    <PackageReference Include="WiX" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="res\eBPF logo png  150px.png" />
     <Content Include="res\eBPF logo png  58px.png" />
     <Content Include="res\eBPFBanner_493x58.bmp" />
@@ -169,7 +171,7 @@ SPDX-License-Identifier: MIT
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\wix.3.14.1\build\wix.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\wix.3.14.1\build\wix.props'))" />
+    <Error Condition="!Exists('$(NuGetPackageRoot)wix\3.14.1\build\wix.props')" Text="$([System.String]::Format('$(ErrorText)', '$(NuGetPackageRoot)wix\3.14.1\build\wix.props'))" />
   </Target>
   <!--
 	To modify your build process, add your task inside one of the targets below and uncomment it.
