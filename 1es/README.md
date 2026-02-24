@@ -137,9 +137,21 @@ It configures:
   logon per https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon.
 - Password expiration disabled for both accounts.
 
-This approach replaces the previous design that generated a unique password at image creation time
-and stored it in the Windows Credential Manager. That approach was fragile and caused recurring
-`The credential is invalid` failures when credentials expired.
+### Local vs Remote VMs
+`Get-VMCredential` supports both local and remote VM scenarios via its `-VMIsRemote` parameter:
+- **Local VMs** (`-VMIsRemote $false`, the default): Uses the hardcoded password from
+  `Get-VMPassword`. PowerShell Direct (`Invoke-Command -VMName`) is used for communication.
+- **Remote VMs** (`-VMIsRemote $true`): Retrieves credentials from Windows Credential Manager
+  using the targets `TEST_VM` (for Administrator) and `TEST_VM_STANDARD` (for standard users).
+  WinRM (`Invoke-Command -ComputerName`) is used for communication.
+
+For the remote case, credentials must be pre-stored in Credential Manager:
+```powershell
+Install-Module CredentialManager -Force
+New-StoredCredential -Target TEST_VM -Username Administrator -Password <password> -Persist LocalMachine
+New-StoredCredential -Target TEST_VM_STANDARD -Username VMStandardUser -Password <password> -Persist LocalMachine
+```
+See [docs/remote-vm-setup.md](../docs/remote-vm-setup.md) for full remote VM setup instructions.
 
 Note: PowerShell Direct (`Invoke-Command -VMName`) still requires explicit credentials even with
 auto-logon enabled. The hardcoded password ensures these credentials never expire or go out of sync.

@@ -36,7 +36,7 @@ function Invoke-OnHostOrVM {
     if ($script:ExecuteOnHost) {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
-        $Credential = Get-VMCredential -Username 'Administrator'
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
         Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
@@ -119,7 +119,7 @@ function Start-BackgroundProcess{
     )
     $session = $null
     if ($script:ExecuteOnVM){
-        $VmCredential = Get-VMCredential -Username 'Administrator'
+        $VmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
         $session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $VmCredential
     } else {
         $session = New-PSSession -ErrorAction Stop
@@ -234,7 +234,7 @@ function Invoke-ConnectRedirectTestHelper
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     if ($script:VMIsRemote) {
-        $Credential = Get-VMCredential -Username 'Administrator'
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
         $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
     }
 
