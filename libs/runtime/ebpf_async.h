@@ -102,7 +102,7 @@ extern "C"
     ebpf_async_cancel(_Inout_ void* context);
 
     /**
-     * @brief Complete the action associated with this context.
+     * @brief Complete the action associated with this context. This function assumes the caller has entered an epoch.
      *
      * @param[in, out] context Context associated with the action.
      * @param[in] output_buffer_length Length (in bytes) of the buffer containing the result of the async operation.
@@ -110,6 +110,16 @@ extern "C"
      */
     void
     ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result);
+
+    /**
+     * @brief Complete the action associated with this context, using epoch protection.
+     *
+     * @param[in, out] context Context associated with the action.
+     * @param[in] output_buffer_length Length (in bytes) of the buffer containing the result of the async operation.
+     * @param[in] result The outcome of the action.
+     */
+    void
+    ebpf_async_complete_with_epoch(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result);
 
 #ifdef __cplusplus
 }

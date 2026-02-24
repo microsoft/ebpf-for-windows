@@ -1098,7 +1098,7 @@ _ebpf_core_protocol_program_test_run_complete(
         reply->duration = options->duration;
     }
 
-    ebpf_async_complete(async_context, reply->header.length, result);
+    ebpf_async_complete_with_epoch(async_context, reply->header.length, result);
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     ebpf_free((void*)options);
 }
@@ -2173,7 +2173,7 @@ _ebpf_core_epoch_synchronize_work_item(_In_ cxplat_preemptible_work_item_t* work
     UNREFERENCED_PARAMETER(work_item);
     ebpf_epoch_synchronize();
     if (work_item_context != NULL) {
-        ebpf_async_complete(work_item_context, 0, EBPF_SUCCESS);
+        ebpf_async_complete_with_epoch(work_item_context, 0, EBPF_SUCCESS);
     }
 
     cxplat_free_preemptible_work_item(work_item);

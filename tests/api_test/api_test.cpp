@@ -37,7 +37,31 @@
 #include <vector>
 using namespace std::chrono_literals;
 
-CATCH_REGISTER_LISTENER(_watchdog)
+static int _stress_test_duration = 60; // Default to 60 seconds.
+
+/**
+ * @brief A catch2 listener that uses the stress test duration as the watchdog timeout for ioctl_stress tests.
+ */
+class _api_test_watchdog : public _watchdog
+{
+  public:
+    using _watchdog::_watchdog;
+
+    void
+    testCaseStarting(Catch::TestCaseInfo const& test_case_info) override
+    {
+        if (test_case_info.name == "ioctl_stress") {
+            // Use stress test duration plus a margin for the watchdog timeout.
+            int64_t timeout =
+                (_stress_test_duration + EBPF_WATCHDOG_TIMER_DUE_TIME_IN_SECONDS) * FILETIME_TICKS_PER_SECOND;
+            _watchdog_timer = std::make_unique<_ebpf_watchdog_timer<true>>(timeout);
+        } else {
+            _watchdog::testCaseStarting(test_case_info);
+        }
+    }
+};
+
+CATCH_REGISTER_LISTENER(_api_test_watchdog)
 
 #define SAMPLE_PATH ""
 
@@ -1360,8 +1384,6 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     bpf_object__close(object);
     */
 }
-
-static int _stress_test_duration = 60; // Default to 60 seconds.
 
 TEST_CASE("ioctl_stress", "[stress]")
 {
