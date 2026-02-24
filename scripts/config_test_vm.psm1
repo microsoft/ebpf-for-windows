@@ -749,9 +749,10 @@ function Create-VM {
         Apply-WindowsUnattend -Path $VmMountPath -UnattendPath $VmMountPath\Unattend.xml -ErrorAction Stop | Out-Null
         Dismount-WindowsImage -Path $VmMountPath -Save -ErrorAction Stop
 
-        # Create the VM
-        Write-Log "Creating the VM"
-        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
+        # Create the VM as Generation 2 with Secure Boot disabled so unsigned test drivers can load.
+        Write-Log "Creating the VM (Generation 2)"
+        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName -Generation 2
+        Set-VMFirmware -VMName $VmName -EnableSecureBoot Off
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {

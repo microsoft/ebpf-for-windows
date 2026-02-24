@@ -574,7 +574,7 @@ function Invoke-PsExecScript {
     [String] The VM password.
 #>
 function Get-VMPassword {
-    return 'P@ssw0rd!'
+    return 'eBPF4W!n'
 }
 
 <#
