@@ -3701,7 +3701,7 @@ DECLARE_JIT_TEST_CASES(
 
 // This test validates custom map user APIs.
 void
-_test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
+_test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool register_crud_apis)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3729,10 +3729,16 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
 
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(map_type, object_map) == EBPF_SUCCESS);
+    REQUIRE(sample_map_provider.initialize(map_type, object_map, register_crud_apis) == EBPF_SUCCESS);
 
     fd_t custom_map_fd = bpf_map_create(map_type, "custom_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
-    REQUIRE(custom_map_fd > 0);
+    if (object_map && !register_crud_apis) {
+        // If it's an object map without CRUD APIs, the map creation should fail.
+        REQUIRE(custom_map_fd < 0);
+        return;
+    } else {
+        REQUIRE(custom_map_fd > 0);
+    }
 
     auto require_and_close = [](bool condition, fd_t fd) {
         if (condition == false) {
@@ -3972,8 +3978,14 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map)
 
 TEST_CASE("custom_maps_user_apis", "[custom_maps]")
 {
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true);
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false);
+    // object_map = true, register_crud_apis = true.
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true);
+    // object_map = false, register_crud_apis = true.
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true);
+    // object_map = true, register_crud_apis = false.
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false);
+    // object_map = false, register_crud_apis = false.
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false);
 }
 
 TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")

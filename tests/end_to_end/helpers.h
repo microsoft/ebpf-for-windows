@@ -231,7 +231,7 @@ typedef class _test_sample_map_provider
     }
 
     ebpf_result_t
-    initialize(uint32_t map_type, bool object_map)
+    initialize(uint32_t map_type, bool object_map, bool register_crud_apis = true)
     {
         _object_map = object_map;
         if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED) {
@@ -243,6 +243,19 @@ typedef class _test_sample_map_provider
         }
 
         _test_sample_hash_map_provider_data.base_properties->updates_original_value = object_map ? true : false;
+
+        if (!register_crud_apis) {
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_find_element = nullptr;
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_add_element = nullptr;
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_delete_element = nullptr;
+        } else {
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_find_element =
+                _test_sample_hash_map_find_entry;
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_add_element =
+                _test_sample_hash_map_update_entry;
+            _test_sample_hash_map_provider_data.base_provider_table->process_map_delete_element =
+                _test_sample_hash_map_delete_entry;
+        }
 
         // Register as NMR provider
         NTSTATUS status = NmrRegisterProvider(&_map_provider_characteristics, this, &_map_provider_handle);

@@ -3445,7 +3445,7 @@ ebpf_maps_initiate()
     options.value_size = sizeof(const ebpf_map_metadata_table_properties_t*);
     options.minimum_bucket_count = EBPF_COUNT_OF(ebpf_map_metadata_tables);
     options.max_entries = EBPF_COUNT_OF(ebpf_map_metadata_tables);
-    options.allocation_tag = EBPF_POOL_TAG_EPOCH;
+    options.allocation_tag = EBPF_POOL_TAG_MAP;
 
     result = ebpf_hash_table_create(&_ebpf_map_type_metadata_table, &options);
     if (result != EBPF_SUCCESS) {
@@ -3457,6 +3457,12 @@ ebpf_maps_initiate()
         ebpf_assert(table->map_type == (ebpf_map_type_t)index);
         result = _ebpf_map_metadata_table_add(table->map_type, &table->properties);
         if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Failed to add map metadata table entry",
+                table->map_type,
+                result);
             ebpf_hash_table_destroy(_ebpf_map_type_metadata_table);
             _ebpf_map_type_metadata_table = NULL;
             return result;
@@ -4278,15 +4284,17 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             break;
         }
 
-        // Call provider to notify deletion.
-        map->provider_dispatch->process_map_delete_element(
-            map->provider_context,
-            map->core_map.custom_map_context,
-            map->core_map.ebpf_map_definition.key_size,
-            next_key,
-            map->actual_value_size,
-            value,
-            EBPF_MAP_OPERATION_MAP_CLEANUP);
+        if (map->provider_dispatch->process_map_delete_element != NULL) {
+            // Call provider to notify deletion.
+            map->provider_dispatch->process_map_delete_element(
+                map->provider_context,
+                map->core_map.custom_map_context,
+                map->core_map.ebpf_map_definition.key_size,
+                next_key,
+                map->actual_value_size,
+                value,
+                EBPF_MAP_OPERATION_MAP_CLEANUP);
+        }
 
         if (previous_key != NULL) {
             ebpf_assert_success(ebpf_hash_table_delete((ebpf_hash_table_t*)core_map->data, NULL, previous_key));
@@ -4341,6 +4349,8 @@ _ebpf_custom_map_update_hash_map_entry(
     }
     uint8_t* out_value = NULL;
     uint32_t provider_flags;
+    ebpf_lock_state_t lock_state = 0;
+    bool lock_acquired = false;
 
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(value_size);
@@ -4357,26 +4367,29 @@ _ebpf_custom_map_update_hash_map_entry(
         memset(out_value, 0, custom_map->actual_value_size);
     }
 
-    // Acquire lock to serialize updates.
-    ebpf_lock_state_t lock_state = ebpf_lock_lock(&custom_map->lock);
+    if (custom_map->provider_dispatch->process_map_add_element) {
+        // Acquire lock to serialize updates.
+        lock_state = ebpf_lock_lock(&custom_map->lock);
+        lock_acquired = true;
 
-    // Invoke provider to process the update.
-    provider_flags = _get_provider_flags(flags, false);
-    size_t out_value_size =
-        UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
-    result = custom_map->provider_dispatch->process_map_add_element(
-        custom_map->provider_context,
-        custom_map->core_map.custom_map_context,
-        custom_map->core_map.ebpf_map_definition.key_size,
-        key,
-        custom_map->core_map.ebpf_map_definition.value_size,
-        value,
-        out_value_size,
-        out_value,
-        provider_flags);
+        // Invoke provider to process the update.
+        provider_flags = _get_provider_flags(flags, false);
+        size_t out_value_size =
+            UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
+        result = custom_map->provider_dispatch->process_map_add_element(
+            custom_map->provider_context,
+            custom_map->core_map.custom_map_context,
+            custom_map->core_map.ebpf_map_definition.key_size,
+            key,
+            custom_map->core_map.ebpf_map_definition.value_size,
+            value,
+            out_value_size,
+            out_value,
+            provider_flags);
 
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
     }
 
     const uint8_t* new_value = out_value ? out_value : value;
@@ -4385,7 +4398,9 @@ _ebpf_custom_map_update_hash_map_entry(
     result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
 
 Exit:
-    ebpf_lock_unlock(&custom_map->lock, lock_state);
+    if (lock_acquired) {
+        ebpf_lock_unlock(&custom_map->lock, lock_state);
+    }
     ebpf_free(out_value);
 
     return result;
@@ -4417,14 +4432,16 @@ _custom_hash_map_notification(
             break;
         }
         provider_flags = _get_provider_flags(op_context->flags, op_context->is_update);
-        result = custom_map->provider_dispatch->process_map_delete_element(
-            custom_map->provider_context,
-            custom_map->core_map.custom_map_context,
-            custom_map->core_map.ebpf_map_definition.key_size,
-            key,
-            custom_map->actual_value_size,
-            value,
-            provider_flags);
+        if (custom_map->provider_dispatch->process_map_delete_element != NULL) {
+            result = custom_map->provider_dispatch->process_map_delete_element(
+                custom_map->provider_context,
+                custom_map->core_map.custom_map_context,
+                custom_map->core_map.ebpf_map_definition.key_size,
+                key,
+                custom_map->actual_value_size,
+                value,
+                provider_flags);
+        }
         break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -4543,6 +4560,22 @@ ebpf_custom_map_create(
             custom_map->core_map.ebpf_map_definition.type);
 
         goto Done;
+    }
+
+    // If the provider updates original value, validate that find, add and delete functions are not null.
+    if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
+        if (custom_map->provider_dispatch->process_map_find_element == NULL ||
+            custom_map->provider_dispatch->process_map_add_element == NULL ||
+            custom_map->provider_dispatch->process_map_delete_element == NULL) {
+            result = EBPF_INVALID_ARGUMENT;
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "Provider missing required functions for updating original value",
+                custom_map->core_map.ebpf_map_definition.type);
+
+            goto Done;
+        }
     }
 
     // Create hash map.

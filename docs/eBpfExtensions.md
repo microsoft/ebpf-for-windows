@@ -24,8 +24,8 @@ and the various aspects of developing NMR modules as described in
 [NMR documentation](https://docs.microsoft.com/en-us/windows-hardware/drivers/network/network-module-registrar2).
 
 ## 1.3 NPI Contracts for eBPF Extensions
-eBPF Extensions need to implement *provider modules* for three types of NPIs. They are the **Program Information NPI**
-provider, **Hook NPI** provider, and **Map Information NPI**.
+eBPF Extensions need to implement *provider modules* for two types of NPIs. They are the **Program Information NPI**
+provider and the **Hook NPI** provider.
 **Map Information NPI** is optional and only needs to be implemented if an extension wants to add support for a
 program type specific map. The following section explains when an extension must implement these providers.
 
@@ -624,7 +624,7 @@ typedef struct _ebpf_map_provider_dispatch_table
     ebpf_process_map_delete_element_t process_map_delete_element;
 } ebpf_base_map_provider_dispatch_table_t;
 ```
-This the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
+This is the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
 1. `process_map_create` - Called by eBPF runtime to process map creation.
 2. `process_map_delete` - Called by eBPF runtime to process map deletion.
 3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
