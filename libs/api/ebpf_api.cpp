@@ -5347,7 +5347,7 @@ ebpf_ring_buffer__new(
     int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
     EBPF_NO_EXCEPT
 {
-    ebpf_result result = EBPF_SUCCESS;
+    ebpf_result_t result = EBPF_SUCCESS;
     ring_buffer_t* local_ring_buffer = nullptr;
 
     if (sample_cb == nullptr) {

@@ -303,7 +303,7 @@ while(perf_buffer__poll(pb, -1) >= 0) {
 perf_buffer__free(pb);
 ```
 
-#### Per-CPU buffer consumer (linux-compatible)
+#### Per-CPU buffer consumer (Linux-compatible)
 
 ```c
 // Consumer code.

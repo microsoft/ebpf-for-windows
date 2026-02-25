@@ -742,7 +742,7 @@ perf_buffer__consume(struct perf_buffer* pb)
 }
 
 int
-perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
+perf_buffer__consume_buffer(struct perf_buffer* pb, size_t buf_idx)
 {
     if (!pb) {
         return libbpf_err(-EINVAL);
@@ -750,12 +750,12 @@ perf_buffer__consume_buffer(struct perf_buffer* pb, size_t cpu)
     if (pb->is_async_mode) { // For async mode, consume doesn't make sense since callbacks are automatic.
         return libbpf_err(-ENOTSUP);
     }
-    if (cpu >= pb->sync_maps.size()) {
+    if (buf_idx >= pb->sync_maps.size()) {
         return libbpf_err(-EINVAL);
     }
 
     // Process available data from the specific CPU buffer.
-    auto& map_info = pb->sync_maps[cpu];
+    auto& map_info = pb->sync_maps[buf_idx];
     return libbpf_err(_process_ring_records(&map_info)); // Process all records, set errno on error.
 }
 

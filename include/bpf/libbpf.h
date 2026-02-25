@@ -1065,7 +1065,7 @@ perf_buffer__new(
  *
  * @returns Number of records processed on success, negative error code on failure.
  */
-int
+LIBBPF_API int
 perf_buffer__poll(struct perf_buffer* pb, int timeout_ms);
 
 /**
@@ -1075,7 +1075,7 @@ perf_buffer__poll(struct perf_buffer* pb, int timeout_ms);
  *
  * @returns Number of records processed on success, negative error code on failure.
  */
-int
+LIBBPF_API int
 perf_buffer__consume(struct perf_buffer* pb);
 
 /**
@@ -1086,7 +1086,7 @@ perf_buffer__consume(struct perf_buffer* pb);
  *
  * @returns Number of records processed on success, negative error code on failure.
  */
-int
+LIBBPF_API int
 perf_buffer__consume_buffer(struct perf_buffer* pb, size_t buf_idx);
 
 /**
@@ -1096,7 +1096,7 @@ perf_buffer__consume_buffer(struct perf_buffer* pb, size_t buf_idx);
  *
  * @returns Number of per-CPU buffers.
  */
-size_t
+LIBBPF_API size_t
 perf_buffer__buffer_cnt(const struct perf_buffer* pb);
 
 /**

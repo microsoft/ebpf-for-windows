@@ -71,7 +71,7 @@ ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
  *
  * @note ring_buffer must correspond to a perf event array map ring.
  *
- * @param[in, out] ring_buffer Per-cpu perf event array map ring to query.
+ * @param[in,out] ring_buffer Per-cpu perf event array map ring to query.
  * @return Pointer to the producer page.
  */
 ebpf_perf_event_array_producer_page_t*
