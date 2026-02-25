@@ -101,6 +101,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="elf.cpp" />
+    <ClCompile Include="netsh_hash.cpp" />
     <ClCompile Include="links.cpp" />
     <ClCompile Include="maps.cpp" />
     <ClCompile Include="pins.cpp" />
@@ -110,6 +111,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="elf.h" />
+    <ClInclude Include="netsh_hash.h" />
     <ClInclude Include="links.h" />
     <ClInclude Include="maps.h" />
     <ClInclude Include="pins.h" />
