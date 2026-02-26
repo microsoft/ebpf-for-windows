@@ -16,9 +16,12 @@ const prevail::ebpf_platform_t g_ebpf_platform_windows_service = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,
+    nullptr, // resolve_builtin_call_windows,
+    nullptr, // get_builtin_call_windows,
+    nullptr, // resolve_kfunc_call_windows,
     sizeof(ebpf_map_definition_in_memory_t),
     nullptr, // parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
-    nullptr, // resolve_inner_map_references
+    nullptr, // resolve_inner_map_references_windows,
     bpf_conformance_groups_t::default_groups};

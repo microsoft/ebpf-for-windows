@@ -279,6 +279,11 @@ ebpf_core_initiate()
         goto Done;
     }
 
+    return_value = ebpf_maps_initiate();
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_state_initiate();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -354,6 +359,8 @@ ebpf_core_terminate()
     ebpf_core_terminate_pinning_table();
 
     ebpf_state_terminate();
+
+    ebpf_maps_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.
     ebpf_object_tracking_terminate();
