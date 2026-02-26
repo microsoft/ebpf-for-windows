@@ -105,15 +105,15 @@ header contains:
 // Declare a BTF-resolved function with BTF metadata
 // __attribute__((section(".ksyms"))) places the symbol in the .ksyms BTF section
 // __attribute__((btf_decl_tag(MY_DRIVER_MODULE))) associates it with the module
-#define DECLARE_HELPER(ret, name, ...) \
+#define DECLARE_BTF_RESOLVED_FUNCTION(ret, name, ...) \
     extern ret name(__VA_ARGS__) \
         __attribute__((section(".ksyms"))) \
         __attribute__((btf_decl_tag(MY_DRIVER_MODULE)))
 
 // Example BTF-resolved function declarations
-DECLARE_HELPER(int, my_driver_lookup, uint64_t key, void* value, uint32_t value_size);
-DECLARE_HELPER(int, my_driver_update, uint64_t key, const void* value, uint32_t value_size);
-DECLARE_HELPER(void, my_driver_log, const char* message, uint32_t length);
+DECLARE_BTF_RESOLVED_FUNCTION(int, my_driver_lookup, uint64_t key, void* value, uint32_t value_size);
+DECLARE_BTF_RESOLVED_FUNCTION(int, my_driver_update, uint64_t key, const void* value, uint32_t value_size);
+DECLARE_BTF_RESOLVED_FUNCTION(void, my_driver_log, const char* message, uint32_t length);
 ```
 
 ### 3.2 Module GUID Requirements
@@ -177,7 +177,7 @@ typedef struct _ebpf_btf_resolved_function_provider_info
     ebpf_extension_header_t header;
     GUID module_guid;
     uint32_t btf_resolved_function_count;
-    const ebpf_btf_resolved_function_prototype_t* helper_functions_by_btf_id;
+    const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
 } ebpf_btf_resolved_function_provider_info_t;
 
 // Proposed API to register BTF-resolved function provider information
@@ -488,18 +488,18 @@ Each BTF-resolved function provider is responsible for:
 
 ## 12 Future Considerations
 
-### 12.1 BTF Helper Sets
+### 12.1 BTF-resolved Function Sets
 
 A future enhancement could support "BTF-resolved function sets" - groups of related functions that are versioned together.
 This would simplify compatibility management when BTF-resolved function signatures evolve.
 
-### 12.2 Per-Program BTF Helper Authorization
+### 12.2 Per-Program BTF-resolved Function Authorization
 
 A policy mechanism could allow administrators to control which programs can call which BTF-resolved functions,
 providing finer-grained
 security control.
 
-### 12.3 Dynamic BTF Helper Discovery
+### 12.3 Dynamic BTF-resolved Function Discovery
 
 Currently, BTF-resolved function metadata must be in the registry at verification time. Dynamic discovery could allow
 programs to query available BTF-resolved functions at runtime, enabling more flexible extension models.
