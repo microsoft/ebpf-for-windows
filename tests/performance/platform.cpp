@@ -101,6 +101,7 @@ typedef class _ebpf_hash_table_test_state
             REQUIRE(
                 ebpf_hash_table_update(
                     table,
+                    nullptr,
                     reinterpret_cast<uint8_t*>(&key),
                     reinterpret_cast<uint8_t*>(&value),
                     EBPF_HASH_TABLE_OPERATION_ANY) == EBPF_SUCCESS);
@@ -161,6 +162,7 @@ typedef class _ebpf_hash_table_test_state
                 // Expected to fail.
                 (void)ebpf_hash_table_update(
                     table,
+                    nullptr,
                     reinterpret_cast<uint8_t*>(&keys[index]),
                     reinterpret_cast<uint8_t*>(&value),
                     EBPF_HASH_TABLE_OPERATION_REPLACE);
@@ -180,6 +182,7 @@ typedef class _ebpf_hash_table_test_state
             // Expected to fail.
             (void)ebpf_hash_table_update(
                 table,
+                nullptr,
                 reinterpret_cast<uint8_t*>(&key),
                 reinterpret_cast<uint8_t*>(&value),
                 EBPF_HASH_TABLE_OPERATION_REPLACE);
