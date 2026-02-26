@@ -67,6 +67,61 @@ ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_t
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_initialize_trampoline_table(
+    _Inout_ ebpf_trampoline_table_t* trampoline_table,
+    uint32_t helper_function_count,
+    _In_reads_(helper_function_count) const uint32_t* helper_function_ids)
+{
+    EBPF_LOG_ENTRY();
+#if defined(_M_X64)
+
+    ebpf_trampoline_entry_t* local_entries;
+    ebpf_result_t return_value;
+
+    if (helper_function_count != trampoline_table->entry_count) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (trampoline_table->updated) {
+        // Trampoline table already initialized.
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    return_value = ebpf_protect_memory(trampoline_table->memory_descriptor, EBPF_PAGE_PROTECT_READ_WRITE);
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    local_entries =
+        (ebpf_trampoline_entry_t*)ebpf_memory_descriptor_get_base_address(trampoline_table->memory_descriptor);
+    if (!local_entries) {
+        return_value = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    for (uint32_t index = 0; index < helper_function_count; index++) {
+        local_entries[index].load_rax = 0xa148;
+        local_entries[index].indirect_address = &local_entries[index].address;
+        local_entries[index].jmp_rax = 0xe0ff;
+        local_entries[index].address = NULL; // Will be filled in later when extension attaches.
+        local_entries[index].helper_id = helper_function_ids[index];
+    }
+    trampoline_table->updated = true;
+
+Exit:
+    return_value = ebpf_protect_memory(trampoline_table->memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
+    EBPF_RETURN_RESULT(return_value);
+#else
+    UNREFERENCED_PARAMETER(trampoline_table);
+    UNREFERENCED_PARAMETER(helper_function_count);
+    UNREFERENCED_PARAMETER(helper_function_ids);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+#endif
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_update_trampoline_table(
     _Inout_ ebpf_trampoline_table_t* trampoline_table,
     uint32_t helper_function_count,
@@ -83,7 +138,10 @@ ebpf_update_trampoline_table(
     size_t helper_index;
     uint32_t helper_id;
 
-    if (function_count != trampoline_table->entry_count) {
+    // If the table was already initialized (e.g., by ebpf_initialize_trampoline_table),
+    // we update only the entries that exist. The caller may provide a superset of helpers
+    // (all helpers from the extension), but we only care about the ones our program uses.
+    if (!trampoline_table->updated && function_count != trampoline_table->entry_count) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -103,16 +161,16 @@ ebpf_update_trampoline_table(
     for (helper_index = 0; helper_index < helper_function_count; helper_index++) {
         helper_id = helper_function_ids[helper_index];
         if (trampoline_table->updated) {
-            // If the trampoline table has been updated earlier, ensure that the helper ids
-            // have not changed on this update.
+            // If the trampoline table has been updated earlier, find the entry with matching helper id.
+            // If not found, skip this helper (it's not used by this program).
             for (index = 0; index < trampoline_table->entry_count; index++) {
                 if (local_entries[index].helper_id == helper_id) {
                     break;
                 }
             }
             if (index == trampoline_table->entry_count) {
-                return_value = EBPF_INVALID_ARGUMENT;
-                goto Exit;
+                // Helper not in our table - skip it (not used by this program).
+                continue;
             }
         } else {
             // Trampoline table has not been updated yet. Use the next available slot.

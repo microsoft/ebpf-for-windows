@@ -2272,6 +2272,22 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
         0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
     }
 
+uint32_t
+fake_bpf_program(void* context, void* program)
+{
+    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(program);
+    return TEST_FUNCTION_RETURN;
+}
+
+uint32_t
+fake_bpf_program(void* context, void* program)
+{
+    UNREFERENCED_PARAMETER(context);
+    UNREFERENCED_PARAMETER(program);
+    return TEST_FUNCTION_RETURN;
+}
+
 void
 test_register_provider(
     _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics, bool expected_to_succeed = false)
@@ -2306,11 +2322,15 @@ test_register_provider(
             (expected_to_succeed ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD));
         program.reset(local_program);
         if (expected_to_succeed) {
+            // // Set to 1 page to be safe.
+            // REQUIRE(ebpf_program_load_code(program.get(), EBPF_CODE_JIT, nullptr, (uint8_t*)fake_bpf_program, 4096)
+            // == EBPF_SUCCESS);
             helper_function_address_t addresses[1] = {};
             uint32_t helper_function_ids[] = {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1};
             REQUIRE(
                 ebpf_program_set_helper_function_ids(
-                    program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) == EBPF_SUCCESS);
+                    program.get(), EBPF_CODE_JIT, EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
+                EBPF_SUCCESS);
             REQUIRE(
                 ebpf_program_get_helper_function_addresses(
                     program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) == EBPF_SUCCESS);

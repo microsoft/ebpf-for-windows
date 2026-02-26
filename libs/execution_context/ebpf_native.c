@@ -1678,7 +1678,7 @@ _ebpf_native_resolve_helpers_for_program(
         }
     }
 
-    result = ebpf_core_resolve_helper(program->handle, helper_count, helper_ids, helper_addresses);
+    result = ebpf_core_resolve_helper(program->handle, EBPF_CODE_NATIVE, helper_count, helper_ids, helper_addresses);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
