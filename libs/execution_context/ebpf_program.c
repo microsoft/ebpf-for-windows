@@ -2569,6 +2569,11 @@ ebpf_program_execute_test_run(
     program_data = program->extension_program_data;
 
     if (program_data->context_create == NULL || program_data->context_destroy == NULL) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program type does not support test run",
+            &program->parameters.program_type);
         return_value = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2592,6 +2597,11 @@ ebpf_program_execute_test_run(
     // The work item will signal the completion event when it is done.
     return_value = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_program_test_run_work_item, test_run_context);
     if (return_value != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Failed to allocate work item for test run",
+            return_value);
         goto Exit;
     }
 
