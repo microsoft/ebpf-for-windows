@@ -92,25 +92,35 @@ required, and to import the helper functions.
 
 ## Global entry point for generated code
 
-Every generated C file contains a single global entry point of type metadata_table_t:
+Every generated C file contains a single global entry point of type metadata_table_t.
+For BTF-resolved functions, the snippet below shows a proposed extension; the current `include/bpf2c.h` contract does
+not yet include `btf_resolved_functions`.
 
 ```c
 typedef struct _metadata_table
 {
+    size_t size;  // Existing field in include/bpf2c.h used for versioning
     void (*programs)(program_entry_t** programs, size_t* count);
     void (*maps)(map_entry_t** maps, size_t* count);
     void (*hash)(const uint8_t** hash, size_t* size);
     void (*version)(bpf2c_version_t* version);
     void (*map_initial_values)(map_initial_values_t** map_initial_values, size_t* count);
     void (*global_variable_sections)(global_variable_section_t** global_variable_sections, size_t* count);
+    // Proposed extension for BTF-resolved function imports.
+    void (*btf_resolved_functions)(
+        btf_resolved_function_entry_t** helper_functions_by_btf_id, size_t* count);  // BTF-resolved function import table
 } metadata_table_t;
 
-metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps };
+metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps, ... };
 ```
 
-The metadata table provides pointers to three functions that permit querying the list of programs and the list of maps.
+The metadata table provides pointers to functions that permit querying the list of programs, maps, and related metadata.
 The table name prefix is derived from the ELF file name, with _ replacing any character that
 is not valid in a C variable name. This variable is the only globally visible variable in the generated C code.
+
+The proposed `btf_resolved_functions` function pointer returns the BTF-resolved function import table, which the
+skeleton uses to bind to BTF-resolved function providers via NMR. See
+[Imported BTF-resolved functions](#imported-btf-resolved-functions) for details.
 
 ## Exported Program Entry
 
@@ -192,6 +202,66 @@ static helper_function_entry_t _helpers[] = {
 The skeleton then uses NMR to query the address of each helper function in the table, after which it writes to the
 address field in the table and sets additional metadata (such as if this is a tail call). Calls to helper functions
 in the generated code are called indirectly via the address field.
+
+## Imported BTF-resolved functions
+
+If the eBPF program calls BTF-resolved functions, the generated C code includes a BTF-resolved function import table.
+Unlike helper functions identified by numeric ID, BTF-resolved functions are identified by name and module GUID.
+For detailed information on BTF-resolved functions, see
+[BtfResolvedFunctions.md](BtfResolvedFunctions.md).
+
+The structures and callbacks shown in this section are proposed additions for BTF-resolved function support.
+
+```c
+typedef struct _btf_resolved_function_entry
+{
+    ebpf_native_module_header_t header;
+    uint64_t zero_marker;      // Marker for section parsing
+    const char* name;          // Function name
+    GUID module_guid;          // Module GUID for NMR binding
+} btf_resolved_function_entry_t;
+
+static btf_resolved_function_entry_t _btf_resolved_functions[] = {
+    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_lookup",
+     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
+    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_update",
+     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
+};
+```
+
+The skeleton registers as an NMR client for the BTF-resolved function NPI. When a BTF-resolved function provider with a matching
+module GUID attaches, the skeleton receives the function addresses and populates the `btf_resolved_function_data` array in the runtime
+context. Calls are indirect through this array:
+
+```c
+// Generated code for BTF-resolved function call
+result = ((int (*)(uint64_t, void*, uint32_t))runtime_context->btf_resolved_function_data[0].address)(key, value, size);
+```
+
+### BTF-resolved Function Runtime Data
+
+The `program_runtime_context_t` includes BTF-resolved function address storage:
+This is a planned contract change, and the current `include/bpf2c.h` definition does not yet include
+`btf_resolved_function_data`.
+
+```c
+typedef struct _btf_resolved_function_data
+{
+    helper_function_t address;  // Resolved function address (NULL if provider detached)
+} btf_resolved_function_data_t;
+
+typedef struct _program_runtime_context
+{
+    helper_function_data_t* helper_data;
+    map_data_t* map_data;
+    global_variable_section_data_t* global_variable_section_data;
+    btf_resolved_function_data_t* btf_resolved_function_data;  // BTF-resolved function addresses
+} program_runtime_context_t;
+```
+
+If a BTF-resolved function provider detaches while the native module is loaded, the corresponding `btf_resolved_function_data` entry is set
+to NULL.
+Program invocation will fail until the provider reattaches.
 
 ## Exported maps
 

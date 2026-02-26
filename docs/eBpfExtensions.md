@@ -730,6 +730,97 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
     ```
 
+### 2.9 BTF-resolved Function Providers
+
+In addition to helper functions, drivers can expose **BTF-resolved functions** that eBPF programs can call. Unlike
+static-ID helpers, BTF-resolved functions are resolved by name via BTF (BPF Type Format) rather than by fixed
+numeric ID. This allows any driver
+to expose functions without coordinating helper ID allocation.
+
+For detailed information on implementing a BTF-resolved function provider, see
+[BtfResolvedFunctions.md](BtfResolvedFunctions.md).
+
+#### 2.9.1 Overview
+
+To expose BTF-resolved functions, a driver must:
+1. Author a header file with BTF-resolved function declarations (using section attributes, or the `SEC` macro, and `btf_decl_tag`)
+2. Publish function metadata to the registry under `BtfResolvedFunctions`
+3. Register as an NMR provider for the BTF-resolved function NPI
+
+#### 2.9.2 BTF-resolved Function NPI Provider Registration
+
+The identifiers and structures in this subsection are proposed for this feature and are not currently published in the
+public headers.
+
+When registering as a BTF-resolved function NPI provider, initialize the `NPI_REGISTRATION_INSTANCE` as follows:
+* `NpiId`: Set to the proposed BTF-resolved function NPI ID (for example, `EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID`).
+* `ModuleId`: Set to your driver's unique module GUID.
+* `NpiSpecificCharacteristics`: Pointer to `ebpf_btf_resolved_function_provider_data_t`.
+
+```c
+typedef struct _ebpf_btf_resolved_function_provider_data
+{
+    ebpf_extension_header_t header;
+    uint32_t btf_resolved_function_count;
+    const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
+    const uint64_t* btf_resolved_function_addresses;
+} ebpf_btf_resolved_function_provider_data_t;
+```
+
+The `btf_resolved_function_prototypes` array describes each function's signature, and `btf_resolved_function_addresses` provides the corresponding
+implementation addresses. These arrays must remain valid while the provider is registered.
+
+#### 2.9.3 Registry Publication
+
+Before your driver loads, publish BTF-resolved function metadata to the registry so the verifier can validate calls at
+verification time. Use a planned eBPF store API (not currently present in `include/ebpf_store_helper.h`):
+
+```c
+ebpf_result_t
+ebpf_store_update_btf_resolved_function_provider_information(
+    _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info);
+```
+
+The registry structure is shown relative to the eBPF store root (HKCU or HKLM):
+```
+Software\eBPF\Providers\BtfResolvedFunctions
+└── {your-module-guid}
+    ├── Version: REG_DWORD
+    ├── Size: REG_DWORD
+    └── Functions
+        └── function_name
+            ├── Prototype: REG_SZ
+            ├── ReturnType: REG_DWORD
+            ├── Arguments: REG_BINARY
+            └── Flags: REG_DWORD
+```
+
+#### 2.9.4 Header Authoring for eBPF Programs
+
+Provide a header file that eBPF program authors include:
+
+```c
+#define MY_DRIVER_MODULE "module_id:{12345678-1234-1234-1234-123456789abc}"
+
+#define DECLARE_BTF_RESOLVED_FUNCTION(ret, name, ...) \
+    extern ret name(__VA_ARGS__) \
+        __attribute__((section(".ksyms"))) \
+        __attribute__((btf_decl_tag(MY_DRIVER_MODULE)))
+
+DECLARE_BTF_RESOLVED_FUNCTION(int, my_driver_lookup, uint64_t key, void* value, uint32_t value_size);
+```
+
+#### 2.9.5 Attach and Detach Behavior
+
+Unlike program-type specific helpers which are tied to a program type, BTF-resolved function providers can detach while
+programs are loaded. When a BTF-resolved function provider detaches:
+1. The BTF-resolved function addresses in the program's runtime context are set to NULL
+2. Subsequent program invocations fail with `EBPF_EXTENSION_FAILED_TO_LOAD`
+3. When the provider reattaches, addresses are repopulated and invocations succeed again
+
+This model allows driver updates without requiring programs to be unloaded, though programs cannot execute while
+required BTF-resolved function providers are unavailable.
+
 ### 2.10 eBPF Sample Driver
 The eBPF for Windows project provides a
 [sample extension driver](https://github.com/microsoft/ebpf-for-windows/tree/8f46b4020f79c32f994d3a59671ce8782e4b4cf0/tests/sample/ext)
