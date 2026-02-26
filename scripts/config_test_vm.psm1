@@ -30,7 +30,27 @@ function Wait-AllVMsReadyForCommands
             $VMName = $VM.Name
             if ($ReadyList[$VMName] -ne $True) {
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
-                $ret = Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
+                $ret = $False
+                try {
+                    Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
+                    $ret = $True
+                } catch {
+                        if (-not $VMIsRemote) {
+                        # Transient PS Direct failures during restore/boot often look like this:
+                        # "The credential is invalid." with PSDirectException / PSSessionStateBroken
+                        $isTransient =
+                            ($_.CategoryInfo.Reason -eq 'PSDirectException') -or
+                            ($_.FullyQualifiedErrorId -eq 'PSSessionStateBroken') -or
+                            ($_.Exception.Message -match 'credential is invalid')
+
+                        if ($isTransient) {
+                            Write-Log "PS Direct threw transient exception for $VMName - $($_.Exception.Message). Will retry."
+                        } else {
+                            Write-Log "PS Direct threw fatal exception for $VMName - $($_.Exception.Message)."
+                            break
+                        }
+                    }
+                }
                 if ($ret -eq $True) {
                     $ReadyList += @{$VMName = $True}
                 } else {
