@@ -1,0 +1,397 @@
+# PREVAIL MCP Server — Query Examples
+
+This document demonstrates the `prevail-verifier` MCP server's capabilities through
+worked examples. Each example shows the tool call and its response.
+
+The examples use two programs:
+- **droppacket.o** (`x64/Debug/droppacket.o`) — a passing XDP program that filters UDP packets
+- **nullmapref.o** (`tests/verifier_diagnosis/build/nullmapref.o`) — a failing program with a null pointer dereference
+- **packet_reallocate.o** (`tests/verifier_diagnosis/build/packet_reallocate.o`) — a failing program with stale pointers
+- **dependent_read.o** (`tests/verifier_diagnosis/build/dependent_read.o`) — a failing program with lost correlations
+
+---
+
+## 1. Quick Pass/Fail Check
+
+```
+verify_program: { "elf_path": "x64/Debug/droppacket.o" }
+```
+
+```json
+{
+  "passed": true,
+  "error_count": 0,
+  "exit_value": "[1, 2]",
+  "function": "DropPacket",
+  "section": "xdp",
+  "instruction_count": 45
+}
+```
+
+The program passes verification. The return value is proven to be in `[1, 2]`
+(XDP_PASS or XDP_DROP — no other values possible).
+
+---
+
+## 2. Failure Summary with Source Line
+
+```
+verify_program: { "elf_path": "tests/verifier_diagnosis/build/nullmapref.o" }
+```
+
+```json
+{
+  "passed": false,
+  "error_count": 1,
+  "first_error": {
+    "pc": 7,
+    "message": "Possible null access (valid_access(r0.offset, width=4) for write)",
+    "source": {
+      "file": "...nullmapref.c",
+      "line": 23,
+      "source": "    *value = 1; // BUG: value may be NULL"
+    }
+  }
+}
+```
+
+One error: null pointer dereference at line 23. The source annotation shows exactly
+which C statement failed.
+
+---
+
+## 3. One-Call Diagnosis with Backward Trace
+
+```
+get_error_context: {
+  "elf_path": "tests/verifier_diagnosis/build/nullmapref.o",
+  "trace_depth": 3
+}
+```
+
+```json
+{
+  "pc": 7,
+  "instruction": "*(u32 *)(r0 + 0) = r6",
+  "error": { "message": "Possible null access ..." },
+  "pre_invariant": [
+    "r0.svalue=[0, 2147418112]",
+    "r0.type=shared",
+    "r0.shared_region_size=4",
+    "r6.svalue=1", "r6.type=number"
+  ],
+  "assertions": [
+    "r0.type in {ctx, stack, packet, shared}",
+    "valid_access(r0.offset, width=4) for write"
+  ],
+  "source": { "line": 23, "source": "    *value = 1; ..." },
+  "backward_trace": [
+    { "pc": 3, "text": "r2 += -4" },
+    { "pc": 4, "text": "r1 = map_fd 1" },
+    { "pc": 6, "text": "r0 = bpf_map_lookup_elem:1(...)",
+      "post_invariant": ["r0.svalue=[0, 2147418112]", "r0.type=shared"] }
+  ]
+}
+```
+
+The backward trace shows `bpf_map_lookup_elem` at PC 6 returned `r0.svalue=[0, ...]`
+(includes NULL). The pre-invariant at PC 7 confirms the verifier can't prove r0
+is non-null when the write happens. Diagnosis: §4.4, add a null check.
+
+---
+
+## 4. Diff: Before vs After Bounds Check
+
+```
+get_invariant: { "elf_path": "x64/Debug/droppacket.o", "pcs": [18, 20] }
+```
+
+At PC 18 (before `if data+42 > data_end`):
+```
+  packet_size = 0           ← no minimum established
+  r1.type = packet
+  r3.type = packet          ← r3 = data (about to add 42)
+```
+
+At PC 20 (after bounds check passes):
+```
+  packet_size = 42          ← PROVEN: at least 42 bytes
+  r1.type = packet
+  r3.packet_offset = 42    ← r3 = data + 42 (validated end)
+```
+
+The bounds check `if (data + 42 > data_end) goto exit` establishes
+`packet_size >= 42`. The verifier uses this to allow safe reads of
+Ethernet (14) + IPv4 (20) + UDP (8) = 42 bytes.
+
+---
+
+## 5. Diff: Before vs After Null Check
+
+```
+get_invariant: { "elf_path": "x64/Debug/droppacket.o", "pcs": [8, 10] }
+```
+
+At PC 8 (before `if (interface_index == NULL)` branch):
+```
+  r0.type = shared
+  r0.svalue = [0, 2147418112]    ← INCLUDES zero (could be NULL)
+  r0.shared_region_size = 4
+```
+
+At PC 10 (after null check, fall-through path):
+```
+  r1.type = shared
+  r1.svalue = [1, 2147418112]    ← EXCLUDES zero (proven non-NULL)
+  r1.shared_region_size = 4
+```
+
+The null check branch at PC 9 splits the domain. On the fall-through (non-null)
+path, `svalue` lower bound changes from 0 → 1. The dereference at PC 11 is now
+provably safe.
+
+---
+
+## 6. Diff: Before vs After Helper Call (Register Scrubbing)
+
+```
+get_instruction: {
+  "elf_path": "tests/verifier_diagnosis/build/packet_reallocate.o",
+  "pcs": [10]
+}
+```
+
+Pre-invariant (before `bpf_xdp_adjust_head`):
+```
+  r1.type = ctx              r3.type = packet
+  r2.type = number           r6.type = packet ← packet pointers exist
+  packet_size = 4
+```
+
+Post-invariant (after `bpf_xdp_adjust_head`):
+```
+  r0.type = number           ← only return value
+  r10.type = stack            ← only frame pointer
+  packet_size = 0             ← reset to 0
+                              ← r3, r6 GONE (scrubbed)
+```
+
+The helper may reallocate the packet buffer. ALL packet-derived registers
+(`r3`, `r6`) and `packet_size` are invalidated. Only `r0` (return value)
+and `r10` (frame pointer) survive.
+
+---
+
+## 7. Diff: Proven Constraint at Two Points
+
+```
+check_constraint: {
+  "elf_path": "tests/verifier_diagnosis/build/packet_reallocate.o",
+  "checks": [
+    { "pc": 9,  "constraints": ["r6.type=packet"], "mode": "proven" },
+    { "pc": 10, "constraints": ["r6.type=packet"], "mode": "proven", "point": "post" }
+  ]
+}
+```
+
+```json
+{
+  "results": [
+    { "pc": 9,  "ok": true,  "message": "" },
+    { "pc": 10, "ok": false, "message": "Invariant does not prove the constraint..." }
+  ]
+}
+```
+
+Same constraint, two points. Before the helper call: **proven** (r6 IS a packet
+pointer). After the helper call: **not proven** (r6 was scrubbed). One batch call
+pinpoints the exact instruction where the constraint was lost.
+
+---
+
+## 8. Prove Return Value Range
+
+```
+check_constraint: {
+  "elf_path": "x64/Debug/droppacket.o",
+  "pc": 46,
+  "constraints": ["r0.svalue=[1, 2]"],
+  "mode": "proven"
+}
+```
+
+```json
+{
+  "ok": true,
+  "invariant": ["r0.svalue=[1, 2]", "r0.type=number", ...]
+}
+```
+
+At the exit instruction, the verifier **proves** `r0` is exactly 1 or 2
+(XDP_PASS or XDP_DROP). No other return values are reachable on any path.
+
+---
+
+## 9. Source Line → BPF Instructions
+
+```
+get_source_mapping: {
+  "elf_path": "tests/verifier_diagnosis/build/packet_overflow.c",
+  "source_file": "packet_overflow.c",
+  "source_line": 16
+}
+```
+
+```json
+{
+  "source_line": 16,
+  "matches": [
+    {
+      "pc": 3,
+      "instruction": "if r2 > r1 goto label <8>",
+      "source": { "line": 16, "source": "    if (data > data_end) // BUG: ..." }
+    }
+  ]
+}
+```
+
+C line 16 compiles to a single BPF branch instruction at PC 3. The `source_file`
+filter accepts a filename substring.
+
+---
+
+## 10. BPF Instruction → Source Line
+
+```
+get_source_mapping: { "elf_path": "x64/Debug/droppacket.o", "pc": 20 }
+```
+
+```json
+{
+  "pc": 20,
+  "instruction": "r3 = *(u16 *)(r1 + 12)",
+  "source": {
+    "file": "...droppacket.c",
+    "line": 70,
+    "source": "    if (ntohs(ethernet_header->Type) == 0x0800) {"
+  }
+}
+```
+
+PC 20 reads the 2-byte Ethernet type field at offset 12 — this corresponds to
+`ntohs(ethernet_header->Type)` on line 70 of the C source.
+
+---
+
+## 11. Disassembly with Source (Range)
+
+```
+get_disassembly: {
+  "elf_path": "x64/Debug/droppacket.o",
+  "from_pc": 15,
+  "to_pc": 20
+}
+```
+
+```json
+{
+  "count": 6,
+  "instructions": [
+    { "pc": 15, "text": "r1 = *(u64 *)(r6 + 0)",
+      "source": { "line": 65, "source": "    if ((char*)ctx->data + ... > (char*)ctx->data_end) {" } },
+    { "pc": 16, "text": "r2 = *(u64 *)(r6 + 8)", "source": { "line": 65 } },
+    { "pc": 17, "text": "r3 = r1",               "source": { "line": 65 } },
+    { "pc": 18, "text": "r3 += 42",               "source": { "line": 65 } },
+    { "pc": 19, "text": "if r3 > r2 goto <46>",   "source": { "line": 65 } },
+    { "pc": 20, "text": "r3 = *(u16 *)(r1 + 12)", "source": { "line": 70 } }
+  ]
+}
+```
+
+PCs 15–19 all correspond to the single C bounds check on line 65. PC 20 is the
+first packet read (line 70), which is safe because PC 19's branch guard
+established `packet_size >= 42`.
+
+---
+
+## 12. Control-Flow Graph
+
+```
+get_cfg: {
+  "elf_path": "tests/verifier_diagnosis/build/dependent_read.o",
+  "format": "json"
+}
+```
+
+```json
+{
+  "basic_blocks": [
+    { "pcs": [0,1,2,3,4,5], "successors": [5, 5] },
+    { "pcs": [5, 6],        "successors": [7] },
+    { "pcs": [5],            "successors": [7] },
+    { "pcs": [7, 8],        "successors": [9] },
+    { "pcs": [7],            "successors": [9] },
+    { "pcs": [9, 10],       "successors": [exit] }
+  ]
+}
+```
+
+The CFG reveals the diamond pattern: PC 5 is a branch that splits into two paths
+(fall-through: PCs 5→6, taken: PC 5 alone), both merging at PC 7 (another branch).
+This is the join point where correlations are lost.
+
+---
+
+## 13. Program Type Override
+
+```
+verify_program: {
+  "elf_path": "external/ebpf-verifier/ebpf-samples/build/nullmapref.o",
+  "section": "test",
+  "program_type": "xdp"
+}
+```
+
+```json
+{
+  "passed": false,
+  "error_count": 1,
+  "first_error": {
+    "pc": 7,
+    "message": "Possible null access (valid_access(r0.offset, width=4) for write)"
+  }
+}
+```
+
+The original PREVAIL test sample uses `SEC("test")` which isn't a Windows program
+type. The `program_type: "xdp"` override makes it analyzable on the Windows
+platform, producing the same verification error.
+
+---
+
+## 14. Prove a Type at Entry
+
+```
+check_constraint: {
+  "elf_path": "x64/Debug/droppacket.o",
+  "pc": 0,
+  "constraints": ["r1.type=ctx"],
+  "mode": "proven"
+}
+```
+
+```json
+{
+  "ok": true,
+  "invariant": [
+    "r1.type=ctx",
+    "r1.ctx_offset=0",
+    "r10.type=stack",
+    "packet_size=0"
+  ]
+}
+```
+
+At program entry, the verifier **proves** `r1` is a valid context pointer.
+The invariant also shows `packet_size=0` — no packet access is safe until
+a bounds check is performed.
