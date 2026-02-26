@@ -108,7 +108,7 @@ typedef struct _metadata_table
     void (*global_variable_sections)(global_variable_section_t** global_variable_sections, size_t* count);
     // Proposed extension for BTF-resolved function imports.
     void (*btf_resolved_functions)(
-        btf_resolved_function_entry_t** helper_functions_by_btf_id, size_t* count);  // BTF-resolved function import table
+        btf_resolved_function_entry_t** btf_resolved_function_imports, size_t* count);  // BTF-resolved function import table
 } metadata_table_t;
 
 metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps, ... };

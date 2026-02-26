@@ -72,7 +72,7 @@ BTF-resolved function dependencies are a planned extension for BTF-resolved func
 Once implemented, if the program uses BTF-resolved functions, the hash will also include:
 
 4. Count of BTF-resolved functions being used
-5. For each BTF-resolved function used (in order of BTF ID):
+5. For each BTF-resolved function used (in deterministic ascending order of BTF ID assigned at verification time):
    - `btf_resolved_function_entry_t::name`
    - `btf_resolved_function_entry_t::module_guid`
    - `ebpf_btf_resolved_function_prototype_t::return_type`

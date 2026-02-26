@@ -743,7 +743,7 @@ For detailed information on implementing a BTF-resolved function provider, see
 #### 2.9.1 Overview
 
 To expose BTF-resolved functions, a driver must:
-1. Author a header file with BTF-resolved function declarations (using section attributes, or the `SEC` macro, and `btf_decl_tag`)
+1. Author a header file with BTF-resolved function declarations (using section attributes and `btf_decl_tag`)
 2. Publish function metadata to the registry under `BtfResolvedFunctions`
 3. Register as an NMR provider for the BTF-resolved function NPI
 
@@ -815,7 +815,8 @@ DECLARE_BTF_RESOLVED_FUNCTION(int, my_driver_lookup, uint64_t key, void* value, 
 Unlike program-type specific helpers which are tied to a program type, BTF-resolved function providers can detach while
 programs are loaded. When a BTF-resolved function provider detaches:
 1. The BTF-resolved function addresses in the program's runtime context are set to NULL
-2. Subsequent program invocations fail with `EBPF_EXTENSION_FAILED_TO_LOAD`
+2. Subsequent program invocations fail with an error indicating the extension is unavailable (for example,
+   `EBPF_EXTENSION_FAILED_TO_LOAD`)
 3. When the provider reattaches, addresses are repopulated and invocations succeed again
 
 This model allows driver updates without requiring programs to be unloaded, though programs cannot execute while
