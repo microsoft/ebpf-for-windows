@@ -28,8 +28,9 @@ extern "C"
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE,      //< A key + value have been used.
     } ebpf_hash_table_notification_type_t;
 
-    typedef void (*ebpf_hash_table_notification_function)(
+    typedef ebpf_result_t (*ebpf_hash_table_notification_function)(
         _Inout_ void* context,
+        _Inout_opt_ void* instance_context,
         _In_ ebpf_hash_table_notification_type_t type,
         _In_ const uint8_t* key,
         _Inout_ uint8_t* value);
@@ -110,6 +111,7 @@ extern "C"
      * @brief Insert or update an entry in the hash table.
      *
      * @param[in, out] hash_table Hash-table to update.
+     * @param[in] operation_context Optional context for the operation.
      * @param[in] key Key to find and insert or update.
      * @param[in] value Value to insert into hash table or NULL to insert zero entry.
      * @param[in] operation One of ebpf_hash_table_operations_t operations.
@@ -121,6 +123,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(
         _Inout_ ebpf_hash_table_t* hash_table,
+        _In_opt_ uint8_t* operation_context,
         _In_ const uint8_t* key,
         _In_opt_ const uint8_t* value,
         ebpf_hash_table_operations_t operation);
@@ -129,12 +132,14 @@ extern "C"
      * @brief Remove an entry from the hash table.
      *
      * @param[in, out] hash_table Hash-table to update.
+     * @param[in] operation_context Optional context for the operation.
      * @param[in] key Key to find and remove.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
+    ebpf_hash_table_delete(
+        _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ uint8_t* operation_context, _In_ const uint8_t* key);
 
     /**
      * @brief Fetch pointers to keys and values from one or more buckets in the hash table. Whole buckets worth of keys

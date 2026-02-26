@@ -359,21 +359,21 @@ TEST_CASE("hash_table_test", "[platform]")
     // Insert first
     // Empty bucket case
     REQUIRE(
-        ebpf_hash_table_update(table.get(), key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) ==
+        ebpf_hash_table_update(table.get(), nullptr, key_1.data(), data_1.data(), EBPF_HASH_TABLE_OPERATION_INSERT) ==
         EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Insert second
     // Existing bucket, no backup.
     REQUIRE(
-        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        ebpf_hash_table_update(table.get(), nullptr, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
         EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Insert third
     // Existing bucket, with backup.
     REQUIRE(
-        ebpf_hash_table_update(table.get(), key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
+        ebpf_hash_table_update(table.get(), nullptr, key_3.data(), data_3.data(), EBPF_HASH_TABLE_OPERATION_ANY) ==
         EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
 
@@ -430,7 +430,7 @@ TEST_CASE("hash_table_test", "[platform]")
     // Replace the second
     memset(data_2.data(), '0x55', data_2.size());
     REQUIRE(
-        ebpf_hash_table_update(table.get(), key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) ==
+        ebpf_hash_table_update(table.get(), nullptr, key_2.data(), data_2.data(), EBPF_HASH_TABLE_OPERATION_REPLACE) ==
         EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 3);
 
@@ -452,22 +452,21 @@ TEST_CASE("hash_table_test", "[platform]")
     REQUIRE(returned_key == key_3);
 
     // Delete middle key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), nullptr, key_2.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Delete not found
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_2.data()) == EBPF_KEY_NOT_FOUND);
+    REQUIRE(ebpf_hash_table_delete(table.get(), nullptr, key_2.data()) == EBPF_KEY_NOT_FOUND);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 2);
 
     // Find not found
     REQUIRE(ebpf_hash_table_find(table.get(), key_2.data(), &returned_value) == EBPF_KEY_NOT_FOUND);
-
     // Delete first key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_1.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), nullptr, key_1.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 1);
 
     // Delete last key
-    REQUIRE(ebpf_hash_table_delete(table.get(), key_3.data()) == EBPF_SUCCESS);
+    REQUIRE(ebpf_hash_table_delete(table.get(), nullptr, key_3.data()) == EBPF_SUCCESS);
     REQUIRE(ebpf_hash_table_key_count(table.get()) == 0);
 }
 
@@ -514,6 +513,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
                 run_in_epoch([&]() {
                     (void)ebpf_hash_table_update(
                         table,
+                        nullptr,
                         reinterpret_cast<const uint8_t*>(&key),
                         reinterpret_cast<const uint8_t*>(&value),
                         EBPF_HASH_TABLE_OPERATION_ANY);
@@ -533,7 +533,8 @@ TEST_CASE("hash_table_stress_test", "[platform]")
             }
 
             for (auto& key : keys) {
-                run_in_epoch([&]() { (void)ebpf_hash_table_delete(table, reinterpret_cast<const uint8_t*>(&key)); });
+                run_in_epoch(
+                    [&]() { (void)ebpf_hash_table_delete(table, nullptr, reinterpret_cast<const uint8_t*>(&key)); });
             }
         }
     };
