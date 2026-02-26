@@ -303,7 +303,7 @@ result = ((int (*)(uint64_t, void*, uint32_t))runtime_context->btf_resolved_func
 
 The program info hash (used for proof of verification) must include BTF-resolved function dependencies:
 
-1. For each BTF-resolved function used (in order of BTF ID):
+1. For each BTF-resolved function used (in deterministic order by module GUID, then function name):
    - `btf_resolved_function_entry_t::name`
    - `btf_resolved_function_entry_t::module_guid`
    - `ebpf_btf_resolved_function_prototype_t::return_type`
