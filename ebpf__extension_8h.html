@@ -77,7 +77,8 @@ $(function() {
 <a href="#nested-classes">Data Structures</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle"><div class="title">ebpf_extension.h File Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -99,9 +100,27 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html">_ebpf_execution_context_state</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__base__map__provider__properties.html">_ebpf_base_map_provider_properties</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__provider__dispatch__table.html">_ebpf_map_provider_dispatch_table</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__client__dispatch__table.html">_ebpf_map_client_dispatch_table</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__provider__data.html">_ebpf_map_provider_data</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom map provider data.  <a href="struct__ebpf__map__provider__data.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__client__data.html">_ebpf_map_client_data</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom map client data.  <a href="struct__ebpf__map__client__data.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
+<tr class="memitem:a42b9951c28e46cd53fd399009dd6eb79" id="r_a42b9951c28e46cd53fd399009dd6eb79"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a42b9951c28e46cd53fd399009dd6eb79">EBPF_MAP_OPERATION_HELPER</a>&#160;&#160;&#160;0x01      /* Called by a BPF program. */</td></tr>
+<tr class="separator:a42b9951c28e46cd53fd399009dd6eb79"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85ebbb668c665b9a6e739460c4bde234" id="r_a85ebbb668c665b9a6e739460c4bde234"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a85ebbb668c665b9a6e739460c4bde234">EBPF_MAP_OPERATION_UPDATE</a>&#160;&#160;&#160;0x02      /* Update operation. */</td></tr>
+<tr class="separator:a85ebbb668c665b9a6e739460c4bde234"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58faa78517602f4947721e10154550e0" id="r_a58faa78517602f4947721e10154550e0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a58faa78517602f4947721e10154550e0">EBPF_MAP_OPERATION_MAP_CLEANUP</a>&#160;&#160;&#160;0x04 /* Map cleanup operation. */</td></tr>
+<tr class="separator:a58faa78517602f4947721e10154550e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9561180ebcc5567fd50e39d11ea014a2" id="r_a9561180ebcc5567fd50e39d11ea014a2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a9561180ebcc5567fd50e39d11ea014a2">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</a>&#160;&#160;&#160;4</td></tr>
 <tr class="separator:a9561180ebcc5567fd50e39d11ea014a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af455b3902599832974ec3186f71008c6" id="r_af455b3902599832974ec3186f71008c6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#af455b3902599832974ec3186f71008c6">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT</a>&#160;&#160;&#160;    <a class="el" href="ebpf__extension_8h.html#a9561180ebcc5567fd50e39d11ea014a2">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</a></td></tr>
@@ -111,11 +130,15 @@ Macros</h2></td></tr>
 <tr class="separator:a6d01caa7be3cffab21faf276262ef21f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4e0b10a4e4c1631d7b0a8aaa32115df4" id="r_a4e0b10a4e4c1631d7b0a8aaa32115df4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a4e0b10a4e4c1631d7b0a8aaa32115df4">EBPF_CONTEXT_HEADER_SIZE</a>&#160;&#160;&#160;(sizeof(uint64_t) * 8)</td></tr>
 <tr class="separator:a4e0b10a4e4c1631d7b0a8aaa32115df4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54407d8649af00ce888be76eecf2f8ec" id="r_a54407d8649af00ce888be76eecf2f8ec"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a54407d8649af00ce888be76eecf2f8ec">MAP_CONTEXT</a>(map_pointer,  offset)&#160;&#160;&#160;((void**)(((uint8_t*)(map_pointer)) + (offset)))</td></tr>
+<tr class="separator:a54407d8649af00ce888be76eecf2f8ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a7f26e762bb62243ba276ec647c4e4410" id="r_a7f26e762bb62243ba276ec647c4e4410"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7f26e762bb62243ba276ec647c4e4410">_ebpf_extension_dispatch_function</a>) ()</td></tr>
 <tr class="separator:a7f26e762bb62243ba276ec647c4e4410"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adcb3a366ae5b8ff0cd26f3dd779a1876" id="r_adcb3a366ae5b8ff0cd26f3dd779a1876"><td class="memItemLeft" align="right" valign="top">typedef uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#adcb3a366ae5b8ff0cd26f3dd779a1876">epoch_state_t</a>[4]</td></tr>
+<tr class="separator:adcb3a366ae5b8ff0cd26f3dd779a1876"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3e9a56b076375a0ff39336ffde056377" id="r_a3e9a56b076375a0ff39336ffde056377"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__dispatch__table.html">_ebpf_extension_dispatch_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a3e9a56b076375a0ff39336ffde056377">ebpf_extension_dispatch_table_t</a></td></tr>
 <tr class="separator:a3e9a56b076375a0ff39336ffde056377"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae80fa727147e54667fe9876c9caa45ef" id="r_ae80fa727147e54667fe9876c9caa45ef"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ae80fa727147e54667fe9876c9caa45ef">ebpf_program_invoke_function_t</a>) (const void *extension_client_binding_context, _Inout_ void *program_context, uint32_t *result)</td></tr>
@@ -140,6 +163,53 @@ Typedefs</h2></td></tr>
 <tr class="separator:a18db90b374a598237681d489cf55fa1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0159112afd00bde2f43471a4ed5706a" id="r_ac0159112afd00bde2f43471a4ed5706a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__execution__context__state.html">_ebpf_execution_context_state</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ac0159112afd00bde2f43471a4ed5706a">ebpf_execution_context_state_t</a></td></tr>
 <tr class="separator:ac0159112afd00bde2f43471a4ed5706a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b16f523a3ca276e45659679824bda7d" id="r_a1b16f523a3ca276e45659679824bda7d"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a1b16f523a3ca276e45659679824bda7d">ebpf_process_map_create_t</a>) (void *binding_context, uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t *actual_value_size, void **map_context)</td></tr>
+<tr class="memdesc:a1b16f523a3ca276e45659679824bda7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process map creation notification.  <br /></td></tr>
+<tr class="separator:a1b16f523a3ca276e45659679824bda7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abfc6de92d87a442706515caeba90db2d" id="r_abfc6de92d87a442706515caeba90db2d"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#abfc6de92d87a442706515caeba90db2d">ebpf_process_map_delete_t</a>) (void *binding_context, void *map_context)</td></tr>
+<tr class="memdesc:abfc6de92d87a442706515caeba90db2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process a map delete notification.  <br /></td></tr>
+<tr class="separator:abfc6de92d87a442706515caeba90db2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a27cfcc8ffd9fecafe67986801f6d9452" id="r_a27cfcc8ffd9fecafe67986801f6d9452"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a27cfcc8ffd9fecafe67986801f6d9452">ebpf_process_map_find_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
+<tr class="memdesc:a27cfcc8ffd9fecafe67986801f6d9452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find (lookup) an element in a provider-backed map.  <br /></td></tr>
+<tr class="separator:a27cfcc8ffd9fecafe67986801f6d9452"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46702a3be1dbd5c54489b0af48ef4c98" id="r_a46702a3be1dbd5c54489b0af48ef4c98"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a46702a3be1dbd5c54489b0af48ef4c98">ebpf_process_map_add_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
+<tr class="memdesc:a46702a3be1dbd5c54489b0af48ef4c98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add or update (insert/replace) an element in a provider-backed map.  <br /></td></tr>
+<tr class="separator:a46702a3be1dbd5c54489b0af48ef4c98"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d265dc74dec519f2b12543db9d7aca2" id="r_a1d265dc74dec519f2b12543db9d7aca2"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a1d265dc74dec519f2b12543db9d7aca2">ebpf_process_map_delete_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td></tr>
+<tr class="memdesc:a1d265dc74dec519f2b12543db9d7aca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete an element from a provider-backed map.  <br /></td></tr>
+<tr class="separator:a1d265dc74dec519f2b12543db9d7aca2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1a972ffea1a59369934dd9e429dfabe" id="r_ae1a972ffea1a59369934dd9e429dfabe"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ae1a972ffea1a59369934dd9e429dfabe">ebpf_map_associate_program_type_t</a>) (void *binding_context, void *map_context, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type)</td></tr>
+<tr class="memdesc:ae1a972ffea1a59369934dd9e429dfabe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associate a program type with the map, which allows the map to be used by programs of that type.  <br /></td></tr>
+<tr class="separator:ae1a972ffea1a59369934dd9e429dfabe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0079905570236bdb7763144ff0c880e4" id="r_a0079905570236bdb7763144ff0c880e4"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__base__map__provider__properties.html">_ebpf_base_map_provider_properties</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a0079905570236bdb7763144ff0c880e4">ebpf_base_map_provider_properties_t</a></td></tr>
+<tr class="separator:a0079905570236bdb7763144ff0c880e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a389eff873666c052b9d0b52d6d3ae02d" id="r_a389eff873666c052b9d0b52d6d3ae02d"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__provider__dispatch__table.html">_ebpf_map_provider_dispatch_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a389eff873666c052b9d0b52d6d3ae02d">ebpf_base_map_provider_dispatch_table_t</a></td></tr>
+<tr class="separator:a389eff873666c052b9d0b52d6d3ae02d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5218a846e9ffddb995b4fff88bd893b" id="r_aa5218a846e9ffddb995b4fff88bd893b"><td class="memItemLeft" align="right" valign="top">typedef uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#aa5218a846e9ffddb995b4fff88bd893b">tag</a></td></tr>
+<tr class="separator:aa5218a846e9ffddb995b4fff88bd893b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a592e92f6ab01eab2d95c3f127f308e27" id="r_a592e92f6ab01eab2d95c3f127f308e27"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a592e92f6ab01eab2d95c3f127f308e27">ebpf_epoch_free_t</a>) (void *memory)</td></tr>
+<tr class="memdesc:a592e92f6ab01eab2d95c3f127f308e27"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory under epoch control.  <br /></td></tr>
+<tr class="separator:a592e92f6ab01eab2d95c3f127f308e27"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af91f03cb7a632e2a710740933597a371" id="r_af91f03cb7a632e2a710740933597a371"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#af91f03cb7a632e2a710740933597a371">ebpf_epoch_free_cache_aligned_t</a>) (void *pointer)</td></tr>
+<tr class="memdesc:af91f03cb7a632e2a710740933597a371"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory under epoch control.  <br /></td></tr>
+<tr class="separator:af91f03cb7a632e2a710740933597a371"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc88dc68645fb95221fd43228ad8aff0" id="r_acc88dc68645fb95221fd43228ad8aff0"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#acc88dc68645fb95221fd43228ad8aff0">ebpf_epoch_enter_t</a>) (void *epoch_state)</td></tr>
+<tr class="memdesc:acc88dc68645fb95221fd43228ad8aff0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enter an epoch-protected region.  <br /></td></tr>
+<tr class="separator:acc88dc68645fb95221fd43228ad8aff0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e3fc5dea9fc1c6179ffa40a5ef7791d" id="r_a4e3fc5dea9fc1c6179ffa40a5ef7791d"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a4e3fc5dea9fc1c6179ffa40a5ef7791d">ebpf_epoch_exit_t</a>) (void *epoch_state)</td></tr>
+<tr class="memdesc:a4e3fc5dea9fc1c6179ffa40a5ef7791d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Exit an epoch-protected region.  <br /></td></tr>
+<tr class="separator:a4e3fc5dea9fc1c6179ffa40a5ef7791d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1fe48339cfb8cbaf114e51f26c5313a9" id="r_a1fe48339cfb8cbaf114e51f26c5313a9"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a1fe48339cfb8cbaf114e51f26c5313a9">ebpf_map_find_element_t</a>) (const void *map, const uint8_t *key, uint8_t **value)</td></tr>
+<tr class="memdesc:a1fe48339cfb8cbaf114e51f26c5313a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find an element in an eBPF map (client/runtime helper version).  <br /></td></tr>
+<tr class="separator:a1fe48339cfb8cbaf114e51f26c5313a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c49bde4dd7b38c25185ce75428fc6b6" id="r_a9c49bde4dd7b38c25185ce75428fc6b6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__client__dispatch__table.html">_ebpf_map_client_dispatch_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a9c49bde4dd7b38c25185ce75428fc6b6">ebpf_base_map_client_dispatch_table_t</a></td></tr>
+<tr class="separator:a9c49bde4dd7b38c25185ce75428fc6b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaa09071dfc6969a016e4f316d17fcc10" id="r_aaa09071dfc6969a016e4f316d17fcc10"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__provider__data.html">_ebpf_map_provider_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#aaa09071dfc6969a016e4f316d17fcc10">ebpf_map_provider_data_t</a></td></tr>
+<tr class="memdesc:aaa09071dfc6969a016e4f316d17fcc10"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom map provider data.  <br /></td></tr>
+<tr class="separator:aaa09071dfc6969a016e4f316d17fcc10"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6245a308462ec376eb453ddb3b7f3274" id="r_a6245a308462ec376eb453ddb3b7f3274"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__client__data.html">_ebpf_map_client_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a6245a308462ec376eb453ddb3b7f3274">ebpf_map_client_data_t</a></td></tr>
+<tr class="memdesc:a6245a308462ec376eb453ddb3b7f3274"><td class="mdescLeft">&#160;</td><td class="mdescRight">Custom map client data.  <br /></td></tr>
+<tr class="separator:a6245a308462ec376eb453ddb3b7f3274"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -147,6 +217,12 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76aca90ced845e84e663c65a4a7196e767a78">EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT</a>
  }</td></tr>
 <tr class="separator:af0515a6045d165623acd93ee1c5c76ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:a858c5860e3c8594b262ff7f362a325bb" id="r_a858c5860e3c8594b262ff7f362a325bb"><td class="memItemLeft" align="right" valign="top">typedef&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a858c5860e3c8594b262ff7f362a325bb">_Ret_writes_maybenull_</a> (size) void *(*ebpf_epoch_allocate_with_tag_t)(size_t size</td></tr>
+<tr class="memdesc:a858c5860e3c8594b262ff7f362a325bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allocate memory under epoch control.  <br /></td></tr>
+<tr class="separator:a858c5860e3c8594b262ff7f362a325bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a6d01caa7be3cffab21faf276262ef21f" name="a6d01caa7be3cffab21faf276262ef21f"></a>
@@ -207,6 +283,76 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a42b9951c28e46cd53fd399009dd6eb79" name="a42b9951c28e46cd53fd399009dd6eb79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a42b9951c28e46cd53fd399009dd6eb79">&#9670;&#160;</a></span>EBPF_MAP_OPERATION_HELPER</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_OPERATION_HELPER&#160;&#160;&#160;0x01      /* Called by a BPF program. */</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a58faa78517602f4947721e10154550e0" name="a58faa78517602f4947721e10154550e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a58faa78517602f4947721e10154550e0">&#9670;&#160;</a></span>EBPF_MAP_OPERATION_MAP_CLEANUP</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_OPERATION_MAP_CLEANUP&#160;&#160;&#160;0x04 /* Map cleanup operation. */</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a85ebbb668c665b9a6e739460c4bde234" name="a85ebbb668c665b9a6e739460c4bde234"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85ebbb668c665b9a6e739460c4bde234">&#9670;&#160;</a></span>EBPF_MAP_OPERATION_UPDATE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_OPERATION_UPDATE&#160;&#160;&#160;0x02      /* Update operation. */</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a54407d8649af00ce888be76eecf2f8ec" name="a54407d8649af00ce888be76eecf2f8ec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a54407d8649af00ce888be76eecf2f8ec">&#9670;&#160;</a></span>MAP_CONTEXT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define MAP_CONTEXT</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">map_pointer, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">offset&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;((void**)(((uint8_t*)(map_pointer)) + (offset)))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="a7f26e762bb62243ba276ec647c4e4410" name="a7f26e762bb62243ba276ec647c4e4410"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7f26e762bb62243ba276ec647c4e4410">&#9670;&#160;</a></span>_ebpf_extension_dispatch_function</h2>
@@ -233,6 +379,148 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9c49bde4dd7b38c25185ce75428fc6b6" name="a9c49bde4dd7b38c25185ce75428fc6b6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9c49bde4dd7b38c25185ce75428fc6b6">&#9670;&#160;</a></span>ebpf_base_map_client_dispatch_table_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__client__dispatch__table.html">_ebpf_map_client_dispatch_table</a> <a class="el" href="ebpf__extension_8h.html#a9c49bde4dd7b38c25185ce75428fc6b6">ebpf_base_map_client_dispatch_table_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Dispatch table implemented by the eBPF runtime to provide RCU / epoch operations.</p>
+<p>Notes:</p>
+<p>Functions <code>epoch_enter</code> and <code>epoch_exit</code> allow a thread to enter and exit an epoch-protected region, which is necessary when calling the epoch memory operations. These functions are re-entrant, but should always be called in pairs.</p>
+<p>Below is the list of epoch memory related functions exposed by eBPF runtime:</p><ul>
+<li><code>epoch_allocate_with_tag</code>: Allocate memory under epoch control with tag.</li>
+<li><code>epoch_allocate_cache_aligned_with_tag</code>: Allocate cache aligned memory under epoch control with tag.</li>
+<li><code>epoch_free</code>: Free memory under epoch control.</li>
+<li><code>epoch_free_cache_aligned</code>: Free cache aligned memory under epoch control.</li>
+</ul>
+<p>Each of the above four functions MUST be called within an epoch-protected region (i.e., after ebpf_epoch_enter() and before ebpf_epoch_exit()). Failure to do so may lead to undefined behavior. Provider dispatch function invocations (defined in ebpf_base_map_provider_dispatch_table_t), and BPF helper function callbacks already are epoch-protected, hence these APIs can be directly called in those contexts. If the provider intends to use these APIs outside the above mentioned contexts, it must ensure that the calls are made within an epoch-protected region.</p>
+<p>Similarly, <code>find_element_function</code> can only be invoked in an epoch-protected region, as explained above. Calling it from outside an epoch-protected region may lead to undefined behavior. </p>
+
+</div>
+</div>
+<a id="a389eff873666c052b9d0b52d6d3ae02d" name="a389eff873666c052b9d0b52d6d3ae02d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a389eff873666c052b9d0b52d6d3ae02d">&#9670;&#160;</a></span>ebpf_base_map_provider_dispatch_table_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__provider__dispatch__table.html">_ebpf_map_provider_dispatch_table</a> <a class="el" href="ebpf__extension_8h.html#a389eff873666c052b9d0b52d6d3ae02d">ebpf_base_map_provider_dispatch_table_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Dispatch table implemented by the eBPF extension to provide map operations. This table is used to provide map operations to the eBPF core. </p>
+
+</div>
+</div>
+<a id="a0079905570236bdb7763144ff0c880e4" name="a0079905570236bdb7763144ff0c880e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0079905570236bdb7763144ff0c880e4">&#9670;&#160;</a></span>ebpf_base_map_provider_properties_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__base__map__provider__properties.html">_ebpf_base_map_provider_properties</a> <a class="el" href="ebpf__extension_8h.html#a0079905570236bdb7763144ff0c880e4">ebpf_base_map_provider_properties_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="acc88dc68645fb95221fd43228ad8aff0" name="acc88dc68645fb95221fd43228ad8aff0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acc88dc68645fb95221fd43228ad8aff0">&#9670;&#160;</a></span>ebpf_epoch_enter_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_epoch_enter_t) (void *epoch_state)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Enter an epoch-protected region. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">epoch_state</td><td>Pointer to epoch state to be filled in. Its size should be at least sizeof(epoch_state_t). </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a4e3fc5dea9fc1c6179ffa40a5ef7791d" name="a4e3fc5dea9fc1c6179ffa40a5ef7791d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e3fc5dea9fc1c6179ffa40a5ef7791d">&#9670;&#160;</a></span>ebpf_epoch_exit_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_epoch_exit_t) (void *epoch_state)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Exit an epoch-protected region. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">epoch_state</td><td>Pointer to epoch state returned by epoch_enter_t. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="af91f03cb7a632e2a710740933597a371" name="af91f03cb7a632e2a710740933597a371"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af91f03cb7a632e2a710740933597a371">&#9670;&#160;</a></span>ebpf_epoch_free_cache_aligned_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_epoch_free_cache_aligned_t) (void *pointer)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free memory under epoch control. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory</td><td>Allocation to be freed once epoch ends. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a592e92f6ab01eab2d95c3f127f308e27" name="a592e92f6ab01eab2d95c3f127f308e27"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a592e92f6ab01eab2d95c3f127f308e27">&#9670;&#160;</a></span>ebpf_epoch_free_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_epoch_free_t) (void *memory)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free memory under epoch control. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory</td><td>Allocation to be freed once epoch ends. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -303,6 +591,283 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae1a972ffea1a59369934dd9e429dfabe" name="ae1a972ffea1a59369934dd9e429dfabe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae1a972ffea1a59369934dd9e429dfabe">&#9670;&#160;</a></span>ebpf_map_associate_program_type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_map_associate_program_type_t) (void *binding_context, void *map_context, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Associate a program type with the map, which allows the map to be used by programs of that type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>The program type.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a6245a308462ec376eb453ddb3b7f3274" name="a6245a308462ec376eb453ddb3b7f3274"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6245a308462ec376eb453ddb3b7f3274">&#9670;&#160;</a></span>ebpf_map_client_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__client__data.html">_ebpf_map_client_data</a> <a class="el" href="ebpf__extension_8h.html#a6245a308462ec376eb453ddb3b7f3274">ebpf_map_client_data_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Custom map client data. </p>
+
+</div>
+</div>
+<a id="a1fe48339cfb8cbaf114e51f26c5313a9" name="a1fe48339cfb8cbaf114e51f26c5313a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1fe48339cfb8cbaf114e51f26c5313a9">&#9670;&#160;</a></span>ebpf_map_find_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_map_find_element_t) (const void *map, const uint8_t *key, uint8_t **value)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find an element in an eBPF map (client/runtime helper version). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>The eBPF map to query. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to search for. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">value</td><td>Receives a pointer to the value associated with the key.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_OBJECT</td><td>An invalid map was provided. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aaa09071dfc6969a016e4f316d17fcc10" name="aaa09071dfc6969a016e4f316d17fcc10"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaa09071dfc6969a016e4f316d17fcc10">&#9670;&#160;</a></span>ebpf_map_provider_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__provider__data.html">_ebpf_map_provider_data</a> <a class="el" href="ebpf__extension_8h.html#aaa09071dfc6969a016e4f316d17fcc10">ebpf_map_provider_data_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Custom map provider data. </p>
+
+</div>
+</div>
+<a id="a46702a3be1dbd5c54489b0af48ef4c98" name="a46702a3be1dbd5c54489b0af48ef4c98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a46702a3be1dbd5c54489b0af48ef4c98">&#9670;&#160;</a></span>ebpf_process_map_add_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_add_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Add or update (insert/replace) an element in a provider-backed map. </p>
+<p>If the provider does not update the original value, i.e., <code>updates_original_value</code> is set to false in ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key being updated (may be NULL for helper-mode operations, depending on the base map implementation). </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value_size</td><td>The size in bytes of the input value. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the input value bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the destination (stored) value buffer. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional pointer to the destination (stored) value buffer to populate. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Update flags. Supported values: EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Unable to allocate memory. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a1b16f523a3ca276e45659679824bda7d" name="a1b16f523a3ca276e45659679824bda7d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b16f523a3ca276e45659679824bda7d">&#9670;&#160;</a></span>ebpf_process_map_create_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_create_t) (void *binding_context, uint32_t map_type, uint32_t key_size, uint32_t value_size, uint32_t max_entries, uint32_t *actual_value_size, void **map_context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Process map creation notification. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_type</td><td>The type of map to create. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The value size requested by the caller in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">max_entries</td><td>The maximum number of entries in the map. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">actual_value_size</td><td>The value size in bytes that will actually be stored in the map. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">map_context</td><td>Provider-defined per-map context. The eBPF core will pass this back to subsequent map operations and will eventually pass it to ebpf_process_map_delete_t.</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user, whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program, and the program can read or modify the value in place.</p>
+<p>Therefore, for maps where an extension intends to <em>modify</em> the actual value being stored in the map, map CRUD operations from BPF programs are disallowed by the eBPF runtime.</p>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Unable to allocate memory. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a1d265dc74dec519f2b12543db9d7aca2" name="a1d265dc74dec519f2b12543db9d7aca2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1d265dc74dec519f2b12543db9d7aca2">&#9670;&#160;</a></span>ebpf_process_map_delete_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_delete_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Delete an element from a provider-backed map. </p>
+<p>This function can be called in three scenarios:</p><ol type="1">
+<li>Normal map element deletion.</li>
+<li>Deletion performed as part of an update operation (replacing an existing entry).</li>
+<li>Deletion performed as part of map cleanup. When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter. In both these cases, the provider must not fail the deletion.</li>
+</ol>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. If the key is not found, the map is unchanged. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry being deleted. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="abfc6de92d87a442706515caeba90db2d" name="abfc6de92d87a442706515caeba90db2d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abfc6de92d87a442706515caeba90db2d">&#9670;&#160;</a></span>ebpf_process_map_delete_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_process_map_delete_t) (void *binding_context, void *map_context)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Process a map delete notification. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The map context to delete. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a27cfcc8ffd9fecafe67986801f6d9452" name="a27cfcc8ffd9fecafe67986801f6d9452"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a27cfcc8ffd9fecafe67986801f6d9452">&#9670;&#160;</a></span>ebpf_process_map_find_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_find_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find (lookup) an element in a provider-backed map. </p>
+<p>If the provider does not update the original value, i.e., <code>updates_original_value</code> is set to false in ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Optionally, pointer to the key being looked up. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the provider's stored value buffer for the entry. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the output value buffer. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional output buffer to receive the value bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Find flags. Supported values: EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -428,6 +993,34 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="adcb3a366ae5b8ff0cd26f3dd779a1876" name="adcb3a366ae5b8ff0cd26f3dd779a1876"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adcb3a366ae5b8ff0cd26f3dd779a1876">&#9670;&#160;</a></span>epoch_state_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef uint64_t epoch_state_t[4]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa5218a846e9ffddb995b4fff88bd893b" name="aa5218a846e9ffddb995b4fff88bd893b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5218a846e9ffddb995b4fff88bd893b">&#9670;&#160;</a></span>tag</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef uint32_t <a class="el" href="ebpf__extension_8h.html#aa5218a846e9ffddb995b4fff88bd893b">tag</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <h2 class="groupheader">Enumeration Type Documentation</h2>
 <a id="af0515a6045d165623acd93ee1c5c76ac" name="af0515a6045d165623acd93ee1c5c76ac"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af0515a6045d165623acd93ee1c5c76ac">&#9670;&#160;</a></span>_ebpf_link_dispatch_table_version</h2>
@@ -446,6 +1039,36 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="af0515a6045d165623acd93ee1c5c76aca90ced845e84e663c65a4a7196e767a78" name="af0515a6045d165623acd93ee1c5c76aca90ced845e84e663c65a4a7196e767a78"></a>EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT&#160;</td><td class="fielddoc"><p>Current version of the dispatch table. </p>
 </td></tr>
 </table>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="a858c5860e3c8594b262ff7f362a325bb" name="a858c5860e3c8594b262ff7f362a325bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a858c5860e3c8594b262ff7f362a325bb">&#9670;&#160;</a></span>_Ret_writes_maybenull_()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef _Ret_writes_maybenull_ </td>
+          <td>(</td>
+          <td class="paramtype">size&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Allocate memory under epoch control. </p>
+<p>Allocate cache aligned memory under epoch control.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size of memory to allocate. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">tag</td><td>Pool tag to use.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to memory block allocated, or null on failure. </dd></dl>
 
 </div>
 </div>
