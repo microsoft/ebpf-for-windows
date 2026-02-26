@@ -2976,6 +2976,7 @@ ebpf_ring_buffer_map_unmap_user(
 {
     if ((map->properties == NULL) || (map->properties->unmap_ring_buffer == NULL)) {
         return EBPF_INVALID_ARGUMENT;
+    }
 
     return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index, consumer, producer, data);
 }
