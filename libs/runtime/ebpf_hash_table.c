@@ -579,6 +579,7 @@ Done:
  * Operations include insert, update and delete of elements.
  *
  * @param[in] hash_table Hash table to update.
+ * @param[in] operation_context Context to pass to notification functions.
  * @param[in] key Key to operate on.
  * @param[in] value Value to be inserted or NULL.
  * @param[in] operation Operation to perform.
@@ -590,6 +591,7 @@ Done:
 static ebpf_result_t
 _ebpf_hash_table_replace_bucket(
     _Inout_ ebpf_hash_table_t* hash_table,
+    _In_opt_ uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_bucket_operation_t operation)
@@ -601,6 +603,11 @@ _ebpf_hash_table_replace_bucket(
     uint8_t* new_data = NULL;
     ebpf_hash_bucket_header_t* old_bucket = NULL;
     ebpf_hash_bucket_header_t* new_bucket = NULL;
+    // Tracks whether ALLOCATE notification for new_data succeeded.
+    // If notification fails, new_data cannot be assumed to be initialized, and we must not invoke FREE notification.
+    bool new_data_notified = false;
+    // Tracks whether FREE notification for old_data (delete operation) succeeded.
+    bool old_data_notified = false;
 
     bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
 
@@ -622,8 +629,18 @@ _ebpf_hash_table_replace_bucket(
             memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
         }
         if (hash_table->notification_callback) {
-            hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, key, new_data);
+            result = hash_table->notification_callback(
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE,
+                key,
+                new_data);
+            if (result != EBPF_SUCCESS) {
+                // new_data cannot be assumed to be initialized.
+                // Skip FREE notification on new_data in cleanup.
+                goto Done;
+            }
+            new_data_notified = true;
         }
     }
 
@@ -666,7 +683,22 @@ _ebpf_hash_table_replace_bucket(
         if (index == old_bucket_count) {
             result = EBPF_KEY_NOT_FOUND;
         } else {
+            if (hash_table->notification_callback) {
+                result = hash_table->notification_callback(
+                    hash_table->notification_context,
+                    operation_context,
+                    EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                    key,
+                    old_data);
+                old_data_notified = true;
+                if (result != EBPF_SUCCESS) {
+                    // Do not modify the hash table if the delete notification fails.
+                    break;
+                }
+            }
+            // No failure path after successful delete notification.
             _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+            result = EBPF_SUCCESS;
         }
         break;
     default:
@@ -692,13 +724,24 @@ Done:
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
     if (hash_table->notification_callback) {
-        if (new_data) {
-            hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, new_data);
+        if (new_data && new_data_notified) {
+            // Ignore return value from FREE notification during cleanup.
+            (void)hash_table->notification_callback(
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                key,
+                new_data);
         }
-        if (old_data) {
-            hash_table->notification_callback(
-                hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE, key, old_data);
+        if (old_data && !old_data_notified) {
+            // Old data leaves the hash table due to an update/replace.
+            // Ignore return value from FREE notification.
+            (void)hash_table->notification_callback(
+                hash_table->notification_context,
+                operation_context,
+                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                key,
+                old_data);
         }
     }
 
@@ -839,8 +882,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
 
     *value = data;
     if (hash_table->notification_callback) {
+        // Ignore return value from use notification.
         hash_table->notification_callback(
-            hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
+            hash_table->notification_context, NULL, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
     }
     retval = EBPF_SUCCESS;
 Done:
@@ -850,6 +894,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_hash_table_update(
     _Inout_ ebpf_hash_table_t* hash_table,
+    _In_opt_ uint8_t* operation_context,
     _In_ const uint8_t* key,
     _In_opt_ const uint8_t* value,
     ebpf_hash_table_operations_t operation)
@@ -877,13 +922,14 @@ ebpf_hash_table_update(
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, value, bucket_operation);
+    retval = _ebpf_hash_table_replace_bucket(hash_table, operation_context, key, value, bucket_operation);
 Done:
     return retval;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
+ebpf_hash_table_delete(
+    _Inout_ ebpf_hash_table_t* hash_table, _In_opt_ uint8_t* operation_context, _In_ const uint8_t* key)
 {
     ebpf_result_t retval;
 
@@ -892,7 +938,8 @@ ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t
         goto Done;
     }
 
-    retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
+    retval =
+        _ebpf_hash_table_replace_bucket(hash_table, operation_context, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
 
 Done:
     return retval;

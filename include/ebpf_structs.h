@@ -32,6 +32,8 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_STACK = 12,            ///< Stack.
     BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
     BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP = 15,  ///< Sample hash map type.
+    BPF_MAP_TYPE_MAX                    ///< Maximum value for map types.
 } ebpf_map_type_t;
 
 #define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \
