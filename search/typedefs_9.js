@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['perf_5fbuffer_5flost_5ffn_0',['perf_buffer_lost_fn',['../ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96',1,'ebpf_api.h']]],
-  ['perf_5fbuffer_5fsample_5ffn_1',['perf_buffer_sample_fn',['../ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0',1,'ebpf_api.h']]],
+  ['perf_5fbuffer_5flost_5ffn_0',['perf_buffer_lost_fn',['../libbpf_8h.html#af99fb2b8537b942432f6a73c6f9f4ce4',1,'perf_buffer_lost_fn:&#160;libbpf.h'],['../ebpf__api_8h.html#a89a05e267e5f843138cb35b7d9964a96',1,'perf_buffer_lost_fn:&#160;ebpf_api.h']]],
+  ['perf_5fbuffer_5fsample_5ffn_1',['perf_buffer_sample_fn',['../libbpf_8h.html#a7d98fe7e464b037ed162b7893374e559',1,'perf_buffer_sample_fn:&#160;libbpf.h'],['../ebpf__api_8h.html#a20bae15d88fe53c33cf2a47d7ffcc1a0',1,'perf_buffer_sample_fn:&#160;ebpf_api.h']]],
   ['pethernet_5fheader_2',['PETHERNET_HEADER',['../net_2if__ether_8h.html#a4b19147e1a903d0239cf6c57c9fc8922',1,'if_ether.h']]],
   ['pid_5ft_3',['pid_t',['../linux_2bpf_8h.html#a7a26cb7f5678736cec66712d6df1d4ed',1,'bpf.h']]],
   ['pipv4_5fheader_4',['PIPV4_HEADER',['../net_2ip_8h.html#afb2e11d7b7c2d7ea2b024e763dcee4fd',1,'ip.h']]],

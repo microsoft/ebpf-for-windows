@@ -11,7 +11,7 @@ var searchData=
   ['sock_5fops_5fhook_5ft_8',['sock_ops_hook_t',['../ebpf__nethooks_8h.html#a4b054df7a5983fb3c6be479448013b44',1,'ebpf_nethooks.h']]],
   ['socket_5faddress_9',['socket_address',['../struct__bind__md.html#a4e6ab6ab7b7b7e88e0c73ba99caa2e90',1,'_bind_md']]],
   ['socket_5faddress_5flength_10',['socket_address_length',['../struct__bind__md.html#afe6ac1515f579d5f1b8667946ddac668',1,'_bind_md']]],
-  ['source_11',['source',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a09a294715c845ec74323de381df6afe7',1,'_ETHERNET_HEADER::Source'],['../structtcphdr.html#ac3e6c13e4fefb7a5fa91d27b9aac2d3c',1,'tcphdr::source']]],
+  ['source_11',['source',['../structtcphdr.html#ac3e6c13e4fefb7a5fa91d27b9aac2d3c',1,'tcphdr::source'],['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#a09a294715c845ec74323de381df6afe7',1,'_ETHERNET_HEADER::Source']]],
   ['sourceaddress_12',['sourceaddress',['../struct___i_p_v4___h_e_a_d_e_r.html#a44eab13ab96011c8aa2abbc374188115',1,'_IPV4_HEADER::SourceAddress'],['../struct___i_p_v6___h_e_a_d_e_r.html#a6cc60095ffc72250042d28ded6d7e2f1',1,'_IPV6_HEADER::SourceAddress']]],
   ['srcport_13',['srcPort',['../struct_u_d_p___h_e_a_d_e_r__.html#a7d291a5c8ddf8bcdd2f5d38f311a7d3f',1,'UDP_HEADER_']]],
   ['start_5fid_14',['start_id',['../structsys__bpf__map__next__id__attr__t.html#a7ac79265dfd002dda2f414bec9886bc4',1,'sys_bpf_map_next_id_attr_t']]],
@@ -38,5 +38,5 @@ var searchData=
   ['sys_5fbpf_5fprog_5finfo_5ft_35',['sys_bpf_prog_info_t',['../structsys__bpf__prog__info__t.html',1,'']]],
   ['sys_5fbpf_5fprog_5fload_5fattr_5ft_36',['sys_bpf_prog_load_attr_t',['../structsys__bpf__prog__load__attr__t.html',1,'']]],
   ['sys_5fbpf_5fprog_5frun_5fattr_5ft_37',['sys_bpf_prog_run_attr_t',['../structsys__bpf__prog__run__attr__t.html',1,'']]],
-  ['sz_38',['sz',['../structebpf__perf__buffer__opts.html#a6de1b82c00be9bef60a45f0b35b92ddf',1,'ebpf_perf_buffer_opts::sz'],['../structebpf__ring__buffer__opts.html#ab2044e1ce2525ab67173a0a3710d06e1',1,'ebpf_ring_buffer_opts::sz'],['../structring__buffer__opts.html#ad8371a4f46cca8b2dbbbc5bfb5704ba2',1,'ring_buffer_opts::sz']]]
+  ['sz_38',['sz',['../structebpf__perf__buffer__opts.html#a6de1b82c00be9bef60a45f0b35b92ddf',1,'ebpf_perf_buffer_opts::sz'],['../structebpf__ring__buffer__opts.html#ab2044e1ce2525ab67173a0a3710d06e1',1,'ebpf_ring_buffer_opts::sz'],['../structperf__buffer__opts.html#a3b5a3694a87bf60d01571adb91c12d85',1,'perf_buffer_opts::sz'],['../structring__buffer__opts.html#ad8371a4f46cca8b2dbbbc5bfb5704ba2',1,'ring_buffer_opts::sz']]]
 ];

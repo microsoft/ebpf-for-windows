@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['length_0',['length',['../struct_u_d_p___h_e_a_d_e_r__.html#ae23f400c0e3eb7effffdf004168970d2',1,'UDP_HEADER_::length'],['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#ac94ccf3ae4ad72f8487adabdd260af36',1,'_ETHERNET_HEADER::Length']]],
+  ['length_0',['length',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#ac94ccf3ae4ad72f8487adabdd260af36',1,'_ETHERNET_HEADER::Length'],['../struct_u_d_p___h_e_a_d_e_r__.html#ae23f400c0e3eb7effffdf004168970d2',1,'UDP_HEADER_::length']]],
   ['license_1',['license',['../structbpf__load__program__attr.html#a502a218ebab88aa350824503c769db0a',1,'bpf_load_program_attr::license'],['../structsys__bpf__prog__load__attr__t.html#a98353681d931de5808625718bf728718',1,'sys_bpf_prog_load_attr_t::license']]],
   ['line_5finfo_2',['line_info',['../structbpf__load__program__attr.html#ab4f646cfbe9a11f97b7340d3a2ca5cbc',1,'bpf_load_program_attr::line_info'],['../structsys__bpf__prog__load__attr__t.html#adee85987fbe3a2884351e1267095cdc5',1,'sys_bpf_prog_load_attr_t::line_info']]],
   ['line_5finfo_5fcnt_3',['line_info_cnt',['../structbpf__load__program__attr.html#aea99b40c179b768a577796bc3e722a66',1,'bpf_load_program_attr::line_info_cnt'],['../structsys__bpf__prog__load__attr__t.html#aab9fad613bc69f7773e2b1643b0a2f55',1,'sys_bpf_prog_load_attr_t::line_info_cnt']]],
@@ -19,5 +19,6 @@ var searchData=
   ['log_5flevel_16',['log_level',['../structbpf__load__program__attr.html#addb5c848b3e10f04e1fb96ec18b2b8c1',1,'bpf_load_program_attr::log_level'],['../structbpf__object__load__attr.html#ab1bf0cf3f940e60f76e6158e6891a4ac',1,'bpf_object_load_attr::log_level'],['../structsys__bpf__prog__load__attr__t.html#aa5389396f95435be96a2a229c7055cb0',1,'sys_bpf_prog_load_attr_t::log_level']]],
   ['log_5fsize_17',['log_size',['../structsys__bpf__prog__load__attr__t.html#adff78cd9cc144aa36182ba3ee16e0c41',1,'sys_bpf_prog_load_attr_t']]],
   ['log_5ftrue_5fsize_18',['log_true_size',['../structsys__bpf__prog__load__attr__t.html#af4ad90c2dd85ddb2fdc2b63e9feb1d04',1,'sys_bpf_prog_load_attr_t']]],
-  ['lost_5fcount_19',['lost_count',['../struct__ebpf__map__async__query__result.html#ab2a29294d384443bf8b9c8a46187f3e3',1,'_ebpf_map_async_query_result']]]
+  ['lost_5fcount_19',['lost_count',['../struct__ebpf__map__async__query__result.html#ab2a29294d384443bf8b9c8a46187f3e3',1,'_ebpf_map_async_query_result']]],
+  ['lost_5frecords_20',['lost_records',['../struct__ebpf__perf__event__array__producer__page.html#a528e703c764053bf8dfa5018132ed3bc',1,'_ebpf_perf_event_array_producer_page']]]
 ];

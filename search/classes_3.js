@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['ring_5fbuffer_5fopts_0',['ring_buffer_opts',['../structring__buffer__opts.html',1,'']]]
+  ['perf_5fbuffer_5fopts_0',['perf_buffer_opts',['../structperf__buffer__opts.html',1,'']]]
 ];
