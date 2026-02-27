@@ -8,6 +8,7 @@
     <ClCompile Include="..\ebpf_core.c" />
     <ClCompile Include="..\ebpf_core_jit.c" />
     <ClCompile Include="..\ebpf_general_helpers.c" />
+    <ClCompile Include="..\ebpf_latency.c" />
     <ClCompile Include="..\ebpf_link.c" />
     <ClCompile Include="..\ebpf_maps.c" />
     <ClCompile Include="..\ebpf_native.c" />
@@ -17,6 +18,7 @@
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h" />
     <ClInclude Include="..\ebpf_core_jit.h" />
+    <ClInclude Include="..\ebpf_latency.h" />
     <ClInclude Include="..\ebpf_link.h" />
     <ClInclude Include="..\ebpf_maps.h" />
     <ClInclude Include="..\ebpf_native.h" />

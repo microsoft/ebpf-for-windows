@@ -67,14 +67,14 @@ extern "C"
     } ebpf_api_program_info_t;
 
     /**
-      * @brief Get list of programs and stats in an eBPF file.
-      * @param[in] file Name of file containing eBPF programs.
-      * @param[in] verbose Obtain additional info about the programs.
-      * @param[out] infos On success points to a list of eBPF programs.
-      * The caller is responsible for freeing the list via ebpf_free_programs().
-      * @param[out] error_message On failure points to a text description of
-      *  the error.
-      */
+     * @brief Get list of programs and stats in an eBPF file.
+     * @param[in] file Name of file containing eBPF programs.
+     * @param[in] verbose Obtain additional info about the programs.
+     * @param[out] infos On success points to a list of eBPF programs.
+     * The caller is responsible for freeing the list via ebpf_free_programs().
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     */
     _Must_inspect_result_ ebpf_result_t
     ebpf_enumerate_programs(
         _In_z_ const char* file,
@@ -766,6 +766,26 @@ extern "C"
         size_t sz;      /* size of this struct, for forward/backward compatibility */
         uint64_t flags; /* perf buffer option flags */
     };
+
+    //
+    // Latency Tracking APIs
+    //
+
+    /**
+     * @brief Enable latency tracking in ebpfcore.
+     * @param[in] mode Tracking mode: 1 = program invocations only, 2 = program + map helpers.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid mode value.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_latency_tracking_enable(uint32_t mode) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Disable latency tracking in ebpfcore.
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_latency_tracking_disable() EBPF_NO_EXCEPT;
 
     /**
      * @brief Perf buffer option flags (Windows-specific).

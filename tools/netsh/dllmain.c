@@ -3,6 +3,7 @@
 
 #include "ebpf_api.h"
 #include "elf.h"
+#include "latency.h"
 #include "links.h"
 #include "maps.h"
 #include "pins.h"
@@ -38,6 +39,8 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 #define CMD_GROUP_PIN L"pin"
 #define CMD_GROUP_SET L"set"
 #define CMD_GROUP_SHOW L"show"
+#define CMD_GROUP_START L"start"
+#define CMD_GROUP_STOP L"stop"
 #define CMD_GROUP_UNPIN L"unpin"
 
 // Nouns
@@ -50,15 +53,21 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 #define CMD_EBPF_ADD_PROGRAM L"program"
 #define CMD_EBPF_DELETE_PROGRAM L"program"
 #define CMD_EBPF_SET_PROGRAM L"program"
+#define CMD_EBPF_SET_LATENCY L"latency"
 #define CMD_EBPF_SHOW_PROGRAMS L"programs"
 
 #define CMD_EBPF_SHOW_SECTIONS L"sections"
+#define CMD_EBPF_SHOW_LATENCY L"latency"
 #define CMD_EBPF_SHOW_VERIFICATION L"verification"
 
 #define CMD_EBPF_PIN_MAP L"map"
 #define CMD_EBPF_PIN_PROGRAM L"program"
 #define CMD_EBPF_UNPIN_MAP L"map"
 #define CMD_EBPF_UNPIN_PROGRAM L"program"
+
+#define CMD_EBPF_START_LATENCYTRACE L"latencytrace"
+#define CMD_EBPF_STOP_LATENCYTRACE L"latencytrace"
+#define CMD_EBPF_SHOW_LATENCYTRACE L"latencytrace"
 
 // Define this to work around a recent regression introduced in Windows
 // until it is fixed.
@@ -73,6 +82,7 @@ CMD_ENTRY g_EbpfDeleteCommandTable[] = {
 };
 CMD_ENTRY g_EbpfSetCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY(EBPF_SET_LATENCY, handle_ebpf_set_latency),
 };
 CMD_ENTRY g_EbpfShowCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
@@ -83,6 +93,14 @@ CMD_ENTRY g_EbpfShowCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
+    CREATE_CMD_ENTRY(EBPF_SHOW_LATENCY, handle_ebpf_show_latency),
+    CREATE_CMD_ENTRY(EBPF_SHOW_LATENCYTRACE, handle_ebpf_show_latencytrace),
+};
+CMD_ENTRY g_EbpfStartCommandTable[] = {
+    CREATE_CMD_ENTRY(EBPF_START_LATENCYTRACE, handle_ebpf_start_latencytrace),
+};
+CMD_ENTRY g_EbpfStopCommandTable[] = {
+    CREATE_CMD_ENTRY(EBPF_STOP_LATENCYTRACE, handle_ebpf_stop_latencytrace),
 };
 #else
 typedef struct _CMD_ENTRY_ORIGINAL
@@ -124,9 +142,11 @@ CMD_ENTRY_LONG g_EbpfDeleteCommandTableLong[] = {
 };
 CMD_ENTRY_ORIGINAL g_EbpfSetCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SET_LATENCY, handle_ebpf_set_latency),
 };
 CMD_ENTRY_LONG g_EbpfSetCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SET_PROGRAM, handle_ebpf_set_program),
+    CREATE_CMD_ENTRY_LONG(EBPF_SET_LATENCY, handle_ebpf_set_latency),
 };
 CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
@@ -137,6 +157,8 @@ CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_LATENCY, handle_ebpf_show_latency),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_LATENCYTRACE, handle_ebpf_show_latencytrace),
 };
 CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
@@ -147,6 +169,8 @@ CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_PROGRAMS, handle_ebpf_show_programs),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
+    CREATE_CMD_ENTRY_LONG(EBPF_SHOW_LATENCY, handle_ebpf_show_latency),
+    CREATE_CMD_ENTRY_LONG(EBPF_SHOW_LATENCYTRACE, handle_ebpf_show_latencytrace),
 };
 
 CMD_ENTRY_ORIGINAL g_EbpfPinCommandTableOriginal[] = {
@@ -167,6 +191,19 @@ CMD_ENTRY_LONG g_EbpfUnpinCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_UNPIN_PROGRAM, handle_ebpf_unpin_program),
 };
 
+CMD_ENTRY_ORIGINAL g_EbpfStartCommandTableOriginal[] = {
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_START_LATENCYTRACE, handle_ebpf_start_latencytrace),
+};
+CMD_ENTRY_LONG g_EbpfStartCommandTableLong[] = {
+    CREATE_CMD_ENTRY_LONG(EBPF_START_LATENCYTRACE, handle_ebpf_start_latencytrace),
+};
+CMD_ENTRY_ORIGINAL g_EbpfStopCommandTableOriginal[] = {
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_STOP_LATENCYTRACE, handle_ebpf_stop_latencytrace),
+};
+CMD_ENTRY_LONG g_EbpfStopCommandTableLong[] = {
+    CREATE_CMD_ENTRY_LONG(EBPF_STOP_LATENCYTRACE, handle_ebpf_stop_latencytrace),
+};
+
 #endif // WINDOWS_NETSH_BUG_WORKAROUND
 
 #define HLP_GROUP_ADD 1100
@@ -181,6 +218,10 @@ CMD_ENTRY_LONG g_EbpfUnpinCommandTableLong[] = {
 #define HLP_GROUP_PIN_EX 1109
 #define HLP_GROUP_UNPIN 1110
 #define HLP_GROUP_UNPIN_EX 1111
+#define HLP_GROUP_START 1112
+#define HLP_GROUP_START_EX 1113
+#define HLP_GROUP_STOP 1114
+#define HLP_GROUP_STOP_EX 1115
 
 #ifndef WINDOWS_NETSH_BUG_WORKAROUND
 static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
@@ -189,6 +230,8 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
     CREATE_CMD_GROUP_ENTRY(GROUP_PIN, g_EbpfPinCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SET, g_EbpfSetCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SHOW, g_EbpfShowCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_START, g_EbpfStartCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_STOP, g_EbpfStopCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_UNPIN, g_EbpfUnpinCommandTable),
 };
 #else
@@ -201,6 +244,8 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommandsOriginal[] = {
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_PIN, g_EbpfPinCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SET, g_EbpfSetCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SHOW, g_EbpfShowCommandTableOriginal),
+    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_START, g_EbpfStartCommandTableOriginal),
+    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_STOP, g_EbpfStopCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_UNPIN, g_EbpfUnpinCommandTableOriginal),
 };
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsLong[] = {
@@ -209,6 +254,8 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommandsLong[] = {
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_PIN, g_EbpfPinCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SET, g_EbpfSetCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SHOW, g_EbpfShowCommandTableLong),
+    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_START, g_EbpfStartCommandTableLong),
+    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_STOP, g_EbpfStopCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_UNPIN, g_EbpfUnpinCommandTableLong),
 };
 #endif // WINDOWS_NETSH_BUG_WORKAROUND

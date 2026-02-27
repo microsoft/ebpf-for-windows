@@ -9,6 +9,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
+#include "ebpf_latency.h"
 #include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_native.h"
@@ -1161,7 +1162,8 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -2201,12 +2203,42 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_latency_enable(_In_ const ebpf_operation_latency_enable_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = ebpf_latency_enable(request->mode);
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_latency_disable(_In_ const ebpf_operation_latency_disable_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(request);
+    ebpf_result_t result = ebpf_latency_disable();
+    EBPF_RETURN_RESULT(result);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_lookup_elem, latency_start, latency_end);
+    }
+
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {
@@ -2217,22 +2249,63 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
-    return -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int64_t result = -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_update_elem, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
-    return -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int64_t result = -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_delete_elem, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static void*
 _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key)
 {
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(
         map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_lookup_and_delete_elem, latency_start, latency_end);
+    }
+
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {
@@ -2553,19 +2626,61 @@ _ebpf_core_perf_event_output(
 static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
-    return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_push_elem, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int
 _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_pop_elem, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(0, BPF_FUNC_map_peek_elem, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int32_t
@@ -2899,6 +3014,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(latency_enable, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(latency_disable, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
