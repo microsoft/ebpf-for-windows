@@ -16,12 +16,14 @@
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "program_helper.h"
+#include "sample_ext_helpers.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "watchdog.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <io.h>
@@ -1618,30 +1620,288 @@ TEST_CASE("test_ringbuffer_wraparound", "[ring_buffer]")
     _close(map_fd);
 }
 
-typedef struct _perf_event_array_test_context
+// Context structure for perf buffer test callbacks.
+typedef struct _perf_buffer_sync_test_context
 {
-    std::atomic<size_t> event_count = 0;
-    uint32_t expected_event_count = 0;
-    uint32_t cpu_count = 0;
-    uint64_t event_length = 0;
-    std::atomic<size_t> lost_count = 0;
-    std::promise<void> promise;
-} perf_event_array_test_context_t;
+    std::atomic<uint64_t> event_count{0};
+    std::atomic<uint64_t> lost_count{0};
+    std::vector<std::string> received_data;
+    std::mutex lock;
+    bool keep_records{true};
 
-TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
+    // Blocking support (used by perf_buffer_sync_callback_block test).
+    std::mutex* block_mutex{nullptr};
+    std::condition_variable* block_cv{nullptr};
+    std::atomic<bool> block_callback{false};
+
+    // Async completion support.
+    uint64_t expected_event_count{0};
+    std::promise<void>* completion_promise{nullptr};
+} perf_buffer_sync_test_context_t;
+
+// Signal async completion promise if total events (received + lost) reached the target.
+static void
+_try_notify_completion(_In_ perf_buffer_sync_test_context_t* context)
+{
+    if (context->completion_promise == nullptr) {
+        return;
+    }
+    uint64_t total =
+        context->event_count.load(std::memory_order_relaxed) + context->lost_count.load(std::memory_order_relaxed);
+    if (total >= context->expected_event_count) {
+        try {
+            context->completion_promise->set_value();
+        } catch (const std::future_error& e) {
+            if (e.code() != std::future_errc::promise_already_satisfied) {
+                throw;
+            }
+        }
+    }
+}
+
+static void
+perf_buffer_sync_sample_callback(_In_ void* ctx, int cpu, _In_reads_bytes_(size) void* data, uint32_t size)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    auto* context = reinterpret_cast<perf_buffer_sync_test_context_t*>(ctx);
+
+    // Optional blocking for stress tests.
+    if (context->block_callback.load(std::memory_order_acquire) && context->block_mutex && context->block_cv) {
+        std::unique_lock<std::mutex> lock(*context->block_mutex);
+        while (context->block_callback.load(std::memory_order_acquire)) {
+            context->block_cv->wait_for(lock, std::chrono::milliseconds(500));
+        }
+    }
+
+    if (context->keep_records && data != nullptr && size > 0) {
+        std::lock_guard<std::mutex> guard(context->lock);
+        context->received_data.emplace_back(reinterpret_cast<const char*>(data), size);
+    }
+
+    context->event_count.fetch_add(1, std::memory_order_relaxed);
+    _try_notify_completion(context);
+}
+
+static void
+perf_buffer_sync_lost_callback(_In_ void* ctx, int cpu, uint64_t count)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    auto* context = reinterpret_cast<perf_buffer_sync_test_context_t*>(ctx);
+    context->lost_count.fetch_add(count, std::memory_order_relaxed);
+    _try_notify_completion(context);
+}
+
+/**
+ * @brief RAII helper for perf buffer tests.
+ *
+ * Manages perf buffer and map resources with automatic cleanup, provides shared callbacks
+ * and context, and implements common test patterns (polling, validation, async completion).
+ */
+class perf_buffer_test_helper
+{
+  public:
+    perf_buffer_sync_test_context_t context{};
+
+    perf_buffer_test_helper(bool keep_records = true) { context.keep_records = keep_records; }
+
+    ~perf_buffer_test_helper() { cleanup(); }
+
+    perf_buffer_test_helper(const perf_buffer_test_helper&) = delete;
+    perf_buffer_test_helper&
+    operator=(const perf_buffer_test_helper&) = delete;
+
+    /**
+     * @brief Create a perf buffer with RAII cleanup. Pass EBPF_PERFBUF_FLAG_AUTO_CALLBACK in flags for async mode.
+     *
+     * @param[in] map_fd File descriptor of the perf event array map.
+     * @param[in] flags Perf buffer flags (0 for synchronous mode).
+     * @return Pointer to the created perf buffer, or null on failure.
+     */
+    perf_buffer*
+    create_perf_buffer(fd_t map_fd, uint32_t flags = 0)
+    {
+        REQUIRE(_buffer == nullptr);
+        ebpf_perf_buffer_opts opts = {.sz = sizeof(opts), .flags = flags};
+        _buffer = ebpf_perf_buffer__new(
+            map_fd, 0, perf_buffer_sync_sample_callback, perf_buffer_sync_lost_callback, &context, &opts);
+        return _buffer;
+    }
+
+    /**
+     * @brief Create a perf event array map and register it for RAII cleanup.
+     *
+     * @param[out] map_fd File descriptor of the created map.
+     * @param[in] name Optional map name.
+     * @param[in] max_entries Maximum number of entries (0 to use CPU count).
+     * @return 0 on success, -errno on failure.
+     */
+    int
+    initialize_map(fd_t& map_fd, _In_opt_z_ const char* name = nullptr, uint32_t max_entries = 0)
+    {
+        uint32_t entries = max_entries > 0 ? max_entries : static_cast<uint32_t>(libbpf_num_possible_cpus());
+        map_fd = bpf_map_create(BPF_MAP_TYPE_PERF_EVENT_ARRAY, name, 0, 0, entries, nullptr);
+        if (map_fd > 0) {
+            REQUIRE(_map_fd == ebpf_fd_invalid);
+            _map_fd = map_fd;
+            return 0;
+        }
+        return -errno;
+    }
+
+    /**
+     * @brief Poll until (event_count + lost_count) >= expected_total or timeout.
+     *
+     * @param[in] pb Perf buffer to poll.
+     * @param[in] expected_total Target total event count (received + lost).
+     * @param[in] poll_timeout_ms Timeout per poll call in milliseconds.
+     * @param[in] overall_timeout Overall timeout for the polling loop.
+     * @return Total number of events polled (not including lost events).
+     */
+    int
+    poll_until_count(
+        _In_ perf_buffer* pb,
+        uint64_t expected_total,
+        int poll_timeout_ms = 200,
+        std::chrono::milliseconds overall_timeout = std::chrono::seconds(10))
+    {
+        int total_polled = 0;
+        auto start_time = std::chrono::steady_clock::now();
+
+        while ((context.event_count + context.lost_count) < expected_total) {
+            if ((std::chrono::steady_clock::now() - start_time) >= overall_timeout) {
+                break;
+            }
+            int poll_result = perf_buffer__poll(pb, poll_timeout_ms);
+            REQUIRE(poll_result >= 0);
+            if (poll_result > 0) {
+                total_polled += poll_result;
+            }
+        }
+        return total_polled;
+    }
+
+    /**
+     * @brief Set callback blocking flag. The sample callback will block until unblock_callback() is called.
+     */
+    void
+    block_callback()
+    {
+        if (context.block_mutex == nullptr) {
+            context.block_mutex = &_block_mutex;
+            context.block_cv = &_block_cv;
+        }
+        context.block_callback.store(true, std::memory_order_release);
+    }
+
+    /**
+     * @brief Clear callback blocking flag and wake any blocked callbacks.
+     */
+    void
+    unblock_callback()
+    {
+        if (context.block_cv) {
+            std::lock_guard<std::mutex> lock(_block_mutex);
+            context.block_callback.store(false, std::memory_order_release);
+            context.block_cv->notify_all();
+        } else {
+            context.block_callback.store(false, std::memory_order_release);
+        }
+    }
+
+    /**
+     * @brief Set up promise/future for async completion when (event_count + lost_count) >= expected_events.
+     *
+     * @param[in] expected_events Target event count to trigger completion.
+     * @return Future that becomes ready when the expected event count is reached.
+     */
+    std::future<void>
+    enable_async_completion(uint64_t expected_events)
+    {
+        context.expected_event_count = expected_events;
+        context.completion_promise = &_completion_promise;
+        return _completion_promise.get_future();
+    }
+
+    /**
+     * @brief Verify received data matches expected messages in order.
+     *
+     * @param[in] expected_messages Expected messages in order.
+     */
+    void
+    validate_data(_In_ const std::vector<std::string>& expected_messages)
+    {
+        std::lock_guard<std::mutex> guard(context.lock);
+        REQUIRE(context.received_data.size() == expected_messages.size());
+        for (size_t i = 0; i < expected_messages.size(); i++) {
+            REQUIRE(context.received_data[i] == expected_messages[i]);
+        }
+    }
+
+    /**
+     * @brief Verify received data contains the expected messages (order-independent).
+     *
+     * Use this when writes may land on different CPUs, since perf event arrays
+     * are per-CPU and cross-CPU ordering is not guaranteed.
+     *
+     * @param[in] expected_messages Expected messages (any order).
+     */
+    void
+    validate_data_unordered(_In_ const std::vector<std::string>& expected_messages)
+    {
+        std::lock_guard<std::mutex> guard(context.lock);
+        REQUIRE(context.received_data.size() == expected_messages.size());
+        auto sorted_received = context.received_data;
+        auto sorted_expected = expected_messages;
+        std::sort(sorted_received.begin(), sorted_received.end());
+        std::sort(sorted_expected.begin(), sorted_expected.end());
+        for (size_t i = 0; i < sorted_expected.size(); i++) {
+            REQUIRE(sorted_received[i] == sorted_expected[i]);
+        }
+    }
+
+  private:
+    perf_buffer* _buffer = nullptr;
+    fd_t _map_fd = ebpf_fd_invalid;
+    std::mutex _block_mutex;
+    std::condition_variable _block_cv;
+    std::promise<void> _completion_promise;
+
+    void
+    cleanup()
+    {
+        if (_buffer != nullptr) {
+            perf_buffer__free(_buffer);
+            _buffer = nullptr;
+        }
+        if (_map_fd > 0) {
+            _close(_map_fd);
+            _map_fd = ebpf_fd_invalid;
+        }
+    }
+};
+
+// Async stress test using EBPF_PERFBUF_FLAG_AUTO_CALLBACK mode.
+// This test validates that the async callback mechanism correctly handles high-volume
+// event generation across multiple CPUs without requiring manual polling.
+TEST_CASE("perf_buffer_async_consumer", "[stress][perf_buffer]")
 {
     // Load bindmonitor_perf_event_array.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd = ebpf_fd_invalid;
-    perf_event_array_test_context_t context;
     std::string app_id = "api_test.exe";
     uint32_t cpu_count = libbpf_num_possible_cpus();
     CAPTURE(cpu_count);
-    context.cpu_count = cpu_count;
+
+    native_module_helper_t native_helper;
+    native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         program_load_helper(
             "bindmonitor_perf_event_array.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
+    // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
 
     // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
@@ -1650,57 +1910,658 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
     CAPTURE(max_entries, max_iterations);
 
-    // Initialize context.
-    context.event_count = 0;
-    context.expected_event_count = max_iterations;
-    auto perf_buffer_event_callback = context.promise.get_future();
-    // Subscribe to the perf buffer.
-    ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
-    auto perfbuffer = ebpf_perf_buffer__new(
-        process_map_fd,
-        0,
-        [](void* ctx, int, void* data, uint32_t length) {
-            perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
+    // Set up helper with async completion support (don't keep records for stress test).
+    perf_buffer_test_helper helper(false);
+    auto completion_future = helper.enable_async_completion(max_iterations);
 
-            if ((data == nullptr) || (length == 0)) {
-                return;
-            }
-            if (((++context->event_count) + (context->lost_count)) >= context->expected_event_count) {
-                try {
-                    context->promise.set_value();
-                } catch (const std::future_error& e) {
-                    // Ignore the exception if the promise was already set.
-                    if (e.code() != std::future_errc::promise_already_satisfied) {
-                        throw; // Rethrow if it's a different error.
-                    }
-                }
-            }
-            return;
-        },
-        [](void* ctx, int, uint64_t count) {
-            perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
-            context->lost_count += count;
-            return;
-        },
-        &context,
-        &perf_opts);
+    // Create perf buffer in async mode (EBPF_PERFBUF_FLAG_AUTO_CALLBACK).
+    auto* pb = helper.create_perf_buffer(process_map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+    REQUIRE(pb != nullptr);
 
     // Trigger perf buffer events from multiple threads across all CPUs.
-    trigger_ring_buffer_events(
-        program_fd, context.expected_event_count, app_id.data(), static_cast<uint32_t>(app_id.size()));
+    trigger_ring_buffer_events(program_fd, max_iterations, app_id.data(), static_cast<uint32_t>(app_id.size()));
 
-    // Wait for 1 second for the ring buffer to receive all events.
-    bool test_complete = perf_buffer_event_callback.wait_for(1s) == std::future_status::ready;
+    // Wait for 1 second for async callbacks to process all events.
+    REQUIRE(completion_future.wait_for(1s) == std::future_status::ready);
 
-    CAPTURE(context.event_length, context.event_count, context.expected_event_count, context.lost_count);
+    CAPTURE(helper.context.event_count, max_iterations, helper.context.lost_count);
+    // trigger_ring_buffer_events rounds up per-thread work, so total events may exceed max_iterations.
+    REQUIRE((helper.context.event_count + helper.context.lost_count) >= max_iterations);
+}
 
-    REQUIRE(test_complete == true);
+// Async test: Consume events with async callbacks and validate data ordering.
+// Equivalent to perf_buffer_sync_consume but uses EBPF_PERFBUF_FLAG_AUTO_CALLBACK.
+TEST_CASE("perf_buffer_async_consume", "[perf_buffer]")
+{
+    // Create perf event array map.
+    perf_buffer_test_helper helper(true); // Keep records to validate data
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 64 * 1024) == 0);
 
-    // Unsubscribe from the ring buffer.
-    perf_buffer__free(perfbuffer);
+    // Prepare test messages.
+    std::vector<std::string> test_messages = {"Message 1", "Message 2", "Message 3", "Message 4", "Message 5"};
 
-    // Clean up.
-    bpf_object__close(object);
+    // Enable async completion and create perf buffer in async mode.
+    auto completion_future = helper.enable_async_completion(static_cast<uint32_t>(test_messages.size()));
+    auto* pb = helper.create_perf_buffer(map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+    REQUIRE(pb != nullptr);
+
+    // Write all test events.
+    size_t written = 0;
+    for (const auto& msg : test_messages) {
+        if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
+            written++;
+        }
+    }
+    REQUIRE(written == test_messages.size());
+
+    // Wait for async callbacks to process all events.
+    REQUIRE(completion_future.wait_for(5s) == std::future_status::ready);
+
+    // Validate all events were received.
+    REQUIRE(helper.context.event_count == test_messages.size());
+    REQUIRE(helper.context.lost_count == 0);
+
+    // Validate data matches expected messages (order not guaranteed across CPUs).
+    helper.validate_data_unordered(test_messages);
+}
+
+// Async test: Validate lost event callback in async mode.
+// Equivalent to perf_buffer_sync_lost_callback but uses EBPF_PERFBUF_FLAG_AUTO_CALLBACK.
+TEST_CASE("perf_buffer_async_lost_callback", "[perf_buffer]")
+{
+    // Create perf event array map with small buffer to trigger overflow.
+    perf_buffer_test_helper helper(false); // Don't keep records for overflow test
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 16 * 1024) == 0);
+
+    // Use 504-byte messages (512 with header) to precisely fill the 16KB per-CPU ring.
+    const size_t large_event_size = 504;
+    const size_t events_per_ring = 16 * 1024 / 512;         // 32 records of 512 bytes (504 + 8-byte header) fit.
+    const size_t per_cpu_event_count = 2 * events_per_ring; // Write 2x capacity to overflow by exactly half.
+    uint32_t num_cpus = static_cast<uint32_t>(libbpf_num_possible_cpus());
+    uint32_t total_events = static_cast<uint32_t>(per_cpu_event_count * num_cpus);
+    std::string large_message(large_event_size, 'X');
+
+    // Enable async completion and create perf buffer in async mode.
+    auto completion_future = helper.enable_async_completion(total_events);
+    auto* pb = helper.create_perf_buffer(map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+    REQUIRE(pb != nullptr);
+
+    // Block the async callback so events accumulate and overflow the buffer.
+    helper.block_callback();
+
+    // Write events per-CPU using affinity to overflow each ring.
+    size_t write_succeeded = 0;
+    size_t write_failed = 0;
+    scoped_cpu_affinity cpu_affinity{};
+    for (uint32_t cpu_id = 0; cpu_id < num_cpus; cpu_id++) {
+        cpu_affinity.switch_cpu(cpu_id);
+        for (size_t i = 0; i < per_cpu_event_count; i++) {
+            if (ebpf_perf_event_array_map_write(map_fd, large_message.c_str(), large_message.length()) ==
+                EBPF_SUCCESS) {
+                write_succeeded++;
+            } else {
+                write_failed++;
+            }
+        }
+    }
+
+    // Unblock callback to let async processing drain all events.
+    helper.unblock_callback();
+
+    // Wait for async callbacks to process events (some will be lost).
+    REQUIRE(completion_future.wait_for(5s) == std::future_status::ready);
+
+    // Validate exact event counts: each 16KB per-CPU ring holds exactly 32 records.
+    uint32_t expected_lost = static_cast<uint32_t>(events_per_ring * num_cpus);
+    REQUIRE(write_succeeded == events_per_ring * num_cpus);
+    REQUIRE(write_failed == events_per_ring * num_cpus);
+    REQUIRE(helper.context.lost_count == expected_lost);
+    REQUIRE(helper.context.event_count == expected_lost);
+    REQUIRE((helper.context.event_count + helper.context.lost_count) == total_events);
+}
+
+// Test synchronous perf buffer API with real program.
+TEMPLATE_TEST_CASE("perf_buffer_sync_api", "[perf_buffer]", ENABLED_EXECUTION_TYPES)
+{
+    ebpf_execution_type_t execution_type = TestType::value;
+    std::string file_name = _get_program_file_name("bindmonitor_perf_event_array", execution_type);
+    const uint16_t base_test_port = 12400;
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
+    program_load_attach_helper_t _helper;
+    _helper.initialize(file_name.c_str(), BPF_PROG_TYPE_BIND, "bind_monitor", execution_type, nullptr, 0, hook);
+    object = _helper.get_object();
+
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+    REQUIRE(process_map_fd > 0);
+
+    perf_buffer_test_helper helper(false); // Don't keep records for this test
+
+    // Create a synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(process_map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Test ebpf_perf_buffer_get_wait_handle.
+    ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+    REQUIRE(wait_handle != ebpf_handle_invalid);
+
+    // Test perf_buffer__buffer_cnt matches CPU count.
+    size_t buffer_cnt = perf_buffer__buffer_cnt(pb);
+    int cpu_count = libbpf_num_possible_cpus();
+    REQUIRE(cpu_count > 0);
+    REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
+
+    // Generate event to consume by triggering socket bind.
+    perform_socket_bind(base_test_port, true);
+
+    // Test 1: Use WaitForSingleObject and consume to verify we can consume after notify.
+    DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000);
+    REQUIRE(wait_result == WAIT_OBJECT_0);
+
+    // The BPF bind monitor may emit multiple perf events per socket bind (e.g. bind + unbind).
+    int consume_result = perf_buffer__consume(pb);
+    REQUIRE(consume_result > 0);
+    REQUIRE(helper.context.event_count > 0);
+
+    // Generate some additional events.
+    const uint32_t expected_events = 10;
+    for (uint16_t i = 1; i < expected_events; i++) {
+        perform_socket_bind(base_test_port + i, true);
+    }
+
+    // Test 2: Use poll API until we get all expected events.
+    int total_events_polled = helper.poll_until_count(pb, expected_events);
+    REQUIRE(total_events_polled > 0);
+    REQUIRE(helper.context.event_count >= expected_events);
+}
+
+// Test synchronous perf buffer consume API with manually created map.
+TEST_CASE("perf_buffer_sync_consume", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper;
+
+    // Create a perf event array map for testing.
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 64 * 1024) == 0);
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Test perf_buffer__buffer_cnt matches CPU count.
+    size_t buffer_cnt = perf_buffer__buffer_cnt(pb);
+    int cpu_count = libbpf_num_possible_cpus();
+    REQUIRE(cpu_count > 0);
+    REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
+
+    // Write test data to the perf event array.
+    std::vector<std::string> test_messages = {"First perf message", "Second perf message", "Third perf message"};
+    size_t written = 0;
+    for (const auto& msg : test_messages) {
+        if (ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length()) == EBPF_SUCCESS) {
+            written++;
+        }
+    }
+    REQUIRE(written == test_messages.size());
+
+    // Use perf_buffer__consume to process all available events.
+    int consume_result = perf_buffer__consume(pb);
+    REQUIRE(consume_result == static_cast<int>(test_messages.size()));
+
+    // Verify we received the test messages (order not guaranteed across CPUs).
+    REQUIRE(helper.context.event_count == test_messages.size());
+    helper.validate_data_unordered(test_messages);
+}
+
+// Test synchronous perf buffer with per-CPU buffer consumption.
+TEST_CASE("perf_buffer_sync_multiple_cpus", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper(false); // Don't keep records
+
+    // Create a perf event array map for testing.
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 64 * 1024) == 0);
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Verify buffer count matches CPU count.
+    size_t buffer_cnt = perf_buffer__buffer_cnt(pb);
+    int cpu_count = libbpf_num_possible_cpus();
+    REQUIRE(cpu_count > 0);
+    REQUIRE(buffer_cnt == static_cast<size_t>(cpu_count));
+
+    // Test perf_buffer__consume_buffer for each CPU.
+    for (size_t i = 0; i < buffer_cnt; i++) {
+        int consume_result = perf_buffer__consume_buffer(pb, i);
+        REQUIRE(consume_result == 0); // No data yet.
+    }
+
+    // Test invalid CPU index.
+    int invalid_result = perf_buffer__consume_buffer(pb, buffer_cnt + 100);
+    REQUIRE(invalid_result == -EINVAL);
+
+    // Write test data.
+    const std::string msg = "Test message for CPU buffers";
+    ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
+    REQUIRE(write_result == EBPF_SUCCESS);
+
+    // Use perf_buffer__consume to process all CPU buffers.
+    int consume_result = perf_buffer__consume(pb);
+    REQUIRE(consume_result == 1);
+
+    // Verify we received the message.
+    REQUIRE(helper.context.event_count == 1);
+}
+
+// Test synchronous perf buffer poll timeout behavior.
+TEST_CASE("perf_buffer_sync_poll_timeout", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper(false); // Don't keep records
+
+    // Create a perf event array map for testing.
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 64 * 1024) == 0);
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Test poll with timeout 0 (non-blocking) - should return immediately with 0.
+    auto start = std::chrono::steady_clock::now();
+    int poll_result = perf_buffer__poll(pb, 0);
+    auto elapsed = std::chrono::steady_clock::now() - start;
+    REQUIRE(poll_result == 0);
+    // Non-blocking poll should return near-instantly; 100ms is a generous scheduling margin.
+    REQUIRE(elapsed < std::chrono::milliseconds(100));
+
+    // Test poll with small timeout - should wait and return 0.
+    start = std::chrono::steady_clock::now();
+    poll_result = perf_buffer__poll(pb, 100);
+    elapsed = std::chrono::steady_clock::now() - start;
+    REQUIRE(poll_result == 0);
+    // poll(100ms) should wait at least half the timeout, accounting for OS scheduling variance.
+    REQUIRE(elapsed >= std::chrono::milliseconds(50));
+
+    // Write data and verify poll returns positive.
+    const std::string msg = "Test poll message";
+    ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
+    REQUIRE(write_result == EBPF_SUCCESS);
+
+    poll_result = perf_buffer__poll(pb, 1000);
+    REQUIRE(poll_result == 1);
+    REQUIRE(helper.context.event_count == 1);
+}
+
+// Test synchronous perf buffer wait handle behavior.
+TEST_CASE("perf_buffer_sync_wait_handle", "[perf_buffer]")
+{
+    // Create a perf event array map with RAII cleanup (outlives both helper scopes below).
+    perf_buffer_test_helper map_owner(false);
+    fd_t map_fd;
+    REQUIRE(map_owner.initialize_map(map_fd, "test_perfbuf", 64 * 1024) == 0);
+
+    // Test sync mode - should have valid wait handle.
+    {
+        perf_buffer_test_helper helper(false);
+        auto pb = helper.create_perf_buffer(map_fd);
+        REQUIRE(pb != nullptr);
+
+        ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+        REQUIRE(wait_handle != ebpf_handle_invalid);
+
+        // Wait handle should be in non-signaled state initially (no data).
+        DWORD wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 0);
+        REQUIRE(wait_result == WAIT_TIMEOUT);
+
+        // Write data - wait handle should become signaled.
+        const std::string msg = "Test wait handle";
+        ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
+        REQUIRE(write_result == EBPF_SUCCESS);
+
+        wait_result = WaitForSingleObject(reinterpret_cast<HANDLE>(wait_handle), 5000);
+        REQUIRE(wait_result == WAIT_OBJECT_0);
+    }
+
+    // Test async mode - should have invalid wait handle.
+    {
+        perf_buffer_test_helper helper(false);
+        auto pb = helper.create_perf_buffer(map_fd, EBPF_PERFBUF_FLAG_AUTO_CALLBACK);
+        REQUIRE(pb != nullptr);
+
+        ebpf_handle_t wait_handle = ebpf_perf_buffer_get_wait_handle(pb);
+        REQUIRE(wait_handle == ebpf_handle_invalid);
+    }
+}
+
+// Test synchronous perf buffer lost callback.
+TEST_CASE("perf_buffer_sync_lost_callback", "[perf_buffer]")
+{
+    perf_buffer_test_helper helper;
+
+    // Create a small perf event array map to trigger overflow.
+    fd_t map_fd;
+    REQUIRE(helper.initialize_map(map_fd, "test_perfbuf", 16 * 1024) == 0);
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Verify initial state.
+    REQUIRE(helper.context.lost_count == 0);
+    REQUIRE(helper.context.event_count == 0);
+
+    size_t writes_attempted = 0;
+    size_t failed_writes = 0;
+
+    // Write normal event and consume successfully.
+    const std::string first_msg = "Test lost callback";
+    ebpf_result_t write_result = ebpf_perf_event_array_map_write(map_fd, first_msg.c_str(), first_msg.length());
+    writes_attempted++;
+    REQUIRE(write_result == EBPF_SUCCESS);
+
+    int consume_result = perf_buffer__consume(pb);
+    REQUIRE(consume_result == 1);
+    REQUIRE(helper.context.event_count == 1);
+    REQUIRE(helper.context.lost_count == 0);
+
+    // Trigger lost events by filling the buffer beyond capacity.
+    // Each 16KB per-CPU ring holds exactly 32 records of 512 bytes (504 data + 8-byte header).
+    const size_t large_event_size = 504;
+    const size_t events_per_ring = 16 * 1024 / 512;         // 32 records fit per CPU ring.
+    const size_t per_cpu_event_count = 2 * events_per_ring; // Write 2x capacity to overflow by exactly half.
+    std::vector<std::string> large_messages(per_cpu_event_count, std::string(large_event_size, 'X'));
+
+    // Loop over CPUs, setting CPU affinity to overflow each ring.
+    scoped_cpu_affinity cpu_affinity{};
+    for (uint32_t cpu_id = 0; cpu_id < static_cast<uint32_t>(libbpf_num_possible_cpus()); cpu_id++) {
+        cpu_affinity.switch_cpu(cpu_id);
+
+        // Write events to this CPU's ring.
+        for (const auto& msg : large_messages) {
+            write_result = ebpf_perf_event_array_map_write(map_fd, msg.c_str(), msg.length());
+            writes_attempted++;
+            if (write_result != EBPF_SUCCESS) {
+                failed_writes++;
+            }
+        }
+
+        // Consume and verify lost events were detected.
+        consume_result = perf_buffer__consume(pb);
+
+        uint64_t received_so_far = helper.context.event_count;
+        uint64_t lost_so_far = helper.context.lost_count;
+        CAPTURE(cpu_id, consume_result, received_so_far, lost_so_far, writes_attempted, failed_writes);
+
+        // Validate event counts match: exactly events_per_ring received and lost per CPU.
+        REQUIRE(consume_result == static_cast<int>(events_per_ring));
+        REQUIRE(failed_writes == lost_so_far);
+        REQUIRE(writes_attempted == received_so_far + lost_so_far);
+    }
+}
+
+// Test lost/dropped record handling through the synchronous perf buffer API.
+// Tests three phases: normal operation, buffer overflow with lost events, and recovery.
+TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
+{
+    const size_t event_data_size = 504;
+
+    // Load native perf_event_burst program.
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    int map_fd = ebpf_fd_invalid;
+    native_module_helper_t native_helper;
+
+    native_helper.initialize("perf_event_burst", EBPF_EXECUTION_NATIVE);
+
+    int result = program_load_helper(
+        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd > 0);
+
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer
+    // (perf_buffer__free uses map_fd for IOCTLs, and bpf_object__close closes the map fd).
+    auto cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    struct bpf_map* burst_map = bpf_object__find_map_by_name(object, "burst_test_map");
+    REQUIRE(burst_map != nullptr);
+    map_fd = bpf_map__fd(burst_map);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_helper helper(false); // Don't keep records
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Local tracking variables for consumer thread.
+    std::atomic<bool> terminate_flag{false};
+    std::atomic<uint64_t> total_polled_events{0};
+
+    // Spawn consumer thread to poll perf buffer.
+    std::thread consumer_thread([&]() {
+        auto timeout_time = std::chrono::steady_clock::now() + 20s;
+        while (!terminate_flag.load() && std::chrono::steady_clock::now() < timeout_time) {
+            int poll_result = perf_buffer__poll(pb, 100);
+            // Poll returns 0 on timeout or event count on data; exact value depends on timing.
+            REQUIRE(poll_result >= 0);
+            total_polled_events.fetch_add(poll_result);
+        }
+    });
+
+    auto thread_cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        terminate_flag.store(true);
+        helper.unblock_callback();
+        if (consumer_thread.joinable()) {
+            consumer_thread.join();
+        }
+    });
+
+    // Prepare data buffer for sending.
+    std::vector<uint8_t> event_data(event_data_size);
+    for (size_t i = 0; i < event_data_size; i++) {
+        event_data[i] = static_cast<uint8_t>(i & 0xFF);
+    }
+
+    struct phase_config_t
+    {
+        bool block_callback;
+        uint32_t burst_count;
+        uint32_t iterations;
+        bool expect_overflow;
+    };
+
+    uint32_t num_cpus = static_cast<uint32_t>(libbpf_num_possible_cpus());
+    // Execute test phases: normal operation, overflow with lost events, recovery.
+    phase_config_t phases[] = {
+        {false, 32, 1, false},      // First write events with simultaneous consumer.
+        {true, 32, 1, false},       // Block in consumer callback, write enough to not overflow.
+        {true, 33, num_cpus, true}, // Block consumer callback and write enough to guarantee overflow.
+        {false, 32, 1, false},      // Ensure recovery after unblocking consumer.
+    };
+
+    for (const auto& phase : phases) {
+        uint64_t events_start = helper.context.event_count.load();
+        uint64_t lost_start = helper.context.lost_count.load();
+        uint64_t polled_start = total_polled_events.load();
+
+        if (phase.block_callback) {
+            helper.block_callback();
+        }
+
+        uint32_t phase_written = 0;
+        uint32_t phase_failed_writes = 0;
+        for (uint32_t i = 0; i < phase.iterations; i++) {
+            struct
+            {
+                EBPF_CONTEXT_HEADER;
+                sample_program_context_t context;
+            } ctx_header = {0};
+
+            ctx_header.context.uint32_data = phase.burst_count;
+            ctx_header.context.data_start = event_data.data();
+            ctx_header.context.data_end = event_data.data() + event_data.size();
+
+            bpf_test_run_opts opts = {0};
+            opts.sz = sizeof(opts);
+            opts.ctx_in = &ctx_header.context;
+            opts.ctx_size_in = sizeof(ctx_header);
+            opts.ctx_out = &ctx_header;
+            opts.ctx_size_out = sizeof(ctx_header);
+            opts.data_in = event_data.data();
+            opts.data_size_in = static_cast<uint32_t>(event_data.size());
+            opts.data_out = event_data.data();
+            opts.data_size_out = static_cast<uint32_t>(event_data.size());
+
+            int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
+            int32_t burst_result = static_cast<int32_t>(opts.retval);
+            REQUIRE(invoke_result == 0);
+            // burst_result is the BPF program's count of failed writes (0 if no overflow).
+            REQUIRE(burst_result >= 0);
+            phase_failed_writes += burst_result;
+            phase_written += phase.burst_count;
+        }
+
+        if (phase.expect_overflow) {
+            REQUIRE(phase_failed_writes > 0);
+        } else {
+            REQUIRE(phase_failed_writes == 0);
+        }
+
+        if (phase.block_callback) { // Unblock consumer to flush all records.
+            helper.unblock_callback();
+        }
+        // Wait for all callbacks to fire AND for poll to return (so total_polled_events is updated).
+        // The callbacks fire inside _process_ring_records (within poll), but total_polled_events
+        // is only updated after poll returns. We need to wait for both.
+        for (int i = 0; i < 5; i++) {
+            bool callbacks_done = (helper.context.event_count.load() + helper.context.lost_count.load()) >=
+                                  (events_start + lost_start + phase_written);
+            bool polled_done =
+                (total_polled_events.load() - polled_start) >= (helper.context.event_count.load() - events_start);
+            if (callbacks_done && polled_done) {
+                break;
+            }
+            std::this_thread::sleep_for(1s);
+        }
+
+        uint64_t phase_events = helper.context.event_count.load() - events_start;
+        uint64_t phase_lost = helper.context.lost_count.load() - lost_start;
+        uint64_t phase_polled = total_polled_events.load() - polled_start;
+        CAPTURE(phase_written, phase_failed_writes, phase_events, phase_lost, phase_polled);
+        // Validate kernel and usermode results match.
+        REQUIRE(phase_failed_writes == phase_lost);
+        REQUIRE(phase_events + phase_lost == phase_written);
+        REQUIRE(phase_polled == phase_events);
+    }
+}
+
+// Test that BPF_F_INDEX_MASK (explicit CPU index in flags) works for perf_event_output.
+// The BPF program targets a specific CPU via flags; the test validates that:
+// 1. Writing to the current CPU (matching opts.cpu) succeeds and the event is consumable.
+// 2. Writing to a different CPU (mismatching opts.cpu) fails in the BPF program.
+TEST_CASE("perf_buffer_cpu_target", "[perf_buffer]")
+{
+    // Load native perf_event_cpu_target program.
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    native_module_helper_t native_helper;
+
+    native_helper.initialize("perf_event_cpu_target", EBPF_EXECUTION_NATIVE);
+
+    int result = program_load_helper(
+        native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    REQUIRE(result == 0);
+    REQUIRE(object != nullptr);
+    REQUIRE(program_fd > 0);
+
+    // RAII cleanup for program object. Declared before helper so bpf_object outlives the perf buffer.
+    auto cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
+    struct bpf_map* target_map = bpf_object__find_map_by_name(object, "cpu_target_map");
+    REQUIRE(target_map != nullptr);
+    int map_fd = bpf_map__fd(target_map);
+    REQUIRE(map_fd > 0);
+
+    perf_buffer_test_helper helper;
+
+    // Create synchronous perf buffer.
+    auto pb = helper.create_perf_buffer(map_fd);
+    REQUIRE(pb != nullptr);
+
+    // Prepare event data buffer (mutable for data_out).
+    const size_t event_data_size = 20;
+    std::vector<uint8_t> event_data(event_data_size);
+    for (size_t i = 0; i < event_data_size; i++) {
+        event_data[i] = static_cast<uint8_t>(i & 0xFF);
+    }
+    std::string expected_payload(event_data.begin(), event_data.end());
+
+    // Helper to invoke the BPF program targeting a specific CPU index.
+    // run_cpu: CPU to run the program on (opts.cpu).
+    // target_cpu_index: CPU index to pass to the BPF program as the perf_event_output flag.
+    auto invoke_program = [&](uint32_t run_cpu, uint32_t target_cpu_index) -> int32_t {
+        struct
+        {
+            EBPF_CONTEXT_HEADER;
+            sample_program_context_t context;
+        } ctx_header = {0};
+
+        ctx_header.context.uint32_data = target_cpu_index;
+        ctx_header.context.data_start = event_data.data();
+        ctx_header.context.data_end = event_data.data() + event_data.size();
+
+        bpf_test_run_opts opts = {0};
+        opts.sz = sizeof(opts);
+        opts.ctx_in = &ctx_header.context;
+        opts.ctx_size_in = sizeof(ctx_header);
+        opts.ctx_out = &ctx_header;
+        opts.ctx_size_out = sizeof(ctx_header);
+        opts.data_in = event_data.data();
+        opts.data_size_in = static_cast<uint32_t>(event_data.size());
+        opts.data_out = event_data.data();
+        opts.data_size_out = static_cast<uint32_t>(event_data.size());
+        opts.cpu = run_cpu;
+
+        int invoke_result = bpf_prog_test_run_opts(program_fd, &opts);
+        REQUIRE(invoke_result == 0);
+        return static_cast<int32_t>(opts.retval);
+    };
+
+    uint32_t target_cpu = 0;
+
+    // Test 1: Write to current CPU (matching) should succeed.
+    {
+        int32_t bpf_result = invoke_program(target_cpu, target_cpu);
+        REQUIRE(bpf_result == 0);
+
+        // Consume the event from the target CPU's buffer.
+        int consume_result = perf_buffer__consume_buffer(pb, target_cpu);
+        REQUIRE(consume_result == 1);
+
+        // Verify event data.
+        REQUIRE(helper.context.event_count == 1);
+        helper.validate_data({expected_payload});
+    }
+
+    // Test 2: Write to a different CPU (mismatching) should fail.
+    {
+        int cpu_count = libbpf_num_possible_cpus();
+        REQUIRE(cpu_count > 1);
+
+        // Target CPU 1, but run on CPU 0 — the write should fail.
+        uint32_t wrong_cpu = 1;
+        int32_t bpf_result = invoke_program(target_cpu, wrong_cpu);
+        REQUIRE(bpf_result != 0);
+
+        // No new events should have been written to either buffer.
+        REQUIRE(perf_buffer__consume_buffer(pb, target_cpu) == 0);
+        REQUIRE(perf_buffer__consume_buffer(pb, wrong_cpu) == 0);
+    }
 }
 
 TEST_CASE("Test program order", "[native_tests]")

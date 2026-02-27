@@ -1006,6 +1006,37 @@ bpf_program__flags(const struct bpf_program* prog);
 int
 bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
 
+/* Perf buffer APIs */
+
+/**
+ * @brief Perf buffer callback function for sample data.
+ *
+ * @param[in] ctx User-provided context.
+ * @param[in] cpu CPU that generated the event.
+ * @param[in] data Pointer to event data.
+ * @param[in] size Size of event data.
+ */
+typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, __u32 size);
+
+/**
+ * @brief Perf buffer callback function for lost events.
+ *
+ * @param[in] ctx User-provided context.
+ * @param[in] cpu CPU where events were lost.
+ * @param[in] cnt Number of lost events.
+ */
+typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, __u64 cnt);
+
+/**
+ * @brief Perf buffer options structure.
+ */
+struct perf_buffer_opts
+{
+    size_t sz; /* size of this struct, for forward/backward compatibility */
+};
+
+#define perf_buffer_opts__last_field sz
+
 /**
  * @brief Create BPF perfbuf manager.
  *
@@ -1027,9 +1058,51 @@ perf_buffer__new(
     const struct perf_buffer_opts* opts);
 
 /**
+ * @brief Poll perf buffer for new data with timeout.
+ *
+ * @param[in] pb Perf buffer manager.
+ * @param[in] timeout_ms Timeout in milliseconds. -1 for infinite timeout.
+ *
+ * @returns Number of records processed on success, negative error code on failure.
+ */
+LIBBPF_API int
+perf_buffer__poll(struct perf_buffer* pb, int timeout_ms);
+
+/**
+ * @brief Consume available records without waiting.
+ *
+ * @param[in] pb Perf buffer manager.
+ *
+ * @returns Number of records processed on success, negative error code on failure.
+ */
+LIBBPF_API int
+perf_buffer__consume(struct perf_buffer* pb);
+
+/**
+ * @brief Consume records from a specific per-CPU buffer.
+ *
+ * @param[in] pb Perf buffer manager.
+ * @param[in] buf_idx Index of the per-CPU buffer.
+ *
+ * @returns Number of records processed on success, negative error code on failure.
+ */
+LIBBPF_API int
+perf_buffer__consume_buffer(struct perf_buffer* pb, size_t buf_idx);
+
+/**
+ * @brief Get the number of per-CPU buffers in the perf buffer manager.
+ *
+ * @param[in] pb Perf buffer manager.
+ *
+ * @returns Number of per-CPU buffers.
+ */
+LIBBPF_API size_t
+perf_buffer__buffer_cnt(const struct perf_buffer* pb);
+
+/**
  * @brief Free a perf buffer manager.
  *
- * @param[in] rb Pointer to perf buffer manager to be freed.
+ * @param[in] pb Pointer to perf buffer manager to be freed.
  */
 LIBBPF_API void
 perf_buffer__free(struct perf_buffer* pb);
