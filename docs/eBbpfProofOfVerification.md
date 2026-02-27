@@ -51,3 +51,37 @@ computes the cryptographic hash and checks if it is has been authorized.
 Note:
 The eBPF kernel-mode validates that the call is coming from the eBPF service by checking that it has the correct
 service SID and only allows authorization from that service.
+
+### Program Info Hash Contents
+
+The program info hash computed during verification includes all invariants that affect program safety. This ensures
+that a signed native module cannot be used in an environment different from the one it was verified against.
+
+The hash includes:
+1. `ebpf_program_type_descriptor_t` fields (name, context_descriptor, program_type, bpf_prog_type, is_privileged)
+2. Count of helper IDs being used
+3. For each helper function used (in order of ID):
+   - `ebpf_helper_function_prototype_t` fields (helper_id, name, return_type, arguments, and flags when
+     `reallocate_packet` is set)
+
+#### Planned BTF-resolved Function Dependencies
+
+Current implementation hashes program type descriptor information and helper prototypes as described above.
+BTF-resolved function dependencies are a planned extension for BTF-resolved function support.
+
+Once implemented, if the program uses BTF-resolved functions, the hash will also include:
+
+4. Count of BTF-resolved functions being used
+5. For each BTF-resolved function used (in deterministic order by module GUID, then function name):
+   - `btf_resolved_function_entry_t::name`
+   - `btf_resolved_function_entry_t::module_guid`
+   - `ebpf_btf_resolved_function_prototype_t::return_type`
+   - Each element of `ebpf_btf_resolved_function_prototype_t::arguments`
+   - `ebpf_btf_resolved_function_prototype_t::flags` (only if non-default)
+
+Including BTF-resolved function dependencies in the hash will ensure that:
+- A native module verified with BTF-resolved function provider version X cannot run with version Y if signatures differ
+- The module GUID ties the verification to a specific BTF-resolved function provider
+- Changes to BTF-resolved function prototypes invalidate the verification
+
+For more information on BTF-resolved functions, see [BtfResolvedFunctions.md](BtfResolvedFunctions.md).
