@@ -1111,6 +1111,34 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     return -ENOTSUP;
 }
 
+static uint32_t
+_ebpf_sock_addr_get_interface_type(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return (uint32_t)-1;
+}
+
+static uint32_t
+_ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return (uint64_t)-1;
+}
+
+static uint32_t
+_ebpf_sock_addr_get_sub_interface_index(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return (uint32_t)-1;
+}
+
 static uint64_t
 _ebpf_sock_addr_get_current_pid_tgid_implicit(
     uint64_t dummy_param1,
@@ -1221,7 +1249,13 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_set_redirect_context,
+    (void*)_ebpf_sock_addr_get_interface_type,
+    (void*)_ebpf_sock_addr_get_tunnel_type,
+    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
+    (void*)_ebpf_sock_addr_get_sub_interface_index,
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
