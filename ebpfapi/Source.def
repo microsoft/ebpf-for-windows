@@ -122,6 +122,8 @@ EXPORTS
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name
+    ebpf_latency_tracking_disable
+    ebpf_latency_tracking_enable
     ebpf_link_close
     ebpf_map_set_wait_handle
     ebpf_object_get

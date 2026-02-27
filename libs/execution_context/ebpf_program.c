@@ -9,6 +9,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
+#include "ebpf_latency.h"
 #include "ebpf_link.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
@@ -1236,8 +1237,8 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
-        total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_addresses = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1259,7 +1260,8 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_ids =
+            (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1540,6 +1542,16 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
+    // Latency tracking: capture start time if enabled.
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode > 0 &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
+        if (ebpf_latency_should_track_program((uint32_t)program->object.id)) {
+            latency_start = cxplat_query_time_since_boot_precise(false);
+        }
+    }
+
     ebpf_assert(context != NULL);
 
     // Set runtime state in context header.
@@ -1548,6 +1560,8 @@ ebpf_program_invoke(
     const ebpf_context_descriptor_t* context_descriptor =
         program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
+    // Set program pointer in context header.
+    ebpf_program_set_program_pointer(program, context);
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -1594,6 +1608,14 @@ ebpf_program_invoke(
             execution_state->tail_call_state.next_program = NULL;
         }
     }
+
+    // Latency tracking: emit ETW event if tracking was active.
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_program_event(
+            program->object.id, &program->parameters.program_name, latency_start, latency_end);
+    }
+
     return EBPF_SUCCESS;
 }
 
@@ -2464,6 +2486,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     const ebpf_context_descriptor_t* context_descriptor =
         context->program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
+    // Set program pointer in context header.
+    ebpf_program_set_program_pointer(context->program, program_context);
 
     uint64_t start_time = cxplat_query_time_since_boot_precise(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2687,6 +2711,22 @@ ebpf_program_get_runtime_state(_In_ const void* program_context, _Outptr_ const 
     // slot [0] contains the execution context state.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
     *state = (ebpf_execution_context_state_t*)header->context_header[0];
+}
+
+void
+ebpf_program_set_program_pointer(_In_ const ebpf_program_t* program, _Inout_ void* program_context)
+{
+    // slot [2] contains the program pointer.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[2] = (uint64_t)program;
+}
+
+const ebpf_program_t*
+ebpf_program_get_program_pointer(_In_ const void* program_context)
+{
+    // slot [2] contains the program pointer.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    return (const ebpf_program_t*)header->context_header[2];
 }
 
 uint64_t

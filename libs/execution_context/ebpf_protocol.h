@@ -55,6 +55,8 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
     EBPF_OPERATION_EPOCH_SYNCHRONIZE,
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
+    EBPF_OPERATION_LATENCY_ENABLE,
+    EBPF_OPERATION_LATENCY_DISABLE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -621,3 +623,16 @@ typedef struct _ebpf_operation_link_set_legacy_mode_request
     struct _ebpf_operation_header header;
     ebpf_handle_t link_handle;
 } ebpf_operation_link_set_legacy_mode_request_t;
+
+typedef struct _ebpf_operation_latency_enable_request
+{
+    struct _ebpf_operation_header header;
+    uint32_t mode;             // 1 = program only, 2 = program + helpers
+    uint32_t program_id_count; // 0 = track all programs; >0 = track only listed programs
+    uint32_t program_ids[1];   // Variable-length array of program IDs (program_id_count entries)
+} ebpf_operation_latency_enable_request_t;
+
+typedef struct _ebpf_operation_latency_disable_request
+{
+    struct _ebpf_operation_header header;
+} ebpf_operation_latency_disable_request_t;

@@ -9,6 +9,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
+#include "ebpf_latency.h"
 #include "ebpf_link.h"
 #include "ebpf_maps.h"
 #include "ebpf_native.h"
@@ -43,13 +44,22 @@ bool ebpf_platform_hypervisor_code_integrity_enabled = true;
 static bool _ebpf_platform_test_signing_enabled = true;
 
 static void*
-_ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
+_ebpf_core_map_find_element(
+    ebpf_map_t* map, const uint8_t* key, uint64_t dummy3, uint64_t dummy4, uint64_t dummy5, _In_ const void* ctx);
 static int64_t
-_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* data, uint64_t flags);
+_ebpf_core_map_update_element(
+    ebpf_map_t* map, const uint8_t* key, const uint8_t* data, uint64_t flags, uint64_t dummy5, _In_ const void* ctx);
 static int64_t
-_ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key);
+_ebpf_core_map_delete_element(
+    ebpf_map_t* map, const uint8_t* key, uint64_t dummy3, uint64_t dummy4, uint64_t dummy5, _In_ const void* ctx);
 static void*
-_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key);
+_ebpf_core_map_find_and_delete_element(
+    _Inout_ ebpf_map_t* map,
+    _In_ const uint8_t* key,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx);
 static int64_t
 _ebpf_core_tail_call(void* ctx, ebpf_map_t* map, uint32_t index);
 static uint64_t
@@ -69,11 +79,29 @@ static int
 _ebpf_core_ring_buffer_output(
     _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
 static int
-_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
+_ebpf_core_map_push_elem(
+    _Inout_ ebpf_map_t* map,
+    _In_ const uint8_t* value,
+    uint64_t flags,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx);
 static int
-_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_pop_elem(
+    _Inout_ ebpf_map_t* map,
+    _Out_ uint8_t* value,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx);
 static int
-_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
+_ebpf_core_map_peek_elem(
+    _Inout_ ebpf_map_t* map,
+    _Out_ uint8_t* value,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx);
 static uint64_t
 _ebpf_core_get_pid_tgid();
 static uint64_t
@@ -1161,7 +1189,8 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -2201,12 +2230,57 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-static void*
-_ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
+static ebpf_result_t
+_ebpf_core_protocol_latency_enable(_In_ const ebpf_operation_latency_enable_request_t* request)
 {
+    EBPF_LOG_ENTRY();
+
+    // Compute the number of program IDs from the variable-length portion of the request.
+    uint32_t program_id_count = request->program_id_count;
+    const uint32_t* program_ids = (program_id_count > 0) ? request->program_ids : NULL;
+
+    ebpf_result_t result = ebpf_latency_enable(request->mode, program_id_count, program_ids);
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_latency_disable(_In_ const ebpf_operation_latency_disable_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(request);
+    ebpf_result_t result = ebpf_latency_disable();
+    EBPF_RETURN_RESULT(result);
+}
+
+static void*
+_ebpf_core_map_find_element(
+    ebpf_map_t* map, const uint8_t* key, uint64_t dummy3, uint64_t dummy4, uint64_t dummy5, _In_ const void* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy3);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_lookup_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {
@@ -2215,24 +2289,98 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 }
 
 static int64_t
-_ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
+_ebpf_core_map_update_element(
+    ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags, uint64_t dummy5, _In_ const void* ctx)
 {
-    return -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int64_t result = -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_update_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int64_t
-_ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
+_ebpf_core_map_delete_element(
+    ebpf_map_t* map, const uint8_t* key, uint64_t dummy3, uint64_t dummy4, uint64_t dummy5, _In_ const void* ctx)
 {
-    return -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
+    UNREFERENCED_PARAMETER(dummy3);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int64_t result = -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_delete_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static void*
-_ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8_t* key)
+_ebpf_core_map_find_and_delete_element(
+    _Inout_ ebpf_map_t* map,
+    _In_ const uint8_t* key,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx)
 {
+    UNREFERENCED_PARAMETER(dummy3);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(
         map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_lookup_and_delete_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {
@@ -2551,21 +2699,107 @@ _ebpf_core_perf_event_output(
 }
 
 static int
-_ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
+_ebpf_core_map_push_elem(
+    _Inout_ ebpf_map_t* map,
+    _In_ const uint8_t* value,
+    uint64_t flags,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx)
 {
-    return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_push_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int
-_ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_pop_elem(
+    _Inout_ ebpf_map_t* map,
+    _Out_ uint8_t* value,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx)
 {
-    return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+    UNREFERENCED_PARAMETER(dummy3);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_pop_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int
-_ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
+_ebpf_core_map_peek_elem(
+    _Inout_ ebpf_map_t* map,
+    _Out_ uint8_t* value,
+    uint64_t dummy3,
+    uint64_t dummy4,
+    uint64_t dummy5,
+    _In_ const void* ctx)
 {
-    return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+    UNREFERENCED_PARAMETER(dummy3);
+    UNREFERENCED_PARAMETER(dummy4);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_map_peek_elem, ebpf_map_get_name(map), latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int32_t
@@ -2899,6 +3133,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(latency_enable, program_ids, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(latency_disable, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
