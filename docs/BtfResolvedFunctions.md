@@ -53,7 +53,7 @@ BTF-resolved functions enable scenarios such as:
 │  │  2. Resolve each BTF-resolved function name:                         │   │
 │  │     - Query registry (BtfResolvedFunctions) for prototype + GUID     │   │
 │  │     - Assign session-local BTF ID for (module GUID, function name)   │   │
-│  │     - Provide resolved call contract to verifier                      │   │
+│  │     - Provide resolved call contract to verifier                     │   │
 │  │  3. Verifier rewrites extern calls to call_btf(btf_id)               │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -265,6 +265,7 @@ The `program_runtime_context_t` structure is extended to include BTF-resolved fu
 ```c
 typedef struct _btf_resolved_function_data
 {
+    ebpf_native_module_header_t header; // Header for versioning and compatibility
     helper_function_t address;  // Resolved function address
 } btf_resolved_function_data_t;
 
@@ -491,8 +492,7 @@ This would simplify compatibility management when BTF-resolved function signatur
 ### 12.2 Per-Program BTF-resolved Function Authorization
 
 A policy mechanism could allow administrators to control which programs can call which BTF-resolved functions,
-providing finer-grained
-security control.
+providing finer-grained security control.
 
 ### 12.3 Dynamic BTF-resolved Function Discovery
 
