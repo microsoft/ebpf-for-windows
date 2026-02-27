@@ -252,6 +252,7 @@ This is a planned contract change, and the current `include/bpf2c.h` definition 
 ```c
 typedef struct _btf_resolved_function_data
 {
+    ebpf_native_module_header_t header;  // Header for versioning and compatibility checking
     helper_function_t address;  // Resolved function address (NULL if provider detached)
 } btf_resolved_function_data_t;
 
