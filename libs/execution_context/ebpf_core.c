@@ -2533,7 +2533,7 @@ _ebpf_core_protocol_ring_buffer_map_map_buffer(
     }
 
     // Get the consumer and producer pointers to the mapped ring buffer memory.
-    result = ebpf_ring_buffer_map_map_user(map, &consumer, &producer, &data, &data_size);
+    result = ebpf_ring_buffer_map_map_user(map, request->index, &consumer, &producer, &data, &data_size);
     if (result != EBPF_SUCCESS) {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
         return result;
@@ -2558,7 +2558,11 @@ _ebpf_core_protocol_ring_buffer_map_unmap_buffer(
     if (result != EBPF_SUCCESS)
         return result;
     result = ebpf_ring_buffer_map_unmap_user(
-        map, (const void*)request->consumer, (const void*)request->producer, (const void*)request->data);
+        map,
+        request->index,
+        (const void*)request->consumer,
+        (const void*)request->producer,
+        (const void*)request->data);
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     return result;
 }

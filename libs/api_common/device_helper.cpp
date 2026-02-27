@@ -166,7 +166,7 @@ register_wait_async_ioctl_operation(_Inout_ async_ioctl_completion_t* async_ioct
         if (!ResetEvent(event)) {
             result = win32_error_code_to_ebpf_result(GetLastError());
             _Analysis_assume_(result != EBPF_SUCCESS);
-            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, CreateEvent);
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, ResetEvent);
             goto Exit;
         }
         async_ioctl_completion->overlapped.hEvent = event;
@@ -210,7 +210,8 @@ initialize_async_ioctl_operation(
     *async_ioctl_completion = nullptr;
 
     async_ioctl_completion_context_t* local_async_ioctl_completion =
-        (async_ioctl_completion_context_t*)ebpf_allocate_with_tag(sizeof(async_ioctl_completion_context_t), EBPF_POOL_TAG_DEFAULT);
+        (async_ioctl_completion_context_t*)ebpf_allocate_with_tag(
+            sizeof(async_ioctl_completion_context_t), EBPF_POOL_TAG_DEFAULT);
     if (local_async_ioctl_completion == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;

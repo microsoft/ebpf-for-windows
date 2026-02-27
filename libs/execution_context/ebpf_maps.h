@@ -224,6 +224,7 @@ extern "C"
      * @brief Map the shared data for a ring buffer map to user space.
      *
      * @param[in] map Map to query.
+     * @param[in] index Index of map buffer to map into user space.
      * @param[out] consumer Pointer to the consumer buffer.
      * @param[out] producer Pointer to the producer buffer.
      * @param[out] data Pointer to the data buffer.
@@ -234,6 +235,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_map_user(
         _In_ const ebpf_map_t* map,
+        uint64_t index,
         _Outptr_ void** consumer,
         _Outptr_ void** producer,
         _Outptr_result_buffer_(*data_size) const uint8_t** data,
@@ -243,6 +245,7 @@ extern "C"
      * @brief Unmap the memory of a ring buffer map.
      *
      * @param[in] map Map to unmap.
+     * @param[in] index Index of map buffer to unmap from user space.
      * @param[in] consumer Pointer to the consumer buffer.
      * @param[in] producer Pointer to the producer buffer.
      * @param[in] data Pointer to the data buffer.
@@ -251,7 +254,11 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_unmap_user(
-        _In_ const ebpf_map_t* map, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+        _In_ const ebpf_map_t* map,
+        uint64_t index,
+        _In_ const void* consumer,
+        _In_ const void* producer,
+        _In_ const void* data);
 
     /**
      * @brief Set the wait handle for a map.
