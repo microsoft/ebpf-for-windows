@@ -8,6 +8,9 @@
 
 #define INITGUID
 
+#define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
+unsigned int map_pool_tag = SAMPLE_EXT_POOL_TAG_DEFAULT;
+
 #include "cxplat.h"
 #include "ebpf_extension.h"
 #include "ebpf_extension_uuids.h"
@@ -15,6 +18,7 @@
 #include "ebpf_structs.h"
 #include "sample_ext.h"
 #include "sample_ext_ioctls.h"
+#include "sample_ext_maps.h"
 #include "sample_ext_program_info.h"
 
 #include <netioddk.h>
@@ -24,9 +28,17 @@
 
 #define SAMPLE_PID_TGID_VALUE 9999
 
-#define SAMPLE_EXT_POOL_TAG_DEFAULT 'lpms'
-
 #define CXPLAT_FREE(x) cxplat_free(x, CXPLAT_POOL_FLAG_NON_PAGED, SAMPLE_EXT_POOL_TAG_DEFAULT)
+
+#define MAP_TYPE(context) (((sample_map_context_t*)(context))->core.map_type)
+
+// Define the sample map type.
+#define BPF_MAP_TYPE_SAMPLE_HASH_MAP 15
+
+NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_map_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_SAMPLE_MAP_PROVIDER_GUID};
+
+static uint64_t _map_context_offset = 0;
 
 // Sample Extension helper function addresses table.
 static uint64_t
@@ -55,12 +67,26 @@ _sample_ebpf_extension_helper_implicit_2(
     uint64_t dummy_param4,
     _In_ const sample_program_context_t* context);
 
+static void*
+_sample_ext_helper_map_lookup_element(
+    _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3);
+
+static int32_t
+_sample_ext_helper_map_get_value(
+    _In_ const void* map,
+    _In_ const uint8_t* key,
+    _Out_writes_(value_size) uint8_t* value,
+    size_t value_size,
+    uint64_t dummy_param1);
+
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
     (void*)&_sample_ebpf_extension_find,
     (void*)&_sample_ebpf_extension_replace,
     (void*)&_sample_ebpf_extension_helper_implicit_1,
-    (void*)&_sample_ebpf_extension_helper_implicit_2};
+    (void*)&_sample_ebpf_extension_helper_implicit_2,
+    (void*)&_sample_ext_helper_map_lookup_element,
+    (void*)&_sample_ext_helper_map_get_value};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -71,6 +97,132 @@ static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+
+//
+// Sample Map Provider Implementation.
+//
+typedef struct _sample_hash_map_context
+{
+    sample_core_map_t core;
+    ebpf_base_map_client_dispatch_table_t* client_dispatch;
+} sample_map_context_t;
+
+// Map provider function declarations.
+static ebpf_result_t
+_sample_map_create(
+    _In_ void* binding_context,
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _Out_ uint32_t* actual_value_size,
+    _Outptr_ void** map_context);
+
+static void
+_sample_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
+
+static ebpf_result_t
+_sample_map_find_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t in_value_size,
+    _In_reads_(in_value_size) const uint8_t* in_value,
+    size_t out_value_size,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
+    uint32_t flags);
+
+static ebpf_result_t
+_sample_map_update_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t in_value_size,
+    _In_reads_(in_value_size) const uint8_t* in_value,
+    size_t out_value_size,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
+    uint32_t flags);
+
+static ebpf_result_t
+_sample_map_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
+
+static ebpf_result_t
+_sample_map_associate_program(
+    _In_ void* binding_context, _In_ const void* map_context, _In_ const ebpf_program_type_t* program_type);
+
+// Sample map extension data.
+static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
+    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
+    .process_map_create = _sample_map_create,
+    .process_map_delete = _sample_map_delete,
+    .associate_program_function = _sample_map_associate_program,
+    .process_map_find_element = _sample_map_find_entry,
+    .process_map_add_element = _sample_map_update_entry,
+    .process_map_delete_element = _sample_map_delete_entry};
+
+static ebpf_base_map_provider_properties_t _sample_map_provider_properties = {
+    EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
+
+static ebpf_map_provider_data_t _sample_hash_map_provider_data = {
+    EBPF_MAP_PROVIDER_DATA_HEADER,
+    BPF_MAP_TYPE_SAMPLE_HASH_MAP,
+    BPF_MAP_TYPE_HASH,
+    &_sample_map_provider_properties,
+    &_sample_map_dispatch_table};
+
+// Map provider context structure.
+typedef struct _sample_ebpf_extension_map_provider
+{
+    HANDLE nmr_provider_handle;
+} sample_ebpf_extension_map_provider_t;
+
+static sample_ebpf_extension_map_provider_t _sample_ebpf_extension_hash_map_provider_context = {NULL};
+
+typedef struct _sample_extension_map_provider_binding_context
+{
+    ebpf_base_map_client_dispatch_table_t client_dispatch_table;
+} sample_extension_map_provider_binding_context_t;
+
+// Forward declarations for map provider.
+static NTSTATUS
+_sample_ebpf_extension_map_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch);
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_detach_client(_In_ const void* provider_binding_context);
+
+static void
+_sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
+
+static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hash_map_provider_characteristics = {
+    0,                                    // Version.
+    sizeof(NPI_PROVIDER_CHARACTERISTICS), // Length.
+    _sample_ebpf_extension_map_provider_attach_client,
+    _sample_ebpf_extension_map_provider_detach_client,
+    _sample_ebpf_extension_map_provider_cleanup_binding_context,
+    {
+        0,                                 // Version.
+        sizeof(NPI_REGISTRATION_INSTANCE), // Length.
+        &EBPF_MAP_INFO_EXTENSION_IID,
+        &_sample_ebpf_extension_map_provider_moduleid, // Module ID.
+        0,                                             // Number.
+        &_sample_hash_map_provider_data                // Module context (extension data).
+    }};
 
 static ebpf_result_t
 _sample_context_create(
@@ -511,6 +663,116 @@ Exit:
     return status;
 }
 
+bool
+_sample_validate_client_map_data(_In_ const ebpf_map_client_data_t* client_data)
+{
+    if (client_data->header.version != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION ||
+        client_data->header.size != EBPF_MAP_CLIENT_DATA_CURRENT_VERSION_SIZE) {
+        return false;
+    }
+    return true;
+}
+
+//
+// Map Provider Registration.
+//
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch)
+{
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+    UNREFERENCED_PARAMETER(provider_context);
+
+    sample_extension_map_provider_binding_context_t* local_provider_context = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED,
+        sizeof(sample_extension_map_provider_binding_context_t),
+        SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (local_provider_context == NULL) {
+        return STATUS_NO_MEMORY;
+    }
+
+    const ebpf_map_client_data_t* client_data =
+        (const ebpf_map_client_data_t*)client_registration_instance->NpiSpecificCharacteristics;
+    if (!_sample_validate_client_map_data(client_data)) {
+        CXPLAT_FREE(local_provider_context);
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    memcpy(
+        &local_provider_context->client_dispatch_table,
+        client_data->base_client_table,
+        min(sizeof(ebpf_base_map_client_dispatch_table_t), client_data->base_client_table->header.total_size));
+
+    // As per contract, map context offset is same for all the map instances created by the client.
+    // Save it in a global variable.
+    WriteULong64NoFence((volatile uint64_t*)&_map_context_offset, client_data->map_context_offset);
+
+    *provider_binding_context = local_provider_context;
+    *provider_dispatch = NULL;
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS
+_sample_ebpf_extension_map_provider_detach_client(_In_ const void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    return STATUS_SUCCESS;
+}
+
+static void
+_sample_ebpf_extension_map_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
+{
+    sample_extension_map_provider_binding_context_t* local_provider_context =
+        (sample_extension_map_provider_binding_context_t*)provider_binding_context;
+    CXPLAT_FREE(local_provider_context);
+}
+
+void
+sample_ebpf_extension_map_provider_unregister()
+{
+    NTSTATUS status;
+
+    if (_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle != NULL) {
+        status = NmrDeregisterProvider(_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            // Wait for clients to detach.
+            NmrWaitForProviderDeregisterComplete(_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
+        }
+        _sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle = NULL;
+    }
+}
+
+NTSTATUS
+sample_ebpf_extension_map_provider_register()
+{
+    sample_ebpf_extension_map_provider_t* local_provider_context;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    // Register provider for hash map type.
+    local_provider_context = &_sample_ebpf_extension_hash_map_provider_context;
+    status = NmrRegisterProvider(
+        &_sample_ebpf_extension_hash_map_provider_characteristics,
+        &_sample_ebpf_extension_hash_map_provider_context,
+        &_sample_ebpf_extension_hash_map_provider_context.nmr_provider_handle);
+
+    if (!NT_SUCCESS(status)) {
+        sample_ebpf_extension_map_provider_unregister();
+    }
+
+    return status;
+}
+
 _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, _Out_ uint32_t* result)
 {
@@ -734,6 +996,273 @@ _sample_ebpf_extension_helper_implicit_2(
 
     sample_program_context_t* sample_context = (sample_program_context_t*)context;
     return ((uint64_t)sample_context->helper_data_2 + arg);
+}
+
+//
+// Sample Map Implementation Functions.
+//
+static ebpf_result_t
+_sample_hash_map_create(
+    _In_ void* binding_context,
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _Out_ uint32_t* actual_value_size,
+    _Outptr_ void** map_context)
+{
+    sample_map_context_t* map_context_local = NULL;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    UNREFERENCED_PARAMETER(map_type);
+    UNREFERENCED_PARAMETER(binding_context);
+
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table =
+        &((sample_extension_map_provider_binding_context_t*)binding_context)->client_dispatch_table;
+
+    // This is an object map. Both key and value sizes should be 4 bytes.
+    if (key_size != 4 || value_size != 4) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    map_context_local = client_dispatch_table->epoch_allocate_cache_aligned_with_tag(
+        sizeof(sample_map_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (map_context_local == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    memset(map_context_local, 0, sizeof(sample_map_context_t));
+    map_context_local->core.map_type = BPF_MAP_TYPE_SAMPLE_HASH_MAP;
+    map_context_local->core.key_size = key_size;
+    map_context_local->core.value_size = value_size;
+    map_context_local->core.max_entries = max_entries;
+    map_context_local->client_dispatch = client_dispatch_table;
+
+    *map_context = (void*)map_context_local;
+    *actual_value_size = sizeof(uint8_t*);
+    map_context_local = NULL;
+
+Exit:
+    if (map_context_local != NULL) {
+        client_dispatch_table->epoch_free_cache_aligned(map_context_local);
+    }
+    return result;
+}
+
+static void
+_sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    sample_map_context_t* context = (sample_map_context_t*)map_context;
+    if (context == NULL) {
+        return;
+    }
+
+    ebpf_base_map_client_dispatch_table_t* client_dispatch_table = context->client_dispatch;
+    client_dispatch_table->epoch_free_cache_aligned(context);
+}
+
+static ebpf_result_t
+_sample_hash_map_find_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t in_value_size,
+    _In_reads_(in_value_size) const uint8_t* in_value,
+    size_t out_value_size,
+    _Out_writes_(out_value_size) uint8_t* out_value,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    UNREFERENCED_PARAMETER(map_context);
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(key);
+
+    return _sample_object_hash_map_find_entry_common(in_value_size, in_value, out_value_size, out_value);
+}
+
+static void*
+_sample_ext_helper_map_lookup_element(
+    _In_ const void* map, _In_ const uint8_t* key, uint64_t dummy_param1, uint64_t dummy_param2, uint64_t dummy_param3)
+{
+    UNREFERENCED_PARAMETER(map);
+    UNREFERENCED_PARAMETER(key);
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+
+    // Since this is an object map, return NULL.
+    return NULL;
+}
+
+static int32_t
+_sample_ext_helper_map_get_value(
+    _In_ const void* map,
+    _In_ const uint8_t* key,
+    _Out_writes_(value_size) uint8_t* value,
+    size_t value_size,
+    uint64_t dummy_param1)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+
+    sample_map_context_t** map_context = (sample_map_context_t**)MAP_CONTEXT(map, _map_context_offset);
+    if (*map_context == NULL) {
+        return -1;
+    }
+
+    // Call client dispatch to find the entry.
+    uint8_t* local_value = NULL;
+    ebpf_result_t result = (*map_context)->client_dispatch->find_element_function(map, key, &local_value);
+
+    if (result != EBPF_SUCCESS || local_value == NULL) {
+        return -1;
+    }
+
+    sample_hash_map_entry_t* object = (sample_hash_map_entry_t*)(*(uint8_t**)local_value);
+    memcpy(value, &object->value, value_size);
+
+    return 0;
+}
+
+static ebpf_result_t
+_sample_map_create(
+    _In_ void* binding_context,
+    uint32_t map_type,
+    uint32_t key_size,
+    uint32_t value_size,
+    uint32_t max_entries,
+    _Out_ uint32_t* actual_value_size,
+    _Outptr_ void** map_context)
+{
+    if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        return _sample_hash_map_create(
+            binding_context, map_type, key_size, value_size, max_entries, actual_value_size, map_context);
+    }
+    return EBPF_INVALID_ARGUMENT;
+}
+
+static void
+_sample_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context)
+{
+    uint32_t map_type = MAP_TYPE(map_context);
+
+    if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        _sample_hash_map_delete(binding_context, map_context);
+    } else {
+        __fastfail(FAST_FAIL_INVALID_ARG);
+    }
+}
+
+static ebpf_result_t
+_sample_map_find_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t in_value_size,
+    _In_reads_(in_value_size) const uint8_t* in_value,
+    size_t out_value_size,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(key);
+
+    sample_map_context_t* context = (sample_map_context_t*)map_context;
+
+    // As this is an object map, block lookup from BPF program.
+    if ((flags & EBPF_MAP_OPERATION_HELPER)) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    uint32_t map_type = MAP_TYPE(context);
+    if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        return _sample_object_hash_map_find_entry_common(in_value_size, in_value, out_value_size, out_value);
+    } else {
+        return EBPF_INVALID_ARGUMENT;
+    }
+}
+
+static ebpf_result_t
+_sample_map_update_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t in_value_size,
+    _In_reads_(in_value_size) const uint8_t* in_value,
+    size_t out_value_size,
+    _Out_writes_opt_(out_value_size) uint8_t* out_value,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(key);
+
+    if (key == NULL || in_value == NULL || out_value == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    sample_map_context_t* context = (sample_map_context_t*)map_context;
+
+    // Disallow update from BPF program as this is an object map.
+    if (flags & EBPF_MAP_OPERATION_HELPER) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    uint32_t map_type = MAP_TYPE(context);
+    if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        return _sample_object_hash_map_update_entry_common(
+            context->client_dispatch, in_value_size, in_value, out_value_size, out_value);
+    } else {
+        return EBPF_INVALID_ARGUMENT;
+    }
+}
+
+static ebpf_result_t
+_sample_map_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    UNREFERENCED_PARAMETER(key_size);
+    UNREFERENCED_PARAMETER(key);
+
+    sample_map_context_t* context = (sample_map_context_t*)map_context;
+
+    // Disallow delete from BPF program as this is an object map.
+    if (flags & EBPF_MAP_OPERATION_HELPER) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    uint32_t map_type = MAP_TYPE(context);
+    if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
+        return _sample_object_hash_map_delete_entry_common(context->client_dispatch, value_size, value, flags);
+    } else {
+        return EBPF_INVALID_ARGUMENT;
+    }
+}
+
+static ebpf_result_t
+_sample_map_associate_program(
+    _In_ void* binding_context, _In_ const void* map_context, _In_ const ebpf_program_type_t* program_type)
+{
+    UNREFERENCED_PARAMETER(binding_context);
+    UNREFERENCED_PARAMETER(map_context);
+
+    if (memcmp(program_type, &EBPF_PROGRAM_TYPE_SAMPLE, sizeof(ebpf_program_type_t)) != 0) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t

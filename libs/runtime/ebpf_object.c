@@ -140,7 +140,7 @@ _ebpf_object_tracking_list_remove(_In_ const ebpf_core_object_t* object)
     ebpf_assert(entry->object == object);
     entry->object = NULL;
 
-    ebpf_assert_success(ebpf_hash_table_delete(_ebpf_id_table, (const uint8_t*)&object->id));
+    ebpf_assert_success(ebpf_hash_table_delete(_ebpf_id_table, NULL, (const uint8_t*)&object->id));
 }
 
 ebpf_result_t
@@ -228,7 +228,7 @@ ebpf_object_initialize(
 
     // Use EBPF_HASH_TABLE_OPERATION_INSERT so that it fails if the key already exists.
     result = ebpf_hash_table_update(
-        _ebpf_id_table, (const uint8_t*)&object->id, (const uint8_t*)&entry, EBPF_HASH_TABLE_OPERATION_INSERT);
+        _ebpf_id_table, NULL, (const uint8_t*)&object->id, (const uint8_t*)&entry, EBPF_HASH_TABLE_OPERATION_INSERT);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_POINTER_ENUM(
             EBPF_TRACELOG_LEVEL_ERROR,

@@ -279,6 +279,11 @@ ebpf_core_initiate()
         goto Done;
     }
 
+    return_value = ebpf_maps_initiate();
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     return_value = ebpf_state_initiate();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
@@ -354,6 +359,8 @@ ebpf_core_terminate()
     ebpf_core_terminate_pinning_table();
 
     ebpf_state_terminate();
+
+    ebpf_maps_terminate();
 
     // Verify that all ebpf_core_object_t objects have been freed.
     ebpf_object_tracking_terminate();
@@ -1161,7 +1168,8 @@ _ebpf_core_protocol_program_test_run(
         goto Done;
     }
 
-    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
+    options = (ebpf_program_test_run_options_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_test_run_options_t), EBPF_POOL_TAG_DEFAULT);
     if (!options) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -2525,7 +2533,7 @@ _ebpf_core_protocol_ring_buffer_map_map_buffer(
     }
 
     // Get the consumer and producer pointers to the mapped ring buffer memory.
-    result = ebpf_ring_buffer_map_map_user(map, &consumer, &producer, &data, &data_size);
+    result = ebpf_ring_buffer_map_map_user(map, request->index, &consumer, &producer, &data, &data_size);
     if (result != EBPF_SUCCESS) {
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
         return result;
@@ -2550,7 +2558,11 @@ _ebpf_core_protocol_ring_buffer_map_unmap_buffer(
     if (result != EBPF_SUCCESS)
         return result;
     result = ebpf_ring_buffer_map_unmap_user(
-        map, (const void*)request->consumer, (const void*)request->producer, (const void*)request->data);
+        map,
+        request->index,
+        (const void*)request->consumer,
+        (const void*)request->producer,
+        (const void*)request->data);
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     return result;
 }
