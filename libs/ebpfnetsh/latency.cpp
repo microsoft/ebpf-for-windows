@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <map>
 #include <string>
+#include <tuple>
 #include <vector>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -22,6 +23,7 @@
 #pragma comment(lib, "tdh.lib")
 
 #define TOKEN_MODE L"mode"
+#define TOKEN_PROGRAMS L"programs"
 
 typedef enum
 {
@@ -47,8 +49,10 @@ handle_ebpf_set_latency(
 
     TAG_TYPE tags[] = {
         {TOKEN_MODE, NS_REQ_PRESENT, FALSE},
+        {TOKEN_PROGRAMS, NS_REQ_ZERO, FALSE},
     };
     const int MODE_INDEX = 0;
+    const int PROGRAMS_INDEX = 1;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -60,6 +64,8 @@ handle_ebpf_set_latency(
     }
 
     uint32_t mode = LATENCY_MODE_OFF;
+    std::vector<uint32_t> program_ids;
+
     for (DWORD i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case MODE_INDEX: {
@@ -71,6 +77,22 @@ handle_ebpf_set_latency(
                 (unsigned long*)&mode);
             if (status != NO_ERROR) {
                 status = ERROR_INVALID_PARAMETER;
+            }
+            break;
+        }
+        case PROGRAMS_INDEX: {
+            // Parse comma-separated list of program IDs: "3,7,12"
+            LPWSTR token_context = nullptr;
+            LPWSTR token = wcstok_s(argv[current_index + i], L",", &token_context);
+            while (token != nullptr) {
+                WCHAR* end_ptr = nullptr;
+                unsigned long id = wcstoul(token, &end_ptr, 10);
+                if (end_ptr == token || *end_ptr != L'\0') {
+                    printf("Error: invalid program ID '%ls'.\n", token);
+                    return ERROR_INVALID_PARAMETER;
+                }
+                program_ids.push_back(static_cast<uint32_t>(id));
+                token = wcstok_s(nullptr, L",", &token_context);
             }
             break;
         }
@@ -88,16 +110,34 @@ handle_ebpf_set_latency(
     if (mode == LATENCY_MODE_OFF) {
         result = ebpf_latency_tracking_disable();
         if (result == EBPF_SUCCESS) {
-            printf("Latency tracking disabled.\n");
+            printf("Latency tracking disabled. Session released.\n");
         }
     } else {
-        result = ebpf_latency_tracking_enable(mode);
+        result = ebpf_latency_tracking_enable(
+            mode, static_cast<uint32_t>(program_ids.size()), program_ids.empty() ? nullptr : program_ids.data());
         if (result == EBPF_SUCCESS) {
             if (mode == LATENCY_MODE_PROGRAM) {
-                printf("Latency tracking enabled (mode=program).\n");
+                printf("Latency tracking enabled (mode=program");
             } else {
-                printf("Latency tracking enabled (mode=program+helpers).\n");
+                printf("Latency tracking enabled (mode=program+helpers");
             }
+            if (!program_ids.empty()) {
+                printf(", filter=[");
+                for (size_t j = 0; j < program_ids.size(); j++) {
+                    if (j > 0) {
+                        printf(", ");
+                    }
+                    printf("%u", program_ids[j]);
+                }
+                printf("]");
+            } else {
+                printf(", filter=all");
+            }
+            printf(").\n");
+        } else if (result == EBPF_INVALID_STATE) {
+            printf("Error: Another latency tracking session is already active.\n");
+            printf("Use 'netsh ebpf set latency mode=off' from the owning session first.\n");
+            return ERROR_SUPPRESS_OUTPUT;
         }
     }
 
@@ -368,14 +408,20 @@ _helper_function_name(uint32_t id)
     }
 }
 
+// Helper key type for grouping map helper durations by (program_id, helper_id, map_name).
+typedef std::tuple<uint32_t, uint32_t, std::string> helper_key_t;
+
 // Context passed through the ETW consumer callback.
 typedef struct _latency_trace_context
 {
     // program_id -> vector of durations (100-ns units).
     std::map<uint32_t, std::vector<uint64_t>> program_durations;
 
-    // (program_id, helper_id) -> vector of durations (100-ns units).
-    std::map<std::pair<uint32_t, uint32_t>, std::vector<uint64_t>> helper_durations;
+    // program_id -> program name (first name seen for each id).
+    std::map<uint32_t, std::string> program_names;
+
+    // (program_id, helper_id, map_name) -> vector of durations (100-ns units).
+    std::map<helper_key_t, std::vector<uint64_t>> helper_durations;
 
     // Extension events: program_id -> vector of durations (100-ns units).
     std::map<uint32_t, std::vector<uint64_t>> ext_durations;
@@ -429,12 +475,41 @@ _get_uint8_property(_In_ PEVENT_RECORD event, _In_z_ LPCWSTR property_name)
     return value;
 }
 
+// Extract a string property from a TDH-decoded event by name.
+static std::string
+_get_string_property(_In_ PEVENT_RECORD event, _In_z_ LPCWSTR property_name)
+{
+    PROPERTY_DATA_DESCRIPTOR descriptor = {};
+    descriptor.PropertyName = (ULONGLONG)property_name;
+    descriptor.ArrayIndex = ULONG_MAX;
+
+    ULONG property_size = 0;
+    DWORD status = TdhGetPropertySize(event, 0, nullptr, 1, &descriptor, &property_size);
+    if (status != ERROR_SUCCESS || property_size == 0) {
+        return "";
+    }
+
+    std::string value(property_size, '\0');
+    status = TdhGetProperty(event, 0, nullptr, 1, &descriptor, property_size, (PBYTE)value.data());
+    if (status != ERROR_SUCCESS) {
+        return "";
+    }
+
+    // Remove trailing null if present.
+    while (!value.empty() && value.back() == '\0') {
+        value.pop_back();
+    }
+    return value;
+}
+
 // Print a single event as a CSV row.
 static void
 _print_csv_event(
     _In_z_ const char* event_type,
     uint32_t program_id,
+    _In_z_ const char* program_name,
     uint32_t helper_function_id,
+    _In_z_ const char* map_name,
     uint32_t process_id,
     uint32_t thread_id,
     uint64_t start_time,
@@ -444,10 +519,12 @@ _print_csv_event(
     uint8_t irql)
 {
     printf(
-        "%s,%u,%u,%u,%u,%llu,%llu,%llu,%u,%u\n",
+        "%s,%u,%s,%u,%s,%u,%u,%llu,%llu,%llu,%u,%u\n",
         event_type,
         program_id,
+        program_name,
         helper_function_id,
+        map_name,
         process_id,
         thread_id,
         (unsigned long long)start_time,
@@ -510,7 +587,13 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
 
     if (is_core && wcscmp(event_name, L"EbpfProgramLatency") == 0) {
         uint32_t program_id = _get_uint32_property(event_record, L"ProgramId");
+        std::string program_name_str = _get_string_property(event_record, L"ProgramName");
         uint64_t duration = _get_uint64_property(event_record, L"Duration");
+
+        // Track program name (first seen wins).
+        if (!program_name_str.empty() && ctx->program_names.find(program_id) == ctx->program_names.end()) {
+            ctx->program_names[program_id] = program_name_str;
+        }
 
         if (ctx->csv_format) {
             uint32_t helper_id = _get_uint32_property(event_record, L"HelperFunctionId");
@@ -523,7 +606,9 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
             _print_csv_event(
                 "ProgramInvoke",
                 program_id,
+                program_name_str.c_str(),
                 helper_id,
+                "",
                 process_id,
                 thread_id,
                 start_time,
@@ -538,6 +623,7 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
     } else if (is_core && wcscmp(event_name, L"EbpfMapHelperLatency") == 0) {
         uint32_t program_id = _get_uint32_property(event_record, L"ProgramId");
         uint32_t helper_id = _get_uint32_property(event_record, L"HelperFunctionId");
+        std::string map_name_str = _get_string_property(event_record, L"MapName");
         uint64_t duration = _get_uint64_property(event_record, L"Duration");
 
         if (ctx->csv_format) {
@@ -550,7 +636,9 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
             _print_csv_event(
                 "MapHelper",
                 program_id,
+                "",
                 helper_id,
+                map_name_str.c_str(),
                 process_id,
                 thread_id,
                 start_time,
@@ -559,7 +647,7 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
                 cpu_id,
                 irql);
         } else {
-            ctx->helper_durations[{program_id, helper_id}].push_back(duration);
+            ctx->helper_durations[{program_id, helper_id, map_name_str}].push_back(duration);
         }
         ctx->total_events++;
     } else if (is_ext && wcscmp(event_name, L"NetEbpfExtInvokeLatency") == 0) {
@@ -574,7 +662,18 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
             uint64_t end_time = _get_uint64_property(event_record, L"ExtEndTime");
             uint8_t cpu_id = _get_uint8_property(event_record, L"CpuId");
             _print_csv_event(
-                "ExtInvoke", program_id, hook_type, process_id, thread_id, start_time, end_time, duration, cpu_id, 0);
+                "ExtInvoke",
+                program_id,
+                "",
+                hook_type,
+                "",
+                process_id,
+                thread_id,
+                start_time,
+                end_time,
+                duration,
+                cpu_id,
+                0);
         } else {
             ctx->ext_durations[program_id].push_back(duration);
         }
@@ -724,8 +823,8 @@ handle_ebpf_show_latencytrace(
 
     // Print CSV header if in CSV mode.
     if (ctx.csv_format) {
-        printf("EventType,ProgramId,HelperFunctionId,ProcessId,ThreadId,"
-               "StartTime,EndTime,Duration_ns,CpuId,Irql\n");
+        printf("EventType,ProgramId,ProgramName,HelperFunctionId,MapName,"
+               "ProcessId,ThreadId,StartTime,EndTime,Duration_ns,CpuId,Irql\n");
     }
 
     // Process all events in the file.
@@ -759,8 +858,9 @@ handle_ebpf_show_latencytrace(
     if (!ctx.program_durations.empty()) {
         printf("Program Invocation Summary:\n");
         printf(
-            "  %-12s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
             "Program ID",
+            "Program Name",
             "Invocations",
             "Avg (ns)",
             "P50 (ns)",
@@ -768,8 +868,9 @@ handle_ebpf_show_latencytrace(
             "P99 (ns)",
             "Max (ns)");
         printf(
-            "  %-12s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
             "----------",
+            "--------------------",
             "-----------",
             "--------",
             "--------",
@@ -780,9 +881,14 @@ handle_ebpf_show_latencytrace(
         for (auto& [prog_id, durations] : ctx.program_durations) {
             uint64_t avg, p50, p95, p99, max_val;
             _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
+
+            auto name_it = ctx.program_names.find(prog_id);
+            const char* prog_name = (name_it != ctx.program_names.end()) ? name_it->second.c_str() : "";
+
             printf(
-                "  %-12u %-13s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-12u %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
                 prog_id,
+                prog_name,
                 _format_number(durations.size()).c_str(),
                 _format_number(avg).c_str(),
                 _format_number(p50).c_str(),
@@ -796,16 +902,23 @@ handle_ebpf_show_latencytrace(
     // Map Helper Summary (grouped by program).
     if (!ctx.helper_durations.empty()) {
         // Group by program_id.
-        std::map<uint32_t, std::vector<std::pair<uint32_t, std::vector<uint64_t>*>>> by_program;
+        std::map<uint32_t, std::vector<std::tuple<uint32_t, std::string, std::vector<uint64_t>*>>> by_program;
         for (auto& [key, durations] : ctx.helper_durations) {
-            by_program[key.first].push_back({key.second, &durations});
+            auto& [pid, hid, mname] = key;
+            by_program[pid].push_back({hid, mname, &durations});
         }
 
         for (auto& [prog_id, helpers] : by_program) {
-            printf("Map Helper Summary (Program %u):\n", prog_id);
+            auto name_it = ctx.program_names.find(prog_id);
+            if (name_it != ctx.program_names.end() && !name_it->second.empty()) {
+                printf("Map Helper Summary (Program %u - %s):\n", prog_id, name_it->second.c_str());
+            } else {
+                printf("Map Helper Summary (Program %u):\n", prog_id);
+            }
             printf(
-                "  %-24s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
                 "Helper",
+                "Map Name",
                 "Calls",
                 "Avg (ns)",
                 "P50 (ns)",
@@ -813,7 +926,8 @@ handle_ebpf_show_latencytrace(
                 "P99 (ns)",
                 "Max (ns)");
             printf(
-                "  %-24s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                "--------------------",
                 "--------------------",
                 "---------",
                 "--------",
@@ -822,20 +936,23 @@ handle_ebpf_show_latencytrace(
                 "--------",
                 "--------");
 
-            for (auto& [helper_id, durations_ptr] : helpers) {
+            for (auto& [helper_id, map_name_str, durations_ptr] : helpers) {
                 uint64_t avg, p50, p95, p99, max_val;
                 _compute_stats(*durations_ptr, &avg, &p50, &p95, &p99, &max_val);
 
-                const char* name = _helper_function_name(helper_id);
-                char name_buf[32];
-                if (name == nullptr) {
-                    sprintf_s(name_buf, sizeof(name_buf), "helper_%u", helper_id);
-                    name = name_buf;
+                const char* helper_name = _helper_function_name(helper_id);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", helper_id);
+                    helper_name = helper_name_buf;
                 }
 
+                const char* map_display = map_name_str.empty() ? "(unknown)" : map_name_str.c_str();
+
                 printf(
-                    "  %-24s %-11s %-11s %-11s %-11s %-11s %-11s\n",
-                    name,
+                    "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                    helper_name,
+                    map_display,
                     _format_number(durations_ptr->size()).c_str(),
                     _format_number(avg).c_str(),
                     _format_number(p50).c_str(),
@@ -851,8 +968,9 @@ handle_ebpf_show_latencytrace(
     if (!ctx.ext_durations.empty()) {
         printf("Extension Invoke Latency Summary:\n");
         printf(
-            "  %-12s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
             "Program ID",
+            "Program Name",
             "Invocations",
             "Avg (ns)",
             "P50 (ns)",
@@ -860,8 +978,9 @@ handle_ebpf_show_latencytrace(
             "P99 (ns)",
             "Max (ns)");
         printf(
-            "  %-12s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
             "----------",
+            "--------------------",
             "-----------",
             "--------",
             "--------",
@@ -872,9 +991,14 @@ handle_ebpf_show_latencytrace(
         for (auto& [prog_id, durations] : ctx.ext_durations) {
             uint64_t avg, p50, p95, p99, max_val;
             _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
+
+            auto name_it = ctx.program_names.find(prog_id);
+            const char* prog_name = (name_it != ctx.program_names.end()) ? name_it->second.c_str() : "";
+
             printf(
-                "  %-12u %-13s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-12u %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
                 prog_id,
+                prog_name,
                 _format_number(durations.size()).c_str(),
                 _format_number(avg).c_str(),
                 _format_number(p50).c_str(),

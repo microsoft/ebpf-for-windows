@@ -627,7 +627,9 @@ typedef struct _ebpf_operation_link_set_legacy_mode_request
 typedef struct _ebpf_operation_latency_enable_request
 {
     struct _ebpf_operation_header header;
-    uint32_t mode; // 1 = program only, 2 = program + helpers
+    uint32_t mode;             // 1 = program only, 2 = program + helpers
+    uint32_t program_id_count; // 0 = track all programs; >0 = track only listed programs
+    uint32_t program_ids[1];   // Variable-length array of program IDs (program_id_count entries)
 } ebpf_operation_latency_enable_request_t;
 
 typedef struct _ebpf_operation_latency_disable_request

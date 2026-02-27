@@ -24,6 +24,8 @@ The design is also forward-looking: the same mechanism can be extended to **eBPF
 | R5 | Overhead when disabled must be near-zero (single global flag check). |
 | R6 | The mechanism must work at **DISPATCH_LEVEL** (program invoke runs at IRQL ≤ DISPATCH). |
 | R7 | Extensible to eBPF extensions to produce end-to-end latency data. |
+| R8 | An optional **program ID filter list** can be provided at enable time; when specified, only programs in that list are tracked. When omitted, all programs are tracked. |
+| R9 | **Single-session enforcement**: only one latency tracking session may be active at a time. A second enable request must be rejected with an appropriate error until the current session is disabled. |
 
 ---
 
@@ -120,14 +122,26 @@ Two event IDs (logically distinguished by the `HelperFunctionId` field):
 ### 5.3 Global Latency State
 
 ```c
+#define EBPF_LATENCY_MAX_PROGRAM_FILTER 64  // Maximum number of program IDs in the filter list
+
 typedef struct _ebpf_latency_state {
     volatile long enabled;   // 0 = off, 1 = program only, 2 = program + helpers
+    volatile long session_active;  // 0 = no active session, 1 = session in progress
+
+    // Program ID filter list. When program_id_count == 0, all programs are tracked.
+    // When program_id_count > 0, only the listed programs are tracked.
+    uint32_t program_id_count;
+    uint32_t program_ids[EBPF_LATENCY_MAX_PROGRAM_FILTER];
 } ebpf_latency_state_t;
 
 static ebpf_latency_state_t _ebpf_latency_state = {0};
 ```
 
-A single `ReadNoFence(&_ebpf_latency_state.enabled)` check in the hot path ensures **zero overhead** when tracking is disabled. No memory allocation is needed — the OS ETW infrastructure handles all buffering.
+A single `ReadNoFence(&_ebpf_latency_state.enabled)` check in the hot path ensures **zero overhead** when tracking is disabled.
+
+**Session guard**: The `session_active` flag is set via `InterlockedCompareExchange` during enable. If another session is already active, the enable request is rejected with `EBPF_ALREADY_IN_PROGRESS`. This prevents conflicting concurrent configurations (e.g., different filter lists or modes).
+
+**Program ID filter**: When `program_id_count > 0`, the hot path performs a linear scan of the filter list to check whether the current program's ID matches. With a maximum of 64 entries (typical usage is 1–5 programs), this scan is negligible compared to the cost of timestamp acquisition and ETW event emission. For the common case where no filter is set (`program_id_count == 0`), there is no additional cost beyond reading the count.
 
 ---
 
@@ -136,6 +150,23 @@ A single `ReadNoFence(&_ebpf_latency_state.enabled)` check in the hot path ensur
 ### 6.1 Program Invocation (`ebpf_program_invoke`)
 
 ```c
+// Returns TRUE if the given program_id is in the filter list,
+// or if no filter is set (program_id_count == 0, meaning track all).
+static inline BOOLEAN
+_ebpf_latency_should_track_program(uint32_t program_id)
+{
+    uint32_t count = _ebpf_latency_state.program_id_count;
+    if (count == 0) {
+        return TRUE;  // No filter — track all programs.
+    }
+    for (uint32_t i = 0; i < count; i++) {
+        if (_ebpf_latency_state.program_ids[i] == program_id) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
@@ -148,7 +179,12 @@ ebpf_program_invoke(
     uint64_t latency_start = 0;
     long latency_mode = ReadNoFence(&_ebpf_latency_state.enabled);
     if (latency_mode > 0) {
-        latency_start = cxplat_query_time_since_boot_precise(false);
+        uint32_t prog_id = ((const ebpf_core_object_t*)program)->id;
+        if (_ebpf_latency_should_track_program(prog_id)) {
+            latency_start = cxplat_query_time_since_boot_precise(false);
+        } else {
+            latency_mode = 0;  // Skip tracking for this invocation.
+        }
     }
 
     // --- existing program invocation + tail call loop ---
@@ -175,7 +211,13 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
     uint64_t latency_start = 0;
     long latency_mode = ReadNoFence(&_ebpf_latency_state.enabled);
     if (latency_mode >= 2) {
-        latency_start = cxplat_query_time_since_boot_precise(false);
+        // Check program ID filter. Resolve owning program from the map.
+        uint32_t prog_id = ebpf_map_get_program_id(map);
+        if (_ebpf_latency_should_track_program(prog_id)) {
+            latency_start = cxplat_query_time_since_boot_precise(false);
+        } else {
+            latency_mode = 0;  // Skip tracking for this helper call.
+        }
     }
 
     // --- existing logic ---
@@ -311,7 +353,10 @@ typedef enum _ebpf_operation_id
 ```c
 typedef struct _ebpf_operation_latency_enable_request {
     ebpf_operation_header_t header;
-    uint32_t mode;            // 1 = program only, 2 = program + helpers
+    uint32_t mode;                // 1 = program only, 2 = program + helpers
+    uint32_t program_id_count;    // 0 = track all programs; >0 = track only listed programs
+    uint32_t program_ids[0];      // Variable-length array of program IDs to filter on
+                                  // (program_id_count entries; max EBPF_LATENCY_MAX_PROGRAM_FILTER)
 } ebpf_operation_latency_enable_request_t;
 
 typedef struct _ebpf_operation_latency_enable_reply {
@@ -327,7 +372,67 @@ typedef struct _ebpf_operation_latency_disable_reply {
 } ebpf_operation_latency_disable_reply_t;
 ```
 
+The enable request uses a variable-length array for the program ID filter. The total request size is:
+`sizeof(ebpf_operation_latency_enable_request_t) + program_id_count * sizeof(uint32_t)`.
+The handler validates `program_id_count <= EBPF_LATENCY_MAX_PROGRAM_FILTER` and that the buffer size is consistent.
+
 No flush IOCTL is needed — ETW handles data delivery to the consumer.
+
+#### Session Guard Logic (Enable Handler)
+
+```c
+static ebpf_result_t
+_ebpf_core_handle_latency_enable(
+    _In_ const ebpf_operation_latency_enable_request_t* request)
+{
+    // Validate mode.
+    if (request->mode < 1 || request->mode > 2) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Validate program_id_count.
+    if (request->program_id_count > EBPF_LATENCY_MAX_PROGRAM_FILTER) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Atomically claim the session. Only one session at a time.
+    long previous = InterlockedCompareExchange(
+        &_ebpf_latency_state.session_active, 1, 0);
+    if (previous != 0) {
+        return EBPF_ALREADY_IN_PROGRESS;  // Another session is active.
+    }
+
+    // Populate the program ID filter list (under session_active guard).
+    _ebpf_latency_state.program_id_count = request->program_id_count;
+    for (uint32_t i = 0; i < request->program_id_count; i++) {
+        _ebpf_latency_state.program_ids[i] = request->program_ids[i];
+    }
+
+    // Enable latency tracking last (write-release semantics).
+    InterlockedExchange(&_ebpf_latency_state.enabled, request->mode);
+
+    return EBPF_SUCCESS;
+}
+```
+
+#### Session Guard Logic (Disable Handler)
+
+```c
+static ebpf_result_t
+_ebpf_core_handle_latency_disable(void)
+{
+    // Disable tracking first.
+    InterlockedExchange(&_ebpf_latency_state.enabled, 0);
+
+    // Clear filter list.
+    _ebpf_latency_state.program_id_count = 0;
+
+    // Release the session.
+    InterlockedExchange(&_ebpf_latency_state.session_active, 0);
+
+    return EBPF_SUCCESS;
+}
+```
 
 ### 7.2 Netsh Commands
 
@@ -335,9 +440,9 @@ New file: `tools/netsh/latency.c`
 
 | Command | Description |
 |---------|-------------|
-| `netsh ebpf set latency mode=program` | Enable program-invocation-only tracking (sets global flag). |
-| `netsh ebpf set latency mode=all` | Enable program + map helper tracking. |
-| `netsh ebpf set latency mode=off` | Disable tracking. |
+| `netsh ebpf set latency mode=program [programs=<id1,id2,...>]` | Enable program-invocation-only tracking. Optionally restrict to the listed program IDs. |
+| `netsh ebpf set latency mode=all [programs=<id1,id2,...>]` | Enable program + map helper tracking. Optionally restrict to the listed program IDs. |
+| `netsh ebpf set latency mode=off` | Disable tracking and release the session. |
 | `netsh ebpf start latencytrace [file=<path>] [buffersize=<MB>]` | Start an ETW trace session pre-configured for latency events. |
 | `netsh ebpf stop latencytrace` | Stop the ETW trace session and save to `.etl` file. |
 | `netsh ebpf show latencytrace file=<path.etl>` | Parse and display latency records from an `.etl` file. |
@@ -354,11 +459,25 @@ This provides a turnkey experience — users don't need to know ETW details.
 
 ```c
 // In ebpf_api.h
-ebpf_result_t ebpf_latency_enable(uint32_t mode);
+
+/// @brief Enable latency tracking.
+/// @param[in] mode 1 = program invocation only, 2 = program + map helpers.
+/// @param[in] program_id_count Number of program IDs in the filter list (0 = track all).
+/// @param[in] program_ids Optional array of program IDs to track (NULL when program_id_count == 0).
+/// @retval EBPF_SUCCESS Tracking enabled successfully.
+/// @retval EBPF_ALREADY_IN_PROGRESS Another latency tracking session is already active.
+/// @retval EBPF_INVALID_ARGUMENT Invalid mode or program_id_count exceeds maximum.
+ebpf_result_t ebpf_latency_enable(
+    uint32_t mode,
+    uint32_t program_id_count,
+    _In_reads_opt_(program_id_count) const uint32_t* program_ids);
+
 ebpf_result_t ebpf_latency_disable(void);
 ```
 
 These are thin wrappers around the IOCTLs. No flush/read API is needed since data flows through ETW.
+
+`ebpf_latency_enable` returns `EBPF_ALREADY_IN_PROGRESS` if another session is already active. The caller must call `ebpf_latency_disable` from the owning session before a new session can be started.
 
 Registration in `dllmain.c`:
 
@@ -500,13 +619,13 @@ Values are in **100-nanosecond** units (FILETIME). Convert to nanoseconds by mul
 
 ## 10. Memory Management
 
-The ETW approach requires **no kernel memory allocation** for latency tracking:
+The ETW approach requires **no dynamic kernel memory allocation** for latency tracking. The program ID filter list is stored inline in the static `_ebpf_latency_state` structure (fixed-size array of up to `EBPF_LATENCY_MAX_PROGRAM_FILTER` entries):
 
 | Event | Action |
 |-------|--------|
-| `EBPF_OPERATION_LATENCY_ENABLE` | Set `_ebpf_latency_state.enabled` to the requested mode. |
-| `EBPF_OPERATION_LATENCY_DISABLE` | Set `_ebpf_latency_state.enabled` to 0. |
-| Driver unload | No cleanup needed (global flag is static). |
+| `EBPF_OPERATION_LATENCY_ENABLE` | Atomically claim the session (`session_active`). Copy the program ID filter list. Set `enabled` to the requested mode. |
+| `EBPF_OPERATION_LATENCY_DISABLE` | Set `enabled` to 0. Clear the filter list. Release the session (`session_active`). |
+| Driver unload | No cleanup needed (global state is static). |
 
 All buffering is handled by the OS ETW infrastructure. The ETW session configuration (buffer size, buffer count, flush interval) is controlled by the trace session owner (e.g., the `netsh ebpf start latencytrace` command or `tracelog`).
 
@@ -524,7 +643,9 @@ Recommended ETW session settings for high-throughput latency capture:
 
 ## 11. Thread Safety
 
-- **Enable/Disable**: A single `InterlockedExchange` on the global flag. No locking needed.
+- **Enable/Disable**: Uses `InterlockedCompareExchange` on `session_active` to enforce single-session ownership, followed by `InterlockedExchange` on `enabled`. No locks needed.
+- **Single-session guard**: The `session_active` flag ensures that only one caller can hold an active latency tracking session. A concurrent enable attempt receives `EBPF_ALREADY_IN_PROGRESS`. The session is released when `ebpf_latency_disable` is called. This prevents conflicting configurations (e.g., different filter lists or modes) from racing.
+- **Program ID filter reads**: The hot path reads `program_id_count` and the `program_ids` array without a lock. This is safe because the filter list is only written under the `session_active` guard (before `enabled` is set) and cleared after `enabled` is reset to 0. The write ordering (enable: write filter → set enabled; disable: clear enabled → clear filter) ensures readers see a consistent state.
 - **Event emission**: `TraceLoggingWrite` is thread-safe and IRQL-safe (up to DISPATCH_LEVEL). No additional synchronization required.
 - **ETW session**: Managed by the OS; starting/stopping a session is serialized by the ETW infrastructure.
 
@@ -583,8 +704,8 @@ For program invocations exceeding ~5M/sec per CPU, expect event drops. The `Even
 ### 14.1 Capture Latency Data
 
 ```
-C:\> netsh ebpf set latency mode=all
-Latency tracking enabled (mode=program+helpers).
+C:\> netsh ebpf set latency mode=all programs=3,7
+Latency tracking enabled (mode=program+helpers, filter=[3, 7]).
 
 C:\> netsh ebpf start latencytrace file=c:\traces\ebpf_latency.etl buffersize=256
 Started ETW trace session 'EbpfLatencyTrace'.
@@ -603,10 +724,31 @@ Stopped ETW trace session 'EbpfLatencyTrace'.
   Saved to:         c:\traces\ebpf_latency.etl
 
 C:\> netsh ebpf set latency mode=off
-Latency tracking disabled.
+Latency tracking disabled. Session released.
 ```
 
-### 14.2 Analyze Latency Data
+### 14.2 Session Conflict (Multiple Users)
+
+```
+-- Terminal 1 --
+C:\> netsh ebpf set latency mode=program programs=3
+Latency tracking enabled (mode=program, filter=[3]).
+
+-- Terminal 2 (while Terminal 1's session is active) --
+C:\> netsh ebpf set latency mode=all
+Error: Another latency tracking session is already active.
+Use 'netsh ebpf set latency mode=off' from the owning session first.
+
+-- Terminal 1 --
+C:\> netsh ebpf set latency mode=off
+Latency tracking disabled. Session released.
+
+-- Terminal 2 (now succeeds) --
+C:\> netsh ebpf set latency mode=all
+Latency tracking enabled (mode=program+helpers, filter=all).
+```
+
+### 14.3 Analyze Latency Data
 
 ```
 C:\> netsh ebpf show latencytrace file=c:\traces\ebpf_latency.etl
@@ -645,7 +787,7 @@ The `.etl` file can also be opened directly in **Windows Performance Analyzer (W
 
 1. **Should we remove redundant fields from the ETW payload?** ProcessId and ThreadId are already in the ETW event header. Removing them saves 8 bytes per event but requires consumers to extract them from the header separately. Recommendation: Keep them for simplicity in V1; optimize later if payload size is a concern.
 
-2. **Should we support per-program enable/disable?** The current design enables globally. Per-program filtering could be done at record time (check `program->object.id` against a filter list), but adds a hash lookup to the hot path. Recommendation: Start with global, add per-program filtering as a Phase 2 enhancement.
+2. **~~Should we support per-program enable/disable?~~** *(Resolved)* The enable request now accepts an optional list of program IDs (up to `EBPF_LATENCY_MAX_PROGRAM_FILTER = 64`). A linear scan is used in the hot path; for the expected filter sizes (1–5 programs), this is negligible. If larger filter sets are needed in the future, consider switching to a bitmap or hash set indexed by program ID.
 
 3. **Activity ID vs. timestamp correlation for cross-provider merge?** Activity IDs provide exact matching but add ~50 ns overhead to set/propagate. Timestamp+thread correlation is free but may have edge cases with preemption. Recommendation: Use timestamp+thread correlation initially; add Activity ID support when needed.
 

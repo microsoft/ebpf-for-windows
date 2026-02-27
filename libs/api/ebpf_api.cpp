@@ -5265,13 +5265,33 @@ _ebpf_link_mark_as_legacy_mode(ebpf_handle_t link_handle) NO_EXCEPT_TRY
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_latency_tracking_enable(uint32_t mode) NO_EXCEPT_TRY
+ebpf_latency_tracking_enable(
+    uint32_t mode,
+    uint32_t program_id_count,
+    _In_reads_opt_(program_id_count) const uint32_t* program_ids) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_operation_latency_enable_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LATENCY_ENABLE, mode};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+
+    try {
+        size_t request_size =
+            EBPF_OFFSET_OF(ebpf_operation_latency_enable_request_t, program_ids) + program_id_count * sizeof(uint32_t);
+        std::vector<uint8_t> request_buffer(request_size);
+        auto* request = reinterpret_cast<ebpf_operation_latency_enable_request_t*>(request_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_size);
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LATENCY_ENABLE;
+        request->mode = mode;
+        request->program_id_count = program_id_count;
+        for (uint32_t i = 0; i < program_id_count; i++) {
+            request->program_ids[i] = program_ids[i];
+        }
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT

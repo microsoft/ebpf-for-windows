@@ -774,11 +774,17 @@ extern "C"
     /**
      * @brief Enable latency tracking in ebpfcore.
      * @param[in] mode Tracking mode: 1 = program invocations only, 2 = program + map helpers.
+     * @param[in] program_id_count Number of program IDs in the filter list (0 = track all).
+     * @param[in] program_ids Optional array of program IDs to track (NULL when program_id_count == 0).
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid mode value.
+     * @retval EBPF_INVALID_ARGUMENT Invalid mode value or program_id_count exceeds maximum.
+     * @retval EBPF_INVALID_STATE Another latency tracking session is already active.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_latency_tracking_enable(uint32_t mode) EBPF_NO_EXCEPT;
+    ebpf_latency_tracking_enable(
+        uint32_t mode,
+        uint32_t program_id_count,
+        _In_reads_opt_(program_id_count) const uint32_t* program_ids) EBPF_NO_EXCEPT;
 
     /**
      * @brief Disable latency tracking in ebpfcore.
