@@ -105,13 +105,18 @@ typedef struct _metadata_table
     void (*hash)(const uint8_t** hash, size_t* size);
     void (*version)(bpf2c_version_t* version);
     void (*map_initial_values)(map_initial_values_t** map_initial_values, size_t* count);
-    void (*global_variable_sections)(global_variable_section_t** global_variable_sections, size_t* count);
+    void (*global_variable_sections)(global_variable_section_info_t** global_variable_sections, size_t* count);
     // Proposed extension for BTF-resolved function imports.
     void (*btf_resolved_functions)(
         btf_resolved_function_entry_t** btf_resolved_function_imports, size_t* count);  // BTF-resolved function import table
 } metadata_table_t;
 
-metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps, ... };
+metadata_table_t myprogram_metadata_table = {
+    .size = sizeof(metadata_table_t),
+    .programs = _get_programs,
+    .maps = _get_maps,
+    // ...
+};
 ```
 
 The metadata table provides pointers to functions that permit querying the list of programs, maps, and related metadata.
