@@ -5,7 +5,8 @@
 BTF-resolved functions are a mechanism for Windows kernel drivers to expose functions that can be called directly
 from eBPF programs, without requiring those drivers to be program-type specific information providers. Unlike helper
 functions, which are identified by a fixed numeric ID, BTF-resolved functions are resolved by name via BTF (BPF Type Format) and
-called using the `call_btf` instruction with a BTF ID and module identifier.
+called using the `call_btf` instruction with a BTF ID. Module disambiguation is handled by caller-side mapping of
+`(module GUID, function name)` to that BTF ID.
 
 This document uses the term "BTF-resolved functions". Linux documentation commonly calls the same
 concept "kfuncs".
@@ -18,9 +19,9 @@ concept "kfuncs".
 
 | Aspect | Helper Functions by Static ID | BTF-resolved functions |
 |--------|------------------|---------------------------|
-| **Resolution** | Fixed numeric ID (0-65535 for global, >65535 for program-type specific) | BTF ID + module ID resolved from function name |
+| **Resolution** | Fixed numeric ID (0-65535 for global, >65535 for program-type specific) | Session-local BTF ID resolved from (module GUID, function name) |
 | **Provider** | eBPF runtime (global) or program-type extension (type-specific) | Any driver registered as a BTF-resolved function provider (independent of program-type providers) |
-| **Instruction** | `call imm` (src=0) | `call_btf` (src=2, imm=btf_id, offset=module_id) |
+| **Instruction** | `call imm` (src=0) | `call_btf` (src=2, imm=btf_id, offset=0) |
 | **Namespace** | Single global namespace with reserved ranges | Per-module namespace, disambiguated by module GUID |
 | **Discovery** | Compile-time via header inclusion | Compile-time via header with BTF metadata |
 
@@ -49,11 +50,11 @@ BTF-resolved functions enable scenarios such as:
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                         bpf2c / netsh                                │   │
 │  │  1. Parse .ksyms from BTF                                            │   │
-│  │  2. Resolve each helper name:                                        │   │
+│  │  2. Resolve each BTF-resolved function name:                         │   │
 │  │     - Query registry (BtfResolvedFunctions) for prototype + GUID     │   │
-│  │     - Assign session-local module ID (uint16)                        │   │
-│  │     - Provide prototype to verifier                                  │   │
-│  │  3. Verifier rewrites extern calls to call_btf(btf_id, module_id)    │   │
+│  │     - Assign session-local BTF ID for (module GUID, function name)   │   │
+│  │     - Provide resolved call contract to verifier                      │   │
+│  │  3. Verifier rewrites extern calls to call_btf(btf_id)               │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
                                      │
@@ -81,7 +82,7 @@ BTF-resolved functions enable scenarios such as:
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 3 Authoring BTF Helper Headers
+## 3 Authoring BTF-resolved Function Headers
 
 Drivers that expose BTF-resolved functions must author a header file that eBPF program developers include. This
 header contains:
@@ -190,46 +191,40 @@ This API is not currently present in `include/ebpf_store_helper.h`.
 
 ## 5 Verifier Integration
 
-The PREVAIL verifier supports BTF-resolved functions through a two-phase resolution process, implemented via
-platform callbacks.
+The PREVAIL verifier supports BTF-resolved functions through caller-side preprocessing plus a platform callback during
+verification.
 
 ### 5.1 Phase 1: ELF Parsing (Symbol Resolution)
 
-When the verifier parses the ELF file, it identifies external function calls in the `.ksyms` BTF section. For each
-symbol, it calls the platform callback to resolve the name to a BTF ID and module ID:
+During ELF parsing, bpf2c or netsh (outside PREVAIL platform callbacks) identifies external function calls from the
+`.ksyms` BTF section and assigns session-local BTF IDs.
 
-```c
-// Platform callback signature
-typedef bool (*resolve_ksym_btf_id_fn)(
-    const char* symbol_name,
-    uint32_t* btf_id,        // Output: BTF ID for this symbol
-    uint16_t* module_id);    // Output: Session-local module identifier
-```
-
-The caller (bpf2c or netsh) implements this callback as a two-step process:
-1. **Build helper and module mappings from BTF**
-   - Enumerate helper symbols from the `.ksyms` section
+The caller (bpf2c or netsh) does this in two steps:
+1. **Build function and module mappings from BTF**
+   - Enumerate function symbols from the `.ksyms` section
    - Enumerate top-level `BTF_KIND_DECL_TAG` entries (entries with no parent)
    - Parse each decl tag string (for example, `module_id:{guid}`) and use the tag's function reference to build the
-     module-to-function mapping for `.ksyms` functions
-2. **Resolve each symbol**
+      module-to-function mapping for `.ksyms` functions
+2. **Resolve each symbol into a session-local BTF ID**
    - Look up each function in the registry under `BtfResolvedFunctions\{module_guid}\Functions\{name}`
-   - Assign a session-local module ID (uint16) and maintain a mapping to the GUID
-   - Return the BTF ID from the compiled object's BTF metadata
+   - Allocate a deterministic session-local BTF ID for each `(module_guid, function_name)` pair
+   - Build both mappings: `(module_guid, function_name) -> btf_id` and `btf_id -> (module_guid, function_name)`
 
 ### 5.2 Phase 2: Verification (Prototype Resolution)
 
-During verification, when the verifier encounters a `call_btf` instruction, it calls back to get the prototype:
+During verification, when PREVAIL encounters a `call_btf` instruction, it invokes
+`ebpf_platform_t::resolve_kfunc_call`:
 
-```c
-// Platform callback signature
-typedef const ebpf_helper_function_prototype_t* (*get_btf_resolved_function_prototype_fn)(
-    uint32_t btf_id,
-    uint16_t module_id);
+```c++
+// external/ebpf-verifier/src/platform.hpp
+typedef std::optional<Call> (*ebpf_resolve_kfunc_call_fn)(
+    int32_t btf_id,
+    const ProgramInfo* info,
+    std::string* why_not);
 ```
 
-The caller looks up the prototype from the registry using the (btf_id, module_id) → (name, GUID) mapping established
-in phase 1.
+The caller implementation of `resolve_kfunc_call` maps `btf_id -> (module_guid, function_name)`, loads the function
+prototype from the registry, and returns the corresponding PREVAIL `Call` contract.
 
 ### 5.3 Instruction Rewriting
 
@@ -237,9 +232,9 @@ The verifier rewrites external calls to BTF-resolved functions as follows:
 
 | Before (extern call) | After (call_btf) |
 |---------------------|------------------|
-| `call imm=0 (src=1)` | `call imm=btf_id offset=module_id (src=2)` |
+| `call imm=0 (src=1)` | `call imm=btf_id offset=0 (src=2)` |
 
-The `offset` field (16 bits) stores the module ID, and the `imm` field (32 bits) stores the BTF ID.
+In current PREVAIL, `CallBtf` carries only `btf_id` (the `imm` field), and `offset` must be 0.
 
 ### 5.4 BTF ID Stability and Visibility
 
@@ -375,7 +370,7 @@ When a BTF-resolved function provider detaches:
 3. If the program is currently executing, wait for completion
 4. Invoke `btf_resolved_function_addresses_changed_callback` if registered
 
-### 8.4 Multiple BTF Helper Providers
+### 8.4 Multiple BTF-resolved Function Providers
 
 A single eBPF program may use BTF-resolved functions from multiple providers. The native module maintains:
 
