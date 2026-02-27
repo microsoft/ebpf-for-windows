@@ -1,0 +1,127 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+---
+name: TLA+ Models
+
+on:
+  pull_request:
+    paths:
+      - 'models/**'
+      - 'scripts/generate_tlatex.sh'
+      - 'scripts/generate_tlatex.ps1'
+      - '.github/workflows/tla-plus-models.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'models/**'
+      - 'scripts/generate_tlatex.sh'
+      - 'scripts/generate_tlatex.ps1'
+      - '.github/workflows/tla-plus-models.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tlc:
+    name: TLC model check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'microsoft'
+          java-version: '21'
+
+      - name: Download tla2tools.jar
+        run: |
+          curl -fsSL -o tla2tools.jar \
+            https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+
+      - name: Install LaTeX (for TLATeX)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base
+
+      - name: Generate TLATeX outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          TLA2TOOLS_JAR=./tla2tools.jar bash scripts/generate_tlatex.sh
+
+      - name: Verify TLATeX outputs are up to date
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code
+
+      - name: Run TLC for all models
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Convention:
+          # - any config named *_buggy*.cfg is expected to FAIL with an invariant violation
+          # - all other *.cfg are expected to PASS
+          # A model directory may contain one or more *.tla files. For each spec, we run any
+          # configs that match "<SpecRoot>*.cfg" (e.g., EpochModel.cfg and EpochModel_buggy.cfg).
+
+          shopt -s nullglob
+
+          for model_dir in models/*/ ; do
+            tla_files=("${model_dir}"*.tla)
+            if [ ${#tla_files[@]} -eq 0 ]; then
+              echo "Skipping ${model_dir}: no .tla files"
+              continue
+            fi
+
+            echo "=== Model: ${model_dir} (specs: ${#tla_files[@]}) ==="
+
+            for tla in "${tla_files[@]}" ; do
+              spec_root="$(basename "${tla}" .tla)"
+              spec_cfg_files=("${model_dir}${spec_root}"*.cfg)
+
+              if [ ${#spec_cfg_files[@]} -eq 0 ]; then
+                echo "Skipping spec ${tla}: no matching .cfg files"
+                continue
+              fi
+
+              echo "--- Spec: ${tla} ---"
+
+              for cfg in "${spec_cfg_files[@]}" ; do
+                echo "--- Config: ${cfg} ---"
+                out="${cfg}.out"
+
+                set +e
+                java -XX:+UseParallelGC -cp tla2tools.jar tlc2.TLC -workers auto \
+                  -config "${cfg}" \
+                  "${tla}" \
+                  >"${out}" 2>&1
+                status=$?
+                set -e
+
+                cat "${out}"
+
+                if [[ "${cfg}" == *"_buggy"*".cfg" ]]; then
+                  if [ "$status" -eq 0 ]; then
+                    echo "Buggy config unexpectedly passed: ${cfg}"
+                    exit 1
+                  fi
+                  if ! grep -q "Invariant" "${out}"; then
+                    echo "Buggy config failed but did not report an invariant violation: ${cfg}"
+                    exit 1
+                  fi
+                else
+                  if [ "$status" -ne 0 ]; then
+                    echo "Config failed unexpectedly: ${cfg}"
+                    exit 1
+                  fi
+                fi
+              done
+            done
+          done
