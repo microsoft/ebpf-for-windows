@@ -672,8 +672,8 @@ Along with that, the client dispatch table also contains the below function:
 `find_element_function` - Used by extension to query a map value given the key.
 
 ### 2.8 Authoring Helper Functions
-An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper
-functions can be of two types:
+An extension can provide an implementation of helper functions that can be invoked by eBPF programs. This legacy
+static-ID mechanism has two types:
 1. Program-Type specific: These helper functions can only be invoked by eBPF programs of a given program type. Usually,
 an extension may provide implementations for hooks of certain program types and provide helper functions that are
 associated with those helper functions. The Program Information NPI provider must then provide the prototypes and
@@ -696,6 +696,8 @@ The helper function ID for a general helper function must be in the range 0 - 65
 
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and
 `ebpf_return_type_t` enums.
+
+For new extension-provided functions, prefer the BTF-resolved function mechanism described in section 2.9.
 
 ### 2.9 Helper functions that use custom maps.
 If the extension is implementing a helper function that takes a custom map as input, when the helper function is
@@ -732,7 +734,7 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
 
 ### 2.9 BTF-resolved Function Providers
 
-In addition to helper functions, drivers can expose **BTF-resolved functions** that eBPF programs can call. Unlike
+Drivers can expose **BTF-resolved functions** as the preferred mechanism for new extension-provided functions. Unlike
 static-ID helpers, BTF-resolved functions are resolved by name via BTF (BPF Type Format) rather than by fixed
 numeric ID. This allows any driver
 to expose functions without coordinating helper ID allocation.
