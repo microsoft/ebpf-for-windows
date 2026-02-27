@@ -1269,12 +1269,26 @@ _ebpf_sock_ops_get_current_pid_tgid(
     return 0;
 }
 
+static uint64_t
+_ebpf_sock_ops_get_flow_id(_In_ const bpf_sock_ops_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return 12345; // Mock flow ID for testing.
+}
+
 static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_functions),
     (uint64_t*)_ebpf_sock_ops_global_helper_functions};
+
+static const void* _ebpf_sock_ops_program_type_specific_helper_functions[] = {(void*)_ebpf_sock_ops_get_flow_id};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_ops_program_type_specific_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_ebpf_sock_ops_program_type_specific_helper_functions),
+    (uint64_t*)_ebpf_sock_ops_program_type_specific_helper_functions};
 
 static ebpf_result_t
 _ebpf_sock_ops_context_create(
@@ -1349,6 +1363,8 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
+    .program_type_specific_helper_function_addresses =
+        &_ebpf_sock_ops_program_type_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
