@@ -25,4 +25,7 @@ int
 export_global_helper_information();
 
 uint32_t
+export_proof_of_verification();
+
+uint32_t
 clear_ebpf_store();

@@ -3565,6 +3565,112 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(error_message);
 }
 
+/**
+ * @brief Test that validates production-signed native eBPF modules load successfully.
+ *
+ * This test validates that a production-signed bindmonitor driver can be loaded.
+ * It requires that the signed driver exists in C:\eBPF\ (copied from C:\work by Setup.ps1).
+ */
+TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verification]")
+{
+    // Select the architecture and build-type appropriate signed driver.
+    #if defined(_AMD64_) && defined(_DEBUG)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_debug_signed.sys";
+    #elif defined(_AMD64_)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_x64_signed.sys";
+    #elif defined(_ARM64_) && defined(_DEBUG)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_debug_signed.sys";
+    #elif defined(_ARM64_)
+        const char* signed_driver_path = "C:\\eBPF\\bindmonitor_arm64_signed.sys";
+    #else
+    #error "Unsupported architecture"
+    #endif
+
+    // Verify the signed driver file exists before attempting to load.
+    printf("Checking for signed driver at: %s\n", signed_driver_path);
+    if (_access(signed_driver_path, 0) != 0) {
+        printf("ERROR: Signed driver file not found: %s\n", signed_driver_path);
+        printf("Ensure the signed driver exists in C:\\eBPF\\ (copied from C:\\work by Setup.ps1).\n");
+        REQUIRE(false);
+    }
+    printf("Found signed driver file: %s\n", signed_driver_path);
+
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the production-signed driver (use copy_file=false since we're loading from an absolute path).
+    result = program_load_helper(signed_driver_path, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd, false);
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
+    if (result != 0) {
+        printf("ERROR: Failed to load production-signed driver %s (error %d)\n", signed_driver_path, result);
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd != ebpf_fd_invalid);
+
+    // Verify the program loaded correctly
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
+
+    fd_t query_fd = bpf_prog_get_fd_by_id(next_id);
+    REQUIRE(query_fd > 0);
+
+    const char* program_file_name;
+    const char* program_section_name;
+    ebpf_execution_type_t program_execution_type;
+    REQUIRE(
+        ebpf_program_query_info(query_fd, &program_execution_type, &program_file_name, &program_section_name) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
+    _close(query_fd);
+
+    printf("SUCCESS: Proof of verification passed for production-signed driver %s\n", signed_driver_path);
+
+    bpf_object__close(object);
+}
+
+/**
+ * @brief Test that validates non-production-signed native eBPF modules are rejected.
+ *
+ * This test validates that a test-signed (non-production-signed) bindmonitor.sys 
+ * is rejected by the proof of verification system.
+ *
+ * The test expects loading to FAIL because bindmonitor.sys is only test-signed,
+ * not production-signed with the required eBPF Verification EKU.
+ */
+TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verification]")
+{
+    // Enable proof of verification via registry.
+    REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
+
+    int result;
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    // Attempt to load the test-signed (non-production-signed) bindmonitor.sys
+    result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+
+    // The load should fail because the binary is not production-signed
+    if (result == 0) {
+        printf("ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!\n");
+        printf("The proof of verification system should reject non-production-signed binaries.\n");
+        bpf_object__close(object);
+    } else {
+        printf("SUCCESS: Test-signed bindmonitor.sys was correctly rejected (error %d)\n", result);
+    }
+
+    REQUIRE(result != 0);
+}
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 

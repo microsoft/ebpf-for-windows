@@ -47,6 +47,32 @@ Exit:
 }
 
 static ebpf_result_t
+_ebpf_store_open_or_create_parameters_registry_key(
+    ebpf_store_key_t root_store_key, _Out_ ebpf_store_key_t* parameters_key)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t root_key = NULL;
+    *parameters_key = NULL;
+
+    // Open (or create) root eBPF registry path.
+    result = ebpf_create_registry_key(root_store_key, ebpf_store_root_sub_key, REG_CREATE_FLAGS, &root_key);
+
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    // Open (or create) Parameters registry path.
+    result = ebpf_create_registry_key(root_key, L"Parameters", REG_CREATE_FLAGS, parameters_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+Exit:
+    ebpf_close_registry_key(root_key);
+    return result;
+}
+
+static ebpf_result_t
 _ebpf_store_update_helper_prototype(
     ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info)
 {
@@ -607,5 +633,24 @@ ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* se
         result = EBPF_SUCCESS;
     }
 
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_update_proof_of_verification(uint32_t enable)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t parameters_key = NULL;
+
+    // Update HKLM root key.
+    result = _ebpf_store_open_or_create_parameters_registry_key(ebpf_store_hklm_root_key, &parameters_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_write_registry_value_dword(parameters_key, EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE, enable);
+
+Exit:
+    ebpf_close_registry_key(parameters_key);
     return result;
 }
