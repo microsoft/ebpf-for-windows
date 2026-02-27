@@ -470,11 +470,35 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
     if (ring) {
         EBPF_LOG_ENTRY();
 
+        // ebpf_ring_buffer_t is always zero-initialized by ebpf_epoch_allocate_with_tag, so
+        // fields are either NULL (partially initialized) or valid pointers (fully initialized).
+        // C6001 false positive: the analyzer can't see through the allocator's zero-init.
+#pragma warning(push)
+#pragma warning(disable : 6001)
+        // Release the event object reference if one was set via ebpf_ring_buffer_set_wait_handle.
+        if (ring->kernel_page && ring->kernel_page->wait_event != NULL) {
+            ObDereferenceObject(ring->kernel_page->wait_event);
+            ring->kernel_page->wait_event = NULL;
+        }
+#pragma warning(pop)
+
         ebpf_free_ring_buffer_memory(ring->ring_descriptor);
         ebpf_epoch_free(ring);
 
         EBPF_RETURN_VOID();
     }
+}
+
+const ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_get_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer)
+{
+    return ring_buffer->producer_page;
+}
+
+ebpf_perf_event_array_producer_page_t*
+ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer)
+{
+    return (ebpf_perf_event_array_producer_page_t*)ring_buffer->producer_page;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -490,12 +514,7 @@ ebpf_ring_buffer_set_wait_handle(
 
     PKEVENT wait_event = NULL;
     NTSTATUS status = ObReferenceObjectByHandle(
-        (HANDLE)wait_handle,
-        EVENT_MODIFY_STATE,
-        *ExEventObjectType,
-        UserMode,
-        (PVOID*)&wait_event,
-        NULL);
+        (HANDLE)wait_handle, EVENT_MODIFY_STATE, *ExEventObjectType, UserMode, (PVOID*)&wait_event, NULL);
 
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ObReferenceObjectByHandle, status);
@@ -666,7 +685,7 @@ ebpf_ring_buffer_reserve(
             // We successfully allocated the space -- now we need to lock the record and *then* update producer offset.
 
             ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
-            record->header.page_offset = (uint32_t)(((uint8_t *)record - ring->data) / PAGE_SIZE);
+            record->header.page_offset = (uint32_t)(((uint8_t*)record - ring->data) / PAGE_SIZE);
 
             // Initialize the record header.
             // - We can no-fence write here, the write-release below ensures the locked header is visible first.
@@ -746,7 +765,7 @@ ebpf_ring_buffer_reserve_exclusive(
     _ring_write_producer_reserve_offset_nofence(ring, new_reserve_offset);
 
     ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
-    record->header.page_offset = (uint32_t)(((uint8_t *)record - ring->data) / PAGE_SIZE);
+    record->header.page_offset = (uint32_t)(((uint8_t*)record - ring->data) / PAGE_SIZE);
 
     // Initialize the record header.
     // - We can no-fence write here, the write-release below ensures the locked header is visible first.

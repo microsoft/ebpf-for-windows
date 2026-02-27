@@ -733,6 +733,31 @@ extern "C"
     } ebpf_ring_buffer_producer_page_t;
 
     /**
+     * @brief Perf event array map producer page.
+     *
+     * Extends ring_buffer producer page with lost counter.
+     */
+    typedef struct _ebpf_perf_event_array_producer_page
+    {
+        volatile uint64_t producer_offset; ///< Producer(s) have reserved up to this offset.
+        uint64_t pad[7];                   ///< Padding to 64 bytes (to place lost_records in next cache line).
+        volatile uint64_t lost_records;    ///< Number of lost records.
+    } ebpf_perf_event_array_producer_page_t;
+
+    // Compile-time asserts: perf event array producer page must begin with ring buffer producer page layout.
+    static_assert(
+        offsetof(ebpf_perf_event_array_producer_page_t, producer_offset) ==
+            offsetof(ebpf_ring_buffer_producer_page_t, producer_offset),
+        "ebpf_perf_event_array_producer_page_t.producer_offset must be at the same offset as in "
+        "ebpf_ring_buffer_producer_page_t");
+    static_assert(
+        sizeof(ebpf_ring_buffer_producer_page_t) <= sizeof(ebpf_perf_event_array_producer_page_t),
+        "ebpf_perf_event_array_producer_page_t must be at least as large as ebpf_ring_buffer_producer_page_t");
+    static_assert(
+        offsetof(ebpf_perf_event_array_producer_page_t, lost_records) >= 64,
+        "lost_records must be in a separate cache line from producer_offset");
+
+    /**
      * @brief Ring buffer sample callback function type.
      * @param[in] ctx User-provided context.
      * @param[in] data Pointer to sample data.
@@ -777,6 +802,47 @@ extern "C"
         ring_buffer_sample_fn sample_cb,
         _In_opt_ void* ctx,
         _In_opt_ const struct ebpf_ring_buffer_opts* opts) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get pointers to the consumer, producer, and data regions for a specific ring buffer map.
+     *
+     * Gets mapped memory pointers for the specified ring buffer map in the manager.
+     * For multiple maps, use the index parameter to select which map to access.
+     *
+     * @param[in] rb Ring buffer manager.
+     * @param[in] index Index of the map in the ring buffer manager (0-based).
+     * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
+     * @param[out] producer_page Pointer to start of read-only mapped producer page.
+     * @param[out] data Pointer to start of read-only double-mapped data pages.
+     * @param[out] data_size Size of the mapped data buffer.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_OBJECT_NOT_FOUND No maps in the ring buffer manager or index out of range.
+     * @retval other An error occurred.
+     */
+    _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
+        _In_ struct ring_buffer* rb,
+        uint32_t index,
+        _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
+        _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
+        _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+        _Out_ uint64_t* data_size) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get the wait handle for a ring buffer manager.
+     *
+     * Gets the shared wait handle for the ring buffer manager.
+     * - All maps in the manager share the same wait handle for producers to signal.
+     *
+     * Use ebpf_map_set_wait_handle() to set the wait handle for a specific map.
+     *
+     * @param[in] rb Ring buffer manager.
+     *
+     * @returns Wait handle for the ring buffer manager, or ebpf_handle_invalid on error.
+     */
+    ebpf_handle_t
+    ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT;
 
     //
     // Windows-specific Perf Buffer APIs
@@ -823,46 +889,19 @@ extern "C"
         _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT;
 
     /**
-     * @brief Get the wait handle for a ring buffer manager.
+     * @brief Get the wait handle for a perf buffer manager.
      *
-     * Gets the shared wait handle for the ring buffer manager.
-     * - All maps in the manager share the same wait handle for producers to signal.
+     * Gets the shared wait handle for the perf buffer manager.
+     * - All per-cpu rings in the manager share the same wait handle for producers to signal.
      *
      * Use ebpf_map_set_wait_handle() to set the wait handle for a specific map.
      *
-     * @param[in] rb Ring buffer manager.
+     * @param[in] pb Perf buffer manager.
      *
-     * @returns Wait handle for the first map, or INVALID_HANDLE_VALUE on error.
+     * @returns Wait handle for the perf buffer manager, or ebpf_handle_invalid on error.
      */
     ebpf_handle_t
-    ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT;
-
-    /**
-     * @brief Get pointers to the consumer, producer, and data regions for a specific ring buffer map.
-     *
-     * Gets mapped memory pointers for the specified ring buffer map in the manager.
-     * For multiple maps, use the index parameter to select which map to access.
-     *
-     * @param[in] rb Ring buffer manager.
-     * @param[in] index Index of the map in the ring buffer manager (0-based).
-     * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
-     * @param[out] producer_page Pointer to start of read-only mapped producer page.
-     * @param[out] data Pointer to start of read-only double-mapped data pages.
-     * @param[out] data_size Size of the mapped data buffer.
-     *
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
-     * @retval EBPF_OBJECT_NOT_FOUND No maps in the ring buffer manager or index out of range.
-     * @retval other An error occurred.
-     */
-    _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
-        _In_ struct ring_buffer* rb,
-        _In_ uint32_t index,
-        _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
-        _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
-        _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
-        _Out_opt_ uint64_t* data_size) EBPF_NO_EXCEPT;
-
+    ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT;
 #ifdef __cplusplus
 }
 #endif

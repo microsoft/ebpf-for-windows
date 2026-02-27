@@ -40,6 +40,7 @@ typedef unsigned char boolean;
 #include <codecvt>
 #include <cstdint>
 #include <fcntl.h>
+#include <functional>
 #include <io.h>
 #include <mutex>
 #include <rpc.h>
@@ -2268,6 +2269,23 @@ _initialize_ebpf_object_native(
 
     result = _initialize_ebpf_maps_native(count_of_maps, map_handles, object.maps);
     if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // Populate _ebpf_maps so that native maps are discoverable by handle,
+    // consistent with the non-native flow in _ebpf_object_create_maps.
+    // On failure, the Exit block calls clean_up_ebpf_maps which erases
+    // these entries, so no leaks occur.
+    try {
+        std::unique_lock lock(_ebpf_state_mutex);
+        for (auto& map : object.maps) {
+            _ebpf_maps.insert(std::pair<ebpf_handle_t, ebpf_map_t*>(map->map_handle, map));
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
         goto Exit;
     }
 
@@ -4570,6 +4588,14 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // such, so that it gets freed when the user eventually unsubscribes.
             std::scoped_lock lock{async_query_context->lock};
             async_query_context->async_ioctl_failed = true;
+
+            // Notify unsubscribe that this context has failed and won't post new IOCTLs.
+            // Do NOT erase the context from the map here — this callback holds a raw pointer
+            // to the context owned by the map's unique_ptr, so erasing would be use-after-free.
+            {
+                std::scoped_lock subscription_lock{subscription->lock};
+                subscription->cleanup_complete_event.notify_all();
+            }
             EBPF_RETURN_RESULT(result);
         } else {
             TraceLoggingWrite(
@@ -4661,6 +4687,9 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // First, register wait for the new async IOCTL operation completion.
             result = register_wait_async_ioctl_operation(async_query_context->async_ioctl_completion);
             if (result != EBPF_SUCCESS) {
+                // Failed to register wait. Mark as failed and notify unsubscribe.
+                async_query_context->async_ioctl_failed = true;
+                subscription->cleanup_complete_event.notify_all();
                 EBPF_RETURN_RESULT(result);
             }
 
@@ -4681,6 +4710,8 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
                     result = EBPF_SUCCESS;
                 } else {
                     async_query_context->async_ioctl_failed = true;
+                    // Failed to post IOCTL. Notify unsubscribe.
+                    subscription->cleanup_complete_event.notify_all();
                 }
             }
         }
@@ -4919,9 +4950,21 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
 
     {
         std::unique_lock<std::mutex> lock_wait(subscription->lock);
-        // Wait for for all the notifications to be complete before freeing memory.
-        subscription->cleanup_complete_event.wait(
-            lock_wait, [subscription] { return subscription->async_query_contexts.size() == 0; });
+        // Wait for all remaining contexts to either complete cleanup or fail.
+        // A context is "done" when it has been erased (normal/canceled path) or marked as failed.
+        // We wait indefinitely here — if a completion never arrives, a deadlock is preferable to
+        // use-after-free from freeing OVERLAPPED structures while IOCTLs are still pending.
+        auto all_done_or_failed = [subscription] {
+            for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
+                if (!ctx->async_ioctl_failed) {
+                    return false;
+                }
+            }
+            return true;
+        };
+        subscription->cleanup_complete_event.wait(lock_wait, all_done_or_failed);
+        // Clean up remaining (failed) contexts.
+        subscription->async_query_contexts.clear();
     }
 
     delete subscription;
@@ -5179,8 +5222,9 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_map_buffer(
+ebpf_ring_buffer_map_map_buffer_with_index(
     fd_t map_fd,
+    uint64_t index,
     _Outptr_result_maybenull_ void** consumer,
     _Outptr_result_maybenull_ const void** producer,
     _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
@@ -5202,7 +5246,7 @@ ebpf_ring_buffer_map_map_buffer(
     }
 
     ebpf_operation_ring_buffer_map_map_buffer_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle};
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle, index};
     ebpf_operation_ring_buffer_map_map_buffer_reply_t reply{};
 
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
@@ -5220,8 +5264,20 @@ ebpf_ring_buffer_map_map_buffer(
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
-    NO_EXCEPT_TRY
+ebpf_ring_buffer_map_map_buffer(
+    fd_t map_fd,
+    _Outptr_result_maybenull_ void** consumer,
+    _Outptr_result_maybenull_ const void** producer,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size) NO_EXCEPT_TRY
+{
+    return ebpf_ring_buffer_map_map_buffer_with_index(map_fd, 0, consumer, producer, data, data_size);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer_with_index(
+    fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -5232,6 +5288,7 @@ ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const v
         sizeof(request),
         ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
         map_handle,
+        index,
         reinterpret_cast<uint64_t>(consumer),
         reinterpret_cast<uint64_t>(producer),
         reinterpret_cast<uint64_t>(data)};
@@ -5241,16 +5298,19 @@ ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const v
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer(fd_t map_fd, _In_ void* consumer, _In_ const void* producer, _In_ const void* data)
+    NO_EXCEPT_TRY
+{
+    return ebpf_ring_buffer_map_unmap_buffer_with_index(map_fd, 0, consumer, producer, data);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
-
-    if (index != 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_RETURN_RESULT(result);
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -5277,3 +5337,305 @@ _ebpf_link_mark_as_legacy_mode(ebpf_handle_t link_handle) NO_EXCEPT_TRY
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
+
+//
+// Windows-specific ring buffer and perf buffer APIs.
+//
+
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ring_buffer_t* local_ring_buffer = nullptr;
+
+    if (sample_cb == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    try {
+        std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
+
+        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_RINGBUF_FLAG_AUTO_CALLBACK) != 0;
+        ring_buffer->is_async_mode = use_async_callbacks;
+
+        if (use_async_callbacks) {
+            ebpf_map_subscription_t* subscription = nullptr;
+            uint32_t cpu_id = 0;
+
+            result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            try {
+                ring_buffer->subscriptions.push_back(subscription);
+            } catch (const std::bad_alloc&) {
+                ebpf_map_unsubscribe(subscription);
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        } else {
+            HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+            if (wait_handle == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            ring_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
+
+            ebpf_ring_mapping_t map_info{};
+            map_info.map_fd = map_fd;
+            map_info.sample_fn = (void*)sample_cb;
+            map_info.lost_fn = nullptr;
+            map_info.ctx = ctx;
+            map_info.is_perf_buffer = false;
+            map_info.cpu_id = 0;
+
+            auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+                (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
+                if (map_info.consumer_page) {
+                    (void)ebpf_ring_buffer_map_unmap_buffer(
+                        map_info.map_fd, map_info.consumer_page, map_info.producer_page, map_info.data);
+                }
+                CloseHandle(reinterpret_cast<HANDLE>(ring_buffer->wait_handle));
+                ring_buffer->wait_handle = ebpf_handle_invalid;
+            });
+
+            result = ebpf_map_set_wait_handle(map_fd, 0, ring_buffer->wait_handle);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            result = ebpf_ring_buffer_map_map_buffer(
+                map_fd,
+                reinterpret_cast<void**>(&map_info.consumer_page),
+                reinterpret_cast<const void**>(&map_info.producer_page),
+                &map_info.data,
+                &map_info.data_size);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            try {
+                ring_buffer->sync_maps.push_back(map_info);
+                cleanup.release();
+            } catch (const std::bad_alloc&) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        }
+
+        local_ring_buffer = ring_buffer.release();
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+Exit:
+    if (result != EBPF_SUCCESS) {
+        errno = ebpf_result_to_errno(result);
+        EBPF_LOG_FUNCTION_ERROR(result);
+    }
+    EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
+}
+
+ebpf_handle_t
+ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
+{
+    if (!rb) {
+        return ebpf_handle_invalid;
+    }
+
+    if (rb->is_async_mode) {
+        return ebpf_handle_invalid;
+    }
+
+    return rb->wait_handle;
+}
+
+_Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_buffer_get_buffer(
+    _In_ struct ring_buffer* rb,
+    uint32_t index,
+    _Outptr_result_maybenull_ ebpf_ring_buffer_consumer_page_t** consumer_page,
+    _Outptr_result_maybenull_ const ebpf_ring_buffer_producer_page_t** producer_page,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ uint64_t* data_size) EBPF_NO_EXCEPT
+{
+    ebpf_assert(rb && consumer_page && producer_page && data && data_size);
+
+    if (rb->is_async_mode) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (index >= rb->sync_maps.size()) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    const auto& map_info = rb->sync_maps[index];
+    *consumer_page = static_cast<ebpf_ring_buffer_consumer_page_t*>(map_info.consumer_page);
+    *producer_page = static_cast<const ebpf_ring_buffer_producer_page_t*>(map_info.producer_page);
+    *data = map_info.data;
+    *data_size = map_info.data_size;
+
+    return EBPF_SUCCESS;
+}
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    struct perf_buffer* local_perf_buffer = nullptr;
+
+    if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (page_cnt != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    try {
+        bool use_async_callbacks = opts != nullptr && (opts->flags & EBPF_PERFBUF_FLAG_AUTO_CALLBACK) != 0;
+
+        std::unique_ptr<struct perf_buffer> perf_buffer = std::make_unique<struct perf_buffer>();
+        perf_buffer->is_async_mode = use_async_callbacks;
+
+        if (perf_buffer->is_async_mode) {
+            std::vector<uint32_t> cpu_ids;
+            uint32_t ring_count = libbpf_num_possible_cpus();
+
+            for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+                cpu_ids.push_back(cpu_id);
+            }
+
+            ebpf_map_subscription_t* subscription = nullptr;
+            result = ebpf_map_subscribe(
+                map_fd, cpu_ids.data(), cpu_ids.size(), ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
+
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            try {
+                perf_buffer->subscriptions.push_back(subscription);
+            } catch (const std::bad_alloc&) {
+                ebpf_map_unsubscribe(subscription);
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        } else {
+            uint32_t cpu_count = libbpf_num_possible_cpus();
+            ebpf_ring_mapping_t current_map_info{};
+
+            HANDLE wait_handle = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+            if (wait_handle == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+            perf_buffer->wait_handle = reinterpret_cast<ebpf_handle_t>(wait_handle);
+
+            auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+                for (auto& map_info : perf_buffer->sync_maps) {
+                    (void)ebpf_map_set_wait_handle(map_info.map_fd, map_info.cpu_id, ebpf_handle_invalid);
+                    (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
+                        map_info.map_fd,
+                        map_info.cpu_id,
+                        map_info.consumer_page,
+                        map_info.producer_page,
+                        map_info.data);
+                }
+                perf_buffer->sync_maps.clear();
+
+                if (current_map_info.consumer_page) {
+                    (void)ebpf_map_set_wait_handle(
+                        current_map_info.map_fd, current_map_info.cpu_id, ebpf_handle_invalid);
+                    (void)ebpf_ring_buffer_map_unmap_buffer_with_index(
+                        current_map_info.map_fd,
+                        current_map_info.cpu_id,
+                        current_map_info.consumer_page,
+                        current_map_info.producer_page,
+                        current_map_info.data);
+                }
+
+                CloseHandle(reinterpret_cast<HANDLE>(perf_buffer->wait_handle));
+                perf_buffer->wait_handle = ebpf_handle_invalid;
+            });
+
+            for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+                current_map_info = {};
+                current_map_info.map_fd = map_fd;
+                current_map_info.sample_fn = (void*)sample_cb;
+                current_map_info.lost_fn = (void*)lost_cb;
+                current_map_info.ctx = ctx;
+                current_map_info.is_perf_buffer = true;
+                current_map_info.cpu_id = cpu_id;
+
+                result = ebpf_map_set_wait_handle(map_fd, cpu_id, perf_buffer->wait_handle);
+                if (result != EBPF_SUCCESS) {
+                    goto Exit;
+                }
+
+                result = ebpf_ring_buffer_map_map_buffer_with_index(
+                    map_fd,
+                    cpu_id,
+                    reinterpret_cast<void**>(&current_map_info.consumer_page),
+                    reinterpret_cast<const void**>(&current_map_info.producer_page),
+                    &current_map_info.data,
+                    &current_map_info.data_size);
+                if (result != EBPF_SUCCESS) {
+                    goto Exit;
+                }
+
+                auto perf_producer_page =
+                    reinterpret_cast<const ebpf_perf_event_array_producer_page_t*>(current_map_info.producer_page);
+                _Analysis_assume_(perf_producer_page != nullptr);
+                current_map_info.lost_count = ReadULong64Acquire(&perf_producer_page->lost_records);
+
+                try {
+                    perf_buffer->sync_maps.push_back(current_map_info);
+                    current_map_info = {};
+                } catch (const std::bad_alloc&) {
+                    result = EBPF_NO_MEMORY;
+                    goto Exit;
+                }
+            }
+
+            cleanup.release();
+        }
+
+        local_perf_buffer = perf_buffer.release();
+
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+Exit:
+    if (result != EBPF_SUCCESS) {
+        errno = ebpf_result_to_errno(result);
+        EBPF_LOG_FUNCTION_ERROR(result);
+    }
+    EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
+}
+
+ebpf_handle_t
+ebpf_perf_buffer_get_wait_handle(_In_ const struct perf_buffer* pb) EBPF_NO_EXCEPT
+{
+    if (!pb) {
+        return ebpf_handle_invalid;
+    }
+
+    if (pb->is_async_mode) {
+        return ebpf_handle_invalid;
+    }
+
+    return pb->wait_handle;
+}

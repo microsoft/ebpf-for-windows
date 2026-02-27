@@ -1,6 +1,12 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+// Prevent bpf_conformance's ebpf_inst.h from being included, as it conflicts with
+// the ebpf_inst typedef used in this project (which aliases prevail::EbpfInst).
+#ifndef BPF_CONFORMANCE_CORE_EBPF_INST_H
+#define BPF_CONFORMANCE_CORE_EBPF_INST_H
+#endif
+
 #pragma warning(push)
 #pragma warning(disable : 4100)  // 'identifier' : unreferenced formal parameter
 #pragma warning(disable : 4244)  // 'conversion' conversion from 'type1' to

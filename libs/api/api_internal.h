@@ -643,6 +643,45 @@ bool
 ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) noexcept;
 
 /**
+ * @brief Internal function to map a ring buffer or perf event array map buffer with a specific index.
+ *
+ * @param[in] map_fd File descriptor to map.
+ * @param[in] index Index (CPU ID for perf event array maps, must be 0 for ring buffer maps).
+ * @param[out] consumer Pointer to the consumer buffer.
+ * @param[out] producer Pointer to the producer buffer.
+ * @param[out] data Pointer to the mapped data buffer.
+ * @param[out] data_size Size of the mapped data buffer.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are invalid.
+ * @retval EBPF_INVALID_FD Invalid file descriptor.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_map_buffer_with_index(
+    fd_t map_fd,
+    uint64_t index,
+    _Outptr_result_maybenull_ void** consumer,
+    _Outptr_result_maybenull_ const void** producer,
+    _Outptr_result_buffer_maybenull_(*data_size) const uint8_t** data,
+    _Out_ size_t* data_size) noexcept;
+
+/**
+ * @brief Internal function to unmap a ring buffer or perf event array map buffer with a specific index.
+ *
+ * @param[in] map_fd File descriptor to map.
+ * @param[in] index Index (CPU ID for perf event array maps, must be 0 for ring buffer maps).
+ * @param[in] consumer Pointer to the consumer buffer.
+ * @param[in] producer Pointer to the producer buffer.
+ * @param[in] data Pointer to the data buffer.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_FD Invalid file descriptor.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer_with_index(
+    fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) noexcept;
+
+/**
  * @brief Get list of programs and stats in an ELF eBPF file.
  * @param[in] file Name of ELF file containing eBPF program.
  * @param[in] section Optionally, the name of the section to query.
@@ -736,3 +775,41 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
+
+// Shared mapping structure for ring direct access (synchronous mode).
+typedef struct _ebpf_ring_mapping
+{
+    fd_t map_fd;
+    void* sample_fn;                                 // ring_buffer_sample_fn or perf_buffer_sample_fn.
+    void* lost_fn;                                   // nullptr for ring buffer, perf_buffer_lost_fn for perf buffer.
+    void* ctx;                                       // User context passed to callbacks.
+    ebpf_ring_buffer_consumer_page_t* consumer_page; // Pointer to consumer page for direct access.
+    const ebpf_ring_buffer_producer_page_t* producer_page; // Pointer to producer page for direct access.
+    const uint8_t* data;                                   // Pointer to the start of the data region for direct access.
+    uint64_t data_size;                                    // Size of the data region in bytes.
+    bool is_perf_buffer;                                   // true if this is for perf buffer, false for ring buffer.
+    uint32_t cpu_id;                                       // CPU ID for perf buffer callbacks.
+    uint64_t lost_count; // Latest lost count for perf buffer (for detecting new drops).
+} ebpf_ring_mapping_t;
+
+typedef struct ring_buffer
+{
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    // Synchronous mode mapping info.
+    std::vector<ebpf_ring_mapping_t> sync_maps;
+    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
+
+    bool is_async_mode = false; // True for async callbacks, false for sync processing.
+} ring_buffer_t;
+
+typedef struct perf_buffer
+{
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    // Synchronous mode mapping info.
+    std::vector<ebpf_ring_mapping_t> sync_maps;
+    ebpf_handle_t wait_handle = ebpf_handle_invalid; // Single wait handle shared by all maps.
+
+    bool is_async_mode = false; // True for async callbacks, false for sync processing.
+} perf_buffer_t;
