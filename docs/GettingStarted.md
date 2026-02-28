@@ -96,22 +96,24 @@ The following steps need to be executed *once* before the first build on a new c
 
 ##### Setting compile time options when building from Developer Command Prompt
 
-To build with the specific compile time options for disabling JIT compiler and/or the Interpreter, append "`/p:<option>=True`". Available options are:
+`Debug` and `Release` configurations now compile with both JIT compiler and interpreter disabled by default
+(the same behavior as `NativeOnlyDebug` and `NativeOnlyRelease`).
+The following properties are still available for explicit configuration:
 
 1. `DisableJIT` - Compile eBPF's *execution context* without support for eBPF JIT compiler.
 1. `DisableInterpreter` - Compile eBPF's *execution context* without support for eBPF interpreter.
 
-Both options are set when compiling with the "NativeOnlyDebug" or "NativeOnlyRelease" configurations.
+Both options are enabled by default in `Debug`, `Release`, `NativeOnlyDebug`, and `NativeOnlyRelease`.
 
 #### Building using Visual Studio IDE
 
 1. Open the `ebpf-for-windows.sln` solution.
-1. Switch the configuration to "`Debug`|`x64`".  To build with the JIT and Interpreter disabled, switch the configuration to "`NativeOnlyDebug`|`x64`" instead.
+1. Switch the configuration to "`Debug`|`x64`" (or "`Release`|`x64`"). JIT and interpreter are disabled by default.
 1. Rebuild the solution.
 
 ##### Setting compile time options when building from Visual Studio IDE
 
-To build with the specific compile time options for disabling JIT compiler and/or the interpreter:
+By default, these options are already enabled for `Debug` and `Release`. To set them manually for a project:
 
 1. Select the project to modify from the Solution Explorer.
 1. Navigate to "`C/C++`" -> "`Preprocessor`" -> "`Preprocessor Definitions`"
