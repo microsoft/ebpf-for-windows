@@ -461,7 +461,7 @@ function Invoke-CICDStressTests
     $TestHangTimeout = 60*60 # 60 minutes hang timeout.
     $api_stress_duration = 30*60 # 30 minutes test duration.
     $TestCommand = "api_test.exe"
-    $TestArguments = "--stress-test-duration $api_stress_duration [stress]"
+    $TestArguments = "--stress-test-duration $api_stress_duration ioctl_stress"
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     if ($RestartEbpfCore) {
