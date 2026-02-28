@@ -11,19 +11,20 @@
 #include <io.h>
 #endif
 
-#include "core/analysis_engine.hpp"
-#include "core/mcp_server.hpp"
-#include "core/mcp_transport.hpp"
-#include "core/tools.hpp"
+#include "analysis_engine.hpp"
+#include "mcp_server.hpp"
+#include "mcp_transport.hpp"
+#include "tools.hpp"
 
 #include <cstdio>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 
-// Use the Windows platform from api.lib (same as bpf2c uses via ebpfapi).
-#include "core/prevail_headers.hpp"
+// The submodule's prevail_headers.hpp handles MSVC warning suppression.
 #include "ebpf_api.h"
+#include "platform_ops_windows.hpp"
+#include "prevail_headers.hpp"
 #include "windows_platform.hpp"
 
 // Required by api_common (external linkage contract). When true, falls back to registry
@@ -99,9 +100,10 @@ main()
     try {
         // Use the Windows eBPF platform (same as bpf2c via ebpfapi).
         const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
+        prevail_mcp::WindowsPlatformOps ops(platform);
 
-        prevail_mcp::AnalysisEngine engine(platform);
-        prevail_mcp::McpServer server;
+        prevail_mcp::AnalysisEngine engine(&ops);
+        prevail_mcp::McpServer server("ebpf-verifier");
         prevail_mcp::register_all_tools(server, engine);
 
         std::cerr << "prevail_mcp: server started" << std::endl;

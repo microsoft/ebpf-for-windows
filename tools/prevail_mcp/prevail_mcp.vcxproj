@@ -9,7 +9,8 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{1EB64C33-FC48-44D0-B7A2-A5D9B229D425}</ProjectGuid>
-    <RootNamespace>prevail_mcp</RootNamespace>
+    <RootNamespace>ebpf_mcp</RootNamespace>
+    <TargetName>ebpf_mcp</TargetName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
@@ -66,7 +67,7 @@
   <!-- Common include directories shared by all configurations.
        Modeled on ebpfsvc.vcxproj include paths. -->
   <PropertyGroup>
-    <PrevailMcpIncludes>$(SolutionDir)include;$(SolutionDir)ebpfapi;$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\service;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\thunk;$(SolutionDir)tools\prevail_mcp\src;$(SolutionDir)rpc_interface;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\shim;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)resource;$(SolutionDir)tests\libs\util</PrevailMcpIncludes>
+    <PrevailMcpIncludes>$(SolutionDir)include;$(SolutionDir)ebpfapi;$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\service;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\thunk;$(SolutionDir)tools\prevail_mcp\src;$(SolutionDir)external\ebpf-verifier\src\main\mcp;$(SolutionDir)external\ebpf-verifier\src\main;$(SolutionDir)rpc_interface;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\shim;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)resource;$(SolutionDir)tests\libs\util</PrevailMcpIncludes>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <LinkIncremental>true</LinkIncremental>
@@ -155,11 +156,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\core\mcp_transport.cpp" />
-    <ClCompile Include="src\core\mcp_server.cpp" />
-    <ClCompile Include="src\core\analysis_engine.cpp" />
-    <ClCompile Include="src\core\json_serializers.cpp" />
-    <ClCompile Include="src\core\tools.cpp" />
+    <!-- Core MCP server sources from prevail submodule -->
+    <ClCompile Include="..\..\external\ebpf-verifier\src\main\mcp\mcp_transport.cpp" />
+    <ClCompile Include="..\..\external\ebpf-verifier\src\main\mcp\mcp_server.cpp" />
+    <ClCompile Include="..\..\external\ebpf-verifier\src\main\mcp\analysis_engine.cpp" />
+    <ClCompile Include="..\..\external\ebpf-verifier\src\main\mcp\json_serializers.cpp" />
+    <ClCompile Include="..\..\external\ebpf-verifier\src\main\mcp\tools.cpp" />
+    <!-- Windows-specific entry point -->
     <ClCompile Include="src\windows\main.cpp" />
     <!-- Shared source files, same as bpf2c/ebpfapi -->
     <ClCompile Include="..\..\libs\shared\hash.cpp" />
@@ -169,12 +172,17 @@
     <ClCompile Include="..\..\ebpfapi\rpc_client.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\core\prevail_headers.hpp" />
-    <ClInclude Include="src\core\mcp_transport.hpp" />
-    <ClInclude Include="src\core\mcp_server.hpp" />
-    <ClInclude Include="src\core\analysis_engine.hpp" />
-    <ClInclude Include="src\core\json_serializers.hpp" />
-    <ClInclude Include="src\core\tools.hpp" />
+    <!-- Core headers from prevail submodule -->
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\platform_ops.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\platform_ops_prevail.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\prevail_headers.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\mcp_transport.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\mcp_server.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\analysis_engine.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\json_serializers.hpp" />
+    <ClInclude Include="..\..\external\ebpf-verifier\src\main\mcp\tools.hpp" />
+    <!-- Windows-specific headers -->
+    <ClInclude Include="src\windows\platform_ops_windows.hpp" />
   </ItemGroup>
   <!-- Project references matching ebpfapi.vcxproj dependencies (using api.lib instead of the DLL) -->
   <ItemGroup>
