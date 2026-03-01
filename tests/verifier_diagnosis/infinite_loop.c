@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: MIT
 
 // Test: Loop bound comes from map value — verifier cannot prove termination.
-// Expected error: Could not prove termination
+// Expected error: Loop counter is too large
 // Pattern: §4.7 - Infinite Loop / Termination Failure
-// Note: Requires --termination flag
+// Note: Requires check_termination:true (MCP) or --termination (CLI)
 
 #include "bpf_helpers.h"
 #include "xdp_hooks.h"
@@ -30,6 +30,7 @@ test_infinite_loop(xdp_md_t* ctx)
     uint32_t sum = 0;
     for (uint32_t i = 0; i < bound; i++) { // BUG: bound is unbounded
         sum += i;
+        asm volatile("" : "+r"(sum)); // prevent clang from reducing to closed-form
     }
     return sum;
 }

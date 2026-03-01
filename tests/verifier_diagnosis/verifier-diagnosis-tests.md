@@ -79,7 +79,9 @@ A test PASSES when:
 - The key invariant from the expected values is present in the output
 - The root cause explanation is consistent with the expected fix
 
-Skip tests marked as NEEDS-FLAG.
+Skip tests marked as VERIFIER-LIMITATION. For Test 8, pass
+`allow_division_by_zero: false` to enable the division-by-zero check. For Test 9,
+pass `check_termination: true` to enable the termination check.
 ```
 
 ### Run All Tests with prevail-mcp
@@ -103,7 +105,9 @@ A test PASSES when:
 - The key invariant from the expected values is present in the output
 - The root cause explanation is consistent with the expected fix
 
-Skip tests marked as NEEDS-FLAG.
+Skip tests marked as VERIFIER-LIMITATION. For Test 8, pass
+`allow_division_by_zero: false` to get_slice. For Test 9, pass
+`check_termination: true` to get_slice.
 ```
 
 ### Head-to-Head Comparison
@@ -111,7 +115,7 @@ Skip tests marked as NEEDS-FLAG.
 ```text
 Read external/ebpf-verifier/docs/llm-context.md for diagnostic patterns. Then for
 each test case in tests/verifier_diagnosis/verifier-diagnosis-tests.md (skip
-NEEDS-FLAG tests), diagnose the failure using BOTH approaches:
+VERIFIER-LIMITATION tests), diagnose the failure using BOTH approaches:
 
 Approach A (verify-bpf): Run .\x64\Debug\bpf2c.exe --bpf <elf_path> --verbose
 Approach B (prevail-mcp): Call get_slice with trace_depth=10
@@ -234,7 +238,7 @@ Then summarize:
 
 ---
 
-### Test 8: Division by Zero (NEEDS-FLAG)
+### Test 8: Division by Zero
 
 **Source**: `tests/verifier_diagnosis/divzero.c`
 
@@ -242,17 +246,17 @@ Then summarize:
 .\x64\Debug\bpf2c.exe --bpf tests\verifier_diagnosis\build\divzero.o --verbose
 ```
 
-**Expected error**: `Possible division by zero`
+**Expected error**: `Possible division by zero (r1 != 0)`
 **Pattern**: §4.8 — Division by Zero
-**Key invariant**: Divisor register has `svalue=[0, ...]` — lower bound includes 0
-**Fix**: Add `if (divisor != 0)` check before division
-**Note**: NEEDS-FLAG — passes with default settings. The verifier allows division by
-zero by default; this test requires a `--no-division-by-zero` flag to enable the check.
-Neither bpf2c nor the MCP server currently expose this flag.
+**Key invariant**: `r1.type=number` with no `svalue` bounds at the division — the divisor loaded from a map value has no constraints, so 0 is possible
+**Fix**: Add `if (*divisor_ptr != 0)` check before division
+**MCP flag**: Requires `allow_division_by_zero: false` (default is `true` per BPF ISA semantics).
+The verifier allows division by zero by default; pass `allow_division_by_zero: false` to
+`verify_program` or `get_slice` to enable the check.
 
 ---
 
-### Test 9: Infinite Loop (NEEDS-FLAG)
+### Test 9: Infinite Loop
 
 **Source**: `tests/verifier_diagnosis/infinite_loop.c`
 
@@ -260,13 +264,13 @@ Neither bpf2c nor the MCP server currently expose this flag.
 .\x64\Debug\bpf2c.exe --bpf tests\verifier_diagnosis\build\infinite_loop.o --verbose
 ```
 
-**Expected error**: `Could not prove termination` or loop counter shows `[1, +oo]`
+**Expected error**: `Loop counter is too large (pc[11] < 100000)`
 **Pattern**: §4.7 — Infinite Loop / Termination Failure
-**Key invariant**: Loop bound comes from map value with unbounded range `[0, UINT32_MAX]`
+**Key invariant**: `pc[11]=[0, +oo]` — loop counter widened to infinity because loop bound comes from a map value with `r1.uvalue=[1, +oo]`
 **Fix**: Use compile-time constant bounds or restructure loop
-**Note**: NEEDS-FLAG — passes with default settings. The MCP server enables termination
-checking by default, but this test still passes because the loop bound from a map value
-is not checked by the loop-counter mechanism (only widened). bpf2c also passes this test.
+**MCP flag**: Requires `check_termination: true` (default is platform-specific, typically off).
+The loop uses `asm volatile` to prevent clang from replacing it with a closed-form
+expression, ensuring the back edge survives to bytecode.
 
 ---
 
@@ -383,8 +387,8 @@ is not checked by the loop-counter mechanism (only widened). bpf2c also passes t
 | §4.3 — Stack Out-of-Bounds Access | 12 |
 | §4.4 — Null Pointer After Map Lookup | 1 |
 | §4.6 — Type Mismatch | 7, 11, 16 |
-| §4.7 — Infinite Loop / Termination | 9 (NEEDS-FLAG), 10 |
-| §4.8 — Division by Zero | 8 (NEEDS-FLAG) |
+| §4.7 — Infinite Loop / Termination | 9, 10 |
+| §4.8 — Division by Zero | 8 |
 | §4.9 — Map Key/Value Non-Numeric | 4, 6, 14 |
 | §4.10 — Context Field Bounds Violation | 5 |
 | §4.11 — Lost Correlations | 13 |
@@ -396,8 +400,10 @@ pattern is difficult to trigger from C source because clang initializes register
 
 ## Results Summary
 
-All 14 active test cases (excluding NEEDS-FLAG tests 8 and 9) produce the expected
-verification errors when run against bpf2c or queried via the prevail-verifier MCP tools.
+All 16 test cases produce the expected verification errors when run against bpf2c or
+queried via the prevail-verifier MCP tools. Tests 8 and 9 require non-default flags:
+- Test 8: `allow_division_by_zero: false`
+- Test 9: `check_termination: true`
 
 ### Validated Results (Phase 1 Comparison)
 
@@ -420,14 +426,16 @@ approach is ~23% faster due to targeted structured output vs full-program text d
 
 ```text
 For each test case in tests/verifier_diagnosis/verifier-diagnosis-tests.md
-(skip NEEDS-FLAG tests), run TWO independent diagnoses:
+(skip VERIFIER-LIMITATION tests), run TWO independent diagnoses:
 
 1. verify-bpf: Run bpf2c --verbose and diagnose
 2. prevail-mcp: Call get_slice and diagnose
 
+For Test 8, pass allow_division_by_zero: false.
+For Test 9, pass check_termination: true.
 Compare: Do both identify the same §4.X pattern and root cause?
 
-Expected result: 100% agreement on all 14 active tests.
+Expected result: 100% agreement on all 16 tests.
 ```
 
 ## Skill-Specific Notes
@@ -446,6 +454,22 @@ Expected result: 100% agreement on all 14 active tests.
 - `get_invariant`: query specific PCs for detailed state
 - `check_constraint`: test hypotheses about the verifier's knowledge
 - Best for: targeted diagnosis with minimal token consumption
+
+### MCP Verification Options
+
+The `verify_program` and `get_slice` tools accept optional boolean parameters to
+override platform defaults:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `check_termination` | platform-specific | Check for termination (loop bounds) |
+| `allow_division_by_zero` | `true` | Allow division by zero per BPF ISA semantics |
+| `strict` | `false` | Enable strict mode (additional runtime failure checks) |
+
+These should only be overridden by explicit user request. Example:
+```json
+{"elf_path": "test.o", "allow_division_by_zero": false, "trace_depth": 10}
+```
 
 ### Key Differences
 
