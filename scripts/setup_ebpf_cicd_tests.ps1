@@ -1,8 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory = $false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory = $false)][bool] $KmTracing = $true,
+param ([parameter(Mandatory = $false)][bool] $KmTracing = $true,
        [parameter(Mandatory = $false)][string] $KmTraceType = "file",
        [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
@@ -41,19 +40,6 @@ Write-Log "Architecture: $Architecture"
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $TestVMCredential = Retrieve-StoredCredential -Target $Target
-    } else {
-        $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-    }
-} else {
-    # Username and password are not used when running on host - use empty but non-null values.
-    $UserName = $env:USERNAME
-    $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
-    $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
-}
-
 # Delete old log files if any.
 Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
@@ -69,7 +55,6 @@ Get-PSExec
 
 $Job = Start-Job -ScriptBlock {
     param (
-        [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
         [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
         [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
         [parameter(Mandatory = $true)] [string] $TestMode,
@@ -86,7 +71,7 @@ $Job = Start-Job -ScriptBlock {
 
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
     if  ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -161,7 +146,6 @@ $Job = Start-Job -ScriptBlock {
 
     Pop-Location
 }  -ArgumentList (
-    $TestVMCredential,
     $Config,
     $SelfHostedRunnerName,
     $TestMode,
@@ -183,8 +167,6 @@ $JobTimedOut = `
     -CheckpointPrefix "Setup" `
     -ExecuteOnHost $ExecuteOnHost `
     -ExecuteOnVM $ExecuteOnVM `
-    -AdminTestVMCredential $TestVMCredential `
-    -StandardUserTestVMCredential $TestVMCredential `
     -VMIsRemote $VMIsRemote `
     -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
     -LogFileName $LogFileName `

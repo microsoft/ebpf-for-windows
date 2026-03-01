@@ -7,10 +7,6 @@ param (
     # The following parameters are only used when ExecuteOnVM is true
     [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
     [Parameter(Mandatory = $True)] [string] $VMName,
-    [Parameter(Mandatory = $True)] [string] $Admin,
-    [Parameter(Mandatory = $True)] [SecureString] $AdminPassword,
-    [Parameter(Mandatory = $True)] [string] $StandardUser,
-    [Parameter(Mandatory = $True)] [SecureString] $StandardUserPassword,
     # The following are shared parameters for both ExecuteOnHost and ExecuteOnVM
     [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
     [Parameter(Mandatory = $True)] [string] $LogFileName,
@@ -40,7 +36,7 @@ function Invoke-OnHostOrVM {
     if ($script:ExecuteOnHost) {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
-        $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
         Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
@@ -123,7 +119,7 @@ function Start-BackgroundProcess{
     )
     $session = $null
     if ($script:ExecuteOnVM){
-        $VmCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $VmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
         $session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $VmCredential
     } else {
         $session = New-PSSession -ErrorAction Stop
@@ -238,7 +234,7 @@ function Invoke-ConnectRedirectTestHelper
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     if ($script:VMIsRemote) {
-        $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
         $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
     }
 
@@ -261,9 +257,7 @@ function Invoke-ConnectRedirectTestHelper
         }
     }
 
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($script:StandardUserPassword))
-    $InsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    $InsecurePassword = Get-VMPassword
 
     $scriptBlock = {
         param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
@@ -286,7 +280,7 @@ function Invoke-ConnectRedirectTestHelper
             -WorkingDirectory $WorkingDirectory
         Write-Log "Invoke-ConnectRedirectTest finished"
     }
-    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $script:StandardUser, $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
+    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
     Stop-BackgroundProcess -ProgramName $ProgramName
@@ -366,7 +360,7 @@ function Run-KernelTests {
         }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
-        Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword
+        Add-StandardUser -UserName 'VMStandardUser' -Password (ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force)
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
         Write-Log "Connect Redirect tests completed"
     }
