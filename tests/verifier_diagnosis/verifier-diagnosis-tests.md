@@ -27,7 +27,7 @@ Get-ChildItem tests\verifier_diagnosis\*.c | ForEach-Object {
 Tools required:
 
 - **bpf2c.exe** (`x64\Debug\bpf2c.exe`) — used by the `verify-bpf` skill
-- **prevail_mcp.exe** (MCP server) — used by the `prevail-mcp` skill
+- **ebpf_mcp.exe** (`x64\Debug\ebpf_mcp.exe`) — MCP server used by the `prevail-mcp` skill
 
 ## How to Test
 
@@ -87,10 +87,10 @@ Skip tests marked as NEEDS-FLAG.
 ```text
 Read external/ebpf-verifier/docs/llm-context.md for diagnostic patterns. Then for
 each test case in tests/verifier_diagnosis/verifier-diagnosis-tests.md, use the
-prevail-verifier MCP tools to diagnose the failure.
+ebpf-verifier MCP tools to diagnose the failure.
 
 For each test case:
-1. Call get_error_context on the ELF file with trace_depth=10
+1. Call get_slice on the ELF file with trace_depth=10
 2. Identify the §4.X pattern from llm-context.md that matches the error
 3. Read the pre-invariant from the MCP output to confirm the root cause
 4. Compare your diagnosis against the expected pattern and key invariant
@@ -114,7 +114,7 @@ each test case in tests/verifier_diagnosis/verifier-diagnosis-tests.md (skip
 NEEDS-FLAG tests), diagnose the failure using BOTH approaches:
 
 Approach A (verify-bpf): Run .\x64\Debug\bpf2c.exe --bpf <elf_path> --verbose
-Approach B (prevail-mcp): Call get_error_context with trace_depth=10
+Approach B (prevail-mcp): Call get_slice with trace_depth=10
 
 For each test case, compare the two diagnoses and report:
 | Test | Pattern (bpf2c) | Pattern (MCP) | Match? | Key Invariant |
@@ -402,7 +402,7 @@ verification errors when run against bpf2c or queried via the prevail-verifier M
 ### Validated Results (Phase 1 Comparison)
 
 Both the `verify-bpf` skill (bpf2c --verbose) and the `prevail-mcp` skill (MCP
-get_error_context) were tested on all 14 active test cases with fresh agent
+get_slice) were tested on all 14 active test cases with fresh agent
 contexts. Results:
 
 | Metric | verify-bpf | prevail-mcp |
@@ -423,7 +423,7 @@ For each test case in tests/verifier_diagnosis/verifier-diagnosis-tests.md
 (skip NEEDS-FLAG tests), run TWO independent diagnoses:
 
 1. verify-bpf: Run bpf2c --verbose and diagnose
-2. prevail-mcp: Call get_error_context and diagnose
+2. prevail-mcp: Call get_slice and diagnose
 
 Compare: Do both identify the same §4.X pattern and root cause?
 
@@ -441,7 +441,7 @@ Expected result: 100% agreement on all 14 active tests.
 
 ### prevail-mcp (MCP tools)
 
-- `get_error_context`: returns error + backward trace (targeted, 1.5–3K chars)
+- `get_slice`: returns error + failure slice (targeted, 1.5–3K chars)
 - `verify_program`: quick pass/fail check with error summary
 - `get_invariant`: query specific PCs for detailed state
 - `check_constraint`: test hypotheses about the verifier's knowledge

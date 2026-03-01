@@ -60,10 +60,10 @@ which C statement failed.
 
 ---
 
-## 3. One-Call Diagnosis with Backward Trace
+## 3. One-Call Diagnosis with Failure Slice
 
 ```
-get_error_context: {
+get_slice: {
   "elf_path": "tests/verifier_diagnosis/build/nullmapref.o",
   "trace_depth": 3
 }
@@ -85,7 +85,7 @@ get_error_context: {
     "valid_access(r0.offset, width=4) for write"
   ],
   "source": { "line": 23, "source": "    *value = 1; ..." },
-  "backward_trace": [
+  "failure_slice": [
     { "pc": 3, "text": "r2 += -4" },
     { "pc": 4, "text": "r1 = map_fd 1" },
     { "pc": 6, "text": "r0 = bpf_map_lookup_elem:1(...)",
@@ -94,7 +94,7 @@ get_error_context: {
 }
 ```
 
-The backward trace shows `bpf_map_lookup_elem` at PC 6 returned `r0.svalue=[0, ...]`
+The Failure Slice shows `bpf_map_lookup_elem` at PC 6 returned `r0.svalue=[0, ...]`
 (includes NULL). The pre-invariant at PC 7 confirms the verifier can't prove r0
 is non-null when the write happens. Diagnosis: §4.4, add a null check.
 
@@ -395,3 +395,130 @@ check_constraint: {
 At program entry, the verifier **proves** `r1` is a valid context pointer.
 The invariant also shows `packet_size=0` — no packet access is safe until
 a bounds check is performed.
+
+---
+
+## 15. Slice: What Makes This Packet Read Safe?
+
+```
+get_slice: { "elf_path": "x64/Debug/droppacket.o", "pc": 20 }
+```
+
+```json
+{
+  "pc": 20,
+  "instruction": "r3 = *(u16 *)(r1 + 12)",
+  "assertions": [
+    "r1.type in {ctx, stack, packet, shared}",
+    "valid_access(r1.offset+12, width=2) for read"
+  ],
+  "pre_invariant": ["packet_size=42", "r1.type=packet", "r1.packet_offset=0", ...],
+  "source": { "line": 70, "source": "    if (ntohs(ethernet_header->Type) == 0x0800) {" },
+  "failure_slice": [
+    { "pc": 0,  "text": "r6 = r1", "relevant_registers": ["r1"] },
+    { "pc": 15, "text": "r1 = *(u64 *)(r6 + 0)",
+      "relevant_registers": ["r6"],
+      "post_invariant": ["packet_size=0", "r1.type=packet", ...] },
+    { "pc": 16, "text": "r2 = *(u64 *)(r6 + 8)",
+      "post_invariant": ["r2.packet_offset=packet_size", "r2.type=packet", ...] },
+    { "pc": 17, "text": "r3 = r1" },
+    { "pc": 18, "text": "r3 += 42",
+      "post_invariant": ["r3.packet_offset=42", ...] },
+    { "pc": 19, "text": "if r3 > r2 goto label <46>",
+      "post_invariant": ["packet_size=0", ...] },
+    { "pc": 19, "text": "assume r3 <= r2",
+      "post_invariant": ["packet_size=42", ...] }
+  ]
+}
+```
+
+The slice traces backward from the 2-byte Ethernet type read. The critical
+transition is at PC 19: on the branch's taken path `packet_size` stays 0 (bail
+out), but on the fall-through `assume r3 <= r2` establishes **`packet_size=42`**.
+Since the read needs only 14 bytes (offset 12, width 2), 42 ≥ 14 proves safety.
+
+---
+
+## 16. Slice: What Makes This Map Value Dereference Safe?
+
+```
+get_slice: { "elf_path": "x64/Debug/droppacket.o", "pc": 11 }
+```
+
+```json
+{
+  "pc": 11,
+  "instruction": "r1 = *(u32 *)(r1 + 0)",
+  "assertions": [
+    "r1.type in {ctx, stack, packet, shared}",
+    "valid_access(r1.offset, width=4) for read"
+  ],
+  "pre_invariant": [
+    "r1.type=shared", "r1.svalue=[1, 2147418112]",
+    "r1.shared_offset=0", "r1.shared_region_size=4", ...
+  ],
+  "source": { "line": 59, "source": "        if (ctx->ingress_ifindex != *interface_index) {" },
+  "failure_slice": [
+    { "pc": 3, "text": "r2 = r10" },
+    { "pc": 4, "text": "r2 += -8" },
+    { "pc": 5, "text": "r1 = map_fd 1" },
+    { "pc": 7, "text": "r0 = bpf_map_lookup_elem:1(map_fd r1, map_key r2)",
+      "post_invariant": ["r0.type=shared", "r0.svalue=[0, 2147418112]", ...] },
+    { "pc": 8, "text": "r1 = r0",
+      "post_invariant": ["r1.svalue=[0, 2147418112]", ...] },
+    { "pc": 9, "text": "if r1 == 0 goto label <14>" },
+    { "pc": 9, "text": "assume r1 != 0",
+      "post_invariant": ["r1.svalue=[1, 2147418112]", ...] }
+  ]
+}
+```
+
+The slice shows the null-check pattern: `bpf_map_lookup_elem` at PC 7 returns
+`r0.svalue=[0, ...]` (includes NULL). After `assume r1 != 0` at PC 9, the lower
+bound narrows from 0 → **1**, proving non-null. The 4-byte read is then safe
+because `shared_region_size=4` covers the access width.
+
+---
+
+## 17. Slice: How Are Helper Call Arguments Verified?
+
+```
+get_slice: { "elf_path": "x64/Debug/cgroup_sock_addr.o", "pc": 30 }
+```
+
+```json
+{
+  "pc": 30,
+  "instruction": "r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)",
+  "assertions": [
+    "r1.type == map_fd", "r2.type in {stack, packet, shared}",
+    "within(r2:key_size(r1))", "r3.type in {stack, packet, shared}",
+    "within(r3:value_size(r1))", "r4.type == number"
+  ],
+  "pre_invariant": [
+    "r1.map_fd=3", "r1.type=map_fd",
+    "r2.stack_offset=4032", "r2.stack_numeric_size=64", "r2.type=stack",
+    "r3.stack_offset=4088", "r3.stack_numeric_size=8", "r3.type=stack",
+    "r4.svalue=0", "r4.type=number",
+    "s[4032...4095].type=number", ...
+  ],
+  "source": { "line": 45, "source": "    bpf_map_update_elem(&socket_cookie_map, tuple_key, &socket_cookie, 0);" },
+  "failure_slice": [
+    { "pc": 22, "text": "r6 = r10" },
+    { "pc": 23, "text": "r6 += -64",
+      "post_invariant": ["r6.stack_offset=4032", "r6.stack_numeric_size=64", ...] },
+    { "pc": 24, "text": "r3 = r10" },
+    { "pc": 25, "text": "r3 += -8",
+      "post_invariant": ["r3.stack_offset=4088", "r3.stack_numeric_size=8", ...] },
+    { "pc": 26, "text": "r1 = map_fd 3" },
+    { "pc": 28, "text": "r2 = r6" },
+    { "pc": 29, "text": "r4 = 0" }
+  ]
+}
+```
+
+The slice shows all 4 arguments being assembled: `r1` (map fd), `r2` (64-byte
+key on stack at offset 4032), `r3` (8-byte value on stack at offset 4088), and
+`r4` (flags = 0). The verifier checks `stack_numeric_size` against the map's
+declared `key_size` and `value_size` via the `within()` assertions, and confirms
+`s[4032...4095].type=number` (all stack bytes are initialized).

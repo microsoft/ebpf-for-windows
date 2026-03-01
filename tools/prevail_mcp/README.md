@@ -1,4 +1,4 @@
-# prevail_mcp — PREVAIL Verifier MCP Server
+# ebpf_mcp — eBPF Verifier MCP Server
 
 An [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) server that
 exposes the PREVAIL eBPF verifier's analysis results as structured, queryable
@@ -18,7 +18,7 @@ and formally verify safety properties.
 msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp
 ```
 
-Output: `x64\Debug\prevail_mcp.exe`
+Output: `x64\Debug\ebpf_mcp.exe`
 
 ## VS Code Integration
 
@@ -27,25 +27,25 @@ The server is configured in `.vscode/mcp.json`. It starts automatically when VS 
 ## Copilot CLI Integration
 
 Copilot CLI uses a user-level config file to discover MCP servers. Add the
-`prevail-verifier` server to `~/.copilot/mcp-config.json`:
+`ebpf-verifier` server to `~/.copilot/mcp-config.json`:
 
 ```json
 {
   "mcpServers": {
-    "prevail-verifier": {
+    "ebpf-verifier": {
       "type": "stdio",
-      "command": "C:/path/to/ebpf-for-windows/x64/Debug/prevail_mcp.exe",
+      "command": "C:/path/to/ebpf-for-windows/x64/Debug/ebpf_mcp.exe",
       "args": []
     }
   }
 }
 ```
 
-Replace the path with the absolute path to your built `prevail_mcp.exe`. Use
+Replace the path with the absolute path to your built `ebpf_mcp.exe`. Use
 forward slashes in the path.
 
 After editing the config, restart Copilot CLI (`ghcs` or reopen the terminal).
-The `prevail-verifier` tools will then be available in all sessions.
+The `ebpf-verifier` tools will then be available in all sessions.
 
 > **Note**: There is currently no way to have Copilot CLI automatically pick up
 > MCP server configs from a repo-level file (like `.vscode/mcp.json`). The
@@ -57,7 +57,7 @@ The `prevail-verifier` tools will then be available in all sessions.
 |------|-------------|
 | `list_programs` | List all eBPF programs (sections/functions) in an ELF file |
 | `verify_program` | Run verification — pass/fail, error count, exit value range, stats |
-| `get_error_context` | Error with backward trace, pre-invariant, assertions, source line |
+| `get_slice` | Backward slice from error or any PC with register relevance, pre-invariant, assertions, source line |
 | `get_errors` | All verification errors with pre-invariants and unreachable code |
 | `get_invariant` | Pre/post abstract state at one or more instructions |
 | `get_instruction` | Full detail: text, assertions, pre/post invariants, source, CFG neighbors |
@@ -74,9 +74,9 @@ This matches bpf2c's `--type` flag.
 
 ### Diagnostic Workflow
 
-For failure diagnosis, `get_error_context` with `trace_depth=10` is usually
+For failure diagnosis, `get_slice` with `trace_depth=10` is usually
 sufficient in a single call. It returns the error message, pre-invariant,
-assertions, source line, and a backward trace showing how each register reached
+assertions, source line, and a failure slice showing how each register reached
 its current state.
 
 These tools map to the [PREVAIL LLM diagnostic protocol](../../external/ebpf-verifier/docs/llm-context.md):
@@ -84,8 +84,8 @@ These tools map to the [PREVAIL LLM diagnostic protocol](../../external/ebpf-ver
 | Protocol Step | Tool |
 |---|---|
 | 1. Identify error | `verify_program` or `get_errors` |
-| 2. Pre-invariant at error | `get_error_context` (includes backward trace) |
-| 3. Trace the register | Read pre-invariant constraints from `get_error_context` |
+| 2. Pre-invariant at error | `get_slice` (includes failure slice) |
+| 3. Trace the register | Read pre-invariant constraints from `get_slice` |
 | 4. Test hypotheses | `check_constraint` with `mode="proven"` or `mode="consistent"` |
 | 5. Compare states | `get_instruction` or `get_invariant` at multiple PCs |
 | 6. Formulate fix | Agent reasoning + source from `get_source_mapping` |
@@ -132,14 +132,16 @@ call examples with JSON output.
 ## Architecture
 
 ```
-src/core/        ← Core MCP server and verification logic
+external/ebpf-verifier/src/main/mcp/  ← Core MCP server (from PREVAIL submodule)
   mcp_transport  — JSON-RPC 2.0 over stdio
   mcp_server     — Tool registry and dispatch
   analysis_engine — PREVAIL pipeline runner with LRU + live session cache
   json_serializers — PREVAIL types → JSON
   tools          — All 10 tool implementations
+  platform_ops   — Abstract platform interface
 src/windows/     ← Platform layer (Windows-specific)
   main.cpp       — Entry point, g_ebpf_platform_windows setup
+  platform_ops_windows — Windows PlatformOps implementation
 ```
 
 The server uses `g_ebpf_platform_windows` (same as bpf2c), so verification

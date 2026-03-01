@@ -21,6 +21,11 @@ with the response produced by the MCP tools.
 - [How many packet bytes are accessible after the bounds check?](#q8-how-many-packet-bytes-are-accessible-after-the-bounds-check)
 - [What changes across the null check?](#q9-what-changes-across-the-null-check)
 
+### Backward Slicing on Passing Programs
+- [What chain of instructions makes the Ethernet type read safe?](#q17-what-chain-of-instructions-makes-the-ethernet-type-read-safe)
+- [What makes the map value dereference safe?](#q18-what-makes-the-map-value-dereference-safe)
+- [How does the verifier validate helper call arguments?](#q19-how-does-the-verifier-validate-helper-call-arguments)
+
 ### Tracing State Changes
 - [Is r6 still valid after bpf_xdp_adjust_head?](#q10-is-r6-still-valid-after-bpf_xdp_adjust_head)
 - [What registers survive the helper call?](#q11-what-registers-survive-the-helper-call)
@@ -223,3 +228,67 @@ The CFG has 7 basic blocks in a diamond pattern:
 The two sequential branch-merge pairs form the pattern that causes the lost
 correlation — `packet_size=4` is established on one branch of PC 5 but lost
 when paths merge at PC 7.
+
+---
+
+### Q17: What chain of instructions makes the Ethernet type read safe?
+
+> In droppacket.o, what chain of instructions makes the packet read at PC 20
+> safe? Trace backward from the read.
+
+The `get_slice` at PC 20 reveals **7 instructions** in the backward slice:
+
+1. **PC 0**: `r6 = r1` — saves the context pointer
+2. **PCs 15–16**: Load `ctx->data` (r1, packet pointer) and `ctx->data_end` (r2)
+3. **PCs 17–18**: Compute `data + 42` in r3 (`r3.packet_offset=42`)
+4. **PC 19**: Branch `if r3 > r2 goto exit` — packets too small bail out
+5. **PC 19**: `assume r3 <= r2` — on fall-through, **`packet_size` jumps from 0 → 42**
+
+The 2-byte read at offset 12 needs `packet_size ≥ 14`. Since the bounds check
+establishes `packet_size = 42`, the access is provably safe. The `assume`
+pseudo-instruction at PC 19 is the critical moment — it's where the C code's
+`if (data + 42 > data_end)` guard becomes a proven constraint.
+
+---
+
+### Q18: What makes the map value dereference safe?
+
+> In droppacket.o, what makes the dereference of `*interface_index` at PC 11
+> safe? Show me the backward slice.
+
+The `get_slice` at PC 11 reveals **7 instructions**:
+
+1. **PCs 3–5**: Set up map key pointer (r2 → stack) and map fd (r1 = map_fd 1)
+2. **PC 7**: `bpf_map_lookup_elem` returns `r0.svalue=[0, 2147418112]` — **may
+   be NULL** (lower bound 0)
+3. **PC 8**: Copy to r1 (`r1 = r0`)
+4. **PC 9**: `if r1 == 0 goto <14>` / `assume r1 != 0` — null check narrows
+   `r1.svalue` to **[1, 2147418112]** (lower bound 1, NULL excluded)
+
+At PC 11, the verifier knows `r1.type=shared`, `r1.shared_region_size=4`, and
+`r1.svalue ≥ 1` (non-null). The 4-byte read at offset 0 fits within the 4-byte
+shared region. The `assume r1 != 0` at PC 9 is the critical instruction — it
+transforms a maybe-null pointer into a provably-valid one.
+
+---
+
+### Q19: How does the verifier validate helper call arguments?
+
+> In cgroup_sock_addr.o, how does the verifier validate the arguments to
+> bpf_map_update_elem at PC 30?
+
+The `get_slice` at PC 30 reveals **7 instructions** assembling 4 arguments, plus
+**6 assertions** the verifier checks:
+
+| Register | Setup | Assertion |
+|----------|-------|-----------|
+| r1 (map) | `r1 = map_fd 3` | `r1.type == map_fd` |
+| r2 (key) | `r6 = r10; r6 += -64; r2 = r6` | `r2.type in {stack, ...}` + `within(r2:key_size(r1))` |
+| r3 (value) | `r3 = r10; r3 += -8` | `r3.type in {stack, ...}` + `within(r3:value_size(r1))` |
+| r4 (flags) | `r4 = 0` | `r4.type == number` |
+
+The verifier tracks `stack_numeric_size` for each pointer: r2 has 64 bytes of
+initialized stack data at offset 4032, r3 has 8 bytes at offset 4088. The
+`within()` assertion checks that these sizes cover the map's declared key and
+value sizes. The invariant `s[4032...4095].type=number` confirms every byte in
+the range is initialized — no uninitialized memory is passed to the helper.

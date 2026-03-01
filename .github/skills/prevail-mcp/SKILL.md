@@ -31,7 +31,7 @@ verification failures.
 
 ## Prerequisites
 
-- **prevail_mcp.exe** must be built: `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp`
+- **ebpf_mcp.exe** must be built: `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp`
 - **export_program_info.exe** must have been run to populate the eBPF program type registry.
 - The MCP server is configured in `.vscode/mcp.json` and starts automatically.
 
@@ -39,17 +39,17 @@ verification failures.
 
 Follow the [PREVAIL LLM diagnostic protocol](../../external/ebpf-verifier/docs/llm-context.md):
 
-### Step 1: Get Error Context (Start Here — Often Sufficient)
+### Step 1: Get Slice (Start Here — Often Sufficient)
 
-Call `get_error_context` first. It returns the error, pre-invariant, assertions,
-source line, AND a backward trace — all in one call.
+Call `get_slice` first. It returns the error, pre-invariant, assertions,
+source line, AND a backward slice of contributing instructions — all in one call.
 
 **In most cases, this single call is all you need for diagnosis.** Read the
 pre-invariant directly: if a register's type or constraint is listed, it is proven.
 If a register mentioned in the error is absent, it was invalidated.
 
 ```
-get_error_context: { "elf_path": "x64/Debug/myprogram.o", "trace_depth": 10 }
+get_slice: { "elf_path": "x64/Debug/myprogram.o", "trace_depth": 10 }
 ```
 
 If you need an overview first (e.g., to check if verification passes or count
@@ -73,7 +73,7 @@ Common patterns:
   → missing null check. See §4.4.
 - **`packet_size=0`** or too small → missing or insufficient bounds check. See §4.2.
 
-The backward trace shows **post-invariants** at each preceding instruction, so you
+The failure slice shows **post-invariants** at each preceding instruction, so you
 can see exactly where a register acquired its current type or where a constraint
 was lost.
 
@@ -210,14 +210,14 @@ full path.
 
 ### Stale pointer after helper (§4.12)
 
-1. `get_error_context` shows a register not in the pre-invariant
+1. `get_slice` shows a register not in the pre-invariant
 2. `get_instruction` at the preceding helper call shows the register WAS in the
    pre-invariant but is ABSENT from the post-invariant
 3. Fix: re-derive the pointer from context after the helper call
 
 ### Lost correlation at join (§4.11)
 
-1. `get_error_context` backward trace shows a branch where the constraint was
+1. `get_slice` failure slice shows a branch where the constraint was
    established, but the pre-invariant at the error lost it
 2. Look for a join point where checked and unchecked paths merge — the verifier's
    path-insensitive analysis takes the weaker constraint
@@ -235,7 +235,7 @@ full path.
 | Question | Tool | Notes |
 |----------|------|-------|
 | Does it pass? How many errors? | `verify_program` | Start here if unsure about pass/fail |
-| What went wrong? (first call for failures) | `get_error_context` | Returns error + invariant + backward trace in one call |
+| What went wrong? (first call for failures) | `get_slice` | Returns error + invariant + failure slice in one call |
 | All errors at once | `get_errors` | Use for multi-error programs |
 | What's proven at PC N? | `get_invariant` | `pcs: [N]` for one, `pcs: [N,M,...]` for many |
 | Full instruction detail (pre/post invariants) | `get_instruction` | `pcs: [N]` for one, `pcs: [N,M,...]` for many |
@@ -253,7 +253,7 @@ full path.
 | `list_programs` | List programs in ELF | `elf_path` |
 | `verify_program` | Run verification | `elf_path`, `section`, `program`, `program_type` |
 | `get_errors` | All errors + unreachable code | `elf_path` |
-| `get_error_context` | Error or any-PC + backward trace | `elf_path`, `error_index` or `pc`, `trace_depth` |
+| `get_slice` | Error or any-PC + failure slice | `elf_path`, `error_index` or `pc`, `trace_depth` |
 | `get_disassembly` | Instruction listing with source | `elf_path`, `from_pc`, `to_pc` |
 | `get_invariant` | Abstract state at instruction(s) | `elf_path`, `pcs`, `point` (pre/post) |
 | `get_instruction` | Full instruction detail | `elf_path`, `pcs` |
