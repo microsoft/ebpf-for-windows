@@ -115,7 +115,7 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:a42b9951c28e46cd53fd399009dd6eb79" id="r_a42b9951c28e46cd53fd399009dd6eb79"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a42b9951c28e46cd53fd399009dd6eb79">EBPF_MAP_OPERATION_HELPER</a>&#160;&#160;&#160;0x01      /* Called by a BPF program. */</td></tr>
+<tr class="memitem:a42b9951c28e46cd53fd399009dd6eb79" id="r_a42b9951c28e46cd53fd399009dd6eb79"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a42b9951c28e46cd53fd399009dd6eb79">EBPF_MAP_OPERATION_HELPER</a></td></tr>
 <tr class="separator:a42b9951c28e46cd53fd399009dd6eb79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a85ebbb668c665b9a6e739460c4bde234" id="r_a85ebbb668c665b9a6e739460c4bde234"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a85ebbb668c665b9a6e739460c4bde234">EBPF_MAP_OPERATION_UPDATE</a>&#160;&#160;&#160;0x02      /* Update operation. */</td></tr>
 <tr class="separator:a85ebbb668c665b9a6e739460c4bde234"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -290,11 +290,15 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_MAP_OPERATION_HELPER&#160;&#160;&#160;0x01      /* Called by a BPF program. */</td>
+          <td class="memname">#define EBPF_MAP_OPERATION_HELPER</td>
         </tr>
       </table>
 </div><div class="memdoc">
-
+<b>Value:</b><div class="fragment"><div class="line">                                        0x01 <span class="comment">/* Called by a BPF program. When this flag is not set, the provider function is</span></div>
+<div class="line"><span class="comment">                                        * called in the context of the original user mode process, so the provider may</span></div>
+<div class="line"><span class="comment">                                        * implicitly use the current process&#39;s handle table (e.g., to resolve file</span></div>
+<div class="line"><span class="comment">                                        * descriptors passed as map values). */</span></div>
+</div><!-- fragment -->
 </div>
 </div>
 <a id="a58faa78517602f4947721e10154550e0" name="a58faa78517602f4947721e10154550e0"></a>
@@ -713,7 +717,7 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the input value bytes. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the destination (stored) value buffer. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional pointer to the destination (stored) value buffer to populate. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Update flags. Supported values: EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program.</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Update flags. Supported values: EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
   </table>
   </dd>
 </dl>
@@ -793,7 +797,7 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. If the key is not found, the map is unchanged. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry being deleted. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program.</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
   </table>
   </dd>
 </dl>
@@ -855,7 +859,7 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the provider's stored value buffer for the entry. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the output value buffer. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional output buffer to receive the value bytes. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Find flags. Supported values: EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program.</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Find flags. Supported values: EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
   </table>
   </dd>
 </dl>
