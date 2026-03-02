@@ -26,7 +26,7 @@ Use the `ebpf-verifier` MCP tools to query PREVAIL's analysis of eBPF programs.
 
 ## Prerequisites
 
-- **ebpf_mcp.exe** must be built: `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp`
+- **ebpf_mcp.exe** must be built: `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools/ebpf_mcp`
 - **export_program_info.exe** must have been run to populate the eBPF program type registry.
 
 ## Diagnostic Workflow

@@ -488,7 +488,7 @@ These should only be overridden by explicit user request. Example:
 msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\bpf2c
 
 # Build MCP server
-msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp
+msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools/ebpf_mcp
 
 # Compile test programs
 $clang = "C:\Program Files\LLVM\bin\clang.exe"

@@ -12,7 +12,7 @@ This project brings eBPF (extended Berkeley Packet Filter) to Windows, enabling 
 | Run unit tests | `unit_tests.exe` (from `x64\Debug`) |
 | Run single test | `unit_tests.exe "test name"` |
 | List tests | `unit_tests.exe -l` |
-| Build MCP server | `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp` |
+| Build MCP server | `msbuild /m /p:Configuration=Debug /p:Platform=x64 /t:tools\ebpf_mcp` |
 
 See [docs/GettingStarted.md](../docs/GettingStarted.md) for prerequisites, build options, and detailed setup.
 See [docs/AutomatedTests.md](../docs/AutomatedTests.md) for test categories and descriptions.
@@ -60,7 +60,7 @@ See [docs/AutomatedTests.md](../docs/AutomatedTests.md) for test categories and 
 | **ebpfsvc.exe** | `libs/service/`, `ebpfsvc/` | Service handling JIT compilation and verification |
 | **netebpfext.sys** | `netebpfext/` | Network extension providing WFP hooks |
 | **bpf2c** | `tools/bpf2c/` | Converts eBPF bytecode to C for native compilation |
-| **prevail_mcp** | `tools/prevail_mcp/` | MCP server exposing PREVAIL verifier analysis to LLM agents |
+| **ebpf_mcp** | `tools/ebpf_mcp/` | MCP server exposing PREVAIL verifier analysis to LLM agents |
 
 ### External Dependencies (in `external/`)
 

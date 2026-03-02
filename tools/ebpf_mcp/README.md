@@ -15,7 +15,7 @@ and formally verify safety properties.
 ## Building
 
 ```powershell
-msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools\prevail_mcp
+msbuild ebpf-for-windows.sln /m /p:Configuration=Debug /p:Platform=x64 /t:tools/ebpf_mcp
 ```
 
 Output: `x64\Debug\ebpf_mcp.exe`

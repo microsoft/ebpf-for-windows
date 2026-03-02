@@ -183,7 +183,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c", "tools\bpf2c\bpf2c.
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "prevail_mcp", "tools\prevail_mcp\prevail_mcp.vcxproj", "{1EB64C33-FC48-44D0-B7A2-A5D9B229D425}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ebpf_mcp", "tools\ebpf_mcp\ebpf_mcp.vcxproj", "{1EB64C33-FC48-44D0-B7A2-A5D9B229D425}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_tests", "tests\bpf2c_tests\bpf2c_tests.vcxproj", "{61DF9973-81B9-4006-9148-52F58259BBCF}"
 	ProjectSection(ProjectDependencies) = postProject

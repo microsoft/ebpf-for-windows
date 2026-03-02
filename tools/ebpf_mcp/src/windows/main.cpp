@@ -59,7 +59,7 @@ class seh_exception : public std::runtime_error
 };
 
 static void
-seh_translator(unsigned int code, EXCEPTION_POINTERS*)
+seh_translator(unsigned int code, _In_opt_ EXCEPTION_POINTERS*)
 {
     throw seh_exception(code);
 }
@@ -72,18 +72,22 @@ main()
     // --- Stdout protection ---
     // Linked libraries (PREVAIL verifier, eBPF API) contain std::cout writes
     // that would corrupt MCP Content-Length framing if they reach the client.
-    // Save the original stdout pipe for exclusive MCP use, then redirect
-    // stdout/std::cout to stderr so library diagnostics are harmless.
+    // Duplicate stdout for exclusive MCP use, then redirect std::cout to
+    // std::cerr at the C++ stream level so library diagnostics are harmless.
+    // Note: fd-level stdout is left intact so that parent processes can pipe
+    // it normally (e.g., Start-Process -RedirectStandardOutput in PowerShell).
     int mcp_fd = _dup(_fileno(stdout));
-    _setmode(mcp_fd, _O_BINARY); // Must set before _fdopen; "wb" alone doesn't change fd mode.
-    _dup2(_fileno(stderr), _fileno(stdout));
+    _setmode(mcp_fd, _O_BINARY);
 
-    FILE* mcp_out = _fdopen(mcp_fd, "wb"); // binary mode, no \r\n translation.
+    FILE* mcp_out = _fdopen(mcp_fd, "wb");
     if (!mcp_out) {
         std::cerr << "prevail_mcp: fatal: cannot open MCP output stream" << std::endl;
         return 1;
     }
-    setvbuf(mcp_out, NULL, _IONBF, 0); // Unbuffered — bypass CRT pipe buffering.
+    setvbuf(mcp_out, NULL, _IONBF, 0);
+
+    // Redirect C++ std::cout to stderr so library diagnostics don't reach the client.
+    std::cout.rdbuf(std::cerr.rdbuf());
 
     // Set stdin to binary mode (no \r\n translation for MCP message reads).
     _setmode(_fileno(stdin), _O_BINARY);
