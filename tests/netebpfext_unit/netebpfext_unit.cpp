@@ -588,13 +588,16 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     test_sock_addr_client_context_header_t client_context_header = {0};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
-    std::vector<std::jthread> threads;
     std::atomic<size_t> failure_count = 0;
 
+    // Declare helper before threads to ensure threads are joined before helper is destroyed.
+    // This prevents use-after-free when fault injection causes early test exit.
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+
+    std::vector<std::jthread> threads;
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
     client_context->validate_sock_addr_entries = false;
@@ -638,14 +641,17 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     };
     test_sock_addr_client_context_header_t client_context_header = {0};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
-    std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
 
+    // Declare helper before threads to ensure threads are joined before helper is destroyed.
+    // This prevents use-after-free when fault injection causes early test exit.
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+
+    std::vector<std::jthread> threads;
 
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
     client_context->validate_sock_addr_entries = false;
@@ -689,14 +695,17 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     };
     test_sock_addr_client_context_header_t client_context_header = {0};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
-    std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
 
+    // Declare helper before threads to ensure threads are joined before helper is destroyed.
+    // This prevents use-after-free when fault injection causes early test exit.
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+
+    std::vector<std::jthread> threads;
 
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
     client_context->validate_sock_addr_entries = false;
@@ -1056,13 +1065,16 @@ TEST_CASE("sock_ops_invoke_concurrent1", "[netebpfext_concurrent]")
     test_sock_ops_client_context_header_t client_context_header = {0};
     test_sock_ops_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
-    std::vector<std::jthread> threads;
     std::atomic<size_t> failure_count = 0;
 
+    // Declare helper before threads to ensure threads are joined before helper is destroyed.
+    // This prevents use-after-free when fault injection causes early test exit.
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+
+    std::vector<std::jthread> threads;
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
     client_context->sock_ops_action = 0; // Success
@@ -1097,14 +1109,17 @@ TEST_CASE("sock_ops_invoke_concurrent2", "[netebpfext_concurrent]")
     };
     test_sock_ops_client_context_header_t client_context_header = {0};
     test_sock_ops_client_context_t* client_context = &client_context_header.context;
-    std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
 
+    // Declare helper before threads to ensure threads are joined before helper is destroyed.
+    // This prevents use-after-free when fault injection causes early test exit.
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
         (netebpfext_helper_base_client_context_t*)client_context);
+
+    std::vector<std::jthread> threads;
 
     client_context->sock_ops_action = SOCK_OPS_TEST_ACTION_ROUND_ROBIN; // Success
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
