@@ -255,14 +255,19 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
 // user-mode tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"droppacket"},
-     {{"droppacket.o"}, {}, {}, _droppacket_stress_thread_function, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT}},
+     {{"droppacket.o"},
+      {"droppacket_um.dll"},
+      {},
+      _droppacket_stress_thread_function,
+      BPF_PROG_TYPE_UNSPEC,
+      EBPF_EXECUTION_ANY}},
     {{"bindmonitor_tailcall"},
      {{"bindmonitor_tailcall.o"},
-      {},
+      {"bindmonitor_tailcall_um.dll"},
       {},
       _bindmonitor_tailcall_stress_thread_function,
       BPF_PROG_TYPE_UNSPEC,
-      EBPF_EXECUTION_JIT}}};
+      EBPF_EXECUTION_ANY}}};
 
 // This call is called by the common test initialization code to get a list of programs supported by the user mode or
 // kernel mode test suites.  (For example, some programs could be meant for kernel mode stress testing only).
@@ -386,10 +391,11 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
 
         // Prepare the common part of the test context for all threads of this program...
         const auto& program_attributes = _test_program_info.at(program);
+        bool use_native = (_test_control_info.requested_execution_type == EBPF_EXECUTION_NATIVE);
         stress_test_thread_context local_context{};
-        local_context.file_name = program_attributes.jit_file_name;
+        local_context.file_name = use_native ? program_attributes.native_file_name : program_attributes.jit_file_name;
         local_context.program_type = program_attributes.program_type;
-        local_context.execution_type = program_attributes.execution_type;
+        local_context.execution_type = use_native ? EBPF_EXECUTION_NATIVE : EBPF_EXECUTION_JIT;
         local_context.duration_minutes = _test_control_info.duration_minutes;
         local_context.failure_count = &failure_count;
 
