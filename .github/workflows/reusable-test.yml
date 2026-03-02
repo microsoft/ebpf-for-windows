@@ -160,8 +160,11 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         run: |
-          choco install -y --requirechecksum=true --checksum=863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4 --checksum-type=sha256 procdump --version=11.0
-          where procdump.exe
+          curl -L -o ${{github.workspace}}\Procdump.zip https://download.sysinternals.com/files/Procdump.zip
+          Expand-Archive -Path ${{github.workspace}}\Procdump.zip -DestinationPath ${{github.workspace}}\procdump -Force
+          echo "${{github.workspace}}\procdump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          if (-not (Test-Path "${{github.workspace}}\procdump\procdump.exe")) { throw "ProcDump download failed" }
+          ${{github.workspace}}\procdump\procdump.exe -accepteula
 
       - name: Set up OpenCppCoverage and add to PATH
         id: set_up_opencppcoverage
