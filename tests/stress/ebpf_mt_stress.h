@@ -70,6 +70,9 @@ struct test_control_info
 
     // Use unique 'native' programs (used internally by specific tests).
     bool use_unique_native_programs{false};
+
+    // Requested execution type for test programs.
+    ebpf_execution_type_t requested_execution_type{EBPF_EXECUTION_JIT};
 };
 
 test_control_info
