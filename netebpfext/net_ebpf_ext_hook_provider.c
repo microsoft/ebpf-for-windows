@@ -1,25 +1,11 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_ext_rundown.h"
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
 #define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 16
-
-/**
- * @brief Initialize the hook rundown state.
- *
- * @param[in, out] rundown Pointer to the rundown object to initialize.
- */
-static void
-_ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == FALSE);
-
-    ExInitializeRundownProtection(&rundown->protection);
-    rundown->rundown_occurred = FALSE;
-    rundown->rundown_initialized = TRUE;
-}
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -33,7 +19,7 @@ static NTSTATUS
 _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
+    ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -48,28 +34,10 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     }
 
     // Initialize the rundown and disable new references.
-    _ebpf_ext_init_hook_rundown(rundown);
+    ebpf_ext_init_rundown(rundown);
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-/**
- * @brief Block execution of the thread until all invocations are completed.
- *
- * @param[in, out] rundown Rundown object to wait for.
- *
- */
-void
-_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    NET_EBPF_EXT_LOG_ENTRY();
-
-    ASSERT(rundown->rundown_initialized == TRUE);
-    ExWaitForRundownProtectionRelease(&rundown->protection);
-    rundown->rundown_occurred = TRUE;
-
-    NET_EBPF_EXT_LOG_EXIT();
 }
 
 IO_WORKITEM_ROUTINE _net_ebpf_extension_detach_client_completion;
@@ -105,7 +73,7 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
 
     // Wait for any in progress callbacks to complete.
-    _ebpf_ext_wait_for_rundown(&hook_client->rundown);
+    ebpf_ext_wait_for_rundown(&hook_client->rundown);
 
     IoFreeWorkItem(work_item);
 
@@ -116,41 +84,27 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
 }
 
 _Must_inspect_result_ bool
-_net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == TRUE);
-    return ExAcquireRundownProtection(&rundown->protection);
-}
-
-void
-_net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
-{
-    ASSERT(rundown->rundown_initialized == TRUE);
-    ExReleaseRundownProtection(&rundown->protection);
-}
-
-_Must_inspect_result_ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    return _net_ebpf_ext_enter_rundown(&hook_client->rundown);
+    return ebpf_ext_enter_rundown(&hook_client->rundown);
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    _net_ebpf_ext_leave_rundown(&hook_client->rundown);
+    ebpf_ext_leave_rundown(&hook_client->rundown);
 }
 
 _Must_inspect_result_ bool
 net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    return _net_ebpf_ext_enter_rundown(&provider_context->rundown);
+    return ebpf_ext_enter_rundown(&provider_context->rundown);
 }
 
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    _net_ebpf_ext_leave_rundown(&provider_context->rundown);
+    ebpf_ext_leave_rundown(&provider_context->rundown);
 }
 
 const ebpf_extension_data_t*
@@ -723,7 +677,7 @@ net_ebpf_extension_hook_provider_register(
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
-    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
+    ebpf_ext_init_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);

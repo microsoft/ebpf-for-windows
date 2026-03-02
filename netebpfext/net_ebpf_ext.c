@@ -17,6 +17,7 @@ Environment:
 
 --*/
 
+#include "ebpf_ext_rundown.h"
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -891,7 +892,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
         // Release the lock as waiting for rundown can take time.
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
+        ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
 
         // Re-acquire the lock.

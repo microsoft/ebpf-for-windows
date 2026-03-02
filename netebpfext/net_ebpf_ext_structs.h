@@ -6,6 +6,7 @@
  * @file
  * @brief Header file for structures of the driver.
  */
+#include "ebpf_ext_rundown.h"
 #include "ebpf_extension.h"
 
 typedef enum _net_ebpf_extension_hook_attach_capability
@@ -99,13 +100,6 @@ typedef struct _net_ebpf_extension_hook_provider_parameters
     const ebpf_attach_provider_data_t* provider_data; ///< Hook provider data (contains supported program types).
 } net_ebpf_extension_hook_provider_parameters_t;
 
-typedef struct _net_ebpf_ext_hook_client_rundown
-{
-    EX_RUNDOWN_REF protection;
-    bool rundown_occurred;
-    bool rundown_initialized;
-} net_ebpf_ext_hook_rundown_t;
-
 struct _net_ebpf_extension_hook_provider;
 
 /**
@@ -119,15 +113,15 @@ typedef struct _net_ebpf_extension_hook_client
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
     const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
     ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
-    void* provider_data;                 ///< Opaque pointer to hook specific data associated with this client.
-    PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
-    net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
+    void* provider_data;             ///< Opaque pointer to hook specific data associated with this client.
+    PIO_WORKITEM detach_work_item;   ///< Pointer to IO work item that is invoked to detach the client.
+    ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
 } net_ebpf_extension_hook_client_t;
 
 typedef struct _net_ebpf_extension_hook_provider
 {
     NPI_PROVIDER_CHARACTERISTICS characteristics;                  ///< NPI Provider characteristics.
-    net_ebpf_ext_hook_rundown_t rundown;                           ///< Rundown reference for the hook provider.
+    ebpf_ext_hook_rundown_t rundown;                               ///< Rundown reference for the hook provider.
     HANDLE nmr_provider_handle;                                    ///< NMR binding handle.
     EX_PUSH_LOCK lock;                                             ///< Lock for serializing attach / detach calls.
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
