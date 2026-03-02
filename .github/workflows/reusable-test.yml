@@ -164,7 +164,7 @@ jobs:
           Expand-Archive -Path ${{github.workspace}}\Procdump.zip -DestinationPath ${{github.workspace}}\procdump -Force
           echo "${{github.workspace}}\procdump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           if (-not (Test-Path "${{github.workspace}}\procdump\procdump.exe")) { throw "ProcDump download failed" }
-          ${{github.workspace}}\procdump\procdump.exe -accepteula
+          & ${{github.workspace}}\procdump\procdump.exe -accepteula | Out-Null; $true
 
       - name: Set up OpenCppCoverage and add to PATH
         id: set_up_opencppcoverage
