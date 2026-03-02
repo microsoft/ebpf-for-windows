@@ -118,12 +118,3 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
  */
 net_ebpf_extension_hook_attach_capability_t
 net_ebpf_extension_hook_provider_get_attach_capability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
-
-/**
- * @brief Block execution of the thread until all invocations are completed.
- *
- * @param[in, out] rundown Rundown object to wait for.
- *
- */
-void
-_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown);
