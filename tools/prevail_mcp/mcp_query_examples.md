@@ -39,6 +39,11 @@ with the response produced by the MCP tools.
 ### Program Structure
 - [Where are the branch and join points?](#q16-where-are-the-branch-and-join-points)
 
+### Assembly Snippets
+- [Does this loop terminate?](#q20-does-this-loop-terminate)
+- [Can this division trigger a divide-by-zero?](#q21-can-this-division-trigger-a-divide-by-zero)
+- [Is this map lookup pattern safe?](#q22-is-this-map-lookup-pattern-safe)
+
 ---
 
 ### Q1: Does droppacket.o pass the verifier?
@@ -292,3 +297,37 @@ initialized stack data at offset 4032, r3 has 8 bytes at offset 4088. The
 `within()` assertion checks that these sizes cover the map's declared key and
 value sizes. The invariant `s[4032...4095].type=number` confirms every byte in
 the range is initialized — no uninitialized memory is passed to the helper.
+
+---
+
+### Q20: Does this loop terminate?
+
+> Use verify_assembly to check if this loop terminates:
+> `r0 = 0; <loop>: r0 += 1; if r0 < 10 goto <loop>; exit`
+
+Yes. With `check_termination: true`, the verifier proves the loop executes exactly
+10 iterations. The exit value is `[10, 10]` and the loop counter `pc[1]` reaches
+exactly 10. If you remove the bound condition (unconditional `goto <loop>`), the
+verifier rejects it with "Loop counter is too large".
+
+---
+
+### Q21: Can this division trigger a divide-by-zero?
+
+> Use verify_assembly with allow_division_by_zero=false to check:
+> `r0 = 10; r0 /= r1; exit` where r1 is in [0, 5]
+
+Yes — the verifier reports "Possible division by zero (r1 != 0)" because `r1`'s
+range `[0, 5]` includes zero. Narrowing the pre-condition to `r1.svalue=[1, 5]`
+eliminates the zero and the program passes.
+
+---
+
+### Q22: Is this map lookup pattern safe?
+
+> Use verify_assembly to check a map lookup with a null check:
+> Set up r1 as map_fd, store a key, call bpf_map_lookup_elem, check for null, then read.
+
+Yes — the standard pattern (call 1, if r0 == 0 goto out, read r0) passes verification.
+The null check splits the state: the read only happens when `r0.type=shared` (non-null
+map value pointer). Removing the null check produces "Possible null access".

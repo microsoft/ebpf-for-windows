@@ -432,6 +432,95 @@ get_slice: { "elf_path": "x64/Debug/droppacket.o", "pc": 20 }
 }
 ```
 
+---
+
+## 18. Verify Assembly: Bounded Loop Analysis
+
+Test whether a loop terminates within bounds — no ELF file needed.
+
+```
+verify_assembly: {
+  "code": "r0 = 0\n<loop>:\nr0 += 1\nif r0 < 10 goto <loop>\nexit",
+  "check_termination": true
+}
+```
+
+```json
+{
+  "passed": true,
+  "instruction_count": 4,
+  "exit_value": { "text": "[10, 10]" },
+  "post_invariant": ["r0.svalue=pc[1]", "r0.type=number", "pc[1]=10", ...]
+}
+```
+
+The verifier proves the loop executes exactly 10 times and `r0` is exactly 10 at exit.
+Remove the bound (`goto <loop>` unconditionally) and it fails:
+
+```
+verify_assembly: {
+  "code": "r0 = 0\n<loop>:\nr0 += 1\ngoto <loop>\nexit",
+  "check_termination": true
+}
+```
+
+```json
+{
+  "passed": false,
+  "errors": [{ "pc": 1, "message": "Loop counter is too large (pc[1] < 100000)" }]
+}
+```
+
+---
+
+## 19. Verify Assembly: Division by Zero Detection
+
+Test whether a divisor can be zero, using the `allow_division_by_zero` option.
+
+```
+verify_assembly: {
+  "code": "r0 = 10\nr0 /= r1\nexit",
+  "pre": ["r1.type=number", "r1.svalue=[0, 5]", "r1.uvalue=[0, 5]"],
+  "allow_division_by_zero": false
+}
+```
+
+```json
+{
+  "passed": false,
+  "errors": [{
+    "pc": 1,
+    "message": "Possible division by zero (r1 != 0)",
+    "pre_invariant": ["r0.svalue=10", "r0.type=number", "r1.svalue=[0, 5]", ...]
+  }]
+}
+```
+
+The range `[0, 5]` includes zero. Narrowing to `[1, 5]` makes it pass.
+
+---
+
+## 20. Verify Assembly: Safe Map Lookup Pattern
+
+Verify that a map lookup with a null check is safe.
+
+```
+verify_assembly: {
+  "code": "r2 = r10\nr2 += -4\nr3 = 0\n*(u32 *)(r10 - 4) = r3\ncall 1\nif r0 == 0 goto <out>\nr1 = *(u32 *)(r0 + 0)\n<out>:\nr0 = 0\nexit",
+  "pre": ["r1.type=map_fd", "r1.map_fd=1", "r10.type=stack", "r10.stack_offset=512"]
+}
+```
+
+```json
+{
+  "passed": true,
+  "instruction_count": 9,
+  "exit_value": { "text": "[0, 0]" }
+}
+```
+
+Removing the `if r0 == 0 goto <out>` null check causes a "Possible null access" failure.
+
 The slice traces backward from the 2-byte Ethernet type read. The critical
 transition is at PC 19: on the branch's taken path `packet_size` stays 0 (bail
 out), but on the fall-through `assume r3 <= r2` establishes **`packet_size=42`**.
