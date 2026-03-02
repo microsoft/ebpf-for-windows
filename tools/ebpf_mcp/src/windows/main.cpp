@@ -77,11 +77,14 @@ main()
     // Note: fd-level stdout is left intact so that parent processes can pipe
     // it normally (e.g., Start-Process -RedirectStandardOutput in PowerShell).
     int mcp_fd = _dup(_fileno(stdout));
-    _setmode(mcp_fd, _O_BINARY);
+    if (_setmode(mcp_fd, _O_BINARY) == -1) {
+        std::cerr << "ebpf_mcp: fatal: cannot set binary mode on MCP output fd" << std::endl;
+        return 1;
+    }
 
     FILE* mcp_out = _fdopen(mcp_fd, "wb");
     if (!mcp_out) {
-        std::cerr << "prevail_mcp: fatal: cannot open MCP output stream" << std::endl;
+        std::cerr << "ebpf_mcp: fatal: cannot open MCP output stream" << std::endl;
         return 1;
     }
     setvbuf(mcp_out, NULL, _IONBF, 0);
@@ -90,7 +93,10 @@ main()
     std::cout.rdbuf(std::cerr.rdbuf());
 
     // Set stdin to binary mode (no \r\n translation for MCP message reads).
-    _setmode(_fileno(stdin), _O_BINARY);
+    if (_setmode(_fileno(stdin), _O_BINARY) == -1) {
+        std::cerr << "ebpf_mcp: fatal: cannot set binary mode on stdin" << std::endl;
+        return 1;
+    }
 
     // Untie cin from cout (cout now goes to stderr; the tie is no longer useful).
     std::cin.tie(nullptr);
