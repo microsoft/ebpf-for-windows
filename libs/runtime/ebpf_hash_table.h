@@ -23,9 +23,10 @@ extern "C"
 
     typedef enum _ebpf_hash_table_notification_type
     {
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE, //< A key + value have been allocated.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,     //< A key + value have been freed.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE,      //< A key + value have been used.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE = 0x1, //< A key + value have been allocated.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE = 0x2,     //< A key + value have been freed.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE = 0x4,      //< A key + value have been used.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL = 0x7,      //< All notification types.
     } ebpf_hash_table_notification_type_t;
 
     typedef ebpf_result_t (*ebpf_hash_table_notification_function)(
@@ -71,6 +72,8 @@ extern "C"
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
             notification_callback; //< Function to call when value storage is allocated or freed.
+        ebpf_hash_table_notification_type_t
+            notification_flags; //< Bitmask of notification types to enable - defaults to 0 (no notifications).
     } ebpf_hash_table_creation_options_t;
 
     /**

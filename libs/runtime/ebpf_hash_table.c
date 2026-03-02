@@ -69,6 +69,7 @@ struct _ebpf_hash_table
 
     void* notification_context; //< Context to pass to notification functions.
     ebpf_hash_table_notification_function notification_callback;
+    ebpf_hash_table_notification_type_t notification_flags;                   //< Bitmask of enabled notification types.
     _Field_size_(bucket_count) ebpf_hash_bucket_header_and_lock_t buckets[1]; // Pointer to array of buckets.
 };
 
@@ -628,7 +629,8 @@ _ebpf_hash_table_replace_bucket(
         } else {
             memset(new_data, 0, hash_table->value_size + hash_table->supplemental_value_size);
         }
-        if (hash_table->notification_callback) {
+        if (hash_table->notification_callback &&
+            (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE)) {
             result = hash_table->notification_callback(
                 hash_table->notification_context,
                 operation_context,
@@ -683,7 +685,8 @@ _ebpf_hash_table_replace_bucket(
         if (index == old_bucket_count) {
             result = EBPF_KEY_NOT_FOUND;
         } else {
-            if (hash_table->notification_callback) {
+            if (hash_table->notification_callback &&
+                (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE)) {
                 result = hash_table->notification_callback(
                     hash_table->notification_context,
                     operation_context,
@@ -723,7 +726,8 @@ _ebpf_hash_table_replace_bucket(
 Done:
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
-    if (hash_table->notification_callback) {
+    if (hash_table->notification_callback &&
+        (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE)) {
         if (new_data && new_data_notified) {
             // Ignore return value from FREE notification during cleanup.
             (void)hash_table->notification_callback(
@@ -812,6 +816,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
+    table->notification_flags = options->notification_flags;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -881,7 +886,7 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     PrefetchForWrite(data);
 
     *value = data;
-    if (hash_table->notification_callback) {
+    if (hash_table->notification_callback && (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE)) {
         // Ignore return value from use notification.
         hash_table->notification_callback(
             hash_table->notification_context, NULL, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, data);
