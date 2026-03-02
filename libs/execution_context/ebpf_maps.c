@@ -4500,8 +4500,8 @@ _ebpf_custom_map_update_hash_map_entry(
             custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
             key,
-            custom_map->core_map.ebpf_map_definition.value_size,
-            value,
+            custom_map->actual_value_size,
+            new_value,
             provider_flags);
     }
 
@@ -4654,6 +4654,17 @@ ebpf_custom_map_create(
             custom_map->core_map.ebpf_map_definition.type);
 
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
+
+    if (actual_value_size == 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Provider returned invalid value size of 0 for custom map type",
+            custom_map->core_map.ebpf_map_definition.type);
+
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
