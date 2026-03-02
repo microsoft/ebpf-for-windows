@@ -1102,10 +1102,11 @@ Functions</h2></td></tr>
 <p>Copy data into perf event array map. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">map</td><td>Pointer to perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to the program context. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">perf_event_array</td><td>Pointer to perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags indicating which cpu to write to and context data to copy. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Data to copy into perf event array map. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Length of data. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags indicating which cpu to write to and context data to copy. </td></tr>
   </table>
   </dd>
 </dl>

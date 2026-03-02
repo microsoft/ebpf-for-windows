@@ -283,24 +283,24 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span><span class="preprocessor">#define bpf_ktime_get_ms ((bpf_ktime_get_ms_t)BPF_FUNC_ktime_get_ms)</span></div>
 <div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span> </div>
-<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>EBPF_HELPER(</div>
-<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span>    <span class="keywordtype">int</span>,</div>
-<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>    <a class="code hl_function" href="bpf__helper__defs_8h.html#a19727a5d479ec44c3694b0b989ef9273">bpf_perf_event_output</a>,</div>
-<div class="line"><a id="l00532" name="l00532"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#a19727a5d479ec44c3694b0b989ef9273">  532</a></span>    (<span class="keyword">const</span> <span class="keywordtype">void</span>* ctx, <span class="keywordtype">void</span>* perf_event_array, uint64_t flags, <span class="keyword">const</span> <span class="keywordtype">void</span>* data, uint64_t size));</div>
-<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span><span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="preprocessor">#define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)</span></div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span> </div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#adc5a82dd257e2d8b884a3b2b21b8129c">  543</a></span>EBPF_HELPER(uint64_t, <a class="code hl_function" href="bpf__helper__defs_8h.html#adc5a82dd257e2d8b884a3b2b21b8129c">bpf_get_current_process_start_key</a>, ());</div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span><span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span><span class="preprocessor">#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)</span></div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span> </div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">  555</a></span>EBPF_HELPER(int64_t, <a class="code hl_function" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">bpf_get_current_thread_create_time</a>, ());</div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span><span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span><span class="preprocessor">#define bpf_get_current_thread_create_time \</span></div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span><span class="preprocessor">    ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)</span></div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span>EBPF_HELPER(</div>
+<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>    <span class="keywordtype">int</span>,</div>
+<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>    <a class="code hl_function" href="bpf__helper__defs_8h.html#a19727a5d479ec44c3694b0b989ef9273">bpf_perf_event_output</a>,</div>
+<div class="line"><a id="l00533" name="l00533"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#a19727a5d479ec44c3694b0b989ef9273">  533</a></span>    (<span class="keyword">const</span> <span class="keywordtype">void</span>* ctx, <span class="keywordtype">void</span>* perf_event_array, uint64_t flags, <span class="keyword">const</span> <span class="keywordtype">void</span>* data, uint64_t size));</div>
+<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="preprocessor">#define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)</span></div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span> </div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#adc5a82dd257e2d8b884a3b2b21b8129c">  544</a></span>EBPF_HELPER(uint64_t, <a class="code hl_function" href="bpf__helper__defs_8h.html#adc5a82dd257e2d8b884a3b2b21b8129c">bpf_get_current_process_start_key</a>, ());</div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span><span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span><span class="preprocessor">#define bpf_get_current_process_start_key ((bpf_get_current_process_start_key_t)BPF_FUNC_get_current_process_start_key)</span></div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span> </div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno"><a class="line" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">  556</a></span>EBPF_HELPER(int64_t, <a class="code hl_function" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">bpf_get_current_thread_create_time</a>, ());</div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span><span class="preprocessor">#ifndef __doxygen</span></div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span><span class="preprocessor">#define bpf_get_current_thread_create_time \</span></div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="preprocessor">    ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)</span></div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_a07f5de55fa717ac1b427f8161a351692"><div class="ttname"><a href="bpf__helper__defs_8h.html#a07f5de55fa717ac1b427f8161a351692">bpf_map_update_elem</a></div><div class="ttdeci">int64_t bpf_map_update_elem(void *map, const void *key, const void *value, uint64_t flags)</div><div class="ttdoc">Insert or update an entry in the map.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_a0f748dcfe88e5f21b763292bb2b1b167"><div class="ttname"><a href="bpf__helper__defs_8h.html#a0f748dcfe88e5f21b763292bb2b1b167">bpf_strncpy_s</a></div><div class="ttdeci">int bpf_strncpy_s(char *dest, size_t dest_size, const char *src, size_t count)</div><div class="ttdoc">Copy a string into a buffer, of a fixed size.</div></div>
 <div class="ttc" id="abpf__helper__defs_8h_html_a19727a5d479ec44c3694b0b989ef9273"><div class="ttname"><a href="bpf__helper__defs_8h.html#a19727a5d479ec44c3694b0b989ef9273">bpf_perf_event_output</a></div><div class="ttdeci">int bpf_perf_event_output(const void *ctx, void *perf_event_array, uint64_t flags, const void *data, uint64_t size)</div><div class="ttdoc">Copy data into perf event array map.</div></div>
