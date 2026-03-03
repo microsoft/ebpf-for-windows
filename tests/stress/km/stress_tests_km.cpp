@@ -31,9 +31,9 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
+    _Guarded_by_(lock) bool available { true };
+    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
+    _Guarded_by_(lock) bool loaded { false };
     bool attach{false};
 
     // The following fields are for debugging this test itself.
@@ -1652,7 +1652,7 @@ TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]"
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_prog_load_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
@@ -1671,7 +1671,7 @@ TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_prog_load_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
@@ -1692,7 +1692,7 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
     local_test_control_info.use_unique_native_programs = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_prog_load_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
@@ -1731,7 +1731,7 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     local_test_control_info.threads_count = 2;
 
     _print_test_control_info(local_test_control_info);
-    _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_invoke_prog_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
@@ -1759,7 +1759,7 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_sockaddr_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_sockaddr_invoke_program_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
@@ -1776,7 +1776,8 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(
+        local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -1798,7 +1799,7 @@ TEST_CASE("jit_unique_load_attach_detach_unload_random_v4_test", "[jit_mt_stress
     local_test_control_info.use_unique_native_programs = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_prog_load_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("jit_invoke_v4_v6_programs_restart_extension_test", "[jit_mt_stress_test]")
@@ -1833,7 +1834,7 @@ TEST_CASE("jit_invoke_v4_v6_programs_restart_extension_test", "[jit_mt_stress_te
     local_test_control_info.threads_count = 2;
 
     _print_test_control_info(local_test_control_info);
-    _mt_invoke_prog_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_invoke_prog_stress_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("jit_sockaddr_invoke_program_test", "[jit_mt_stress_test]")
@@ -1861,7 +1862,7 @@ TEST_CASE("jit_sockaddr_invoke_program_test", "[jit_mt_stress_test]")
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_sockaddr_invoke_program_test(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_sockaddr_invoke_program_test(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 
 TEST_CASE("jit_bindmonitor_tail_call_invoke_program_test", "[jit_mt_stress_test]")
@@ -1878,7 +1879,8 @@ TEST_CASE("jit_bindmonitor_tail_call_invoke_program_test", "[jit_mt_stress_test]
     test_control_info local_test_control_info = _global_test_control_info;
 
     _print_test_control_info(local_test_control_info);
-    _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_bindmonitor_tail_call_invoke_program_test(
+        local_test_control_info.requested_execution_type, local_test_control_info);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
@@ -2083,7 +2085,8 @@ TEST_CASE("load_attach_stress_test_restart_during_load_jit", "[jit_mt_stress_tes
     local_test_control_info.extension_restart_enabled = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_JIT, local_test_control_info, true);
+    _mt_load_stress_test_with_restart_timing(
+        local_test_control_info.requested_execution_type, local_test_control_info, true);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
@@ -2102,7 +2105,8 @@ TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stre
     local_test_control_info.use_unique_native_programs = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, true);
+    _mt_load_stress_test_with_restart_timing(
+        local_test_control_info.requested_execution_type, local_test_control_info, true);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -2121,7 +2125,8 @@ TEST_CASE("load_attach_stress_test_restart_after_load_jit", "[jit_mt_stress_test
     local_test_control_info.extension_restart_enabled = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_JIT, local_test_control_info, false);
+    _mt_load_stress_test_with_restart_timing(
+        local_test_control_info.requested_execution_type, local_test_control_info, false);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
@@ -2141,7 +2146,8 @@ TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stres
     local_test_control_info.use_unique_native_programs = true;
 
     _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, false);
+    _mt_load_stress_test_with_restart_timing(
+        local_test_control_info.requested_execution_type, local_test_control_info, false);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -2158,7 +2164,7 @@ TEST_CASE("invoke_different_programs_restart_extension_test_jit", "[jit_mt_stres
     local_test_control_info.threads_count = std::max(local_test_control_info.threads_count, 4u);
 
     _print_test_control_info(local_test_control_info);
-    _mt_invoke_stress_test_multiple_programs(EBPF_EXECUTION_JIT, local_test_control_info);
+    _mt_invoke_stress_test_multiple_programs(local_test_control_info.requested_execution_type, local_test_control_info);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
@@ -2175,5 +2181,5 @@ TEST_CASE("invoke_different_programs_restart_extension_test_native", "[native_mt
     local_test_control_info.threads_count = std::max(local_test_control_info.threads_count, 4u);
 
     _print_test_control_info(local_test_control_info);
-    _mt_invoke_stress_test_multiple_programs(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    _mt_invoke_stress_test_multiple_programs(local_test_control_info.requested_execution_type, local_test_control_info);
 }
