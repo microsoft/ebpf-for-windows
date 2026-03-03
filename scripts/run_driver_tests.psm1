@@ -466,6 +466,7 @@ function Invoke-CICDStressTests
         $TestCommand = "api_test.exe"
         $TestArguments = "--stress-test-duration $api_stress_duration ioctl_stress"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        Pop-Location
         return
     }
 

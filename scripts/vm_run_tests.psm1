@@ -334,7 +334,7 @@ function Run-KernelTests {
                     2>&1 | Write-Log
             }
             "stress" {
-                # Set MultiThred to true if options contains that string.
+                # Set MultiThread to true if options contains that string.
                 $MultiThread = $Options -contains "MultiThread"
                 # Set RestartExtension to true if options contains that string.
                 $RestartExtension = $Options -contains "RestartExtension"
