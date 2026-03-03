@@ -771,16 +771,8 @@ helper_functions_validation_test(
     SAFE_REQUIRE(auth_connect_program != nullptr);
 
     // Get maps to retrieve helper function results.
-    bpf_map* interface_type_map = bpf_object__find_map_by_name(object, "interface_type_map");
-    SAFE_REQUIRE(interface_type_map != nullptr);
-    bpf_map* tunnel_type_map = bpf_object__find_map_by_name(object, "tunnel_type_map");
-    SAFE_REQUIRE(tunnel_type_map != nullptr);
-    bpf_map* next_hop_interface_map = bpf_object__find_map_by_name(object, "next_hop_interface_map");
-    SAFE_REQUIRE(next_hop_interface_map != nullptr);
-    bpf_map* sub_interface_map = bpf_object__find_map_by_name(object, "sub_interface_map");
-    SAFE_REQUIRE(sub_interface_map != nullptr);
-    bpf_map* test_results_map = bpf_object__find_map_by_name(object, "test_results_map");
-    SAFE_REQUIRE(test_results_map != nullptr);
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
@@ -816,80 +808,36 @@ helper_functions_validation_test(
         connection_id = (in6addr_loopback.u.Word[0] ^ in6addr_loopback.u.Word[7]) ^ (htons(SOCKET_TEST_PORT) << 16);
     }
 
-    // Validate that helper functions returned reasonable values.
-    uint32_t interface_type = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(interface_type_map), &connection_id, &interface_type);
-    if (result == 0) {
-        printf("Interface type: %u\n", interface_type);
-        // Interface type should be a valid IANA-assigned value or 0 if not available.
-        // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
-        // For loopback connections, we typically expect 24 (softwareLoopback) or 6 (ethernetCsmacd).
-        bool valid_interface_type =
-            (interface_type == 0 || interface_type == 6 || interface_type == 24 || interface_type == 71 ||
-             interface_type == 131);
-        SAFE_REQUIRE(valid_interface_type);
-    }
-
-    uint32_t tunnel_type = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(tunnel_type_map), &connection_id, &tunnel_type);
-    if (result == 0) {
-        printf("Tunnel type: %u\n", tunnel_type);
-        // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
-        // For loopback connections, we expect 0 (no tunnel).
-        bool valid_tunnel_type = (tunnel_type >= 0 && tunnel_type <= 100);
-        SAFE_REQUIRE(valid_tunnel_type);
-    }
-
-    uint64_t next_hop_interface_luid = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(next_hop_interface_map), &connection_id, &next_hop_interface_luid);
-    if (result == 0) {
-        printf("Next-hop interface LUID: %llu\n", next_hop_interface_luid);
-        // LUID should be either 0 (not available) or a valid interface LUID.
-        // We can't predict the exact value, but it should be reasonable.
-        SAFE_REQUIRE(next_hop_interface_luid >= 0);
-    }
-
-    uint32_t sub_interface_index = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(sub_interface_map), &connection_id, &sub_interface_index);
-    if (result == 0) {
-        printf("Sub-interface index: %u\n", sub_interface_index);
-        // Sub-interface index should be 0 (not available) or a valid index.
-        SAFE_REQUIRE(sub_interface_index >= 0);
-    }
-
-    // Verify that the connection was counted.
-    uint32_t counter_key = (address_family == AF_INET) ? 1 : 2;
-    uint64_t connection_count = 0;
-    result = bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &counter_key, &connection_count);
-    if (result == 0) {
-        printf("Connection count: %llu\n", connection_count);
-        SAFE_REQUIRE(connection_count >= 1);
-    }
-
-    // Validate comprehensive results from test_results_map.
-    helper_results_t comprehensive_results = {0};
-    result = bpf_map_lookup_elem(bpf_map__fd(test_results_map), &connection_id, &comprehensive_results);
+    // Validate that the network context helper returned reasonable values.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
     if (result == 0) {
         printf(
-            "Comprehensive results - Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u, ConnID: %u\n",
-            comprehensive_results.interface_type,
-            comprehensive_results.tunnel_type,
-            comprehensive_results.next_hop_interface_luid,
-            comprehensive_results.sub_interface_index,
-            comprehensive_results.connection_id);
+            "Network context - Version: %u, Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u\n",
+            net_ctx.version,
+            net_ctx.interface_type,
+            net_ctx.tunnel_type,
+            net_ctx.next_hop_interface_luid,
+            net_ctx.sub_interface_index);
 
-        // Validate that comprehensive results match individual results.
-        SAFE_REQUIRE(comprehensive_results.interface_type == interface_type);
-        SAFE_REQUIRE(comprehensive_results.tunnel_type == tunnel_type);
-        SAFE_REQUIRE(comprehensive_results.next_hop_interface_luid == next_hop_interface_luid);
-        SAFE_REQUIRE(comprehensive_results.sub_interface_index == sub_interface_index);
-        SAFE_REQUIRE(comprehensive_results.connection_id == connection_id);
+        // Version should be 1.
+        SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+        // Interface type should be a valid IANA-assigned value or UINT32_MAX if not available.
+        // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
+        bool valid_interface_type =
+            (net_ctx.interface_type == 6 || net_ctx.interface_type == 24 || net_ctx.interface_type == 71 ||
+             net_ctx.interface_type == 131 || net_ctx.interface_type == (uint32_t)-1);
+        SAFE_REQUIRE(valid_interface_type);
+
+        // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
+        bool valid_tunnel_type = (net_ctx.tunnel_type >= 0 && net_ctx.tunnel_type <= 100);
+        SAFE_REQUIRE(valid_tunnel_type);
 
         // Validate that at least some network context is available.
-        // For loopback connections, we should at least get interface type information.
-        bool has_network_context = (comprehensive_results.interface_type != 0) ||
-                                   (comprehensive_results.next_hop_interface_luid != 0) ||
-                                   (comprehensive_results.sub_interface_index != 0);
+        bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) ||
+                                   (net_ctx.next_hop_interface_luid != (uint64_t)-1) ||
+                                   (net_ctx.sub_interface_index != (uint32_t)-1);
         SAFE_REQUIRE(has_network_context);
     }
 

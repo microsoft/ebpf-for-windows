@@ -155,10 +155,7 @@ typedef enum
 {
     BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
     BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
-    BPF_FUNC_sock_addr_get_interface_type = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
-    BPF_FUNC_sock_addr_get_tunnel_type = SOCK_ADDR_EXT_HELPER_FN_BASE + 4,
-    BPF_FUNC_sock_addr_get_next_hop_interface_luid = SOCK_ADDR_EXT_HELPER_FN_BASE + 5,
-    BPF_FUNC_sock_addr_get_sub_interface_index = SOCK_ADDR_EXT_HELPER_FN_BASE + 6,
+    BPF_FUNC_sock_addr_get_network_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -179,53 +176,33 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 #endif
 
 /**
- * @brief Get the interface type for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
- *
- * @param[in] ctx Pointer to bpf_sock_addr_t context.
- *
- * @retval Interface type value, or -1 if not available.
+ * @brief Network context information for the connection.
+ * Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.
  */
-EBPF_HELPER(uint32_t, bpf_sock_addr_get_interface_type, (bpf_sock_addr_t * ctx));
-#ifndef __doxygen
-#define bpf_sock_addr_get_interface_type ((bpf_sock_addr_get_interface_type_t)BPF_FUNC_sock_addr_get_interface_type)
-#endif
+typedef struct _bpf_sock_addr_network_context
+{
+    uint32_t version;                 ///< Struct version (currently 1).
+    uint32_t interface_type;          ///< IANA interface type, or UINT32_MAX if not available.
+    uint32_t tunnel_type;             ///< IANA tunnel type; 0 if not a tunnel, or UINT32_MAX if not available.
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID, or UINT64_MAX if not available.
+    uint32_t sub_interface_index;     ///< Sub-interface index, or UINT32_MAX if not available.
+} bpf_sock_addr_network_context_t;
+
+#define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
 
 /**
- * @brief Get the tunnel type for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
+ * @brief Get the network context for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
+ * @param[out] context_ptr Pointer to bpf_sock_addr_network_context_t struct to be filled.
+ * @param[in] context_size Size of the struct (used for version management).
  *
- * @retval Tunnel type value, 0 if not a tunnel, or -1 if not available.
+ * @retval 0 The operation was successful.
+ * @retval <0 A failure occurred (e.g., network context unavailable at current attach layer).
  */
-EBPF_HELPER(uint32_t, bpf_sock_addr_get_tunnel_type, (bpf_sock_addr_t * ctx));
+EBPF_HELPER(int, bpf_sock_addr_get_network_context, (bpf_sock_addr_t * ctx, void* context_ptr, uint32_t context_size));
 #ifndef __doxygen
-#define bpf_sock_addr_get_tunnel_type ((bpf_sock_addr_get_tunnel_type_t)BPF_FUNC_sock_addr_get_tunnel_type)
-#endif
-
-/**
- * @brief Get the next-hop interface LUID for the connection (CONNECT_AUTHORIZATION only).
- *
- * @param[in] ctx Pointer to bpf_sock_addr_t context.
- *
- * @retval Next-hop interface LUID, or -1 if not available.
- */
-EBPF_HELPER(uint64_t, bpf_sock_addr_get_next_hop_interface_luid, (bpf_sock_addr_t * ctx));
-#ifndef __doxygen
-#define bpf_sock_addr_get_next_hop_interface_luid \
-    ((bpf_sock_addr_get_next_hop_interface_luid_t)BPF_FUNC_sock_addr_get_next_hop_interface_luid)
-#endif
-
-/**
- * @brief Get the sub-interface index for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
- *
- * @param[in] ctx Pointer to bpf_sock_addr_t context.
- *
- * @retval Sub-interface index, or -1 if not available.
- */
-EBPF_HELPER(uint32_t, bpf_sock_addr_get_sub_interface_index, (bpf_sock_addr_t * ctx));
-#ifndef __doxygen
-#define bpf_sock_addr_get_sub_interface_index \
-    ((bpf_sock_addr_get_sub_interface_index_t)BPF_FUNC_sock_addr_get_sub_interface_index)
+#define bpf_sock_addr_get_network_context ((bpf_sock_addr_get_network_context_t)BPF_FUNC_sock_addr_get_network_context)
 #endif
 
 /**

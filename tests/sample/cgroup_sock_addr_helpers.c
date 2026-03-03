@@ -12,9 +12,9 @@
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
 /**
- * @brief Sample program demonstrating the new socket address helper functions
- * for CONNECT_AUTHORIZATION attach points. This program shows how to use the helper
- * functions to retrieve additional network layer properties.
+ * @brief Sample program demonstrating bpf_sock_addr_get_network_context()
+ * for CONNECT_AUTHORIZATION attach points. This program shows how to retrieve
+ * network layer properties using the versioned struct-based helper.
  */
 
 #include "bpf_endian.h"
@@ -27,41 +27,14 @@ typedef unsigned int ULONG;
 // Test port for socket connections.
 #define SOCKET_TEST_PORT 8989
 
-// Map to store interface type information.
+// Map to store network context results for verification.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 100);
-} interface_type_map SEC(".maps");
-
-// Map to store tunnel type information.
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 100);
-} tunnel_type_map SEC(".maps");
-
-// Map to store next-hop interface LUID.
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint64_t);
-    __uint(max_entries, 100);
-} next_hop_interface_map SEC(".maps");
-
-// Map to store sub-interface index.
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, uint32_t);
-    __uint(max_entries, 100);
-} sub_interface_map SEC(".maps");
+    __type(value, bpf_sock_addr_network_context_t);
+    __uint(max_entries, 1000);
+} network_context_map SEC(".maps");
 
 // Map to store connection count for testing.
 struct
@@ -72,27 +45,8 @@ struct
     __uint(max_entries, 1);
 } connection_count_map SEC(".maps");
 
-// Structure to store all helper function results for verification.
-typedef struct _helper_results
-{
-    uint32_t interface_type;
-    uint32_t tunnel_type;
-    uint64_t next_hop_interface_luid;
-    uint32_t sub_interface_index;
-    uint32_t connection_id;
-} helper_results_t;
-
-// Map to store comprehensive test results.
-struct
-{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __type(key, uint32_t);
-    __type(value, helper_results_t);
-    __uint(max_entries, 1000);
-} test_results_map SEC(".maps");
-
 /**
- * @brief Test program for CONNECT_AUTHORIZATION IPv4 that demonstrates all new helper functions.
+ * @brief Test program for CONNECT_AUTHORIZATION IPv4 that demonstrates bpf_sock_addr_get_network_context.
  */
 SEC("cgroup/connect_authorization4")
 int
@@ -108,26 +62,16 @@ test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
     // Generate a unique connection ID based on address and port.
     uint32_t connection_id = ctx->user_ip4 ^ (ctx->user_port << 16);
 
-    // Test all new helper functions.
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t next_hop_interface_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
-    uint32_t sub_interface_index = bpf_sock_addr_get_sub_interface_index(ctx);
+    // Retrieve network context using the struct-based helper.
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        // Network context unavailable; fail closed.
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
 
-    // Store individual results in separate maps for easy verification.
-    bpf_map_update_elem(&interface_type_map, &connection_id, &interface_type, BPF_ANY);
-    bpf_map_update_elem(&tunnel_type_map, &connection_id, &tunnel_type, BPF_ANY);
-    bpf_map_update_elem(&next_hop_interface_map, &connection_id, &next_hop_interface_luid, BPF_ANY);
-    bpf_map_update_elem(&sub_interface_map, &connection_id, &sub_interface_index, BPF_ANY);
-
-    // Store comprehensive results for detailed verification.
-    helper_results_t results = {
-        .interface_type = interface_type,
-        .tunnel_type = tunnel_type,
-        .next_hop_interface_luid = next_hop_interface_luid,
-        .sub_interface_index = sub_interface_index,
-        .connection_id = connection_id};
-    bpf_map_update_elem(&test_results_map, &connection_id, &results, BPF_ANY);
+    // Store results for verification.
+    bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
 
     // Update connection counter.
     uint32_t counter_key = 1;
@@ -138,16 +82,12 @@ test_sock_addr_helpers_v4(bpf_sock_addr_t* ctx)
     }
     bpf_map_update_elem(&connection_count_map, &counter_key, &count, BPF_ANY);
 
-    // Example policy: Allow all connections but log the network properties.
-    // In a real scenario, you could make authorization decisions based on
-    // interface type, tunnel type, etc.
-
 exit:
     return retval;
 }
 
 /**
- * @brief Test program for CONNECT_AUTHORIZATION IPv6 that demonstrates all new helper functions.
+ * @brief Test program for CONNECT_AUTHORIZATION IPv6 that demonstrates bpf_sock_addr_get_network_context.
  */
 SEC("cgroup/connect_authorization6")
 int
@@ -163,26 +103,15 @@ test_sock_addr_helpers_v6(bpf_sock_addr_t* ctx)
     // Generate a unique connection ID for IPv6 (simplified hash).
     uint32_t connection_id = (ctx->user_ip6[0] ^ ctx->user_ip6[3]) ^ (ctx->user_port << 16);
 
-    // Test all new helper functions (same functions work for both IPv4 and IPv6).
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-    uint64_t next_hop_interface_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
-    uint32_t sub_interface_index = bpf_sock_addr_get_sub_interface_index(ctx);
+    // Retrieve network context using the struct-based helper.
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
 
-    // Store individual results in separate maps for easy verification.
-    bpf_map_update_elem(&interface_type_map, &connection_id, &interface_type, BPF_ANY);
-    bpf_map_update_elem(&tunnel_type_map, &connection_id, &tunnel_type, BPF_ANY);
-    bpf_map_update_elem(&next_hop_interface_map, &connection_id, &next_hop_interface_luid, BPF_ANY);
-    bpf_map_update_elem(&sub_interface_map, &connection_id, &sub_interface_index, BPF_ANY);
-
-    // Store comprehensive results for detailed verification.
-    helper_results_t results = {
-        .interface_type = interface_type,
-        .tunnel_type = tunnel_type,
-        .next_hop_interface_luid = next_hop_interface_luid,
-        .sub_interface_index = sub_interface_index,
-        .connection_id = connection_id};
-    bpf_map_update_elem(&test_results_map, &connection_id, &results, BPF_ANY);
+    // Store results for verification.
+    bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
 
     // Update connection counter.
     uint32_t counter_key = 2; // Different key for IPv6.
@@ -198,7 +127,7 @@ exit:
 }
 
 /**
- * @brief Demonstration program showing conditional logic based on helper function results.
+ * @brief Demonstration program showing conditional logic based on network context.
  */
 SEC("cgroup/connect_authorization4")
 int
@@ -210,43 +139,27 @@ conditional_auth_v4(bpf_sock_addr_t* ctx)
         goto exit;
     }
 
-    // Get network interface properties.
-    uint32_t interface_type = bpf_sock_addr_get_interface_type(ctx);
-    uint32_t tunnel_type = bpf_sock_addr_get_tunnel_type(ctx);
-
-    // Example policy decisions based on network properties:
-
-    // 1. Block connections through certain interface types.
-    // (This is just an example - actual values would depend on your environment).
-    if (interface_type == IF_TYPE_PPP) {
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
         retval = BPF_SOCK_ADDR_VERDICT_REJECT;
         goto exit;
     }
 
-    // 2. Allow connections through tunnels with additional logging.
-    if (tunnel_type != 0) { // Any tunnel type.
-        // In a real scenario, you might log this to a separate map
-        // or send information to userspace.
-        uint32_t tunnel_key = 100; // Special key for tunnel connections.
+    // 1. Block connections through certain interface types.
+    if (net_ctx.interface_type == IF_TYPE_PPP) {
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
+
+    // 2. Log connections through tunnels.
+    if (net_ctx.tunnel_type != 0) {
+        uint32_t tunnel_key = 100;
         uint64_t tunnel_count = 1;
         uint64_t* existing_tunnel_count = bpf_map_lookup_elem(&connection_count_map, &tunnel_key);
         if (existing_tunnel_count) {
             tunnel_count = *existing_tunnel_count + 1;
         }
         bpf_map_update_elem(&connection_count_map, &tunnel_key, &tunnel_count, BPF_ANY);
-    }
-
-    // 3. Get next-hop interface for routing decisions.
-    uint64_t next_hop_luid = bpf_sock_addr_get_next_hop_interface_luid(ctx);
-    if (next_hop_luid != 0) {
-        // Could make decisions based on which interface the traffic will route through.
-        // For example, allow only certain outbound interfaces.
-    }
-
-    // 4. Sub-interface index for VLAN or similar scenarios.
-    uint32_t sub_interface = bpf_sock_addr_get_sub_interface_index(ctx);
-    if (sub_interface != 0) {
-        // Could implement VLAN-based policies.
     }
 
 exit:
