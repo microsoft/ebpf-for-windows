@@ -53,7 +53,7 @@ using namespace std;
 // (commit "Human-friendly CLI output for bin/prevail"), but we still need it for the
 // verbose program-info stats reported by ebpf_api_elf_enumerate_programs.
 static std::string
-_instype(prevail::Instruction ins)
+_instype(const prevail::Instruction& ins)
 {
     if (const auto pcall = std::get_if<prevail::Call>(&ins)) {
         if (pcall->is_map_lookup) {
