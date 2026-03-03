@@ -4555,6 +4555,7 @@ _custom_hash_map_notification(
         break;
     default:
         ebpf_assert(!"Invalid notification type");
+        break;
     }
 
     return result;

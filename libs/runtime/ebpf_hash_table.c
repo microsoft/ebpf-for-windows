@@ -819,7 +819,15 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
-    table->notification_flags = options->notification_flags;
+
+    // Sanitize notification flags: mask out unsupported bits and disable
+    // notifications if callback is not provided.
+    ebpf_hash_table_notification_type_t notification_flags =
+        options->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL;
+    if (table->notification_callback == NULL) {
+        notification_flags = EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE;
+    }
+    table->notification_flags = notification_flags;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;

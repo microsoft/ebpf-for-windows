@@ -73,8 +73,7 @@ extern "C"
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
             notification_callback; //< Function to call when value storage is allocated or freed.
-        ebpf_hash_table_notification_type_t
-            notification_flags; //< Bitmask of notification types to enable - defaults to 0 (no notifications).
+        ebpf_hash_table_notification_type_t notification_flags; //< Bitmask of notification types to enable.
     } ebpf_hash_table_creation_options_t;
 
     /**
