@@ -49,7 +49,9 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 
 using namespace std;
 
-// Provide collect_stats locally, since it was removed from the verifier public API.
+// Provide collect_stats locally - it was removed from the verifier public API in a69e70a
+// (commit "Human-friendly CLI output for bin/prevail"), but we still need it for the
+// verbose program-info stats reported by ebpf_api_elf_enumerate_programs.
 static std::string
 _instype(prevail::Instruction ins)
 {
