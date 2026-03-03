@@ -23,6 +23,7 @@ extern "C"
 
     typedef enum _ebpf_hash_table_notification_type
     {
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE = 0x0,     //< No notifications.
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE = 0x1, //< A key + value have been allocated.
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE = 0x2,     //< A key + value have been freed.
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE = 0x4,      //< A key + value have been used.
