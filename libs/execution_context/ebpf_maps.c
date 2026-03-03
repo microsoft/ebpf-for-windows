@@ -4528,12 +4528,6 @@ _custom_hash_map_notification(
     uint32_t provider_flags;
 
     switch (type) {
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        // Ignore allocate notification as it is handled separately.
-        break;
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        // Ignore lookup notification as it is handled separately.
-        break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
             // Skip free notification if no operation context is provided.
