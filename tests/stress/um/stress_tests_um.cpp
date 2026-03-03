@@ -347,6 +347,7 @@ void
 test_process_cleanup()
 {
     // We need to explicitly 'free' these resources in tests that run against the user-mode 'usersim' framework.
+    set_require_allowed_in_test_helper(false);
     _xdp_program_info_provider.reset(nullptr);
     _bind_program_info_provider.reset(nullptr);
     _test_helper.reset(nullptr);
