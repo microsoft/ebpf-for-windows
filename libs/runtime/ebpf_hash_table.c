@@ -813,6 +813,9 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->max_entry_count = options->max_entries == EBPF_HASH_TABLE_NO_LIMIT ? -1 : options->max_entries;
 #endif
 
+    // If notification callback is provided, at least one notification flag must be set.
+    ebpf_assert(!options->notification_callback || options->notification_flags);
+
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
