@@ -465,12 +465,12 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    // Test hard permit for recv_accept is currently unsupported; expect block.
+    // Test hard permit for recv_accept.
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
-    REQUIRE(result == FWP_ACTION_BLOCK);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 
     result = helper.test_cgroup_inet6_recv_accept(&parameters);
-    REQUIRE(result == FWP_ACTION_BLOCK);
+    REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify operations for redirect.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
@@ -569,12 +569,6 @@ sock_addr_thread_function(
         }
 
         auto expected_result = _get_fwp_sock_addr_action(port_number);
-        // SOCK_ADDR_TEST_ACTION_PERMIT_HARD currently isn't supported in receive.
-        // Workaround for now - map to block.
-        if (type == SOCK_ADDR_TEST_TYPE_RECV_ACCEPT &&
-            _get_sock_addr_action(port_number) == SOCK_ADDR_TEST_ACTION_PERMIT_HARD) {
-            expected_result = FWP_ACTION_BLOCK;
-        }
 
         // SOCK_ADDR_TEST_ACTION_REDIRECT currently isn't supported in connect_authorization.
         // Workaround for now - map to block.
@@ -886,6 +880,24 @@ TEST_CASE("sock_addr_connect_authorization_invoke", "[netebpfext]")
 
     result = helper.test_cgroup_inet6_connect_authorization(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
+
+    // Test reauthorization with BLOCK verdict - programs should be invoked and can reject.
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
+    client_context->validate_sock_addr_entries = true;
+
+    result = helper.test_cgroup_inet4_connect_authorization(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    result = helper.test_cgroup_inet6_connect_authorization(&parameters);
+    REQUIRE(result == FWP_ACTION_BLOCK);
+
+    parameters.reauthorization_flag = 0;
+
+    // Note: Read-only context enforcement (SOCK_ADDR_TEST_ACTION_REDIRECT should be blocked at
+    // CONNECT_AUTHORIZATION layer) cannot be tested here because the unit test infrastructure
+    // routes both CONNECT and CONNECT_AUTHORIZATION through the same WFP filter context, and the
+    // _is_auth_connect_program filter finds no CONNECT_AUTHORIZATION clients. This is validated
+    // by integration tests (socket_tests) instead.
 }
 
 #pragma endregion cgroup_sock_addr

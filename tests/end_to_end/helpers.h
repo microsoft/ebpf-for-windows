@@ -1111,32 +1111,21 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     return -ENOTSUP;
 }
 
-static uint32_t
-_ebpf_sock_addr_get_interface_type(_In_ const bpf_sock_addr_t* ctx)
+static int
+_ebpf_sock_addr_get_network_context(
+    _In_ const bpf_sock_addr_t* ctx, _Out_writes_(context_size) void* context_ptr, uint32_t context_size)
 {
     UNREFERENCED_PARAMETER(ctx);
-    return (uint32_t)-1;
-}
-
-static uint32_t
-_ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
-{
-    UNREFERENCED_PARAMETER(ctx);
+    if (context_size < sizeof(bpf_sock_addr_network_context_t)) {
+        return -1;
+    }
+    bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
+    net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+    net_ctx->interface_type = (uint32_t)-1;
+    net_ctx->tunnel_type = 0;
+    net_ctx->next_hop_interface_luid = (uint64_t)-1;
+    net_ctx->sub_interface_index = (uint32_t)-1;
     return 0;
-}
-
-static uint64_t
-_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
-{
-    UNREFERENCED_PARAMETER(ctx);
-    return (uint64_t)-1;
-}
-
-static uint32_t
-_ebpf_sock_addr_get_sub_interface_index(_In_ const bpf_sock_addr_t* ctx)
-{
-    UNREFERENCED_PARAMETER(ctx);
-    return (uint32_t)-1;
 }
 
 static uint64_t
@@ -1251,10 +1240,7 @@ _ebpf_sock_addr_context_destroy(
 
 static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
-    (void*)_ebpf_sock_addr_get_interface_type,
-    (void*)_ebpf_sock_addr_get_tunnel_type,
-    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
-    (void*)_ebpf_sock_addr_get_sub_interface_index,
+    (void*)_ebpf_sock_addr_get_network_context,
 };
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
