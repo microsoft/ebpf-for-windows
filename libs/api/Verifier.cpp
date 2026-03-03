@@ -10,6 +10,13 @@
 #include "ebpf_tracelog.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
+#pragma warning(push)
+#pragma warning(disable : 4100)  // unreferenced formal parameter
+#pragma warning(disable : 4244)  // conversion, possible loss of data
+#pragma warning(disable : 4267)  // conversion from 'size_t' to 'int'
+#pragma warning(disable : 26495) // Always initialize a member variable
+#include "io/elf_reader.hpp"
+#pragma warning(pop)
 #define ebpf_inst ebpf_inst_btf
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_type_data.h"
@@ -41,6 +48,110 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 }
 
 using namespace std;
+
+// Provide collect_stats locally — it was removed from the verifier public API in a69e70a
+// (commit "Human-friendly CLI output for bin/prevail"), but we still need it for the
+// verbose program-info stats reported by ebpf_api_elf_enumerate_programs.
+static std::string
+_instype(prevail::Instruction ins)
+{
+    if (const auto pcall = std::get_if<prevail::Call>(&ins)) {
+        if (pcall->is_map_lookup) {
+            return "call_1";
+        }
+        if (pcall->pairs.empty()) {
+            if (std::ranges::all_of(pcall->singles, [](const prevail::ArgSingle arg) {
+                    return arg.kind == prevail::ArgSingle::Kind::ANYTHING;
+                })) {
+                return "call_nomem";
+            }
+        }
+        return "call_mem";
+    } else if (std::holds_alternative<prevail::Callx>(ins)) {
+        return "callx";
+    } else if (std::holds_alternative<prevail::CallBtf>(ins)) {
+        return "call_btf";
+    } else if (const auto pimm = std::get_if<prevail::Mem>(&ins)) {
+        return pimm->is_load ? "load" : "store";
+    } else if (std::holds_alternative<prevail::Atomic>(ins)) {
+        return "load_store";
+    } else if (std::holds_alternative<prevail::Packet>(ins)) {
+        return "packet_access";
+    } else if (const auto pins = std::get_if<prevail::Bin>(&ins)) {
+        switch (pins->op) {
+        case prevail::Bin::Op::MOV:
+        case prevail::Bin::Op::MOVSX8:
+        case prevail::Bin::Op::MOVSX16:
+        case prevail::Bin::Op::MOVSX32:
+            return "assign";
+        default:
+            return "arith";
+        }
+    } else if (std::holds_alternative<prevail::Un>(ins)) {
+        return "arith";
+    } else if (std::holds_alternative<prevail::LoadMapFd>(ins)) {
+        return "assign";
+    } else if (std::holds_alternative<prevail::LoadMapAddress>(ins)) {
+        return "assign";
+    } else if (std::holds_alternative<prevail::LoadPseudo>(ins)) {
+        return "assign";
+    } else if (std::holds_alternative<prevail::Assume>(ins)) {
+        return "assume";
+    } else {
+        return "other";
+    }
+}
+
+static std::map<std::string, int>
+collect_stats(const prevail::Program& prog)
+{
+    std::map<std::string, int> res;
+    for (const char* stat_name :
+         {"instructions",
+          "joins",
+          "other",
+          "jumps",
+          "assign",
+          "arith",
+          "load",
+          "store",
+          "load_store",
+          "packet_access",
+          "call_1",
+          "call_mem",
+          "call_nomem",
+          "reallocate",
+          "map_in_map",
+          "arith64",
+          "arith32"}) {
+        res[stat_name] = 0;
+    }
+    for (const prevail::Label& label : prog.labels()) {
+        res["instructions"]++;
+        const prevail::Instruction& cmd = prog.instruction_at(label);
+        if (const auto pins = std::get_if<prevail::LoadMapFd>(&cmd)) {
+            if (pins->mapfd == -1) {
+                res["map_in_map"] = 1;
+            }
+        }
+        if (const auto pins = std::get_if<prevail::Call>(&cmd)) {
+            if (pins->reallocate_packet) {
+                res["reallocate"] = 1;
+            }
+        }
+        if (const auto pins = std::get_if<prevail::Bin>(&cmd)) {
+            res[pins->is64 ? "arith64" : "arith32"]++;
+        }
+        res[_instype(cmd)]++;
+        if (prog.cfg().in_degree(label) > 1) {
+            res["joins"]++;
+        }
+        if (prog.cfg().out_degree(label) > 1) {
+            res["jumps"]++;
+        }
+    }
+    return res;
+}
 
 typedef struct _section_program_map
 {
@@ -359,6 +470,7 @@ load_byte_code(
         }
 
         std::stringstream elf_stream(std::string(elf_data.begin(), elf_data.end()));
+
         raw_programs = read_elf(elf_stream, object_name, section_name_string, "", verifier_options, platform);
 
         if (raw_programs.size() == 0) {
