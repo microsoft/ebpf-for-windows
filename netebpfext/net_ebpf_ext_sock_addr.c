@@ -345,32 +345,21 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
     return sock_addr_ctx->transport_endpoint_handle;
 }
 
-static uint32_t
-_ebpf_sock_addr_get_interface_type(_In_ const bpf_sock_addr_t* ctx)
+static int
+_ebpf_sock_addr_get_network_context(
+    _In_ const bpf_sock_addr_t* ctx, _Out_writes_(context_size) void* context_ptr, uint32_t context_size)
 {
+    if (context_size < sizeof(bpf_sock_addr_network_context_t)) {
+        return -1;
+    }
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->interface_type;
-}
-
-static uint32_t
-_ebpf_sock_addr_get_tunnel_type(_In_ const bpf_sock_addr_t* ctx)
-{
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->tunnel_type;
-}
-
-static uint64_t
-_ebpf_sock_addr_get_next_hop_interface_luid(_In_ const bpf_sock_addr_t* ctx)
-{
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->next_hop_interface_luid;
-}
-
-static uint32_t
-_ebpf_sock_addr_get_sub_interface_index(_In_ const bpf_sock_addr_t* ctx)
-{
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return sock_addr_ctx->sub_interface_index;
+    bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
+    net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+    net_ctx->interface_type = sock_addr_ctx->interface_type;
+    net_ctx->tunnel_type = sock_addr_ctx->tunnel_type;
+    net_ctx->next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
+    net_ctx->sub_interface_index = sock_addr_ctx->sub_interface_index;
+    return 0;
 }
 
 static int
@@ -613,10 +602,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static voi
 
 static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_set_redirect_context,
-    (void*)_ebpf_sock_addr_get_interface_type,
-    (void*)_ebpf_sock_addr_get_tunnel_type,
-    (void*)_ebpf_sock_addr_get_next_hop_interface_luid,
-    (void*)_ebpf_sock_addr_get_sub_interface_index,
+    (void*)_ebpf_sock_addr_get_network_context,
 };
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
@@ -1673,6 +1659,12 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     }
 
     if (redirected || program_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        // At CONNECT_AUTHORIZATION layers, context is read-only. If a program modified
+        // the context (redirected), override the verdict to REJECT and block the connection.
+        if (redirected &&
+            (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
+            context->verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+        }
         return FALSE;
     }
 
@@ -1862,14 +1854,6 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
-    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
-        // This is a re-authorization of a connection that was previously authorized by the
-        // eBPF program. Permit it.
-        // NOTE: Reauthorization is currently not supported for hard permit.
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
-        goto Exit;
-    }
-
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
@@ -1888,13 +1872,15 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
-    // AUTH_CONNECT programs are only invoked for PROCEED_SOFT verdicts because:
-    // - PROCEED_HARD indicates the redirect layer already made a definitive authorization
-    //   decision and no further checks are needed (optimization to skip AUTH layer).
-    // - REJECT verdicts are already final and don't need additional authorization.
-    // - PROCEED_SOFT indicates the connection should proceed but may benefit from
-    //   additional authorization checks at the AUTH layer with full network context.
-    if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
+    // AUTH_CONNECT programs run for all non-REJECT verdicts from the redirect layer.
+    // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow auth programs
+    // to run so they can make decisions based on route-dependent metadata.
+    // The verdict priority system ensures REJECT from auth overrides PROCEED_HARD,
+    // while PROCEED_SOFT from auth does not downgrade PROCEED_HARD.
+    if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
+        // Initialize the accumulated verdict with the cached redirect-layer verdict.
+        net_ebpf_sock_addr_ctx.verdict = verdict;
+
         // Note: sock_addr_ctx_original is a stack-local variable. The pointer stored in
         // net_ebpf_sock_addr_ctx.original_context is only valid during the synchronous
         // program invocation below and must not be stored or used after this scope.
@@ -1902,20 +1888,27 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
         net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
 
+        uint32_t ignored_verdict;
         program_result = net_ebpf_extension_hook_expand_stack_and_invoke_filtered_programs(
-            sock_addr_ctx, &filter_context->base, &verdict, _net_ebpf_extension_sock_addr_is_auth_connect_program);
+            sock_addr_ctx,
+            &filter_context->base,
+            &ignored_verdict,
+            _net_ebpf_extension_sock_addr_is_auth_connect_program);
         if (program_result == EBPF_OBJECT_NOT_FOUND) {
             // No eBPF program is attached to this filter, leave the verdict as is.
         } else if (program_result != EBPF_SUCCESS) {
             // We failed to invoke at least one program in the chain, block the request.
             verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+        } else {
+            // Use the accumulated verdict from process_verdict callback.
+            verdict = net_ebpf_sock_addr_ctx.verdict;
         }
     } else {
-        // Attach point not invoked due to prior verdict.
+        // Attach point not invoked due to prior REJECT verdict.
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "AUTH_CONNECT attach point skipped due to prior verdict",
+            "AUTH_CONNECT attach point skipped due to prior REJECT verdict",
             verdict);
     }
 

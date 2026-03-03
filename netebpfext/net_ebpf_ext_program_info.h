@@ -32,10 +32,7 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 enum _sock_addr_helper_functions
 {
     SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
-    SOCK_ADDR_HELPER_GET_INTERFACE_TYPE,
-    SOCK_ADDR_HELPER_GET_TUNNEL_TYPE,
-    SOCK_ADDR_HELPER_GET_NEXT_HOP_INTERFACE_LUID,
-    SOCK_ADDR_HELPER_GET_SUB_INTERFACE_INDEX,
+    SOCK_ADDR_HELPER_GET_NETWORK_CONTEXT,
 };
 
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
@@ -46,25 +43,10 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_interface_type,
-     "bpf_sock_addr_get_interface_type",
+     BPF_FUNC_sock_addr_get_network_context,
+     "bpf_sock_addr_get_network_context",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_tunnel_type,
-     "bpf_sock_addr_get_tunnel_type",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_next_hop_interface_luid,
-     "bpf_sock_addr_get_next_hop_interface_luid",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_sub_interface_index,
-     "bpf_sock_addr_get_sub_interface_index",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
 enum _sock_addr_global_helper_functions
 {
