@@ -30,6 +30,6 @@ class _watchdog : public Catch::EventListenerBase
         _watchdog_timer.reset();
     }
 
-  private:
+  protected:
     std::unique_ptr<_ebpf_watchdog_timer<true>> _watchdog_timer;
 };

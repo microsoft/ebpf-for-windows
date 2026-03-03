@@ -2480,7 +2480,7 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
         ebpf_list_remove_entry(&context->entry);
         ebpf_operation_map_async_query_reply_t* reply =
             EBPF_FROM_FIELD(ebpf_operation_map_async_query_reply_t, async_query_result, async_query_result);
-        ebpf_async_complete(context->async_context, sizeof(*reply), EBPF_SUCCESS);
+        ebpf_async_complete_with_epoch(context->async_context, sizeof(*reply), EBPF_SUCCESS);
         ebpf_free(context);
         context = NULL;
     }
@@ -2520,7 +2520,7 @@ _map_async_query_cancel(
 
     ebpf_list_remove_entry(&found_context->entry);
     ebpf_lock_unlock(&async_contexts->lock, state);
-    ebpf_async_complete(found_context->async_context, 0, EBPF_CANCELED);
+    ebpf_async_complete_with_epoch(found_context->async_context, 0, EBPF_CANCELED);
     ebpf_free(found_context);
 }
 
