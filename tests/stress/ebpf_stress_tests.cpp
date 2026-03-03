@@ -53,9 +53,9 @@ uint32_t _extension_restart_delay_arg{DEFAULT_EXTENSION_RESTART_DELAY};
 // Command line option: '-et' OR '--execution-type'.
 // Usage: -et=<jit|native> OR --execution-type=<jit|native>
 // This option specifies whether to load JIT or native programs.
-std::string _execution_type_arg{"jit"};
+std::string _execution_type_arg{"native"};
 
-static ebpf_execution_type_t _execution_type{EBPF_EXECUTION_JIT};
+static ebpf_execution_type_t _execution_type{EBPF_EXECUTION_NATIVE};
 
 // Parsed vector of programs specified on the command line.  We load 'droppacket.o' by default if no programs were
 // specified on the command-line for user mode tests. For kernel Mode tests cgroup_sock_addr.o is the default.
@@ -133,7 +133,7 @@ main(int argc, char* argv[])
         Opt(_extension_restart_delay_arg, "restart extension/provider delay")["-erd"]["--extension-restart-delay"](
             "Restart delay (in milliseconds) after stopping an extension") |
         Opt(_execution_type_arg,
-            "execution type")["-et"]["--execution-type"]("Execution type: jit (default) or native");
+            "execution type")["-et"]["--execution-type"]("Execution type: native (default) or jit");
 
     session.cli(cli);
 
