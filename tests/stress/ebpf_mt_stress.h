@@ -70,9 +70,6 @@ struct test_control_info
 
     // Use unique 'native' programs (used internally by specific tests).
     bool use_unique_native_programs{false};
-
-    // Requested execution type for test programs.
-    ebpf_execution_type_t requested_execution_type{EBPF_EXECUTION_NATIVE};
 };
 
 test_control_info
@@ -99,7 +96,6 @@ struct test_program_attributes
     std::string extension_name{};
     test_thread_function_t test_thread_function{nullptr};
     bpf_prog_type program_type{BPF_PROG_TYPE_UNSPEC};
-    ebpf_execution_type_t execution_type{EBPF_EXECUTION_ANY};
 };
 
 inline std::variant<bool, test_program_attributes>

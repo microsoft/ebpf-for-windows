@@ -349,6 +349,12 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
                 } else {
                     if (_require_allowed_in_test_helper) {
                         REQUIRE(NT_SUCCESS(status));
+                    } else {
+                        // During cleanup, log the failure but don't assert.
+                        if (!NT_SUCCESS(status)) {
+                            std::cerr << "Warning: NmrDeregisterClient failed with status 0x" << std::hex << status
+                                      << std::dec << " during cleanup" << std::endl;
+                        }
                     }
                 }
                 context->nmr_client_handle = nullptr;
@@ -357,6 +363,8 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
         // The service should have been marked for deletion till now.
         if (_require_allowed_in_test_helper) {
             REQUIRE((context->delete_pending || get_native_module_failures()));
+        } else if (!context->delete_pending && !get_native_module_failures()) {
+            std::cerr << "Warning: service not marked for deletion during cleanup" << std::endl;
         }
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
