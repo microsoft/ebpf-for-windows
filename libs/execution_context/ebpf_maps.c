@@ -1164,6 +1164,7 @@ _initialize_hash_map_internal(
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
     _In_opt_ ebpf_hash_table_notification_function notification_callback,
+    ebpf_hash_table_notification_type_t notification_flags,
     _Inout_ ebpf_core_map_t* map)
 {
     ebpf_result_t retval;
@@ -1184,6 +1185,7 @@ _initialize_hash_map_internal(
         .supplemental_value_size = supplemental_value_size,
         .notification_context = map,
         .notification_callback = notification_callback,
+        .notification_flags = notification_flags,
     };
 
     // Note:
@@ -1216,6 +1218,7 @@ _create_hash_map_internal(
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
     _In_opt_ ebpf_hash_table_notification_function notification_callback,
+    ebpf_hash_table_notification_type_t notification_flags,
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t retval;
@@ -1235,6 +1238,7 @@ _create_hash_map_internal(
         fixed_size_map,
         extract_function,
         notification_callback,
+        notification_flags,
         local_map);
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -1260,7 +1264,8 @@ _create_hash_map(
     if (inner_map_handle != ebpf_handle_invalid) {
         return EBPF_INVALID_ARGUMENT;
     }
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, 0, false, NULL, NULL, map);
+    return _create_hash_map_internal(
+        sizeof(ebpf_core_map_t), map_definition, 0, 0, false, NULL, NULL, EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE, map);
 }
 
 static void
@@ -1330,7 +1335,15 @@ _create_object_hash_map(
     *map = NULL;
 
     result = _create_hash_map_internal(
-        sizeof(ebpf_core_object_map_t), map_definition, actual_value_size, 0, false, NULL, NULL, &local_map);
+        sizeof(ebpf_core_object_map_t),
+        map_definition,
+        actual_value_size,
+        0,
+        false,
+        NULL,
+        NULL,
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE,
+        &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1620,6 +1633,7 @@ _create_lru_hash_map(
         true,
         NULL,
         _lru_hash_table_notification,
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL,
         (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
@@ -2160,6 +2174,7 @@ _create_lpm_map(
         false,
         _lpm_extract,
         NULL,
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE,
         (ebpf_core_map_t**)&lpm_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -4343,7 +4358,14 @@ _ebpf_custom_map_create_hash_map(
     size_t actual_value_size = max(value_size, map_definition->value_size);
 
     result = _initialize_hash_map_internal(
-        map_definition, actual_value_size, 0, true, NULL, _custom_hash_map_notification, map);
+        map_definition,
+        actual_value_size,
+        0,
+        true,
+        NULL,
+        _custom_hash_map_notification,
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+        map);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -4477,6 +4499,19 @@ _ebpf_custom_map_update_hash_map_entry(
     ebpf_custom_map_operation_context_t operation_context = {flags, true};
 
     result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
+    if (result != EBPF_SUCCESS && custom_map->provider_dispatch->process_map_delete_element != NULL) {
+        // The hash map update failed after the provider was notified of the add.
+        // Notify the provider of the deletion to undo the add.
+        provider_flags = _get_provider_flags(flags, true);
+        custom_map->provider_dispatch->process_map_delete_element(
+            custom_map->provider_context,
+            custom_map->core_map.custom_map_context,
+            custom_map->core_map.ebpf_map_definition.key_size,
+            key,
+            custom_map->actual_value_size,
+            new_value,
+            provider_flags);
+    }
 
 Exit:
     if (lock_acquired) {
@@ -4501,12 +4536,6 @@ _custom_hash_map_notification(
     uint32_t provider_flags;
 
     switch (type) {
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        // Ignore allocate notification as it is handled separately.
-        break;
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        // Ignore lookup notification as it is handled separately.
-        break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
             // Skip free notification if no operation context is provided.
@@ -4526,6 +4555,7 @@ _custom_hash_map_notification(
         break;
     default:
         ebpf_assert(!"Invalid notification type");
+        break;
     }
 
     return result;
@@ -4627,6 +4657,17 @@ ebpf_custom_map_create(
             custom_map->core_map.ebpf_map_definition.type);
 
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
+        goto Done;
+    }
+
+    if (actual_value_size == 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Provider returned invalid value size of 0 for custom map type",
+            custom_map->core_map.ebpf_map_definition.type);
+
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
