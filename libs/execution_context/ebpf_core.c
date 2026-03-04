@@ -14,6 +14,7 @@
 #include "ebpf_native.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_program.h"
+#include "ebpf_protocol_validator.h"
 #include "ebpf_random.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
@@ -3096,6 +3097,12 @@ ebpf_core_invoke_protocol_handler(
     }
 
     if (request->length > input_buffer_length || request->length < sizeof(*request)) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // EverParse-based structural validation of the IOCTL message.
+    if (!ebpf_protocol_validate_ioctl_message((const uint8_t*)input_buffer, input_buffer_length)) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
