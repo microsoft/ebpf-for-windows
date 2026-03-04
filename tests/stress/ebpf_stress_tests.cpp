@@ -50,13 +50,6 @@ bool _extension_restart_arg{false};
 // This option specifies the delay (in milliseconds) between stopping and restarting of the extension driver.
 uint32_t _extension_restart_delay_arg{DEFAULT_EXTENSION_RESTART_DELAY};
 
-// Command line option: '-et' OR '--execution-type'.
-// Usage: -et=<jit|native> OR --execution-type=<jit|native>
-// This option specifies whether to load JIT or native programs.
-std::string _execution_type_arg{"native"};
-
-static ebpf_execution_type_t _execution_type{EBPF_EXECUTION_NATIVE};
-
 // Parsed vector of programs specified on the command line.  We load 'droppacket.o' by default if no programs were
 // specified on the command-line for user mode tests. For kernel Mode tests cgroup_sock_addr.o is the default.
 static std::vector<std::string> _jit_programs{};
@@ -75,7 +68,6 @@ get_test_control_info()
     test_control.extension_restart_enabled = _extension_restart_arg;
     test_control.extension_restart_delay_ms = _extension_restart_delay_arg;
     test_control.programs = _jit_programs;
-    test_control.requested_execution_type = _execution_type;
 
     return test_control;
 }
@@ -131,9 +123,7 @@ main(int argc, char* argv[])
         Opt(_extension_restart_arg, "restart extension/provider flag")["-er"]["--extension-restart"](
             "Enable 'restart extension' thread flag ([1|true] to enable, [0|false] to disable(default))") |
         Opt(_extension_restart_delay_arg, "restart extension/provider delay")["-erd"]["--extension-restart-delay"](
-            "Restart delay (in milliseconds) after stopping an extension") |
-        Opt(_execution_type_arg,
-            "execution type")["-et"]["--execution-type"]("Execution type: native (default) or jit");
+            "Restart delay (in milliseconds) after stopping an extension");
 
     session.cli(cli);
 
@@ -161,15 +151,6 @@ main(int argc, char* argv[])
 
     if (_test_verbose_output_arg) {
         cur_log_level = log_level::LOG_VERBOSE;
-    }
-
-    if (_execution_type_arg == "native") {
-        _execution_type = EBPF_EXECUTION_NATIVE;
-    } else if (_execution_type_arg == "jit") {
-        _execution_type = EBPF_EXECUTION_JIT;
-    } else {
-        LOG_ERROR("ERROR: Invalid execution type: {} (expected 'jit' or 'native')", _execution_type_arg);
-        return -1;
     }
 
     session.run();
