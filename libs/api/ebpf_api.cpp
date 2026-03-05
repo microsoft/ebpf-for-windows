@@ -5267,6 +5267,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 _Must_inspect_result_ ebpf_result_t
 ebpf_latency_tracking_enable(
     uint32_t mode,
+    uint32_t flags,
     uint32_t program_id_count,
     _In_reads_opt_(program_id_count) const uint32_t* program_ids) NO_EXCEPT_TRY
 {
@@ -5282,6 +5283,7 @@ ebpf_latency_tracking_enable(
         request->header.length = static_cast<uint16_t>(request_size);
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LATENCY_ENABLE;
         request->mode = mode;
+        request->flags = flags;
         request->program_id_count = program_id_count;
         for (uint32_t i = 0; i < program_id_count; i++) {
             request->program_ids[i] = program_ids[i];

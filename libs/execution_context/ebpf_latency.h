@@ -18,13 +18,17 @@ extern "C"
 #define EBPF_LATENCY_MODE_PROGRAM 1
 #define EBPF_LATENCY_MODE_ALL 2
 
+    // Latency tracking flags (bitmask).
+#define EBPF_LATENCY_FLAG_CORRELATION_ID 0x1 // Generate per-invocation correlation IDs.
+
     // Maximum number of program IDs in the filter list.
 #define EBPF_LATENCY_MAX_PROGRAM_FILTER 64
 
     typedef struct _ebpf_latency_state
     {
-        volatile long enabled;        // 0 = off, 1 = program only, 2 = program + helpers
-        volatile long session_active; // 0 = no active session, 1 = session in progress
+        volatile long enabled;             // 0 = off, 1 = program only, 2 = program + helpers
+        volatile long session_active;      // 0 = no active session, 1 = session in progress
+        volatile long correlation_enabled; // 0 = no correlation IDs, 1 = generate per-invocation correlation IDs
 
         // Program ID filter list. When program_id_count == 0, all programs are tracked.
         // When program_id_count > 0, only the listed programs are tracked.
@@ -40,6 +44,14 @@ extern "C"
     ebpf_latency_get_mode();
 
     /**
+     * @brief Check whether correlation IDs should be generated for each program invocation.
+     * @retval TRUE if correlation IDs should be generated.
+     * @retval FALSE if correlation IDs are disabled (correlation_id will be 0).
+     */
+    BOOLEAN
+    ebpf_latency_is_correlation_enabled();
+
+    /**
      * @brief Check whether a given program ID should be tracked.
      * @param[in] program_id The ID of the eBPF program to check.
      * @retval TRUE if the program should be tracked (either no filter is set, or the ID is in the filter list).
@@ -51,6 +63,7 @@ extern "C"
     /**
      * @brief Enable latency tracking.
      * @param[in] mode Tracking mode: 1 = program only, 2 = program + helpers.
+     * @param[in] flags Bitmask of EBPF_LATENCY_FLAG_* values (e.g. EBPF_LATENCY_FLAG_CORRELATION_ID).
      * @param[in] program_id_count Number of program IDs in the filter list (0 = track all).
      * @param[in] program_ids Optional array of program IDs to track (NULL when program_id_count == 0).
      * @retval EBPF_SUCCESS The operation was successful.
@@ -59,7 +72,10 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_latency_enable(
-        uint32_t mode, uint32_t program_id_count, _In_reads_opt_(program_id_count) const uint32_t* program_ids);
+        uint32_t mode,
+        uint32_t flags,
+        uint32_t program_id_count,
+        _In_reads_opt_(program_id_count) const uint32_t* program_ids);
 
     /**
      * @brief Disable latency tracking and release the session.
@@ -72,18 +88,24 @@ extern "C"
      * @brief Emit an ETW event for program invocation latency.
      * @param[in] program_id The ID of the eBPF program.
      * @param[in] program_name The name of the eBPF program (may be NULL).
+     * @param[in] correlation_id Monotonically increasing correlation ID for this invocation.
      * @param[in] start_time Start timestamp in 100-ns units.
      * @param[in] end_time End timestamp in 100-ns units.
      */
     void
     ebpf_latency_emit_program_event(
-        uint32_t program_id, _In_opt_ const cxplat_utf8_string_t* program_name, uint64_t start_time, uint64_t end_time);
+        uint32_t program_id,
+        _In_opt_ const cxplat_utf8_string_t* program_name,
+        uint64_t correlation_id,
+        uint64_t start_time,
+        uint64_t end_time);
 
     /**
      * @brief Emit an ETW event for map helper function latency.
      * @param[in] program_id The ID of the owning eBPF program (0 if unknown).
      * @param[in] helper_function_id The BPF_FUNC_xxx ID of the helper function.
      * @param[in] map_name The name of the map being operated on (may be NULL).
+     * @param[in] correlation_id Monotonically increasing correlation ID for the parent invocation.
      * @param[in] start_time Start timestamp in 100-ns units.
      * @param[in] end_time End timestamp in 100-ns units.
      */
@@ -92,6 +114,7 @@ extern "C"
         uint32_t program_id,
         uint32_t helper_function_id,
         _In_opt_ const cxplat_utf8_string_t* map_name,
+        uint64_t correlation_id,
         uint64_t start_time,
         uint64_t end_time);
 

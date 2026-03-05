@@ -19,6 +19,9 @@ ebpf_latency_get_mode()
 }
 
 BOOLEAN
+ebpf_latency_is_correlation_enabled() { return ReadNoFence(&_ebpf_latency_state.correlation_enabled) != 0; }
+
+BOOLEAN
 ebpf_latency_should_track_program(uint32_t program_id)
 {
     uint32_t count = _ebpf_latency_state.program_id_count;
@@ -35,7 +38,10 @@ ebpf_latency_should_track_program(uint32_t program_id)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_latency_enable(
-    uint32_t mode, uint32_t program_id_count, _In_reads_opt_(program_id_count) const uint32_t* program_ids)
+    uint32_t mode,
+    uint32_t flags,
+    uint32_t program_id_count,
+    _In_reads_opt_(program_id_count) const uint32_t* program_ids)
 {
     if (mode < EBPF_LATENCY_MODE_PROGRAM || mode > EBPF_LATENCY_MODE_ALL) {
         return EBPF_INVALID_ARGUMENT;
@@ -59,6 +65,9 @@ ebpf_latency_enable(
         _ebpf_latency_state.program_ids[i] = program_ids[i];
     }
 
+    // Store correlation flag.
+    InterlockedExchange(&_ebpf_latency_state.correlation_enabled, (flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? 1 : 0);
+
     // Enable latency tracking last (write-release semantics).
     InterlockedExchange(&_ebpf_latency_state.enabled, (long)mode);
     return EBPF_SUCCESS;
@@ -69,6 +78,9 @@ ebpf_latency_disable()
 {
     // Disable tracking first.
     InterlockedExchange(&_ebpf_latency_state.enabled, EBPF_LATENCY_MODE_OFF);
+
+    // Clear correlation flag.
+    InterlockedExchange(&_ebpf_latency_state.correlation_enabled, 0);
 
     // Clear filter list.
     _ebpf_latency_state.program_id_count = 0;
@@ -98,7 +110,11 @@ _ebpf_latency_copy_name(
 
 void
 ebpf_latency_emit_program_event(
-    uint32_t program_id, _In_opt_ const cxplat_utf8_string_t* program_name, uint64_t start_time, uint64_t end_time)
+    uint32_t program_id,
+    _In_opt_ const cxplat_utf8_string_t* program_name,
+    uint64_t correlation_id,
+    uint64_t start_time,
+    uint64_t end_time)
 {
     uint32_t process_id = ebpf_platform_process_id();
     uint32_t thread_id = ebpf_platform_thread_id();
@@ -116,6 +132,7 @@ ebpf_latency_emit_program_event(
         TraceLoggingUInt32(program_id, "ProgramId"),
         TraceLoggingString(name_buf, "ProgramName"),
         TraceLoggingUInt32(0, "HelperFunctionId"),
+        TraceLoggingUInt64(correlation_id, "CorrelationId"),
         TraceLoggingUInt32(process_id, "ProcessId"),
         TraceLoggingUInt32(thread_id, "ThreadId"),
         TraceLoggingUInt64(start_time, "StartTime"),
@@ -129,6 +146,7 @@ ebpf_latency_emit_helper_event(
     uint32_t program_id,
     uint32_t helper_function_id,
     _In_opt_ const cxplat_utf8_string_t* map_name,
+    uint64_t correlation_id,
     uint64_t start_time,
     uint64_t end_time)
 {
@@ -148,6 +166,7 @@ ebpf_latency_emit_helper_event(
         TraceLoggingUInt32(program_id, "ProgramId"),
         TraceLoggingUInt32(helper_function_id, "HelperFunctionId"),
         TraceLoggingString(name_buf, "MapName"),
+        TraceLoggingUInt64(correlation_id, "CorrelationId"),
         TraceLoggingUInt32(process_id, "ProcessId"),
         TraceLoggingUInt32(thread_id, "ThreadId"),
         TraceLoggingUInt64(start_time, "StartTime"),

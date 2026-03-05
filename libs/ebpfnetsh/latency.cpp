@@ -24,6 +24,7 @@
 
 #define TOKEN_MODE L"mode"
 #define TOKEN_PROGRAMS L"programs"
+#define TOKEN_CORRELATION L"correlation"
 
 typedef enum
 {
@@ -38,6 +39,17 @@ static TOKEN_VALUE _latency_mode_enum[] = {
     {L"all", LATENCY_MODE_ALL},
 };
 
+typedef enum
+{
+    CORRELATION_NO = 0,
+    CORRELATION_YES = 1,
+} CORRELATION_VALUE;
+
+static TOKEN_VALUE _correlation_enum[] = {
+    {L"no", CORRELATION_NO},
+    {L"yes", CORRELATION_YES},
+};
+
 unsigned long
 handle_ebpf_set_latency(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
@@ -50,9 +62,11 @@ handle_ebpf_set_latency(
     TAG_TYPE tags[] = {
         {TOKEN_MODE, NS_REQ_PRESENT, FALSE},
         {TOKEN_PROGRAMS, NS_REQ_ZERO, FALSE},
+        {TOKEN_CORRELATION, NS_REQ_ZERO, FALSE},
     };
     const int MODE_INDEX = 0;
     const int PROGRAMS_INDEX = 1;
+    const int CORRELATION_INDEX = 2;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -65,6 +79,7 @@ handle_ebpf_set_latency(
 
     uint32_t mode = LATENCY_MODE_OFF;
     std::vector<uint32_t> program_ids;
+    uint32_t correlation = CORRELATION_NO;
 
     for (DWORD i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -96,6 +111,18 @@ handle_ebpf_set_latency(
             }
             break;
         }
+        case CORRELATION_INDEX: {
+            status = MatchEnumTag(
+                nullptr,
+                argv[current_index + i],
+                _countof(_correlation_enum),
+                _correlation_enum,
+                (unsigned long*)&correlation);
+            if (status != NO_ERROR) {
+                status = ERROR_INVALID_PARAMETER;
+            }
+            break;
+        }
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -113,8 +140,15 @@ handle_ebpf_set_latency(
             printf("Latency tracking disabled. Session released.\n");
         }
     } else {
+        uint32_t latency_flags = 0;
+        if (correlation == CORRELATION_YES) {
+            latency_flags |= EBPF_LATENCY_FLAG_CORRELATION_ID;
+        }
         result = ebpf_latency_tracking_enable(
-            mode, static_cast<uint32_t>(program_ids.size()), program_ids.empty() ? nullptr : program_ids.data());
+            mode,
+            latency_flags,
+            static_cast<uint32_t>(program_ids.size()),
+            program_ids.empty() ? nullptr : program_ids.data());
         if (result == EBPF_SUCCESS) {
             if (mode == LATENCY_MODE_PROGRAM) {
                 printf("Latency tracking enabled (mode=program");
@@ -133,6 +167,7 @@ handle_ebpf_set_latency(
             } else {
                 printf(", filter=all");
             }
+            printf(", correlation=%s", (latency_flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? "yes" : "no");
             printf(").\n");
         } else if (result == EBPF_INVALID_STATE) {
             printf("Error: Another latency tracking session is already active.\n");
@@ -397,12 +432,16 @@ _helper_function_name(uint32_t id)
         return "map_delete_elem";
     case 4:
         return "map_lookup_and_delete";
+    case 11:
+        return "ringbuf_output";
     case 16:
         return "map_push_elem";
     case 17:
         return "map_pop_elem";
     case 18:
         return "map_peek_elem";
+    case 32:
+        return "perf_event_output";
     default:
         return nullptr;
     }

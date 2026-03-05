@@ -1544,11 +1544,15 @@ ebpf_program_invoke(
 
     // Latency tracking: capture start time if enabled.
     uint64_t latency_start = 0;
+    uint64_t correlation_id = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode > 0 &&
         TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
         if (ebpf_latency_should_track_program((uint32_t)program->object.id)) {
             latency_start = cxplat_query_time_since_boot_precise(false);
+            if (ebpf_latency_is_correlation_enabled()) {
+                correlation_id = ebpf_program_next_correlation_id();
+            }
         }
     }
 
@@ -1562,6 +1566,8 @@ ebpf_program_invoke(
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
     // Set program pointer in context header.
     ebpf_program_set_program_pointer(program, context);
+    // Set correlation ID in context header (for latency tracking; 0 if not tracking).
+    ebpf_program_set_correlation_id(correlation_id, context);
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -1613,7 +1619,7 @@ ebpf_program_invoke(
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
         ebpf_latency_emit_program_event(
-            program->object.id, &program->parameters.program_name, latency_start, latency_end);
+            program->object.id, &program->parameters.program_name, correlation_id, latency_start, latency_end);
     }
 
     return EBPF_SUCCESS;
@@ -2727,6 +2733,31 @@ ebpf_program_get_program_pointer(_In_ const void* program_context)
     // slot [2] contains the program pointer.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
     return (const ebpf_program_t*)header->context_header[2];
+}
+
+// Global monotonically increasing counter for correlation IDs.
+static volatile int64_t _ebpf_correlation_id_counter = 0;
+
+uint64_t
+ebpf_program_next_correlation_id()
+{
+    return (uint64_t)InterlockedIncrement64(&_ebpf_correlation_id_counter);
+}
+
+void
+ebpf_program_set_correlation_id(uint64_t correlation_id, _Inout_ void* program_context)
+{
+    // slot [3] contains the correlation ID.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[3] = correlation_id;
+}
+
+uint64_t
+ebpf_program_get_correlation_id(_In_ const void* program_context)
+{
+    // slot [3] contains the correlation ID.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    return header->context_header[3];
 }
 
 uint64_t

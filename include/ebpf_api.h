@@ -771,9 +771,15 @@ extern "C"
     // Latency Tracking APIs
     //
 
+    // Latency tracking flags (bitmask) for ebpf_latency_tracking_enable().
+#ifndef EBPF_LATENCY_FLAG_CORRELATION_ID
+#define EBPF_LATENCY_FLAG_CORRELATION_ID 0x1 // Generate per-invocation correlation IDs.
+#endif
+
     /**
      * @brief Enable latency tracking in ebpfcore.
      * @param[in] mode Tracking mode: 1 = program invocations only, 2 = program + map helpers.
+     * @param[in] flags Bitmask of EBPF_LATENCY_FLAG_* values (e.g. EBPF_LATENCY_FLAG_CORRELATION_ID).
      * @param[in] program_id_count Number of program IDs in the filter list (0 = track all).
      * @param[in] program_ids Optional array of program IDs to track (NULL when program_id_count == 0).
      * @retval EBPF_SUCCESS The operation was successful.
@@ -783,6 +789,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_latency_tracking_enable(
         uint32_t mode,
+        uint32_t flags,
         uint32_t program_id_count,
         _In_reads_opt_(program_id_count) const uint32_t* program_ids) EBPF_NO_EXCEPT;
 

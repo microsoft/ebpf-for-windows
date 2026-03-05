@@ -77,7 +77,12 @@ _ebpf_core_trace_printk5(
     _In_reads_(fmt_size) const char* fmt, size_t fmt_size, uint64_t arg3, uint64_t arg4, uint64_t arg5);
 static int
 _ebpf_core_ring_buffer_output(
-    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
+    _Inout_ ebpf_map_t* map,
+    _In_reads_bytes_(length) uint8_t* data,
+    size_t length,
+    uint64_t flags,
+    uint64_t dummy5,
+    _In_ const void* ctx);
 static int
 _ebpf_core_map_push_elem(
     _Inout_ ebpf_map_t* map,
@@ -2239,7 +2244,7 @@ _ebpf_core_protocol_latency_enable(_In_ const ebpf_operation_latency_enable_requ
     uint32_t program_id_count = request->program_id_count;
     const uint32_t* program_ids = (program_id_count > 0) ? request->program_ids : NULL;
 
-    ebpf_result_t result = ebpf_latency_enable(request->mode, program_id_count, program_ids);
+    ebpf_result_t result = ebpf_latency_enable(request->mode, request->flags, program_id_count, program_ids);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2277,8 +2282,9 @@ _ebpf_core_map_find_element(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_lookup_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_lookup_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     if (retval != EBPF_SUCCESS) {
@@ -2309,8 +2315,9 @@ _ebpf_core_map_update_element(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_update_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_update_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     return result;
@@ -2339,8 +2346,9 @@ _ebpf_core_map_delete_element(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_delete_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_delete_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     return result;
@@ -2377,8 +2385,14 @@ _ebpf_core_map_find_and_delete_element(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_lookup_and_delete_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id,
+            BPF_FUNC_map_lookup_and_delete_elem,
+            ebpf_map_get_name(map),
+            correlation_id,
+            latency_start,
+            latency_end);
     }
 
     if (retval != EBPF_SUCCESS) {
@@ -2636,11 +2650,38 @@ Exit:
 
 static int
 _ebpf_core_ring_buffer_output(
-    _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
+    _Inout_ ebpf_map_t* map,
+    _In_reads_bytes_(length) uint8_t* data,
+    size_t length,
+    uint64_t flags,
+    uint64_t dummy5,
+    _In_ const void* ctx)
 {
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
-    return -ebpf_ring_buffer_map_output(map, data, length);
+    UNREFERENCED_PARAMETER(dummy5);
+
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_ring_buffer_map_output(map, data, length);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_ringbuf_output, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static ebpf_result_t
@@ -2695,7 +2736,27 @@ static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
-    return -ebpf_perf_event_array_map_output_with_capture(ctx, map, flags, data, length);
+    const ebpf_program_t* program = ebpf_program_get_program_pointer(ctx);
+    uint32_t program_id = program ? (uint32_t)((ebpf_core_object_t*)program)->id : 0;
+
+    uint64_t latency_start = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode >= EBPF_LATENCY_MODE_ALL &&
+        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY) &&
+        ebpf_latency_should_track_program(program_id)) {
+        latency_start = cxplat_query_time_since_boot_precise(false);
+    }
+
+    int result = -ebpf_perf_event_array_map_output_with_capture(ctx, map, flags, data, length);
+
+    if (latency_start != 0) {
+        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
+        ebpf_latency_emit_helper_event(
+            program_id, BPF_FUNC_perf_event_output, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
+    }
+
+    return result;
 }
 
 static int
@@ -2725,8 +2786,9 @@ _ebpf_core_map_push_elem(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_push_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_push_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     return result;
@@ -2760,8 +2822,9 @@ _ebpf_core_map_pop_elem(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_pop_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_pop_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     return result;
@@ -2795,8 +2858,9 @@ _ebpf_core_map_peek_elem(
 
     if (latency_start != 0) {
         uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
+        uint64_t correlation_id = ebpf_program_get_correlation_id(ctx);
         ebpf_latency_emit_helper_event(
-            program_id, BPF_FUNC_map_peek_elem, ebpf_map_get_name(map), latency_start, latency_end);
+            program_id, BPF_FUNC_map_peek_elem, ebpf_map_get_name(map), correlation_id, latency_start, latency_end);
     }
 
     return result;
