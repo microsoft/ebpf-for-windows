@@ -5349,13 +5349,15 @@ _ebpf_pe_find_section(
     _In_ const bounded_buffer* buffer) NO_EXCEPT_TRY
 {
     UNREFERENCED_PARAMETER(va);
-    UNREFERENCED_PARAMETER(section_header);
 
     ebpf_section_data_context_t* ctx = static_cast<ebpf_section_data_context_t*>(context);
 
     if (section_name == ctx->section_name && buffer != nullptr) {
         ctx->section_found = true;
-        ctx->section_size = buffer->bufLen;
+        // Use VirtualSize (actual data size) rather than bufLen (SizeOfRawData, padded to file alignment).
+        ctx->section_size = (section_header.Misc.VirtualSize > 0 && section_header.Misc.VirtualSize <= buffer->bufLen)
+                                ? section_header.Misc.VirtualSize
+                                : buffer->bufLen;
         ctx->section_data = buffer->buf;
         return 1; // Stop iteration.
     }
