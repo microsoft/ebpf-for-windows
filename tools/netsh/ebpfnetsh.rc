@@ -279,6 +279,80 @@ BEGIN
     HLP_EBPF_UNPIN_PROGRAM_EX "\
 \nUsage: %1 <id> [path]\n"
 
+    HLP_EBPF_SET_LATENCY    "Sets eBPF latency tracking mode.\n"
+    HLP_EBPF_SET_LATENCY_EX "\
+\nUsage: %1!s! [mode=]off|program|all\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      mode      - One of the following values:\
+\n                   off: Disable latency tracking.\
+\n                   program: Track program invocation latency only.\
+\n                   all: Track program invocation and map helper latency.\
+\n\
+\nRemarks: Enables or disables eBPF latency tracking via ETW events.\
+\n"
+
+    HLP_EBPF_SHOW_LATENCY    "Shows eBPF latency tracking status.\n"
+    HLP_EBPF_SHOW_LATENCY_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Shows the current latency tracking status and ETW provider information.\
+\n"
+
+    HLP_EBPF_START_LATENCYTRACE    "Starts an ETW trace session for eBPF latency events.\n"
+    HLP_EBPF_START_LATENCYTRACE_EX "\
+\nUsage: %1!s! [[file=]<path>] [[buffersize=]<KB>]\
+\n\
+\nParameters:\
+\n\
+\n      Tag          Value\
+\n      file       - Path for the output .etl file.\
+\n                   Default: ebpf_latency.etl\
+\n      buffersize - Per-buffer size in KB.\
+\n                   Default: 256\
+\n\
+\nRemarks: Starts a pre-configured ETW trace session named\
+\n         'EbpfLatencyTrace' that captures latency events from\
+\n         both the EbpfForWindows and NetEbpfExt providers.\
+\n         Use 'netsh ebpf set latency mode=program' or\
+\n         'netsh ebpf set latency mode=all' to enable the\
+\n         instrumentation before starting the trace.\
+\n"
+
+    HLP_EBPF_STOP_LATENCYTRACE    "Stops the eBPF latency ETW trace session.\n"
+    HLP_EBPF_STOP_LATENCYTRACE_EX "\
+\nUsage: %1!s!\
+\n\
+\nRemarks: Stops the 'EbpfLatencyTrace' ETW trace session and\
+\n         saves captured events to the .etl file specified when\
+\n         the session was started.\
+\n"
+
+    HLP_EBPF_SHOW_LATENCYTRACE    "Shows latency data from an ETW trace (.etl) file.\n"
+    HLP_EBPF_SHOW_LATENCYTRACE_EX "\
+\nUsage: %1!s! [file=]<path.etl> [[format=]table|csv]\
+\n\
+\nParameters:\
+\n\
+\n      Tag         Value\
+\n      file      - Path to the .etl file captured via\
+\n                  'start latencytrace'.\
+\n      format    - One of the following values:\
+\n                   table: Display a summary report with\
+\n                          percentile statistics (default).\
+\n                   csv: Output all raw event records in CSV\
+\n                        format for further analysis.\
+\n\
+\nRemarks: Parses an .etl file and displays eBPF latency data.\
+\n         In table mode, shows per-program and per-helper\
+\n         invocation counts and latency percentiles (avg, P50,\
+\n         P95, P99, max). In CSV mode, outputs one line per\
+\n         event record suitable for import into spreadsheets or\
+\n         analysis scripts.\
+\n"
+
 
 END
 
