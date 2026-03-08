@@ -281,7 +281,9 @@ BEGIN
 
     HLP_EBPF_SET_LATENCY    "Sets eBPF latency tracking mode.\n"
     HLP_EBPF_SET_LATENCY_EX "\
-\nUsage: %1!s! [mode=]off|program|all\
+\nUsage: %1!s! [mode=]off|program|all [[backend=]ringbuffer|etw]\
+\n             [[correlation=]yes|no] [[events=]<N>]\
+\n             [[programs=]<id1,id2,...>] [[file=]<path.etl>]\
 \n\
 \nParameters:\
 \n\
@@ -290,18 +292,28 @@ BEGIN
 \n                   off: Disable latency tracking.\
 \n                   program: Track program invocation latency only.\
 \n                   all: Track program invocation and map helper latency.\
+\n      backend   - One of the following values:\
+\n                   ringbuffer: Per-CPU ring buffers (default).\
+\n                   etw: ETW trace session.\
+\n                   ETW and ring buffer are mutually exclusive.\
+\n      correlation - (ringbuffer only) yes|no. Generate per-invocation IDs.\
+\n      events    - (ringbuffer only) Records per CPU buffer (default: 100000).\
+\n      programs  - Comma-separated program IDs to track (default: all).\
+\n      file      - (etw only) Output .etl file path (default: ebpf_latency.etl).\
 \n\
-\nRemarks: Enables or disables eBPF latency tracking via ETW events.\
+\nRemarks: Enables or disables eBPF latency tracking.\
+\n         Use backend=ringbuffer for low-overhead per-CPU collection.\
+\n         Use backend=etw for ETW-based collection with WPA analysis.\
 \n"
 
     HLP_EBPF_SHOW_LATENCY    "Shows eBPF latency tracking status.\n"
     HLP_EBPF_SHOW_LATENCY_EX "\
 \nUsage: %1!s!\
 \n\
-\nRemarks: Shows the current latency tracking status and ETW provider information.\
+\nRemarks: Shows the current latency tracking status and backend information.\
 \n"
 
-    HLP_EBPF_START_LATENCYTRACE    "Starts an ETW trace session for eBPF latency events.\n"
+    HLP_EBPF_START_LATENCYTRACE    "Starts an ETW trace session (deprecated, use 'set latency backend=etw').\n"
     HLP_EBPF_START_LATENCYTRACE_EX "\
 \nUsage: %1!s! [[file=]<path>] [[buffersize=]<KB>]\
 \n\
@@ -321,7 +333,7 @@ BEGIN
 \n         instrumentation before starting the trace.\
 \n"
 
-    HLP_EBPF_STOP_LATENCYTRACE    "Stops the eBPF latency ETW trace session.\n"
+    HLP_EBPF_STOP_LATENCYTRACE    "Stops the ETW trace session (deprecated, use 'set latency mode=off').\n"
     HLP_EBPF_STOP_LATENCYTRACE_EX "\
 \nUsage: %1!s!\
 \n\
@@ -330,27 +342,26 @@ BEGIN
 \n         the session was started.\
 \n"
 
-    HLP_EBPF_SHOW_LATENCYTRACE    "Shows latency data from an ETW trace (.etl) file.\n"
+    HLP_EBPF_SHOW_LATENCYTRACE    "Shows latency data from ring buffer drain or ETW trace (.etl) file.\n"
     HLP_EBPF_SHOW_LATENCYTRACE_EX "\
-\nUsage: %1!s! [file=]<path.etl> [[format=]table|csv]\
+\nUsage: %1!s! [[file=]<path>] [[format=]table|csv]\
 \n\
 \nParameters:\
 \n\
 \n      Tag         Value\
-\n      file      - Path to the .etl file captured via\
-\n                  'start latencytrace'.\
+\n      file      - Path to an .etl file or output .bin file for\
+\n                  ring buffer drain. If omitted, auto-detects\
+\n                  based on the last active backend.\
 \n      format    - One of the following values:\
 \n                   table: Display a summary report with\
 \n                          percentile statistics (default).\
 \n                   csv: Output all raw event records in CSV\
 \n                        format for further analysis.\
 \n\
-\nRemarks: Parses an .etl file and displays eBPF latency data.\
-\n         In table mode, shows per-program and per-helper\
-\n         invocation counts and latency percentiles (avg, P50,\
-\n         P95, P99, max). In CSV mode, outputs one line per\
-\n         event record suitable for import into spreadsheets or\
-\n         analysis scripts.\
+\nRemarks: For ring buffer backend, drains per-CPU buffers, writes\
+\n         sorted data to a .bin file, and displays a summary.\
+\n         For ETW backend, parses an .etl file and displays\
+\n         latency statistics.\
 \n"
 
 

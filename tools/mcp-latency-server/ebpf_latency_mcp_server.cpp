@@ -19,12 +19,16 @@
 // MCP Tools Exposed:
 //   - load_etl:              Ingest an ETL file and index all latency events.
 //   - get_summary:           Overall trace summary (like netsh show latencytrace).
-//   - get_program_summary:   Per-program statistics with percentiles.
+//   - get_program_summary:   Per-program statistics with percentiles (one or all).
 //   - get_helper_summary:    Per-helper statistics for a given program.
-//   - get_percentile_instance: Find the specific invocation at a given percentile.
+//   - get_map_summary:       Per-map aggregate statistics for a given program.
+//   - get_percentile_instance: Find the specific invocation at a given percentile,
+//                             optionally including correlated helpers and gap analysis.
+//   - get_percentile_comparison: Compare multiple percentiles in a single call.
 //   - get_program_events:    List all invocation events for a program (paginated).
-//   - get_correlated_map_helpers: Given a program invocation's time window, find
+//   - get_correlated_map_helpers: Given a correlation_id or time window, find
 //                             all map helper calls that occurred within it.
+//   - get_invocation_timeline: Timeline of an invocation with gap detection.
 //   - list_programs:         List all program IDs and names in the loaded trace.
 //   - unload:                Release a previously loaded trace from memory.
 // ============================================================================
@@ -444,6 +448,7 @@ struct ProgramInvokeEvent
 {
     uint32_t program_id;
     std::string program_name;
+    uint64_t correlation_id;
     uint32_t process_id;
     uint32_t thread_id;
     uint64_t start_time; // 100-ns units (from ETW event field)
@@ -458,6 +463,7 @@ struct MapHelperEvent
     uint32_t program_id;
     uint32_t helper_function_id;
     std::string map_name;
+    uint64_t correlation_id;
     uint32_t process_id;
     uint32_t thread_id;
     uint64_t start_time; // 100-ns units
@@ -512,6 +518,15 @@ struct TraceData
 
     // (program_id, helper_id) -> sorted durations.
     std::map<std::pair<uint32_t, uint32_t>, std::vector<uint64_t>> helper_sorted_durations;
+
+    // correlation_id -> indices into helper_events for O(1) correlation lookup.
+    std::unordered_map<uint64_t, std::vector<size_t>> helper_event_by_correlation;
+
+    // correlation_id -> index into program_events (for reverse lookup).
+    std::unordered_map<uint64_t, size_t> program_event_by_correlation;
+
+    // (program_id, map_name, helper_function_id) -> sorted durations for per-map stats.
+    std::map<std::tuple<uint32_t, std::string, uint32_t>, std::vector<uint64_t>> map_sorted_durations;
 
     // Program names.
     std::unordered_map<uint32_t, std::string> program_names;
@@ -607,6 +622,7 @@ etl_callback(PEVENT_RECORD rec)
         ProgramInvokeEvent ev;
         ev.program_id = tdh_get_uint32(rec, L"ProgramId");
         ev.program_name = tdh_get_string(rec, L"ProgramName");
+        ev.correlation_id = tdh_get_uint64(rec, L"CorrelationId");
         ev.process_id = tdh_get_uint32(rec, L"ProcessId");
         ev.thread_id = tdh_get_uint32(rec, L"ThreadId");
         ev.start_time = tdh_get_uint64(rec, L"StartTime");
@@ -626,6 +642,7 @@ etl_callback(PEVENT_RECORD rec)
         ev.program_id = tdh_get_uint32(rec, L"ProgramId");
         ev.helper_function_id = tdh_get_uint32(rec, L"HelperFunctionId");
         ev.map_name = tdh_get_string(rec, L"MapName");
+        ev.correlation_id = tdh_get_uint64(rec, L"CorrelationId");
         ev.process_id = tdh_get_uint32(rec, L"ProcessId");
         ev.thread_id = tdh_get_uint32(rec, L"ThreadId");
         ev.start_time = tdh_get_uint64(rec, L"StartTime");
@@ -669,14 +686,30 @@ build_indexes(TraceData& td)
         std::sort(durations.begin(), durations.end());
     }
 
+    // Program event correlation index.
+    for (size_t i = 0; i < td.program_events.size(); i++) {
+        auto& ev = td.program_events[i];
+        if (ev.correlation_id != 0) {
+            td.program_event_by_correlation[ev.correlation_id] = i;
+        }
+    }
+
     // Helper event index.
     for (size_t i = 0; i < td.helper_events.size(); i++) {
         auto& ev = td.helper_events[i];
         td.helper_event_by_program[ev.program_id].push_back(i);
         td.helper_sorted_durations[{ev.program_id, ev.helper_function_id}].push_back(ev.duration);
+        if (ev.correlation_id != 0) {
+            td.helper_event_by_correlation[ev.correlation_id].push_back(i);
+        }
+        td.map_sorted_durations[{ev.program_id, ev.map_name, ev.helper_function_id}].push_back(ev.duration);
     }
 
     for (auto& [key, durations] : td.helper_sorted_durations) {
+        std::sort(durations.begin(), durations.end());
+    }
+
+    for (auto& [key, durations] : td.map_sorted_durations) {
         std::sort(durations.begin(), durations.end());
     }
 }
@@ -791,6 +824,7 @@ program_event_to_json(const ProgramInvokeEvent& ev)
     auto obj = JsonValue::make_object();
     obj.set("program_id", JsonValue(ev.program_id));
     obj.set("program_name", JsonValue(ev.program_name));
+    obj.set("correlation_id", JsonValue(ev.correlation_id));
     obj.set("process_id", JsonValue(ev.process_id));
     obj.set("thread_id", JsonValue(ev.thread_id));
     obj.set("start_time", JsonValue(ev.start_time));
@@ -810,6 +844,7 @@ helper_event_to_json(const MapHelperEvent& ev)
     const char* hname = helper_function_name(ev.helper_function_id);
     obj.set("helper_name", JsonValue(hname ? hname : ("helper_" + std::to_string(ev.helper_function_id)).c_str()));
     obj.set("map_name", JsonValue(ev.map_name));
+    obj.set("correlation_id", JsonValue(ev.correlation_id));
     obj.set("process_id", JsonValue(ev.process_id));
     obj.set("thread_id", JsonValue(ev.thread_id));
     obj.set("start_time", JsonValue(ev.start_time));
@@ -1003,8 +1038,8 @@ tool_get_summary(const JsonValue& params)
 }
 
 // Tool: get_program_summary
-// Params: { "file_path": "<path>", "program_id": <id> }
-// Returns detailed stats for a single program including all percentiles.
+// Params: { "file_path": "<path>", "program_id": <id> (0 or omitted = all programs) }
+// Returns detailed stats for a single program (or all programs) including all percentiles.
 static JsonValue
 tool_get_program_summary(const JsonValue& params)
 {
@@ -1014,6 +1049,39 @@ tool_get_program_summary(const JsonValue& params)
         auto err = JsonValue::make_object();
         err.set("error", JsonValue(error));
         return err;
+    }
+
+    auto* pid_param = params.get("program_id");
+    bool all_programs = (pid_param == nullptr || (pid_param->type == JsonValue::Int && pid_param->int_val == 0));
+
+    if (all_programs) {
+        // Return summary for all programs in a single response.
+        auto programs = JsonValue::make_array();
+        for (auto& [pid, sorted_durs] : td->program_sorted_durations) {
+            auto prog = JsonValue::make_object();
+            prog.set("program_id", JsonValue(pid));
+            auto name_it = td->program_names.find(pid);
+            prog.set("program_name", JsonValue(name_it != td->program_names.end() ? name_it->second : ""));
+            prog.set("statistics", stats_to_json(compute_stats(sorted_durs)));
+
+            auto helpers = JsonValue::make_array();
+            for (auto& [key, durs] : td->helper_sorted_durations) {
+                if (key.first == pid) {
+                    auto h = JsonValue::make_object();
+                    h.set("helper_function_id", JsonValue(key.second));
+                    const char* hname = helper_function_name(key.second);
+                    h.set("helper_name", JsonValue(hname ? hname : ("helper_" + std::to_string(key.second)).c_str()));
+                    h.set("statistics", stats_to_json(compute_stats(durs)));
+                    helpers.push_back(h);
+                }
+            }
+            prog.set("helpers", helpers);
+            programs.push_back(prog);
+        }
+
+        auto result = JsonValue::make_object();
+        result.set("programs", programs);
+        return result;
     }
 
     uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
@@ -1087,8 +1155,10 @@ tool_get_helper_summary(const JsonValue& params)
 }
 
 // Tool: get_percentile_instance
-// Params: { "file_path": "<path>", "program_id": <id>, "percentile": <float 0-100> }
+// Params: { "file_path": "<path>", "program_id": <id>, "percentile": <float 0-100>,
+//           "include_helpers": <bool> (optional, default false) }
 // Finds the specific program invocation event at the given percentile of duration.
+// If include_helpers is true, also returns correlated map helpers and timeline analysis.
 static JsonValue
 tool_get_percentile_instance(const JsonValue& params)
 {
@@ -1102,6 +1172,7 @@ tool_get_percentile_instance(const JsonValue& params)
 
     uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
     double percentile = params.get_double("percentile", 99.0);
+    bool include_helpers = params.get_bool("include_helpers", false);
 
     auto idx_it = td->program_event_index.find(pid);
     if (idx_it == td->program_event_index.end()) {
@@ -1131,6 +1202,119 @@ tool_get_percentile_instance(const JsonValue& params)
     result.set("rank", JsonValue(static_cast<uint64_t>(target_idx + 1)));
     result.set("total_events", JsonValue(static_cast<uint64_t>(n)));
     result.set("event", program_event_to_json(ev));
+
+    if (include_helpers) {
+        // Get correlated helpers via correlation_id (fast) or time window (fallback).
+        auto helpers = JsonValue::make_array();
+        uint64_t total_helper_duration = 0;
+
+        if (ev.correlation_id != 0) {
+            auto it = td->helper_event_by_correlation.find(ev.correlation_id);
+            if (it != td->helper_event_by_correlation.end()) {
+                for (size_t idx : it->second) {
+                    auto& hev = td->helper_events[idx];
+                    if (hev.program_id == pid) {
+                        helpers.push_back(helper_event_to_json(hev));
+                        total_helper_duration += hev.duration;
+                    }
+                }
+            }
+        } else {
+            auto helper_idx_it = td->helper_event_by_program.find(pid);
+            if (helper_idx_it != td->helper_event_by_program.end()) {
+                for (size_t idx : helper_idx_it->second) {
+                    auto& hev = td->helper_events[idx];
+                    if (hev.start_time >= ev.start_time && hev.end_time <= ev.end_time) {
+                        helpers.push_back(helper_event_to_json(hev));
+                        total_helper_duration += hev.duration;
+                    }
+                }
+            }
+        }
+
+        result.set("total_helper_duration_ns", JsonValue(total_helper_duration * FILETIME_TO_NS));
+        result.set("helper_count", JsonValue(static_cast<uint64_t>(helpers.array_val.size())));
+        result.set("correlated_helpers", helpers);
+
+        // Build gap analysis (timeline).
+        uint64_t prog_duration_ns = ev.duration * FILETIME_TO_NS;
+        uint64_t helper_total_ns = total_helper_duration * FILETIME_TO_NS;
+        uint64_t gap_total_ns = prog_duration_ns - helper_total_ns;
+        uint64_t largest_gap_ns = 0;
+        int largest_gap_position = -1;
+
+        // Sort helpers by start_time and compute gaps.
+        struct HelperTiming
+        {
+            uint64_t start_time;
+            uint64_t end_time;
+            size_t index;
+        };
+        std::vector<HelperTiming> timings;
+        if (ev.correlation_id != 0) {
+            auto it = td->helper_event_by_correlation.find(ev.correlation_id);
+            if (it != td->helper_event_by_correlation.end()) {
+                for (size_t idx : it->second) {
+                    auto& hev = td->helper_events[idx];
+                    if (hev.program_id == pid) {
+                        timings.push_back({hev.start_time, hev.end_time, timings.size()});
+                    }
+                }
+            }
+        } else {
+            auto helper_idx_it = td->helper_event_by_program.find(pid);
+            if (helper_idx_it != td->helper_event_by_program.end()) {
+                for (size_t idx : helper_idx_it->second) {
+                    auto& hev = td->helper_events[idx];
+                    if (hev.start_time >= ev.start_time && hev.end_time <= ev.end_time) {
+                        timings.push_back({hev.start_time, hev.end_time, timings.size()});
+                    }
+                }
+            }
+        }
+
+        std::sort(timings.begin(), timings.end(), [](const HelperTiming& a, const HelperTiming& b) {
+            return a.start_time < b.start_time;
+        });
+
+        auto gaps = JsonValue::make_array();
+        uint64_t prev_end = ev.start_time;
+        for (size_t i = 0; i < timings.size(); i++) {
+            uint64_t gap = (timings[i].start_time > prev_end) ? (timings[i].start_time - prev_end) * FILETIME_TO_NS : 0;
+            if (gap > 0) {
+                auto g = JsonValue::make_object();
+                g.set("before_helper_index", JsonValue(static_cast<uint64_t>(i)));
+                g.set("gap_ns", JsonValue(gap));
+                gaps.push_back(g);
+            }
+            if (gap > largest_gap_ns) {
+                largest_gap_ns = gap;
+                largest_gap_position = static_cast<int>(i);
+            }
+            prev_end = timings[i].end_time;
+        }
+        // Gap after last helper to program end.
+        uint64_t trailing_gap = (ev.end_time > prev_end) ? (ev.end_time - prev_end) * FILETIME_TO_NS : 0;
+        if (trailing_gap > 0) {
+            auto g = JsonValue::make_object();
+            g.set("before_helper_index", JsonValue("end"));
+            g.set("gap_ns", JsonValue(trailing_gap));
+            gaps.push_back(g);
+            if (trailing_gap > largest_gap_ns) {
+                largest_gap_ns = trailing_gap;
+                largest_gap_position = static_cast<int>(timings.size());
+            }
+        }
+
+        auto timeline = JsonValue::make_object();
+        timeline.set("program_duration_ns", JsonValue(prog_duration_ns));
+        timeline.set("total_helper_ns", JsonValue(helper_total_ns));
+        timeline.set("total_gap_ns", JsonValue(gap_total_ns));
+        timeline.set("largest_gap_ns", JsonValue(largest_gap_ns));
+        timeline.set("largest_gap_position", JsonValue(largest_gap_position));
+        timeline.set("gaps", gaps);
+        result.set("timeline", timeline);
+    }
 
     return result;
 }
@@ -1197,13 +1381,375 @@ tool_get_program_events(const JsonValue& params)
     return result;
 }
 
+// Tool: get_invocation_timeline
+// Params: { "file_path": "<path>", "program_id": <id>,
+//           "correlation_id": <uint64> (preferred),
+//           "start_time": <uint64>, "end_time": <uint64> (fallback) }
+//
+// Returns a timeline of a single program invocation showing each map helper event,
+// gaps between events (eBPF instruction execution time), and highlights the largest gap.
+static JsonValue
+tool_get_invocation_timeline(const JsonValue& params)
+{
+    std::string error;
+    auto* td = get_trace(params.get_string("file_path"), error);
+    if (!td) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue(error));
+        return err;
+    }
+
+    uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
+    auto* corr_param = params.get("correlation_id");
+    bool use_correlation = (corr_param != nullptr && corr_param->type == JsonValue::Int && corr_param->int_val != 0);
+
+    uint64_t prog_start = 0;
+    uint64_t prog_end = 0;
+    uint64_t prog_duration = 0;
+    uint64_t correlation_id = 0;
+
+    // Collect helper events.
+    struct HelperInfo
+    {
+        size_t event_index;
+        uint64_t start_time;
+        uint64_t end_time;
+        uint64_t duration;
+    };
+    std::vector<HelperInfo> helper_infos;
+
+    if (use_correlation) {
+        correlation_id = static_cast<uint64_t>(corr_param->int_val);
+
+        auto prog_it = td->program_event_by_correlation.find(correlation_id);
+        if (prog_it == td->program_event_by_correlation.end()) {
+            auto err = JsonValue::make_object();
+            err.set("error", JsonValue("No program event for correlation_id=" + std::to_string(correlation_id)));
+            return err;
+        }
+        auto& pev = td->program_events[prog_it->second];
+        prog_start = pev.start_time;
+        prog_end = pev.end_time;
+        prog_duration = pev.duration;
+
+        auto it = td->helper_event_by_correlation.find(correlation_id);
+        if (it != td->helper_event_by_correlation.end()) {
+            for (size_t idx : it->second) {
+                auto& hev = td->helper_events[idx];
+                if (hev.program_id == pid) {
+                    helper_infos.push_back({idx, hev.start_time, hev.end_time, hev.duration});
+                }
+            }
+        }
+    } else {
+        prog_start = static_cast<uint64_t>(params.get_int("start_time"));
+        prog_end = static_cast<uint64_t>(params.get_int("end_time"));
+        prog_duration = prog_end - prog_start;
+
+        auto helper_idx_it = td->helper_event_by_program.find(pid);
+        if (helper_idx_it != td->helper_event_by_program.end()) {
+            for (size_t idx : helper_idx_it->second) {
+                auto& hev = td->helper_events[idx];
+                if (hev.start_time >= prog_start && hev.end_time <= prog_end) {
+                    helper_infos.push_back({idx, hev.start_time, hev.end_time, hev.duration});
+                }
+            }
+        }
+    }
+
+    // Sort by start time.
+    std::sort(helper_infos.begin(), helper_infos.end(), [](const HelperInfo& a, const HelperInfo& b) {
+        return a.start_time < b.start_time;
+    });
+
+    // Build timeline entries: alternating gap and helper events.
+    auto timeline_entries = JsonValue::make_array();
+    uint64_t total_helper_ns = 0;
+    uint64_t largest_gap_ns = 0;
+    int largest_gap_position = -1;
+    uint64_t prev_end = prog_start;
+
+    for (size_t i = 0; i < helper_infos.size(); i++) {
+        // Gap before this helper.
+        uint64_t gap_100ns = (helper_infos[i].start_time > prev_end) ? (helper_infos[i].start_time - prev_end) : 0;
+        uint64_t gap_ns = gap_100ns * FILETIME_TO_NS;
+        if (gap_ns > 0) {
+            auto gap_entry = JsonValue::make_object();
+            gap_entry.set("type", JsonValue("gap"));
+            gap_entry.set("duration_ns", JsonValue(gap_ns));
+            gap_entry.set("before_helper_index", JsonValue(static_cast<uint64_t>(i)));
+            timeline_entries.push_back(gap_entry);
+            if (gap_ns > largest_gap_ns) {
+                largest_gap_ns = gap_ns;
+                largest_gap_position = static_cast<int>(i);
+            }
+        }
+
+        // Helper event.
+        auto& hev = td->helper_events[helper_infos[i].event_index];
+        auto helper_entry = JsonValue::make_object();
+        helper_entry.set("type", JsonValue("helper"));
+        helper_entry.set("index", JsonValue(static_cast<uint64_t>(i)));
+        helper_entry.set(
+            "helper_name",
+            JsonValue(
+                helper_function_name(hev.helper_function_id)
+                    ? helper_function_name(hev.helper_function_id)
+                    : ("helper_" + std::to_string(hev.helper_function_id)).c_str()));
+        helper_entry.set("map_name", JsonValue(hev.map_name));
+        helper_entry.set("duration_ns", JsonValue(hev.duration * FILETIME_TO_NS));
+        helper_entry.set("start_time", JsonValue(hev.start_time));
+        helper_entry.set("end_time", JsonValue(hev.end_time));
+        timeline_entries.push_back(helper_entry);
+
+        total_helper_ns += hev.duration * FILETIME_TO_NS;
+        prev_end = helper_infos[i].end_time;
+    }
+
+    // Trailing gap.
+    uint64_t trailing_gap_ns = (prog_end > prev_end) ? (prog_end - prev_end) * FILETIME_TO_NS : 0;
+    if (trailing_gap_ns > 0) {
+        auto gap_entry = JsonValue::make_object();
+        gap_entry.set("type", JsonValue("gap"));
+        gap_entry.set("duration_ns", JsonValue(trailing_gap_ns));
+        gap_entry.set("position", JsonValue("trailing"));
+        timeline_entries.push_back(gap_entry);
+        if (trailing_gap_ns > largest_gap_ns) {
+            largest_gap_ns = trailing_gap_ns;
+            largest_gap_position = static_cast<int>(helper_infos.size());
+        }
+    }
+
+    uint64_t prog_duration_ns = prog_duration * FILETIME_TO_NS;
+    uint64_t total_gap_ns = prog_duration_ns - total_helper_ns;
+
+    auto result = JsonValue::make_object();
+    result.set("program_id", JsonValue(pid));
+    if (use_correlation) {
+        result.set("correlation_id", JsonValue(correlation_id));
+    }
+    result.set("program_start_time", JsonValue(prog_start));
+    result.set("program_end_time", JsonValue(prog_end));
+    result.set("program_duration_ns", JsonValue(prog_duration_ns));
+    result.set("total_helper_ns", JsonValue(total_helper_ns));
+    result.set("total_gap_ns", JsonValue(total_gap_ns));
+    result.set("helper_count", JsonValue(static_cast<uint64_t>(helper_infos.size())));
+    result.set("largest_gap_ns", JsonValue(largest_gap_ns));
+    result.set("largest_gap_position", JsonValue(largest_gap_position));
+    result.set("helper_pct", JsonValue(prog_duration_ns > 0 ? (100.0 * total_helper_ns / prog_duration_ns) : 0.0));
+    result.set("timeline", timeline_entries);
+    return result;
+}
+
+// Tool: get_map_summary
+// Params: { "file_path": "<path>", "program_id": <id>, "map_name": <string> (optional) }
+//
+// Returns aggregate latency statistics grouped by (map_name, helper_function_id)
+// for a given program. If map_name is provided, filters to that specific map.
+static JsonValue
+tool_get_map_summary(const JsonValue& params)
+{
+    std::string error;
+    auto* td = get_trace(params.get_string("file_path"), error);
+    if (!td) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue(error));
+        return err;
+    }
+
+    uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
+    std::string filter_map = params.get_string("map_name", "");
+
+    auto maps = JsonValue::make_array();
+    for (auto& [key, durs] : td->map_sorted_durations) {
+        auto& [k_pid, k_map, k_hid] = key;
+        if (k_pid != pid)
+            continue;
+        if (!filter_map.empty() && k_map != filter_map)
+            continue;
+
+        auto entry = JsonValue::make_object();
+        entry.set("map_name", JsonValue(k_map));
+        entry.set("helper_function_id", JsonValue(k_hid));
+        const char* hname = helper_function_name(k_hid);
+        entry.set("helper_name", JsonValue(hname ? hname : ("helper_" + std::to_string(k_hid)).c_str()));
+        entry.set("statistics", stats_to_json(compute_stats(durs)));
+        maps.push_back(entry);
+    }
+
+    auto result = JsonValue::make_object();
+    result.set("program_id", JsonValue(pid));
+    auto name_it = td->program_names.find(pid);
+    result.set("program_name", JsonValue(name_it != td->program_names.end() ? name_it->second : ""));
+    if (!filter_map.empty()) {
+        result.set("filter_map_name", JsonValue(filter_map));
+    }
+    result.set("maps", maps);
+    return result;
+}
+
+// Tool: get_percentile_comparison
+// Params: { "file_path": "<path>", "program_id": <id>,
+//           "percentiles": [<float>, ...] (e.g. [50, 90, 99]),
+//           "include_helpers": <bool> (optional, default false) }
+//
+// Returns multiple percentile instances in one call for easy comparison.
+// Each entry includes the program event and optionally correlated helpers + timeline.
+static JsonValue
+tool_get_percentile_comparison(const JsonValue& params)
+{
+    std::string error;
+    auto* td = get_trace(params.get_string("file_path"), error);
+    if (!td) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue(error));
+        return err;
+    }
+
+    uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
+    bool include_helpers = params.get_bool("include_helpers", false);
+
+    auto* pcts_param = params.get("percentiles");
+    std::vector<double> percentiles;
+    if (pcts_param && pcts_param->type == JsonValue::Array) {
+        for (auto& v : pcts_param->array_val) {
+            if (v.type == JsonValue::Double)
+                percentiles.push_back(v.double_val);
+            else if (v.type == JsonValue::Int)
+                percentiles.push_back(static_cast<double>(v.int_val));
+        }
+    }
+    if (percentiles.empty()) {
+        percentiles = {50, 90, 99};
+    }
+
+    auto idx_it = td->program_event_index.find(pid);
+    if (idx_it == td->program_event_index.end()) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue("No events for program_id=" + std::to_string(pid)));
+        return err;
+    }
+
+    // Sort indices by duration once for all percentiles.
+    std::vector<size_t> sorted_indices = idx_it->second;
+    std::sort(sorted_indices.begin(), sorted_indices.end(), [&](size_t a, size_t b) {
+        return td->program_events[a].duration < td->program_events[b].duration;
+    });
+    size_t n = sorted_indices.size();
+
+    auto entries = JsonValue::make_array();
+    for (double pct : percentiles) {
+        size_t target_idx = static_cast<size_t>(std::floor(pct / 100.0 * n));
+        if (target_idx >= n)
+            target_idx = n - 1;
+
+        size_t event_idx = sorted_indices[target_idx];
+        auto& ev = td->program_events[event_idx];
+
+        auto entry = JsonValue::make_object();
+        entry.set("percentile", JsonValue(pct));
+        entry.set("rank", JsonValue(static_cast<uint64_t>(target_idx + 1)));
+        entry.set("event", program_event_to_json(ev));
+
+        if (include_helpers) {
+            auto helpers = JsonValue::make_array();
+            uint64_t total_helper_duration = 0;
+
+            struct HelperTiming
+            {
+                uint64_t start_time;
+                uint64_t end_time;
+                uint64_t duration;
+            };
+            std::vector<HelperTiming> timings;
+
+            if (ev.correlation_id != 0) {
+                auto it = td->helper_event_by_correlation.find(ev.correlation_id);
+                if (it != td->helper_event_by_correlation.end()) {
+                    for (size_t idx : it->second) {
+                        auto& hev = td->helper_events[idx];
+                        if (hev.program_id == pid) {
+                            helpers.push_back(helper_event_to_json(hev));
+                            total_helper_duration += hev.duration;
+                            timings.push_back({hev.start_time, hev.end_time, hev.duration});
+                        }
+                    }
+                }
+            } else {
+                auto helper_idx_it = td->helper_event_by_program.find(pid);
+                if (helper_idx_it != td->helper_event_by_program.end()) {
+                    for (size_t idx : helper_idx_it->second) {
+                        auto& hev = td->helper_events[idx];
+                        if (hev.start_time >= ev.start_time && hev.end_time <= ev.end_time) {
+                            helpers.push_back(helper_event_to_json(hev));
+                            total_helper_duration += hev.duration;
+                            timings.push_back({hev.start_time, hev.end_time, hev.duration});
+                        }
+                    }
+                }
+            }
+
+            entry.set("total_helper_duration_ns", JsonValue(total_helper_duration * FILETIME_TO_NS));
+            entry.set("helper_count", JsonValue(static_cast<uint64_t>(helpers.array_val.size())));
+            entry.set("correlated_helpers", helpers);
+
+            // Gap analysis.
+            std::sort(timings.begin(), timings.end(), [](const HelperTiming& a, const HelperTiming& b) {
+                return a.start_time < b.start_time;
+            });
+
+            uint64_t prog_duration_ns = ev.duration * FILETIME_TO_NS;
+            uint64_t helper_total_ns = total_helper_duration * FILETIME_TO_NS;
+            uint64_t largest_gap_ns = 0;
+            int largest_gap_pos = -1;
+            uint64_t prev_end = ev.start_time;
+            for (size_t i = 0; i < timings.size(); i++) {
+                uint64_t gap =
+                    (timings[i].start_time > prev_end) ? (timings[i].start_time - prev_end) * FILETIME_TO_NS : 0;
+                if (gap > largest_gap_ns) {
+                    largest_gap_ns = gap;
+                    largest_gap_pos = static_cast<int>(i);
+                }
+                prev_end = timings[i].end_time;
+            }
+            uint64_t trailing = (ev.end_time > prev_end) ? (ev.end_time - prev_end) * FILETIME_TO_NS : 0;
+            if (trailing > largest_gap_ns) {
+                largest_gap_ns = trailing;
+                largest_gap_pos = static_cast<int>(timings.size());
+            }
+
+            auto timeline = JsonValue::make_object();
+            timeline.set("program_duration_ns", JsonValue(prog_duration_ns));
+            timeline.set("total_helper_ns", JsonValue(helper_total_ns));
+            timeline.set("total_gap_ns", JsonValue(prog_duration_ns - helper_total_ns));
+            timeline.set("largest_gap_ns", JsonValue(largest_gap_ns));
+            timeline.set("largest_gap_position", JsonValue(largest_gap_pos));
+            timeline.set(
+                "helper_pct", JsonValue(prog_duration_ns > 0 ? (100.0 * helper_total_ns / prog_duration_ns) : 0.0));
+            entry.set("timeline", timeline);
+        }
+
+        entries.push_back(entry);
+    }
+
+    auto result = JsonValue::make_object();
+    result.set("program_id", JsonValue(pid));
+    auto name_it = td->program_names.find(pid);
+    result.set("program_name", JsonValue(name_it != td->program_names.end() ? name_it->second : ""));
+    result.set("total_events", JsonValue(static_cast<uint64_t>(n)));
+    result.set("comparisons", entries);
+    return result;
+}
+
 // Tool: get_correlated_map_helpers
 // Params: { "file_path": "<path>", "program_id": <id>,
-//           "start_time": <uint64>, "end_time": <uint64>,
-//           "thread_id": <uint32> (optional, for stricter matching) }
+//           "correlation_id": <uint64> (preferred, O(1) lookup),
+//           "start_time": <uint64>, "end_time": <uint64> (fallback, time-window scan),
+//           "thread_id": <uint32> (optional, for stricter matching with time-window mode) }
 //
-// Finds all map helper events whose [start_time, end_time] falls within the
-// given program invocation's [start_time, end_time] window, on the same thread.
+// Finds all map helper events correlated with a program invocation.
+// If correlation_id is provided, uses the indexed lookup (fast).
+// Otherwise falls back to scanning by time window.
 static JsonValue
 tool_get_correlated_map_helpers(const JsonValue& params)
 {
@@ -1216,37 +1762,63 @@ tool_get_correlated_map_helpers(const JsonValue& params)
     }
 
     uint32_t pid = static_cast<uint32_t>(params.get_int("program_id"));
-    uint64_t prog_start = static_cast<uint64_t>(params.get_int("start_time"));
-    uint64_t prog_end = static_cast<uint64_t>(params.get_int("end_time"));
-    auto* tid_param = params.get("thread_id");
-    bool filter_tid = (tid_param != nullptr && tid_param->type == JsonValue::Int);
-    uint32_t target_tid = filter_tid ? static_cast<uint32_t>(tid_param->int_val) : 0;
-
-    auto helper_idx_it = td->helper_event_by_program.find(pid);
-    if (helper_idx_it == td->helper_event_by_program.end()) {
-        auto result = JsonValue::make_object();
-        result.set("program_id", JsonValue(pid));
-        result.set("correlated_helpers", JsonValue::make_array());
-        result.set("count", JsonValue(0));
-        return result;
-    }
+    auto* corr_param = params.get("correlation_id");
+    bool use_correlation = (corr_param != nullptr && corr_param->type == JsonValue::Int && corr_param->int_val != 0);
 
     auto helpers = JsonValue::make_array();
     uint64_t total_helper_duration = 0;
+    uint64_t prog_start = 0;
+    uint64_t prog_end = 0;
 
-    for (size_t idx : helper_idx_it->second) {
-        auto& hev = td->helper_events[idx];
-        // A map helper call is correlated if its time window is inside the program's.
-        if (hev.start_time >= prog_start && hev.end_time <= prog_end) {
-            if (filter_tid && hev.thread_id != target_tid)
-                continue;
-            helpers.push_back(helper_event_to_json(hev));
-            total_helper_duration += hev.duration;
+    if (use_correlation) {
+        uint64_t corr_id = static_cast<uint64_t>(corr_param->int_val);
+
+        // Look up program event to get start/end times for the response.
+        auto prog_it = td->program_event_by_correlation.find(corr_id);
+        if (prog_it != td->program_event_by_correlation.end()) {
+            auto& pev = td->program_events[prog_it->second];
+            prog_start = pev.start_time;
+            prog_end = pev.end_time;
+        }
+
+        // O(1) lookup of correlated helpers by correlation_id.
+        auto it = td->helper_event_by_correlation.find(corr_id);
+        if (it != td->helper_event_by_correlation.end()) {
+            for (size_t idx : it->second) {
+                auto& hev = td->helper_events[idx];
+                if (hev.program_id == pid) {
+                    helpers.push_back(helper_event_to_json(hev));
+                    total_helper_duration += hev.duration;
+                }
+            }
+        }
+    } else {
+        // Fallback: time-window scan.
+        prog_start = static_cast<uint64_t>(params.get_int("start_time"));
+        prog_end = static_cast<uint64_t>(params.get_int("end_time"));
+        auto* tid_param = params.get("thread_id");
+        bool filter_tid = (tid_param != nullptr && tid_param->type == JsonValue::Int);
+        uint32_t target_tid = filter_tid ? static_cast<uint32_t>(tid_param->int_val) : 0;
+
+        auto helper_idx_it = td->helper_event_by_program.find(pid);
+        if (helper_idx_it != td->helper_event_by_program.end()) {
+            for (size_t idx : helper_idx_it->second) {
+                auto& hev = td->helper_events[idx];
+                if (hev.start_time >= prog_start && hev.end_time <= prog_end) {
+                    if (filter_tid && hev.thread_id != target_tid)
+                        continue;
+                    helpers.push_back(helper_event_to_json(hev));
+                    total_helper_duration += hev.duration;
+                }
+            }
         }
     }
 
     auto result = JsonValue::make_object();
     result.set("program_id", JsonValue(pid));
+    if (use_correlation) {
+        result.set("correlation_id", JsonValue(static_cast<uint64_t>(corr_param->int_val)));
+    }
     result.set("program_start_time", JsonValue(prog_start));
     result.set("program_end_time", JsonValue(prog_end));
     result.set("program_duration_ns", JsonValue((prog_end - prog_start) * FILETIME_TO_NS));
@@ -1286,13 +1858,14 @@ make_error_response(const JsonValue& id, int code, const std::string& message)
 }
 
 // Tool descriptor for tools/list.
+// params: (name, type, description, required, items_type)
+// items_type is optional and only used for array types (e.g. "number" for an array of numbers).
 static JsonValue
 make_tool_descriptor(
     const std::string& name,
     const std::string& description,
-    const std::vector<std::tuple<std::string, std::string, std::string, bool>>& params)
+    const std::vector<std::tuple<std::string, std::string, std::string, bool, std::string>>& params)
 {
-    // params: (name, type, description, required)
     auto tool = JsonValue::make_object();
     tool.set("name", JsonValue(name));
     tool.set("description", JsonValue(description));
@@ -1303,10 +1876,15 @@ make_tool_descriptor(
     auto properties = JsonValue::make_object();
     auto required_arr = JsonValue::make_array();
 
-    for (auto& [pname, ptype, pdesc, preq] : params) {
+    for (auto& [pname, ptype, pdesc, preq, pitems] : params) {
         auto prop = JsonValue::make_object();
         prop.set("type", JsonValue(ptype));
         prop.set("description", JsonValue(pdesc));
+        if (ptype == "array" && !pitems.empty()) {
+            auto items = JsonValue::make_object();
+            items.set("type", JsonValue(pitems));
+            prop.set("items", items);
+        }
         properties.set(pname, prop);
         if (preq) {
             required_arr.push_back(JsonValue(pname));
@@ -1327,72 +1905,113 @@ get_tool_list()
     tools.push_back(make_tool_descriptor(
         "load_etl",
         "Load and index an eBPF latency ETL trace file. Must be called before querying.",
-        {{"file_path", "string", "Absolute path to the .etl file", true}}));
+        {{"file_path", "string", "Absolute path to the .etl file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "unload",
         "Release a previously loaded ETL trace from memory.",
-        {{"file_path", "string", "Path of the previously loaded .etl file", true}}));
+        {{"file_path", "string", "Path of the previously loaded .etl file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "list_programs",
         "List all eBPF program IDs and names found in the loaded trace, with event counts.",
-        {{"file_path", "string", "Path of the loaded .etl file", true}}));
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_summary",
         "Get an overall latency report for the trace (same as netsh ebpf show latencytrace). "
         "Includes per-program invocation statistics (count, avg, P50, P90, P95, P99, P99.9, max) "
         "and per-helper statistics grouped by program.",
-        {{"file_path", "string", "Path of the loaded .etl file", true}}));
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_program_summary",
-        "Get detailed latency statistics for a specific eBPF program ID, including all percentiles "
-        "(P50, P90, P95, P99, P99.9) and associated map helper breakdowns.",
-        {{"file_path", "string", "Path of the loaded .etl file", true},
-         {"program_id", "integer", "The eBPF program ID to query", true}}));
+        "Get detailed latency statistics for a specific eBPF program ID (or all programs if program_id=0), "
+        "including all percentiles (P50, P90, P95, P99, P99.9) and associated map helper breakdowns.",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID to query (0 or omit for all programs)", false, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_helper_summary",
         "Get latency statistics for map helper functions of a specific program. "
         "Optionally filter by helper_function_id.",
-        {{"file_path", "string", "Path of the loaded .etl file", true},
-         {"program_id", "integer", "The eBPF program ID", true},
-         {"helper_function_id", "integer", "Optional: filter to a specific BPF_FUNC_xxx ID", false}}));
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"helper_function_id", "integer", "Optional: filter to a specific BPF_FUNC_xxx ID", false, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_percentile_instance",
         "Find the specific program invocation event at a given latency percentile (e.g., P99, P99.9). "
-        "Returns the full event record including timestamps, thread ID, CPU, and duration. "
-        "Use the returned start_time/end_time with get_correlated_map_helpers to find "
-        "which map operations contributed to that invocation's latency.",
-        {{"file_path", "string", "Path of the loaded .etl file", true},
-         {"program_id", "integer", "The eBPF program ID", true},
-         {"percentile", "number", "Percentile value (0-100), e.g. 99 for P99, 99.9 for P99.9", true}}));
+        "Returns the full event record including correlation_id, timestamps, thread ID, CPU, and duration. "
+        "Set include_helpers=true to also return correlated map helpers and timeline gap analysis "
+        "in a single call (no need to call get_correlated_map_helpers separately).",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"percentile", "number", "Percentile value (0-100), e.g. 99 for P99, 99.9 for P99.9", true, ""},
+         {"include_helpers",
+          "boolean",
+          "If true, include correlated map helpers and gap analysis (default: false)",
+          false,
+          ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_program_events",
         "List program invocation events for a given program ID, with pagination and sorting. "
         "Useful for browsing raw events or finding outliers.",
-        {{"file_path", "string", "Path of the loaded .etl file", true},
-         {"program_id", "integer", "The eBPF program ID", true},
-         {"sort_by", "string", "Sort by 'duration' or 'time' (default: 'time')", false},
-         {"order", "string", "'asc' or 'desc' (default: 'asc')", false},
-         {"offset", "integer", "Pagination offset (default: 0)", false},
-         {"limit", "integer", "Max events to return, up to 1000 (default: 100)", false}}));
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"sort_by", "string", "Sort by 'duration' or 'time' (default: 'time')", false, ""},
+         {"order", "string", "'asc' or 'desc' (default: 'asc')", false, ""},
+         {"offset", "integer", "Pagination offset (default: 0)", false, ""},
+         {"limit", "integer", "Max events to return, up to 1000 (default: 100)", false, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "get_correlated_map_helpers",
-        "Given a program invocation's time window (start_time, end_time) and program_id, "
-        "find all map helper calls that executed within that invocation. This enables "
-        "drill-down from a high-latency program invocation to the specific map operations "
-        "that contributed to it. Optionally filter by thread_id for exact matching.",
-        {{"file_path", "string", "Path of the loaded .etl file", true},
-         {"program_id", "integer", "The eBPF program ID", true},
-         {"start_time", "integer", "Program invocation start_time (from event record)", true},
-         {"end_time", "integer", "Program invocation end_time (from event record)", true},
-         {"thread_id", "integer", "Optional: filter to a specific thread ID", false}}));
+        "Given a program invocation's correlation_id (preferred, O(1) lookup) or time window "
+        "(start_time, end_time) and program_id, find all map helper calls that executed within "
+        "that invocation. This enables drill-down from a high-latency program invocation to the "
+        "specific map operations that contributed to it.",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"correlation_id", "integer", "Correlation ID from program event (preferred, fast O(1) lookup)", false, ""},
+         {"start_time", "integer", "Program invocation start_time (fallback if no correlation_id)", false, ""},
+         {"end_time", "integer", "Program invocation end_time (fallback if no correlation_id)", false, ""},
+         {"thread_id", "integer", "Optional: filter to a specific thread ID (time-window mode only)", false, ""}}));
+
+    tools.push_back(make_tool_descriptor(
+        "get_invocation_timeline",
+        "Get a detailed timeline of a single program invocation showing each map helper event "
+        "interleaved with gaps (eBPF instruction execution time between map calls). "
+        "Highlights the largest gap which often explains tail latency spikes. "
+        "Accepts correlation_id (preferred) or start_time/end_time.",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"correlation_id", "integer", "Correlation ID from program event (preferred)", false, ""},
+         {"start_time", "integer", "Program invocation start_time (fallback)", false, ""},
+         {"end_time", "integer", "Program invocation end_time (fallback)", false, ""}}));
+
+    tools.push_back(make_tool_descriptor(
+        "get_map_summary",
+        "Get aggregate latency statistics for map operations broken down by individual map name "
+        "and helper function (lookup, update, delete). Shows count, avg, P50, P90, P99, max for "
+        "each (map_name, operation) pair. Optionally filter to a specific map.",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"map_name", "string", "Optional: filter to a specific map name", false, ""}}));
+
+    tools.push_back(make_tool_descriptor(
+        "get_percentile_comparison",
+        "Compare multiple percentile instances of a program in a single call. "
+        "Returns the program event at each requested percentile with optional "
+        "correlated helpers and timeline gap analysis. Ideal for comparing P50 vs P90 vs P99.",
+        {{"file_path", "string", "Path of the loaded .etl file", true, ""},
+         {"program_id", "integer", "The eBPF program ID", true, ""},
+         {"percentiles", "array", "Array of percentile values (default: [50, 90, 99])", false, "number"},
+         {"include_helpers",
+          "boolean",
+          "If true, include correlated helpers and gap analysis for each (default: false)",
+          false,
+          ""}}));
 
     return tools;
 }
@@ -1419,6 +2038,12 @@ dispatch_tool(const std::string& tool_name, const JsonValue& arguments)
         return tool_get_program_events(arguments);
     if (tool_name == "get_correlated_map_helpers")
         return tool_get_correlated_map_helpers(arguments);
+    if (tool_name == "get_invocation_timeline")
+        return tool_get_invocation_timeline(arguments);
+    if (tool_name == "get_map_summary")
+        return tool_get_map_summary(arguments);
+    if (tool_name == "get_percentile_comparison")
+        return tool_get_percentile_comparison(arguments);
 
     auto err = JsonValue::make_object();
     err.set("error", JsonValue("Unknown tool: " + tool_name));

@@ -9,6 +9,9 @@ Instead of using `netsh ebpf show latencytrace` to get a static text report, thi
 - "Show me the latency summary for this trace"
 - "What's the P99.9 latency for program 3?"
 - "Find the P99 invocation of program 7 and show me all the map operations it did"
+- "Compare P50 vs P90 vs P99 for program 3"
+- "Show me the timeline of the P99.9 invocation"
+- "What maps are hottest for program 7?"
 - "List all programs in this trace"
 
 ## Building
@@ -86,15 +89,15 @@ Returns the same information as the netsh table report: per-program invocation s
 
 ---
 
-### 5. `get_program_summary` — Detailed stats for one program
+### 5. `get_program_summary` — Detailed stats for one or all programs
 
-Returns all percentile statistics for a specific program ID, plus its helper function breakdown.
+Returns all percentile statistics for a specific program ID (or all programs if `program_id` is 0 or omitted), plus helper function breakdowns.
 
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `file_path` | string | Yes | Path of the loaded `.etl` file |
-| `program_id` | integer | Yes | The eBPF program ID to query |
+| `program_id` | integer | No | The eBPF program ID to query (0 or omit for all programs) |
 
 **Example query:** "What are the latency numbers for program 3?"
 
@@ -115,9 +118,9 @@ Returns latency statistics for map helper functions, optionally filtered to a sp
 
 ### 7. `get_percentile_instance` — Find the invocation at a percentile
 
-Finds the **specific program invocation event** at a given latency percentile (e.g., P99, P99.9). Returns the full event record including timestamps, thread ID, CPU, and duration.
+Finds the **specific program invocation event** at a given latency percentile (e.g., P99, P99.9). Returns the full event record including `correlation_id`, timestamps, thread ID, CPU, and duration.
 
-Use the returned `start_time` and `end_time` with `get_correlated_map_helpers` to drill down into what map operations contributed to that invocation's latency.
+Set `include_helpers=true` to also return correlated map helpers and timeline gap analysis in a single call (no need to call `get_correlated_map_helpers` separately).
 
 **Parameters:**
 | Name | Type | Required | Description |
@@ -125,8 +128,9 @@ Use the returned `start_time` and `end_time` with `get_correlated_map_helpers` t
 | `file_path` | string | Yes | Path of the loaded `.etl` file |
 | `program_id` | integer | Yes | The eBPF program ID |
 | `percentile` | number | Yes | Percentile value (0-100), e.g. 99 for P99, 99.9 for P99.9 |
+| `include_helpers` | boolean | No | If true, include correlated map helpers and gap analysis (default: false) |
 
-**Example query:** "Find the P99 invocation of program 3"
+**Example query:** "Find the P99 invocation of program 3 and show me what it did"
 
 ---
 
@@ -150,20 +154,73 @@ Lists program invocation events with pagination and sorting. Useful for finding 
 
 ### 9. `get_correlated_map_helpers` — Find map helpers within an invocation
 
-Given a program invocation's time window (`start_time`, `end_time`) and `program_id`, finds all map helper calls that executed within that invocation. This is the key drill-down tool: start from a percentile instance, then see exactly which map operations ran.
+Given a program invocation's `correlation_id` (preferred, O(1) lookup) or time window (`start_time`, `end_time`), finds all map helper calls that executed within that invocation. This is the key drill-down tool: start from a percentile instance, then see exactly which map operations ran.
 
 **Parameters:**
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `file_path` | string | Yes | Path of the loaded `.etl` file |
 | `program_id` | integer | Yes | The eBPF program ID |
-| `start_time` | integer | Yes | Program invocation `start_time` (from event record) |
-| `end_time` | integer | Yes | Program invocation `end_time` (from event record) |
-| `thread_id` | integer | No | Optional: filter to a specific thread ID for exact matching |
+| `correlation_id` | integer | No | Correlation ID from program event (preferred, fast O(1) lookup) |
+| `start_time` | integer | No | Program invocation `start_time` (fallback if no `correlation_id`) |
+| `end_time` | integer | No | Program invocation `end_time` (fallback if no `correlation_id`) |
+| `thread_id` | integer | No | Filter to a specific thread ID (time-window mode only) |
 
 **Returns:** List of correlated helper events, total helper duration, and comparison with program duration.
 
 **Example query:** "Find the map operations for the P99 invocation of program 3"
+
+---
+
+### 10. `get_invocation_timeline` — Timeline of an invocation with gap detection
+
+Builds a detailed timeline of a single program invocation showing each map helper event interleaved with gaps (eBPF instruction execution time between map calls). Highlights the largest gap, which often explains tail latency spikes.
+
+Accepts `correlation_id` (preferred) or `start_time`/`end_time` as fallback.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `file_path` | string | Yes | Path of the loaded `.etl` file |
+| `program_id` | integer | Yes | The eBPF program ID |
+| `correlation_id` | integer | No | Correlation ID from program event (preferred) |
+| `start_time` | integer | No | Program invocation `start_time` (fallback) |
+| `end_time` | integer | No | Program invocation `end_time` (fallback) |
+
+**Returns:** Interleaved sequence of `gap` and `helper` entries with durations, plus summary stats (total helper time, total gap time, largest gap position, helper percentage).
+
+**Example query:** "Show me the timeline of the P99 invocation of program 3"
+
+---
+
+### 11. `get_map_summary` — Per-map aggregate statistics
+
+Returns aggregate latency statistics for map operations broken down by individual map name and helper function (lookup, update, delete). Shows count, avg, P50, P90, P99, max for each (map_name, operation) pair.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `file_path` | string | Yes | Path of the loaded `.etl` file |
+| `program_id` | integer | Yes | The eBPF program ID |
+| `map_name` | string | No | Filter to a specific map name |
+
+**Example query:** "What are the per-map latency stats for program 3?"
+
+---
+
+### 12. `get_percentile_comparison` — Compare multiple percentiles in one call
+
+Compares multiple percentile instances of a program in a single call. Returns the program event at each requested percentile with optional correlated helpers and timeline gap analysis. Ideal for comparing P50 vs P90 vs P99.
+
+**Parameters:**
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `file_path` | string | Yes | Path of the loaded `.etl` file |
+| `program_id` | integer | Yes | The eBPF program ID |
+| `percentiles` | array | No | Array of percentile values (default: [50, 90, 99]) |
+| `include_helpers` | boolean | No | If true, include correlated helpers and gap analysis for each (default: false) |
+
+**Example query:** "Compare P50, P90, and P99 for program 3"
 
 ## Example Conversation
 
@@ -185,17 +242,17 @@ Copilot: [calls get_summary]
 
 User: Find the P99 invocation of program 3 and show me what map ops it did
 
-Copilot: [calls get_percentile_instance with program_id=3, percentile=99]
+Copilot: [calls get_percentile_instance with program_id=3, percentile=99, include_helpers=true]
   The P99 invocation (rank 838,818 of 847,291):
     Duration: 5,200 ns | Thread: 4812 | CPU: 3
-    StartTime: 1823847291000 | EndTime: 1823847343200
+    correlation_id: 42381 | StartTime: 1823847291000 | EndTime: 1823847343200
 
-  [calls get_correlated_map_helpers with program_id=3, start_time=..., end_time=...]
   This invocation made 3 map helper calls:
     1. map_lookup_elem on "conn_table": 1,100 ns
     2. map_lookup_elem on "policy_map": 800 ns
     3. map_update_elem on "stats_map": 1,500 ns
   Total helper time: 3,400 ns (65% of invocation)
+  Largest gap: 900 ns before helper #0 (eBPF instruction execution)
 
 User: What about P99.9?
 
@@ -277,19 +334,56 @@ Open **GitHub Copilot Chat** (Ctrl+Shift+I or the Copilot sidebar) and use **Age
 
 > **You:** Find the P99 invocation of program 3 and show me what map operations it did.
 >
-> **Copilot:** *(calls `get_percentile_instance` with program_id=3, percentile=99)*
+> **Copilot:** *(calls `get_percentile_instance` with program_id=3, percentile=99, include_helpers=true)*
 > The P99 invocation (rank 838,818 of 847,291):
 > - Duration: 5,200 ns
-> - Thread: 4812, CPU: 3
-> - StartTime: 1823847291000, EndTime: 1823847343200
+> - Thread: 4812, CPU: 3, correlation_id: 42381
 >
-> *(calls `get_correlated_map_helpers` with the start/end times)*
 > This invocation made 3 map helper calls:
 > 1. `map_lookup_elem` on "conn_table": 1,100 ns
 > 2. `map_lookup_elem` on "policy_map": 800 ns
 > 3. `map_update_elem` on "stats_map": 1,500 ns
 >
-> Total helper time: 3,400 ns (65% of invocation duration).
+> Total helper time: 3,400 ns (65% of invocation duration). Largest gap: 900 ns.
+
+**Comparing percentiles:**
+
+> **You:** Compare P50, P90, and P99 for program 3 with helper details.
+>
+> **Copilot:** *(calls `get_percentile_comparison` with program_id=3, percentiles=[50, 90, 99], include_helpers=true)*
+>
+> | Percentile | Duration (ns) | Helpers | Helper % | Largest Gap (ns) |
+> |------------|---------------|---------|----------|------------------|
+> | P50        | 2,100         | 3       | 52%      | 400              |
+> | P90        | 3,800         | 3       | 61%      | 650              |
+> | P99        | 5,200         | 3       | 65%      | 900              |
+>
+> Tail latency is driven primarily by increased map helper durations.
+
+**Per-map breakdown:**
+
+> **You:** What maps are hottest for program 3?
+>
+> **Copilot:** *(calls `get_map_summary` with program_id=3)*
+>
+> | Map Name    | Operation        | Count   | Avg (ns) | P99 (ns) | Max (ns) |
+> |-------------|------------------|---------|----------|----------|----------|
+> | conn_table  | map_lookup_elem  | 847,291 | 680      | 1,200    | 2,100    |
+> | policy_map  | map_lookup_elem  | 847,291 | 520      | 950      | 1,800    |
+> | stats_map   | map_update_elem  | 847,291 | 920      | 1,600    | 3,200    |
+
+**Invocation timeline:**
+
+> **You:** Show me the timeline of the P99 invocation of program 3.
+>
+> **Copilot:** *(calls `get_invocation_timeline` with program_id=3, correlation_id=42381)*
+>
+> ```
+> [gap: 400 ns] → map_lookup_elem(conn_table): 1,100 ns → [gap: 200 ns]
+> → map_lookup_elem(policy_map): 800 ns → [gap: 300 ns]
+> → map_update_elem(stats_map): 1,500 ns → [trailing gap: 900 ns]
+> ```
+> Largest gap: 900 ns (trailing, after stats_map update).
 
 **Browsing raw events:**
 

@@ -57,6 +57,9 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
     EBPF_OPERATION_LATENCY_ENABLE,
     EBPF_OPERATION_LATENCY_DISABLE,
+    EBPF_OPERATION_LATENCY_DRAIN,
+    EBPF_OPERATION_LATENCY_RELEASE,
+    EBPF_OPERATION_LATENCY_QUERY_STATE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -624,11 +627,17 @@ typedef struct _ebpf_operation_link_set_legacy_mode_request
     ebpf_handle_t link_handle;
 } ebpf_operation_link_set_legacy_mode_request_t;
 
+// Latency backend values (stored in kernel state, returned by query).
+#define EBPF_LATENCY_BACKEND_RINGBUFFER 0
+#define EBPF_LATENCY_BACKEND_ETW 1
+
 typedef struct _ebpf_operation_latency_enable_request
 {
     struct _ebpf_operation_header header;
     uint32_t mode;             // 1 = program only, 2 = program + helpers
     uint32_t flags;            // Bitmask of EBPF_LATENCY_FLAG_* values.
+    uint32_t records_per_cpu;  // Per-CPU ring buffer record count (0 = default 100,000).
+    uint32_t backend;          // EBPF_LATENCY_BACKEND_RINGBUFFER or EBPF_LATENCY_BACKEND_ETW.
     uint32_t program_id_count; // 0 = track all programs; >0 = track only listed programs
     uint32_t program_ids[1];   // Variable-length array of program IDs (program_id_count entries)
 } ebpf_operation_latency_enable_request_t;
@@ -637,3 +646,57 @@ typedef struct _ebpf_operation_latency_disable_request
 {
     struct _ebpf_operation_header header;
 } ebpf_operation_latency_disable_request_t;
+
+typedef struct _ebpf_operation_latency_drain_request
+{
+    struct _ebpf_operation_header header;
+    uint32_t cpu_index;     // Which CPU's ring buffer to drain (0-based).
+    uint32_t record_offset; // Starting record index within that CPU's buffer.
+} ebpf_operation_latency_drain_request_t;
+
+// Wire-format latency record (24 bytes). Matches ebpf_latency_record_t in ebpf_latency.h.
+typedef struct _ebpf_latency_record_wire
+{
+    uint64_t timestamp; // rdtsc value.
+    uint32_t correlation_id;
+    uint32_t program_id;
+    uint16_t helper_function_id;
+    uint16_t map_id;
+    uint8_t event_type;
+    uint8_t cpu_id;
+    uint8_t reserved[2];
+} ebpf_latency_record_wire_t;
+
+typedef struct _ebpf_operation_latency_drain_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t tsc_frequency;
+    uint64_t tsc_at_enable;
+    uint64_t qpc_at_enable;
+    uint32_t cpu_count;
+    uint32_t records_per_cpu;
+    uint32_t total_records; // write_index for this CPU.
+    uint32_t dropped_count;
+    uint32_t records_returned; // Number of records in this chunk.
+    uint32_t _padding;
+    ebpf_latency_record_wire_t records[1]; // Variable-length.
+} ebpf_operation_latency_drain_reply_t;
+
+typedef struct _ebpf_operation_latency_release_request
+{
+    struct _ebpf_operation_header header;
+} ebpf_operation_latency_release_request_t;
+
+typedef struct _ebpf_operation_latency_query_state_request
+{
+    struct _ebpf_operation_header header;
+} ebpf_operation_latency_query_state_request_t;
+
+typedef struct _ebpf_operation_latency_query_state_reply
+{
+    struct _ebpf_operation_header header;
+    uint32_t mode;           // 0 = off, 1 = program, 2 = all.
+    uint32_t backend;        // EBPF_LATENCY_BACKEND_RINGBUFFER or EBPF_LATENCY_BACKEND_ETW.
+    uint32_t session_active; // 0 = no session, 1 = session exists (buffers allocated).
+    uint32_t _padding;
+} ebpf_operation_latency_query_state_reply_t;

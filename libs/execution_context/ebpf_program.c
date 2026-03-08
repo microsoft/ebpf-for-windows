@@ -21,6 +21,7 @@
 #include "ebpf_tracelog.h"
 #include "ubpf.h"
 
+#include <intrin.h>
 #include <stdlib.h>
 
 static size_t _ebpf_program_state_index = MAXUINT64;
@@ -1543,17 +1544,28 @@ ebpf_program_invoke(
     const ebpf_program_t* current_program = program;
 
     // Latency tracking: capture start time if enabled.
-    uint64_t latency_start = 0;
-    uint64_t correlation_id = 0;
+    uint64_t latency_tsc = 0;
+    uint32_t correlation_id = 0;
     long latency_mode = ebpf_latency_get_mode();
-    if (latency_mode > 0 &&
-        TraceLoggingProviderEnabled(ebpf_tracelog_provider, WINEVENT_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_LATENCY)) {
-        if (ebpf_latency_should_track_program((uint32_t)program->object.id)) {
-            latency_start = cxplat_query_time_since_boot_precise(false);
-            if (ebpf_latency_is_correlation_enabled()) {
-                correlation_id = ebpf_program_next_correlation_id();
-            }
+    if (latency_mode > 0 && ebpf_latency_should_track_program((uint32_t)program->object.id)) {
+        KIRQL old_irql = ebpf_raise_irql(DISPATCH_LEVEL); // No-op if already DISPATCH.
+
+        uint32_t cpu = ebpf_get_current_cpu();
+        if (ebpf_latency_is_correlation_enabled()) {
+            correlation_id = ebpf_latency_next_correlation_id(cpu);
         }
+        latency_tsc = __rdtsc();
+
+        // Write program-start record.
+        ebpf_latency_write_record(
+            (uint32_t)program->object.id,
+            0, // helper_function_id
+            0, // map_id
+            correlation_id,
+            latency_tsc,
+            EBPF_LATENCY_EVENT_PROGRAM_START);
+
+        ebpf_lower_irql(old_irql);
     }
 
     ebpf_assert(context != NULL);
@@ -1615,11 +1627,15 @@ ebpf_program_invoke(
         }
     }
 
-    // Latency tracking: emit ETW event if tracking was active.
-    if (latency_start != 0) {
-        uint64_t latency_end = cxplat_query_time_since_boot_precise(false);
-        ebpf_latency_emit_program_event(
-            program->object.id, &program->parameters.program_name, correlation_id, latency_start, latency_end);
+    // Latency tracking: write program-end record if tracking was active.
+    if (latency_tsc != 0) {
+        ebpf_latency_write_record(
+            (uint32_t)program->object.id,
+            0, // helper_function_id
+            0, // map_id
+            correlation_id,
+            __rdtsc(),
+            EBPF_LATENCY_EVENT_PROGRAM_END);
     }
 
     return EBPF_SUCCESS;
@@ -2735,13 +2751,13 @@ ebpf_program_get_program_pointer(_In_ const void* program_context)
     return (const ebpf_program_t*)header->context_header[2];
 }
 
-// Global monotonically increasing counter for correlation IDs.
-static volatile int64_t _ebpf_correlation_id_counter = 0;
-
+// Correlation ID generation moved to per-CPU ring buffers in ebpf_latency.c.
+// This function is retained for backward compatibility but delegates to the new implementation.
 uint64_t
 ebpf_program_next_correlation_id()
 {
-    return (uint64_t)InterlockedIncrement64(&_ebpf_correlation_id_counter);
+    // Use CPU 0 as a fallback — callers should use ebpf_latency_next_correlation_id() directly.
+    return (uint64_t)ebpf_latency_next_correlation_id(0);
 }
 
 void

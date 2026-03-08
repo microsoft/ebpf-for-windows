@@ -776,29 +776,86 @@ extern "C"
 #define EBPF_LATENCY_FLAG_CORRELATION_ID 0x1 // Generate per-invocation correlation IDs.
 #endif
 
+    // Latency event types (for ebpf_latency_drain_record_t.event_type).
+#define EBPF_LATENCY_EVENT_PROGRAM_START 0
+#define EBPF_LATENCY_EVENT_PROGRAM_END 1
+#define EBPF_LATENCY_EVENT_HELPER_START 2
+#define EBPF_LATENCY_EVENT_HELPER_END 3
+
+    // Compact latency event record returned by the drain API.
+    typedef struct _ebpf_latency_drain_record
+    {
+        uint64_t timestamp;          // rdtsc value (raw cycles).
+        uint32_t correlation_id;     // Per-CPU monotonic counter (0 if correlation disabled).
+        uint32_t program_id;         // Program object ID.
+        uint16_t helper_function_id; // BPF_FUNC_xxx (0 for program start/end).
+        uint16_t map_id;             // Map object ID (0 if N/A).
+        uint8_t event_type;          // EBPF_LATENCY_EVENT_*.
+        uint8_t cpu_id;              // Processor number.
+        uint8_t reserved[2];         // Padding.
+    } ebpf_latency_drain_record_t;
+
     /**
-     * @brief Enable latency tracking in ebpfcore.
-     * @param[in] mode Tracking mode: 1 = program invocations only, 2 = program + map helpers.
-     * @param[in] flags Bitmask of EBPF_LATENCY_FLAG_* values (e.g. EBPF_LATENCY_FLAG_CORRELATION_ID).
-     * @param[in] program_id_count Number of program IDs in the filter list (0 = track all).
-     * @param[in] program_ids Optional array of program IDs to track (NULL when program_id_count == 0).
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid mode value or program_id_count exceeds maximum.
-     * @retval EBPF_INVALID_STATE Another latency tracking session is already active.
+     * @brief Enable latency tracking in ebpfcore with per-CPU ring buffers.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_latency_tracking_enable(
         uint32_t mode,
         uint32_t flags,
+        uint32_t records_per_cpu,
+        uint32_t backend,
         uint32_t program_id_count,
         _In_reads_opt_(program_id_count) const uint32_t* program_ids) EBPF_NO_EXCEPT;
 
     /**
-     * @brief Disable latency tracking in ebpfcore.
-     * @retval EBPF_SUCCESS The operation was successful.
+     * @brief Disable latency tracking (stop writes). Buffers remain for drain.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_latency_tracking_disable() EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Drain a chunk of records from one CPU's ring buffer.
+     *
+     * Fails if tracking is still enabled (must stop first).
+     * Call in a loop with incrementing record_offset until records_returned == 0.
+     *
+     * @param[in] cpu_index Which CPU to drain (0-based).
+     * @param[in] record_offset Starting record index.
+     * @param[out] reply_buffer Buffer to receive the drain reply.
+     * @param[in,out] reply_buffer_size On input, size of buffer. On output, bytes written.
+     * @retval EBPF_SUCCESS Chunk returned successfully.
+     * @retval EBPF_BLOCKED_BY_POLICY Tracking still enabled; stop first.
+     * @retval EBPF_INVALID_STATE No active session / no buffers.
+     * @retval EBPF_INVALID_ARGUMENT cpu_index out of range.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_latency_tracking_drain(
+        uint32_t cpu_index,
+        uint32_t record_offset,
+        _Out_writes_bytes_(*reply_buffer_size) uint8_t* reply_buffer,
+        _Inout_ uint32_t* reply_buffer_size) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Release the latency session and free all ring buffers.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_latency_tracking_release() EBPF_NO_EXCEPT;
+
+    // Latency backend values.
+#define EBPF_LATENCY_BACKEND_RINGBUFFER 0
+#define EBPF_LATENCY_BACKEND_ETW 1
+
+    /**
+     * @brief Query the current latency tracking state from the kernel.
+     *
+     * @param[out] mode Current mode (0=off, 1=program, 2=all).
+     * @param[out] backend Backend type (EBPF_LATENCY_BACKEND_RINGBUFFER or EBPF_LATENCY_BACKEND_ETW).
+     * @param[out] session_active Whether a session exists (buffers allocated).
+     * @retval EBPF_SUCCESS Query succeeded.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_latency_tracking_query_state(_Out_ uint32_t* mode, _Out_ uint32_t* backend, _Out_ uint32_t* session_active)
+        EBPF_NO_EXCEPT;
 
     /**
      * @brief Perf buffer option flags (Windows-specific).

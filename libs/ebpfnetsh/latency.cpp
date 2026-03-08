@@ -25,6 +25,9 @@
 #define TOKEN_MODE L"mode"
 #define TOKEN_PROGRAMS L"programs"
 #define TOKEN_CORRELATION L"correlation"
+#define TOKEN_EVENTS L"events"
+#define TOKEN_BACKEND L"backend"
+#define TOKEN_FILE L"file"
 
 typedef enum
 {
@@ -50,6 +53,123 @@ static TOKEN_VALUE _correlation_enum[] = {
     {L"yes", CORRELATION_YES},
 };
 
+typedef enum
+{
+    BACKEND_RINGBUFFER = 0,
+    BACKEND_ETW = 1,
+} BACKEND_VALUE;
+
+static TOKEN_VALUE _backend_enum[] = {
+    {L"ringbuffer", BACKEND_RINGBUFFER},
+    {L"etw", BACKEND_ETW},
+};
+
+// State tracking for the active latency backend.
+static BACKEND_VALUE _active_backend = BACKEND_RINGBUFFER;
+static bool _backend_active = false;
+static WCHAR _active_etw_file[MAX_PATH] = {0};
+
+// ETW trace session name for latency tracing.
+static const WCHAR _ebpf_latency_session_name[] = L"EbpfLatencyTrace";
+
+// EbpfForWindowsProvider {394f321c-5cf4-404c-aa34-4df1428a7f9c}
+static const GUID _ebpf_core_provider_guid = {
+    0x394f321c, 0x5cf4, 0x404c, {0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c}};
+
+// Latency keyword as defined in the design doc.
+#define EBPF_TRACELOG_KEYWORD_LATENCY 0x800
+
+// Default ETW session parameters.
+#define DEFAULT_BUFFER_SIZE_KB 256
+#define DEFAULT_MIN_BUFFERS 64
+#define DEFAULT_MAX_BUFFERS 256
+#define DEFAULT_FLUSH_TIMER_SEC 1
+#define DEFAULT_OUTPUT_FILE L"ebpf_latency.etl"
+
+// Helper: start an ETW trace session for latency events.
+static unsigned long
+_start_etw_session(_In_z_ LPCWSTR output_file, ULONG buffer_size_kb)
+{
+    ULONG properties_size =
+        sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name) + (MAX_PATH * sizeof(WCHAR));
+    EVENT_TRACE_PROPERTIES* properties = (EVENT_TRACE_PROPERTIES*)calloc(1, properties_size);
+    if (properties == nullptr) {
+        printf("Error: out of memory.\n");
+        return ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    properties->Wnode.BufferSize = properties_size;
+    properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
+    properties->Wnode.ClientContext = 1; // QPC clock resolution.
+    properties->BufferSize = buffer_size_kb;
+    properties->MinimumBuffers = DEFAULT_MIN_BUFFERS;
+    properties->MaximumBuffers = DEFAULT_MAX_BUFFERS;
+    properties->FlushTimer = DEFAULT_FLUSH_TIMER_SEC;
+    properties->LogFileMode = EVENT_TRACE_FILE_MODE_SEQUENTIAL;
+    properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
+    properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name);
+
+    StringCchCopyW((LPWSTR)((BYTE*)properties + properties->LogFileNameOffset), MAX_PATH, output_file);
+
+    TRACEHANDLE session_handle = 0;
+    unsigned long status = StartTraceW(&session_handle, _ebpf_latency_session_name, properties);
+    if (status != ERROR_SUCCESS) {
+        if (status == ERROR_ALREADY_EXISTS) {
+            printf("Error: ETW trace session '%ls' is already running.\n", _ebpf_latency_session_name);
+        } else {
+            printf("Error: StartTrace failed (error=%lu).\n", status);
+        }
+        free(properties);
+        return status;
+    }
+
+    ENABLE_TRACE_PARAMETERS enable_params = {0};
+    enable_params.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
+    status = EnableTraceEx2(
+        session_handle,
+        &_ebpf_core_provider_guid,
+        EVENT_CONTROL_CODE_ENABLE_PROVIDER,
+        TRACE_LEVEL_VERBOSE,
+        EBPF_TRACELOG_KEYWORD_LATENCY,
+        0,
+        0,
+        &enable_params);
+    if (status != ERROR_SUCCESS) {
+        printf("Warning: failed to enable EbpfForWindowsProvider (error=%lu).\n", status);
+    }
+
+    free(properties);
+    return ERROR_SUCCESS;
+}
+
+// Helper: stop the ETW trace session.
+static unsigned long
+_stop_etw_session()
+{
+    ULONG properties_size =
+        sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name) + (MAX_PATH * sizeof(WCHAR));
+    EVENT_TRACE_PROPERTIES* properties = (EVENT_TRACE_PROPERTIES*)calloc(1, properties_size);
+    if (properties == nullptr) {
+        return ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    properties->Wnode.BufferSize = properties_size;
+    properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
+    properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name);
+
+    unsigned long status = ControlTraceW(0, _ebpf_latency_session_name, properties, EVENT_TRACE_CONTROL_STOP);
+
+    if (status == ERROR_SUCCESS) {
+        LPCWSTR log_file_name = (LPCWSTR)((BYTE*)properties + properties->LogFileNameOffset);
+        if (log_file_name[0] != L'\0') {
+            printf("  ETW trace saved to: %ls\n", log_file_name);
+        }
+    }
+
+    free(properties);
+    return status;
+}
+
 unsigned long
 handle_ebpf_set_latency(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
@@ -63,10 +183,16 @@ handle_ebpf_set_latency(
         {TOKEN_MODE, NS_REQ_PRESENT, FALSE},
         {TOKEN_PROGRAMS, NS_REQ_ZERO, FALSE},
         {TOKEN_CORRELATION, NS_REQ_ZERO, FALSE},
+        {TOKEN_EVENTS, NS_REQ_ZERO, FALSE},
+        {TOKEN_BACKEND, NS_REQ_ZERO, FALSE},
+        {TOKEN_FILE, NS_REQ_ZERO, FALSE},
     };
     const int MODE_INDEX = 0;
     const int PROGRAMS_INDEX = 1;
     const int CORRELATION_INDEX = 2;
+    const int EVENTS_INDEX = 3;
+    const int BACKEND_INDEX = 4;
+    const int FILE_INDEX = 5;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -80,6 +206,9 @@ handle_ebpf_set_latency(
     uint32_t mode = LATENCY_MODE_OFF;
     std::vector<uint32_t> program_ids;
     uint32_t correlation = CORRELATION_NO;
+    uint32_t events_per_cpu = 0; // 0 = use default.
+    uint32_t backend = BACKEND_RINGBUFFER;
+    WCHAR etw_file[MAX_PATH] = DEFAULT_OUTPUT_FILE;
 
     for (DWORD i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -123,6 +252,27 @@ handle_ebpf_set_latency(
             }
             break;
         }
+        case EVENTS_INDEX: {
+            WCHAR* end_ptr = nullptr;
+            unsigned long val = wcstoul(argv[current_index + i], &end_ptr, 10);
+            if (end_ptr == argv[current_index + i] || *end_ptr != L'\0' || val == 0) {
+                printf("Error: invalid events value '%ls'. Must be a positive integer.\n", argv[current_index + i]);
+                return ERROR_INVALID_PARAMETER;
+            }
+            events_per_cpu = static_cast<uint32_t>(val);
+            break;
+        }
+        case BACKEND_INDEX: {
+            status = MatchEnumTag(
+                nullptr, argv[current_index + i], _countof(_backend_enum), _backend_enum, (unsigned long*)&backend);
+            if (status != NO_ERROR) {
+                status = ERROR_INVALID_PARAMETER;
+            }
+            break;
+        }
+        case FILE_INDEX:
+            StringCchCopyW(etw_file, MAX_PATH, argv[current_index + i]);
+            break;
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -135,11 +285,39 @@ handle_ebpf_set_latency(
 
     ebpf_result_t result;
     if (mode == LATENCY_MODE_OFF) {
+        // Query kernel to determine the active backend.
+        uint32_t cur_mode = 0, cur_backend = 0, cur_session = 0;
+        ebpf_latency_tracking_query_state(&cur_mode, &cur_backend, &cur_session);
+        bool is_etw = (cur_backend == EBPF_LATENCY_BACKEND_ETW);
+
+        // Stop tracking.
+        if (is_etw) {
+            // Stop the ETW session first.
+            _stop_etw_session();
+        }
+
         result = ebpf_latency_tracking_disable();
         if (result == EBPF_SUCCESS) {
-            printf("Latency tracking disabled. Session released.\n");
+            if (is_etw) {
+                // ETW: release session immediately (data is in the .etl file).
+                ebpf_latency_tracking_release();
+                printf("Latency tracking stopped.\n");
+            } else {
+                printf("Latency tracking disabled.\n");
+                printf("Use 'netsh ebpf show latencytrace' to view collected data.\n");
+            }
+            _backend_active = false;
         }
     } else {
+        // Validate mutual exclusivity: ETW backend does not use ring buffer parameters.
+        if (backend == BACKEND_ETW && (events_per_cpu != 0 || correlation == CORRELATION_YES)) {
+            printf("Error: 'events' and 'correlation' parameters are only valid with backend=ringbuffer.\n");
+            return ERROR_INVALID_PARAMETER;
+        }
+
+        // Release any zombie session from a previous run (disabled but not drained/released).
+        ebpf_latency_tracking_release();
+
         uint32_t latency_flags = 0;
         if (correlation == CORRELATION_YES) {
             latency_flags |= EBPF_LATENCY_FLAG_CORRELATION_ID;
@@ -147,14 +325,33 @@ handle_ebpf_set_latency(
         result = ebpf_latency_tracking_enable(
             mode,
             latency_flags,
+            (backend == BACKEND_RINGBUFFER) ? events_per_cpu : 0,
+            (backend == BACKEND_ETW) ? EBPF_LATENCY_BACKEND_ETW : EBPF_LATENCY_BACKEND_RINGBUFFER,
             static_cast<uint32_t>(program_ids.size()),
             program_ids.empty() ? nullptr : program_ids.data());
         if (result == EBPF_SUCCESS) {
+            // If ETW backend, start the ETW trace session.
+            if (backend == BACKEND_ETW) {
+                unsigned long etw_status = _start_etw_session(etw_file, DEFAULT_BUFFER_SIZE_KB);
+                if (etw_status != ERROR_SUCCESS) {
+                    // Roll back: disable and release kernel tracking.
+                    ebpf_latency_tracking_disable();
+                    ebpf_latency_tracking_release();
+                    printf("Error: failed to start ETW trace session.\n");
+                    return ERROR_SUPPRESS_OUTPUT;
+                }
+                StringCchCopyW(_active_etw_file, MAX_PATH, etw_file);
+            }
+
+            _active_backend = (BACKEND_VALUE)backend;
+            _backend_active = true;
+
             if (mode == LATENCY_MODE_PROGRAM) {
                 printf("Latency tracking enabled (mode=program");
             } else {
                 printf("Latency tracking enabled (mode=program+helpers");
             }
+            printf(", backend=%s", (backend == BACKEND_ETW) ? "etw" : "ringbuffer");
             if (!program_ids.empty()) {
                 printf(", filter=[");
                 for (size_t j = 0; j < program_ids.size(); j++) {
@@ -167,11 +364,16 @@ handle_ebpf_set_latency(
             } else {
                 printf(", filter=all");
             }
-            printf(", correlation=%s", (latency_flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? "yes" : "no");
+            if (backend == BACKEND_RINGBUFFER) {
+                printf(", correlation=%s", (latency_flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? "yes" : "no");
+            }
+            if (backend == BACKEND_ETW) {
+                printf(", file=%ls", etw_file);
+            }
             printf(").\n");
         } else if (result == EBPF_INVALID_STATE) {
             printf("Error: Another latency tracking session is already active.\n");
-            printf("Use 'netsh ebpf set latency mode=off' from the owning session first.\n");
+            printf("Use 'netsh ebpf set latency mode=off' first.\n");
             return ERROR_SUPPRESS_OUTPUT;
         }
     }
@@ -197,39 +399,28 @@ handle_ebpf_show_latency(
     UNREFERENCED_PARAMETER(done);
 
     printf("\nLatency Tracking Status:\n");
-    printf("  Use 'netsh ebpf set latency mode=off|program|all' to control latency tracking.\n");
-    printf("  Use 'tracelog' or 'wpr' to capture ETW events with keyword 0x800.\n");
-    printf("  Use Windows Performance Analyzer (WPA) to analyze .etl files.\n\n");
-    printf("  ETW Provider: ebpf_tracelog_provider\n");
-    printf("  Latency Keyword: 0x800\n");
-    printf("  Events: EbpfProgramLatency, EbpfMapHelperLatency\n\n");
+
+    uint32_t cur_mode = 0, cur_backend = 0, cur_session = 0;
+    ebpf_result_t query_result = ebpf_latency_tracking_query_state(&cur_mode, &cur_backend, &cur_session);
+    if (query_result == EBPF_SUCCESS && cur_session != 0) {
+        const char* mode_str = (cur_mode == 2) ? "all" : (cur_mode == 1) ? "program" : "off";
+        const char* backend_str = (cur_backend == EBPF_LATENCY_BACKEND_ETW) ? "etw" : "ringbuffer";
+        printf("  Mode:    %s\n", mode_str);
+        printf("  Backend: %s\n", backend_str);
+        printf("  Session: active\n");
+    } else {
+        printf("  No active latency tracking session.\n");
+    }
+    printf("\n  Usage:\n");
+    printf("    netsh ebpf set latency mode=all backend=ringbuffer [correlation=yes] [events=N]\n");
+    printf("    netsh ebpf set latency mode=all backend=etw [file=output.etl]\n");
+    printf("    netsh ebpf set latency mode=off\n");
+    printf("    netsh ebpf show latencytrace [file=<path>] [format=table|csv]\n\n");
 
     return NO_ERROR;
 }
 
-// ETW trace session name for latency tracing.
-static const WCHAR _ebpf_latency_session_name[] = L"EbpfLatencyTrace";
-
-// EbpfForWindowsProvider {394f321c-5cf4-404c-aa34-4df1428a7f9c}
-static const GUID _ebpf_core_provider_guid = {
-    0x394f321c, 0x5cf4, 0x404c, {0xaa, 0x34, 0x4d, 0xf1, 0x42, 0x8a, 0x7f, 0x9c}};
-
-// NetEbpfExtProvider {f2f2ca01-ad02-4a07-9e90-95a2334f3692}
-static const GUID _net_ebpf_ext_provider_guid = {
-    0xf2f2ca01, 0xad02, 0x4a07, {0x9e, 0x90, 0x95, 0xa2, 0x33, 0x4f, 0x36, 0x92}};
-
-// Latency keyword as defined in the design doc.
-#define EBPF_TRACELOG_KEYWORD_LATENCY 0x800
-
-#define TOKEN_FILE L"file"
 #define TOKEN_BUFFERSIZE L"buffersize"
-
-// Default ETW session parameters.
-#define DEFAULT_BUFFER_SIZE_KB 256
-#define DEFAULT_MIN_BUFFERS 64
-#define DEFAULT_MAX_BUFFERS 256
-#define DEFAULT_FLUSH_TIMER_SEC 1
-#define DEFAULT_OUTPUT_FILE L"ebpf_latency.etl"
 
 unsigned long
 handle_ebpf_start_latencytrace(
@@ -239,6 +430,8 @@ handle_ebpf_start_latencytrace(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(done);
+
+    printf("Note: This command is deprecated. Use 'netsh ebpf set latency mode=all backend=etw' instead.\n\n");
 
     TAG_TYPE tags[] = {
         {TOKEN_FILE, NS_REQ_ZERO, FALSE},
@@ -281,84 +474,15 @@ handle_ebpf_start_latencytrace(
         return status;
     }
 
-    // Allocate EVENT_TRACE_PROPERTIES with space for session name and log file name.
-    ULONG properties_size =
-        sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name) + (MAX_PATH * sizeof(WCHAR));
-    EVENT_TRACE_PROPERTIES* properties = (EVENT_TRACE_PROPERTIES*)calloc(1, properties_size);
-    if (properties == nullptr) {
-        printf("Error: out of memory.\n");
-        return ERROR_NOT_ENOUGH_MEMORY;
-    }
-
-    properties->Wnode.BufferSize = properties_size;
-    properties->Wnode.Flags = WNODE_FLAG_TRACED_GUID;
-    properties->Wnode.ClientContext = 1; // QPC clock resolution.
-    properties->BufferSize = buffer_size_kb;
-    properties->MinimumBuffers = DEFAULT_MIN_BUFFERS;
-    properties->MaximumBuffers = DEFAULT_MAX_BUFFERS;
-    properties->FlushTimer = DEFAULT_FLUSH_TIMER_SEC;
-    properties->LogFileMode = EVENT_TRACE_FILE_MODE_SEQUENTIAL;
-    properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-    properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name);
-
-    // Copy the log file name into the properties buffer.
-    StringCchCopyW((LPWSTR)((BYTE*)properties + properties->LogFileNameOffset), MAX_PATH, output_file);
-
-    TRACEHANDLE session_handle = 0;
-    status = StartTraceW(&session_handle, _ebpf_latency_session_name, properties);
-    if (status != ERROR_SUCCESS) {
-        if (status == ERROR_ALREADY_EXISTS) {
-            printf("Error: ETW trace session '%ls' is already running.\n", _ebpf_latency_session_name);
-            printf("  Use 'netsh ebpf stop latencytrace' to stop it first.\n");
-        } else {
-            printf("Error: StartTrace failed (error=%lu).\n", status);
-        }
-        free(properties);
+    unsigned long etw_status = _start_etw_session(output_file, buffer_size_kb);
+    if (etw_status != ERROR_SUCCESS) {
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    // Enable the ebpfcore provider with the latency keyword.
-    ENABLE_TRACE_PARAMETERS enable_params = {0};
-    enable_params.Version = ENABLE_TRACE_PARAMETERS_VERSION_2;
-    status = EnableTraceEx2(
-        session_handle,
-        &_ebpf_core_provider_guid,
-        EVENT_CONTROL_CODE_ENABLE_PROVIDER,
-        TRACE_LEVEL_VERBOSE,
-        EBPF_TRACELOG_KEYWORD_LATENCY,
-        0, // MatchAllKeyword
-        0, // Timeout
-        &enable_params);
-
-    if (status != ERROR_SUCCESS) {
-        printf("Warning: failed to enable EbpfForWindowsProvider (error=%lu).\n", status);
-        // Continue - the session is started, user can enable providers manually.
-    }
-
-    // Enable the netebpfext provider with the latency keyword.
-    status = EnableTraceEx2(
-        session_handle,
-        &_net_ebpf_ext_provider_guid,
-        EVENT_CONTROL_CODE_ENABLE_PROVIDER,
-        TRACE_LEVEL_VERBOSE,
-        EBPF_TRACELOG_KEYWORD_LATENCY,
-        0, // MatchAllKeyword
-        0, // Timeout
-        &enable_params);
-
-    if (status != ERROR_SUCCESS) {
-        printf("Warning: failed to enable NetEbpfExtProvider (error=%lu).\n", status);
-        // Continue - the session is started with the core provider.
-    }
-
     printf("Started ETW trace session '%ls'.\n", _ebpf_latency_session_name);
-    printf("  Provider: {394f321c-5cf4-404c-aa34-4df1428a7f9c} (EbpfForWindows)\n");
-    printf("  Provider: {f2f2ca01-ad02-4a07-9e90-95a2334f3692} (NetEbpfExt)\n");
-    printf("  Keywords: 0x%x, Level: Verbose\n", EBPF_TRACELOG_KEYWORD_LATENCY);
     printf("  Output:   %ls\n", output_file);
     printf("  Buffers:  %lu KB x %d-%d\n", buffer_size_kb, DEFAULT_MIN_BUFFERS, DEFAULT_MAX_BUFFERS);
 
-    free(properties);
     return NO_ERROR;
 }
 
@@ -374,41 +498,19 @@ handle_ebpf_stop_latencytrace(
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(done);
 
-    // Allocate EVENT_TRACE_PROPERTIES with space for session name and log file name.
-    ULONG properties_size =
-        sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name) + (MAX_PATH * sizeof(WCHAR));
-    EVENT_TRACE_PROPERTIES* properties = (EVENT_TRACE_PROPERTIES*)calloc(1, properties_size);
-    if (properties == nullptr) {
-        printf("Error: out of memory.\n");
-        return ERROR_NOT_ENOUGH_MEMORY;
-    }
+    printf("Note: This command is deprecated. Use 'netsh ebpf set latency mode=off' with backend=etw instead.\n\n");
 
-    properties->Wnode.BufferSize = properties_size;
-    properties->LoggerNameOffset = sizeof(EVENT_TRACE_PROPERTIES);
-    properties->LogFileNameOffset = sizeof(EVENT_TRACE_PROPERTIES) + sizeof(_ebpf_latency_session_name);
-
-    unsigned long status = ControlTraceW(0, _ebpf_latency_session_name, properties, EVENT_TRACE_CONTROL_STOP);
-
+    unsigned long status = _stop_etw_session();
     if (status != ERROR_SUCCESS) {
         if (status == ERROR_WMI_INSTANCE_NOT_FOUND) {
             printf("Error: ETW trace session '%ls' is not running.\n", _ebpf_latency_session_name);
         } else {
             printf("Error: ControlTrace(STOP) failed (error=%lu).\n", status);
         }
-        free(properties);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
-    LPCWSTR log_file_name = (LPCWSTR)((BYTE*)properties + properties->LogFileNameOffset);
     printf("Stopped ETW trace session '%ls'.\n", _ebpf_latency_session_name);
-    printf("  Events collected: %lu\n", properties->EventsLost == 0 ? properties->NumberOfBuffers : 0);
-    printf("  Events lost:      %lu\n", properties->EventsLost);
-    printf("  Buffers used:     %lu\n", properties->NumberOfBuffers);
-    if (log_file_name[0] != L'\0') {
-        printf("  Saved to:         %ls\n", log_file_name);
-    }
-
-    free(properties);
     return NO_ERROR;
 }
 
@@ -779,6 +881,247 @@ static TOKEN_VALUE _format_enum[] = {
     {L"csv", FORMAT_CSV},
 };
 
+// ============================================================================
+// show latencytrace — Ring buffer drain OR ETL file parser
+// ============================================================================
+
+// Forward declaration for ETL file processing.
+static unsigned long
+_show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format);
+
+// Binary file header for latency trace output.
+#define EBPF_LATENCY_FILE_MAGIC 0x544C4245 // "EBLT"
+#define EBPF_LATENCY_FILE_VERSION 1
+
+#pragma pack(push, 1)
+typedef struct _ebpf_latency_file_header
+{
+    uint32_t magic;
+    uint32_t version;
+    uint64_t tsc_frequency;
+    uint64_t tsc_at_enable;
+    uint64_t qpc_at_enable;
+    uint32_t cpu_count;
+    uint32_t total_records;
+} ebpf_latency_file_header_t;
+#pragma pack(pop)
+
+// Wire-format drain reply header. Must match the natural alignment of
+// ebpf_operation_latency_drain_reply_t in ebpf_protocol.h (NOT packed).
+typedef struct _latency_drain_reply_wire
+{
+    uint16_t length;
+    uint16_t id;
+    uint64_t tsc_frequency;
+    uint64_t tsc_at_enable;
+    uint64_t qpc_at_enable;
+    uint32_t cpu_count;
+    uint32_t records_per_cpu;
+    uint32_t total_records;
+    uint32_t dropped_count;
+    uint32_t records_returned;
+    uint32_t _padding;
+    ebpf_latency_drain_record_t records[1];
+} latency_drain_reply_wire_t;
+
+// Drain ring buffers via chunked per-CPU IOCTLs, merge-sort, write file, display summary.
+static unsigned long
+_show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* output_path)
+{
+    UNREFERENCED_PARAMETER(format);
+
+    const char* output_file = (output_path != nullptr && output_path[0] != '\0') ? output_path : "ebpf_latency.bin";
+
+    // Step 1: Probe with CPU 0 to get metadata and check state.
+    uint32_t reply_size = 65535;
+    std::vector<uint8_t> reply_buffer(reply_size);
+    uint32_t actual_size = reply_size;
+
+    ebpf_result_t result = ebpf_latency_tracking_drain(0, 0, reply_buffer.data(), &actual_size);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_BLOCKED_BY_POLICY) {
+            printf("Error: Latency tracking is still enabled.\n");
+            printf("Use 'netsh ebpf set latency mode=off' to stop tracking first.\n");
+        } else if (result == EBPF_INVALID_STATE) {
+            printf("Error: No active latency tracking session.\n");
+            printf("Use 'netsh ebpf set latency mode=all' to enable tracking first.\n");
+        } else {
+            printf("Error: Failed to drain latency ring buffers (error=%d).\n", result);
+        }
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    // Parse the reply header to get cpu_count and calibration.
+    auto* first_reply = reinterpret_cast<latency_drain_reply_wire_t*>(reply_buffer.data());
+    uint32_t cpu_count = first_reply->cpu_count;
+    uint32_t records_per_cpu = first_reply->records_per_cpu;
+    uint64_t tsc_frequency = first_reply->tsc_frequency;
+    uint64_t tsc_at_enable = first_reply->tsc_at_enable;
+    uint64_t qpc_at_enable = first_reply->qpc_at_enable;
+
+    printf("Draining latency data: %u CPUs, %u records/CPU buffer\n", cpu_count, records_per_cpu);
+
+    // Step 2: Drain all CPUs. Collect records per-CPU.
+    std::vector<std::vector<ebpf_latency_drain_record_t>> per_cpu_records(cpu_count);
+    uint32_t total_records = 0;
+    uint32_t total_dropped = 0;
+
+    for (uint32_t cpu = 0; cpu < cpu_count; cpu++) {
+        uint32_t offset = 0;
+        bool first_call = (cpu == 0 && offset == 0); // We already have CPU 0's first chunk.
+
+        if (first_call) {
+            // Use the data we already fetched.
+            uint32_t returned = first_reply->records_returned;
+            auto* recs = reinterpret_cast<ebpf_latency_drain_record_t*>(first_reply->records);
+            for (uint32_t j = 0; j < returned; j++) {
+                per_cpu_records[cpu].push_back(recs[j]);
+            }
+            offset = returned;
+            total_dropped += first_reply->dropped_count;
+
+            if (returned == 0 || offset >= first_reply->total_records) {
+                printf(
+                    "  CPU %u: %u records, %u dropped\n", cpu, first_reply->total_records, first_reply->dropped_count);
+                total_records += first_reply->total_records;
+                continue;
+            }
+        }
+
+        // Drain remaining chunks for this CPU.
+        for (;;) {
+            actual_size = reply_size;
+            result = ebpf_latency_tracking_drain(cpu, offset, reply_buffer.data(), &actual_size);
+            if (result != EBPF_SUCCESS) {
+                printf("  CPU %u: drain failed at offset %u (error=%d)\n", cpu, offset, result);
+                break;
+            }
+
+            auto* chunk = reinterpret_cast<latency_drain_reply_wire_t*>(reply_buffer.data());
+            uint32_t returned = chunk->records_returned;
+            if (returned == 0) {
+                break;
+            }
+
+            auto* recs = reinterpret_cast<ebpf_latency_drain_record_t*>(chunk->records);
+            for (uint32_t j = 0; j < returned; j++) {
+                per_cpu_records[cpu].push_back(recs[j]);
+            }
+            offset += returned;
+
+            if (offset >= chunk->total_records) {
+                if (!first_call || cpu > 0) {
+                    total_dropped += chunk->dropped_count;
+                }
+                break;
+            }
+        }
+
+        printf("  CPU %u: %zu records read\n", cpu, per_cpu_records[cpu].size());
+        total_records += static_cast<uint32_t>(per_cpu_records[cpu].size());
+    }
+
+    if (total_records == 0) {
+        printf("No latency records collected.\n");
+        ebpf_latency_tracking_release();
+        return NO_ERROR;
+    }
+
+    printf("Total: %u records, %u dropped\n", total_records, total_dropped);
+
+    // Step 3: Merge-sort all per-CPU records by timestamp.
+    printf("Sorting records by timestamp...\n");
+    std::vector<ebpf_latency_drain_record_t> all_records;
+    all_records.reserve(total_records);
+    for (uint32_t cpu = 0; cpu < cpu_count; cpu++) {
+        all_records.insert(all_records.end(), per_cpu_records[cpu].begin(), per_cpu_records[cpu].end());
+        // Free per-CPU memory now.
+        per_cpu_records[cpu].clear();
+        per_cpu_records[cpu].shrink_to_fit();
+    }
+    std::sort(
+        all_records.begin(),
+        all_records.end(),
+        [](const ebpf_latency_drain_record_t& a, const ebpf_latency_drain_record_t& b) {
+            return a.timestamp < b.timestamp;
+        });
+
+    // Step 4: Write sorted records to file.
+    FILE* fp = NULL;
+    errno_t err = fopen_s(&fp, output_file, "wb");
+    if (err != 0 || fp == NULL) {
+        printf("Warning: Could not open '%s' for writing (error=%d). Skipping file output.\n", output_file, err);
+    } else {
+        ebpf_latency_file_header_t file_header = {};
+        file_header.magic = EBPF_LATENCY_FILE_MAGIC;
+        file_header.version = EBPF_LATENCY_FILE_VERSION;
+        file_header.tsc_frequency = tsc_frequency;
+        file_header.tsc_at_enable = tsc_at_enable;
+        file_header.qpc_at_enable = qpc_at_enable;
+        file_header.cpu_count = cpu_count;
+        file_header.total_records = total_records;
+        fwrite(&file_header, sizeof(file_header), 1, fp);
+        fwrite(all_records.data(), sizeof(ebpf_latency_drain_record_t), all_records.size(), fp);
+        fclose(fp);
+        printf(
+            "Wrote %u sorted records to '%s' (%zu bytes)\n",
+            total_records,
+            output_file,
+            sizeof(file_header) + all_records.size() * sizeof(ebpf_latency_drain_record_t));
+    }
+
+    // Step 5: Compute and display summary statistics.
+    printf("\n=== eBPF Latency Report (Ring Buffer) ===\n\n");
+
+    // Pair program start/end events per CPU to compute durations.
+    std::map<uint32_t, std::vector<uint64_t>> program_durations;
+    std::map<uint8_t, std::map<uint32_t, uint64_t>> cpu_prog_start;
+
+    for (const auto& r : all_records) {
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
+            cpu_prog_start[r.cpu_id][r.program_id] = r.timestamp;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
+            auto cpu_it = cpu_prog_start.find(r.cpu_id);
+            if (cpu_it != cpu_prog_start.end()) {
+                auto prog_it = cpu_it->second.find(r.program_id);
+                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second) {
+                    program_durations[r.program_id].push_back(r.timestamp - prog_it->second);
+                    cpu_it->second.erase(prog_it);
+                }
+            }
+        }
+    }
+
+    if (!program_durations.empty()) {
+        printf("--- Program Invocation Latency (TSC ticks) ---\n");
+        printf("%-8s %10s %12s %12s %12s %12s %12s\n", "ProgID", "Count", "Avg", "P50", "P90", "P99", "Max");
+
+        for (auto& [pid, durations] : program_durations) {
+            std::sort(durations.begin(), durations.end());
+            size_t n = durations.size();
+            uint64_t sum = 0;
+            for (auto d : durations)
+                sum += d;
+
+            printf(
+                "%-8u %10zu %12llu %12llu %12llu %12llu %12llu\n",
+                pid,
+                n,
+                (unsigned long long)(sum / n),
+                (unsigned long long)durations[n * 50 / 100],
+                (unsigned long long)durations[n * 90 / 100],
+                (unsigned long long)durations[n * 99 / 100],
+                (unsigned long long)durations[n - 1]);
+        }
+    }
+
+    // Step 6: Release session (free kernel ring buffers).
+    ebpf_latency_tracking_release();
+    printf("\nSession released.\n");
+
+    return NO_ERROR;
+}
+
 unsigned long
 handle_ebpf_show_latencytrace(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
@@ -789,7 +1132,7 @@ handle_ebpf_show_latencytrace(
     UNREFERENCED_PARAMETER(done);
 
     TAG_TYPE tags[] = {
-        {TOKEN_FILE, NS_REQ_PRESENT, FALSE},
+        {TOKEN_FILE, NS_REQ_ZERO, FALSE},
         {TOKEN_FORMAT, NS_REQ_ZERO, FALSE},
     };
     const int FILE_INDEX = 0;
@@ -829,12 +1172,35 @@ handle_ebpf_show_latencytrace(
         return status;
     }
 
+    // If no file provided, query the kernel to determine the active backend.
     if (etl_file[0] == L'\0') {
-        printf("Error: file parameter is required.\n");
-        return ERROR_INVALID_PARAMETER;
+        uint32_t mode = 0, backend = 0, session_active = 0;
+        ebpf_result_t query_result = ebpf_latency_tracking_query_state(&mode, &backend, &session_active);
+
+        if (query_result == EBPF_SUCCESS && backend == EBPF_LATENCY_BACKEND_ETW) {
+            // ETW backend: use the default .etl file name.
+            return _show_latencytrace_from_etl(DEFAULT_OUTPUT_FILE, format);
+        }
+        // Ring buffer backend (or no session — drain will report the error).
+        return _show_latencytrace_from_ringbuffer(format, nullptr);
     }
 
-    // Verify the file exists.
+    // If file ends in .etl, parse it as an existing ETW trace file.
+    size_t len = wcslen(etl_file);
+    if (len >= 4 && _wcsicmp(etl_file + len - 4, L".etl") == 0) {
+        return _show_latencytrace_from_etl(etl_file, format);
+    }
+
+    // Otherwise, treat as output file path for ring buffer drain.
+    char output_path_narrow[MAX_PATH] = {0};
+    WideCharToMultiByte(CP_ACP, 0, etl_file, -1, output_path_narrow, MAX_PATH, nullptr, nullptr);
+    return _show_latencytrace_from_ringbuffer(format, output_path_narrow);
+}
+
+// Process an .etl file and display latency report.
+static unsigned long
+_show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
+{
     DWORD file_attrs = GetFileAttributesW(etl_file);
     if (file_attrs == INVALID_FILE_ATTRIBUTES) {
         printf("Error: cannot open file '%ls' (error=%lu).\n", etl_file, GetLastError());
@@ -846,7 +1212,7 @@ handle_ebpf_show_latencytrace(
     ctx.csv_format = (format == FORMAT_CSV);
 
     EVENT_TRACE_LOGFILEW trace_logfile = {};
-    trace_logfile.LogFileName = etl_file;
+    trace_logfile.LogFileName = const_cast<LPWSTR>(etl_file);
     trace_logfile.ProcessTraceMode = PROCESS_TRACE_MODE_EVENT_RECORD;
     trace_logfile.EventRecordCallback = _etl_event_record_callback;
     trace_logfile.Context = &ctx;
@@ -867,7 +1233,7 @@ handle_ebpf_show_latencytrace(
     }
 
     // Process all events in the file.
-    status = ProcessTrace(&trace_handle, 1, nullptr, nullptr);
+    DWORD status = ProcessTrace(&trace_handle, 1, nullptr, nullptr);
     CloseTrace(trace_handle);
 
     if (status != ERROR_SUCCESS && status != ERROR_CANCELLED) {
@@ -895,27 +1261,66 @@ handle_ebpf_show_latencytrace(
 
     // Program Invocation Summary.
     if (!ctx.program_durations.empty()) {
+        // Compute dynamic column widths.
+        int id_w = 10;   // strlen("Program ID")
+        int name_w = 12; // strlen("Program Name")
+        int inv_w = 11;  // strlen("Invocations")
+        int num_w = 8;   // strlen("Avg (ns)") etc.
+        for (auto& [prog_id, durations] : ctx.program_durations) {
+            uint64_t avg, p50, p95, p99, max_val;
+            _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
+            char id_buf[16];
+            sprintf_s(id_buf, sizeof(id_buf), "%u", prog_id);
+            id_w = (std::max)(id_w, (int)strlen(id_buf));
+            auto name_it = ctx.program_names.find(prog_id);
+            if (name_it != ctx.program_names.end()) {
+                name_w = (std::max)(name_w, (int)name_it->second.size());
+            }
+            inv_w = (std::max)(inv_w, (int)_format_number(durations.size()).size());
+            num_w = (std::max)(num_w, (int)_format_number(avg).size());
+            num_w = (std::max)(num_w, (int)_format_number(p50).size());
+            num_w = (std::max)(num_w, (int)_format_number(p95).size());
+            num_w = (std::max)(num_w, (int)_format_number(p99).size());
+            num_w = (std::max)(num_w, (int)_format_number(max_val).size());
+        }
+
         printf("Program Invocation Summary:\n");
         printf(
-            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+            id_w,
             "Program ID",
+            name_w,
             "Program Name",
+            inv_w,
             "Invocations",
+            num_w,
             "Avg (ns)",
+            num_w,
             "P50 (ns)",
+            num_w,
             "P95 (ns)",
+            num_w,
             "P99 (ns)",
+            num_w,
             "Max (ns)");
         printf(
-            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
-            "----------",
-            "--------------------",
-            "-----------",
-            "--------",
-            "--------",
-            "--------",
-            "--------",
-            "--------");
+            "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+            id_w,
+            std::string(id_w, '-').c_str(),
+            name_w,
+            std::string(name_w, '-').c_str(),
+            inv_w,
+            std::string(inv_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str());
 
         for (auto& [prog_id, durations] : ctx.program_durations) {
             uint64_t avg, p50, p95, p99, max_val;
@@ -925,14 +1330,22 @@ handle_ebpf_show_latencytrace(
             const char* prog_name = (name_it != ctx.program_names.end()) ? name_it->second.c_str() : "";
 
             printf(
-                "  %-12u %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-*u %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+                id_w,
                 prog_id,
+                name_w,
                 prog_name,
+                inv_w,
                 _format_number(durations.size()).c_str(),
+                num_w,
                 _format_number(avg).c_str(),
+                num_w,
                 _format_number(p50).c_str(),
+                num_w,
                 _format_number(p95).c_str(),
+                num_w,
                 _format_number(p99).c_str(),
+                num_w,
                 _format_number(max_val).c_str());
         }
         printf("\n");
@@ -954,26 +1367,71 @@ handle_ebpf_show_latencytrace(
             } else {
                 printf("Map Helper Summary (Program %u):\n", prog_id);
             }
+
+            // Compute dynamic column widths for this program's helper table.
+            int hlp_w = 6;   // strlen("Helper")
+            int map_w = 8;   // strlen("Map Name")
+            int calls_w = 5; // strlen("Calls")
+            int num_w = 8;   // strlen("Avg (ns)") etc.
+            for (auto& [helper_id, map_name_str, durations_ptr] : helpers) {
+                uint64_t avg, p50, p95, p99, max_val;
+                _compute_stats(*durations_ptr, &avg, &p50, &p95, &p99, &max_val);
+
+                const char* helper_name = _helper_function_name(helper_id);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", helper_id);
+                    helper_name = helper_name_buf;
+                }
+                hlp_w = (std::max)(hlp_w, (int)strlen(helper_name));
+
+                const char* map_display = map_name_str.empty() ? "(unknown)" : map_name_str.c_str();
+                map_w = (std::max)(map_w, (int)strlen(map_display));
+
+                calls_w = (std::max)(calls_w, (int)_format_number(durations_ptr->size()).size());
+                num_w = (std::max)(num_w, (int)_format_number(avg).size());
+                num_w = (std::max)(num_w, (int)_format_number(p50).size());
+                num_w = (std::max)(num_w, (int)_format_number(p95).size());
+                num_w = (std::max)(num_w, (int)_format_number(p99).size());
+                num_w = (std::max)(num_w, (int)_format_number(max_val).size());
+            }
+
             printf(
-                "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+                hlp_w,
                 "Helper",
+                map_w,
                 "Map Name",
+                calls_w,
                 "Calls",
+                num_w,
                 "Avg (ns)",
+                num_w,
                 "P50 (ns)",
+                num_w,
                 "P95 (ns)",
+                num_w,
                 "P99 (ns)",
+                num_w,
                 "Max (ns)");
             printf(
-                "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
-                "--------------------",
-                "--------------------",
-                "---------",
-                "--------",
-                "--------",
-                "--------",
-                "--------",
-                "--------");
+                "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+                hlp_w,
+                std::string(hlp_w, '-').c_str(),
+                map_w,
+                std::string(map_w, '-').c_str(),
+                calls_w,
+                std::string(calls_w, '-').c_str(),
+                num_w,
+                std::string(num_w, '-').c_str(),
+                num_w,
+                std::string(num_w, '-').c_str(),
+                num_w,
+                std::string(num_w, '-').c_str(),
+                num_w,
+                std::string(num_w, '-').c_str(),
+                num_w,
+                std::string(num_w, '-').c_str());
 
             for (auto& [helper_id, map_name_str, durations_ptr] : helpers) {
                 uint64_t avg, p50, p95, p99, max_val;
@@ -989,14 +1447,22 @@ handle_ebpf_show_latencytrace(
                 const char* map_display = map_name_str.empty() ? "(unknown)" : map_name_str.c_str();
 
                 printf(
-                    "  %-24s %-20s %-11s %-11s %-11s %-11s %-11s %-11s\n",
+                    "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+                    hlp_w,
                     helper_name,
+                    map_w,
                     map_display,
+                    calls_w,
                     _format_number(durations_ptr->size()).c_str(),
+                    num_w,
                     _format_number(avg).c_str(),
+                    num_w,
                     _format_number(p50).c_str(),
+                    num_w,
                     _format_number(p95).c_str(),
+                    num_w,
                     _format_number(p99).c_str(),
+                    num_w,
                     _format_number(max_val).c_str());
             }
             printf("\n");
@@ -1005,27 +1471,66 @@ handle_ebpf_show_latencytrace(
 
     // Extension End-to-End Latency Summary.
     if (!ctx.ext_durations.empty()) {
+        // Compute dynamic column widths.
+        int id_w = 10;   // strlen("Program ID")
+        int name_w = 12; // strlen("Program Name")
+        int inv_w = 11;  // strlen("Invocations")
+        int num_w = 8;   // strlen("Avg (ns)") etc.
+        for (auto& [prog_id, durations] : ctx.ext_durations) {
+            uint64_t avg, p50, p95, p99, max_val;
+            _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
+            char id_buf[16];
+            sprintf_s(id_buf, sizeof(id_buf), "%u", prog_id);
+            id_w = (std::max)(id_w, (int)strlen(id_buf));
+            auto name_it = ctx.program_names.find(prog_id);
+            if (name_it != ctx.program_names.end()) {
+                name_w = (std::max)(name_w, (int)name_it->second.size());
+            }
+            inv_w = (std::max)(inv_w, (int)_format_number(durations.size()).size());
+            num_w = (std::max)(num_w, (int)_format_number(avg).size());
+            num_w = (std::max)(num_w, (int)_format_number(p50).size());
+            num_w = (std::max)(num_w, (int)_format_number(p95).size());
+            num_w = (std::max)(num_w, (int)_format_number(p99).size());
+            num_w = (std::max)(num_w, (int)_format_number(max_val).size());
+        }
+
         printf("Extension Invoke Latency Summary:\n");
         printf(
-            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+            "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+            id_w,
             "Program ID",
+            name_w,
             "Program Name",
+            inv_w,
             "Invocations",
+            num_w,
             "Avg (ns)",
+            num_w,
             "P50 (ns)",
+            num_w,
             "P95 (ns)",
+            num_w,
             "P99 (ns)",
+            num_w,
             "Max (ns)");
         printf(
-            "  %-12s %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
-            "----------",
-            "--------------------",
-            "-----------",
-            "--------",
-            "--------",
-            "--------",
-            "--------",
-            "--------");
+            "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+            id_w,
+            std::string(id_w, '-').c_str(),
+            name_w,
+            std::string(name_w, '-').c_str(),
+            inv_w,
+            std::string(inv_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str(),
+            num_w,
+            std::string(num_w, '-').c_str());
 
         for (auto& [prog_id, durations] : ctx.ext_durations) {
             uint64_t avg, p50, p95, p99, max_val;
@@ -1035,14 +1540,22 @@ handle_ebpf_show_latencytrace(
             const char* prog_name = (name_it != ctx.program_names.end()) ? name_it->second.c_str() : "";
 
             printf(
-                "  %-12u %-20s %-13s %-11s %-11s %-11s %-11s %-11s\n",
+                "  %-*u %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
+                id_w,
                 prog_id,
+                name_w,
                 prog_name,
+                inv_w,
                 _format_number(durations.size()).c_str(),
+                num_w,
                 _format_number(avg).c_str(),
+                num_w,
                 _format_number(p50).c_str(),
+                num_w,
                 _format_number(p95).c_str(),
+                num_w,
                 _format_number(p99).c_str(),
+                num_w,
                 _format_number(max_val).c_str());
         }
         printf("\n");
@@ -1051,8 +1564,7 @@ handle_ebpf_show_latencytrace(
     if (ctx.total_events == 0) {
         printf("  No latency events found in the trace file.\n");
         printf("  Ensure latency tracking was enabled before capturing:\n");
-        printf("    netsh ebpf set latency mode=program\n");
-        printf("    netsh ebpf start latencytrace file=<path.etl>\n\n");
+        printf("    netsh ebpf set latency mode=all backend=etw file=<path.etl>\n\n");
     }
 
     return NO_ERROR;
