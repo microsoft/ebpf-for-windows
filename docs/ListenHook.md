@@ -55,7 +55,7 @@ The new hooks will support:
 
 ## Design Rationale
 
-Linux does not currently provide `EBPF_CGROUP_INET4_LISTEN` or `EBPF_CGROUP_INET6_LISTEN` attach types. Listen interception in Linux is typically done via LSM hooks (`security_socket_listen`). However, eBPF for Windows follows the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` pattern for socket operations, which provides a consistent programming model.
+Linux defines `BPF_CGROUP_INET4_LISTEN` and `BPF_CGROUP_INET6_LISTEN` attach types in its kernel eBPF subsystem, using the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type and `struct bpf_sock_addr` context. eBPF for Windows introduces corresponding attach types that align with the Linux semantics while being implemented via the Windows Filtering Platform (WFP) ALE Authorization Listen layers.
 
 This design adds new listen attach types to the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, following the same pattern used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
@@ -65,6 +65,7 @@ Key considerations:
 - Reusing the existing program type and context structure provides consistency and reduces implementation complexity
 - The `bpf_sock_addr_t` context already contains all fields needed for listen operations (local address, port, protocol, compartment_id, interface_luid)
 - Existing helper functions (e.g., `bpf_get_current_pid_tgid()`) are automatically available
+- Context field semantics match Linux: both `msg_src_*` and `user_*` fields contain the local listen address
 
 ## eBPF Design
 
@@ -84,8 +85,8 @@ Two new attach types are added to the standard `bpf_attach_type` enum to support
 
 ```c
 // Added to bpf_attach_type enum:
-EBPF_CGROUP_INET4_LISTEN,  ///< IPv4 socket listen operations
-EBPF_CGROUP_INET6_LISTEN,  ///< IPv6 socket listen operations
+BPF_CGROUP_INET4_LISTEN,  ///< IPv4 socket listen operations
+BPF_CGROUP_INET6_LISTEN,  ///< IPv6 socket listen operations
 ```
 
 Each attach type has a corresponding GUID identifier:
@@ -116,7 +117,7 @@ __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN =
 
 ### Context Structure
 
-The listen hook uses the existing `bpf_sock_addr_t` context structure:
+The listen hook uses the existing `bpf_sock_addr_t` context structure (not modified by this proposal):
 
 ```c
 /**
@@ -127,10 +128,6 @@ typedef struct bpf_sock_addr
     uint32_t family;         ///< IP address family (AF_INET or AF_INET6).
     struct
     {
-        /**
-         * @brief Source IP address in network byte order.
-         * For listen operations, this contains the local address.
-         */
         union
         {
             uint32_t msg_src_ip4;
@@ -140,16 +137,12 @@ typedef struct bpf_sock_addr
     };
     struct
     {
-        /**
-         * @brief Destination IP address in network byte order.
-         * For listen operations, this is unused (set to zero).
-         */
         union
         {
             uint32_t user_ip4;
             uint32_t user_ip6[4];
         };
-        uint16_t user_port;  ///< Destination port (unused for listen).
+        uint16_t user_port;  ///< User-supplied port in network byte order.
     };
     uint32_t protocol;       ///< IP protocol (typically IPPROTO_TCP).
     uint32_t compartment_id; ///< Network compartment ID.
@@ -157,11 +150,12 @@ typedef struct bpf_sock_addr
 } bpf_sock_addr_t;
 ```
 
-For listen operations:
-- `msg_src_ip4`/`msg_src_ip6` and `msg_src_port` contain the local address and port the socket is listening on
-- `user_ip4`/`user_ip6` and `user_port` are unused (set to zero)
+For listen operations, to match Linux `struct bpf_sock_addr` semantics:
+- Both `msg_src_*` and `user_*` fields contain the local listen address and port (on Linux, `user_*` holds the user-supplied address passed to the syscall and `msg_src_*` holds the socket's local address; for listen, both are the local bound address)
 - Process ID can be obtained via the `bpf_get_current_pid_tgid()` helper
 - `bpf_sock_addr_set_redirect_context` is not supported for listen hooks (there is no remote endpoint to redirect)
+
+> **Note:** The Windows `bpf_sock_addr_t` has pre-existing differences from Linux's `struct bpf_sock_addr` that are shared across all sock_addr hooks (e.g., `uint16_t` ports vs Linux `__u32`, Windows-specific `compartment_id`/`interface_luid` fields, missing Linux-specific `type`/`sk`/`ipv6_flowinfo` fields). These are not modified by this proposal.
 
 ### Return Values
 
@@ -227,8 +221,8 @@ The following WFP fields from the ALE_AUTH_LISTEN layers are made available to e
 
 | WFP Field Identifier | Description | Context Field |
 |---------------------|-------------|---------------|
-| FWPM_CONDITION_IP_LOCAL_ADDRESS | Local IP address | msg_src_ip4/msg_src_ip6 |
-| FWPM_CONDITION_IP_LOCAL_PORT | Local port | msg_src_port |
+| FWPM_CONDITION_IP_LOCAL_ADDRESS | Local IP address | msg_src_ip4/msg_src_ip6 and user_ip4/user_ip6 |
+| FWPM_CONDITION_IP_LOCAL_PORT | Local port | msg_src_port and user_port |
 | FWPM_CONDITION_IP_PROTOCOL | IP protocol | protocol |
 | FWPM_CONDITION_COMPARTMENT_ID | Compartment ID | compartment_id |
 | FWPM_CONDITION_IP_LOCAL_INTERFACE | Interface LUID | interface_luid |
@@ -281,24 +275,26 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameter
 ### Example eBPF Program
 
 ```c
+#include "bpf_endian.h"
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
 SEC("cgroup/listen4")
 int monitor_listen_operations(bpf_sock_addr_t* ctx)
 {
-    // Only monitor TCP listeners
+    // Only monitor TCP listeners.
     if (ctx->protocol != IPPROTO_TCP) {
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    // Block privileged ports
-    uint16_t port = bpf_ntohs(ctx->msg_src_port);
+    // Block privileged ports.
+    // user_port contains the local listen port (same as msg_src_port for listen hooks).
+    uint16_t port = bpf_ntohs(ctx->user_port);
     if (port < 1024) {
         return BPF_SOCK_ADDR_VERDICT_REJECT;
     }
 
-    // Log the listen operation
+    // Log the listen operation.
     uint64_t pid_tgid = bpf_get_current_pid_tgid();
     uint32_t pid = pid_tgid >> 32;
     bpf_printk("Process %u listening on port %u\n", pid, port);
@@ -338,6 +334,7 @@ The implementation should be benchmarked against:
 
 ### Phase 1: Core Infrastructure
 - Generate unique GUIDs for EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN and EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN
+- Add `BPF_CGROUP_INET4_LISTEN` and `BPF_CGROUP_INET6_LISTEN` to the `bpf_attach_type` enum
 - Add attach type definitions to ebpf_program_attach_type_guids.h
 - Register new attach types with the existing BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type
 - Extend netebpfext with ALE_AUTH_LISTEN layer support
@@ -345,11 +342,13 @@ The implementation should be benchmarked against:
 
 ### Phase 2: Context Population
 - Populate bpf_sock_addr_t context from WFP ALE_AUTH_LISTEN classify parameters
+- Populate both `msg_src_*` and `user_*` fields with the local listen address/port to match Linux semantics
 - Ensure existing helper functions work with the new attach types
 
 ### Phase 3: Testing and Validation
 - Unit tests for WFP integration
 - End-to-end tests with sample eBPF programs
+- Verify context field semantics match Linux (both `msg_src_*` and `user_*` populated)
 - Performance benchmarking and optimization
 - Security and stability testing
 
@@ -359,4 +358,32 @@ The implementation should be benchmarked against:
 - Integration guide for security products
 - Best practices documentation
 
-This listen hook implementation extends the existing sock_addr infrastructure to provide listen interception capabilities, enabling powerful control over socket listen operations while maintaining consistency with other sock_addr hooks.
+## Linux Compatibility
+
+This section documents alignment with and divergences from the Linux `BPF_CGROUP_INET4_LISTEN` / `BPF_CGROUP_INET6_LISTEN` implementation.
+
+### Aligned
+
+| Aspect | Details |
+|--------|---------|
+| Program type | `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` (same as Linux) |
+| Attach type names | `BPF_CGROUP_INET4_LISTEN` / `BPF_CGROUP_INET6_LISTEN` (same as Linux) |
+| Context structure | `bpf_sock_addr` / `bpf_sock_addr_t` with same field names and semantics |
+| Field semantics | Both `user_*` and `msg_src_*` contain local listen address (matches Linux) |
+| ELF section names | `cgroup/listen4` / `cgroup/listen6` |
+| Verdict | Return 0 to block, non-zero to allow |
+
+### Divergences (pre-existing, shared with other sock_addr hooks)
+
+| Aspect | Linux | Windows | Reason |
+|--------|-------|---------|--------|
+| Port field type | `__u32` | `uint16_t` | Pre-existing Windows design choice |
+| `type` field | Present (SOCK_STREAM, etc.) | Absent | Not available from WFP |
+| `sk` field | Present (socket pointer) | Absent | Kernel-internal, not exposed |
+| `compartment_id` | Absent | Present | Windows networking concept |
+| `interface_luid` | Absent | Present | Windows networking concept |
+| `ipv6_flowinfo`, `ipv6_scope_id` | Present | Absent | Not available from WFP |
+| Return values | 0 (deny) / 1 (allow) | 3-value verdict enum | Pre-existing Windows design choice |
+| Address rewriting | Supported | Not supported for listen | No remote endpoint to redirect |
+
+These divergences are inherent to the Windows platform and are consistent with how all existing sock_addr hooks (connect, recv_accept) already differ from Linux. Programs that access `user_ip4`, `user_port`, `msg_src_ip4`, `msg_src_port`, `family`, and `protocol` are portable between Linux and Windows listen hooks.
