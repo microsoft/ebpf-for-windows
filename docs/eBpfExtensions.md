@@ -699,7 +699,8 @@ The helper function ID for a general helper function must be in the range 0 - 65
 The parameter and return types for these helper functions must adhere to the `ebpf_argument_type_t` and
 `ebpf_return_type_t` enums.
 
-For new extension-provided functions, prefer the BTF-resolved function mechanism described in section 2.9.
+For new extension-provided functions, prefer the BTF-resolved function mechanism described in the
+[BTF-resolved Function Providers](#211-btf-resolved-function-providers) section.
 
 ### 2.9 Helper functions that use custom maps.
 If the extension is implementing a helper function that takes a custom map as input, when the helper function is
@@ -734,7 +735,7 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
     ```
 
-### 2.9 BTF-resolved Function Providers
+### 2.11 BTF-resolved Function Providers
 
 Drivers can expose **BTF-resolved functions** as the preferred mechanism for new extension-provided functions. Unlike
 static-ID helpers, BTF-resolved functions are resolved by name via BTF (BPF Type Format) rather than by fixed

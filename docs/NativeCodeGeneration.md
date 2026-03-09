@@ -220,16 +220,16 @@ The structures and callbacks shown in this section are proposed additions for BT
 ```c
 typedef struct _btf_resolved_function_entry
 {
+    uint64_t zero_marker;      // Marker for section parsing (must precede header per bpf2c convention)
     ebpf_native_module_header_t header;
-    uint64_t zero_marker;      // Marker for section parsing
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding
 } btf_resolved_function_entry_t;
 
 static btf_resolved_function_entry_t _btf_resolved_functions[] = {
-    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_lookup",
+    {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_lookup",
      {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
-    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_update",
+    {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_update",
      {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
 };
 ```
@@ -265,8 +265,8 @@ typedef struct _program_runtime_context
 } program_runtime_context_t;
 ```
 
-If a BTF-resolved function provider detaches while the native module is loaded, the corresponding `btf_resolved_function_data` entry is set
-to NULL.
+If a BTF-resolved function provider detaches while the native module is loaded, the corresponding `btf_resolved_function_data`
+addresses are set to NULL.
 Program invocation will fail until the provider reattaches.
 
 ## Exported maps

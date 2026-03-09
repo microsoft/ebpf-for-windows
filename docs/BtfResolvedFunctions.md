@@ -134,7 +134,7 @@ BTF-resolved function signatures must follow the same constraints as helper func
 ## 4 Registry Publication
 
 Drivers that expose BTF-resolved functions must publish their function metadata to the Windows registry. This
-allows the verifier to discover and validate helper calls at verification time. The eBPF store can be rooted at either
+allows the verifier to discover and validate BTF-resolved function calls at verification time. The eBPF store can be rooted at either
 HKCU or HKLM, so the path below is shown relative to the store root.
 
 ### 4.1 Registry Structure
@@ -251,8 +251,8 @@ When generating native code, bpf2c emits a BTF-resolved function import table al
 ```c
 typedef struct _btf_resolved_function_entry
 {
+    uint64_t zero_marker;      // Marker for section parsing (must precede header per bpf2c convention)
     ebpf_native_module_header_t header;
-    uint64_t zero_marker;      // Marker for section parsing
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding
 } btf_resolved_function_entry_t;
@@ -269,6 +269,8 @@ typedef struct _btf_resolved_function_data
     helper_function_t address;  // Resolved function address
 } btf_resolved_function_data_t;
 
+// Proposed extension to include/bpf2c.h program_runtime_context_t.
+// The existing header field is omitted here for brevity.
 typedef struct _program_runtime_context
 {
     helper_function_data_t* helper_data;
@@ -285,9 +287,9 @@ For a BTF-resolved function call, bpf2c generates:
 ```c
 // BTF-resolved function import table
 static btf_resolved_function_entry_t _btf_resolved_functions[] = {
-    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_lookup",
+    {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_lookup",
      {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
-    {BTF_RESOLVED_FUNCTION_ENTRY_HEADER, 0, "my_driver_update",
+    {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_update",
      {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
 };
 
@@ -299,7 +301,8 @@ result = ((int (*)(uint64_t, void*, uint32_t))runtime_context->btf_resolved_func
 
 The program info hash (used for proof of verification) must include BTF-resolved function dependencies:
 
-1. For each BTF-resolved function used (in deterministic order by module GUID, then function name):
+1. Count of BTF-resolved functions used (to prevent length-extension attacks)
+2. For each BTF-resolved function used (in deterministic order by module GUID, then function name):
    - `btf_resolved_function_entry_t::name`
    - `btf_resolved_function_entry_t::module_guid`
    - `ebpf_btf_resolved_function_prototype_t::return_type`
@@ -383,6 +386,10 @@ typedef struct _ebpf_btf_resolved_function_provider_binding
     bool attached;
 } ebpf_btf_resolved_function_provider_binding_t;
 ```
+
+> **Note:** This is distinct from `ebpf_btf_resolved_function_binding_t` in Section 10, which tracks per-function
+> bindings and includes an additional `provider_data` field. Provider bindings here track per-provider NMR attachment
+> state, while function bindings in Section 10 track resolution of individual BTF-resolved functions.
 
 All required providers must be attached before the program can execute.
 
@@ -472,7 +479,7 @@ The verifier validates that:
 - Argument types match the declared prototype
 - Return values are handled correctly
 
-The program info hash includes BTF-resolved function dependencies, ensuring that a signed native module cannot call helpers
+The program info hash includes BTF-resolved function dependencies, ensuring that a signed native module cannot call BTF-resolved functions
 that were not present during verification.
 
 ### 11.3 Isolation
