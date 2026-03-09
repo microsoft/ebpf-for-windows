@@ -930,6 +930,15 @@ _format_number(uint64_t value)
     return result;
 }
 
+// Format a double microsecond value as a string with 2 decimal places.
+static std::string
+_format_us(double us_value)
+{
+    char buf[64];
+    sprintf_s(buf, sizeof(buf), "%.2f", us_value);
+    return std::string(buf);
+}
+
 #define TOKEN_FORMAT L"format"
 #define TOKEN_INPUT L"input"
 
@@ -1230,20 +1239,51 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
     }
 
     if (!program_durations.empty()) {
+        // Compute dynamic column widths for program table.
+        int id_w = 6;   // "ProgID"
+        int name_w = 4; // "Name"
+        int cnt_w = 5;  // "Count"
+        int num_w = 8;  // "Avg (us)" etc.
+        for (auto& [pid, durations] : program_durations) {
+            std::sort(durations.begin(), durations.end());
+            size_t n = durations.size();
+            uint64_t sum = 0;
+            for (auto d : durations)
+                sum += d;
+
+            char id_buf[16];
+            sprintf_s(id_buf, sizeof(id_buf), "%u", pid);
+            id_w = (std::max)(id_w, (int)strlen(id_buf));
+            auto name_it = program_names.find(pid);
+            if (name_it != program_names.end()) {
+                name_w = (std::max)(name_w, (int)name_it->second.size());
+            }
+            cnt_w = (std::max)(cnt_w, (int)std::to_string(n).size());
+            num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(sum / n)).size());
+            num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(durations[n - 1])).size());
+        }
+
         printf("--- Program Invocation Latency (us) ---\n");
         printf(
-            "%-8s %-20s %10s %12s %12s %12s %12s %12s\n",
+            "%-*s %-*s %*s %*s %*s %*s %*s %*s\n",
+            id_w,
             "ProgID",
+            name_w,
             "Name",
+            cnt_w,
             "Count",
+            num_w,
             "Avg (us)",
+            num_w,
             "P50 (us)",
+            num_w,
             "P90 (us)",
+            num_w,
             "P99 (us)",
+            num_w,
             "Max (us)");
 
         for (auto& [pid, durations] : program_durations) {
-            std::sort(durations.begin(), durations.end());
             size_t n = durations.size();
             uint64_t sum = 0;
             for (auto d : durations)
@@ -1253,15 +1293,23 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
             const char* prog_name = (name_it != program_names.end()) ? name_it->second.c_str() : "";
 
             printf(
-                "%-8u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                "%-*u %-*s %*zu %*s %*s %*s %*s %*s\n",
+                id_w,
                 pid,
+                name_w,
                 prog_name,
+                cnt_w,
                 n,
-                ticks_to_us(sum / n),
-                ticks_to_us(durations[n * 50 / 100]),
-                ticks_to_us(durations[n * 90 / 100]),
-                ticks_to_us(durations[n * 99 / 100]),
-                ticks_to_us(durations[n - 1]));
+                num_w,
+                _format_us(ticks_to_us(sum / n)).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 50 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 90 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 99 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n - 1])).c_str());
         }
     }
 
@@ -1281,20 +1329,63 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
             } else {
                 printf("\n--- Map Helper Summary (Program %u) (us) ---\n", pid);
             }
+
+            // Compute dynamic column widths for this program's helper table.
+            int hlp_w = 6; // "Helper"
+            int mid_w = 5; // "MapID"
+            int map_w = 8; // "Map Name"
+            int cnt_w = 5; // "Count"
+            int num_w = 8; // "Avg (us)" etc.
+            for (auto& [hid, mid, durations_ptr] : helpers) {
+                std::sort(durations_ptr->begin(), durations_ptr->end());
+                size_t n = durations_ptr->size();
+                uint64_t sum = 0;
+                for (auto d : *durations_ptr)
+                    sum += d;
+
+                const char* helper_name = _helper_function_name(hid);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", hid);
+                    helper_name = helper_name_buf;
+                }
+                hlp_w = (std::max)(hlp_w, (int)strlen(helper_name));
+
+                char mid_buf[16];
+                sprintf_s(mid_buf, sizeof(mid_buf), "%u", (unsigned)mid);
+                mid_w = (std::max)(mid_w, (int)strlen(mid_buf));
+
+                auto map_name_it = map_names.find(mid);
+                const char* map_name_str = (map_name_it != map_names.end()) ? map_name_it->second.c_str() : "";
+                map_w = (std::max)(map_w, (int)strlen(map_name_str));
+
+                cnt_w = (std::max)(cnt_w, (int)std::to_string(n).size());
+                num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(sum / n)).size());
+                num_w = (std::max)(num_w, (int)_format_us(ticks_to_us((*durations_ptr)[n - 1])).size());
+            }
+
             printf(
-                "%-20s %6s %-20s %10s %12s %12s %12s %12s %12s\n",
+                "%-*s %*s %-*s %*s %*s %*s %*s %*s %*s\n",
+                hlp_w,
                 "Helper",
+                mid_w,
                 "MapID",
+                map_w,
                 "Map Name",
+                cnt_w,
                 "Count",
+                num_w,
                 "Avg (us)",
+                num_w,
                 "P50 (us)",
+                num_w,
                 "P90 (us)",
+                num_w,
                 "P99 (us)",
+                num_w,
                 "Max (us)");
 
             for (auto& [hid, mid, durations_ptr] : helpers) {
-                std::sort(durations_ptr->begin(), durations_ptr->end());
                 size_t n = durations_ptr->size();
                 uint64_t sum = 0;
                 for (auto d : *durations_ptr)
@@ -1311,16 +1402,25 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
                 }
 
                 printf(
-                    "%-20s %6u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                    "%-*s %*u %-*s %*zu %*s %*s %*s %*s %*s\n",
+                    hlp_w,
                     helper_name,
+                    mid_w,
                     (unsigned)mid,
+                    map_w,
                     map_name_str,
+                    cnt_w,
                     n,
-                    ticks_to_us(sum / n),
-                    ticks_to_us((*durations_ptr)[n * 50 / 100]),
-                    ticks_to_us((*durations_ptr)[n * 90 / 100]),
-                    ticks_to_us((*durations_ptr)[n * 99 / 100]),
-                    ticks_to_us((*durations_ptr)[n - 1]));
+                    num_w,
+                    _format_us(ticks_to_us(sum / n)).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 50 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 90 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 99 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n - 1])).c_str());
             }
         }
     }
@@ -1469,20 +1569,51 @@ _show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
     }
 
     if (!program_durations.empty()) {
+        // Compute dynamic column widths for program table.
+        int id_w = 6;   // "ProgID"
+        int name_w = 4; // "Name"
+        int cnt_w = 5;  // "Count"
+        int num_w = 8;  // "Avg (us)" etc.
+        for (auto& [pid, durations] : program_durations) {
+            std::sort(durations.begin(), durations.end());
+            size_t n = durations.size();
+            uint64_t sum = 0;
+            for (auto d : durations)
+                sum += d;
+
+            char id_buf[16];
+            sprintf_s(id_buf, sizeof(id_buf), "%u", pid);
+            id_w = (std::max)(id_w, (int)strlen(id_buf));
+            auto name_it = program_names.find(pid);
+            if (name_it != program_names.end()) {
+                name_w = (std::max)(name_w, (int)name_it->second.size());
+            }
+            cnt_w = (std::max)(cnt_w, (int)std::to_string(n).size());
+            num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(sum / n)).size());
+            num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(durations[n - 1])).size());
+        }
+
         printf("--- Program Invocation Latency (us) ---\n");
         printf(
-            "%-8s %-20s %10s %12s %12s %12s %12s %12s\n",
+            "%-*s %-*s %*s %*s %*s %*s %*s %*s\n",
+            id_w,
             "ProgID",
+            name_w,
             "Name",
+            cnt_w,
             "Count",
+            num_w,
             "Avg (us)",
+            num_w,
             "P50 (us)",
+            num_w,
             "P90 (us)",
+            num_w,
             "P99 (us)",
+            num_w,
             "Max (us)");
 
         for (auto& [pid, durations] : program_durations) {
-            std::sort(durations.begin(), durations.end());
             size_t n = durations.size();
             uint64_t sum = 0;
             for (auto d : durations)
@@ -1492,15 +1623,23 @@ _show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
             const char* prog_name = (name_it != program_names.end()) ? name_it->second.c_str() : "";
 
             printf(
-                "%-8u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                "%-*u %-*s %*zu %*s %*s %*s %*s %*s\n",
+                id_w,
                 pid,
+                name_w,
                 prog_name,
+                cnt_w,
                 n,
-                ticks_to_us(sum / n),
-                ticks_to_us(durations[n * 50 / 100]),
-                ticks_to_us(durations[n * 90 / 100]),
-                ticks_to_us(durations[n * 99 / 100]),
-                ticks_to_us(durations[n - 1]));
+                num_w,
+                _format_us(ticks_to_us(sum / n)).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 50 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 90 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n * 99 / 100])).c_str(),
+                num_w,
+                _format_us(ticks_to_us(durations[n - 1])).c_str());
         }
     }
 
@@ -1519,20 +1658,63 @@ _show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
             } else {
                 printf("\n--- Map Helper Summary (Program %u) (us) ---\n", pid);
             }
+
+            // Compute dynamic column widths for this program's helper table.
+            int hlp_w = 6; // "Helper"
+            int mid_w = 5; // "MapID"
+            int map_w = 8; // "Map Name"
+            int cnt_w = 5; // "Count"
+            int num_w = 8; // "Avg (us)" etc.
+            for (auto& [hid, mid, durations_ptr] : helpers) {
+                std::sort(durations_ptr->begin(), durations_ptr->end());
+                size_t n = durations_ptr->size();
+                uint64_t sum = 0;
+                for (auto d : *durations_ptr)
+                    sum += d;
+
+                const char* helper_name = _helper_function_name(hid);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", hid);
+                    helper_name = helper_name_buf;
+                }
+                hlp_w = (std::max)(hlp_w, (int)strlen(helper_name));
+
+                char mid_buf[16];
+                sprintf_s(mid_buf, sizeof(mid_buf), "%u", (unsigned)mid);
+                mid_w = (std::max)(mid_w, (int)strlen(mid_buf));
+
+                auto map_name_it = map_names.find(mid);
+                const char* map_name_str = (map_name_it != map_names.end()) ? map_name_it->second.c_str() : "";
+                map_w = (std::max)(map_w, (int)strlen(map_name_str));
+
+                cnt_w = (std::max)(cnt_w, (int)std::to_string(n).size());
+                num_w = (std::max)(num_w, (int)_format_us(ticks_to_us(sum / n)).size());
+                num_w = (std::max)(num_w, (int)_format_us(ticks_to_us((*durations_ptr)[n - 1])).size());
+            }
+
             printf(
-                "%-20s %6s %-20s %10s %12s %12s %12s %12s %12s\n",
+                "%-*s %*s %-*s %*s %*s %*s %*s %*s %*s\n",
+                hlp_w,
                 "Helper",
+                mid_w,
                 "MapID",
+                map_w,
                 "Map Name",
+                cnt_w,
                 "Count",
+                num_w,
                 "Avg (us)",
+                num_w,
                 "P50 (us)",
+                num_w,
                 "P90 (us)",
+                num_w,
                 "P99 (us)",
+                num_w,
                 "Max (us)");
 
             for (auto& [hid, mid, durations_ptr] : helpers) {
-                std::sort(durations_ptr->begin(), durations_ptr->end());
                 size_t n = durations_ptr->size();
                 uint64_t sum = 0;
                 for (auto d : *durations_ptr)
@@ -1549,16 +1731,25 @@ _show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
                 }
 
                 printf(
-                    "%-20s %6u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                    "%-*s %*u %-*s %*zu %*s %*s %*s %*s %*s\n",
+                    hlp_w,
                     helper_name,
+                    mid_w,
                     (unsigned)mid,
+                    map_w,
                     map_name_str,
+                    cnt_w,
                     n,
-                    ticks_to_us(sum / n),
-                    ticks_to_us((*durations_ptr)[n * 50 / 100]),
-                    ticks_to_us((*durations_ptr)[n * 90 / 100]),
-                    ticks_to_us((*durations_ptr)[n * 99 / 100]),
-                    ticks_to_us((*durations_ptr)[n - 1]));
+                    num_w,
+                    _format_us(ticks_to_us(sum / n)).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 50 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 90 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n * 99 / 100])).c_str(),
+                    num_w,
+                    _format_us(ticks_to_us((*durations_ptr)[n - 1])).c_str());
             }
         }
     }

@@ -18,6 +18,7 @@
 //
 // MCP Tools Exposed:
 //   - load_etl:              Ingest an ETL file and index all latency events.
+//   - load_bin:              Ingest a .bin file (ring buffer drain) and index all latency events.
 //   - get_summary:           Overall trace summary (like netsh show latencytrace).
 //   - get_program_summary:   Per-program statistics with percentiles (one or all).
 //   - get_helper_summary:    Per-helper statistics for a given program.
@@ -753,6 +754,192 @@ load_etl_file(const std::string& file_path)
 }
 
 // ============================================================================
+// .bin file loading — reads the binary latency file format produced by
+// "netsh ebpf show latencytrace" ring buffer drain.
+// ============================================================================
+
+// .bin file format structures (must match latency.cpp definitions).
+#define EBPF_LATENCY_FILE_MAGIC 0x544C4245 // "EBLT"
+#define EBPF_LATENCY_FILE_VERSION 2
+
+#define EBPF_LATENCY_NAME_TYPE_PROGRAM 0
+#define EBPF_LATENCY_NAME_TYPE_MAP 1
+
+#define EBPF_LATENCY_EVENT_PROGRAM_START 0
+#define EBPF_LATENCY_EVENT_PROGRAM_END 1
+#define EBPF_LATENCY_EVENT_HELPER_START 2
+#define EBPF_LATENCY_EVENT_HELPER_END 3
+
+#pragma pack(push, 1)
+struct BinFileHeader
+{
+    uint32_t magic;
+    uint32_t version;
+    uint64_t tsc_frequency;
+    uint64_t tsc_at_enable;
+    uint64_t qpc_at_enable;
+    uint32_t cpu_count;
+    uint32_t total_records;
+    uint32_t name_table_entries;
+    uint32_t reserved;
+};
+
+struct BinRecord
+{
+    uint64_t timestamp;
+    uint32_t correlation_id;
+    uint32_t program_id;
+    uint16_t helper_function_id;
+    uint16_t map_id;
+    uint8_t event_type;
+    uint8_t cpu_id;
+    uint8_t reserved[2];
+};
+
+struct BinNameEntry
+{
+    uint8_t type;
+    uint32_t id;
+    uint16_t name_length;
+};
+#pragma pack(pop)
+
+static std::string
+load_bin_file(const std::string& file_path)
+{
+    FILE* fp = nullptr;
+    errno_t err = fopen_s(&fp, file_path.c_str(), "rb");
+    if (err != 0 || fp == nullptr) {
+        return "Failed to open .bin file: " + file_path;
+    }
+
+    // Read header.
+    BinFileHeader hdr = {};
+    if (fread(&hdr, sizeof(hdr), 1, fp) != 1) {
+        fclose(fp);
+        return "Failed to read .bin file header.";
+    }
+    if (hdr.magic != EBPF_LATENCY_FILE_MAGIC) {
+        fclose(fp);
+        return "Invalid .bin file magic.";
+    }
+    if (hdr.version != EBPF_LATENCY_FILE_VERSION) {
+        fclose(fp);
+        return "Unsupported .bin file version " + std::to_string(hdr.version) + ".";
+    }
+
+    // Read records.
+    std::vector<BinRecord> records(hdr.total_records);
+    size_t records_read = fread(records.data(), sizeof(BinRecord), hdr.total_records, fp);
+    if (records_read != hdr.total_records) {
+        records.resize(records_read);
+    }
+
+    // Read name table.
+    std::unordered_map<uint32_t, std::string> prog_names;
+    std::unordered_map<uint16_t, std::string> map_names;
+    for (uint32_t i = 0; i < hdr.name_table_entries; i++) {
+        BinNameEntry entry = {};
+        if (fread(&entry, sizeof(entry), 1, fp) != 1)
+            break;
+        std::string name(entry.name_length, '\0');
+        if (entry.name_length > 0 && fread(&name[0], 1, entry.name_length, fp) != entry.name_length)
+            break;
+        if (entry.type == EBPF_LATENCY_NAME_TYPE_PROGRAM) {
+            prog_names[entry.id] = std::move(name);
+        } else if (entry.type == EBPF_LATENCY_NAME_TYPE_MAP) {
+            map_names[(uint16_t)entry.id] = std::move(name);
+        }
+    }
+    fclose(fp);
+
+    // Pair start/end records into consolidated events.
+    auto td = std::make_unique<TraceData>();
+    td->file_path = file_path;
+    td->timer_resolution = 10000000; // 100-ns units → 10 MHz.
+
+    // Track start timestamps per CPU for pairing.
+    // Program: cpu_id -> (program_id -> start record)
+    std::map<uint8_t, std::map<uint32_t, const BinRecord*>> cpu_prog_start;
+    // Helper: cpu_id -> ((program_id, helper_id, map_id) -> start record)
+    typedef std::tuple<uint32_t, uint16_t, uint16_t> HelperKey;
+    std::map<uint8_t, std::map<HelperKey, const BinRecord*>> cpu_helper_start;
+
+    for (const auto& r : records) {
+        if (td->first_timestamp == 0 || r.timestamp < td->first_timestamp)
+            td->first_timestamp = r.timestamp;
+        if (r.timestamp > td->last_timestamp)
+            td->last_timestamp = r.timestamp;
+
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
+            cpu_prog_start[r.cpu_id][r.program_id] = &r;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
+            auto cpu_it = cpu_prog_start.find(r.cpu_id);
+            if (cpu_it != cpu_prog_start.end()) {
+                auto prog_it = cpu_it->second.find(r.program_id);
+                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second->timestamp) {
+                    const BinRecord* start = prog_it->second;
+                    ProgramInvokeEvent ev;
+                    ev.program_id = r.program_id;
+                    auto name_it = prog_names.find(r.program_id);
+                    ev.program_name = (name_it != prog_names.end()) ? name_it->second : "";
+                    ev.correlation_id = start->correlation_id;
+                    ev.process_id = 0;
+                    ev.thread_id = 0;
+                    ev.start_time = start->timestamp;
+                    ev.end_time = r.timestamp;
+                    ev.duration = r.timestamp - start->timestamp;
+                    ev.cpu_id = r.cpu_id;
+                    ev.etw_timestamp = r.timestamp;
+                    td->program_events.push_back(std::move(ev));
+                    cpu_it->second.erase(prog_it);
+                }
+            }
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
+            HelperKey key = {r.program_id, r.helper_function_id, r.map_id};
+            cpu_helper_start[r.cpu_id][key] = &r;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
+            HelperKey key = {r.program_id, r.helper_function_id, r.map_id};
+            auto cpu_it = cpu_helper_start.find(r.cpu_id);
+            if (cpu_it != cpu_helper_start.end()) {
+                auto hlp_it = cpu_it->second.find(key);
+                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second->timestamp) {
+                    const BinRecord* start = hlp_it->second;
+                    MapHelperEvent ev;
+                    ev.program_id = r.program_id;
+                    ev.helper_function_id = r.helper_function_id;
+                    auto mname_it = map_names.find(r.map_id);
+                    ev.map_name = (mname_it != map_names.end()) ? mname_it->second : "";
+                    ev.correlation_id = start->correlation_id;
+                    ev.process_id = 0;
+                    ev.thread_id = 0;
+                    ev.start_time = start->timestamp;
+                    ev.end_time = r.timestamp;
+                    ev.duration = r.timestamp - start->timestamp;
+                    ev.cpu_id = r.cpu_id;
+                    ev.etw_timestamp = r.timestamp;
+                    td->helper_events.push_back(std::move(ev));
+                    cpu_it->second.erase(hlp_it);
+                }
+            }
+        }
+    }
+
+    // Set program names.
+    for (const auto& [pid, name] : prog_names) {
+        td->program_names[pid] = name;
+    }
+
+    td->total_events = (uint32_t)(td->program_events.size() + td->helper_events.size());
+
+    build_indexes(*td);
+
+    std::lock_guard<std::mutex> lock(g_traces_mutex);
+    g_traces[file_path] = std::move(td);
+    return "";
+}
+
+// ============================================================================
 // Statistics helpers
 // ============================================================================
 
@@ -904,6 +1091,46 @@ tool_load_etl(const JsonValue& params)
     result.set("program_invoke_events", JsonValue(static_cast<uint64_t>(td->program_events.size())));
     result.set("map_helper_events", JsonValue(static_cast<uint64_t>(td->helper_events.size())));
     result.set("ext_invoke_events", JsonValue(static_cast<uint64_t>(td->ext_events.size())));
+    result.set("unique_programs", JsonValue(static_cast<uint64_t>(td->program_event_index.size())));
+
+    double duration_sec = 0.0;
+    if (td->timer_resolution > 0 && td->last_timestamp > td->first_timestamp) {
+        duration_sec =
+            static_cast<double>(td->last_timestamp - td->first_timestamp) / static_cast<double>(td->timer_resolution);
+    }
+    result.set("trace_duration_seconds", JsonValue(duration_sec));
+
+    return result;
+}
+
+// Tool: load_bin
+// Params: { "file_path": "<path to .bin file>" }
+static JsonValue
+tool_load_bin(const JsonValue& params)
+{
+    std::string path = params.get_string("file_path");
+    if (path.empty()) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue("file_path parameter is required"));
+        return err;
+    }
+
+    std::string error = load_bin_file(path);
+    if (!error.empty()) {
+        auto err = JsonValue::make_object();
+        err.set("error", JsonValue(error));
+        return err;
+    }
+
+    std::lock_guard<std::mutex> lock(g_traces_mutex);
+    auto& td = g_traces[path];
+
+    auto result = JsonValue::make_object();
+    result.set("status", JsonValue("loaded"));
+    result.set("file_path", JsonValue(path));
+    result.set("total_events", JsonValue(td->total_events));
+    result.set("program_invoke_events", JsonValue(static_cast<uint64_t>(td->program_events.size())));
+    result.set("map_helper_events", JsonValue(static_cast<uint64_t>(td->helper_events.size())));
     result.set("unique_programs", JsonValue(static_cast<uint64_t>(td->program_event_index.size())));
 
     double duration_sec = 0.0;
@@ -1908,9 +2135,16 @@ get_tool_list()
         {{"file_path", "string", "Absolute path to the .etl file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
+        "load_bin",
+        "Load and index an eBPF latency .bin trace file (produced by 'netsh ebpf show latencytrace' ring buffer "
+        "drain). "
+        "Must be called before querying. All query tools work identically on both .etl and .bin loaded traces.",
+        {{"file_path", "string", "Absolute path to the .bin file", true, ""}}));
+
+    tools.push_back(make_tool_descriptor(
         "unload",
-        "Release a previously loaded ETL trace from memory.",
-        {{"file_path", "string", "Path of the previously loaded .etl file", true, ""}}));
+        "Release a previously loaded trace from memory.",
+        {{"file_path", "string", "Path of the previously loaded file", true, ""}}));
 
     tools.push_back(make_tool_descriptor(
         "list_programs",
@@ -2022,6 +2256,8 @@ dispatch_tool(const std::string& tool_name, const JsonValue& arguments)
 {
     if (tool_name == "load_etl")
         return tool_load_etl(arguments);
+    if (tool_name == "load_bin")
+        return tool_load_bin(arguments);
     if (tool_name == "unload")
         return tool_unload(arguments);
     if (tool_name == "list_programs")
