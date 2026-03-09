@@ -1554,7 +1554,7 @@ ebpf_program_invoke(
         if (ebpf_latency_is_correlation_enabled()) {
             correlation_id = ebpf_latency_next_correlation_id(cpu);
         }
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
 
         // Write program-start record.
         ebpf_latency_write_record(
@@ -1629,13 +1629,20 @@ ebpf_program_invoke(
 
     // Latency tracking: write program-end record if tracking was active.
     if (latency_tsc != 0) {
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         ebpf_latency_write_record(
             (uint32_t)program->object.id,
             0, // helper_function_id
             0, // map_id
             correlation_id,
-            __rdtsc(),
+            end_tsc,
             EBPF_LATENCY_EVENT_PROGRAM_END);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_program_etw_event(
+                (uint32_t)program->object.id, correlation_id, latency_tsc, end_tsc, (uint8_t)ebpf_get_current_cpu());
+        }
     }
 
     return EBPF_SUCCESS;

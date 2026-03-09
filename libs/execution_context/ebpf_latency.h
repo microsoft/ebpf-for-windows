@@ -186,6 +186,51 @@ extern "C"
     const ebpf_latency_state_t*
     ebpf_latency_get_state();
 
+    /**
+     * @brief Get the active latency backend.
+     * @return EBPF_LATENCY_BACKEND_RINGBUFFER or EBPF_LATENCY_BACKEND_ETW.
+     */
+    uint32_t
+    ebpf_latency_get_backend();
+
+    /**
+     * @brief Emit an EbpfProgramLatency ETW event (for ETW backend).
+     *
+     * Called at program-end to emit a single consolidated event with duration.
+     *
+     * @param[in] program_id The eBPF program ID.
+     * @param[in] correlation_id Correlation ID (0 if not enabled).
+     * @param[in] start_tsc TSC value at program start.
+     * @param[in] end_tsc TSC value at program end.
+     * @param[in] cpu_id Processor number.
+     */
+    void
+    ebpf_latency_emit_program_etw_event(
+        uint32_t program_id, uint32_t correlation_id, uint64_t start_tsc, uint64_t end_tsc, uint8_t cpu_id);
+
+    /**
+     * @brief Emit an EbpfMapHelperLatency ETW event (for ETW backend).
+     *
+     * Called at helper-end to emit a single consolidated event with duration.
+     *
+     * @param[in] program_id The eBPF program ID.
+     * @param[in] helper_function_id BPF_FUNC_xxx helper ID.
+     * @param[in] map_id Map ID.
+     * @param[in] correlation_id Correlation ID (0 if not enabled).
+     * @param[in] start_tsc TSC value at helper start.
+     * @param[in] end_tsc TSC value at helper end.
+     * @param[in] cpu_id Processor number.
+     */
+    void
+    ebpf_latency_emit_helper_etw_event(
+        uint32_t program_id,
+        uint16_t helper_function_id,
+        uint16_t map_id,
+        uint32_t correlation_id,
+        uint64_t start_tsc,
+        uint64_t end_tsc,
+        uint8_t cpu_id);
+
 #ifdef __cplusplus
 }
 #endif

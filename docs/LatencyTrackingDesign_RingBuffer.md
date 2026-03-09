@@ -273,7 +273,13 @@ state->tsc_at_enable = __rdtsc();
 state->qpc_at_enable = cxplat_query_time_since_boot_precise(false);
 ```
 
-User-mode consumer converts: `nanoseconds = (tsc_delta * 1,000,000,000) / tsc_frequency`.
+User-mode consumer converts TSC deltas to microseconds at display/file-write time:
+
+```
+microseconds = (tsc_delta * 1,000,000) / tsc_frequency
+```
+
+All latency values shown in `show latencytrace` output and written to the binary file are in **microseconds (µs)**, not raw TSC ticks. The `tsc_frequency` is captured once at enable time (in the drain reply header and binary file header) and used for the conversion.
 
 This saves ~15–25 ns per timestamp × 2 timestamps per event × 27 events = **~0.8–1.4 µs per invocation**.
 
@@ -616,23 +622,79 @@ The complete flow for `netsh ebpf show latencytrace`:
      ebpf_latency_record_t[total_records]  (24 bytes each, sorted by timestamp)
    ```
 
-6. **Display summary** (optional, after writing file):
-   - Pair `PROGRAM_START` / `PROGRAM_END` events to compute per-program statistics
-   - Pair `HELPER_START` / `HELPER_END` events for per-helper statistics
-   - Print table with count, avg, P50, P90, P95, P99, max
+6. **Convert and display summary** (optional, after writing file):
+   - Pair `PROGRAM_START` / `PROGRAM_END` events to compute per-program durations in TSC ticks
+   - Pair `HELPER_START` / `HELPER_END` events for per-helper durations in TSC ticks
+   - Convert all TSC tick durations to microseconds: `µs = (tsc_ticks * 1,000,000) / tsc_frequency`
+   - Print table with count, avg (µs), P50 (µs), P90 (µs), P95 (µs), P99 (µs), max (µs)
 
 ### 9.4 Name Resolution
 
-The ring buffer records contain only `program_id` and `map_id`. The user-mode consumer resolves names by calling existing APIs:
+The ring buffer records contain only `program_id` and `map_id` (numeric IDs). The user-mode consumer resolves these IDs to human-readable names by calling existing BPF APIs **once** at drain time, before printing the report. This keeps all string manipulation out of the hot path.
 
-```c
-// Already available in ebpf_api.h:
-ebpf_result_t ebpf_get_next_program_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id);
-ebpf_result_t ebpf_get_next_map_id(ebpf_id_t start_id, _Out_ ebpf_id_t* next_id);
-// + ebpf_get_program_info_by_id / ebpf_get_map_info_by_id for names.
+#### 9.4.1 Lookup Strategy
+
+After draining all per-CPU ring buffers and before computing statistics, the consumer:
+
+1. **Collects unique IDs:** Scans all drained records to build the set of unique `program_id` values and unique `map_id` values that appear in the trace data.
+
+2. **Resolves program names:** For each unique `program_id`:
+   ```c
+   fd_t fd = bpf_prog_get_fd_by_id(program_id);
+   if (fd >= 0) {
+       struct bpf_prog_info info = {};
+       uint32_t info_size = sizeof(info);
+       if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
+           program_names[program_id] = info.name;  // up to BPF_OBJ_NAME_LEN chars
+       }
+       Platform::_close(fd);
+   }
+   ```
+
+3. **Resolves map names:** For each unique `map_id` (where `map_id != 0`):
+   ```c
+   fd_t fd = bpf_map_get_fd_by_id(map_id);
+   if (fd >= 0) {
+       struct bpf_map_info info = {};
+       uint32_t info_size = sizeof(info);
+       if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
+           map_names[map_id] = info.name;  // up to BPF_OBJ_NAME_LEN chars
+       }
+       Platform::_close(fd);
+   }
+   ```
+
+4. **Graceful fallback:** If a program or map has been unloaded between the trace capture and the drain, the `bpf_prog_get_fd_by_id` / `bpf_map_get_fd_by_id` call will fail. In that case, the name is reported as an empty string in the output. The numeric ID is always printed alongside the name, so records remain identifiable.
+
+#### 9.4.2 Output Format
+
+The ring buffer report includes both the numeric ID and the resolved name in each table:
+
+```
+--- Program Invocation Latency (us) ---
+ProgID   Name              Count      Avg (us)     P50 (us)     P90 (us)     P99 (us)     Max (us)
+-------- ----------------  ---------- ------------ ------------ ------------ ------------ ------------
+5        caller                 1,000         0.19         0.17         0.37         0.50         0.87
+6        callee                   500         0.16         0.15         0.33         0.46         0.75
+
+--- Helper Latency (us) ---
+ProgID   Program Name      Helper               MapID  Map Name     Count      Avg (us)  ...
+-------- ----------------  -------------------- ------  ------------ ---------- --------  ...
+5        caller            map_lookup_elem           3  process_map      1,000     0.05  ...
+5        caller            map_update_elem           3  process_map        500     0.07  ...
 ```
 
-This is done **once** at drain time, not on every event — eliminating all string manipulation from the hot path.
+When a name cannot be resolved (program/map already unloaded), the Name column is empty:
+
+```
+ProgID   Name              Count    ...
+-------- ----------------  -------  ...
+99                              50  ...
+```
+
+#### 9.4.3 Consistency with ETW Path
+
+The ETW path (`_show_latencytrace_from_etl`) already receives program names and map names inline in each ETW event. The ring buffer path now produces equivalent output by resolving names at drain time. Both paths use the same column layout (ID + Name) so that reports are visually consistent regardless of the backend used.
 
 ---
 

@@ -2374,7 +2374,7 @@ _ebpf_core_map_find_element(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     ebpf_result_t retval;
@@ -2382,13 +2382,25 @@ _ebpf_core_map_find_element(
     retval = ebpf_map_find_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_lookup_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_lookup_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_helper_etw_event(
+                program_id,
+                BPF_FUNC_map_lookup_elem,
+                map_id,
+                correlation_id,
+                latency_tsc,
+                end_tsc,
+                (uint8_t)ebpf_get_current_cpu());
+        }
     }
 
     if (retval != EBPF_SUCCESS) {
@@ -2410,19 +2422,31 @@ _ebpf_core_map_update_element(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int64_t result = -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_update_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_update_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_helper_etw_event(
+                program_id,
+                BPF_FUNC_map_update_elem,
+                map_id,
+                correlation_id,
+                latency_tsc,
+                end_tsc,
+                (uint8_t)ebpf_get_current_cpu());
+        }
     }
 
     return result;
@@ -2442,19 +2466,31 @@ _ebpf_core_map_delete_element(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int64_t result = -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_delete_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
         ebpf_latency_write_record(
             program_id, BPF_FUNC_map_delete_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_helper_etw_event(
+                program_id,
+                BPF_FUNC_map_delete_elem,
+                map_id,
+                correlation_id,
+                latency_tsc,
+                end_tsc,
+                (uint8_t)ebpf_get_current_cpu());
+        }
     }
 
     return result;
@@ -2479,7 +2515,7 @@ _ebpf_core_map_find_and_delete_element(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     ebpf_result_t retval;
@@ -2488,7 +2524,7 @@ _ebpf_core_map_find_and_delete_element(
         map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
@@ -2505,6 +2541,18 @@ _ebpf_core_map_find_and_delete_element(
             correlation_id,
             end_tsc,
             EBPF_LATENCY_EVENT_HELPER_END);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_helper_etw_event(
+                program_id,
+                BPF_FUNC_map_lookup_and_delete_elem,
+                map_id,
+                correlation_id,
+                latency_tsc,
+                end_tsc,
+                (uint8_t)ebpf_get_current_cpu());
+        }
     }
 
     if (retval != EBPF_SUCCESS) {
@@ -2779,13 +2827,13 @@ _ebpf_core_ring_buffer_output(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int result = -ebpf_ring_buffer_map_output(map, data, length);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
@@ -2855,13 +2903,13 @@ _ebpf_core_perf_event_output(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int result = -ebpf_perf_event_array_map_output_with_capture(ctx, map, flags, data, length);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
@@ -2896,13 +2944,13 @@ _ebpf_core_map_push_elem(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int result = -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
@@ -2933,13 +2981,13 @@ _ebpf_core_map_pop_elem(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int result = -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
@@ -2970,13 +3018,13 @@ _ebpf_core_map_peek_elem(
     uint64_t latency_tsc = 0;
     long latency_mode = ebpf_latency_get_mode();
     if (latency_mode >= EBPF_LATENCY_MODE_ALL && ebpf_latency_should_track_program(program_id)) {
-        latency_tsc = __rdtsc();
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
     }
 
     int result = -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 
     if (latency_tsc != 0) {
-        uint64_t end_tsc = __rdtsc();
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(

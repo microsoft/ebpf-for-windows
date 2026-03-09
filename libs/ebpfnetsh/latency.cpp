@@ -1,13 +1,16 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "bpf/bpf.h"
 #include "ebpf_api.h"
 #include "latency.h"
+#include "platform.h"
 #include "tokens.h"
 #include "utilities.h"
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -309,9 +312,9 @@ handle_ebpf_set_latency(
             _backend_active = false;
         }
     } else {
-        // Validate mutual exclusivity: ETW backend does not use ring buffer parameters.
-        if (backend == BACKEND_ETW && (events_per_cpu != 0 || correlation == CORRELATION_YES)) {
-            printf("Error: 'events' and 'correlation' parameters are only valid with backend=ringbuffer.\n");
+        // Validate mutual exclusivity: ETW backend does not use ring buffer buffer-size parameter.
+        if (backend == BACKEND_ETW && events_per_cpu != 0) {
+            printf("Error: 'events' parameter is only valid with backend=ringbuffer.\n");
             return ERROR_INVALID_PARAMETER;
         }
 
@@ -364,9 +367,7 @@ handle_ebpf_set_latency(
             } else {
                 printf(", filter=all");
             }
-            if (backend == BACKEND_RINGBUFFER) {
-                printf(", correlation=%s", (latency_flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? "yes" : "no");
-            }
+            printf(", correlation=%s", (latency_flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? "yes" : "no");
             if (backend == BACKEND_ETW) {
                 printf(", file=%ls", etw_file);
             }
@@ -413,7 +414,7 @@ handle_ebpf_show_latency(
     }
     printf("\n  Usage:\n");
     printf("    netsh ebpf set latency mode=all backend=ringbuffer [correlation=yes] [events=N]\n");
-    printf("    netsh ebpf set latency mode=all backend=etw [file=output.etl]\n");
+    printf("    netsh ebpf set latency mode=all backend=etw [correlation=yes] [file=output.etl]\n");
     printf("    netsh ebpf set latency mode=off\n");
     printf("    netsh ebpf show latencytrace [file=<path>] [format=table|csv]\n\n");
 
@@ -518,8 +519,8 @@ handle_ebpf_stop_latencytrace(
 // show latencytrace — ETL file parser and latency report generator
 // ============================================================================
 
-// Conversion factor: 100-ns units to nanoseconds.
-#define FILETIME_UNITS_TO_NS 100
+// Conversion factor: 100-ns units to microseconds (100-ns * 100 = ns, / 1000 = us -> / 10).
+#define FILETIME_UNITS_TO_US_DIVISOR 10
 
 // BPF helper function ID to human-readable name mapping.
 static const char*
@@ -547,6 +548,60 @@ _helper_function_name(uint32_t id)
     default:
         return nullptr;
     }
+}
+
+// Resolve a set of program IDs to their names via BPF APIs.
+// Returns a map from program_id -> program_name. If a program has been unloaded,
+// its name will be empty.
+static std::map<uint32_t, std::string>
+_resolve_program_names(const std::set<uint32_t>& program_ids)
+{
+    std::map<uint32_t, std::string> names;
+    for (uint32_t id : program_ids) {
+        fd_t fd = bpf_prog_get_fd_by_id(id);
+        if (fd >= 0) {
+            struct bpf_prog_info info = {};
+            uint32_t info_size = sizeof(info);
+            if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
+                names[id] = info.name;
+            } else {
+                names[id] = "";
+            }
+            Platform::_close(fd);
+        } else {
+            names[id] = "";
+        }
+    }
+    return names;
+}
+
+// Resolve a set of map IDs to their names via BPF APIs.
+// Returns a map from map_id -> map_name. If a map has been unloaded,
+// its name will be empty.
+static std::map<uint16_t, std::string>
+_resolve_map_names(const std::set<uint16_t>& map_ids)
+{
+    std::map<uint16_t, std::string> names;
+    for (uint16_t id : map_ids) {
+        if (id == 0) {
+            names[id] = "";
+            continue;
+        }
+        fd_t fd = bpf_map_get_fd_by_id(id);
+        if (fd >= 0) {
+            struct bpf_map_info info = {};
+            uint32_t info_size = sizeof(info);
+            if (bpf_obj_get_info_by_fd(fd, &info, &info_size) == 0) {
+                names[id] = info.name;
+            } else {
+                names[id] = "";
+            }
+            Platform::_close(fd);
+        } else {
+            names[id] = "";
+        }
+    }
+    return names;
 }
 
 // Helper key type for grouping map helper durations by (program_id, helper_id, map_name).
@@ -657,10 +712,11 @@ _print_csv_event(
     uint64_t end_time,
     uint64_t duration,
     uint8_t cpu_id,
-    uint8_t irql)
+    uint8_t irql,
+    uint64_t correlation_id)
 {
     printf(
-        "%s,%u,%s,%u,%s,%u,%u,%llu,%llu,%llu,%u,%u\n",
+        "%s,%u,%s,%u,%s,%u,%u,%llu,%llu,%llu,%u,%u,%llu\n",
         event_type,
         program_id,
         program_name,
@@ -670,9 +726,10 @@ _print_csv_event(
         thread_id,
         (unsigned long long)start_time,
         (unsigned long long)end_time,
-        (unsigned long long)(duration * FILETIME_UNITS_TO_NS),
+        (unsigned long long)(duration / FILETIME_UNITS_TO_US_DIVISOR),
         (unsigned)cpu_id,
-        (unsigned)irql);
+        (unsigned)irql,
+        (unsigned long long)correlation_id);
 }
 
 // ETW event record callback — called for each event in the .etl file.
@@ -742,8 +799,9 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
             uint32_t thread_id = _get_uint32_property(event_record, L"ThreadId");
             uint64_t start_time = _get_uint64_property(event_record, L"StartTime");
             uint64_t end_time = _get_uint64_property(event_record, L"EndTime");
-            uint8_t cpu_id = _get_uint8_property(event_record, L"CpuId");
-            uint8_t irql = _get_uint8_property(event_record, L"Irql");
+            uint8_t cpu_id = (uint8_t)_get_uint32_property(event_record, L"CpuId");
+            uint8_t irql = (uint8_t)_get_uint32_property(event_record, L"Irql");
+            uint64_t correlation_id = _get_uint64_property(event_record, L"CorrelationId");
             _print_csv_event(
                 "ProgramInvoke",
                 program_id,
@@ -756,7 +814,8 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
                 end_time,
                 duration,
                 cpu_id,
-                irql);
+                irql,
+                correlation_id);
         } else {
             ctx->program_durations[program_id].push_back(duration);
         }
@@ -772,8 +831,9 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
             uint32_t thread_id = _get_uint32_property(event_record, L"ThreadId");
             uint64_t start_time = _get_uint64_property(event_record, L"StartTime");
             uint64_t end_time = _get_uint64_property(event_record, L"EndTime");
-            uint8_t cpu_id = _get_uint8_property(event_record, L"CpuId");
-            uint8_t irql = _get_uint8_property(event_record, L"Irql");
+            uint8_t cpu_id = (uint8_t)_get_uint32_property(event_record, L"CpuId");
+            uint8_t irql = (uint8_t)_get_uint32_property(event_record, L"Irql");
+            uint64_t correlation_id = _get_uint64_property(event_record, L"CorrelationId");
             _print_csv_event(
                 "MapHelper",
                 program_id,
@@ -786,7 +846,8 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
                 end_time,
                 duration,
                 cpu_id,
-                irql);
+                irql,
+                correlation_id);
         } else {
             ctx->helper_durations[{program_id, helper_id, map_name_str}].push_back(duration);
         }
@@ -814,6 +875,7 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
                 end_time,
                 duration,
                 cpu_id,
+                0,
                 0);
         } else {
             ctx->ext_durations[program_id].push_back(duration);
@@ -823,20 +885,20 @@ _etl_event_record_callback(_In_ PEVENT_RECORD event_record)
 }
 
 // Compute statistics from a sorted vector of durations (100-ns units).
-// Returns results in nanoseconds.
+// Returns results in microseconds.
 static void
 _compute_stats(
     _Inout_ std::vector<uint64_t>& durations,
-    _Out_ uint64_t* avg_ns,
-    _Out_ uint64_t* p50_ns,
-    _Out_ uint64_t* p95_ns,
-    _Out_ uint64_t* p99_ns,
-    _Out_ uint64_t* max_ns)
+    _Out_ uint64_t* avg_us,
+    _Out_ uint64_t* p50_us,
+    _Out_ uint64_t* p95_us,
+    _Out_ uint64_t* p99_us,
+    _Out_ uint64_t* max_us)
 {
     std::sort(durations.begin(), durations.end());
     size_t n = durations.size();
     if (n == 0) {
-        *avg_ns = *p50_ns = *p95_ns = *p99_ns = *max_ns = 0;
+        *avg_us = *p50_us = *p95_us = *p99_us = *max_us = 0;
         return;
     }
 
@@ -844,11 +906,11 @@ _compute_stats(
     for (auto d : durations) {
         sum += d;
     }
-    *avg_ns = (sum / n) * FILETIME_UNITS_TO_NS;
-    *p50_ns = durations[n * 50 / 100] * FILETIME_UNITS_TO_NS;
-    *p95_ns = durations[n * 95 / 100] * FILETIME_UNITS_TO_NS;
-    *p99_ns = durations[n * 99 / 100] * FILETIME_UNITS_TO_NS;
-    *max_ns = durations[n - 1] * FILETIME_UNITS_TO_NS;
+    *avg_us = (sum / n) / FILETIME_UNITS_TO_US_DIVISOR;
+    *p50_us = durations[n * 50 / 100] / FILETIME_UNITS_TO_US_DIVISOR;
+    *p95_us = durations[n * 95 / 100] / FILETIME_UNITS_TO_US_DIVISOR;
+    *p99_us = durations[n * 99 / 100] / FILETIME_UNITS_TO_US_DIVISOR;
+    *max_us = durations[n - 1] / FILETIME_UNITS_TO_US_DIVISOR;
 }
 
 // Format a number with thousands-separator commas (e.g. 1234567 -> "1,234,567").
@@ -869,6 +931,7 @@ _format_number(uint64_t value)
 }
 
 #define TOKEN_FORMAT L"format"
+#define TOKEN_INPUT L"input"
 
 typedef enum
 {
@@ -891,7 +954,11 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format);
 
 // Binary file header for latency trace output.
 #define EBPF_LATENCY_FILE_MAGIC 0x544C4245 // "EBLT"
-#define EBPF_LATENCY_FILE_VERSION 1
+#define EBPF_LATENCY_FILE_VERSION 2
+
+// Name table entry types.
+#define EBPF_LATENCY_NAME_TYPE_PROGRAM 0
+#define EBPF_LATENCY_NAME_TYPE_MAP 1
 
 #pragma pack(push, 1)
 typedef struct _ebpf_latency_file_header
@@ -903,7 +970,17 @@ typedef struct _ebpf_latency_file_header
     uint64_t qpc_at_enable;
     uint32_t cpu_count;
     uint32_t total_records;
+    uint32_t name_table_entries;
+    uint32_t reserved;
 } ebpf_latency_file_header_t;
+
+typedef struct _ebpf_latency_name_entry
+{
+    uint8_t type;         // EBPF_LATENCY_NAME_TYPE_PROGRAM or EBPF_LATENCY_NAME_TYPE_MAP.
+    uint32_t id;          // program_id or map_id.
+    uint16_t name_length; // byte count of name (no null terminator).
+    // Followed by name_length bytes of UTF-8 name.
+} ebpf_latency_name_entry_t;
 #pragma pack(pop)
 
 // Wire-format drain reply header. Must match the natural alignment of
@@ -1046,12 +1123,31 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
             return a.timestamp < b.timestamp;
         });
 
-    // Step 4: Write sorted records to file.
+    // Step 4: Collect unique program and map IDs and resolve names.
+    std::set<uint32_t> unique_program_ids;
+    std::set<uint16_t> unique_map_ids;
+    for (const auto& r : all_records) {
+        if (r.program_id != 0) {
+            unique_program_ids.insert(r.program_id);
+        }
+        if (r.map_id != 0) {
+            unique_map_ids.insert(r.map_id);
+        }
+    }
+
+    printf("Resolving %zu program IDs and %zu map IDs...\n", unique_program_ids.size(), unique_map_ids.size());
+    auto program_names = _resolve_program_names(unique_program_ids);
+    auto map_names = _resolve_map_names(unique_map_ids);
+
+    // Step 5: Write sorted records + name table to file.
     FILE* fp = NULL;
     errno_t err = fopen_s(&fp, output_file, "wb");
     if (err != 0 || fp == NULL) {
         printf("Warning: Could not open '%s' for writing (error=%d). Skipping file output.\n", output_file, err);
     } else {
+        // Count name table entries.
+        uint32_t name_entries = (uint32_t)(program_names.size() + map_names.size());
+
         ebpf_latency_file_header_t file_header = {};
         file_header.magic = EBPF_LATENCY_FILE_MAGIC;
         file_header.version = EBPF_LATENCY_FILE_VERSION;
@@ -1060,22 +1156,49 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
         file_header.qpc_at_enable = qpc_at_enable;
         file_header.cpu_count = cpu_count;
         file_header.total_records = total_records;
+        file_header.name_table_entries = name_entries;
+        file_header.reserved = 0;
         fwrite(&file_header, sizeof(file_header), 1, fp);
         fwrite(all_records.data(), sizeof(ebpf_latency_drain_record_t), all_records.size(), fp);
+
+        // Write name table.
+        for (const auto& [pid, name] : program_names) {
+            ebpf_latency_name_entry_t entry = {};
+            entry.type = EBPF_LATENCY_NAME_TYPE_PROGRAM;
+            entry.id = pid;
+            entry.name_length = (uint16_t)name.size();
+            fwrite(&entry, sizeof(entry), 1, fp);
+            fwrite(name.data(), 1, name.size(), fp);
+        }
+        for (const auto& [mid, name] : map_names) {
+            ebpf_latency_name_entry_t entry = {};
+            entry.type = EBPF_LATENCY_NAME_TYPE_MAP;
+            entry.id = (uint32_t)mid;
+            entry.name_length = (uint16_t)name.size();
+            fwrite(&entry, sizeof(entry), 1, fp);
+            fwrite(name.data(), 1, name.size(), fp);
+        }
+
         fclose(fp);
-        printf(
-            "Wrote %u sorted records to '%s' (%zu bytes)\n",
-            total_records,
-            output_file,
-            sizeof(file_header) + all_records.size() * sizeof(ebpf_latency_drain_record_t));
+        printf("Wrote %u sorted records + %u names to '%s'\n", total_records, name_entries, output_file);
     }
 
-    // Step 5: Compute and display summary statistics.
+    // Step 6: Compute and display summary statistics.
     printf("\n=== eBPF Latency Report (Ring Buffer) ===\n\n");
+
+    // Timestamps are in 100-ns units. Convert to microseconds by dividing by 10.
+    auto ticks_to_us = [](uint64_t ticks_100ns) -> double { return (double)ticks_100ns / 10.0; };
 
     // Pair program start/end events per CPU to compute durations.
     std::map<uint32_t, std::vector<uint64_t>> program_durations;
     std::map<uint8_t, std::map<uint32_t, uint64_t>> cpu_prog_start;
+
+    // Helper key: (program_id, helper_function_id, map_id).
+    typedef std::tuple<uint32_t, uint16_t, uint16_t> rb_helper_key_t;
+    std::map<rb_helper_key_t, std::vector<uint64_t>> helper_durations;
+    // Track helper start timestamps per CPU: cpu_id -> (program_id, helper_id, map_id) -> timestamp.
+    typedef std::tuple<uint32_t, uint16_t, uint16_t> helper_start_key_t;
+    std::map<uint8_t, std::map<helper_start_key_t, uint64_t>> cpu_helper_start;
 
     for (const auto& r : all_records) {
         if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
@@ -1089,12 +1212,35 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
                     cpu_it->second.erase(prog_it);
                 }
             }
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
+            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            cpu_helper_start[r.cpu_id][key] = r.timestamp;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
+            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            auto cpu_it = cpu_helper_start.find(r.cpu_id);
+            if (cpu_it != cpu_helper_start.end()) {
+                auto hlp_it = cpu_it->second.find(key);
+                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second) {
+                    rb_helper_key_t duration_key = {r.program_id, r.helper_function_id, r.map_id};
+                    helper_durations[duration_key].push_back(r.timestamp - hlp_it->second);
+                    cpu_it->second.erase(hlp_it);
+                }
+            }
         }
     }
 
     if (!program_durations.empty()) {
-        printf("--- Program Invocation Latency (TSC ticks) ---\n");
-        printf("%-8s %10s %12s %12s %12s %12s %12s\n", "ProgID", "Count", "Avg", "P50", "P90", "P99", "Max");
+        printf("--- Program Invocation Latency (us) ---\n");
+        printf(
+            "%-8s %-20s %10s %12s %12s %12s %12s %12s\n",
+            "ProgID",
+            "Name",
+            "Count",
+            "Avg (us)",
+            "P50 (us)",
+            "P90 (us)",
+            "P99 (us)",
+            "Max (us)");
 
         for (auto& [pid, durations] : program_durations) {
             std::sort(durations.begin(), durations.end());
@@ -1103,22 +1249,321 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
             for (auto d : durations)
                 sum += d;
 
+            auto name_it = program_names.find(pid);
+            const char* prog_name = (name_it != program_names.end()) ? name_it->second.c_str() : "";
+
             printf(
-                "%-8u %10zu %12llu %12llu %12llu %12llu %12llu\n",
+                "%-8u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
                 pid,
+                prog_name,
                 n,
-                (unsigned long long)(sum / n),
-                (unsigned long long)durations[n * 50 / 100],
-                (unsigned long long)durations[n * 90 / 100],
-                (unsigned long long)durations[n * 99 / 100],
-                (unsigned long long)durations[n - 1]);
+                ticks_to_us(sum / n),
+                ticks_to_us(durations[n * 50 / 100]),
+                ticks_to_us(durations[n * 90 / 100]),
+                ticks_to_us(durations[n * 99 / 100]),
+                ticks_to_us(durations[n - 1]));
         }
     }
 
-    // Step 6: Release session (free kernel ring buffers).
+    // Helper latency table (grouped by program).
+    if (!helper_durations.empty()) {
+        // Group by program_id.
+        std::map<uint32_t, std::vector<std::tuple<uint16_t, uint16_t, std::vector<uint64_t>*>>> by_program;
+        for (auto& [key, durations] : helper_durations) {
+            auto& [pid, hid, mid] = key;
+            by_program[pid].push_back({hid, mid, &durations});
+        }
+
+        for (auto& [pid, helpers] : by_program) {
+            auto prog_name_it = program_names.find(pid);
+            if (prog_name_it != program_names.end() && !prog_name_it->second.empty()) {
+                printf("\n--- Map Helper Summary (Program %u - %s) (us) ---\n", pid, prog_name_it->second.c_str());
+            } else {
+                printf("\n--- Map Helper Summary (Program %u) (us) ---\n", pid);
+            }
+            printf(
+                "%-20s %6s %-20s %10s %12s %12s %12s %12s %12s\n",
+                "Helper",
+                "MapID",
+                "Map Name",
+                "Count",
+                "Avg (us)",
+                "P50 (us)",
+                "P90 (us)",
+                "P99 (us)",
+                "Max (us)");
+
+            for (auto& [hid, mid, durations_ptr] : helpers) {
+                std::sort(durations_ptr->begin(), durations_ptr->end());
+                size_t n = durations_ptr->size();
+                uint64_t sum = 0;
+                for (auto d : *durations_ptr)
+                    sum += d;
+
+                auto map_name_it = map_names.find(mid);
+                const char* map_name_str = (map_name_it != map_names.end()) ? map_name_it->second.c_str() : "";
+
+                const char* helper_name = _helper_function_name(hid);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", hid);
+                    helper_name = helper_name_buf;
+                }
+
+                printf(
+                    "%-20s %6u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                    helper_name,
+                    (unsigned)mid,
+                    map_name_str,
+                    n,
+                    ticks_to_us(sum / n),
+                    ticks_to_us((*durations_ptr)[n * 50 / 100]),
+                    ticks_to_us((*durations_ptr)[n * 90 / 100]),
+                    ticks_to_us((*durations_ptr)[n * 99 / 100]),
+                    ticks_to_us((*durations_ptr)[n - 1]));
+            }
+        }
+    }
+
+    // Step 7: Release session (free kernel ring buffers).
     ebpf_latency_tracking_release();
     printf("\nSession released.\n");
 
+    return NO_ERROR;
+}
+
+// Re-parse a previously saved .bin file and display summary statistics.
+static unsigned long
+_show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
+{
+    UNREFERENCED_PARAMETER(format);
+
+    // Open the file.
+    char narrow_path[MAX_PATH] = {0};
+    WideCharToMultiByte(CP_ACP, 0, bin_path, -1, narrow_path, MAX_PATH, nullptr, nullptr);
+
+    FILE* fp = NULL;
+    errno_t err = fopen_s(&fp, narrow_path, "rb");
+    if (err != 0 || fp == NULL) {
+        printf("Error: cannot open file '%s' (error=%d).\n", narrow_path, err);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    // Read and validate header.
+    ebpf_latency_file_header_t file_header = {};
+    if (fread(&file_header, sizeof(file_header), 1, fp) != 1) {
+        printf("Error: failed to read file header from '%s'.\n", narrow_path);
+        fclose(fp);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    if (file_header.magic != EBPF_LATENCY_FILE_MAGIC) {
+        printf(
+            "Error: invalid file magic (expected 0x%08X, got 0x%08X).\n", EBPF_LATENCY_FILE_MAGIC, file_header.magic);
+        fclose(fp);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    if (file_header.version != EBPF_LATENCY_FILE_VERSION) {
+        printf("Error: unsupported file version %u (expected %u).\n", file_header.version, EBPF_LATENCY_FILE_VERSION);
+        fclose(fp);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
+    uint32_t total_records = file_header.total_records;
+    printf("Reading %u records from '%s'...\n", total_records, narrow_path);
+
+    // Read all records.
+    std::vector<ebpf_latency_drain_record_t> all_records(total_records);
+    size_t records_read = fread(all_records.data(), sizeof(ebpf_latency_drain_record_t), total_records, fp);
+
+    if (records_read != total_records) {
+        printf("Warning: expected %u records but read %zu.\n", total_records, records_read);
+        all_records.resize(records_read);
+    }
+
+    // Collect unique program and map IDs.
+    std::set<uint32_t> unique_program_ids;
+    std::set<uint16_t> unique_map_ids;
+    for (const auto& r : all_records) {
+        if (r.program_id != 0) {
+            unique_program_ids.insert(r.program_id);
+        }
+        if (r.map_id != 0) {
+            unique_map_ids.insert(r.map_id);
+        }
+    }
+
+    // Read embedded name table from file.
+    std::map<uint32_t, std::string> program_names;
+    std::map<uint16_t, std::string> map_names;
+    uint32_t name_entries = file_header.name_table_entries;
+    for (uint32_t i = 0; i < name_entries; i++) {
+        ebpf_latency_name_entry_t entry = {};
+        if (fread(&entry, sizeof(entry), 1, fp) != 1) {
+            printf("Warning: truncated name table at entry %u.\n", i);
+            break;
+        }
+        std::string name(entry.name_length, '\0');
+        if (entry.name_length > 0 && fread(&name[0], 1, entry.name_length, fp) != entry.name_length) {
+            printf("Warning: truncated name data at entry %u.\n", i);
+            break;
+        }
+        if (entry.type == EBPF_LATENCY_NAME_TYPE_PROGRAM) {
+            program_names[entry.id] = std::move(name);
+        } else if (entry.type == EBPF_LATENCY_NAME_TYPE_MAP) {
+            map_names[(uint16_t)entry.id] = std::move(name);
+        }
+    }
+    fclose(fp);
+
+    if (program_names.empty() && map_names.empty()) {
+        printf("No embedded name table found; names will show as IDs only.\n");
+    } else {
+        printf("Loaded %zu program names and %zu map names from file.\n", program_names.size(), map_names.size());
+    }
+
+    // Compute and display summary statistics.
+    printf("\n=== eBPF Latency Report (from %s) ===\n\n", narrow_path);
+
+    // Timestamps are in 100-ns units. Convert to microseconds by dividing by 10.
+    auto ticks_to_us = [](uint64_t ticks_100ns) -> double { return (double)ticks_100ns / 10.0; };
+
+    // Pair program start/end events per CPU to compute durations.
+    std::map<uint32_t, std::vector<uint64_t>> program_durations;
+    std::map<uint8_t, std::map<uint32_t, uint64_t>> cpu_prog_start;
+
+    // Helper key: (program_id, helper_function_id, map_id).
+    typedef std::tuple<uint32_t, uint16_t, uint16_t> rb_helper_key_t;
+    std::map<rb_helper_key_t, std::vector<uint64_t>> helper_durations;
+    typedef std::tuple<uint32_t, uint16_t, uint16_t> helper_start_key_t;
+    std::map<uint8_t, std::map<helper_start_key_t, uint64_t>> cpu_helper_start;
+
+    for (const auto& r : all_records) {
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
+            cpu_prog_start[r.cpu_id][r.program_id] = r.timestamp;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
+            auto cpu_it = cpu_prog_start.find(r.cpu_id);
+            if (cpu_it != cpu_prog_start.end()) {
+                auto prog_it = cpu_it->second.find(r.program_id);
+                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second) {
+                    program_durations[r.program_id].push_back(r.timestamp - prog_it->second);
+                    cpu_it->second.erase(prog_it);
+                }
+            }
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
+            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            cpu_helper_start[r.cpu_id][key] = r.timestamp;
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
+            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            auto cpu_it = cpu_helper_start.find(r.cpu_id);
+            if (cpu_it != cpu_helper_start.end()) {
+                auto hlp_it = cpu_it->second.find(key);
+                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second) {
+                    rb_helper_key_t duration_key = {r.program_id, r.helper_function_id, r.map_id};
+                    helper_durations[duration_key].push_back(r.timestamp - hlp_it->second);
+                    cpu_it->second.erase(hlp_it);
+                }
+            }
+        }
+    }
+
+    if (!program_durations.empty()) {
+        printf("--- Program Invocation Latency (us) ---\n");
+        printf(
+            "%-8s %-20s %10s %12s %12s %12s %12s %12s\n",
+            "ProgID",
+            "Name",
+            "Count",
+            "Avg (us)",
+            "P50 (us)",
+            "P90 (us)",
+            "P99 (us)",
+            "Max (us)");
+
+        for (auto& [pid, durations] : program_durations) {
+            std::sort(durations.begin(), durations.end());
+            size_t n = durations.size();
+            uint64_t sum = 0;
+            for (auto d : durations)
+                sum += d;
+
+            auto name_it = program_names.find(pid);
+            const char* prog_name = (name_it != program_names.end()) ? name_it->second.c_str() : "";
+
+            printf(
+                "%-8u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                pid,
+                prog_name,
+                n,
+                ticks_to_us(sum / n),
+                ticks_to_us(durations[n * 50 / 100]),
+                ticks_to_us(durations[n * 90 / 100]),
+                ticks_to_us(durations[n * 99 / 100]),
+                ticks_to_us(durations[n - 1]));
+        }
+    }
+
+    // Helper latency table (grouped by program).
+    if (!helper_durations.empty()) {
+        std::map<uint32_t, std::vector<std::tuple<uint16_t, uint16_t, std::vector<uint64_t>*>>> by_program;
+        for (auto& [key, durations] : helper_durations) {
+            auto& [pid, hid, mid] = key;
+            by_program[pid].push_back({hid, mid, &durations});
+        }
+
+        for (auto& [pid, helpers] : by_program) {
+            auto prog_name_it = program_names.find(pid);
+            if (prog_name_it != program_names.end() && !prog_name_it->second.empty()) {
+                printf("\n--- Map Helper Summary (Program %u - %s) (us) ---\n", pid, prog_name_it->second.c_str());
+            } else {
+                printf("\n--- Map Helper Summary (Program %u) (us) ---\n", pid);
+            }
+            printf(
+                "%-20s %6s %-20s %10s %12s %12s %12s %12s %12s\n",
+                "Helper",
+                "MapID",
+                "Map Name",
+                "Count",
+                "Avg (us)",
+                "P50 (us)",
+                "P90 (us)",
+                "P99 (us)",
+                "Max (us)");
+
+            for (auto& [hid, mid, durations_ptr] : helpers) {
+                std::sort(durations_ptr->begin(), durations_ptr->end());
+                size_t n = durations_ptr->size();
+                uint64_t sum = 0;
+                for (auto d : *durations_ptr)
+                    sum += d;
+
+                auto map_name_it = map_names.find(mid);
+                const char* map_name_str = (map_name_it != map_names.end()) ? map_name_it->second.c_str() : "";
+
+                const char* helper_name = _helper_function_name(hid);
+                char helper_name_buf[32];
+                if (helper_name == nullptr) {
+                    sprintf_s(helper_name_buf, sizeof(helper_name_buf), "helper_%u", hid);
+                    helper_name = helper_name_buf;
+                }
+
+                printf(
+                    "%-20s %6u %-20s %10zu %12.2f %12.2f %12.2f %12.2f %12.2f\n",
+                    helper_name,
+                    (unsigned)mid,
+                    map_name_str,
+                    n,
+                    ticks_to_us(sum / n),
+                    ticks_to_us((*durations_ptr)[n * 50 / 100]),
+                    ticks_to_us((*durations_ptr)[n * 90 / 100]),
+                    ticks_to_us((*durations_ptr)[n * 99 / 100]),
+                    ticks_to_us((*durations_ptr)[n - 1]));
+            }
+        }
+    }
+
+    printf("\nDone.\n");
     return NO_ERROR;
 }
 
@@ -1134,9 +1579,11 @@ handle_ebpf_show_latencytrace(
     TAG_TYPE tags[] = {
         {TOKEN_FILE, NS_REQ_ZERO, FALSE},
         {TOKEN_FORMAT, NS_REQ_ZERO, FALSE},
+        {TOKEN_INPUT, NS_REQ_ZERO, FALSE},
     };
     const int FILE_INDEX = 0;
     const int FORMAT_INDEX = 1;
+    const int INPUT_INDEX = 2;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -1148,6 +1595,7 @@ handle_ebpf_show_latencytrace(
     }
 
     WCHAR etl_file[MAX_PATH] = {0};
+    WCHAR input_file[MAX_PATH] = {0};
     uint32_t format = FORMAT_TABLE;
 
     for (DWORD i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
@@ -1162,6 +1610,9 @@ handle_ebpf_show_latencytrace(
                 status = ERROR_INVALID_PARAMETER;
             }
             break;
+        case INPUT_INDEX:
+            StringCchCopyW(input_file, MAX_PATH, argv[current_index + i]);
+            break;
         default:
             status = ERROR_INVALID_SYNTAX;
             break;
@@ -1170,6 +1621,19 @@ handle_ebpf_show_latencytrace(
 
     if (status != NO_ERROR) {
         return status;
+    }
+
+    // If input= is provided, re-parse a saved file (no live drain).
+    if (input_file[0] != L'\0') {
+        size_t ilen = wcslen(input_file);
+        if (ilen >= 4 && _wcsicmp(input_file + ilen - 4, L".etl") == 0) {
+            return _show_latencytrace_from_etl(input_file, format);
+        }
+        if (ilen >= 4 && _wcsicmp(input_file + ilen - 4, L".bin") == 0) {
+            return _show_latencytrace_from_bin(input_file, format);
+        }
+        printf("Error: input= file must end in .etl or .bin.\n");
+        return ERROR_INVALID_PARAMETER;
     }
 
     // If no file provided, query the kernel to determine the active backend.
@@ -1229,7 +1693,7 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
     // Print CSV header if in CSV mode.
     if (ctx.csv_format) {
         printf("EventType,ProgramId,ProgramName,HelperFunctionId,MapName,"
-               "ProcessId,ThreadId,StartTime,EndTime,Duration_ns,CpuId,Irql\n");
+               "ProcessId,ThreadId,StartTime,EndTime,Duration_us,CpuId,Irql,CorrelationId\n");
     }
 
     // Process all events in the file.
@@ -1265,7 +1729,7 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
         int id_w = 10;   // strlen("Program ID")
         int name_w = 12; // strlen("Program Name")
         int inv_w = 11;  // strlen("Invocations")
-        int num_w = 8;   // strlen("Avg (ns)") etc.
+        int num_w = 8;   // strlen("Avg (us)") etc.
         for (auto& [prog_id, durations] : ctx.program_durations) {
             uint64_t avg, p50, p95, p99, max_val;
             _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
@@ -1294,15 +1758,15 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
             inv_w,
             "Invocations",
             num_w,
-            "Avg (ns)",
+            "Avg (us)",
             num_w,
-            "P50 (ns)",
+            "P50 (us)",
             num_w,
-            "P95 (ns)",
+            "P95 (us)",
             num_w,
-            "P99 (ns)",
+            "P99 (us)",
             num_w,
-            "Max (ns)");
+            "Max (us)");
         printf(
             "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
             id_w,
@@ -1372,7 +1836,7 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
             int hlp_w = 6;   // strlen("Helper")
             int map_w = 8;   // strlen("Map Name")
             int calls_w = 5; // strlen("Calls")
-            int num_w = 8;   // strlen("Avg (ns)") etc.
+            int num_w = 8;   // strlen("Avg (us)") etc.
             for (auto& [helper_id, map_name_str, durations_ptr] : helpers) {
                 uint64_t avg, p50, p95, p99, max_val;
                 _compute_stats(*durations_ptr, &avg, &p50, &p95, &p99, &max_val);
@@ -1405,15 +1869,15 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
                 calls_w,
                 "Calls",
                 num_w,
-                "Avg (ns)",
+                "Avg (us)",
                 num_w,
-                "P50 (ns)",
+                "P50 (us)",
                 num_w,
-                "P95 (ns)",
+                "P95 (us)",
                 num_w,
-                "P99 (ns)",
+                "P99 (us)",
                 num_w,
-                "Max (ns)");
+                "Max (us)");
             printf(
                 "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
                 hlp_w,
@@ -1475,7 +1939,7 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
         int id_w = 10;   // strlen("Program ID")
         int name_w = 12; // strlen("Program Name")
         int inv_w = 11;  // strlen("Invocations")
-        int num_w = 8;   // strlen("Avg (ns)") etc.
+        int num_w = 8;   // strlen("Avg (us)") etc.
         for (auto& [prog_id, durations] : ctx.ext_durations) {
             uint64_t avg, p50, p95, p99, max_val;
             _compute_stats(durations, &avg, &p50, &p95, &p99, &max_val);
@@ -1504,15 +1968,15 @@ _show_latencytrace_from_etl(_In_z_ LPCWSTR etl_file, uint32_t format)
             inv_w,
             "Invocations",
             num_w,
-            "Avg (ns)",
+            "Avg (us)",
             num_w,
-            "P50 (ns)",
+            "P50 (us)",
             num_w,
-            "P95 (ns)",
+            "P95 (us)",
             num_w,
-            "P99 (ns)",
+            "P99 (us)",
             num_w,
-            "Max (ns)");
+            "Max (us)");
         printf(
             "  %-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s\n",
             id_w,

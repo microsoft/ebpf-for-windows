@@ -94,7 +94,7 @@ keyword `0x800`.  Events are captured to an `.etl` file and parsed offline.
 ### 2.1 Commands
 
 ```
-Step 1 — Start:  netsh ebpf set latency mode=all backend=etw [file=output.etl] [programs=3,7]
+Step 1 — Start:  netsh ebpf set latency mode=all backend=etw [correlation=yes] [file=output.etl] [programs=3,7]
 Step 2 — (run workload)
 Step 3 — Stop:   netsh ebpf set latency mode=off
 Step 4 — View:   netsh ebpf show latencytrace [file=output.etl] [format=table|csv]
@@ -106,8 +106,8 @@ Step 4 — View:   netsh ebpf show latencytrace [file=output.etl] [format=table|
 
 | Layer | What happens |
 |-------|-------------|
-| **netsh (user mode)** | `handle_ebpf_set_latency` parses parameters. Validates that `events` and `correlation` are NOT specified (ETW-only rejects ring-buffer params). Calls `ebpf_latency_tracking_release()` to clean up any zombie session. |
-| **ebpfapi.dll** | `ebpf_latency_tracking_enable(mode, flags=0, records_per_cpu=0, backend=ETW, ...)` sends `EBPF_OPERATION_LATENCY_ENABLE` IOCTL with `backend = EBPF_LATENCY_BACKEND_ETW`. |
+| **netsh (user mode)** | `handle_ebpf_set_latency` parses parameters. Validates that `events` is NOT specified (ring-buffer-only param). `correlation=yes` is allowed (default: off). Calls `ebpf_latency_tracking_release()` to clean up any zombie session. |
+| **ebpfapi.dll** | `ebpf_latency_tracking_enable(mode, flags, records_per_cpu=0, backend=ETW, ...)` sends `EBPF_OPERATION_LATENCY_ENABLE` IOCTL with `backend = EBPF_LATENCY_BACKEND_ETW`. If `correlation=yes`, `flags` includes `EBPF_LATENCY_FLAG_CORRELATION_ID`. |
 | **ebpfcore (kernel)** | `ebpf_latency_enable()` runs identically to the ring buffer path — allocates per-CPU buffers (default 100K records) and sets `enabled = mode`. The IOCTL handler then stores `backend = EBPF_LATENCY_BACKEND_ETW` in kernel state, so any process can later query which backend is active. |
 | **netsh — ETW setup** | After the IOCTL succeeds, calls `_start_etw_session()`: |
 | | 1. Allocates `EVENT_TRACE_PROPERTIES` with session name `"EbpfLatencyTrace"`. |
@@ -116,7 +116,7 @@ Step 4 — View:   netsh ebpf show latencytrace [file=output.etl] [format=table|
 | | 4. From this point, TraceLogging `EbpfProgramLatency` / `EbpfMapHelperLatency` events flow into the `.etl` file. |
 | | If `StartTraceW` fails, the code **rolls back**: disables + releases kernel tracking, returns error. |
 | | Records `_active_etw_file` locally for the session (informational only; kernel state is authoritative). |
-| **Hot path** | Same kernel instrumentation as ring buffer — `ebpf_latency_write_record()` writes to per-CPU ring buffers. **Additionally**, the kernel's TraceLogging provider emits ETW events (gated by `TraceLoggingProviderEnabled` check). The ETW events contain richer fields: `ProgramName`, `MapName`, `ProcessId`, `ThreadId`, `Irql`, `Duration`, `StartTime`, `EndTime`. |
+| **Hot path** | Same kernel instrumentation as ring buffer — `ebpf_latency_write_record()` writes to per-CPU ring buffers. **Additionally**, the kernel's TraceLogging provider emits `EbpfProgramLatency` and `EbpfMapHelperLatency` ETW events (gated by `TraceLoggingProviderEnabled` check). The ETW events contain richer fields: `ProgramId`, `HelperFunctionId`, `CorrelationId`, `ProcessId`, `ThreadId`, `StartTime`, `EndTime`, `Duration`, `CpuId`, `Irql`. When `correlation=yes` is specified, the `CorrelationId` field links helper events to their parent program invocation; when off, it is 0. |
 
 #### Step 2: Run workload
 
@@ -203,10 +203,10 @@ This is used by:
 | **Hot-path overhead** | ~10–30 ns (rdtsc + ring buffer write at DISPATCH) | ~200–500 ns (TraceLogging event emission) |
 | **Data format** | Compact 24-byte records, IDs only | Rich events with strings (ProgramName, MapName), process/thread IDs |
 | **Storage** | Kernel non-paged pool (bounded by `events` param) | `.etl` file on disk (grows until stopped) |
-| **Correlation** | Per-CPU monotonic `correlation_id` (optional) | ProcessId + ThreadId + timestamps |
+| **Correlation** | Per-CPU monotonic `correlation_id` (optional) | `CorrelationId` in ETW events (optional, `correlation=yes`), plus ProcessId + ThreadId + timestamps |
 | **Collection** | Explicit drain via IOCTLs after stop | Automatic — events written to file in real time |
 | **Analysis** | `show latencytrace` (built-in summary) or custom tool on `.bin` file | `show latencytrace` (built-in) or WPA / xperf on `.etl` file |
 | **Stop → View gap** | `mode=off` preserves buffers; `show latencytrace` drains + releases | `mode=off` closes `.etl`; `show latencytrace` is pure file read |
 | **Max events** | Bounded per CPU (stop-on-full, reports drops) | Unbounded (disk space limited, ETW may drop under pressure) |
-| **Parameters** | `events=`, `correlation=` | `file=` |
+| **Parameters** | `events=`, `correlation=` | `correlation=`, `file=` |
 | **Re-enable** | Must drain or re-enable (auto-releases zombie) | Immediate (released at stop) |

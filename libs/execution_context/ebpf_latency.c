@@ -107,12 +107,12 @@ ebpf_latency_enable(
         _ebpf_latency_state.program_ids[i] = program_ids[i];
     }
 
-    // Capture TSC calibration.
-    _ebpf_latency_state.tsc_at_enable = __rdtsc();
+    // Capture time calibration.
+    _ebpf_latency_state.tsc_at_enable = cxplat_query_time_since_boot_precise(false);
     _ebpf_latency_state.qpc_at_enable = cxplat_query_time_since_boot_precise(false);
 
-    // TSC frequency: consumer computes from tsc_at_enable / qpc_at_enable pair.
-    _ebpf_latency_state.tsc_frequency = 1; // Placeholder; consumer uses QPC-based calibration.
+    // Timestamps are now in 100-ns (QPC) units; tsc_frequency is not used for conversion.
+    _ebpf_latency_state.tsc_frequency = 0;
 
     // Store correlation flag.
     InterlockedExchange(&_ebpf_latency_state.correlation_enabled, (flags & EBPF_LATENCY_FLAG_CORRELATION_ID) ? 1 : 0);
@@ -225,4 +225,69 @@ const ebpf_latency_state_t*
 ebpf_latency_get_state()
 {
     return &_ebpf_latency_state;
+}
+
+uint32_t
+ebpf_latency_get_backend()
+{
+    return _ebpf_latency_state.backend;
+}
+
+void
+ebpf_latency_emit_program_etw_event(
+    uint32_t program_id, uint32_t correlation_id, uint64_t start_tsc, uint64_t end_tsc, uint8_t cpu_id)
+{
+    uint64_t duration = end_tsc - start_tsc;
+    uint32_t process_id = (uint32_t)(uintptr_t)PsGetCurrentProcessId();
+    uint32_t thread_id = (uint32_t)(uintptr_t)PsGetCurrentThreadId();
+    uint32_t irql = (uint32_t)KeGetCurrentIrql();
+
+    TraceLoggingWrite(
+        ebpf_tracelog_provider,
+        "EbpfProgramLatency",
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),
+        TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_LATENCY),
+        TraceLoggingUInt32(program_id, "ProgramId"),
+        TraceLoggingUInt32(0, "HelperFunctionId"),
+        TraceLoggingUInt64((uint64_t)correlation_id, "CorrelationId"),
+        TraceLoggingUInt32(process_id, "ProcessId"),
+        TraceLoggingUInt32(thread_id, "ThreadId"),
+        TraceLoggingUInt64(start_tsc, "StartTime"),
+        TraceLoggingUInt64(end_tsc, "EndTime"),
+        TraceLoggingUInt64(duration, "Duration"),
+        TraceLoggingUInt32((uint32_t)cpu_id, "CpuId"),
+        TraceLoggingUInt32(irql, "Irql"));
+}
+
+void
+ebpf_latency_emit_helper_etw_event(
+    uint32_t program_id,
+    uint16_t helper_function_id,
+    uint16_t map_id,
+    uint32_t correlation_id,
+    uint64_t start_tsc,
+    uint64_t end_tsc,
+    uint8_t cpu_id)
+{
+    UNREFERENCED_PARAMETER(map_id);
+    uint64_t duration = end_tsc - start_tsc;
+    uint32_t process_id = (uint32_t)(uintptr_t)PsGetCurrentProcessId();
+    uint32_t thread_id = (uint32_t)(uintptr_t)PsGetCurrentThreadId();
+    uint32_t irql = (uint32_t)KeGetCurrentIrql();
+
+    TraceLoggingWrite(
+        ebpf_tracelog_provider,
+        "EbpfMapHelperLatency",
+        TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),
+        TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_LATENCY),
+        TraceLoggingUInt32(program_id, "ProgramId"),
+        TraceLoggingUInt32((uint32_t)helper_function_id, "HelperFunctionId"),
+        TraceLoggingUInt64((uint64_t)correlation_id, "CorrelationId"),
+        TraceLoggingUInt32(process_id, "ProcessId"),
+        TraceLoggingUInt32(thread_id, "ThreadId"),
+        TraceLoggingUInt64(start_tsc, "StartTime"),
+        TraceLoggingUInt64(end_tsc, "EndTime"),
+        TraceLoggingUInt64(duration, "Duration"),
+        TraceLoggingUInt32((uint32_t)cpu_id, "CpuId"),
+        TraceLoggingUInt32(irql, "Irql"));
 }
