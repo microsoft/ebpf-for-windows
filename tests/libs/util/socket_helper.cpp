@@ -245,6 +245,10 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
         if (timeout_or_error_expected) {
+            // Clean up even on unexpected receive when timeout was expected.
+            WSACloseEvent(overlapped.hEvent);
+            overlapped.hEvent = INVALID_HANDLE_VALUE;
+            receive_posted = false;
             FAIL("Receiver socket received a message when timeout was expected.");
         }
 
@@ -263,11 +267,17 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
             if (!timeout_or_error_expected) {
-                FAIL("Receiver socket did not receive any message in 1 second.");
+                FAIL("Receiver socket did not receive any message in " << timeout_in_ms << " ms.");
             }
         } else {
             FAIL("Waiting on receiver socket failed with " << WSAGetLastError());
         }
+        // Clean up overlapped state on timeout or error — cancel the pending I/O, close the event handle,
+        // and reset receive_posted so the next post_async_receive() creates fresh state.
+        CancelIoEx(reinterpret_cast<HANDLE>(socket), &overlapped);
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+        receive_posted = false;
     }
 }
 

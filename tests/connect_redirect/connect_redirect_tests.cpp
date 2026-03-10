@@ -397,41 +397,52 @@ update_policy_map_and_test_connection(
     _update_policy_map(
         destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
 
-    {
-        impersonation_helper_t helper(_globals.user_type);
+    // Ensure the policy map entry is always cleaned up, even if an assertion fails (which throws a C++ exception).
+    // Without this, a stale ALLOW entry persists and causes cascading failures in subsequent tests that share the
+    // same policy map key (e.g., UNCONNECTED_UDP and CONNECTED_UDP both use IPPROTO_UDP).
+    try {
+        {
+            impersonation_helper_t helper(_globals.user_type);
 
-        authentication_id = _get_current_thread_authentication_id();
-        SAFE_REQUIRE(authentication_id != 0);
+            authentication_id = _get_current_thread_authentication_id();
+            SAFE_REQUIRE(authentication_id != 0);
 
-        // Try to send and receive message to "destination". It should succeed.
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+            // Try to send and receive message to "destination". It should succeed.
+            sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+            sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
-        sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
+            sender_socket->post_async_receive();
+            sender_socket->complete_async_receive(5000, false);
 
-        sender_socket->get_received_message(bytes_received, received_message);
+            sender_socket->get_received_message(bytes_received, received_message);
 
-        // capture the local address again after the send
-        sender_socket->get_local_address(source_addr, source_addr_len);
-        std::string source_after_send_str = get_string_from_address(source_addr);
-        CAPTURE(source_after_send_str);
+            // capture the local address again after the send
+            sender_socket->get_local_address(source_addr, source_addr_len);
+            std::string source_after_send_str = get_string_from_address(source_addr);
+            CAPTURE(source_after_send_str);
 
-        // For local redirection, the redirect context is expected to be set and returned.
-        // If the connection is not redirected or is redirected to a remote address,
-        // check for the SERVER_MESSAGE generic response.
-        std::string expected_response;
-        if (redirected && local_redirect) {
-            expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
-        } else {
-            expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+            // For local redirection, the redirect context is expected to be set and returned.
+            // If the connection is not redirected or is redirected to a remote address,
+            // check for the SERVER_MESSAGE generic response.
+            std::string expected_response;
+            if (redirected && local_redirect) {
+                expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
+            } else {
+                expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
+            }
+            CAPTURE(expected_response, received_message);
+            SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+            SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
         }
-        CAPTURE(expected_response, received_message);
-        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
-    }
 
-    _validate_audit_map_entry(authentication_id);
+        _validate_audit_map_entry(authentication_id);
+    } catch (...) {
+        // Clean up policy map entry before re-throwing so subsequent tests aren't affected.
+        add_policy = false;
+        _update_policy_map(
+            destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
+        throw;
+    }
 
     // Remove entry from policy map.
     add_policy = false;
