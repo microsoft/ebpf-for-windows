@@ -2386,9 +2386,13 @@ _ebpf_core_map_find_element(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_lookup_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_lookup_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_lookup_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
 
         // Emit ETW event if the backend is ETW.
         if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
@@ -2432,9 +2436,13 @@ _ebpf_core_map_update_element(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_update_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_update_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_update_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
 
         // Emit ETW event if the backend is ETW.
         if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
@@ -2476,9 +2484,13 @@ _ebpf_core_map_delete_element(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_delete_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_delete_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_delete_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
 
         // Emit ETW event if the backend is ETW.
         if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
@@ -2532,15 +2544,9 @@ _ebpf_core_map_find_and_delete_element(
             BPF_FUNC_map_lookup_and_delete_elem,
             map_id,
             correlation_id,
-            latency_tsc,
-            EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id,
-            BPF_FUNC_map_lookup_and_delete_elem,
-            map_id,
-            correlation_id,
             end_tsc,
-            EBPF_LATENCY_EVENT_HELPER_END);
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
 
         // Emit ETW event if the backend is ETW.
         if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
@@ -2837,9 +2843,13 @@ _ebpf_core_ring_buffer_output(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_ringbuf_output, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_ringbuf_output, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_ringbuf_output,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
     }
 
     return result;
@@ -2917,10 +2927,9 @@ _ebpf_core_perf_event_output(
             BPF_FUNC_perf_event_output,
             map_id,
             correlation_id,
-            latency_tsc,
-            EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_perf_event_output, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
     }
 
     return result;
@@ -2954,9 +2963,13 @@ _ebpf_core_map_push_elem(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_push_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_push_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_push_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
     }
 
     return result;
@@ -2991,9 +3004,13 @@ _ebpf_core_map_pop_elem(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_pop_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_pop_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_pop_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
     }
 
     return result;
@@ -3028,9 +3045,13 @@ _ebpf_core_map_peek_elem(
         uint32_t correlation_id = (uint32_t)ebpf_program_get_correlation_id(ctx);
         uint16_t map_id = (uint16_t)ebpf_map_get_id(map);
         ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_peek_elem, map_id, correlation_id, latency_tsc, EBPF_LATENCY_EVENT_HELPER_START);
-        ebpf_latency_write_record(
-            program_id, BPF_FUNC_map_peek_elem, map_id, correlation_id, end_tsc, EBPF_LATENCY_EVENT_HELPER_END);
+            program_id,
+            BPF_FUNC_map_peek_elem,
+            map_id,
+            correlation_id,
+            end_tsc,
+            end_tsc - latency_tsc,
+            EBPF_LATENCY_EVENT_HELPER);
     }
 
     return result;

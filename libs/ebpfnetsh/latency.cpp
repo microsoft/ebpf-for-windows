@@ -1198,43 +1198,20 @@ _show_latencytrace_from_ringbuffer(uint32_t format, _In_opt_z_ const char* outpu
     // Timestamps are in 100-ns units. Convert to microseconds by dividing by 10.
     auto ticks_to_us = [](uint64_t ticks_100ns) -> double { return (double)ticks_100ns / 10.0; };
 
-    // Pair program start/end events per CPU to compute durations.
+    // Collect durations directly from records (single-event model — no pairing needed).
     std::map<uint32_t, std::vector<uint64_t>> program_durations;
-    std::map<uint8_t, std::map<uint32_t, uint64_t>> cpu_prog_start;
-
-    // Helper key: (program_id, helper_function_id, map_id).
     typedef std::tuple<uint32_t, uint16_t, uint16_t> rb_helper_key_t;
     std::map<rb_helper_key_t, std::vector<uint64_t>> helper_durations;
-    // Track helper start timestamps per CPU: cpu_id -> (program_id, helper_id, map_id) -> timestamp.
-    typedef std::tuple<uint32_t, uint16_t, uint16_t> helper_start_key_t;
-    std::map<uint8_t, std::map<helper_start_key_t, uint64_t>> cpu_helper_start;
 
     for (const auto& r : all_records) {
-        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
-            cpu_prog_start[r.cpu_id][r.program_id] = r.timestamp;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
-            auto cpu_it = cpu_prog_start.find(r.cpu_id);
-            if (cpu_it != cpu_prog_start.end()) {
-                auto prog_it = cpu_it->second.find(r.program_id);
-                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second) {
-                    program_durations[r.program_id].push_back(r.timestamp - prog_it->second);
-                    cpu_it->second.erase(prog_it);
-                }
-            }
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
-            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
-            cpu_helper_start[r.cpu_id][key] = r.timestamp;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
-            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
-            auto cpu_it = cpu_helper_start.find(r.cpu_id);
-            if (cpu_it != cpu_helper_start.end()) {
-                auto hlp_it = cpu_it->second.find(key);
-                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second) {
-                    rb_helper_key_t duration_key = {r.program_id, r.helper_function_id, r.map_id};
-                    helper_durations[duration_key].push_back(r.timestamp - hlp_it->second);
-                    cpu_it->second.erase(hlp_it);
-                }
-            }
+        if (r.program_id == 0) {
+            continue; // Skip zero-initialized/invalid records.
+        }
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM) {
+            program_durations[r.program_id].push_back(r.duration);
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER) {
+            rb_helper_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            helper_durations[key].push_back(r.duration);
         }
     }
 
@@ -1529,42 +1506,20 @@ _show_latencytrace_from_bin(_In_z_ const WCHAR* bin_path, uint32_t format)
     // Timestamps are in 100-ns units. Convert to microseconds by dividing by 10.
     auto ticks_to_us = [](uint64_t ticks_100ns) -> double { return (double)ticks_100ns / 10.0; };
 
-    // Pair program start/end events per CPU to compute durations.
+    // Collect durations directly from records (single-event model — no pairing needed).
     std::map<uint32_t, std::vector<uint64_t>> program_durations;
-    std::map<uint8_t, std::map<uint32_t, uint64_t>> cpu_prog_start;
-
-    // Helper key: (program_id, helper_function_id, map_id).
     typedef std::tuple<uint32_t, uint16_t, uint16_t> rb_helper_key_t;
     std::map<rb_helper_key_t, std::vector<uint64_t>> helper_durations;
-    typedef std::tuple<uint32_t, uint16_t, uint16_t> helper_start_key_t;
-    std::map<uint8_t, std::map<helper_start_key_t, uint64_t>> cpu_helper_start;
 
     for (const auto& r : all_records) {
-        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
-            cpu_prog_start[r.cpu_id][r.program_id] = r.timestamp;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
-            auto cpu_it = cpu_prog_start.find(r.cpu_id);
-            if (cpu_it != cpu_prog_start.end()) {
-                auto prog_it = cpu_it->second.find(r.program_id);
-                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second) {
-                    program_durations[r.program_id].push_back(r.timestamp - prog_it->second);
-                    cpu_it->second.erase(prog_it);
-                }
-            }
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
-            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
-            cpu_helper_start[r.cpu_id][key] = r.timestamp;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
-            helper_start_key_t key = {r.program_id, r.helper_function_id, r.map_id};
-            auto cpu_it = cpu_helper_start.find(r.cpu_id);
-            if (cpu_it != cpu_helper_start.end()) {
-                auto hlp_it = cpu_it->second.find(key);
-                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second) {
-                    rb_helper_key_t duration_key = {r.program_id, r.helper_function_id, r.map_id};
-                    helper_durations[duration_key].push_back(r.timestamp - hlp_it->second);
-                    cpu_it->second.erase(hlp_it);
-                }
-            }
+        if (r.program_id == 0) {
+            continue; // Skip zero-initialized/invalid records.
+        }
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM) {
+            program_durations[r.program_id].push_back(r.duration);
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER) {
+            rb_helper_key_t key = {r.program_id, r.helper_function_id, r.map_id};
+            helper_durations[key].push_back(r.duration);
         }
     }
 

@@ -777,18 +777,17 @@ extern "C"
 #endif
 
     // Latency event types (for ebpf_latency_drain_record_t.event_type).
-#define EBPF_LATENCY_EVENT_PROGRAM_START 0
-#define EBPF_LATENCY_EVENT_PROGRAM_END 1
-#define EBPF_LATENCY_EVENT_HELPER_START 2
-#define EBPF_LATENCY_EVENT_HELPER_END 3
+#define EBPF_LATENCY_EVENT_PROGRAM 0
+#define EBPF_LATENCY_EVENT_HELPER 1
 
     // Compact latency event record returned by the drain API.
     typedef struct _ebpf_latency_drain_record
     {
-        uint64_t timestamp;          // rdtsc value (raw cycles).
+        uint64_t timestamp;          // Event completion time (100-ns units).
+        uint64_t duration;           // Event duration (100-ns units).
         uint32_t correlation_id;     // Per-CPU monotonic counter (0 if correlation disabled).
         uint32_t program_id;         // Program object ID.
-        uint16_t helper_function_id; // BPF_FUNC_xxx (0 for program start/end).
+        uint16_t helper_function_id; // BPF_FUNC_xxx (0 for program events).
         uint16_t map_id;             // Map object ID (0 if N/A).
         uint8_t event_type;          // EBPF_LATENCY_EVENT_*.
         uint8_t cpu_id;              // Processor number.

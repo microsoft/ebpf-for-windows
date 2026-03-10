@@ -178,6 +178,7 @@ ebpf_latency_write_record(
     uint16_t map_id,
     uint32_t correlation_id,
     uint64_t timestamp,
+    uint64_t duration,
     uint8_t event_type)
 {
     // Raise to DISPATCH to prevent preemption and CPU migration.
@@ -191,6 +192,7 @@ ebpf_latency_write_record(
             // Stop-on-full: only write if buffer has space.
             ebpf_latency_record_t* rec = &ring->records[ring->write_index];
             rec->timestamp = timestamp;
+            rec->duration = duration;
             rec->correlation_id = correlation_id;
             rec->program_id = program_id;
             rec->helper_function_id = helper_function_id;

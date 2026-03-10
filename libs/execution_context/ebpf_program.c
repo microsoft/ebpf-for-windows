@@ -1556,15 +1556,6 @@ ebpf_program_invoke(
         }
         latency_tsc = cxplat_query_time_since_boot_precise(false);
 
-        // Write program-start record.
-        ebpf_latency_write_record(
-            (uint32_t)program->object.id,
-            0, // helper_function_id
-            0, // map_id
-            correlation_id,
-            latency_tsc,
-            EBPF_LATENCY_EVENT_PROGRAM_START);
-
         ebpf_lower_irql(old_irql);
     }
 
@@ -1627,16 +1618,18 @@ ebpf_program_invoke(
         }
     }
 
-    // Latency tracking: write program-end record if tracking was active.
+    // Latency tracking: write single program record with duration.
     if (latency_tsc != 0) {
         uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
+        uint64_t duration = end_tsc - latency_tsc;
         ebpf_latency_write_record(
             (uint32_t)program->object.id,
             0, // helper_function_id
             0, // map_id
             correlation_id,
             end_tsc,
-            EBPF_LATENCY_EVENT_PROGRAM_END);
+            duration,
+            EBPF_LATENCY_EVENT_PROGRAM);
 
         // Emit ETW event if the backend is ETW.
         if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {

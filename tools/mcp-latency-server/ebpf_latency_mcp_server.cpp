@@ -765,10 +765,8 @@ load_etl_file(const std::string& file_path)
 #define EBPF_LATENCY_NAME_TYPE_PROGRAM 0
 #define EBPF_LATENCY_NAME_TYPE_MAP 1
 
-#define EBPF_LATENCY_EVENT_PROGRAM_START 0
-#define EBPF_LATENCY_EVENT_PROGRAM_END 1
-#define EBPF_LATENCY_EVENT_HELPER_START 2
-#define EBPF_LATENCY_EVENT_HELPER_END 3
+#define EBPF_LATENCY_EVENT_PROGRAM 0
+#define EBPF_LATENCY_EVENT_HELPER 1
 
 #pragma pack(push, 1)
 struct BinFileHeader
@@ -787,6 +785,7 @@ struct BinFileHeader
 struct BinRecord
 {
     uint64_t timestamp;
+    uint64_t duration;
     uint32_t correlation_id;
     uint32_t program_id;
     uint16_t helper_function_id;
@@ -853,75 +852,49 @@ load_bin_file(const std::string& file_path)
     }
     fclose(fp);
 
-    // Pair start/end records into consolidated events.
+    // Convert single-event records directly (no pairing needed).
     auto td = std::make_unique<TraceData>();
     td->file_path = file_path;
-    td->timer_resolution = 10000000; // 100-ns units → 10 MHz.
-
-    // Track start timestamps per CPU for pairing.
-    // Program: cpu_id -> (program_id -> start record)
-    std::map<uint8_t, std::map<uint32_t, const BinRecord*>> cpu_prog_start;
-    // Helper: cpu_id -> ((program_id, helper_id, map_id) -> start record)
-    typedef std::tuple<uint32_t, uint16_t, uint16_t> HelperKey;
-    std::map<uint8_t, std::map<HelperKey, const BinRecord*>> cpu_helper_start;
+    td->timer_resolution = 10000000; // 100-ns units.
 
     for (const auto& r : records) {
+        if (r.program_id == 0) {
+            continue; // Skip zero-initialized/invalid records.
+        }
         if (td->first_timestamp == 0 || r.timestamp < td->first_timestamp)
             td->first_timestamp = r.timestamp;
         if (r.timestamp > td->last_timestamp)
             td->last_timestamp = r.timestamp;
 
-        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_START) {
-            cpu_prog_start[r.cpu_id][r.program_id] = &r;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
-            auto cpu_it = cpu_prog_start.find(r.cpu_id);
-            if (cpu_it != cpu_prog_start.end()) {
-                auto prog_it = cpu_it->second.find(r.program_id);
-                if (prog_it != cpu_it->second.end() && r.timestamp >= prog_it->second->timestamp) {
-                    const BinRecord* start = prog_it->second;
-                    ProgramInvokeEvent ev;
-                    ev.program_id = r.program_id;
-                    auto name_it = prog_names.find(r.program_id);
-                    ev.program_name = (name_it != prog_names.end()) ? name_it->second : "";
-                    ev.correlation_id = start->correlation_id;
-                    ev.process_id = 0;
-                    ev.thread_id = 0;
-                    ev.start_time = start->timestamp;
-                    ev.end_time = r.timestamp;
-                    ev.duration = r.timestamp - start->timestamp;
-                    ev.cpu_id = r.cpu_id;
-                    ev.etw_timestamp = r.timestamp;
-                    td->program_events.push_back(std::move(ev));
-                    cpu_it->second.erase(prog_it);
-                }
-            }
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_START) {
-            HelperKey key = {r.program_id, r.helper_function_id, r.map_id};
-            cpu_helper_start[r.cpu_id][key] = &r;
-        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER_END) {
-            HelperKey key = {r.program_id, r.helper_function_id, r.map_id};
-            auto cpu_it = cpu_helper_start.find(r.cpu_id);
-            if (cpu_it != cpu_helper_start.end()) {
-                auto hlp_it = cpu_it->second.find(key);
-                if (hlp_it != cpu_it->second.end() && r.timestamp >= hlp_it->second->timestamp) {
-                    const BinRecord* start = hlp_it->second;
-                    MapHelperEvent ev;
-                    ev.program_id = r.program_id;
-                    ev.helper_function_id = r.helper_function_id;
-                    auto mname_it = map_names.find(r.map_id);
-                    ev.map_name = (mname_it != map_names.end()) ? mname_it->second : "";
-                    ev.correlation_id = start->correlation_id;
-                    ev.process_id = 0;
-                    ev.thread_id = 0;
-                    ev.start_time = start->timestamp;
-                    ev.end_time = r.timestamp;
-                    ev.duration = r.timestamp - start->timestamp;
-                    ev.cpu_id = r.cpu_id;
-                    ev.etw_timestamp = r.timestamp;
-                    td->helper_events.push_back(std::move(ev));
-                    cpu_it->second.erase(hlp_it);
-                }
-            }
+        if (r.event_type == EBPF_LATENCY_EVENT_PROGRAM) {
+            ProgramInvokeEvent ev;
+            ev.program_id = r.program_id;
+            auto name_it = prog_names.find(r.program_id);
+            ev.program_name = (name_it != prog_names.end()) ? name_it->second : "";
+            ev.correlation_id = r.correlation_id;
+            ev.process_id = 0;
+            ev.thread_id = 0;
+            ev.start_time = r.timestamp - r.duration;
+            ev.end_time = r.timestamp;
+            ev.duration = r.duration;
+            ev.cpu_id = r.cpu_id;
+            ev.etw_timestamp = r.timestamp;
+            td->program_events.push_back(std::move(ev));
+        } else if (r.event_type == EBPF_LATENCY_EVENT_HELPER) {
+            MapHelperEvent ev;
+            ev.program_id = r.program_id;
+            ev.helper_function_id = r.helper_function_id;
+            auto mname_it = map_names.find(r.map_id);
+            ev.map_name = (mname_it != map_names.end()) ? mname_it->second : "";
+            ev.correlation_id = r.correlation_id;
+            ev.process_id = 0;
+            ev.thread_id = 0;
+            ev.start_time = r.timestamp - r.duration;
+            ev.end_time = r.timestamp;
+            ev.duration = r.duration;
+            ev.cpu_id = r.cpu_id;
+            ev.etw_timestamp = r.timestamp;
+            td->helper_events.push_back(std::move(ev));
         }
     }
 

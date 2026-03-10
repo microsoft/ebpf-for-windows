@@ -1177,51 +1177,32 @@ TEST_CASE("latency tracking ring buffer drain", "[netsh][latency]")
     }
 
     // Step 6: Validate the data.
-    uint32_t program_starts = 0;
-    uint32_t program_ends = 0;
-    uint32_t helper_starts = 0;
-    uint32_t helper_ends = 0;
+    uint32_t program_events = 0;
+    uint32_t helper_events = 0;
 
     for (const auto& rec : all_records) {
         switch (rec.event_type) {
-        case EBPF_LATENCY_EVENT_PROGRAM_START:
-            program_starts++;
+        case EBPF_LATENCY_EVENT_PROGRAM:
+            program_events++;
             REQUIRE(rec.program_id != 0);
             REQUIRE(rec.timestamp != 0);
+            REQUIRE(rec.duration != 0);
             break;
-        case EBPF_LATENCY_EVENT_PROGRAM_END:
-            program_ends++;
-            REQUIRE(rec.program_id != 0);
-            REQUIRE(rec.timestamp != 0);
-            break;
-        case EBPF_LATENCY_EVENT_HELPER_START:
-            helper_starts++;
-            break;
-        case EBPF_LATENCY_EVENT_HELPER_END:
-            helper_ends++;
+        case EBPF_LATENCY_EVENT_HELPER:
+            helper_events++;
+            REQUIRE(rec.duration != 0);
             break;
         }
     }
 
-    printf(
-        "Latency records: %zu total, %u prog_start, %u prog_end, %u helper_start, %u helper_end\n",
-        all_records.size(),
-        program_starts,
-        program_ends,
-        helper_starts,
-        helper_ends);
+    printf("Latency records: %zu total, %u program, %u helper\n", all_records.size(), program_events, helper_events);
 
-    // We expect at least invoke_count program start/end pairs.
-    // (prog_test_run may call the program additional times internally.)
-    REQUIRE(program_starts >= invoke_count);
-    REQUIRE(program_ends >= invoke_count);
-
-    // Helper start/end counts should be paired.
-    REQUIRE(helper_starts == helper_ends);
+    // We expect at least invoke_count program events.
+    REQUIRE(program_events >= invoke_count);
 
     // All program records should have correlation IDs (since we enabled correlation).
     for (const auto& rec : all_records) {
-        if (rec.event_type == EBPF_LATENCY_EVENT_PROGRAM_START || rec.event_type == EBPF_LATENCY_EVENT_PROGRAM_END) {
+        if (rec.event_type == EBPF_LATENCY_EVENT_PROGRAM) {
             REQUIRE(rec.correlation_id != 0);
         }
     }

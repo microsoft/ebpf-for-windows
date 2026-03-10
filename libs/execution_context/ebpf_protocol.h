@@ -654,10 +654,11 @@ typedef struct _ebpf_operation_latency_drain_request
     uint32_t record_offset; // Starting record index within that CPU's buffer.
 } ebpf_operation_latency_drain_request_t;
 
-// Wire-format latency record (24 bytes). Matches ebpf_latency_record_t in ebpf_latency.h.
+// Wire-format latency record (32 bytes). Matches ebpf_latency_record_t in ebpf_latency.h.
 typedef struct _ebpf_latency_record_wire
 {
-    uint64_t timestamp; // rdtsc value.
+    uint64_t timestamp; // Event completion time (100-ns units).
+    uint64_t duration;  // Event duration (100-ns units).
     uint32_t correlation_id;
     uint32_t program_id;
     uint16_t helper_function_id;

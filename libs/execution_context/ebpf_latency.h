@@ -31,22 +31,21 @@ extern "C"
 #define EBPF_LATENCY_MAX_RECORDS_PER_CPU 10000000   // Maximum: 10,000,000 records (~229 MB).
 
     // Latency event types.
-#define EBPF_LATENCY_EVENT_PROGRAM_START 0
-#define EBPF_LATENCY_EVENT_PROGRAM_END 1
-#define EBPF_LATENCY_EVENT_HELPER_START 2
-#define EBPF_LATENCY_EVENT_HELPER_END 3
+#define EBPF_LATENCY_EVENT_PROGRAM 0
+#define EBPF_LATENCY_EVENT_HELPER 1
 
-    // Compact latency event record. No strings — IDs only.
+    // Compact latency event record — one record per event with pre-computed duration.
     typedef struct _ebpf_latency_record
     {
-        uint64_t timestamp;          // 8 B — rdtsc value (raw cycles).
+        uint64_t timestamp;          // 8 B — event completion time (100-ns units).
+        uint64_t duration;           // 8 B — event duration (100-ns units).
         uint32_t correlation_id;     // 4 B — per-CPU monotonic counter (0 if correlation disabled).
         uint32_t program_id;         // 4 B — ebpf_core_object_t.id.
-        uint16_t helper_function_id; // 2 B — BPF_FUNC_xxx (0 = program start/end).
+        uint16_t helper_function_id; // 2 B — BPF_FUNC_xxx (0 for program events).
         uint16_t map_id;             // 2 B — ebpf_map_t.id (0 if N/A).
         uint8_t event_type;          // 1 B — EBPF_LATENCY_EVENT_*.
         uint8_t cpu_id;              // 1 B — processor number.
-        uint8_t reserved[2];         // 2 B — padding to 24 bytes.
+        uint8_t reserved[2];         // 2 B — padding to 32 bytes.
     } ebpf_latency_record_t;
 
     // Per-CPU ring buffer.
@@ -156,7 +155,8 @@ extern "C"
      * @param[in] helper_function_id BPF_FUNC_xxx (0 for program events).
      * @param[in] map_id Map ID (0 if not applicable).
      * @param[in] correlation_id Correlation ID (0 if not enabled).
-     * @param[in] timestamp rdtsc timestamp.
+     * @param[in] timestamp Event completion time (100-ns units).
+     * @param[in] duration Event duration (100-ns units).
      * @param[in] event_type EBPF_LATENCY_EVENT_* value.
      */
     void
@@ -166,6 +166,7 @@ extern "C"
         uint16_t map_id,
         uint32_t correlation_id,
         uint64_t timestamp,
+        uint64_t duration,
         uint8_t event_type);
 
     /**
