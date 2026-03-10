@@ -94,38 +94,7 @@ eBPF extensions are kernel drivers providing hooks/helpers via NMR. See [docs/eB
 
 ## Crash Dump Debugging
 
-See [docs/CrashDumpDebugging.md](../docs/CrashDumpDebugging.md) for instructions on downloading and analyzing crash dumps from CI failures.
-
-### Agent Prerequisites
-
-1. **Windows Debugging Tools (CDB/WinDbg)** — Install the Debugging Tools feature from the Windows SDK:
-   ```powershell
-   # Download the SDK online installer
-   Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/?linkid=2272610" -OutFile winsdksetup.exe
-   # Install only the debugging tools (elevated)
-   Start-Process -FilePath .\winsdksetup.exe -ArgumentList "/features","OptionId.WindowsDesktopDebuggers","/quiet","/norestart" -Verb RunAs -Wait
-   ```
-   CDB installs to: `C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe`
-
-2. **mcp-windbg** (MCP server for AI-assisted dump analysis):
-   ```powershell
-   # Install Python 3.12 via NuGet (if not already available)
-   nuget install python -Version 3.12.8 -OutputDirectory C:\Users\$env:USERNAME\tools
-   $pyExe = (Get-ChildItem "C:\Users\$env:USERNAME\tools\python.3.12.8" -Recurse -Filter "python.exe" | Select-Object -First 1).FullName
-   & $pyExe -m ensurepip --upgrade
-   & $pyExe -m pip install mcp-windbg
-   ```
-
-### Running mcp-windbg Server
-
-```powershell
-$pyExe = (Get-ChildItem "C:\Users\$env:USERNAME\tools\python.3.12.8" -Recurse -Filter "python.exe" | Select-Object -First 1).FullName
-$cdbPath = "C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\cdb.exe"
-$symPath = "build\<config>\x64\<config>;SRV*C:\Symbols*https://msdl.microsoft.com/download/symbols"
-
-& $pyExe -m mcp_windbg --cdb-path $cdbPath --symbols-path $symPath --transport streamable-http --port 8765
-# MCP endpoint: http://127.0.0.1:8765/mcp
-```
+See [docs/CrashDumpDebugging.md](../docs/CrashDumpDebugging.md) for instructions on downloading and analyzing crash dumps from CI failures. Use the `debug-crash-dump` skill for agent-assisted dump analysis.
 
 ## Tracing
 
