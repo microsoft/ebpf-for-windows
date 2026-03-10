@@ -55,7 +55,10 @@ The new hooks will support:
 
 ## Design Rationale
 
-Linux defines `BPF_CGROUP_INET4_LISTEN` and `BPF_CGROUP_INET6_LISTEN` attach types in its kernel eBPF subsystem, using the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type and `struct bpf_sock_addr` context. eBPF for Windows introduces corresponding attach types that align with the Linux semantics while being implemented via the Windows Filtering Platform (WFP) ALE Authorization Listen layers.
+Linux defines `BPF_CGROUP_INET4_LISTEN` and `BPF_CGROUP_INET6_LISTEN` attach types in its kernel eBPF subsystem,
+using the `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type and `struct bpf_sock_addr` context.
+eBPF for Windows introduces corresponding attach types that align with the Linux semantics
+while being implemented via the Windows Filtering Platform (WFP) ALE Authorization Listen layers.
 
 This design adds new listen attach types to the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, following the same pattern used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
@@ -333,15 +336,15 @@ The implementation should be benchmarked against:
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure
-- Generate unique GUIDs for EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN and EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN
+- Generate unique GUIDs for `EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN` and `EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN`
 - Add `BPF_CGROUP_INET4_LISTEN` and `BPF_CGROUP_INET6_LISTEN` to the `bpf_attach_type` enum
-- Add attach type definitions to ebpf_program_attach_type_guids.h
-- Register new attach types with the existing BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type
+- Add attach type definitions to `ebpf_program_attach_type_guids.h`
+- Register new attach types with the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type
 - Extend netebpfext with ALE_AUTH_LISTEN layer support
 - Implement WFP callout registration for listen layers
 
 ### Phase 2: Context Population
-- Populate bpf_sock_addr_t context from WFP ALE_AUTH_LISTEN classify parameters
+- Populate `bpf_sock_addr_t` context from WFP ALE_AUTH_LISTEN classify parameters
 - Populate both `msg_src_*` and `user_*` fields with the local listen address/port to match Linux semantics
 - Ensure existing helper functions work with the new attach types
 
@@ -382,8 +385,9 @@ This section documents alignment with and divergences from the Linux `BPF_CGROUP
 | `sk` field | Present (socket pointer) | Absent | Kernel-internal, not exposed |
 | `compartment_id` | Absent | Present | Windows networking concept |
 | `interface_luid` | Absent | Present | Windows networking concept |
-| `ipv6_flowinfo`, `ipv6_scope_id` | Present | Absent | Not available from WFP |
+| `ipv6_flowinfo` | Present | Absent | Not available from WFP |
+| `ipv6_scope_id` | Present | Could be supported | Derivable from `interface_luid` via NSI APIs |
 | Return values | 0 (deny) / 1 (allow) | 3-value verdict enum | Pre-existing Windows design choice |
-| Address rewriting | Supported | Not supported for listen | No remote endpoint to redirect |
+| Address rewriting | Supported (local address) | Not supported for listen | WFP ALE_AUTH_LISTEN does not support address modification |
 
 These divergences are inherent to the Windows platform and are consistent with how all existing sock_addr hooks (connect, recv_accept) already differ from Linux. Programs that access `user_ip4`, `user_port`, `msg_src_ip4`, `msg_src_port`, `family`, and `protocol` are portable between Linux and Windows listen hooks.
