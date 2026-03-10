@@ -40,9 +40,8 @@ extern "C" metadata_table_t*
 get_metadata_table();
 
 static bool _expect_native_module_load_failures = false;
-static bool _require_allowed_in_test_helper = true;
 
-#define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define SERVICE_PATH_PREFIXL "\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -347,25 +346,13 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
                     // Wait for the deregistration to complete.
                     NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
                 } else {
-                    if (_require_allowed_in_test_helper) {
-                        REQUIRE(NT_SUCCESS(status));
-                    } else {
-                        // During cleanup, log the failure but don't assert.
-                        if (!NT_SUCCESS(status)) {
-                            std::cerr << "Warning: NmrDeregisterClient failed with status 0x" << std::hex << status
-                                      << std::dec << " during cleanup" << std::endl;
-                        }
-                    }
+                    assert(NT_SUCCESS(status));
                 }
                 context->nmr_client_handle = nullptr;
             }
         }
         // The service should have been marked for deletion till now.
-        if (_require_allowed_in_test_helper) {
-            REQUIRE((context->delete_pending || get_native_module_failures()));
-        } else if (!context->delete_pending && !get_native_module_failures()) {
-            std::cerr << "Warning: service not marked for deletion during cleanup" << std::endl;
-        }
+        REQUIRE((context->delete_pending || get_native_module_failures()));
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -874,18 +861,6 @@ bool
 get_native_module_failures()
 {
     return _expect_native_module_load_failures || cxplat_fault_injection_is_enabled();
-}
-
-void
-set_require_allowed_in_test_helper(bool allowed)
-{
-    _require_allowed_in_test_helper = allowed;
-}
-
-bool
-get_require_allowed_in_test_helper()
-{
-    return _require_allowed_in_test_helper;
 }
 
 _Must_inspect_result_ ebpf_result_t
