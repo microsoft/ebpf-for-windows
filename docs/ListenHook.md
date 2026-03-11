@@ -386,7 +386,6 @@ This section documents alignment with and divergences from the Linux `BPF_CGROUP
 | `compartment_id` | Absent | Present | Windows networking concept |
 | `interface_luid` | Absent | Present | Windows networking concept |
 | `ipv6_flowinfo` | Present | Absent | Not available from WFP |
-| `ipv6_scope_id` | Present | Could be supported | Derivable from `interface_luid` via NSI APIs |
 | Return values | 0 (deny) / 1 (allow) | 3-value verdict enum | Pre-existing Windows design choice |
 | Address rewriting | Supported (local address) | Not supported for listen | WFP ALE_AUTH_LISTEN does not support address modification |
 
