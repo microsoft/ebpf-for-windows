@@ -6,7 +6,10 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
-#define EBPF_MAP_OPERATION_HELPER 0x01      /* Called by a BPF program. */
+#define EBPF_MAP_OPERATION_HELPER 0x01 /* Called by a BPF program. When this flag is not set, the provider function is
+                                        * called in the context of the original user mode process, so the provider may
+                                        * implicitly use the current process's handle table (e.g., to resolve file
+                                        * descriptors passed as map values). */
 #define EBPF_MAP_OPERATION_UPDATE 0x02      /* Update operation. */
 #define EBPF_MAP_OPERATION_MAP_CLEANUP 0x04 /* Map cleanup operation. */
 
@@ -192,7 +195,9 @@ typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post
  * @param[in] out_value_size The size in bytes of the output value buffer.
  * @param[out] out_value Optional output buffer to receive the value bytes.
  * @param[in] flags Find flags. Supported values:
- *      EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program.
+ *      EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program. When this flag is not set, the function
+ *      is called in the context of the original user mode process, so the provider may implicitly use the current
+ *      process's handle table (e.g., to resolve file descriptors passed as map values).
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
@@ -226,7 +231,9 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
  * @param[in] out_value_size The size in bytes of the destination (stored) value buffer.
  * @param[out] out_value Optional pointer to the destination (stored) value buffer to populate.
  * @param[in] flags Update flags. Supported values:
- *      EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program.
+ *      EBPF_MAP_OPERATION_HELPER - The update is invoked from a BPF program. When this flag is not set, the function
+ *      is called in the context of the original user mode process, so the provider may implicitly use the current
+ *      process's handle table (e.g., to resolve file descriptors passed as map values).
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
@@ -264,7 +271,9 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * @param[in] flags Delete flags. Possible values:
  *      EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation.
  *      EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation.
- *      EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program.
+ *      EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function
+ *      is called in the context of the original user mode process, so the provider may implicitly use the current
+ *      process's handle table (e.g., to resolve file descriptors passed as map values).
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.

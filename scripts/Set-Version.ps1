@@ -20,7 +20,7 @@ $version = ""
 $version += $VersionPropertyGroup.EbpfVersion_Major + "."
 $version += $VersionPropertyGroup.EbpfVersion_Minor + "."
 $version += $VersionPropertyGroup.EbpfVersion_Revision
-if ($VersionPropertyGroup.EbpfVersion_Modifier -ne "") {
+if (-not [string]::IsNullOrEmpty($VersionPropertyGroup.EbpfVersion_Modifier)) {
     $version += "-" + $VersionPropertyGroup.EbpfVersion_Modifier
 }
 

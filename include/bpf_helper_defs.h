@@ -515,10 +515,11 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
 /**
  * @brief Copy data into perf event array map.
  *
- * @param[in, out] map Pointer to perf event array map.
+ * @param[in] ctx Pointer to the program context.
+ * @param[in, out] perf_event_array Pointer to perf event array map.
+ * @param[in] flags Flags indicating which cpu to write to and context data to copy.
  * @param[in] data Data to copy into perf event array map.
  * @param[in] size Length of data.
- * @param[in] flags Flags indicating which cpu to write to and context data to copy.
  * @retval 0 The operation was successful.
  * @retval -EBPF_INVALID_ARGUMENT One or more parameters are invalid.
  * @retval -EBPF_OPERATION_NOT_SUPPORTED Operation not supported on this program or map.

@@ -97,6 +97,7 @@ const prevail::ebpf_platform_t g_ebpf_platform_windows = {
     get_helper_prototype_windows,
     is_helper_usable_windows,
     nullptr, // resolve_builtin_call_windows,
+    nullptr, // resolve_ksym_btf_id_windows,
     nullptr, // get_builtin_call_windows,
     nullptr, // resolve_kfunc_call_windows,
     sizeof(ebpf_map_definition_in_file_t),

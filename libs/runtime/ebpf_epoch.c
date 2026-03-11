@@ -17,9 +17,12 @@ static volatile int64_t _ebpf_epoch_published_current_epoch = 1;
 static __forceinline uint64_t
 _ebpf_epoch_get_published_epoch()
 {
-    // ebpf_interlocked_compare_exchange_int64() (implemented using InterlockedCompareExchange64) provides a
-    // sequentially consistent atomic read.
-    return (uint64_t)ebpf_interlocked_compare_exchange_int64(&_ebpf_epoch_published_current_epoch, 0, 0);
+    // ReadAcquire64 provides an acquire-fence load which is sufficient here:
+    // the writer side uses InterlockedIncrement (release semantics) so an
+    // acquire load on the reader side forms a correct release/acquire pair.
+    // This avoids the LOCK-prefixed bus transaction that
+    // InterlockedCompareExchange64 would emit on every epoch_enter/retire.
+    return (uint64_t)ReadAcquire64(&_ebpf_epoch_published_current_epoch);
 }
 
 /**
