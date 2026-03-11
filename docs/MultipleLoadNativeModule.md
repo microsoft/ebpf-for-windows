@@ -129,8 +129,40 @@ contain the map and helper addresses.
 2. Changes in ebpfcore to create the `runtime_context` when the program is loaded, and pass this context to the
 program whenever it is invoked.
 
+### BTF-resolved Function Considerations
+
+When programs use BTF-resolved functions, additional per-instance state is required. See
+[BtfResolvedFunctions.md](BtfResolvedFunctions.md) for full details on BTF-resolved functions.
+
+This is a planned contract change: the current `include/bpf2c.h` definition of `program_runtime_context_t` does not
+yet include `btf_resolved_function_data`. Compatibility is maintained via the native-module versioning model described
+below.
+
+The `program_runtime_context_t` must include BTF-resolved function addresses:
+
+```c
+typedef struct _program_runtime_context
+{
+    helper_function_data_t* helper_data;
+    map_data_t* map_data;
+    global_variable_section_data_t* global_variable_section_data;
+    btf_resolved_function_data_t* btf_resolved_function_data;  // Per-instance BTF-resolved function addresses
+} program_runtime_context_t;
+```
+
+For each program instance:
+1. The runtime allocates a `btf_resolved_function_data` array sized to the BTF-resolved function import table
+2. When BTF-resolved function providers attach, their addresses are copied to this instance's `btf_resolved_function_data`
+3. Each instance maintains independent NMR bindings to BTF-resolved function providers
+
+This ensures that:
+- Multiple instances of the same program each have their own BTF-resolved function address resolution
+- BTF-resolved function provider detach/reattach affects only the instances that have completed their binding
+- Per-instance isolation is maintained for BTF-resolved functions just as it is for maps and helpers
+
 ## Backward Compatibility
 To ensure backward compatibility with the older native modules, following changes are needed:
 
 1. Update the generated code for each program to take a "runtime_context" as input. This runtime context will contain the map and helper addresses.
 2. Add a new "version" section in the PE image which can then be read by ebpfapi.dll, to figure out which path to take - old or new.
+3. Native modules that do not use BTF-resolved functions do not require the `btf_resolved_function_data` field and will continue to work with older eBPF runtimes.
