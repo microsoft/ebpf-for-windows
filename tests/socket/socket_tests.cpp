@@ -1131,6 +1131,9 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     tuple.local_port = INETADDR_PORT(local_address);
     tuple.remote_port = htons(SOCKET_TEST_PORT);
     tuple.protocol = IPPROTO_TCP;
+    NET_LUID net_luid = {};
+    net_luid.Info.IfType = IF_TYPE_SOFTWARE_LOOPBACK;
+    tuple.interface_luid = net_luid.Value;
 
     // Post an asynchronous receive on the receiver socket.
     stream_server_socket.post_async_receive();
@@ -1158,9 +1161,8 @@ TEST_CASE("sock_ops_flow_id_helper_test", "[sock_ops_tests]")
     result = bpf_map_lookup_elem(bpf_map__fd(flow_id_map), &tuple, &stored_flow_id);
 
     // Verify we get a non-zero flow ID.
-    if (result == 0) {
-        REQUIRE(stored_flow_id != 0);
-    }
+    REQUIRE(result == 0);
+    REQUIRE(stored_flow_id != 0);
 }
 
 // This function populates map policies for multi-attach tests.
