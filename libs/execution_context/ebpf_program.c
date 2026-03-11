@@ -9,6 +9,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
+#include "ebpf_latency.h"
 #include "ebpf_link.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
@@ -20,6 +21,7 @@
 #include "ebpf_tracelog.h"
 #include "ubpf.h"
 
+#include <intrin.h>
 #include <stdlib.h>
 
 static size_t _ebpf_program_state_index = MAXUINT64;
@@ -1236,8 +1238,8 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
-        total_helper_function_addresses =
-            (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_addresses = (ebpf_helper_function_addresses_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_helper_function_addresses_t), EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1259,7 +1261,8 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+        total_helper_function_ids =
+            (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1540,6 +1543,22 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
+    // Latency tracking: capture start time if enabled.
+    uint64_t latency_tsc = 0;
+    uint32_t correlation_id = 0;
+    long latency_mode = ebpf_latency_get_mode();
+    if (latency_mode > 0 && ebpf_latency_should_track_program((uint32_t)program->object.id)) {
+        KIRQL old_irql = ebpf_raise_irql(DISPATCH_LEVEL); // No-op if already DISPATCH.
+
+        uint32_t cpu = ebpf_get_current_cpu();
+        if (ebpf_latency_is_correlation_enabled()) {
+            correlation_id = ebpf_latency_next_correlation_id(cpu);
+        }
+        latency_tsc = cxplat_query_time_since_boot_precise(false);
+
+        ebpf_lower_irql(old_irql);
+    }
+
     ebpf_assert(context != NULL);
 
     // Set runtime state in context header.
@@ -1548,6 +1567,10 @@ ebpf_program_invoke(
     const ebpf_context_descriptor_t* context_descriptor =
         program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
+    // Set program pointer in context header.
+    ebpf_program_set_program_pointer(program, context);
+    // Set correlation ID in context header (for latency tracking; 0 if not tracking).
+    ebpf_program_set_correlation_id(correlation_id, context);
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -1594,6 +1617,27 @@ ebpf_program_invoke(
             execution_state->tail_call_state.next_program = NULL;
         }
     }
+
+    // Latency tracking: write single program record with duration.
+    if (latency_tsc != 0) {
+        uint64_t end_tsc = cxplat_query_time_since_boot_precise(false);
+        uint64_t duration = end_tsc - latency_tsc;
+        ebpf_latency_write_record(
+            (uint32_t)program->object.id,
+            0, // helper_function_id
+            0, // map_id
+            correlation_id,
+            end_tsc,
+            duration,
+            EBPF_LATENCY_EVENT_PROGRAM);
+
+        // Emit ETW event if the backend is ETW.
+        if (ebpf_latency_get_backend() == EBPF_LATENCY_BACKEND_ETW) {
+            ebpf_latency_emit_program_etw_event(
+                (uint32_t)program->object.id, correlation_id, latency_tsc, end_tsc, (uint8_t)ebpf_get_current_cpu());
+        }
+    }
+
     return EBPF_SUCCESS;
 }
 
@@ -2464,6 +2508,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     const ebpf_context_descriptor_t* context_descriptor =
         context->program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
+    // Set program pointer in context header.
+    ebpf_program_set_program_pointer(context->program, program_context);
 
     uint64_t start_time = cxplat_query_time_since_boot_precise(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2687,6 +2733,47 @@ ebpf_program_get_runtime_state(_In_ const void* program_context, _Outptr_ const 
     // slot [0] contains the execution context state.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
     *state = (ebpf_execution_context_state_t*)header->context_header[0];
+}
+
+void
+ebpf_program_set_program_pointer(_In_ const ebpf_program_t* program, _Inout_ void* program_context)
+{
+    // slot [2] contains the program pointer.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[2] = (uint64_t)program;
+}
+
+const ebpf_program_t*
+ebpf_program_get_program_pointer(_In_ const void* program_context)
+{
+    // slot [2] contains the program pointer.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    return (const ebpf_program_t*)header->context_header[2];
+}
+
+// Correlation ID generation moved to per-CPU ring buffers in ebpf_latency.c.
+// This function is retained for backward compatibility but delegates to the new implementation.
+uint64_t
+ebpf_program_next_correlation_id()
+{
+    // Use CPU 0 as a fallback — callers should use ebpf_latency_next_correlation_id() directly.
+    return (uint64_t)ebpf_latency_next_correlation_id(0);
+}
+
+void
+ebpf_program_set_correlation_id(uint64_t correlation_id, _Inout_ void* program_context)
+{
+    // slot [3] contains the correlation ID.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[3] = correlation_id;
+}
+
+uint64_t
+ebpf_program_get_correlation_id(_In_ const void* program_context)
+{
+    // slot [3] contains the correlation ID.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    return header->context_header[3];
 }
 
 uint64_t

@@ -40,12 +40,18 @@
     <ClCompile Include="processes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="latency.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="elf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="programs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="latency.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tokens.h">

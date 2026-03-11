@@ -8,8 +8,10 @@
 #pragma warning(pop)
 #include "cxplat_fault_injection.h"
 #include "ebpf_epoch.h"
+#include "latency.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
+#include "sample_ext_helpers.h"
 #include "test_helper.hpp"
 
 #include <winsock2.h>
@@ -1034,3 +1036,212 @@ _test_pin_unpin_map(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("pin/unpin map", "[netsh][pin]", _test_pin_unpin_map);
+
+TEST_CASE("latency tracking ring buffer drain", "[netsh][latency]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    // Step 1: Enable latency tracking (mode=all, correlation=yes) via API.
+    ebpf_result_t ebpf_result = ebpf_latency_tracking_enable(
+        2,                                // mode = program + helpers
+        EBPF_LATENCY_FLAG_CORRELATION_ID, // correlation enabled
+        0,                                // default records_per_cpu
+        EBPF_LATENCY_BACKEND_RINGBUFFER,  // ring buffer backend
+        0,                                // no program filter
+        nullptr);
+    REQUIRE(ebpf_result == EBPF_SUCCESS);
+
+    // Step 2: Load a BPF program via netsh add command.
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"sample_ext", L"pinned=none", &result);
+    REQUIRE(result == NO_ERROR);
+
+    // Parse program ID from "Loaded with ID <N>\n".
+    unsigned long program_id = 0;
+    {
+        const char* prefix = "Loaded with ID ";
+        const char* p = strstr(output.c_str(), prefix);
+        REQUIRE(p != nullptr);
+        program_id = strtoul(p + strlen(prefix), nullptr, 10);
+        REQUIRE(program_id > 0);
+    }
+
+    // Get program fd for test run.
+    fd_t program_fd = bpf_prog_get_fd_by_id(program_id);
+    REQUIRE(program_fd >= 0);
+
+    // Step 3: Invoke the BPF program 5 times using prog_test_run.
+    const uint32_t invoke_count = 5;
+    for (uint32_t i = 0; i < invoke_count; i++) {
+        bpf_test_run_opts opts = {};
+        sample_program_context_t ctx = {};
+        opts.repeat = 1;
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(sample_program_context_t);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(sample_program_context_t);
+        REQUIRE(bpf_prog_test_run_opts(program_fd, &opts) == 0);
+    }
+
+    Platform::_close(program_fd);
+
+    // Step 4: Stop latency tracking.
+    ebpf_result = ebpf_latency_tracking_disable();
+    REQUIRE(ebpf_result == EBPF_SUCCESS);
+
+    // Step 5: Drain latency data per-CPU and collect all records.
+    // Wire-format drain reply header — must match ebpf_operation_latency_drain_reply_t natural alignment.
+    struct drain_reply_t
+    {
+        uint16_t length;
+        uint16_t id;
+        uint64_t tsc_frequency;
+        uint64_t tsc_at_enable;
+        uint64_t qpc_at_enable;
+        uint32_t cpu_count;
+        uint32_t records_per_cpu;
+        uint32_t total_records;
+        uint32_t dropped_count;
+        uint32_t records_returned;
+        uint32_t _padding;
+        ebpf_latency_drain_record_t records[1];
+    };
+
+    std::vector<ebpf_latency_drain_record_t> all_records;
+    uint32_t cpu_count = 0;
+
+    // Drain CPU 0 first to get metadata.
+    {
+        uint32_t reply_buf_size = 65535;
+        std::vector<uint8_t> reply_buffer(reply_buf_size);
+        uint32_t actual_size = reply_buf_size;
+
+        ebpf_result = ebpf_latency_tracking_drain(0, 0, reply_buffer.data(), &actual_size);
+        REQUIRE(ebpf_result == EBPF_SUCCESS);
+        REQUIRE(actual_size > sizeof(drain_reply_t));
+
+        auto* reply = reinterpret_cast<drain_reply_t*>(reply_buffer.data());
+        cpu_count = reply->cpu_count;
+        REQUIRE(cpu_count > 0);
+
+        uint32_t total_for_cpu = reply->total_records;
+        uint32_t records_returned = reply->records_returned;
+        auto* recs = reply->records;
+
+        for (uint32_t j = 0; j < records_returned; j++) {
+            all_records.push_back(recs[j]);
+        }
+
+        uint32_t offset = records_returned;
+        while (offset < total_for_cpu) {
+            actual_size = reply_buf_size;
+            ebpf_result = ebpf_latency_tracking_drain(0, offset, reply_buffer.data(), &actual_size);
+            REQUIRE(ebpf_result == EBPF_SUCCESS);
+            reply = reinterpret_cast<drain_reply_t*>(reply_buffer.data());
+            records_returned = reply->records_returned;
+            recs = reply->records;
+            for (uint32_t j = 0; j < records_returned; j++) {
+                all_records.push_back(recs[j]);
+            }
+            offset += records_returned;
+            if (records_returned == 0)
+                break;
+        }
+    }
+
+    // Drain remaining CPUs.
+    for (uint32_t cpu = 1; cpu < cpu_count; cpu++) {
+        uint32_t offset = 0;
+        for (;;) {
+            uint32_t reply_buf_size = 65535;
+            std::vector<uint8_t> reply_buffer(reply_buf_size);
+            uint32_t actual_size = reply_buf_size;
+
+            ebpf_result = ebpf_latency_tracking_drain(cpu, offset, reply_buffer.data(), &actual_size);
+            REQUIRE(ebpf_result == EBPF_SUCCESS);
+
+            auto* reply = reinterpret_cast<drain_reply_t*>(reply_buffer.data());
+            uint32_t total_for_cpu = reply->total_records;
+            uint32_t records_returned = reply->records_returned;
+            auto* recs = reply->records;
+
+            for (uint32_t j = 0; j < records_returned; j++) {
+                all_records.push_back(recs[j]);
+            }
+            offset += records_returned;
+            if (records_returned == 0 || offset >= total_for_cpu)
+                break;
+        }
+    }
+
+    // Step 6: Validate the data.
+    uint32_t program_events = 0;
+    uint32_t helper_events = 0;
+
+    for (const auto& rec : all_records) {
+        switch (rec.event_type) {
+        case EBPF_LATENCY_EVENT_PROGRAM:
+            program_events++;
+            REQUIRE(rec.program_id != 0);
+            REQUIRE(rec.timestamp != 0);
+            REQUIRE(rec.duration != 0);
+            break;
+        case EBPF_LATENCY_EVENT_HELPER:
+            helper_events++;
+            REQUIRE(rec.duration != 0);
+            break;
+        }
+    }
+
+    printf("Latency records: %zu total, %u program, %u helper\n", all_records.size(), program_events, helper_events);
+
+    // We expect at least invoke_count program events.
+    REQUIRE(program_events >= invoke_count);
+
+    // All program records should have correlation IDs (since we enabled correlation).
+    for (const auto& rec : all_records) {
+        if (rec.event_type == EBPF_LATENCY_EVENT_PROGRAM) {
+            REQUIRE(rec.correlation_id != 0);
+        }
+    }
+
+    // Write records to file and verify file is non-empty.
+    const char* output_file = "test_latency_output.bin";
+    FILE* fp = nullptr;
+    errno_t err = fopen_s(&fp, output_file, "wb");
+    REQUIRE(err == 0);
+    REQUIRE(fp != nullptr);
+    fwrite(all_records.data(), sizeof(ebpf_latency_drain_record_t), all_records.size(), fp);
+    fclose(fp);
+
+    // Verify file size matches.
+    FILE* verify_fp = nullptr;
+    fopen_s(&verify_fp, output_file, "rb");
+    REQUIRE(verify_fp != nullptr);
+    fseek(verify_fp, 0, SEEK_END);
+    long file_size = ftell(verify_fp);
+    fclose(verify_fp);
+    REQUIRE(file_size == (long)(all_records.size() * sizeof(ebpf_latency_drain_record_t)));
+
+    // Release latency session (frees kernel ring buffers).
+    ebpf_result = ebpf_latency_tracking_release();
+    REQUIRE(ebpf_result == EBPF_SUCCESS);
+
+    // Verify drain fails after release.
+    {
+        uint32_t reply_buf_size = 65535;
+        std::vector<uint8_t> reply_buffer(reply_buf_size);
+        uint32_t actual_size = reply_buf_size;
+        ebpf_result = ebpf_latency_tracking_drain(0, 0, reply_buffer.data(), &actual_size);
+        REQUIRE(ebpf_result == EBPF_INVALID_STATE);
+    }
+
+    // Clean up program.
+    output =
+        _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(program_id).c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == NO_ERROR);
+
+    remove(output_file);
+}

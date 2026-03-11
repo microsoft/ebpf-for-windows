@@ -31,9 +31,26 @@ extern "C"
 
 #define UBPF_STACK_SIZE 512
 
-#define IMMEDIATE(X) (int32_t)X
-#define OFFSET(X) (int16_t)X
+#define IMMEDIATE(X) (int32_t) X
+#define OFFSET(X) (int16_t) X
 #define POINTER(X) (uint64_t)(X)
+
+// Software prefetch hint to bring data into the nearest cache level.
+// Used by generated native code to prefetch the next map's data structure
+// while the current helper call is being set up, reducing cache-miss latency.
+#if defined(__clang__) || defined(__GNUC__)
+#define BPF2C_PREFETCH(addr) __builtin_prefetch((const void*)(addr), 0, 3)
+#elif defined(_MSC_VER)
+// _mm_prefetch is a compiler intrinsic on MSVC; forward-declare to avoid
+// requiring <intrin.h> in kernel-mode drivers where bpf2c.h is included
+// before <wdm.h>.
+void
+_mm_prefetch(char const* _A, int _Sel);
+#pragma intrinsic(_mm_prefetch)
+#define BPF2C_PREFETCH(addr) _mm_prefetch((const char*)(addr), 1 /*_MM_HINT_T0*/)
+#else
+#define BPF2C_PREFETCH(addr) ((void)(addr))
+#endif
 
 #define READ_ONCE_64(destination, source, offset) \
     destination = (uint64_t)ReadNoFence64((volatile const long long*)(source + offset))

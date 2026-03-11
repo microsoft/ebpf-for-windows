@@ -1640,3 +1640,56 @@ TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }
+
+TEST_CASE("multiple_programs_invocation", "[multiple_programs]")
+{
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    uint32_t program_count = 4;
+    int result;
+
+    native_module_helper_t _native_helper;
+    _native_helper.initialize("multiple_programs", EBPF_EXECUTION_NATIVE);
+    REQUIRE(
+        program_load_helper(
+            _native_helper.get_file_name().c_str(),
+            BPF_PROG_TYPE_SAMPLE,
+            EBPF_EXECUTION_NATIVE,
+            &object,
+            &program_fd) == 0);
+
+    // Invoke all programs in the object 10 times.
+    for (int iteration = 0; iteration < 10; iteration++) {
+        for (uint32_t i = 0; i < program_count; i++) {
+            bpf_test_run_opts opts = {};
+            bind_md_t ctx = {};
+            std::string program_name = "program" + std::to_string(i + 1);
+            struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
+            REQUIRE(program != nullptr);
+            program_fd = bpf_program__fd(program);
+            REQUIRE(program_fd > 0);
+
+            std::string app_id = "api_test.exe";
+
+            opts.ctx_in = &ctx;
+            opts.ctx_size_in = sizeof(ctx);
+            opts.ctx_out = &ctx;
+            opts.ctx_size_out = sizeof(ctx);
+            opts.data_in = app_id.data();
+            opts.data_size_in = static_cast<uint32_t>(app_id.size());
+            opts.data_out = app_id.data();
+            opts.data_size_out = static_cast<uint32_t>(app_id.size());
+
+            result = bpf_prog_test_run_opts(program_fd, &opts);
+            REQUIRE(result == 0);
+            REQUIRE(opts.retval == (i + 1));
+        }
+    }
+
+    // Wait for user input.
+    std::cout << "Press Enter to continue..." << std::endl;
+    std::cin.get();
+
+    // Clean up.
+    bpf_object__close(object);
+}

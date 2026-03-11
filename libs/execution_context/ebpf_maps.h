@@ -437,6 +437,15 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_address);
 
+    /**
+     * @brief Get the name of the map.
+     *
+     * @param[in] map Map to get the name of.
+     * @return Pointer to the map name string. The caller must not free this.
+     */
+    const cxplat_utf8_string_t*
+    ebpf_map_get_name(_In_ const ebpf_map_t* map);
+
 #ifdef __cplusplus
 }
 #endif

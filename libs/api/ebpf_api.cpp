@@ -5263,3 +5263,135 @@ _ebpf_link_mark_as_legacy_mode(ebpf_handle_t link_handle) NO_EXCEPT_TRY
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_latency_tracking_enable(
+    uint32_t mode,
+    uint32_t flags,
+    uint32_t records_per_cpu,
+    uint32_t backend,
+    uint32_t program_id_count,
+    _In_reads_opt_(program_id_count) const uint32_t* program_ids) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    try {
+        size_t request_size =
+            EBPF_OFFSET_OF(ebpf_operation_latency_enable_request_t, program_ids) + program_id_count * sizeof(uint32_t);
+        std::vector<uint8_t> request_buffer(request_size);
+        auto* request = reinterpret_cast<ebpf_operation_latency_enable_request_t*>(request_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_size);
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LATENCY_ENABLE;
+        request->mode = mode;
+        request->flags = flags;
+        request->records_per_cpu = records_per_cpu;
+        request->backend = backend;
+        request->program_id_count = program_id_count;
+        for (uint32_t i = 0; i < program_id_count; i++) {
+            request->program_ids[i] = program_ids[i];
+        }
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_latency_tracking_disable() NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_operation_latency_disable_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LATENCY_DISABLE};
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_latency_tracking_drain(
+    uint32_t cpu_index,
+    uint32_t record_offset,
+    _Out_writes_bytes_(*reply_buffer_size) uint8_t* reply_buffer,
+    _Inout_ uint32_t* reply_buffer_size) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    try {
+        ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_latency_drain_request_t));
+        auto* request = reinterpret_cast<ebpf_operation_latency_drain_request_t*>(request_buffer.data());
+        request->header.length = sizeof(ebpf_operation_latency_drain_request_t);
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LATENCY_DRAIN;
+        request->cpu_index = cpu_index;
+        request->record_offset = record_offset;
+
+        ebpf_protocol_buffer_t reply_buf(*reply_buffer_size);
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buf));
+
+        if (result == EBPF_SUCCESS) {
+            auto* reply = reinterpret_cast<ebpf_operation_latency_drain_reply_t*>(reply_buf.data());
+            uint32_t actual_size = reply->header.length;
+            if (actual_size > *reply_buffer_size) {
+                actual_size = *reply_buffer_size;
+            }
+            memcpy(reply_buffer, reply_buf.data(), actual_size);
+            *reply_buffer_size = actual_size;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_latency_tracking_release() NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_operation_latency_release_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LATENCY_RELEASE};
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_latency_tracking_query_state(_Out_ uint32_t* mode, _Out_ uint32_t* backend, _Out_ uint32_t* session_active)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    *mode = 0;
+    *backend = 0;
+    *session_active = 0;
+
+    try {
+        ebpf_operation_latency_query_state_request_t request{
+            sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_LATENCY_QUERY_STATE};
+
+        ebpf_operation_latency_query_state_reply_t reply{};
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+
+        if (result == EBPF_SUCCESS) {
+            *mode = reply.mode;
+            *backend = reply.backend;
+            *session_active = reply.session_active;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT

@@ -485,6 +485,63 @@ extern "C"
     void
     ebpf_program_get_context_data(
         _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end);
+
+    /**
+     * @brief Set the program pointer in the program context header.
+     *
+     * Slot [2] contains the program pointer.
+     *
+     * @param[in] program Pointer to the program.
+     * @param[in,out] program_context Pointer to the program context.
+     */
+    EBPF_INLINE_HINT
+    void
+    ebpf_program_set_program_pointer(_In_ const ebpf_program_t* program, _Inout_ void* program_context);
+
+    /**
+     * @brief Get the program pointer from the program context header.
+     *
+     * Slot [2] contains the program pointer.
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @return Pointer to the program, or NULL if not set.
+     */
+    EBPF_INLINE_HINT
+    const ebpf_program_t*
+    ebpf_program_get_program_pointer(_In_ const void* program_context);
+
+    /**
+     * @brief Set the correlation ID in the program context header.
+     *
+     * Slot [3] contains the correlation ID (monotonically increasing counter).
+     *
+     * @param[in] correlation_id The correlation ID to store.
+     * @param[in,out] program_context Pointer to the program context.
+     */
+    EBPF_INLINE_HINT
+    void
+    ebpf_program_set_correlation_id(uint64_t correlation_id, _Inout_ void* program_context);
+
+    /**
+     * @brief Get the correlation ID from the program context header.
+     *
+     * Slot [3] contains the correlation ID (monotonically increasing counter).
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @return The correlation ID, or 0 if not set.
+     */
+    EBPF_INLINE_HINT
+    uint64_t
+    ebpf_program_get_correlation_id(_In_ const void* program_context);
+
+    /**
+     * @brief Generate the next monotonically increasing correlation ID.
+     *
+     * @return A unique correlation ID.
+     */
+    uint64_t
+    ebpf_program_next_correlation_id();
+
 #ifdef __cplusplus
 }
 #endif

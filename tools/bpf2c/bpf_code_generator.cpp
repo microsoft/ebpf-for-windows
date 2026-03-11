@@ -1576,6 +1576,29 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                     std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
                 output.lines.push_back("}");
+
+                // Emit prefetch for the next map operation's data structure.
+                // Scan forward to find the next LDDW that loads a map address,
+                // and emit a prefetch hint so the CPU can begin fetching the map
+                // data into cache while the current eBPF instructions execute.
+                for (size_t j = i + 1; j < program_output.size(); j++) {
+                    auto& future_inst = program_output[j].instruction;
+                    if (future_inst.opcode == INST_OP_LDDW_IMM && future_inst.src == INST_LD_MODE_MAP_FD &&
+                        !program_output[j].relocation.empty()) {
+                        auto future_map = map_definitions.find(program_output[j].relocation);
+                        if (future_map != map_definitions.end()) {
+                            output.lines.push_back(std::format(
+                                "BPF2C_PREFETCH(runtime_context->map_data[{}].address);", future_map->second.index));
+                        }
+                        break;
+                    }
+                    // Stop scanning if we hit a jump target, branch, or another call,
+                    // as the prefetch may not be on the executed path.
+                    if (program_output[j].jump_target || (future_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP ||
+                        (future_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP32) {
+                        break;
+                    }
+                }
             } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
                 std::string function_name = output.relocation.c_identifier();
                 output.lines.push_back(
