@@ -3587,11 +3587,15 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     #endif
 
     // Verify the signed driver file exists before attempting to load.
+    // On 1ES runners, Setup.ps1 creates C:\eBPF and copies signed binaries into it.
+    // If C:\eBPF doesn't exist, we're not on a provisioned 1ES runner — skip.
+    // If C:\eBPF exists but the driver is missing, that's a provisioning failure — fail.
     printf("Checking for signed driver at: %s\n", signed_driver_path);
+    if (_access("C:\\eBPF", 0) != 0) {
+        SKIP("C:\\eBPF directory not found, not running on a provisioned 1ES runner.");
+    }
     if (_access(signed_driver_path, 0) != 0) {
-        printf("ERROR: Signed driver file not found: %s\n", signed_driver_path);
-        printf("Ensure the signed driver exists in C:\\eBPF\\ (copied from C:\\work by Setup.ps1).\n");
-        REQUIRE(false);
+        FAIL("C:\\eBPF exists but signed driver is missing at: " << signed_driver_path << ", provisioning failure.");
     }
     printf("Found signed driver file: %s\n", signed_driver_path);
 
