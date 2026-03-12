@@ -101,6 +101,10 @@ if (!$fileExists) {
     throw $errorString
 }
 
+if ($SpdFile -and -not (Test-Path $SpdFile)) {
+    throw "Can't find SPD file: $SpdFile"
+}
+
 $TempDir = "$OutDir\$FileName"
 
 if ($KernelMode) {
