@@ -36,6 +36,11 @@
 .PARAMETER ResourceFile
     Specifies the path to a resource file to embed in the generated driver.
 
+.PARAMETER SpdFile
+    Specifies the path to a Static Profile Data (.spd) file for Static Profile Guided Optimization (SPGO).
+    When provided, the linker will use the profile data to optimize the generated kernel-mode driver.
+    This parameter only applies to kernel-mode Release builds.
+
 .EXAMPLE
     .\Convert-BpfToNative.ps1 -FileName bindmonitor
 
@@ -73,7 +78,8 @@ param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", "NativeOnlyDebug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
-    [parameter(Mandatory = $false)] [string] $ResourceFile = "")
+    [parameter(Mandatory = $false)] [string] $ResourceFile = "",
+    [parameter(Mandatory = $false)] [string] $SpdFile = "")
 
 Push-Location $OutDir
 
@@ -129,7 +135,7 @@ if ($KernelMode) {
     msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" $ProjectFile
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $FileName.o"
