@@ -18,6 +18,9 @@ on:
     paths:
       - '**.md'
 
+  # Permit manual runs of the workflow.
+  workflow_dispatch:
+
   schedule:
     # Run weekly on Sundays at midnight UTC.
     - cron: "0 0 * * 0"
