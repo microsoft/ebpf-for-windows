@@ -41,7 +41,9 @@ get_metadata_table();
 
 static bool _expect_native_module_load_failures = false;
 
-#define SERVICE_PATH_PREFIXL "\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+// clang-format off
+#define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+// clang-format on
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
