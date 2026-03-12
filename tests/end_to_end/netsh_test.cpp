@@ -8,12 +8,15 @@
 #pragma warning(pop)
 #include "cxplat_fault_injection.h"
 #include "ebpf_epoch.h"
+#include "hash.h"
 #include "netsh_test_helper.h"
 #include "platform.h"
 #include "test_helper.hpp"
 
 #include <winsock2.h>
 #include <windows.h>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <netsh.h>
 #include <regex>
@@ -1190,6 +1193,27 @@ TEST_CASE("show hash PE file with hash section hashonly", "[netsh][hash]")
 
     // Verify no spaces in the hash.
     REQUIRE(output.find(' ') == std::string::npos);
+
+    // Independently compute SHA-256 of the source ELF file and validate the hash matches.
+    // SHA256 is the algorithm used by bpf2c (EBPF_HASH_ALGORITHM in bpf_code_generator.h).
+    std::ifstream elf_file("map_reuse.o", std::ios::binary);
+    REQUIRE(elf_file.good());
+    std::string elf_contents((std::istreambuf_iterator<char>(elf_file)), std::istreambuf_iterator<char>());
+    REQUIRE(!elf_contents.empty());
+
+    hash_t hasher("SHA256");
+    std::vector<uint8_t> expected_hash = hasher.hash_string(elf_contents);
+    REQUIRE(expected_hash.size() == 32);
+
+    // Convert to uppercase hex string.
+    std::ostringstream hex_stream;
+    hex_stream << std::uppercase << std::hex << std::setfill('0');
+    for (uint8_t byte : expected_hash) {
+        hex_stream << std::setw(2) << static_cast<int>(byte);
+    }
+    std::string expected_hex = hex_stream.str() + "\n";
+
+    REQUIRE(output == expected_hex);
 }
 
 TEST_CASE("show hash PE file without hash section hashonly", "[netsh][hash]")
