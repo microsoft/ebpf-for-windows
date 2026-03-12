@@ -9,7 +9,7 @@ _Do any existing tests cover this change? Are new tests needed?_
 
 _If new tests were added:_
 - [ ] Unit tests are added.
-- [ ] Drivers tests are added.
+- [ ] Driver tests are added.
 
 ## Documentation
 
