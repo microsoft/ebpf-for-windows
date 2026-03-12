@@ -92,7 +92,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e  # v2.14.2
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
         with:
           egress-policy: audit
 
@@ -159,9 +159,19 @@ jobs:
       - name: Install ProcDump
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
+        env:
+          PROCDUMP_EXPECTED_HASH: '863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4'
         run: |
-          choco install -y --requirechecksum=true --checksum=863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4 --checksum-type=sha256 procdump --version=11.0
-          where procdump.exe
+          curl.exe -L -o ${{github.workspace}}\Procdump.zip https://download.sysinternals.com/files/Procdump.zip
+          $actualHash = (Get-FileHash -Path ${{github.workspace}}\Procdump.zip -Algorithm SHA256).Hash
+          if ($actualHash -ne $env:PROCDUMP_EXPECTED_HASH) { throw "Checksum mismatch: expected $env:PROCDUMP_EXPECTED_HASH, got $actualHash" }
+          Expand-Archive -Path ${{github.workspace}}\Procdump.zip -DestinationPath ${{github.workspace}}\procdump -Force
+          Remove-Item -Path ${{github.workspace}}\Procdump.zip -Force
+          echo "${{github.workspace}}\procdump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          if (-not (Test-Path "${{github.workspace}}\procdump\procdump.exe")) { throw "ProcDump download failed" }
+          # Accept Sysinternals EULA via registry (avoids exit code 1 from -accepteula)
+          New-Item -Path "HKCU:\SOFTWARE\Sysinternals\ProcDump" -Force | Out-Null
+          New-ItemProperty -Path "HKCU:\SOFTWARE\Sysinternals\ProcDump" -Name "EulaAccepted" -Value 1 -PropertyType DWORD -Force | Out-Null
 
       - name: Set up OpenCppCoverage and add to PATH
         id: set_up_opencppcoverage
@@ -188,7 +198,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -452,7 +462,7 @@ jobs:
       - name: Upload any crash dumps
         # Upload crash dumps even if the workflow failed.
         if: always() && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         id: upload_crash_dumps
         with:
           name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -471,7 +481,7 @@ jobs:
         # Upload test logs even if the workflow failed.
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_logs.outputs.files_exists == 'true')
         id: upload_logs
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         continue-on-error: true
         with:
           name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -491,7 +501,7 @@ jobs:
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_artifacts.outputs.files_exists == 'true')
         id: upload_artifacts
         continue-on-error: true
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
           path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
@@ -507,7 +517,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e  # v2.14.2
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
         with:
           disable-sudo: true
           egress-policy: block
