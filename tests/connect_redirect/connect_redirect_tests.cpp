@@ -436,8 +436,19 @@ update_policy_map_and_test_connection(
         }
 
         _validate_audit_map_entry(authentication_id);
-    } catch (...) {
+    } catch (const Catch::TestFailureException&) {
         // Clean up policy map entry before re-throwing so subsequent tests aren't affected.
+        add_policy = false;
+        _update_policy_map(
+            destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
+        throw;
+    } catch (const std::exception&) {
+        // Covers test_failure (non-main-thread SAFE_REQUIRE) and std::bad_alloc.
+        add_policy = false;
+        _update_policy_map(
+            destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
+        throw;
+    } catch (...) {
         add_policy = false;
         _update_policy_map(
             destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
