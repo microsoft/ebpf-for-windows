@@ -96,7 +96,6 @@ struct test_program_attributes
     std::string extension_name{};
     test_thread_function_t test_thread_function{nullptr};
     bpf_prog_type program_type{BPF_PROG_TYPE_UNSPEC};
-    ebpf_execution_type_t execution_type{EBPF_EXECUTION_ANY};
 };
 
 inline std::variant<bool, test_program_attributes>

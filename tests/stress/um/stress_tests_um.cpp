@@ -251,18 +251,16 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
     LOG_INFO("{} done. Iterations: {}", test_params.file_name.c_str(), count);
 }
 
-// Note: The 'native_file_name' and 'extension_name' members of the _test_program_info struct is not used by the
-// user-mode tests.
+// Note: The 'extension_name' member of the _test_program_info struct is not used by the user-mode tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"droppacket"},
-     {{"droppacket.o"}, {}, {}, _droppacket_stress_thread_function, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT}},
+     {{"droppacket.o"}, {"droppacket_um.dll"}, {}, _droppacket_stress_thread_function, BPF_PROG_TYPE_UNSPEC}},
     {{"bindmonitor_tailcall"},
      {{"bindmonitor_tailcall.o"},
-      {},
+      {"bindmonitor_tailcall_um.dll"},
       {},
       _bindmonitor_tailcall_stress_thread_function,
-      BPF_PROG_TYPE_UNSPEC,
-      EBPF_EXECUTION_JIT}}};
+      BPF_PROG_TYPE_UNSPEC}}};
 
 // This call is called by the common test initialization code to get a list of programs supported by the user mode or
 // kernel mode test suites.  (For example, some programs could be meant for kernel mode stress testing only).
@@ -347,7 +345,8 @@ test_process_cleanup()
     _test_helper.reset(nullptr);
 }
 
-TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
+static void
+_load_attach_detach_unload_sequential_test(ebpf_execution_type_t execution_type)
 {
     um_test_init();
 
@@ -382,14 +381,16 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
     std::vector<std::thread> test_threads{};
     std::atomic<size_t> failure_count{0};
 
+    bool use_native = (execution_type == EBPF_EXECUTION_NATIVE);
+
     for (const auto& program : _test_control_info.programs) {
 
         // Prepare the common part of the test context for all threads of this program...
         const auto& program_attributes = _test_program_info.at(program);
         stress_test_thread_context local_context{};
-        local_context.file_name = program_attributes.jit_file_name;
+        local_context.file_name = use_native ? program_attributes.native_file_name : program_attributes.jit_file_name;
         local_context.program_type = program_attributes.program_type;
-        local_context.execution_type = program_attributes.execution_type;
+        local_context.execution_type = execution_type;
         local_context.duration_minutes = _test_control_info.duration_minutes;
         local_context.failure_count = &failure_count;
 
@@ -411,4 +412,16 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
     }
 
     REQUIRE(failure_count == 0);
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("jit_load_attach_detach_unload_sequential_test", "[jit_mt_stress_test]")
+{
+    _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_JIT);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
+
+TEST_CASE("native_load_attach_detach_unload_sequential_test", "[native_mt_stress_test]")
+{
+    _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_NATIVE);
 }

@@ -19,21 +19,16 @@
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
-     {{"cgroup_sock_addr.o"},
-      {"cgroup_sock_addr.sys"},
-      {"netebpfext"},
-      nullptr,
-      BPF_PROG_TYPE_UNSPEC,
-      EBPF_EXECUTION_ANY}}};
+     {{"cgroup_sock_addr.o"}, {"cgroup_sock_addr.sys"}, {"netebpfext"}, nullptr, BPF_PROG_TYPE_UNSPEC}}};
 
 // Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
 // 'attacher' and the 'destroyer' threads.
 struct object_table_entry
 {
     std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
+    _Guarded_by_(lock) bool available { true };
+    _Guarded_by_(lock) bpf_object_ptr object { nullptr };
+    _Guarded_by_(lock) bool loaded { false };
     bool attach{false};
 
     // The following fields are for debugging this test itself.

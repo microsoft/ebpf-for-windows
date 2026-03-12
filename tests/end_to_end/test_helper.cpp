@@ -41,7 +41,9 @@ get_metadata_table();
 
 static bool _expect_native_module_load_failures = false;
 
+// clang-format off
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+// clang-format on
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -346,7 +348,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
                     // Wait for the deregistration to complete.
                     NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
                 } else {
-                    REQUIRE(NT_SUCCESS(status));
+                    assert(NT_SUCCESS(status));
                 }
                 context->nmr_client_handle = nullptr;
             }
@@ -803,8 +805,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
 _test_helper_libbpf::_test_helper_libbpf()
     : bind_program_info(nullptr), bind_hook(nullptr), cgroup_sock_addr_program_info(nullptr),
-      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr),
-      xdp_program_info(nullptr), xdp_hook(nullptr)
+      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr), xdp_program_info(nullptr),
+      xdp_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
 }
