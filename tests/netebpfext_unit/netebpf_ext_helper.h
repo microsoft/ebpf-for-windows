@@ -19,13 +19,14 @@
 #include "usersim\fwp_test.h"
 
 #include <iostream>
+#include <set>
 #include <vector>
 
 typedef struct _netebpfext_helper_base_client_context
 {
     class _netebpf_ext_helper* helper;
     void* provider_binding_context;
-    bpf_attach_type_t desired_attach_type; // BPF_ATTACH_TYPE_UNSPEC for any allowed.
+    std::set<bpf_attach_type_t> desired_attach_types; // Empty list to allow all.
 } netebpfext_helper_base_client_context_t;
 
 typedef class _netebpf_ext_helper
@@ -71,6 +72,20 @@ typedef class _netebpf_ext_helper
     FWP_ACTION_TYPE
     test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
     {
+        return usersim_fwp_cgroup_inet6_connect(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    {
+        // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
+        return usersim_fwp_cgroup_inet4_connect(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    {
+        // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
         return usersim_fwp_cgroup_inet6_connect(parameters);
     }
 
@@ -123,7 +138,7 @@ typedef class _netebpf_ext_helper
 
     typedef struct _nmr_client_registration
     {
-        // Wrapper for NmrRegisterClient
+        // Wrapper for NmrRegisterClient.
         _nmr_client_registration(
             _In_ const NPI_CLIENT_CHARACTERISTICS* characteristics, _In_opt_ __drv_aliasesMem void* client_context)
         {

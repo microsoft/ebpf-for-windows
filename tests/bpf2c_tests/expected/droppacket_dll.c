@@ -7,7 +7,7 @@
 #include "bpf2c.h"
 
 #include <stdio.h>
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers.
 #include <windows.h>
 
 #define metadata_table droppacket##_metadata_table
@@ -45,12 +45,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -63,12 +62,11 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "interface_index_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -102,9 +100,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t DropPacket_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 

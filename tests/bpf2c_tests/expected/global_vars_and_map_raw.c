@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -33,12 +32,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "some_config_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -85,14 +83,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t GlobalVariableAndMapTest_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
     {
-     {1, 40, 40}, // Version header.
-     22,
-     "helper_id_22",
+        {1, 40, 40}, // Version header.
+        22,
+        "helper_id_22",
     },
 };
 
@@ -168,7 +166,7 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
         goto label_1;
 #line 45 "sample/undocked/global_vars_and_map.c"
     }
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=2
+    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=3
 #line 50 "sample/undocked/global_vars_and_map.c"
     r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=24
