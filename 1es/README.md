@@ -124,18 +124,34 @@ dynamic name which may change whenver a new 1ES image is used.
 - Existing tests were updated to use `contains(inputs.environment, '1ES')` as an indicator that the
 job is using the 1ES runner (and negation of this condition to indicate it is not using the 1ES runner).
 
-## Known Issues
-### Credentials expiring on inner VM
-Symptom: Tests will fail with `The credential is invalid`, for example:
-```
-[08:47:30] :: Invoking command on VM: runner_vm (IsRemote: False)
-The credential is invalid.
-At D:\a\_work\ebpf-for-windows\ebpf-for-windows\x64\Release\common.psm1:460 char:5
-+     $JobOutput = Receive-Job -Job $job
-+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : OpenError: (runner_vm:String) [], PSDirectException
-    + FullyQualifiedErrorId : PSSessionStateBroken
-    + PSComputerName        : localhost
-```
+## Inner VM Credential Management
+The inner VM uses a hardcoded well-known password defined in the `Get-VMPassword` function in
+`common.psm1`. This password is used for both the Administrator and VMStandardUser accounts.
+Scripts should always call `Get-VMPassword` (or `Get-VMCredential`) rather than hardcoding the
+password string directly.
+The `unattend.xml` uses `PLACEHOLDER_PASSWORD` tokens that are replaced at VM creation time
+(in `Create-VM`) with the value from `Get-VMPassword`, ensuring a single source of truth.
+It configures:
+- OOBE auto-logon (via `<AutoLogon>`) for initial setup.
+- Winlogon registry-based auto-logon (via `FirstLogonCommands`) for persistent automatic console
+  logon per https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon.
+- Password expiration disabled for both accounts.
 
-Resolution: In the Azure portal, navigate to the 1ES image (in the eBPF team subscription, in the ebpf-cicd-rg resource group) and then rebuild the image: Settings > Image > Rebuild Image. Likely all images will need re-building. This will take a few hours, but once re-built, the credentials should again be valid.
+### Local vs Remote VMs
+`Get-VMCredential` supports both local and remote VM scenarios via its `-VMIsRemote` parameter:
+- **Local VMs** (`-VMIsRemote $false`, the default): Uses the hardcoded password from
+  `Get-VMPassword`. PowerShell Direct (`Invoke-Command -VMName`) is used for communication.
+- **Remote VMs** (`-VMIsRemote $true`): Retrieves credentials from Windows Credential Manager
+  using the targets `TEST_VM` (for Administrator) and `TEST_VM_STANDARD` (for standard users).
+  WinRM (`Invoke-Command -ComputerName`) is used for communication.
+
+For the remote case, credentials must be pre-stored in Credential Manager:
+```powershell
+Install-Module CredentialManager -Force
+New-StoredCredential -Target TEST_VM -Username Administrator -Password <password> -Persist LocalMachine
+New-StoredCredential -Target TEST_VM_STANDARD -Username VMStandardUser -Password <password> -Persist LocalMachine
+```
+See [docs/remote-vm-setup.md](../docs/remote-vm-setup.md) for full remote VM setup instructions.
+
+Note: PowerShell Direct (`Invoke-Command -VMName`) still requires explicit credentials even with
+auto-logon enabled. The hardcoded password ensures these credentials never expire or go out of sync.

@@ -39,13 +39,7 @@ $ErrorActionPreference = "Stop"
 # Import helper functions.
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
-$password = New-UniquePassword
-$passwordSecureString = ConvertTo-SecureString -String $password -AsPlainText -Force
-Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $passwordSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
-
-# Create new credentials for the VM.
-$AdminUserCredential =  Generate-NewCredential -Username 'Administrator' -Password $password -Target 'TEST_VM'
-$StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Password $password -Target 'TEST_VM_STANDARD'
+Import-Module .\config_test_vm.psm1 -Force -ArgumentList('C:\work', $logFileName) -WarningAction SilentlyContinue
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
@@ -70,7 +64,6 @@ foreach ($vhd in $vhds) {
 
         Create-VM `
             -VmName $vmName `
-            -UserPassword $password `
             -VhdPath $vhd `
             -VmStoragePath $outVMPath `
             -VMMemory $VMMemory `
