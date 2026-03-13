@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+
 #define EBPF_FILE_ID EBPF_FILE_ID_MAPS
 
 #include "ebpf_async.h"
@@ -667,6 +668,7 @@ _find_array_map_entry(
     }
 
     size_t actual_value_size = ACTUAL_VALUE_SIZE(&map->ebpf_map_definition);
+    PreFetchCacheLine(&map->data[key_value * actual_value_size]);
     *data = &map->data[key_value * actual_value_size];
 
     return EBPF_SUCCESS;
