@@ -58,6 +58,41 @@ Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 $vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath
 $vhdDebugString = $vhds | Out-String
 
+# Build list of signed binaries to copy to the VM.
+# These are pre-signed native eBPF drivers that need to be available in the VM for testing.
+# The signed drivers are downloaded to C:\work on the 1ES runner by the CI pipeline.
+$signedBinariesToCopy = @()
+$vmDestinationPath = 'C:\eBPF'
+$signedDriversPath = 'C:\work'
+
+# List of signed bindmonitor driver files to look for.
+$signedDriverFiles = @(
+    'bindmonitor_x64_signed.sys',
+    'bindmonitor_x64_debug_signed.sys',
+    'bindmonitor_arm64_signed.sys',
+    'bindmonitor_arm64_debug_signed.sys'
+)
+
+# Look for signed bindmonitor binaries in C:\work.
+foreach ($fileName in $signedDriverFiles) {
+    $filePath = Join-Path -Path $signedDriversPath -ChildPath $fileName
+    if (Test-Path $filePath) {
+        Write-Log "Found signed binary: $filePath"
+        $signedBinariesToCopy += @{
+            Source = $filePath
+            Destination = Join-Path -Path $vmDestinationPath -ChildPath $fileName
+        }
+    } else {
+        Write-Log "Signed binary not found (may not be needed for this configuration): $filePath"
+    }
+}
+
+if ($signedBinariesToCopy.Count -gt 0) {
+    Write-Log "Found $($signedBinariesToCopy.Count) signed binary file(s) to copy to VM."
+} else {
+    Write-Log "No signed binaries found in $signedDriversPath."
+}
+
 # Process VM creation and setup.
 foreach ($vhd in $vhds) {
     try {
@@ -79,7 +114,8 @@ foreach ($vhd in $vhds) {
 
         Initialize-VM `
             -VmName $vmName `
-            -VMCpuCount $VMCpuCount
+            -VMCpuCount $VMCpuCount `
+            -FilesToCopy $signedBinariesToCopy
 
         Write-Log "VM $vmName created successfully"
     } catch {
