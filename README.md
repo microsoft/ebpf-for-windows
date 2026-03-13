@@ -112,7 +112,7 @@ to provide source code compatibility for applications that interact with eBPF pr
 Yes. With HVCI enabled, eBPF programs cannot be JIT compiled, but can be run in the native mode.
 To understand why JIT compiled mode does not work, we must first understand what HVCI does.
 
-[HyperVisor-enforced Code Integrity (HVCI)](https://techcommunity.microsoft.com/t5/windows-insider-program/virtualization-based-security-vbs-and-hypervisor-enforced-code/m-p/240571)
+[HyperVisor-enforced Code Integrity (HVCI)](https://learn.microsoft.com/en-us/windows/security/hardware-security/enable-virtualization-based-protection-of-code-integrity)
 is a mechanism
 whereby a hypervisor, such as Hyper-V, uses hardware virtualization to protect kernel-mode processes against
 the injection and execution of malicious or unverified code. Code integrity validation is performed in a secure
