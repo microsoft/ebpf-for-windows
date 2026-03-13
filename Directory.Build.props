@@ -63,7 +63,7 @@
   <PropertyGroup Condition="'$(AddressSanitizer)'=='True'">
     <EnableASAN>true</EnableASAN>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug' Or '$(Configuration)'=='NativeOnlyRelease'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyDebug' Or '$(Configuration)'=='NativeOnlyRelease'">
     <DisableJIT>true</DisableJIT>
     <DisableInterpreter>true</DisableInterpreter>
   </PropertyGroup>
