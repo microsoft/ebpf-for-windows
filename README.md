@@ -107,7 +107,7 @@ programs.
 Similarly, the eBPF for Windows project exposes [Libbpf APIs](https://github.com/libbpf/libbpf)
 to provide source code compatibility for applications that interact with eBPF programs.
 
-### 3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
+### <a id="3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci"></a>3. Will eBPF work with HyperVisor-enforced Code Integrity (HVCI)?
 
 Yes. With HVCI enabled, eBPF programs cannot be JIT compiled, but can be run in the native mode.
 To understand why JIT compiled mode does not work, we must first understand what HVCI does.
