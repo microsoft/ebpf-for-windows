@@ -72,5 +72,5 @@ jobs:
           labels: |
             automated pr
             nuget update
-          branch: nuget_update_${{ hashFiles('**/packages.config') }}
+          branch: nuget_update_${{ hashFiles('**/*.vcxproj', '**/*.wixproj') }}
           base: ${{ github.event.workflow_run.head_branch }}
