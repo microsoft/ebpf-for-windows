@@ -1,0 +1,359 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This workflow monitors performance regressions and files GitHub issues when metrics exceed thresholds.
+---
+name: Monitor Performance Regressions
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      max_sigma:
+        description: 'Maximum standard deviations for regression detection'
+        required: false
+        default: '3'
+        type: string
+      min_percent_delta:
+        description: 'Minimum percent change to report (0 to disable)'
+        required: false
+        default: '5'
+        type: string
+
+permissions:
+  id-token: write  # Required to log in to Azure
+  issues: write    # Required to create and update issues
+  contents: read
+
+jobs:
+  monitor_regressions:
+    runs-on: ubuntu-latest
+    env:
+      MAX_SIGMA: ${{ github.event.inputs.max_sigma || '3' }}
+      MIN_PERCENT_DELTA: ${{ github.event.inputs.min_percent_delta || '5' }}
+      LOOK_BACK_DAYS: '30'
+      STALE_DATA_THRESHOLD_DAYS: '3'
+      REPOSITORY: 'microsoft/ebpf-for-windows'
+      # List of platforms to monitor (must match names in database)
+      PLATFORMS: '["Windows 2019", "Lab Windows 2022"]'
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76  # v2.14.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38  # v5.3.2
+        with:
+          python-version: '3.11'
+
+      - name: Log into Azure
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5  # v2 (pinned by SHA)
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Fetch PostgreSQL secrets from KeyVault
+        run: |
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGDATABASE --query value | sed 's/"//g' > ${{github.workspace}}/PGDATABASE
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGHOST --query value | sed 's/"//g' > ${{github.workspace}}/PGHOST
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGUSER --query value | sed 's/"//g' > ${{github.workspace}}/PGUSER
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGPASSWORD --query value | sed 's/"//g' > ${{github.workspace}}/PGPASSWORD
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGPORT --query value | sed 's/"//g' > ${{github.workspace}}/PGPORT
+
+      - name: Download regression check script
+        run: |
+          curl -fS https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
+
+      - name: Check for regressions and stale data
+        run: |
+          export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
+          export PGHOST=$(cat ${{github.workspace}}/PGHOST)
+          export PGUSER=$(cat ${{github.workspace}}/PGUSER)
+          export PGPORT=$(cat ${{github.workspace}}/PGPORT)
+          export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
+
+          mkdir -p results
+
+          # Process each platform
+          echo "$PLATFORMS" | jq -r '.[]' | while read -r platform; do
+            echo "Processing platform: $platform"
+
+            # Check for stale data
+            psql \
+              -v platform="$platform" \
+              -v repository="$REPOSITORY" \
+              -c "SELECT MAX(\"timestamp\") AS last_run FROM benchmarkresults WHERE platform = :'platform' AND repository = :'repository';" \
+              --csv > "results/stale_check_${platform// /_}.csv"
+
+            # Check for regressions
+            psql -f ./check_perf_results.sql \
+              -v platform="$platform" \
+              -v repository="$REPOSITORY" \
+              -v look_back="${LOOK_BACK_DAYS} days" \
+              -v max_sigma="$MAX_SIGMA" \
+              --csv > "results/regression_results_${platform// /_}.csv"
+          done
+
+      - name: Process results and manage issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 << 'EOF'
+          import csv
+          import json
+          import os
+          import subprocess
+          import textwrap
+          from datetime import datetime, timedelta, timezone
+          from pathlib import Path
+
+          # Configuration
+          REPOSITORY = os.environ['REPOSITORY']
+          PLATFORMS = json.loads(os.environ['PLATFORMS'])
+          MIN_PERCENT_DELTA = float(os.environ['MIN_PERCENT_DELTA'])
+          STALE_DATA_THRESHOLD_DAYS = int(os.environ['STALE_DATA_THRESHOLD_DAYS'])
+          MAX_SIGMA = float(os.environ['MAX_SIGMA'])
+
+          def sanitize_platform_filename(platform):
+              """Convert platform name to filename-safe string."""
+              return platform.replace(' ', '_')
+
+          def calculate_stats(value, mean, stddev):
+              """Calculate z-score and percent delta."""
+              if stddev > 0:
+                  z_score = (value - mean) / stddev
+              else:
+                  z_score = 0
+
+              if mean != 0:
+                  percent_delta = 100 * (value - mean) / mean
+              else:
+                  percent_delta = 0
+
+              return z_score, percent_delta
+
+          def search_issue_by_marker(marker):
+              """Search for an open issue containing the marker."""
+              try:
+                  result = subprocess.run(
+                      ['gh', 'issue', 'list', '--repo', REPOSITORY, '--state', 'open',
+                       '--search', marker, '--json', 'number,title,body', '--limit', '100'],
+                      capture_output=True, text=True, check=True
+                  )
+                  issues = json.loads(result.stdout)
+
+                  # Find exact marker match in body
+                  for issue in issues:
+                      if issue.get('body') and marker in issue['body']:
+                          return issue['number']
+              except subprocess.CalledProcessError as e:
+                  print(f"Error searching for issue: {e}")
+              return None
+
+          def create_issue(title, body, labels):
+              """Create a new issue."""
+              try:
+                  subprocess.run(
+                      ['gh', 'issue', 'create', '--repo', REPOSITORY,
+                       '--title', title, '--body', body, '--label', ','.join(labels)],
+                      check=True
+                  )
+                  print(f"Created issue: {title}")
+              except subprocess.CalledProcessError as e:
+                  print(f"Error creating issue: {e}")
+
+          def add_comment(issue_number, comment):
+              """Add a comment to an existing issue."""
+              try:
+                  subprocess.run(
+                      ['gh', 'issue', 'comment', str(issue_number), '--repo', REPOSITORY,
+                       '--body', comment],
+                      check=True
+                  )
+                  print(f"Added comment to issue #{issue_number}")
+              except subprocess.CalledProcessError as e:
+                  print(f"Error adding comment: {e}")
+
+          def upsert_stale_data_issue(platform, last_run_str):
+              """Create or update stale data issue for a platform."""
+              marker = f"<!-- perf-stale-data: repository={REPOSITORY} platform={platform} -->"
+
+              # Parse last run timestamp
+              try:
+                  if last_run_str and last_run_str.lower() not in ['', 'null']:
+                      last_run = datetime.fromisoformat(last_run_str.replace('Z', '+00:00'))
+                      last_run_display = last_run.strftime('%Y-%m-%d %H:%M:%S UTC')
+                  else:
+                      last_run_display = "Never"
+              except Exception:
+                  last_run_display = last_run_str or "Unknown"
+
+              title = f"Perf: no recent results for {platform}"
+              body = textwrap.dedent(f"""\
+              {marker}
+
+              ## Stale Performance Data Alert
+
+              **Platform:** {platform}
+              **Last Run:** {last_run_display}
+              **Threshold:** {STALE_DATA_THRESHOLD_DAYS} days
+
+              No performance results have been uploaded for this platform in over {STALE_DATA_THRESHOLD_DAYS} days.
+
+              ### Action Required
+              - Check if the performance test workflow is running for this platform
+              - Review recent workflow runs: https://github.com/{REPOSITORY}/actions
+              - Verify self-hosted runners are healthy (if applicable)
+
+              ### Dashboard
+              [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
+              """)
+
+              issue_number = search_issue_by_marker(marker)
+              if issue_number:
+                  comment = (
+                      f"**Update:** Still no recent performance results.\n\n"
+                      f"- **Last Run:** {last_run_display}\n"
+                      f"- **Checked:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}"
+                  )
+                  add_comment(issue_number, comment)
+              else:
+                  create_issue(title, body, ['tests'])
+
+          def upsert_regression_issue(platform, metric, timestamp, value, mean, stddev):
+              """Create or update regression issue for a metric."""
+              marker = f"<!-- perf-regression: repository={REPOSITORY} platform={platform} metric={metric} -->"
+
+              z_score, percent_delta = calculate_stats(value, mean, stddev)
+
+              # Apply minimum percent delta filter
+              if abs(percent_delta) < MIN_PERCENT_DELTA:
+                  print(f"Skipping {metric} on {platform}: percent delta ({percent_delta:.2f}%) below threshold ({MIN_PERCENT_DELTA}%)")
+                  return
+
+              direction = "increased" if value > mean else "decreased"
+              title = f"Perf regression: {platform}: {metric}"
+
+              body = textwrap.dedent(f"""\
+              {marker}
+
+              ## Performance Regression Detected
+
+              **Platform:** {platform}
+              **Metric:** `{metric}`
+              **Detected:** {timestamp}
+
+              ### Statistics
+              | Metric | Value |
+              |--------|-------|
+              | Current Value | {value:.2f} |
+              | Historical Mean | {mean:.2f} |
+              | Standard Deviation | {stddev:.2f} |
+              | Z-Score | {z_score:.2f}σ |
+              | Change | {percent_delta:+.2f}% |
+              | Direction | {direction} |
+
+              ### Details
+              The metric has {direction} by {abs(percent_delta):.2f}%, which is {abs(z_score):.2f} standard deviations from the mean.
+
+              ### Dashboard
+              [View Performance Dashboard](https://microsoft.github.io/ebpf-for-windows/dashboard.html)
+
+              ### Configuration
+              - Detection Threshold: {MAX_SIGMA}σ
+              - Lookback Period: 30 days
+              - Min Change Threshold: {MIN_PERCENT_DELTA}%
+              """)
+
+              issue_number = search_issue_by_marker(marker)
+              if issue_number:
+                  comment = textwrap.dedent(f"""\
+                  **Regression Still Present**
+
+                  - **Timestamp:** {timestamp}
+                  - **Value:** {value:.2f} (mean: {mean:.2f}, σ: {stddev:.2f})
+                  - **Z-Score:** {z_score:.2f}σ
+                  - **Change:** {percent_delta:+.2f}%
+                  """)
+                  add_comment(issue_number, comment)
+              else:
+                  create_issue(title, body, ['tests'])
+
+          # Process each platform
+          for platform in PLATFORMS:
+              platform_file = sanitize_platform_filename(platform)
+              print(f"\n{'='*60}")
+              print(f"Processing platform: {platform}")
+              print(f"{'='*60}")
+
+              # Check for stale data
+              stale_check_file = f"results/stale_check_{platform_file}.csv"
+              if Path(stale_check_file).exists():
+                  with open(stale_check_file, 'r') as f:
+                      reader = csv.DictReader(f)
+                      rows = list(reader)
+                      if rows:
+                          last_run_str = rows[0].get('last_run', '')
+                          if last_run_str and last_run_str.lower() not in ['', 'null']:
+                              try:
+                                  last_run = datetime.fromisoformat(last_run_str.replace('Z', '+00:00'))
+                                  # Ensure we have a timezone-aware datetime for comparison
+                                  now = datetime.now(timezone.utc)
+                                  # If last_run is naive, assume UTC
+                                  if last_run.tzinfo is None:
+                                      last_run = last_run.replace(tzinfo=timezone.utc)
+                                  age = now - last_run
+                                  if age.days > STALE_DATA_THRESHOLD_DAYS:
+                                      print(f"⚠️  Stale data detected: last run was {age.days} days ago")
+                                      upsert_stale_data_issue(platform, last_run_str)
+                                  else:
+                                      print(f"✓ Data is fresh: last run was {age.days} days ago")
+                              except Exception as e:
+                                  print(f"Error parsing timestamp: {e}")
+                          else:
+                              print(f"⚠️  No data found for platform")
+                              upsert_stale_data_issue(platform, None)
+
+              # Check for regressions
+              regression_file = f"results/regression_results_{platform_file}.csv"
+              if Path(regression_file).exists():
+                  with open(regression_file, 'r') as f:
+                      reader = csv.DictReader(f)
+                      regressions = list(reader)
+
+                      if len(regressions) > 0:
+                          print(f"Found {len(regressions)} regression(s)")
+                          for row in regressions:
+                              try:
+                                  metric = row['metric']
+                                  timestamp = row['timestamp']
+                                  value = float(row['value'])
+                                  mean = float(row['mean_value'])
+                                  stddev = float(row['stddev_value'])
+
+                                  print(f"  - {metric}: {value:.2f} (mean: {mean:.2f})")
+                                  upsert_regression_issue(platform, metric, timestamp, value, mean, stddev)
+                              except (KeyError, ValueError) as e:
+                                  print(f"Error processing regression row: {e}")
+                      else:
+                          print("✓ No regressions detected")
+
+          print(f"\n{'='*60}")
+          print("Processing complete")
+          print(f"{'='*60}")
+          EOF
+
+      - name: Upload results as artifacts
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: regression-monitoring-results
+          path: results/
