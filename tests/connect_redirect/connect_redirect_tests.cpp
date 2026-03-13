@@ -21,6 +21,7 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
+#include <memory>
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
@@ -495,11 +496,11 @@ get_client_socket(
 void
 authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 {
-    client_socket_t* sender_socket = nullptr;
+    client_socket_t* raw_socket = nullptr;
+    get_client_socket(dual_stack, &raw_socket);
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
 
-    get_client_socket(dual_stack, &sender_socket);
-    authorize_test(sender_socket, destination, dual_stack);
-    delete sender_socket;
+    authorize_test(sender_socket.get(), destination, dual_stack);
 }
 
 void
@@ -510,7 +511,6 @@ connect_redirect_test_wrapper(
     bool dual_stack,
     bool implicit_bind)
 {
-    client_socket_t* sender_socket = nullptr;
     // Determine address family for lookups
     socket_family_t address_family = (_globals.family == AF_INET6)
                                          ? socket_family_t::IPv6
@@ -548,15 +548,17 @@ connect_redirect_test_wrapper(
         return;
     }
 
+    client_socket_t* raw_socket = nullptr;
     if (implicit_bind) {
         // Use implicit bind (no source_address specified).
-        get_client_socket(dual_stack, &sender_socket);
+        get_client_socket(dual_stack, &raw_socket);
     } else {
-        get_client_socket(dual_stack, &sender_socket, source_address);
+        get_client_socket(dual_stack, &raw_socket, source_address);
     }
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
+
     update_policy_map_and_test_connection(
-        sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
-    delete sender_socket;
+        sender_socket.get(), destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
 }
 
 #define DECLARE_CONNECTION_AUTHORIZATION_TEST_FUNCTION(destination)                                                  \

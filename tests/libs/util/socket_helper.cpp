@@ -187,6 +187,19 @@ _client_socket::_client_socket(
 {
 }
 
+_client_socket::~_client_socket()
+{
+    // Cancel any pending overlapped receive and close the event handle.
+    if (receive_posted) {
+        CancelIoEx(reinterpret_cast<HANDLE>(socket), &overlapped);
+        receive_posted = false;
+    }
+    if (overlapped.hEvent != nullptr && overlapped.hEvent != INVALID_HANDLE_VALUE) {
+        WSACloseEvent(overlapped.hEvent);
+        overlapped.hEvent = INVALID_HANDLE_VALUE;
+    }
+}
+
 void
 _client_socket::close()
 {
