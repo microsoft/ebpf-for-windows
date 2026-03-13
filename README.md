@@ -37,7 +37,7 @@ the `bpf2c` tool converts every instruction in the bytecode to equivalent `C` st
 module (stored in a `.sys` file) using the standard visual studio toolchain. The generated driver is also known as the native eBPF program.
 
    **Note:** This is the *preferred* way of deploying eBPF programs.
-   See the [FAQ on HVCI](readme.md#3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci) for details as to why this mode is
+   See the [FAQ on HVCI](#3-will-ebpf-work-with-hypervisor-enforced-code-integrity-hvci) for details as to why this mode is
    also the most secure.
 
 1. **JIT Compiler**
