@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Copyright (c) eBPF for Windows contributors
+  SPDX-License-Identifier: MIT
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Add implicit PackageReference for Windows SDK and WDK packages -->
+  <!-- Only add to projects that compile C/C++ code (not Utility projects) -->
+  <!-- Exclude external submodule projects which have their own build configuration -->
+  <ItemGroup Condition="'$(ConfigurationType)' != 'Utility' AND !$(MSBuildProjectFullPath.Contains('\external\'))">
+    <PackageReference Include="Microsoft.Windows.SDK.CPP" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.x64" Condition="'$(Platform)' == 'x64'" />
+    <PackageReference Include="Microsoft.Windows.WDK.x64" Condition="'$(Platform)' == 'x64'" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.arm64" Condition="'$(Platform)' == 'ARM64'" />
+    <PackageReference Include="Microsoft.Windows.WDK.ARM64" Condition="'$(Platform)' == 'ARM64'" />
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.x86" Condition="'$(Platform)' == 'x86' OR '$(Platform)' == 'Win32'" />
+    <PackageReference Include="Microsoft.Windows.WDK.x86" Condition="'$(Platform)' == 'x86' OR '$(Platform)' == 'Win32'" />
+  </ItemGroup>
+</Project>
