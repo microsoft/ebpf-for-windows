@@ -7,7 +7,7 @@ If you're new to eBPF for Windows, we recommend first going through the [basic e
 Once you understand that tutorial and have llvm-objdump and the netsh helper installed
 on your machine, you're ready for the debugging tutorial.
 
-# 2. Debugging a buggy eBPF program
+# 2. Debugging a buggy eBPF programs
 
 Let's start with the [droppacket_unsafe.c](../tests/sample/unsafe/droppacket_unsafe.c) program, which
 is compiled as part of building eBPF for Windows, as it is used in the unit tests.
