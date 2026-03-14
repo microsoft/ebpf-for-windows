@@ -181,6 +181,32 @@ _ebpf_compute_crc32(_In_reads_(length_in_bytes) const uint8_t* key, size_t lengt
     }
     return crc;
 }
+
+/**
+ * @brief Compute CRC32 over a key whose effective length is specified in bits.
+ * For the final partial byte (when length_in_bits is not byte-aligned), only
+ * the high-order bits are hashed, matching the comparison semantics in
+ * _ebpf_hash_table_compare_extracted_keys.
+ *
+ * @param[in] key Pointer to the key data.
+ * @param[in] length_in_bits Length of the key in bits.
+ * @param[in] seed Seed to randomize hash.
+ * @return CRC32 hash of the key.
+ */
+static unsigned long
+_ebpf_compute_crc32_bits(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
+{
+    size_t full_bytes = length_in_bits / 8;
+    uint32_t remaining_bits = length_in_bits % 8;
+    uint32_t crc = _ebpf_compute_crc32(key, full_bytes, seed);
+    if (remaining_bits) {
+        // Mask off the low-order bits that are not part of the key,
+        // keeping only the high-order 'remaining_bits' of the final byte.
+        uint8_t masked = key[full_bytes] & (uint8_t)(0xFF << (8 - remaining_bits));
+        crc = _mm_crc32_u8(crc, masked);
+    }
+    return crc;
+}
 #endif
 
 /**
@@ -322,6 +348,11 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
         uint8_t* data;
         size_t length;
         hash_table->extract(key, &data, &length);
+#if defined(_M_X64)
+        if (ebpf_processor_supports_sse42) {
+            return _ebpf_compute_crc32_bits(data, length, hash_table->seed) & hash_table->bucket_count_mask;
+        }
+#endif
         return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
     }
 }
@@ -845,6 +876,115 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     retval = EBPF_SUCCESS;
 Done:
     return retval;
+}
+
+/**
+ * @brief Compare a pre-extracted search key against a stored key.
+ * This avoids redundantly calling extract on the search key for each bucket entry.
+ *
+ * @param[in] hash_table Hash table the keys belong to.
+ * @param[in] search_data Pre-extracted data pointer for the search key.
+ * @param[in] search_length_in_bits Pre-extracted bit-length for the search key.
+ * @param[in] stored_key Raw stored key in the hash table.
+ * @retval 0 if keys are equal, non-zero otherwise.
+ */
+static __forceinline int
+_ebpf_hash_table_compare_pre_extracted(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _In_ const uint8_t* search_data,
+    size_t search_length_in_bits,
+    _In_ const uint8_t* stored_key)
+{
+    const uint8_t* stored_data;
+    size_t stored_length_in_bits;
+    hash_table->extract(stored_key, &stored_data, &stored_length_in_bits);
+
+    if (search_length_in_bits != stored_length_in_bits) {
+        return (search_length_in_bits < stored_length_in_bits) ? -1 : 1;
+    }
+
+    int cmp_result = memcmp(search_data, stored_data, search_length_in_bits / 8);
+    if (cmp_result != 0 || search_length_in_bits % 8 == 0) {
+        return cmp_result;
+    }
+
+    uint8_t remainder_a = search_data[search_length_in_bits / 8];
+    uint8_t remainder_b = stored_data[stored_length_in_bits / 8];
+    remainder_a >>= 8 - (search_length_in_bits % 8);
+    remainder_b >>= 8 - (stored_length_in_bits % 8);
+    if (remainder_a < remainder_b) {
+        return -1;
+    } else if (remainder_a > remainder_b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+/**
+ * @brief Compute bucket index from pre-extracted key data, avoiding a redundant extract call.
+ *
+ * @param[in] hash_table Hash table.
+ * @param[in] data Pre-extracted key data.
+ * @param[in] length_in_bits Length of extracted key data in bits.
+ * @return Bucket index.
+ */
+static __forceinline uint32_t
+_ebpf_hash_table_compute_bucket_index_from_extracted(
+    _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* data, size_t length_in_bits)
+{
+#if defined(_M_X64)
+    if (ebpf_processor_supports_sse42) {
+        return _ebpf_compute_crc32_bits(data, length_in_bits, hash_table->seed) & hash_table->bucket_count_mask;
+    }
+#endif
+    return _ebpf_murmur3_32(data, length_in_bits, hash_table->seed) & hash_table->bucket_count_mask;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_find_first_match(
+    _In_ const ebpf_hash_table_t* hash_table,
+    _Inout_ uint8_t* key,
+    _In_ ebpf_hash_table_next_key_fn next_key_fn,
+    _Inout_ void* context,
+    _Outptr_ uint8_t** value)
+{
+    if (!hash_table || !key || !next_key_fn || !hash_table->extract) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    while (next_key_fn(key, context)) {
+        // Extract the search key once per probe.
+        const uint8_t* search_data;
+        size_t search_length_in_bits;
+        hash_table->extract(key, &search_data, &search_length_in_bits);
+
+        // Hash using the pre-extracted data (no redundant extract call).
+        uint32_t bucket_index =
+            _ebpf_hash_table_compute_bucket_index_from_extracted(hash_table, search_data, search_length_in_bits);
+
+        ebpf_hash_bucket_header_t* bucket = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
+        if (!bucket) {
+            continue;
+        }
+
+        // Scan bucket entries, comparing with pre-extracted search key data.
+        for (size_t i = 0; i < bucket->count; i++) {
+            ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, i);
+            if (_ebpf_hash_table_compare_pre_extracted(hash_table, search_data, search_length_in_bits, entry->key) ==
+                0) {
+                PrefetchForWrite(entry->data);
+                *value = entry->data;
+                if (hash_table->notification_callback) {
+                    hash_table->notification_callback(
+                        hash_table->notification_context, EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE, key, entry->data);
+                }
+                return EBPF_SUCCESS;
+            }
+        }
+    }
+
+    return EBPF_KEY_NOT_FOUND;
 }
 
 _Must_inspect_result_ ebpf_result_t
