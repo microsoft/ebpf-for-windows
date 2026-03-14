@@ -38,7 +38,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           # Only check out main repo, not submodules.
           ref: ${{ github.event.workflow_run.head_branch }}

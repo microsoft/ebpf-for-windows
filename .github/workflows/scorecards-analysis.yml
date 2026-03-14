@@ -49,7 +49,7 @@ jobs:
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
-        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
 
