@@ -14,10 +14,17 @@
     },
     {
       "matchManagers": ["git-submodules"],
+      "matchPaths": [
+        "external/win-c",
+        "external/Catch2",
+        "external/pe-parse",
+        "tests/external/kissfft"
+      ],
       "groupName": "git-submodules"
     },
     {
       "matchManagers": ["dockerfile"],
+      "matchPaths": ["images/**"],
       "groupName": "docker"
     }
   ]
