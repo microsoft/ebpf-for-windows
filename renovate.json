@@ -9,8 +9,7 @@
   "packageRules": [
     {
       "matchManagers": ["github-actions"],
-      "groupName": "github-actions",
-      "pinDigests": true
+      "groupName": "github-actions"
     },
     {
       "matchManagers": ["git-submodules"],
