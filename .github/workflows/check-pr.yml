@@ -14,6 +14,10 @@ on:
       run_on_fork:
         required: true
         type: boolean
+      pr_number:
+        required: false
+        type: string
+        default: ''
 
 jobs:
   conditional-check:
@@ -23,11 +27,23 @@ jobs:
     steps:
       - name: Detect if PR is from a fork
         id: check-fork
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Base repo: ${{ github.repository }}"
-          echo "Head repo: ${{ github.event.pull_request.head.repo.full_name }}"
 
-          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                              -H "Accept: application/vnd.github+json" \
+                              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ inputs.pr_number }}")
+            HEAD_REPO=$(echo "$PR_DATA" | jq -r .head.repo.full_name)
+          else
+            HEAD_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          fi
+
+          echo "Head repo: $HEAD_REPO"
+
+          if [ "$HEAD_REPO" != "${{ github.repository }}" ]; then
             echo "is_fork=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_fork=false" >> "$GITHUB_OUTPUT"
@@ -68,7 +84,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO="${{ github.repository }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_NUMBER="${{ github.event.pull_request.number || inputs.pr_number }}"
           echo "Checking PR #$PR_NUMBER in $REPO..."
 
           PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
