@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "license": ["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ],
+  "schedule": ["on saturday"],
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    },
+    {
+      "matchManagers": ["git-submodules"],
+      "groupName": "git-submodules"
+    },
+    {
+      "matchManagers": ["dockerfile"],
+      "groupName": "docker"
+    }
+  ]
+}
