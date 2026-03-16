@@ -3608,6 +3608,20 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     #error "Unsupported architecture"
     #endif
 
+    // Dump C:\eBPF directory contents for debugging.
+    printf("=== Dumping C:\\eBPF directory contents ===\n");
+    WIN32_FIND_DATAA find_data;
+    HANDLE find_handle = FindFirstFileA("C:\\eBPF\\*", &find_data);
+    if (find_handle != INVALID_HANDLE_VALUE) {
+        do {
+            printf("  %s (%lu bytes)\n", find_data.cFileName, find_data.nFileSizeLow);
+        } while (FindNextFileA(find_handle, &find_data));
+        FindClose(find_handle);
+    } else {
+        printf("  ERROR: Could not list C:\\eBPF directory (error %lu)\n", GetLastError());
+    }
+    printf("=== End directory dump ===\n");
+
     // Verify the signed driver file exists before attempting to load.
     printf("Checking for signed driver at: %s\n", signed_driver_path);
     REQUIRE(_access(signed_driver_path, 0) == 0);
