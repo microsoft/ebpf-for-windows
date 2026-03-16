@@ -1981,6 +1981,30 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+/**
+ * @brief Context for the LPM multi-probe key callback.
+ */
+typedef struct _lpm_find_context
+{
+    ebpf_bitmap_cursor_t cursor;
+} lpm_find_context_t;
+
+/**
+ * @brief Callback for ebpf_hash_table_find_first_match that sets the next
+ * prefix length to probe from the bitmap.
+ */
+static bool
+_lpm_next_key(_Inout_ uint8_t* key, _Inout_ void* context)
+{
+    lpm_find_context_t* ctx = (lpm_find_context_t*)context;
+    uint32_t next = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&ctx->cursor);
+    if (next == MAXUINT32) {
+        return false;
+    }
+    ((ebpf_core_lpm_key_t*)key)->prefix_length = next;
+    return true;
+}
+
 static ebpf_result_t
 _find_lpm_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
@@ -1995,29 +2019,23 @@ _find_lpm_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
     uint32_t original_prefix_length = lpm_key->prefix_length;
-    uint8_t* value = NULL;
 
-    ebpf_bitmap_cursor_t cursor;
-    // Start the key size search from the size of the passed in key.
-    // Iterate down through the inserted key lengths until we find a match.
-    // - Uses the passed in key for iteration by overwriting the prefix length.
-    ebpf_bitmap_start_reverse_search_at((ebpf_bitmap_t*)trie_map->data, &cursor, original_prefix_length);
-    lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
-    while (lpm_key->prefix_length != MAXUINT32) {
-        if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
-            break;
-        }
-        lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
-    }
+    lpm_find_context_t ctx;
+    ebpf_bitmap_start_reverse_search_at((ebpf_bitmap_t*)trie_map->data, &ctx.cursor, original_prefix_length);
+
+    uint8_t* value = NULL;
+    ebpf_result_t result =
+        ebpf_hash_table_find_first_match((ebpf_hash_table_t*)map->data, (uint8_t*)lpm_key, _lpm_next_key, &ctx, &value);
 
     // Restore the original prefix length.
     lpm_key->prefix_length = original_prefix_length;
-    if (!value) {
+
+    if (result != EBPF_SUCCESS) {
         return EBPF_KEY_NOT_FOUND;
-    } else {
-        *data = value;
-        return EBPF_SUCCESS;
     }
+
+    *data = value;
+    return EBPF_SUCCESS;
 }
 
 static ebpf_result_t

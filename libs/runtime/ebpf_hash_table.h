@@ -107,6 +107,42 @@ extern "C"
     ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
+     * @brief Callback to prepare the key for the next probe in a multi-probe find.
+     *
+     * The callback modifies the key buffer in-place for the next hash table probe.
+     *
+     * @param[in,out] key Key buffer to modify for the next probe.
+     * @param[in,out] context Caller-provided context (e.g., bitmap cursor).
+     * @retval true Another probe should be attempted with the modified key.
+     * @retval false No more probes — search is exhausted.
+     */
+    typedef bool (*ebpf_hash_table_next_key_fn)(_Inout_ uint8_t* key, _Inout_ void* context);
+
+    /**
+     * @brief Find the first matching entry across multiple key variants.
+     *
+     * Repeatedly calls next_key_fn to get the next key variant, then probes the
+     * hash table for each. Returns the first match found. This is more efficient
+     * than calling ebpf_hash_table_find in a loop because it caches the search
+     * key's extracted data within each probe, eliminating redundant extract calls.
+     *
+     * @param[in] hash_table Hash-table to search.
+     * @param[in,out] key Key buffer. Modified in-place by next_key_fn.
+     * @param[in] next_key_fn Callback to prepare the key for each probe.
+     * @param[in,out] context Opaque context passed to next_key_fn.
+     * @param[out] value Pointer to value if found.
+     * @retval EBPF_SUCCESS A match was found.
+     * @retval EBPF_KEY_NOT_FOUND No match after all probes exhausted.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_hash_table_find_first_match(
+        _In_ const ebpf_hash_table_t* hash_table,
+        _Inout_ uint8_t* key,
+        _In_ ebpf_hash_table_next_key_fn next_key_fn,
+        _Inout_ void* context,
+        _Outptr_ uint8_t** value);
+
+    /**
      * @brief Insert or update an entry in the hash table.
      *
      * @param[in, out] hash_table Hash-table to update.

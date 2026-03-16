@@ -14,6 +14,7 @@
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "program_helper.h"
+#include "sample_ext_helpers.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "watchdog.h"
@@ -1640,3 +1641,87 @@ TEST_CASE("prog_array_map_user_reference-native", "[user_reference]")
 {
     _test_prog_array_map_user_reference(EBPF_EXECUTION_NATIVE);
 }
+
+typedef struct _lpm_trie_key
+{
+    uint32_t prefix_length;
+    uint32_t value;
+} lpm_trie_key_t;
+
+static void
+_test_lpm_trie_perf(ebpf_execution_type_t execution_type)
+{
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    native_module_helper_t native_helper;
+    native_helper.initialize("lpm_trie_perf", execution_type);
+    REQUIRE(
+        program_load_helper(
+            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_SAMPLE, execution_type, &object, &program_fd) == 0);
+
+    // Find the LPM trie map and insert one entry.
+    fd_t map_fd = bpf_object__find_map_fd_by_name(object, "lpm_trie_map");
+    REQUIRE(map_fd > 0);
+
+    lpm_trie_key_t key = {32, 0x0a0a0a0a}; // 10.10.10.10/32
+    uint32_t value = 1;
+    REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+
+    // Common context for prog_test_run.
+    sample_program_context_t in_ctx{};
+    sample_program_context_t out_ctx{};
+    const int repeat_count = 1000000;
+
+    // Test 1: Lookup hit.
+    {
+        struct bpf_program* prog = bpf_object__find_program_by_name(object, "lpm_trie_lookup_hit");
+        REQUIRE(prog != nullptr);
+        fd_t prog_fd = bpf_program__fd(prog);
+        REQUIRE(prog_fd > 0);
+
+        bpf_test_run_opts opts = {};
+        opts.repeat = repeat_count;
+        opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+        opts.ctx_size_in = sizeof(in_ctx);
+        opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+        opts.ctx_size_out = sizeof(out_ctx);
+
+        int result = bpf_prog_test_run_opts(prog_fd, &opts);
+        REQUIRE(result == 0);
+        REQUIRE(opts.retval == 1); // Lookup should succeed.
+
+        std::cout << "LPM trie lookup HIT  (" << repeat_count << " iterations): average " << opts.duration
+                  << " ns/iteration" << std::endl;
+    }
+
+    // Test 2: Lookup miss.
+    {
+        struct bpf_program* prog = bpf_object__find_program_by_name(object, "lpm_trie_lookup_miss");
+        REQUIRE(prog != nullptr);
+        fd_t prog_fd = bpf_program__fd(prog);
+        REQUIRE(prog_fd > 0);
+
+        bpf_test_run_opts opts = {};
+        opts.repeat = repeat_count;
+        opts.ctx_in = reinterpret_cast<uint8_t*>(&in_ctx);
+        opts.ctx_size_in = sizeof(in_ctx);
+        opts.ctx_out = reinterpret_cast<uint8_t*>(&out_ctx);
+        opts.ctx_size_out = sizeof(out_ctx);
+
+        int result = bpf_prog_test_run_opts(prog_fd, &opts);
+        REQUIRE(result == 0);
+        REQUIRE(opts.retval == 0); // Lookup should fail.
+
+        std::cout << "LPM trie lookup MISS (" << repeat_count << " iterations): average " << opts.duration
+                  << " ns/iteration" << std::endl;
+    }
+
+    bpf_object__close(object);
+}
+
+TEST_CASE("lpm_trie_perf-native", "[native_tests][perf]") { _test_lpm_trie_perf(EBPF_EXECUTION_NATIVE); }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("lpm_trie_perf-jit", "[jit_tests][perf]") { _test_lpm_trie_perf(EBPF_EXECUTION_JIT); }
+#endif
