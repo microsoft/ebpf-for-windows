@@ -307,7 +307,7 @@
        the sample program types to native images (as it needs program information for offline verification).
   -->
   <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
-    <CustomBuild Include="undocked\*.c">
+    <CustomBuild Include="undocked\*.c" Exclude="undocked\map.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -318,6 +318,20 @@
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+    <CustomBuild Include="undocked\map.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -Verbose -SpdFile $(SolutionDir)tests\spd\map.spd
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps);$(SolutionDir)tests\spd\map.spd</AdditionalInputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
