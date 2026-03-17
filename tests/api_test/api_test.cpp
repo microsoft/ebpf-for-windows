@@ -3622,9 +3622,19 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     }
     printf("=== End directory dump ===\n");
 
-    // Verify the signed driver file exists before attempting to load.
-    printf("Checking for signed driver at: %s\n", signed_driver_path);
-    REQUIRE(_access(signed_driver_path, 0) == 0);
+    // This test requires a production-signed driver only available on 1ES runners.
+    // Detect 1ES runner via AGENT_ID, which Azure Pipelines agents always set (never set locally or on GitHub runners).
+    size_t agent_id_size = 0;
+    getenv_s(&agent_id_size, nullptr, 0, "AGENT_ID");
+    bool is_1es_runner = (agent_id_size > 0);
+    printf("Checking for signed driver at: %s (1ES runner: %s)\n", signed_driver_path, is_1es_runner ? "yes" : "no");
+    if (_access(signed_driver_path, 0) != 0) {
+        if (is_1es_runner) {
+            // On a 1ES runner the signed driver must exist.
+            FAIL("Signed driver not found at " << signed_driver_path << " on 1ES runner");
+        }
+        SKIP("Signed driver not found at " << signed_driver_path << " (test requires 1ES runner)");
+    }
     printf("Found signed driver file: %s\n", signed_driver_path);
 
     // Enable proof of verification via registry.
