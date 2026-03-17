@@ -100,6 +100,8 @@ Data Structures</h2></td></tr>
 Macros</h2></td></tr>
 <tr class="memitem:a09d58648eadda063c89974b05c5b5d6e" id="r_a09d58648eadda063c89974b05c5b5d6e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a09d58648eadda063c89974b05c5b5d6e">SOCK_ADDR_EXT_HELPER_FN_BASE</a>&#160;&#160;&#160;0xFFFF</td></tr>
 <tr class="separator:a09d58648eadda063c89974b05c5b5d6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5c04a4bdab3af6b9f19dc586fb2e075" id="r_ab5c04a4bdab3af6b9f19dc586fb2e075"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab5c04a4bdab3af6b9f19dc586fb2e075">SOCK_OPS_EXT_HELPER_FN_BASE</a>&#160;&#160;&#160;0xFFFF</td></tr>
+<tr class="separator:ab5c04a4bdab3af6b9f19dc586fb2e075"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -161,12 +163,18 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__nethooks_8h.html#ab1d2513464cb18a40a430026238606f6afc3c038227fcdb37c94d67b653cbc123">BPF_SOCK_OPS_CONNECTION_DELETED_CB</a>
  }</td></tr>
 <tr class="separator:ab1d2513464cb18a40a430026238606f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a207d452687a292ec766bcdbfdcc0c386" id="r_a207d452687a292ec766bcdbfdcc0c386"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a207d452687a292ec766bcdbfdcc0c386">ebpf_sock_ops_helper_id_t</a> { <a class="el" href="ebpf__nethooks_8h.html#a207d452687a292ec766bcdbfdcc0c386aa980e4ae10818fe5629eec3274d6beb7">BPF_FUNC_sock_ops_get_flow_id</a> = SOCK_OPS_EXT_HELPER_FN_BASE + 1
+ }</td></tr>
+<tr class="separator:a207d452687a292ec766bcdbfdcc0c386"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a64775b27bf65ea4c8fa5c8e951b60006" id="r_a64775b27bf65ea4c8fa5c8e951b60006"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a64775b27bf65ea4c8fa5c8e951b60006">bpf_sock_addr_set_redirect_context</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx, void *data, uint32_t data_size)</td></tr>
 <tr class="memdesc:a64775b27bf65ea4c8fa5c8e951b60006"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a context for consumption by a user-mode application (sock_addr specific only). This function is not supported for the recv_accept hooks.  <br /></td></tr>
 <tr class="separator:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35f1de6dd7f689120f6d3897394ea0e6" id="r_a35f1de6dd7f689120f6d3897394ea0e6"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a35f1de6dd7f689120f6d3897394ea0e6">bpf_sock_ops_get_flow_id</a> (<a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> *ctx)</td></tr>
+<tr class="memdesc:a35f1de6dd7f689120f6d3897394ea0e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the WFP flow ID associated with the current sock_ops context.  <br /></td></tr>
+<tr class="separator:a35f1de6dd7f689120f6d3897394ea0e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
 <a id="a09d58648eadda063c89974b05c5b5d6e" name="a09d58648eadda063c89974b05c5b5d6e"></a>
@@ -177,6 +185,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define SOCK_ADDR_EXT_HELPER_FN_BASE&#160;&#160;&#160;0xFFFF</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ab5c04a4bdab3af6b9f19dc586fb2e075" name="ab5c04a4bdab3af6b9f19dc586fb2e075"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab5c04a4bdab3af6b9f19dc586fb2e075">&#9670;&#160;</a></span>SOCK_OPS_EXT_HELPER_FN_BASE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define SOCK_OPS_EXT_HELPER_FN_BASE&#160;&#160;&#160;0xFFFF</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -494,6 +516,23 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a207d452687a292ec766bcdbfdcc0c386" name="a207d452687a292ec766bcdbfdcc0c386"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a207d452687a292ec766bcdbfdcc0c386">&#9670;&#160;</a></span>ebpf_sock_ops_helper_id_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__nethooks_8h.html#a207d452687a292ec766bcdbfdcc0c386">ebpf_sock_ops_helper_id_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a207d452687a292ec766bcdbfdcc0c386aa980e4ae10818fe5629eec3274d6beb7" name="a207d452687a292ec766bcdbfdcc0c386aa980e4ae10818fe5629eec3274d6beb7"></a>BPF_FUNC_sock_ops_get_flow_id&#160;</td><td class="fielddoc"></td></tr>
+</table>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a64775b27bf65ea4c8fa5c8e951b60006" name="a64775b27bf65ea4c8fa5c8e951b60006"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a64775b27bf65ea4c8fa5c8e951b60006">&#9670;&#160;</a></span>bpf_sock_addr_set_redirect_context()</h2>
@@ -543,6 +582,33 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a35f1de6dd7f689120f6d3897394ea0e6" name="a35f1de6dd7f689120f6d3897394ea0e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a35f1de6dd7f689120f6d3897394ea0e6">&#9670;&#160;</a></span>bpf_sock_ops_get_flow_id()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_sock_ops_get_flow_id </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> *&#160;</td>
+          <td class="paramname"><em>ctx</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the WFP flow ID associated with the current sock_ops context. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to bpf_sock_ops_t context.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The WFP flow ID as a 64-bit unsigned integer. </dd></dl>
 
 </div>
 </div>
