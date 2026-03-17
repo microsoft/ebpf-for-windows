@@ -1567,15 +1567,18 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back("goto " + target + ";");
             } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_STATIC_HELPER) {
                 std::string function_name;
+                int32_t helper_id;
                 if (output.relocation.empty()) {
-                    auto str =
-                        std::to_string(helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
+                    auto& helper = helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
+                    auto str = std::to_string(helper.index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
+                    helper_id = helper.id;
                 } else {
                     auto helper_function = helper_functions.find(output.relocation);
                     assert(helper_function != helper_functions.end());
-                    auto str = std::to_string(helper_functions[output.relocation].index);
+                    auto str = std::to_string(helper_function->second.index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
+                    helper_id = helper_function->second.id;
                 }
 
                 output.lines.push_back(
@@ -1583,10 +1586,38 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
                     get_register_name(5) + ", context);");
 
-                output.lines.push_back(
-                    std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
-                output.lines.push_back(INDENT "return 0;");
-                output.lines.push_back("}");
+                // BPF_FUNC_tail_call (helper ID 5). Emit a static return-on-success
+                // check only for tail call helpers, instead of a runtime tail_call
+                // flag check.
+                if (helper_id == BPF_FUNC_tail_call) {
+                    output.lines.push_back(std::format("if ({} == 0) {{", get_register_name(0)));
+                    output.lines.push_back(INDENT "return 0;");
+                    output.lines.push_back("}");
+                }
+
+                // Emit prefetch for the next map operation's data structure.
+                // Scan forward to find the next LDDW that loads a map address,
+                // and emit a prefetch hint so the CPU can begin fetching the map
+                // data into cache while the current eBPF instructions execute.
+                for (size_t j = i + 1; j < program_output.size(); j++) {
+                    auto& future_inst = program_output[j].instruction;
+                    if (future_inst.opcode == INST_OP_LDDW_IMM && future_inst.src == INST_LD_MODE_MAP_FD &&
+                        !program_output[j].relocation.empty()) {
+                        auto future_map = map_definitions.find(program_output[j].relocation);
+                        if (future_map != map_definitions.end()) {
+                            output.lines.push_back(std::format(
+                                "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[{}].address);",
+                                future_map->second.index));
+                        }
+                        break;
+                    }
+                    // Stop scanning if we hit a jump target, branch, or another call,
+                    // as the prefetch may not be on the executed path.
+                    if (program_output[j].jump_target || (future_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP ||
+                        (future_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP32) {
+                        break;
+                    }
+                }
             } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
                 std::string function_name = output.relocation.c_identifier();
                 output.lines.push_back(
