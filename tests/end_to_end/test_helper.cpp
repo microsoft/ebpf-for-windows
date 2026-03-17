@@ -354,7 +354,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
             }
         }
         // The service should have been marked for deletion till now.
-        REQUIRE((context->delete_pending || get_native_module_failures()));
+        assert(context->delete_pending || get_native_module_failures());
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
