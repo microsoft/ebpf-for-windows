@@ -37,7 +37,7 @@ _log(log_level msg_level, const std::string_view& fmt, Args&&... args)
 {
     extern log_level cur_log_level;
     if (msg_level <= cur_log_level) {
-        std::cout << std::vformat(fmt, std::make_format_args(args...)) << "\n";
+        std::cerr << std::vformat(fmt, std::make_format_args(args...)) << "\n";
     }
 }
 
