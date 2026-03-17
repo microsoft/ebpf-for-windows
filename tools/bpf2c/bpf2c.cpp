@@ -231,12 +231,20 @@ main(int argc, char** argv)
             {"--informational",
              {"Show failure slice on verification error",
               [&]() {
+                  if (verbosity != EBPF_VERIFICATION_VERBOSITY_NORMAL) {
+                      std::cerr << "Cannot combine --informational with --verbose" << std::endl;
+                      return false;
+                  }
                   verbosity = EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
                   return true;
               }}},
             {"--verbose",
              {"Show verbose failure information with full invariants",
               [&]() {
+                  if (verbosity != EBPF_VERIFICATION_VERBOSITY_NORMAL) {
+                      std::cerr << "Cannot combine --verbose with --informational" << std::endl;
+                      return false;
+                  }
                   verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
                   return true;
               }}},
