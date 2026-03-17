@@ -75,10 +75,10 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
     ebpf_result_t ebpf_result = EBPF_SUCCESS;
 
     auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
-        LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
-        (*test_params.failure_count)++;
-
-        return;
+        if (error != 0) {
+            LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+            (*test_params.failure_count)++;
+        }
     };
 
     while (sc::now() < endtime) {
@@ -101,7 +101,9 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
             log_error_and_increment_failure_count(-1, "bpf_object__find_program_by_name(BindMonitor_Callee0)");
         }
         fd_t callee0_fd = bpf_program__fd(callee0);
-        log_error_and_increment_failure_count(callee0_fd, "bpf_program__fd(BindMonitor_Callee0)");
+        if (callee0_fd < 0) {
+            log_error_and_increment_failure_count(callee0_fd, "bpf_program__fd(BindMonitor_Callee0)");
+        }
 
         struct bpf_program* callee1 =
             bpf_object__find_program_by_name(local_program_object_info.object.get(), "BindMonitor_Callee1");
@@ -109,10 +111,14 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
             log_error_and_increment_failure_count(-1, "bpf_object__find_program_by_name(BindMonitor_Callee1)");
         }
         fd_t callee1_fd = bpf_program__fd(callee1);
-        log_error_and_increment_failure_count(callee1_fd, "bpf_program__fd(BindMonitor_Callee1)");
+        if (callee1_fd < 0) {
+            log_error_and_increment_failure_count(callee1_fd, "bpf_program__fd(BindMonitor_Callee1)");
+        }
 
         fd_t prog_map_fd = bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "prog_array_map");
-        log_error_and_increment_failure_count(prog_map_fd, "bpf_object__find_map_fd_by_name(prog_array_map)");
+        if (prog_map_fd < 0) {
+            log_error_and_increment_failure_count(prog_map_fd, "bpf_object__find_map_fd_by_name(prog_array_map)");
+        }
 
         // Set up tail calls.
         uint32_t index = 0;
@@ -168,10 +174,11 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
             "{}({}): Instantiating _program_load. Iteration #: {}", __func__, test_params.thread_index, count++);
 
         auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
-            LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
-            (*test_params.failure_count)++;
-
-            return;
+            if (error != 0) {
+                LOG_ERROR(
+                    "{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+                (*test_params.failure_count)++;
+            }
         };
 
         auto [result, _] = _program_load(test_params.file_name, test_params.program_type, test_params.execution_type);
@@ -202,7 +209,9 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
         // Do a basic map i/o test.
         fd_t dropped_packet_map_fd =
             bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "dropped_packet_map");
-        log_error_and_increment_failure_count(dropped_packet_map_fd, "bpf_object__find_map_fd_by_name()");
+        if (dropped_packet_map_fd < 0) {
+            log_error_and_increment_failure_count(dropped_packet_map_fd, "bpf_object__find_map_fd_by_name()");
+        }
 
         key = 0;
         uint64_t value = 1000;
@@ -414,14 +423,14 @@ _load_attach_detach_unload_sequential_test(ebpf_execution_type_t execution_type)
     REQUIRE(failure_count == 0);
 }
 
+TEST_CASE("native_load_attach_detach_unload_sequential_test", "[native_mt_stress_test]")
+{
+    _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_NATIVE);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("jit_load_attach_detach_unload_sequential_test", "[jit_mt_stress_test]")
 {
     _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_JIT);
 }
 #endif // !defined(CONFIG_BPF_JIT_DISABLED)
-
-TEST_CASE("native_load_attach_detach_unload_sequential_test", "[native_mt_stress_test]")
-{
-    _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_NATIVE);
-}

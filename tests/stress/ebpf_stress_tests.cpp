@@ -153,10 +153,12 @@ main(int argc, char* argv[])
         cur_log_level = log_level::LOG_VERBOSE;
     }
 
-    session.run();
+    int test_result = session.run();
 
     // Tests that run against the 'usersim' framework need explicit clean-up before process
     // termination. This clean-up is handled by the OS and/or the in-kernel eBPF components for
     // tests that run against the kernel components.
     test_process_cleanup();
+
+    return test_result;
 }
