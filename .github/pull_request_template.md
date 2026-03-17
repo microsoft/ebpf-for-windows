@@ -7,6 +7,10 @@ _Please reference an issue with a keyword such as Fixes #abc, Closes #xyz, etc.,
 
 _Do any existing tests cover this change? Are new tests needed?_
 
+_If new tests were added:_
+- [ ] Unit tests are added.
+- [ ] Driver tests are added.
+
 ## Documentation
 
 _Is there any documentation impact for this change?_
