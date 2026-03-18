@@ -316,6 +316,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a4cf71218ec8ac715658e6e95210f4497" id="r_a4cf71218ec8ac715658e6e95210f4497"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4cf71218ec8ac715658e6e95210f4497">ebpf_perf_buffer_get_wait_handle</a> (const struct perf_buffer *pb) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a4cf71218ec8ac715658e6e95210f4497"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the wait handle for a perf buffer manager.  <br /></td></tr>
 <tr class="separator:a4cf71218ec8ac715658e6e95210f4497"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aae6fdfc104f506f2f58f02f4d410d202" id="r_aae6fdfc104f506f2f58f02f4d410d202"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aae6fdfc104f506f2f58f02f4d410d202">ebpf_api_get_data_section</a> (const char *file_path, const char *section_name, _Out_writes_bytes_opt_(*data_size) uint8_t *data, _Inout_ size_t *data_size) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:aae6fdfc104f506f2f58f02f4d410d202"><td class="mdescLeft">&#160;</td><td class="mdescRight">Extract data from a named section in a PE or ELF file.  <br /></td></tr>
+<tr class="separator:aae6fdfc104f506f2f58f02f4d410d202"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -863,6 +866,67 @@ Variables</h2></td></tr>
   <table class="retval">
     <tr><td class="paramname">0</td><td>Verification succeeded. </td></tr>
     <tr><td class="paramname">1</td><td>Verification failed. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aae6fdfc104f506f2f58f02f4d410d202" name="aae6fdfc104f506f2f58f02f4d410d202"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae6fdfc104f506f2f58f02f4d410d202">&#9670;&#160;</a></span>ebpf_api_get_data_section()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_api_get_data_section </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_path</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>section_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Out_writes_bytes_opt_ *data_size uint8_t *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_ size_t *&#160;</td>
+          <td class="paramname"><em>data_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Extract data from a named section in a PE or ELF file. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">file_path</td><td>Path to the PE or ELF file. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">section_name</td><td>Name of the section to extract. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">data</td><td>Pointer to buffer to receive section data. If NULL, only the size is returned. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">data_size</td><td>On input, size of the buffer. On output, actual size of section data. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INSUFFICIENT_BUFFER</td><td>The buffer is too small. data_size contains required size. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>Invalid parameters. </td></tr>
+    <tr><td class="paramname">EBPF_OBJECT_NOT_FOUND</td><td>Section not found in file. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_OBJECT</td><td>File format is invalid or unsupported. </td></tr>
   </table>
   </dd>
 </dl>
