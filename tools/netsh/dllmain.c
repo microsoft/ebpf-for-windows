@@ -5,6 +5,7 @@
 #include "elf.h"
 #include "links.h"
 #include "maps.h"
+#include "netsh_hash.h"
 #include "pins.h"
 #include "processes.h"
 #include "programs.h"
@@ -42,6 +43,7 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 
 // Nouns.
 #define CMD_EBPF_SHOW_DISASSEMBLY L"disassembly"
+#define CMD_EBPF_SHOW_HASH L"hash"
 #define CMD_EBPF_SHOW_LINKS L"links"
 #define CMD_EBPF_SHOW_MAPS L"maps"
 #define CMD_EBPF_SHOW_PINS L"pins"
@@ -76,6 +78,7 @@ CMD_ENTRY g_EbpfSetCommandTable[] = {
 };
 CMD_ENTRY g_EbpfShowCommandTable[] = {
     CREATE_CMD_ENTRY(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
+    CREATE_CMD_ENTRY(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY(EBPF_SHOW_PINS, handle_ebpf_show_pins),
@@ -130,6 +133,7 @@ CMD_ENTRY_LONG g_EbpfSetCommandTableLong[] = {
 };
 CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_SHOW_PINS, handle_ebpf_show_pins),
@@ -140,6 +144,7 @@ CMD_ENTRY_ORIGINAL g_EbpfShowCommandTableOriginal[] = {
 };
 CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_DISASSEMBLY, handle_ebpf_show_disassembly),
+    CREATE_CMD_ENTRY_LONG(EBPF_SHOW_HASH, handle_ebpf_show_hash),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_LINKS, handle_ebpf_show_links),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_MAPS, handle_ebpf_show_maps),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_PINS, handle_ebpf_show_pins),

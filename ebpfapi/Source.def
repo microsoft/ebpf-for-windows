@@ -105,6 +105,7 @@ EXPORTS
     ebpf_api_elf_verify_program_from_file
     ebpf_api_elf_verify_program_from_memory
     ebpf_api_close_handle
+    ebpf_api_get_data_section
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
     ebpf_canonicalize_pin_path
