@@ -1895,12 +1895,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
             for (auto& ring : mapped_rings) {
                 if (ring.mapped) {
                     (void)ebpf_map_set_wait_handle_internal(map.get(), ring.cpu_id, ebpf_handle_invalid, 0);
-                    (void)ebpf_ring_buffer_map_unmap_user(
-                        map.get(),
-                        ring.cpu_id,
-                        (const void*)ring.consumer,
-                        (const void*)ring.producer,
-                        (const void*)ring.data);
+                    (void)ebpf_ring_buffer_map_unmap_user(map.get(), ring.cpu_id);
                     ring.mapped = false;
                 }
             }
