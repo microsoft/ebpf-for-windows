@@ -7,7 +7,7 @@
 #include "bpf2c.h"
 
 #include <stdio.h>
-#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers.
 #include <windows.h>
 
 #define metadata_table bind_policy##_metadata_table
@@ -618,7 +618,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 1;
+    version->minor = 2;
     version->revision = 0;
 }
 
