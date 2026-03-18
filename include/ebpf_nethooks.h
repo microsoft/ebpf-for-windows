@@ -247,6 +247,25 @@ typedef struct _bpf_sock_ops
 typedef int
 sock_ops_hook_t(bpf_sock_ops_t* context);
 
+#define SOCK_OPS_EXT_HELPER_FN_BASE 0xFFFF
+
+typedef enum
+{
+    BPF_FUNC_sock_ops_get_flow_id = SOCK_OPS_EXT_HELPER_FN_BASE + 1,
+} ebpf_sock_ops_helper_id_t;
+
+/**
+ * @brief Get the WFP flow ID associated with the current sock_ops context.
+ *
+ * @param[in] ctx Pointer to bpf_sock_ops_t context.
+ *
+ * @return The WFP flow ID as a 64-bit unsigned integer.
+ */
+EBPF_HELPER(uint64_t, bpf_sock_ops_get_flow_id, (bpf_sock_ops_t * ctx));
+#ifndef __doxygen
+#define bpf_sock_ops_get_flow_id ((bpf_sock_ops_get_flow_id_t)BPF_FUNC_sock_ops_get_flow_id)
+#endif
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
