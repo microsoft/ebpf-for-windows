@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -33,12 +32,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "some_config_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -85,14 +83,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t GlobalVariableAndMapTest_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
     {
-     {1, 40, 40}, // Version header.
-     22,
-     "helper_id_22",
+        {1, 40, 40}, // Version header.
+        22,
+        "helper_id_22",
     },
 };
 
@@ -134,69 +132,41 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
 #line 40 "sample/undocked/global_vars_and_map.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
 #line 43 "sample/undocked/global_vars_and_map.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
-    // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
 #line 43 "sample/undocked/global_vars_and_map.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
 #line 43 "sample/undocked/global_vars_and_map.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
 #line 44 "sample/undocked/global_vars_and_map.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 44 "sample/undocked/global_vars_and_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/undocked/global_vars_and_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/undocked/global_vars_and_map.c"
-        return 0;
-#line 44 "sample/undocked/global_vars_and_map.c"
-    }
-    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=1
-#line 44 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=7 imm=0
 #line 45 "sample/undocked/global_vars_and_map.c"
     if (r0 == IMMEDIATE(0)) {
 #line 45 "sample/undocked/global_vars_and_map.c"
         goto label_1;
 #line 45 "sample/undocked/global_vars_and_map.c"
     }
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=2
 #line 50 "sample/undocked/global_vars_and_map.c"
     r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
-    // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=24
 #line 50 "sample/undocked/global_vars_and_map.c"
     r2 = IMMEDIATE(24);
-    // EBPF_OP_MOV64_REG pc=12 dst=r3 src=r0 offset=0 imm=0
 #line 50 "sample/undocked/global_vars_and_map.c"
     r3 = r0;
-    // EBPF_OP_MOV64_IMM pc=13 dst=r4 src=r0 offset=0 imm=24
 #line 50 "sample/undocked/global_vars_and_map.c"
     r4 = IMMEDIATE(24);
-    // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=22
 #line 50 "sample/undocked/global_vars_and_map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 50 "sample/undocked/global_vars_and_map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 50 "sample/undocked/global_vars_and_map.c"
-        return 0;
-#line 50 "sample/undocked/global_vars_and_map.c"
-    }
-    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=0
-#line 50 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(0);
 label_1:
-    // EBPF_OP_MOV64_REG pc=16 dst=r0 src=r1 offset=0 imm=0
 #line 53 "sample/undocked/global_vars_and_map.c"
     r0 = r1;
-    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 53 "sample/undocked/global_vars_and_map.c"
     return r0;
 #line 40 "sample/undocked/global_vars_and_map.c"

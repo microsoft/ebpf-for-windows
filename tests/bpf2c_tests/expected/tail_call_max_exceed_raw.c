@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -54,19 +53,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t bind_test_callee0_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -111,153 +110,99 @@ bind_test_callee0(void* context, const program_runtime_context_t* runtime_contex
 #line 85 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 85 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 85 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 85 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(0);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(1);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 85 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 85 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 85 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 85 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(1);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 85 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
 #line 85 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 85 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 85 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 85 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 85 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 85 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(1);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 85 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 85 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 85 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 85 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     return r0;
 #line 85 "sample/tail_call_max_exceed.c"
@@ -267,19 +212,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee1_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -324,153 +269,99 @@ bind_test_callee1(void* context, const program_runtime_context_t* runtime_contex
 #line 86 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 86 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 86 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 86 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=1
 #line 86 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(1);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=2
 #line 86 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(2);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 86 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 86 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 86 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 86 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 86 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=2
 #line 86 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(2);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 86 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
 #line 86 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 86 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 86 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 86 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 86 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 86 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=2
 #line 86 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(2);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 86 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 86 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 86 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 86 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     return r0;
 #line 86 "sample/tail_call_max_exceed.c"
@@ -480,19 +371,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee10_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -537,153 +428,99 @@ bind_test_callee10(void* context, const program_runtime_context_t* runtime_conte
 #line 95 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=1566844192
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=2019237932
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-16 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=1025538139
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-24 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r0 offset=0 imm=1852383340
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=11 dst=r10 src=r1 offset=-32 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1818845556
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=14 dst=r10 src=r1 offset=-40 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=15 dst=r1 src=r0 offset=0 imm=1819042115
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=17 dst=r10 src=r1 offset=-48 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_IMM pc=18 dst=r7 src=r0 offset=0 imm=10
 #line 95 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=19 dst=r10 src=r7 offset=-4 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 95 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 95 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=10
 #line 95 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(10);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=11
 #line 95 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(11);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 95 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 95 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 95 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 95 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 95 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=11
 #line 95 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(11);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 95 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
 #line 95 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 95 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 95 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 95 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 95 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 95 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=11
 #line 95 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(11);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 95 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 95 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 95 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 95 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 95 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     return r0;
 #line 95 "sample/tail_call_max_exceed.c"
@@ -693,19 +530,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee11_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -750,153 +587,99 @@ bind_test_callee11(void* context, const program_runtime_context_t* runtime_conte
 #line 96 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 96 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 96 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 96 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=11
 #line 96 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(11);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=12
 #line 96 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(12);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 96 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 96 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 96 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 96 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 96 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=12
 #line 96 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(12);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 96 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
 #line 96 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 96 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 96 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 96 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 96 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 96 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=12
 #line 96 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(12);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 96 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 96 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 96 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 96 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 96 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     return r0;
 #line 96 "sample/tail_call_max_exceed.c"
@@ -906,19 +689,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee12_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -963,153 +746,99 @@ bind_test_callee12(void* context, const program_runtime_context_t* runtime_conte
 #line 97 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 97 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 97 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 97 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=12
 #line 97 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(12);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(13);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 97 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 97 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 97 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 97 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 97 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(13);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 97 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
 #line 97 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 97 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 97 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 97 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 97 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 97 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(13);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 97 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 97 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 97 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 97 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     return r0;
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1119,19 +848,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee13_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1176,153 +905,99 @@ bind_test_callee13(void* context, const program_runtime_context_t* runtime_conte
 #line 98 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 98 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 98 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 98 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=13
 #line 98 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(13);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(14);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 98 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 98 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 98 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 98 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(14);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 98 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
 #line 98 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 98 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 98 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 98 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 98 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 98 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(14);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 98 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 98 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 98 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 98 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 98 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     return r0;
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1332,19 +1007,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee14_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1389,153 +1064,99 @@ bind_test_callee14(void* context, const program_runtime_context_t* runtime_conte
 #line 99 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 99 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 99 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 99 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=14
 #line 99 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(14);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=15
 #line 99 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(15);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 99 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 99 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 99 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 99 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 99 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=15
 #line 99 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(15);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 99 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
 #line 99 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 99 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 99 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 99 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 99 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 99 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=15
 #line 99 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(15);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 99 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 99 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 99 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 99 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 99 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     return r0;
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1545,19 +1166,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee15_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1602,153 +1223,99 @@ bind_test_callee15(void* context, const program_runtime_context_t* runtime_conte
 #line 100 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 100 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 100 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 100 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=15
 #line 100 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(15);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=16
 #line 100 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(16);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 100 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 100 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 100 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 100 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 100 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=16
 #line 100 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(16);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 100 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
 #line 100 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 100 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 100 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 100 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 100 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 100 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=16
 #line 100 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(16);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 100 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 100 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 100 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 100 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 100 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     return r0;
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1758,19 +1325,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee16_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -1815,153 +1382,99 @@ bind_test_callee16(void* context, const program_runtime_context_t* runtime_conte
 #line 101 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 101 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 101 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 101 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=16
 #line 101 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(16);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=17
 #line 101 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(17);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 101 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 101 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 101 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 101 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 101 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=17
 #line 101 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(17);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 101 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
 #line 101 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 101 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 101 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 101 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 101 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 101 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=17
 #line 101 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(17);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 101 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 101 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 101 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 101 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 101 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     return r0;
 #line 101 "sample/tail_call_max_exceed.c"
@@ -1971,19 +1484,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee17_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2028,153 +1541,99 @@ bind_test_callee17(void* context, const program_runtime_context_t* runtime_conte
 #line 102 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 102 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 102 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 102 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=17
 #line 102 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(17);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=18
 #line 102 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(18);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 102 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 102 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 102 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 102 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 102 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=18
 #line 102 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(18);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 102 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
 #line 102 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 102 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 102 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 102 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 102 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 102 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=18
 #line 102 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(18);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 102 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 102 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 102 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 102 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 102 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     return r0;
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2184,19 +1643,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee18_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2241,153 +1700,99 @@ bind_test_callee18(void* context, const program_runtime_context_t* runtime_conte
 #line 103 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 103 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 103 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 103 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=18
 #line 103 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(18);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=19
 #line 103 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(19);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 103 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 103 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 103 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 103 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 103 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=19
 #line 103 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(19);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 103 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
 #line 103 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 103 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 103 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 103 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 103 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 103 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=19
 #line 103 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(19);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 103 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 103 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 103 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 103 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 103 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     return r0;
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2397,19 +1802,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee19_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2454,153 +1859,99 @@ bind_test_callee19(void* context, const program_runtime_context_t* runtime_conte
 #line 104 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 104 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 104 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 104 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=19
 #line 104 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(19);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=20
 #line 104 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(20);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 104 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 104 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 104 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 104 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 104 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=20
 #line 104 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(20);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 104 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
 #line 104 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 104 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 104 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 104 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 104 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 104 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=20
 #line 104 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(20);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 104 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 104 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 104 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 104 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 104 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     return r0;
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2610,19 +1961,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee2_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2667,153 +2018,99 @@ bind_test_callee2(void* context, const program_runtime_context_t* runtime_contex
 #line 87 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 87 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 87 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 87 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=2
 #line 87 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(2);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=3
 #line 87 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(3);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 87 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 87 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 87 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 87 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 87 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=3
 #line 87 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(3);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 87 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
 #line 87 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 87 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 87 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 87 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 87 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 87 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=3
 #line 87 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(3);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 87 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 87 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 87 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 87 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 87 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     return r0;
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2823,19 +2120,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee20_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -2880,153 +2177,99 @@ bind_test_callee20(void* context, const program_runtime_context_t* runtime_conte
 #line 105 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 105 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 105 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 105 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=20
 #line 105 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(20);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=21
 #line 105 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(21);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 105 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 105 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 105 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 105 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 105 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=21
 #line 105 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(21);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 105 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
 #line 105 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 105 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 105 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 105 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 105 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 105 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=21
 #line 105 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(21);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 105 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 105 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 105 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 105 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 105 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     return r0;
 #line 105 "sample/tail_call_max_exceed.c"
@@ -3036,19 +2279,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee21_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3093,153 +2336,99 @@ bind_test_callee21(void* context, const program_runtime_context_t* runtime_conte
 #line 106 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 106 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 106 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 106 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=21
 #line 106 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(21);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=22
 #line 106 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(22);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 106 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 106 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 106 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 106 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 106 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=22
 #line 106 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(22);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 106 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
 #line 106 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 106 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 106 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 106 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 106 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 106 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=22
 #line 106 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(22);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 106 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 106 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 106 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 106 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 106 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     return r0;
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3249,19 +2438,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee22_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3306,153 +2495,99 @@ bind_test_callee22(void* context, const program_runtime_context_t* runtime_conte
 #line 107 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 107 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 107 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 107 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=22
 #line 107 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(22);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=23
 #line 107 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(23);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 107 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 107 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 107 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 107 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 107 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=23
 #line 107 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(23);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 107 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
 #line 107 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 107 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 107 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 107 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 107 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 107 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=23
 #line 107 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(23);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 107 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 107 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 107 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 107 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 107 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     return r0;
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3462,19 +2597,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee23_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3519,153 +2654,99 @@ bind_test_callee23(void* context, const program_runtime_context_t* runtime_conte
 #line 108 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 108 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 108 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 108 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=23
 #line 108 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(23);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=24
 #line 108 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(24);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 108 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 108 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 108 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 108 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 108 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=24
 #line 108 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(24);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 108 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
 #line 108 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 108 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 108 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 108 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 108 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 108 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=24
 #line 108 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(24);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 108 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 108 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 108 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 108 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 108 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     return r0;
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3675,19 +2756,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee24_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3732,153 +2813,99 @@ bind_test_callee24(void* context, const program_runtime_context_t* runtime_conte
 #line 109 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 109 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 109 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 109 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=24
 #line 109 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(24);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=25
 #line 109 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(25);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 109 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 109 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 109 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 109 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 109 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=25
 #line 109 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(25);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 109 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
 #line 109 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 109 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 109 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 109 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 109 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 109 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=25
 #line 109 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(25);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 109 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 109 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 109 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 109 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 109 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     return r0;
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3888,19 +2915,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee25_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -3945,153 +2972,99 @@ bind_test_callee25(void* context, const program_runtime_context_t* runtime_conte
 #line 110 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 110 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 110 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 110 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=25
 #line 110 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(25);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=26
 #line 110 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(26);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 110 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 110 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 110 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 110 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 110 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=26
 #line 110 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(26);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 110 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
 #line 110 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 110 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 110 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 110 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 110 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 110 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=26
 #line 110 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(26);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 110 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 110 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 110 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 110 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 110 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     return r0;
 #line 110 "sample/tail_call_max_exceed.c"
@@ -4101,19 +3074,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee26_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4158,153 +3131,99 @@ bind_test_callee26(void* context, const program_runtime_context_t* runtime_conte
 #line 111 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 111 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 111 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 111 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=26
 #line 111 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(26);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=27
 #line 111 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(27);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 111 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 111 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 111 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 111 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 111 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=27
 #line 111 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(27);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 111 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
 #line 111 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 111 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 111 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 111 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 111 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 111 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=27
 #line 111 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(27);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 111 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 111 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 111 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 111 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 111 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     return r0;
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4314,19 +3233,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee27_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4371,153 +3290,99 @@ bind_test_callee27(void* context, const program_runtime_context_t* runtime_conte
 #line 112 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 112 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 112 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 112 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=27
 #line 112 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(27);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=28
 #line 112 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(28);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 112 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 112 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 112 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 112 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 112 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=28
 #line 112 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(28);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 112 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
 #line 112 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 112 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 112 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 112 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 112 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 112 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=28
 #line 112 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(28);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 112 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 112 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 112 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 112 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 112 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     return r0;
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4527,19 +3392,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee28_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4584,153 +3449,99 @@ bind_test_callee28(void* context, const program_runtime_context_t* runtime_conte
 #line 113 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 113 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 113 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 113 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=28
 #line 113 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(28);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=29
 #line 113 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(29);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 113 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 113 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 113 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 113 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 113 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=29
 #line 113 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(29);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 113 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
 #line 113 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 113 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 113 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 113 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 113 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 113 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=29
 #line 113 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(29);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 113 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 113 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 113 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 113 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 113 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     return r0;
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4740,19 +3551,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee29_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -4797,153 +3608,99 @@ bind_test_callee29(void* context, const program_runtime_context_t* runtime_conte
 #line 114 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 114 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 114 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 114 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=29
 #line 114 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(29);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=30
 #line 114 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(30);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 114 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 114 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 114 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 114 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 114 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=30
 #line 114 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(30);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 114 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
 #line 114 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 114 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 114 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 114 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 114 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 114 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=30
 #line 114 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(30);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 114 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 114 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 114 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 114 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 114 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     return r0;
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4953,19 +3710,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee3_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5010,153 +3767,99 @@ bind_test_callee3(void* context, const program_runtime_context_t* runtime_contex
 #line 88 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 88 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 88 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 88 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=3
 #line 88 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(3);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=4
 #line 88 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 88 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 88 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 88 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 88 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 88 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=4
 #line 88 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 88 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
 #line 88 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 88 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 88 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 88 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 88 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 88 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=4
 #line 88 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 88 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 88 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 88 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     return r0;
 #line 88 "sample/tail_call_max_exceed.c"
@@ -5166,19 +3869,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee30_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5223,153 +3926,99 @@ bind_test_callee30(void* context, const program_runtime_context_t* runtime_conte
 #line 115 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 115 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 115 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 115 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=30
 #line 115 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=31
 #line 115 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(31);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 115 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 115 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 115 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 115 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 115 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=31
 #line 115 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(31);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 115 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
 #line 115 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 115 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 115 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 115 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 115 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 115 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=31
 #line 115 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(31);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 115 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 115 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 115 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 115 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 115 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     return r0;
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5379,19 +4028,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee31_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5436,153 +4085,99 @@ bind_test_callee31(void* context, const program_runtime_context_t* runtime_conte
 #line 116 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 116 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 116 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 116 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=31
 #line 116 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(31);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=32
 #line 116 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(32);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 116 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 116 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 116 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 116 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 116 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=32
 #line 116 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(32);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 116 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
 #line 116 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 116 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 116 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 116 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 116 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 116 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=32
 #line 116 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(32);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 116 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 116 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 116 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 116 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 116 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     return r0;
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5592,19 +4187,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee32_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5649,153 +4244,99 @@ bind_test_callee32(void* context, const program_runtime_context_t* runtime_conte
 #line 117 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 117 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 117 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 117 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=32
 #line 117 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(32);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=33
 #line 117 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(33);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 117 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 117 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 117 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 117 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 117 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=33
 #line 117 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(33);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 117 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
 #line 117 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 117 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 117 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 117 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 117 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 117 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=33
 #line 117 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(33);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 117 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 117 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 117 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 117 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 117 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     return r0;
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5805,19 +4346,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee33_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -5862,153 +4403,99 @@ bind_test_callee33(void* context, const program_runtime_context_t* runtime_conte
 #line 118 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 118 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 118 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 118 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=33
 #line 118 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(33);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=34
 #line 118 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(34);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 118 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 118 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 118 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 118 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 118 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=34
 #line 118 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(34);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 118 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
 #line 118 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 118 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 118 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 118 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 118 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 118 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=34
 #line 118 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(34);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 118 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 118 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 118 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 118 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 118 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     return r0;
 #line 118 "sample/tail_call_max_exceed.c"
@@ -6018,9 +4505,9 @@ label_1:
 
 static helper_function_entry_t bind_test_callee34_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
 };
 
@@ -6057,64 +4544,40 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
 #line 136 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=10
 #line 136 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=1 dst=r10 src=r1 offset=-8 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=2 dst=r1 src=r0 offset=0 imm=1819042147
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)3761461600069640547;
-    // EBPF_OP_STXDW pc=4 dst=r10 src=r1 offset=-16 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=1952408686
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6878249410482889838;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-24 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=2019910766
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7593667357200180334;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-32 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1633886316
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7575173785983328364;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-40 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1953718604
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7593478129464861004;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-48 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=17 dst=r1 src=r10 offset=0 imm=0
 #line 138 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=18 dst=r1 src=r0 offset=0 imm=-48
 #line 138 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=19 dst=r2 src=r0 offset=0 imm=42
 #line 138 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(42);
-    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 138 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 138 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 138 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 138 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(0);
-    // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     return r0;
 #line 136 "sample/tail_call_max_exceed.c"
@@ -6124,19 +4587,19 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
 
 static helper_function_entry_t bind_test_callee4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6181,153 +4644,99 @@ bind_test_callee4(void* context, const program_runtime_context_t* runtime_contex
 #line 89 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 89 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 89 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 89 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=4
 #line 89 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(4);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(5);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 89 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 89 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 89 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 89 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 89 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(5);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
 #line 89 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 89 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 89 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 89 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 89 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 89 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(5);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 89 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 89 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 89 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 89 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 89 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     return r0;
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6337,19 +4746,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee5_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6394,153 +4803,99 @@ bind_test_callee5(void* context, const program_runtime_context_t* runtime_contex
 #line 90 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 90 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 90 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 90 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=5
 #line 90 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(5);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=6
 #line 90 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(6);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 90 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 90 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 90 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 90 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 90 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=6
 #line 90 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(6);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 90 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
 #line 90 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 90 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 90 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 90 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 90 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 90 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=6
 #line 90 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(6);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 90 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 90 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 90 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 90 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 90 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     return r0;
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6550,19 +4905,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6607,153 +4962,99 @@ bind_test_callee6(void* context, const program_runtime_context_t* runtime_contex
 #line 91 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 91 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 91 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 91 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=6
 #line 91 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(6);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=7
 #line 91 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(7);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 91 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 91 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 91 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 91 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 91 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=7
 #line 91 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(7);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 91 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
 #line 91 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 91 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 91 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 91 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 91 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 91 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=7
 #line 91 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(7);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 91 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 91 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 91 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 91 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 91 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     return r0;
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6763,19 +5064,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee7_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -6820,153 +5121,99 @@ bind_test_callee7(void* context, const program_runtime_context_t* runtime_contex
 #line 92 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 92 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 92 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 92 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=7
 #line 92 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(7);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=8
 #line 92 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 92 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 92 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 92 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 92 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=8
 #line 92 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 92 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
 #line 92 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 92 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 92 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 92 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 92 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 92 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=8
 #line 92 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 92 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 92 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 92 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 92 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     return r0;
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6976,19 +5223,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee8_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7033,153 +5280,99 @@ bind_test_callee8(void* context, const program_runtime_context_t* runtime_contex
 #line 93 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=10
 #line 93 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r7 offset=-4 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=1566844192
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=2019237932
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1025538139
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1852383340
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1818845556
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=1819042115
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=19 dst=r10 src=r1 offset=-48 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 93 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 93 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=8
 #line 93 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(8);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=9
 #line 93 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 93 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 93 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 93 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 93 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 93 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=9
 #line 93 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 93 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
 #line 93 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 93 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 93 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 93 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=34 dst=r10 src=r1 offset=-24 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=35 dst=r1 src=r0 offset=0 imm=544497952
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-32 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=38 dst=r1 src=r0 offset=0 imm=1634082924
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-40 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=41 dst=r1 src=r0 offset=0 imm=1818845524
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=43 dst=r10 src=r1 offset=-48 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 93 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 93 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=9
 #line 93 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 93 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 93 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 93 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 93 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     return r0;
 #line 93 "sample/tail_call_max_exceed.c"
@@ -7189,19 +5382,19 @@ label_1:
 
 static helper_function_entry_t bind_test_callee9_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     14,
-     "helper_id_14",
+        {1, 40, 40}, // Version header.
+        14,
+        "helper_id_14",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7246,153 +5439,99 @@ bind_test_callee9(void* context, const program_runtime_context_t* runtime_contex
 #line 94 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=1566844192
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1566844192);
-    // EBPF_OP_STXW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=3 dst=r1 src=r0 offset=0 imm=2019237932
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)4404574498340937772;
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r1 offset=-16 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=1025538139
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)6729544563593082971;
-    // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-24 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r0 offset=0 imm=1852383340
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2339731488442490988;
-    // EBPF_OP_STXDW pc=11 dst=r10 src=r1 offset=-32 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1818845556
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=14 dst=r10 src=r1 offset=-40 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=15 dst=r1 src=r0 offset=0 imm=1819042115
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2334956330884555075;
-    // EBPF_OP_STXDW pc=17 dst=r10 src=r1 offset=-48 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_MOV64_IMM pc=18 dst=r7 src=r0 offset=0 imm=10
 #line 94 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=19 dst=r10 src=r7 offset=-4 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-4));
-    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r10 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r1 src=r0 offset=0 imm=-48
 #line 94 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=22 dst=r2 src=r0 offset=0 imm=46
 #line 94 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(46);
-    // EBPF_OP_MOV64_IMM pc=23 dst=r3 src=r0 offset=0 imm=9
 #line 94 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(9);
-    // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=10
 #line 94 "sample/tail_call_max_exceed.c"
     r4 = IMMEDIATE(10);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 94 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 94 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 94 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
-#line 94 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 94 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=10
 #line 94 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(10);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 94 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
 #line 94 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 94 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 94 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 94 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=1680154744
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
-    // EBPF_OP_STXW pc=33 dst=r10 src=r1 offset=-24 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=34 dst=r1 src=r0 offset=0 imm=544497952
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7306085893296906528;
-    // EBPF_OP_STXDW pc=36 dst=r10 src=r1 offset=-32 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=1634082924
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7234307576302018668;
-    // EBPF_OP_STXDW pc=39 dst=r10 src=r1 offset=-40 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_LDDW pc=40 dst=r1 src=r0 offset=0 imm=1818845524
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099540;
-    // EBPF_OP_STXDW pc=42 dst=r10 src=r1 offset=-48 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
-    // EBPF_OP_STXH pc=43 dst=r10 src=r7 offset=-20 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r7, OFFSET(-20));
-    // EBPF_OP_MOV64_REG pc=44 dst=r1 src=r10 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r1 src=r0 offset=0 imm=-48
 #line 94 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-48);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r2 src=r0 offset=0 imm=30
 #line 94 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(30);
-    // EBPF_OP_MOV64_IMM pc=47 dst=r3 src=r0 offset=0 imm=10
 #line 94 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(10);
-    // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 94 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 94 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 94 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 94 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 94 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     return r0;
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7402,19 +5541,19 @@ label_1:
 
 static helper_function_entry_t bind_test_caller_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     12,
-     "helper_id_12",
+        {1, 40, 40}, // Version header.
+        12,
+        "helper_id_12",
     },
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     13,
-     "helper_id_13",
+        {1, 40, 40}, // Version header.
+        13,
+        "helper_id_13",
     },
 };
 
@@ -7459,144 +5598,93 @@ bind_test_caller(void* context, const program_runtime_context_t* runtime_context
 #line 124 "sample/tail_call_max_exceed.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 124 "sample/tail_call_max_exceed.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=10
 #line 124 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(10);
-    // EBPF_OP_STXH pc=2 dst=r10 src=r1 offset=-4 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-4));
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=779249004
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(779249004);
-    // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-8));
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=1818845556
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7809632219746099572;
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r1 offset=-16 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=1951604794
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2338619869401129018;
-    // EBPF_OP_STXDW pc=10 dst=r10 src=r1 offset=-24 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1633902452
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)8243113905717731188;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-32 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1684957538
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)8315180240065161570;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-40 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_MOV64_REG pc=17 dst=r1 src=r10 offset=0 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=18 dst=r1 src=r0 offset=0 imm=-40
 #line 126 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-40);
-    // EBPF_OP_MOV64_IMM pc=19 dst=r2 src=r0 offset=0 imm=38
 #line 126 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(38);
-    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 126 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 126 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 126 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 126 "sample/tail_call_max_exceed.c"
-    }
-    // EBPF_OP_MOV64_IMM pc=21 dst=r7 src=r0 offset=0 imm=0
-#line 126 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(0);
-    // EBPF_OP_MOV64_REG pc=22 dst=r1 src=r6 offset=0 imm=0
 #line 127 "sample/tail_call_max_exceed.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=23 dst=r2 src=r1 offset=0 imm=1
 #line 127 "sample/tail_call_max_exceed.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=25 dst=r3 src=r0 offset=0 imm=0
 #line 127 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=5
 #line 127 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 127 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 127 "sample/tail_call_max_exceed.c"
         return 0;
 #line 127 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_JSGT_IMM pc=27 dst=r0 src=r0 offset=17 imm=-1
 #line 127 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 127 "sample/tail_call_max_exceed.c"
         goto label_1;
 #line 127 "sample/tail_call_max_exceed.c"
     }
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=2660
 #line 127 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(2660);
-    // EBPF_OP_STXH pc=29 dst=r10 src=r1 offset=-16 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_16(r10, (uint16_t)r1, OFFSET(-16));
-    // EBPF_OP_LDDW pc=30 dst=r1 src=r0 offset=0 imm=1684957472
 #line 128 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)2675270555530062112;
-    // EBPF_OP_STXDW pc=32 dst=r10 src=r1 offset=-24 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-24));
-    // EBPF_OP_LDDW pc=33 dst=r1 src=r0 offset=0 imm=543975777
 #line 128 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)7812726531954600289;
-    // EBPF_OP_STXDW pc=35 dst=r10 src=r1 offset=-32 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-32));
-    // EBPF_OP_LDDW pc=36 dst=r1 src=r0 offset=0 imm=1818845510
 #line 128 "sample/tail_call_max_exceed.c"
     r1 = (uint64_t)8367798494427701574;
-    // EBPF_OP_STXDW pc=38 dst=r10 src=r1 offset=-40 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-40));
-    // EBPF_OP_STXB pc=39 dst=r10 src=r7 offset=-14 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     WRITE_ONCE_8(r10, (uint8_t)r7, OFFSET(-14));
-    // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r10 offset=0 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=41 dst=r1 src=r0 offset=0 imm=-40
 #line 128 "sample/tail_call_max_exceed.c"
     r1 += IMMEDIATE(-40);
-    // EBPF_OP_MOV64_IMM pc=42 dst=r2 src=r0 offset=0 imm=27
 #line 128 "sample/tail_call_max_exceed.c"
     r2 = IMMEDIATE(27);
-    // EBPF_OP_MOV64_IMM pc=43 dst=r3 src=r0 offset=0 imm=0
 #line 128 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=13
 #line 128 "sample/tail_call_max_exceed.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 128 "sample/tail_call_max_exceed.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 128 "sample/tail_call_max_exceed.c"
-        return 0;
-#line 128 "sample/tail_call_max_exceed.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=1
 #line 131 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/tail_call_max_exceed.c"
     return r0;
 #line 124 "sample/tail_call_max_exceed.c"

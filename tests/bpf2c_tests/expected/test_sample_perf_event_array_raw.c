@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                             // Current Version.
-         80,                            // Struct size up to the last field.
-         80,                            // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PERF_EVENT_ARRAY, // Type of map.
@@ -54,9 +53,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t test_program_entry_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     32,
-     "helper_id_32",
+        {1, 40, 40}, // Version header.
+        32,
+        "helper_id_32",
     },
 };
 
@@ -97,51 +96,33 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_LDXDW pc=0 dst=r4 src=r1 offset=0 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     READ_ONCE_64(r4, r1, OFFSET(0));
-    // EBPF_OP_LDXDW pc=1 dst=r5 src=r1 offset=8 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     READ_ONCE_64(r5, r1, OFFSET(8));
-    // EBPF_OP_JGE_REG pc=2 dst=r4 src=r5 offset=9 imm=0
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     if (r4 >= r5) {
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
         goto label_1;
 #line 31 "sample/undocked/test_sample_perf_event_array.c"
     }
-    // EBPF_OP_SUB64_REG pc=3 dst=r5 src=r4 offset=0 imm=0
 #line 33 "sample/undocked/test_sample_perf_event_array.c"
     r5 -= r4;
-    // EBPF_OP_MOV64_REG pc=4 dst=r3 src=r5 offset=0 imm=0
 #line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 = r5;
-    // EBPF_OP_LSH64_IMM pc=5 dst=r3 src=r0 offset=0 imm=32
 #line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_LDDW pc=6 dst=r2 src=r0 offset=0 imm=-1
 #line 34 "sample/undocked/test_sample_perf_event_array.c"
     r2 = (uint64_t)4294967295;
-    // EBPF_OP_OR64_REG pc=8 dst=r3 src=r2 offset=0 imm=0
 #line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 |= r2;
-    // EBPF_OP_LDDW pc=9 dst=r2 src=r1 offset=0 imm=1
 #line 35 "sample/undocked/test_sample_perf_event_array.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=32
 #line 35 "sample/undocked/test_sample_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-        return 0;
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-    }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/test_sample_perf_event_array.c"
     r0 = IMMEDIATE(0);
-    // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/test_sample_perf_event_array.c"
     return r0;
 #line 31 "sample/undocked/test_sample_perf_event_array.c"

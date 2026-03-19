@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
@@ -33,12 +32,11 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -95,10 +93,8 @@ callee(void* context, const program_runtime_context_t* runtime_context)
 #line 49 "sample/undocked/tail_call.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
 #line 49 "sample/undocked/tail_call.c"
     r0 = IMMEDIATE(42);
-    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 49 "sample/undocked/tail_call.c"
     return r0;
 #line 49 "sample/undocked/tail_call.c"
@@ -108,14 +104,14 @@ callee(void* context, const program_runtime_context_t* runtime_context)
 
 static helper_function_entry_t caller_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
+        {1, 40, 40}, // Version header.
+        5,
+        "helper_id_5",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -155,63 +151,43 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 33 "sample/undocked/tail_call.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/tail_call.c"
     r2 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
 #line 35 "sample/undocked/tail_call.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-4));
-    // EBPF_OP_LDDW pc=2 dst=r2 src=r1 offset=0 imm=1
 #line 38 "sample/undocked/tail_call.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=9
 #line 38 "sample/undocked/tail_call.c"
     r3 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=5
 #line 38 "sample/undocked/tail_call.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/undocked/tail_call.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 38 "sample/undocked/tail_call.c"
         return 0;
 #line 38 "sample/undocked/tail_call.c"
     }
-    // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
 #line 38 "sample/undocked/tail_call.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=7 dst=r2 src=r0 offset=0 imm=-4
 #line 38 "sample/undocked/tail_call.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r1 offset=0 imm=2
 #line 41 "sample/undocked/tail_call.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/undocked/tail_call.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 41 "sample/undocked/tail_call.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 41 "sample/undocked/tail_call.c"
-        return 0;
-#line 41 "sample/undocked/tail_call.c"
-    }
-    // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 42 "sample/undocked/tail_call.c"
     if (r0 == IMMEDIATE(0)) {
 #line 42 "sample/undocked/tail_call.c"
         goto label_1;
 #line 42 "sample/undocked/tail_call.c"
     }
-    // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/tail_call.c"
     r1 = IMMEDIATE(1);
-    // EBPF_OP_STXW pc=13 dst=r0 src=r1 offset=0 imm=0
 #line 43 "sample/undocked/tail_call.c"
     WRITE_ONCE_32(r0, (uint32_t)r1, OFFSET(0));
 label_1:
-    // EBPF_OP_MOV64_IMM pc=14 dst=r0 src=r0 offset=0 imm=6
 #line 46 "sample/undocked/tail_call.c"
     r0 = IMMEDIATE(6);
-    // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 46 "sample/undocked/tail_call.c"
     return r0;
 #line 33 "sample/undocked/tail_call.c"

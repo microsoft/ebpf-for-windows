@@ -15,12 +15,11 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -33,12 +32,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "egress_connection_policy_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -51,12 +49,11 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "ingress_connection_policy_map"},
-    {
-     {0, 0},
+    {{0, 0},
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         1,  // Current Version.
+         80, // Struct size up to the last field.
+         80, // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -90,19 +87,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t authorize_connect4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -146,123 +143,73 @@ authorize_connect4(void* context, const program_runtime_context_t* runtime_conte
 #line 83 "sample/cgroup_sock_addr.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 83 "sample/cgroup_sock_addr.c"
     r2 = IMMEDIATE(0);
-    // EBPF_OP_STXDW pc=1 dst=r10 src=r2 offset=-16 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-16));
-    // EBPF_OP_STXDW pc=2 dst=r10 src=r2 offset=-24 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-24));
-    // EBPF_OP_STXDW pc=3 dst=r10 src=r2 offset=-32 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-32));
-    // EBPF_OP_STXDW pc=4 dst=r10 src=r2 offset=-40 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-40));
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r2 offset=-48 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-48));
-    // EBPF_OP_STXDW pc=6 dst=r10 src=r2 offset=-56 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-56));
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r2 offset=-64 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-64));
-    // EBPF_OP_LDXW pc=8 dst=r2 src=r1 offset=24 imm=0
 #line 54 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(24));
-    // EBPF_OP_STXW pc=9 dst=r10 src=r2 offset=-44 imm=0
 #line 54 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-44));
-    // EBPF_OP_LDXH pc=10 dst=r2 src=r1 offset=40 imm=0
 #line 55 "sample/cgroup_sock_addr.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
-    // EBPF_OP_STXH pc=11 dst=r10 src=r2 offset=-28 imm=0
 #line 55 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-28));
-    // EBPF_OP_LDXW pc=12 dst=r2 src=r1 offset=44 imm=0
 #line 56 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(44));
-    // EBPF_OP_STXW pc=13 dst=r10 src=r2 offset=-24 imm=0
 #line 56 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-24));
-    // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_STXDW pc=15 dst=r10 src=r0 offset=-8 imm=0
-#line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=16 dst=r6 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r6 = r10;
-    // EBPF_OP_ADD64_IMM pc=17 dst=r6 src=r0 offset=0 imm=-64
 #line 44 "sample/cgroup_sock_addr.c"
     r6 += IMMEDIATE(-64);
-    // EBPF_OP_MOV64_REG pc=18 dst=r3 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=19 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=20 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[2].address);
-    // EBPF_OP_MOV64_REG pc=22 dst=r2 src=r6 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_MOV64_IMM pc=23 dst=r4 src=r0 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_REG pc=27 dst=r2 src=r6 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 60 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 60 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
-#line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=31 dst=r1 src=r0 offset=1 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
 #line 62 "sample/cgroup_sock_addr.c"
         goto label_1;
 #line 62 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDXW pc=32 dst=r0 src=r1 offset=0 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r0, r1, OFFSET(0));
 label_1:
-    // EBPF_OP_EXIT pc=33 dst=r0 src=r0 offset=0 imm=0
 #line 85 "sample/cgroup_sock_addr.c"
     return r0;
 #line 83 "sample/cgroup_sock_addr.c"
@@ -272,19 +219,19 @@ label_1:
 
 static helper_function_entry_t authorize_connect6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -328,141 +275,85 @@ authorize_connect6(void* context, const program_runtime_context_t* runtime_conte
 #line 90 "sample/cgroup_sock_addr.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 90 "sample/cgroup_sock_addr.c"
     r2 = IMMEDIATE(0);
-    // EBPF_OP_STXDW pc=1 dst=r10 src=r2 offset=-16 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-16));
-    // EBPF_OP_STXDW pc=2 dst=r10 src=r2 offset=-24 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-24));
-    // EBPF_OP_STXDW pc=3 dst=r10 src=r2 offset=-32 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-32));
-    // EBPF_OP_STXDW pc=4 dst=r10 src=r2 offset=-40 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-40));
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r2 offset=-48 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-48));
-    // EBPF_OP_STXDW pc=6 dst=r10 src=r2 offset=-56 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-56));
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r2 offset=-64 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-64));
-    // EBPF_OP_LDXW pc=8 dst=r2 src=r1 offset=24 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(24));
-    // EBPF_OP_STXW pc=9 dst=r10 src=r2 offset=-44 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-44));
-    // EBPF_OP_LDXW pc=10 dst=r2 src=r1 offset=28 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(28));
-    // EBPF_OP_STXW pc=11 dst=r10 src=r2 offset=-40 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-40));
-    // EBPF_OP_LDXW pc=12 dst=r2 src=r1 offset=32 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(32));
-    // EBPF_OP_STXW pc=13 dst=r10 src=r2 offset=-36 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-36));
-    // EBPF_OP_LDXW pc=14 dst=r2 src=r1 offset=36 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(36));
-    // EBPF_OP_STXW pc=15 dst=r10 src=r2 offset=-32 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-32));
-    // EBPF_OP_LDXH pc=16 dst=r2 src=r1 offset=40 imm=0
 #line 71 "sample/cgroup_sock_addr.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
-    // EBPF_OP_STXH pc=17 dst=r10 src=r2 offset=-28 imm=0
 #line 71 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-28));
-    // EBPF_OP_LDXW pc=18 dst=r2 src=r1 offset=44 imm=0
 #line 72 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(44));
-    // EBPF_OP_STXW pc=19 dst=r10 src=r2 offset=-24 imm=0
 #line 72 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-24));
-    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_STXDW pc=21 dst=r10 src=r0 offset=-8 imm=0
-#line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=22 dst=r6 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r6 = r10;
-    // EBPF_OP_ADD64_IMM pc=23 dst=r6 src=r0 offset=0 imm=-64
 #line 44 "sample/cgroup_sock_addr.c"
     r6 += IMMEDIATE(-64);
-    // EBPF_OP_MOV64_REG pc=24 dst=r3 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=25 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[2].address);
-    // EBPF_OP_MOV64_REG pc=28 dst=r2 src=r6 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_MOV64_IMM pc=29 dst=r4 src=r0 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_REG pc=33 dst=r2 src=r6 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 76 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 76 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
-#line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=37 dst=r1 src=r0 offset=1 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
 #line 78 "sample/cgroup_sock_addr.c"
         goto label_1;
 #line 78 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDXW pc=38 dst=r0 src=r1 offset=0 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r0, r1, OFFSET(0));
 label_1:
-    // EBPF_OP_EXIT pc=39 dst=r0 src=r0 offset=0 imm=0
 #line 92 "sample/cgroup_sock_addr.c"
     return r0;
 #line 90 "sample/cgroup_sock_addr.c"
@@ -472,19 +363,19 @@ label_1:
 
 static helper_function_entry_t authorize_recv_accept4_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -528,123 +419,73 @@ authorize_recv_accept4(void* context, const program_runtime_context_t* runtime_c
 #line 97 "sample/cgroup_sock_addr.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 97 "sample/cgroup_sock_addr.c"
     r2 = IMMEDIATE(0);
-    // EBPF_OP_STXDW pc=1 dst=r10 src=r2 offset=-16 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-16));
-    // EBPF_OP_STXDW pc=2 dst=r10 src=r2 offset=-24 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-24));
-    // EBPF_OP_STXDW pc=3 dst=r10 src=r2 offset=-32 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-32));
-    // EBPF_OP_STXDW pc=4 dst=r10 src=r2 offset=-40 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-40));
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r2 offset=-48 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-48));
-    // EBPF_OP_STXDW pc=6 dst=r10 src=r2 offset=-56 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-56));
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r2 offset=-64 imm=0
 #line 51 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-64));
-    // EBPF_OP_LDXW pc=8 dst=r2 src=r1 offset=24 imm=0
 #line 54 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(24));
-    // EBPF_OP_STXW pc=9 dst=r10 src=r2 offset=-44 imm=0
 #line 54 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-44));
-    // EBPF_OP_LDXH pc=10 dst=r2 src=r1 offset=40 imm=0
 #line 55 "sample/cgroup_sock_addr.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
-    // EBPF_OP_STXH pc=11 dst=r10 src=r2 offset=-28 imm=0
 #line 55 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-28));
-    // EBPF_OP_LDXW pc=12 dst=r2 src=r1 offset=44 imm=0
 #line 56 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(44));
-    // EBPF_OP_STXW pc=13 dst=r10 src=r2 offset=-24 imm=0
 #line 56 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-24));
-    // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_STXDW pc=15 dst=r10 src=r0 offset=-8 imm=0
-#line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=16 dst=r6 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r6 = r10;
-    // EBPF_OP_ADD64_IMM pc=17 dst=r6 src=r0 offset=0 imm=-64
 #line 44 "sample/cgroup_sock_addr.c"
     r6 += IMMEDIATE(-64);
-    // EBPF_OP_MOV64_REG pc=18 dst=r3 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=19 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=20 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[2].address);
-    // EBPF_OP_MOV64_REG pc=22 dst=r2 src=r6 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_MOV64_IMM pc=23 dst=r4 src=r0 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=2
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_MOV64_REG pc=27 dst=r2 src=r6 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 60 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 60 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
-#line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=31 dst=r1 src=r0 offset=1 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
 #line 62 "sample/cgroup_sock_addr.c"
         goto label_1;
 #line 62 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDXW pc=32 dst=r0 src=r1 offset=0 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r0, r1, OFFSET(0));
 label_1:
-    // EBPF_OP_EXIT pc=33 dst=r0 src=r0 offset=0 imm=0
 #line 99 "sample/cgroup_sock_addr.c"
     return r0;
 #line 97 "sample/cgroup_sock_addr.c"
@@ -654,19 +495,19 @@ label_1:
 
 static helper_function_entry_t authorize_recv_accept6_helpers[] = {
     {
-     {1, 40, 40}, // Version header.
-     26,
-     "helper_id_26",
+        {1, 40, 40}, // Version header.
+        26,
+        "helper_id_26",
     },
     {
-     {1, 40, 40}, // Version header.
-     2,
-     "helper_id_2",
+        {1, 40, 40}, // Version header.
+        2,
+        "helper_id_2",
     },
     {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
+        {1, 40, 40}, // Version header.
+        1,
+        "helper_id_1",
     },
 };
 
@@ -710,141 +551,85 @@ authorize_recv_accept6(void* context, const program_runtime_context_t* runtime_c
 #line 104 "sample/cgroup_sock_addr.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 104 "sample/cgroup_sock_addr.c"
     r2 = IMMEDIATE(0);
-    // EBPF_OP_STXDW pc=1 dst=r10 src=r2 offset=-16 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-16));
-    // EBPF_OP_STXDW pc=2 dst=r10 src=r2 offset=-24 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-24));
-    // EBPF_OP_STXDW pc=3 dst=r10 src=r2 offset=-32 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-32));
-    // EBPF_OP_STXDW pc=4 dst=r10 src=r2 offset=-40 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-40));
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r2 offset=-48 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-48));
-    // EBPF_OP_STXDW pc=6 dst=r10 src=r2 offset=-56 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-56));
-    // EBPF_OP_STXDW pc=7 dst=r10 src=r2 offset=-64 imm=0
 #line 68 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r2, OFFSET(-64));
-    // EBPF_OP_LDXW pc=8 dst=r2 src=r1 offset=24 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(24));
-    // EBPF_OP_STXW pc=9 dst=r10 src=r2 offset=-44 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-44));
-    // EBPF_OP_LDXW pc=10 dst=r2 src=r1 offset=28 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(28));
-    // EBPF_OP_STXW pc=11 dst=r10 src=r2 offset=-40 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-40));
-    // EBPF_OP_LDXW pc=12 dst=r2 src=r1 offset=32 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(32));
-    // EBPF_OP_STXW pc=13 dst=r10 src=r2 offset=-36 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-36));
-    // EBPF_OP_LDXW pc=14 dst=r2 src=r1 offset=36 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(36));
-    // EBPF_OP_STXW pc=15 dst=r10 src=r2 offset=-32 imm=0
 #line 70 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-32));
-    // EBPF_OP_LDXH pc=16 dst=r2 src=r1 offset=40 imm=0
 #line 71 "sample/cgroup_sock_addr.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
-    // EBPF_OP_STXH pc=17 dst=r10 src=r2 offset=-28 imm=0
 #line 71 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_16(r10, (uint16_t)r2, OFFSET(-28));
-    // EBPF_OP_LDXW pc=18 dst=r2 src=r1 offset=44 imm=0
 #line 72 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r2, r1, OFFSET(44));
-    // EBPF_OP_STXW pc=19 dst=r10 src=r2 offset=-24 imm=0
 #line 72 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-24));
-    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_STXDW pc=21 dst=r10 src=r0 offset=-8 imm=0
-#line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
-    // EBPF_OP_MOV64_REG pc=22 dst=r6 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r6 = r10;
-    // EBPF_OP_ADD64_IMM pc=23 dst=r6 src=r0 offset=0 imm=-64
 #line 44 "sample/cgroup_sock_addr.c"
     r6 += IMMEDIATE(-64);
-    // EBPF_OP_MOV64_REG pc=24 dst=r3 src=r10 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=25 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[2].address);
-    // EBPF_OP_MOV64_REG pc=28 dst=r2 src=r6 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_MOV64_IMM pc=29 dst=r4 src=r0 offset=0 imm=0
 #line 45 "sample/cgroup_sock_addr.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=2
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_MOV64_REG pc=33 dst=r2 src=r6 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r2 = r6;
-    // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 76 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 76 "sample/cgroup_sock_addr.c"
-    }
-    // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
-#line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=37 dst=r1 src=r0 offset=1 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
 #line 78 "sample/cgroup_sock_addr.c"
         goto label_1;
 #line 78 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDXW pc=38 dst=r0 src=r1 offset=0 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     READ_ONCE_32(r0, r1, OFFSET(0));
 label_1:
-    // EBPF_OP_EXIT pc=39 dst=r0 src=r0 offset=0 imm=0
 #line 106 "sample/cgroup_sock_addr.c"
     return r0;
 #line 104 "sample/cgroup_sock_addr.c"
