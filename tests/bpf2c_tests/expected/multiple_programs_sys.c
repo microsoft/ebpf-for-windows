@@ -209,8 +209,10 @@ program1(void* context, const program_runtime_context_t* runtime_context)
 #line 28 "sample/multiple_programs.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 28 "sample/multiple_programs.c"
     r0 = IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 28 "sample/multiple_programs.c"
     return r0;
 #line 28 "sample/multiple_programs.c"
@@ -243,8 +245,10 @@ program2(void* context, const program_runtime_context_t* runtime_context)
 #line 35 "sample/multiple_programs.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=2
 #line 35 "sample/multiple_programs.c"
     r0 = IMMEDIATE(2);
+    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/multiple_programs.c"
     return r0;
 #line 35 "sample/multiple_programs.c"
@@ -277,8 +281,10 @@ program3(void* context, const program_runtime_context_t* runtime_context)
 #line 21 "sample/multiple_programs.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
 #line 21 "sample/multiple_programs.c"
     r0 = IMMEDIATE(3);
+    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 21 "sample/multiple_programs.c"
     return r0;
 #line 21 "sample/multiple_programs.c"
@@ -311,8 +317,10 @@ program4(void* context, const program_runtime_context_t* runtime_context)
 #line 42 "sample/multiple_programs.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=4
 #line 42 "sample/multiple_programs.c"
     r0 = IMMEDIATE(4);
+    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 42 "sample/multiple_programs.c"
     return r0;
 #line 42 "sample/multiple_programs.c"

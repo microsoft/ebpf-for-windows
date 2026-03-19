@@ -92,59 +92,77 @@ tcp_mt_connect6(void* context, const program_runtime_context_t* runtime_context)
 #line 27 "sample/cgroup_mt_connect6.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
+    // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 27 "sample/cgroup_mt_connect6.c"
     READ_ONCE_32(r2, r1, OFFSET(44));
+    // EBPF_OP_MOV64_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
 #line 27 "sample/cgroup_mt_connect6.c"
     r0 = IMMEDIATE(1);
+    // EBPF_OP_JNE_IMM pc=2 dst=r2 src=r0 offset=14 imm=6
 #line 27 "sample/cgroup_mt_connect6.c"
     if (r2 != IMMEDIATE(6)) {
 #line 27 "sample/cgroup_mt_connect6.c"
         goto label_1;
 #line 27 "sample/cgroup_mt_connect6.c"
     }
+    // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
     READ_ONCE_16(r2, r1, OFFSET(40));
+    // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=7459
 #line 33 "sample/cgroup_mt_connect6.c"
     r3 = IMMEDIATE(7459);
+    // EBPF_OP_JGT_REG pc=5 dst=r3 src=r2 offset=11 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
     if (r3 > r2) {
 #line 33 "sample/cgroup_mt_connect6.c"
         goto label_1;
 #line 33 "sample/cgroup_mt_connect6.c"
     }
+    // EBPF_OP_MOV64_IMM pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
     r0 = IMMEDIATE(0);
+    // EBPF_OP_MOV64_REG pc=7 dst=r3 src=r2 offset=0 imm=0
 #line 41 "sample/cgroup_mt_connect6.c"
     r3 = r2;
+    // EBPF_OP_BE pc=8 dst=r3 src=r0 offset=0 imm=16
 #line 41 "sample/cgroup_mt_connect6.c"
     r3 = htobe16((uint16_t)r3);
 #line 41 "sample/cgroup_mt_connect6.c"
     r3 &= UINT32_MAX;
+    // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r3 offset=0 imm=0
 #line 41 "sample/cgroup_mt_connect6.c"
     r4 = r3;
+    // EBPF_OP_MOD64_IMM pc=10 dst=r4 src=r0 offset=0 imm=3
 #line 41 "sample/cgroup_mt_connect6.c"
     r4 = IMMEDIATE(3) ? (r4 % IMMEDIATE(3)) : r4;
+    // EBPF_OP_JEQ_IMM pc=11 dst=r4 src=r0 offset=5 imm=0
 #line 41 "sample/cgroup_mt_connect6.c"
     if (r4 == IMMEDIATE(0)) {
 #line 41 "sample/cgroup_mt_connect6.c"
         goto label_1;
 #line 41 "sample/cgroup_mt_connect6.c"
     }
+    // EBPF_OP_AND64_IMM pc=12 dst=r3 src=r0 offset=0 imm=1
 #line 41 "sample/cgroup_mt_connect6.c"
     r3 &= IMMEDIATE(1);
+    // EBPF_OP_MOV64_IMM pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/cgroup_mt_connect6.c"
     r0 = IMMEDIATE(1);
+    // EBPF_OP_JEQ_IMM pc=14 dst=r3 src=r0 offset=2 imm=0
 #line 46 "sample/cgroup_mt_connect6.c"
     if (r3 == IMMEDIATE(0)) {
 #line 46 "sample/cgroup_mt_connect6.c"
         goto label_1;
 #line 46 "sample/cgroup_mt_connect6.c"
     }
+    // EBPF_OP_ADD64_IMM pc=15 dst=r2 src=r0 offset=0 imm=-6141
 #line 54 "sample/cgroup_mt_connect6.c"
     r2 += IMMEDIATE(-6141);
+    // EBPF_OP_STXH pc=16 dst=r1 src=r2 offset=40 imm=0
 #line 54 "sample/cgroup_mt_connect6.c"
     WRITE_ONCE_16(r1, (uint16_t)r2, OFFSET(40));
 label_1:
+    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 58 "sample/cgroup_mt_connect6.c"
     return r0;
 #line 27 "sample/cgroup_mt_connect6.c"

@@ -15,11 +15,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -53,19 +54,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t function_v4_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        19,
-        "helper_id_19",
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
     },
     {
-        {1, 40, 40}, // Version header.
-        33,
-        "helper_id_33",
+     {1, 40, 40}, // Version header.
+     33,
+     "helper_id_33",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
 };
 
@@ -110,40 +111,60 @@ function_v4(void* context, const program_runtime_context_t* runtime_context)
 #line 37 "sample/process_start_key.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
 #line 37 "sample/process_start_key.c"
     r7 = IMMEDIATE(0);
+    // EBPF_OP_STXDW pc=1 dst=r10 src=r7 offset=-16 imm=0
 #line 24 "sample/process_start_key.c"
     WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-16));
+    // EBPF_OP_CALL pc=2 dst=r0 src=r0 offset=0 imm=19
 #line 26 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_REG pc=3 dst=r6 src=r0 offset=0 imm=0
 #line 26 "sample/process_start_key.c"
     r6 = r0;
+    // EBPF_OP_CALL pc=4 dst=r0 src=r0 offset=0 imm=33
 #line 27 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/process_start_key.c"
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
+    // EBPF_OP_STXDW pc=5 dst=r10 src=r0 offset=-8 imm=0
+#line 27 "sample/process_start_key.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
+    // EBPF_OP_RSH64_IMM pc=6 dst=r6 src=r0 offset=0 imm=32
 #line 28 "sample/process_start_key.c"
     r6 >>= (IMMEDIATE(32) & 63);
+    // EBPF_OP_STXW pc=7 dst=r10 src=r6 offset=-16 imm=0
 #line 28 "sample/process_start_key.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-16));
+    // EBPF_OP_STXW pc=8 dst=r10 src=r7 offset=-20 imm=0
 #line 29 "sample/process_start_key.c"
     WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-20));
+    // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
 #line 29 "sample/process_start_key.c"
     r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-20
 #line 29 "sample/process_start_key.c"
     r2 += IMMEDIATE(-20);
+    // EBPF_OP_MOV64_REG pc=11 dst=r3 src=r10 offset=0 imm=0
 #line 29 "sample/process_start_key.c"
     r3 = r10;
+    // EBPF_OP_ADD64_IMM pc=12 dst=r3 src=r0 offset=0 imm=-16
 #line 29 "sample/process_start_key.c"
     r3 += IMMEDIATE(-16);
+    // EBPF_OP_LDDW pc=13 dst=r1 src=r1 offset=0 imm=1
 #line 30 "sample/process_start_key.c"
     r1 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_MOV64_IMM pc=15 dst=r4 src=r0 offset=0 imm=0
 #line 30 "sample/process_start_key.c"
     r4 = IMMEDIATE(0);
+    // EBPF_OP_CALL pc=16 dst=r0 src=r0 offset=0 imm=2
 #line 30 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_IMM pc=17 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/process_start_key.c"
     r0 = IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=18 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/process_start_key.c"
     return r0;
 #line 37 "sample/process_start_key.c"
@@ -153,19 +174,19 @@ function_v4(void* context, const program_runtime_context_t* runtime_context)
 
 static helper_function_entry_t function_v6_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        19,
-        "helper_id_19",
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
     },
     {
-        {1, 40, 40}, // Version header.
-        33,
-        "helper_id_33",
+     {1, 40, 40}, // Version header.
+     33,
+     "helper_id_33",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
 };
 
@@ -210,40 +231,60 @@ function_v6(void* context, const program_runtime_context_t* runtime_context)
 #line 44 "sample/process_start_key.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
 #line 44 "sample/process_start_key.c"
     r7 = IMMEDIATE(0);
+    // EBPF_OP_STXDW pc=1 dst=r10 src=r7 offset=-16 imm=0
 #line 24 "sample/process_start_key.c"
     WRITE_ONCE_64(r10, (uint64_t)r7, OFFSET(-16));
+    // EBPF_OP_CALL pc=2 dst=r0 src=r0 offset=0 imm=19
 #line 26 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_REG pc=3 dst=r6 src=r0 offset=0 imm=0
 #line 26 "sample/process_start_key.c"
     r6 = r0;
+    // EBPF_OP_CALL pc=4 dst=r0 src=r0 offset=0 imm=33
 #line 27 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/process_start_key.c"
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
+    // EBPF_OP_STXDW pc=5 dst=r10 src=r0 offset=-8 imm=0
+#line 27 "sample/process_start_key.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
+    // EBPF_OP_RSH64_IMM pc=6 dst=r6 src=r0 offset=0 imm=32
 #line 28 "sample/process_start_key.c"
     r6 >>= (IMMEDIATE(32) & 63);
+    // EBPF_OP_STXW pc=7 dst=r10 src=r6 offset=-16 imm=0
 #line 28 "sample/process_start_key.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-16));
+    // EBPF_OP_STXW pc=8 dst=r10 src=r7 offset=-20 imm=0
 #line 29 "sample/process_start_key.c"
     WRITE_ONCE_32(r10, (uint32_t)r7, OFFSET(-20));
+    // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
 #line 29 "sample/process_start_key.c"
     r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-20
 #line 29 "sample/process_start_key.c"
     r2 += IMMEDIATE(-20);
+    // EBPF_OP_MOV64_REG pc=11 dst=r3 src=r10 offset=0 imm=0
 #line 29 "sample/process_start_key.c"
     r3 = r10;
+    // EBPF_OP_ADD64_IMM pc=12 dst=r3 src=r0 offset=0 imm=-16
 #line 29 "sample/process_start_key.c"
     r3 += IMMEDIATE(-16);
+    // EBPF_OP_LDDW pc=13 dst=r1 src=r1 offset=0 imm=1
 #line 30 "sample/process_start_key.c"
     r1 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_MOV64_IMM pc=15 dst=r4 src=r0 offset=0 imm=0
 #line 30 "sample/process_start_key.c"
     r4 = IMMEDIATE(0);
+    // EBPF_OP_CALL pc=16 dst=r0 src=r0 offset=0 imm=2
 #line 30 "sample/process_start_key.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_IMM pc=17 dst=r0 src=r0 offset=0 imm=1
 #line 46 "sample/process_start_key.c"
     r0 = IMMEDIATE(1);
+    // EBPF_OP_EXIT pc=18 dst=r0 src=r0 offset=0 imm=0
 #line 46 "sample/process_start_key.c"
     return r0;
 #line 44 "sample/process_start_key.c"

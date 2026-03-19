@@ -15,11 +15,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
@@ -53,9 +54,9 @@ _get_global_variable_sections(
 
 static helper_function_entry_t divide_by_zero_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
 };
 
@@ -98,33 +99,45 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
 #line 32 "sample/undocked/divide_by_zero.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
+    // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
 #line 34 "sample/undocked/divide_by_zero.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
 #line 34 "sample/undocked/divide_by_zero.c"
     r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
 #line 34 "sample/undocked/divide_by_zero.c"
     r2 += IMMEDIATE(-4);
+    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
     r1 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 36 "sample/undocked/divide_by_zero.c"
     if (r0 == IMMEDIATE(0)) {
 #line 36 "sample/undocked/divide_by_zero.c"
         goto label_1;
 #line 36 "sample/undocked/divide_by_zero.c"
     }
+    // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
     READ_ONCE_32(r1, r0, OFFSET(0));
+    // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
 #line 37 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(100000);
+    // EBPF_OP_DIV64_REG pc=10 dst=r6 src=r1 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
     r6 = r1 ? (r6 / r1) : 0;
 label_1:
+    // EBPF_OP_MOV64_REG pc=11 dst=r0 src=r6 offset=0 imm=0
 #line 40 "sample/undocked/divide_by_zero.c"
     r0 = r6;
+    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/divide_by_zero.c"
     return r0;
 #line 32 "sample/undocked/divide_by_zero.c"
