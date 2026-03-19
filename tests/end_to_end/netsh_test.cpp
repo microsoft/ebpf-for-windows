@@ -274,16 +274,16 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 318;
-    const int old_code_size = 318;
+    const int code_size = 272;
+    const int old_code_size = 272;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1198;
+    const int code_size = 1057;
     const int old_code_size = 1198;
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size = 312;
+    const int code_size = 252;
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 1164;
+    const int code_size = 960;
     const int old_code_size = 1164;
 #else
 #error "Unsupported architecture"
@@ -327,16 +327,16 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size_old[] = {73, 6, 73};
-    const int code_size_new[] = {90, 6, 100};
+    const int code_size_new[] = {63, 6, 61};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {448, 195, 448};
+    const int code_size_new[] = {418, 195, 418};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size_old[] = {116, 8, 112};
-    const int code_size_new[] = {116, 8, 112};
+    const int code_size_new[] = {76, 8, 72};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size_old[] = {400, 184, 400};
-    const int code_size_new[] = {472, 236, 472};
+    const int code_size_new[] = {424, 236, 424};
 #else
 #error "Unsupported architecture"
 #endif
@@ -385,16 +385,16 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int old_code_size[] = {339, 363, 339, 363};
-    const int code_size[] = {339, 363, 339, 363};
+    const int code_size[] = {303, 324, 303, 324};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int old_code_size[] = {961, 1036, 961, 1036};
-    const int code_size[] = {1089, 1224, 1089, 1224};
+    const int code_size[] = {1015, 1150, 1015, 1150};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int old_code_size[] = {328, 344, 328, 344};
-    const int code_size[] = {328, 352, 328, 352};
+    const int code_size[] = {272, 296, 272, 296};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int old_code_size[] = {1132, 1288, 1132, 1288};
-    const int code_size[] = {1132, 1288, 1132, 1288};
+    const int code_size[] = {1008, 1164, 1008, 1164};
 #else
 #error "Unsupported architecture"
 #endif
