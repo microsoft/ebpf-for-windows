@@ -143,7 +143,7 @@ main(int argc, char** argv)
         std::string output_file_name;
         std::string type_string = "";
         std::string hash_algorithm = EBPF_HASH_ALGORITHM;
-        bool verbose = false;
+        ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
         std::vector<std::string> parameters(argv + 1, argv + argc);
         auto iter = parameters.begin();
         auto iter_end = parameters.end();
@@ -228,10 +228,24 @@ main(int argc, char** argv)
                   }
                   return false;
               }}},
-            {"--verbose",
-             {"Show verbose failure information",
+            {"--informational",
+             {"Show failure slice on verification error",
               [&]() {
-                  verbose = true;
+                  if (verbosity != EBPF_VERIFICATION_VERBOSITY_NORMAL) {
+                      std::cerr << "Cannot combine --informational with --verbose" << std::endl;
+                      return false;
+                  }
+                  verbosity = EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+                  return true;
+              }}},
+            {"--verbose",
+             {"Show verbose failure information with full invariants",
+              [&]() {
+                  if (verbosity != EBPF_VERIFICATION_VERBOSITY_NORMAL) {
+                      std::cerr << "Cannot combine --verbose with --informational" << std::endl;
+                      return false;
+                  }
+                  verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
                   return true;
               }}},
         };
@@ -312,7 +326,7 @@ main(int argc, char** argv)
                     program->section_name,
                     program->program_name,
                     (global_program_type_set) ? &program_type : &program->program_type,
-                    verbose ? EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL : EBPF_VERIFICATION_VERBOSITY_NORMAL,
+                    verbosity,
                     &report,
                     &error_message,
                     &stats) != 0) {
