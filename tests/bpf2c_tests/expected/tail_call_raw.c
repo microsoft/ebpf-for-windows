@@ -189,7 +189,27 @@ caller(void* context, const program_runtime_context_t* runtime_context)
     r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/undocked/tail_call.c"
-    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
+    {
+#line 41 "sample/undocked/tail_call.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 41 "sample/undocked/tail_call.c"
+        if (_array_key < 1) {
+#line 41 "sample/undocked/tail_call.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
+#line 41 "sample/undocked/tail_call.c"
+        } else {
+#line 41 "sample/undocked/tail_call.c"
+            r0 = 0;
+#line 41 "sample/undocked/tail_call.c"
+        }
+#line 41 "sample/undocked/tail_call.c"
+    }
+#line 41 "sample/undocked/tail_call.c"
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+#line 41 "sample/undocked/tail_call.c"
+        return 0;
+#line 41 "sample/undocked/tail_call.c"
+    }
     // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 42 "sample/undocked/tail_call.c"
     if (r0 == IMMEDIATE(0)) {

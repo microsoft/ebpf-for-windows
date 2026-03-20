@@ -84,12 +84,6 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
 #line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r2 = 0;
 #line 32 "sample/undocked/divide_by_zero.c"
-    register uint64_t r3 = 0;
-#line 32 "sample/undocked/divide_by_zero.c"
-    register uint64_t r4 = 0;
-#line 32 "sample/undocked/divide_by_zero.c"
-    register uint64_t r5 = 0;
-#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r6 = 0;
 #line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r10 = 0;
@@ -116,7 +110,27 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 35 "sample/undocked/divide_by_zero.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 35 "sample/undocked/divide_by_zero.c"
+        if (_array_key < 1) {
+#line 35 "sample/undocked/divide_by_zero.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[0].array_data + (uint64_t)_array_key * 4);
+#line 35 "sample/undocked/divide_by_zero.c"
+        } else {
+#line 35 "sample/undocked/divide_by_zero.c"
+            r0 = 0;
+#line 35 "sample/undocked/divide_by_zero.c"
+        }
+#line 35 "sample/undocked/divide_by_zero.c"
+    }
+#line 35 "sample/undocked/divide_by_zero.c"
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+#line 35 "sample/undocked/divide_by_zero.c"
+        return 0;
+#line 35 "sample/undocked/divide_by_zero.c"
+    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 36 "sample/undocked/divide_by_zero.c"
     if (r0 == IMMEDIATE(0)) {
