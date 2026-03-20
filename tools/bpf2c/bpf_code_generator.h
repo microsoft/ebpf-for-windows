@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ebpf.h"
+#include "ebpf_api.h"
 #include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 #include "elfio_wrapper.hpp"
@@ -12,6 +13,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // The CNG algorithm name to use must be listed in
@@ -295,6 +297,15 @@ class bpf_code_generator
     set_program_hash_info(
         const unsafe_string& program_name, const std::optional<std::vector<uint8_t>>& program_info_hash);
 
+    /**
+     * @brief Set verifier-provided map annotations for the next program to be parsed.
+     *
+     * @param[in] annotations Array of map annotations (owned by caller/TLS).
+     * @param[in] count Number of annotations.
+     */
+    void
+    set_map_annotations(_In_reads_(count) const ebpf_verifier_map_info_t* annotations, size_t count);
+
   private:
     typedef struct _helper_function
     {
@@ -380,7 +391,8 @@ class bpf_code_generator
         void
         encode_instructions(
             std::map<unsafe_string, map_info_t>& map_definitions,
-            std::map<unsafe_string, global_variable_section_t>& global_variable_sections);
+            std::map<unsafe_string, global_variable_section_t>& global_variable_sections,
+            const std::unordered_map<uint32_t, ebpf_verifier_map_info_t>& map_annotations);
 
         /**
          * @brief Get the name of a register from its index.
@@ -522,4 +534,7 @@ class bpf_code_generator
     std::optional<std::vector<uint8_t>> elf_file_hash;
     std::map<unsafe_string, std::vector<unsafe_string>> map_initial_values;
     std::map<unsafe_string, global_variable_section_t> global_variable_sections;
+
+    // Map from instruction offset to verifier-provided map annotation.
+    std::unordered_map<uint32_t, ebpf_verifier_map_info_t> _map_annotations;
 };

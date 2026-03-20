@@ -159,7 +159,21 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 40 "sample/undocked/test_sample_ebpf.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 40 "sample/undocked/test_sample_ebpf.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 40 "sample/undocked/test_sample_ebpf.c"
+        if (_array_key < 2) {
+#line 40 "sample/undocked/test_sample_ebpf.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[0].array_data + (uint64_t)_array_key * 32);
+#line 40 "sample/undocked/test_sample_ebpf.c"
+        } else {
+#line 40 "sample/undocked/test_sample_ebpf.c"
+            r0 = 0;
+#line 40 "sample/undocked/test_sample_ebpf.c"
+        }
+#line 40 "sample/undocked/test_sample_ebpf.c"
+    }
 #line 40 "sample/undocked/test_sample_ebpf.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 40 "sample/undocked/test_sample_ebpf.c"

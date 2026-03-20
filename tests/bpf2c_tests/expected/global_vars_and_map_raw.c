@@ -168,7 +168,7 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
         goto label_1;
 #line 45 "sample/undocked/global_vars_and_map.c"
     }
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=2
+    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=3
 #line 50 "sample/undocked/global_vars_and_map.c"
     r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=24

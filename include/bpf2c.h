@@ -31,8 +31,8 @@ extern "C"
 
 #define UBPF_STACK_SIZE 512
 
-#define IMMEDIATE(X) (int32_t)X
-#define OFFSET(X) (int16_t)X
+#define IMMEDIATE(X) (int32_t) X
+#define OFFSET(X) (int16_t) X
 #define POINTER(X) (uint64_t)(X)
 
 #define READ_ONCE_64(destination, source, offset) \
@@ -116,6 +116,7 @@ extern "C"
     {
         ebpf_native_module_header_t header;
         uintptr_t address;
+        uint8_t* array_data; ///< Direct pointer to array map data (NULL for non-array maps).
     } map_data_t;
 
     /**
@@ -281,8 +282,8 @@ extern "C"
      EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION 1
-#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION 2
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
 #define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(map_data_t)
 #define EBPF_NATIVE_MAP_DATA_HEADER             \
     {EBPF_NATIVE_MAP_DATA_CURRENT_VERSION,      \

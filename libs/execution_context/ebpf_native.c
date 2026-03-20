@@ -7,6 +7,7 @@
 #include "ebpf_error.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
+#include "ebpf_maps.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -1626,7 +1627,16 @@ _ebpf_native_resolve_maps_for_program(
 
     // Update the addresses in the map entries.
     for (uint16_t i = 0; i < map_count; i++) {
-        program->runtime_context.map_data[map_indices[i]].address = map_addresses[i];
+        uint16_t map_idx = map_indices[i];
+        program->runtime_context.map_data[map_idx].address = map_addresses[i];
+
+        // For array maps, populate the direct data pointer for inline lookups.
+        uintptr_t value_address = 0;
+        if (ebpf_map_get_value_address((ebpf_map_t*)map_addresses[i], &value_address) == EBPF_SUCCESS) {
+            program->runtime_context.map_data[map_idx].array_data = (uint8_t*)value_address;
+        } else {
+            program->runtime_context.map_data[map_idx].array_data = NULL;
+        }
     }
 
 Done:
