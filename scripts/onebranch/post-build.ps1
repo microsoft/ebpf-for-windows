@@ -72,7 +72,15 @@ $BinariesToCopy = @(
     "multiple_programs.sys",
     "divide_by_zero.o",
     "printk_unsafe.o",
-    "sample_ebpf_ext.sys"
+    "sample_ebpf_ext.sys",
+    "export_program_info.exe",
+    "export_program_info.pdb",
+    "export_program_info_sample.exe",
+    "export_program_info_sample.pdb",
+    "export_program_info_test.exe",
+    "export_program_info_test.pdb",
+    "socket_tests.exe",
+    "socket_tests.pdb"
 )
 
 function CopyPackages {
