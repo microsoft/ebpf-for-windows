@@ -3608,26 +3608,12 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     #error "Unsupported architecture"
     #endif
 
-    // Dump C:\eBPF directory contents for debugging.
-    printf("=== Dumping C:\\eBPF directory contents ===\n");
-    WIN32_FIND_DATAA find_data;
-    HANDLE find_handle = FindFirstFileA("C:\\eBPF\\*", &find_data);
-    if (find_handle != INVALID_HANDLE_VALUE) {
-        do {
-            printf("  %s (%lu bytes)\n", find_data.cFileName, find_data.nFileSizeLow);
-        } while (FindNextFileA(find_handle, &find_data));
-        FindClose(find_handle);
-    } else {
-        printf("  ERROR: Could not list C:\\eBPF directory (error %lu)\n", GetLastError());
-    }
-    printf("=== End directory dump ===\n");
-
     // This test requires a production-signed driver only available on 1ES runners.
     // Detect 1ES runner via AGENT_ID, which Azure Pipelines agents always set (never set locally or on GitHub runners).
     size_t agent_id_size = 0;
     getenv_s(&agent_id_size, nullptr, 0, "AGENT_ID");
     bool is_1es_runner = (agent_id_size > 0);
-    printf("Checking for signed driver at: %s (1ES runner: %s)\n", signed_driver_path, is_1es_runner ? "yes" : "no");
+    std::cout << "Checking for signed driver at: " << signed_driver_path << " (1ES runner: " << (is_1es_runner ? "yes" : "no") << ")" << std::endl;
     if (_access(signed_driver_path, 0) != 0) {
         if (is_1es_runner) {
             // On a 1ES runner the signed driver must exist.
@@ -3635,7 +3621,7 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
         }
         SKIP("Signed driver not found at " << signed_driver_path << " (test requires 1ES runner)");
     }
-    printf("Found signed driver file: %s\n", signed_driver_path);
+    std::cout << "Found signed driver file: " << signed_driver_path << std::endl;
 
     // Enable proof of verification via registry.
     REQUIRE(ebpf_store_update_proof_of_verification(1) == EBPF_SUCCESS);
@@ -3646,16 +3632,13 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
 
     // Attempt to load the production-signed driver (use copy_file=false since we're loading from an absolute path).
     result = program_load_helper(signed_driver_path, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd, false);
-
-    // Disable proof of verification via registry before any assertions that might fail.
-    ebpf_store_update_proof_of_verification(0);
-
-    if (result != 0) {
-        printf("ERROR: Failed to load production-signed driver %s (error %d)\n", signed_driver_path, result);
-    }
+    INFO("Failed to load production-signed driver " << signed_driver_path << " (error " << result << ")");
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
+    // Disable proof of verification via registry before any assertions that might fail.
+    ebpf_store_update_proof_of_verification(0);
+    
     // Verify the program loaded correctly
     uint32_t next_id;
     REQUIRE(bpf_prog_get_next_id(0, &next_id) == 0);
@@ -3673,7 +3656,7 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     REQUIRE(program_execution_type == EBPF_EXECUTION_NATIVE);
     _close(query_fd);
 
-    printf("SUCCESS: Proof of verification passed for production-signed driver %s\n", signed_driver_path);
+    std::cout << "Proof of verification passed for production-signed driver " << signed_driver_path << std::endl;
 
     bpf_object__close(object);
 }
@@ -3699,19 +3682,18 @@ TEST_CASE("proof_of_verification_negative", "[native_tests][proof_of_verificatio
     // Attempt to load the test-signed (non-production-signed) bindmonitor.sys
     result = program_load_helper("bindmonitor.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
 
-    // Disable proof of verification via registry before any assertions that might fail.
-    ebpf_store_update_proof_of_verification(0);
-
     // The load should fail because the binary is not production-signed
     if (result == 0) {
-        printf("ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!\n");
-        printf("The proof of verification system should reject non-production-signed binaries.\n");
+        std::cout << "ERROR: Test-signed bindmonitor.sys should NOT have loaded successfully!" << std::endl;
+        std::cout << "The proof of verification system should reject non-production-signed binaries." << std::endl;
         bpf_object__close(object);
     } else {
-        printf("SUCCESS: Test-signed bindmonitor.sys was correctly rejected (error %d)\n", result);
+        std::cout << "Test-signed bindmonitor.sys was correctly rejected (error " << result << ")" << std::endl;
     }
-
     REQUIRE(result != 0);
+
+    // Disable proof of verification via registry.
+    ebpf_store_update_proof_of_verification(0);
 }
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
