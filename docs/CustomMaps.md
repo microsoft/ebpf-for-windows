@@ -1,7 +1,7 @@
 # Custom Maps Design
 
 This document describes the design for custom maps in eBPF-for-Windows. Custom maps are program type specific or global
-map types that can be implemented by eBPF extensions (e.g. BPF_MAP_TYPE_XSKMAP) through a new NMR
+map types that can be implemented by eBPF extensions (e.g., BPF_MAP_TYPE_XSKMAP) through a new NMR
 (Network Module Registrar) provider interface. Custom maps enable extensions to register and manage their own map types
 beyond those provided by the core eBPF runtime.
 
@@ -72,7 +72,7 @@ typedef struct _ebpf_map_provider_dispatch_table {
 } ebpf_base_map_provider_dispatch_table_t;
 ```
 
-An extension (provider) needs to implement the above dispatch table. eBPF runtime invokes these functions in the
+An extension (provider) needs to implement the above dispatch table. The eBPF runtime invokes these functions in the
 following scenarios:
 
 1. **Map Creation** -- eBPF runtime invokes `process_map_create` to validate the key and value sizes, allocate a
