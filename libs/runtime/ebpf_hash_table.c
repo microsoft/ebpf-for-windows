@@ -309,22 +309,31 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
 static uint32_t
 _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
+    uint32_t bucket_index;
     if (!hash_table->extract) {
 #if defined(_M_X64)
         if (ebpf_processor_supports_sse42) {
-            return _ebpf_compute_crc32(key, hash_table->key_size, hash_table->seed) & hash_table->bucket_count_mask;
+            bucket_index =
+                _ebpf_compute_crc32(key, hash_table->key_size, hash_table->seed) & hash_table->bucket_count_mask;
         } else {
-            return _ebpf_murmur3_32(key, hash_table->key_size * 8, hash_table->seed) & hash_table->bucket_count_mask;
+            bucket_index =
+                _ebpf_murmur3_32(key, hash_table->key_size * 8, hash_table->seed) & hash_table->bucket_count_mask;
         }
 #else
-        return _ebpf_murmur3_32(key, hash_table->key_size * 8, hash_table->seed) & hash_table->bucket_count_mask;
+        bucket_index =
+            _ebpf_murmur3_32(key, hash_table->key_size * 8, hash_table->seed) & hash_table->bucket_count_mask;
 #endif
     } else {
         uint8_t* data;
         size_t length;
         hash_table->extract(key, &data, &length);
-        return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
+        bucket_index = _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
     }
+
+    // Prefetch the bucket to overlap memory latency with the caller's remaining work before it reads the bucket.
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, &hash_table->buckets[bucket_index]);
+
+    return bucket_index;
 }
 
 /**
@@ -615,6 +624,15 @@ _ebpf_hash_table_replace_bucket(
     // Lock the bucket.
     ebpf_lock_state_t state = ebpf_lock_lock(&hash_table->buckets[bucket_index].lock);
 
+    // Prefetch bucket contents now while allocation/notification work below provides latency to resolve.
+    // The lock acquisition brought the bucket slot cache line in, so reading .header is ~free.
+    {
+        ebpf_hash_bucket_header_t* prefetch_bucket = hash_table->buckets[bucket_index].header;
+        if (prefetch_bucket) {
+            PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, prefetch_bucket);
+        }
+    }
+
     // Make a copy of the value to insert.
     if (operation != EBPF_HASH_BUCKET_OPERATION_DELETE) {
         new_data = hash_table->allocate(
@@ -883,6 +901,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
 
     for (index = 0; index < bucket->count; index++) {
         ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, index);
+        // Prefetch the value data while comparing keys to overlap the pointer dereference
+        // latency with the key comparison work.
+        PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, entry->data);
         if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
             data = entry->data;
             break;
@@ -893,8 +914,6 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
-
-    PrefetchForWrite(data);
 
     *value = data;
     if (hash_table->notification_callback && (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE)) {
