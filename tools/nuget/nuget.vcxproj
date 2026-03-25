@@ -156,10 +156,10 @@ popd $(OutDir)</Command>
   <ItemGroup>
     <CustomBuild Include="ebpf-for-windows.nuspec.in">
       <FileType>Document</FileType>
-      <Outputs>$(OutDir)eBPF-for-Windows.$(Platform).$(Configuration).$(EbpfVersion).nupkg</Outputs>
+      <Outputs>$(OutDir)eBPF-for-Windows.$(Platform)$(NugetConfigSuffix).$(EbpfVersion).nupkg</Outputs>
       <AdditionalInputs>$(SolutionDir)scripts\Set-Version.ps1;$(SolutionDir)Directory.Build.props;$(SolutionDir)include\git_commit_id.h;$(SolutionDir)tools\nuget\ebpf-for-windows.props.in</AdditionalInputs>
       <Command>
-        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).nuspec -Architecture $(Platform) -Configuration $(Configuration)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).nuspec -Architecture $(Platform) -ConfigSuffix $(NugetConfigSuffix)
         powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.props.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).props -Architecture $(Platform)
         NuGet.exe pack $(OutDir)ebpf-for-windows.$(Platform).nuspec -OutputDirectory $(OutDir)</Command>
     </CustomBuild>
