@@ -159,9 +159,19 @@ jobs:
       - name: Install ProcDump
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
+        env:
+          PROCDUMP_EXPECTED_HASH: '863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4'
         run: |
-          choco install -y --requirechecksum=true --checksum=863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4 --checksum-type=sha256 procdump --version=11.0
-          where procdump.exe
+          curl.exe -L -o ${{github.workspace}}\Procdump.zip https://download.sysinternals.com/files/Procdump.zip
+          $actualHash = (Get-FileHash -Path ${{github.workspace}}\Procdump.zip -Algorithm SHA256).Hash
+          if ($actualHash -ne $env:PROCDUMP_EXPECTED_HASH) { throw "Checksum mismatch: expected $env:PROCDUMP_EXPECTED_HASH, got $actualHash" }
+          Expand-Archive -Path ${{github.workspace}}\Procdump.zip -DestinationPath ${{github.workspace}}\procdump -Force
+          Remove-Item -Path ${{github.workspace}}\Procdump.zip -Force
+          echo "${{github.workspace}}\procdump" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          if (-not (Test-Path "${{github.workspace}}\procdump\procdump.exe")) { throw "ProcDump download failed" }
+          # Accept Sysinternals EULA via registry (avoids exit code 1 from -accepteula)
+          New-Item -Path "HKCU:\SOFTWARE\Sysinternals\ProcDump" -Force | Out-Null
+          New-ItemProperty -Path "HKCU:\SOFTWARE\Sysinternals\ProcDump" -Name "EulaAccepted" -Value 1 -PropertyType DWORD -Force | Out-Null
 
       - name: Set up OpenCppCoverage and add to PATH
         id: set_up_opencppcoverage
