@@ -834,8 +834,8 @@ main(int argc, char* argv[])
 
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;
-    auto cli = session.cli() | Opt(_vip_v4, "v4 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v4"]("IPv4 VIP") |
-               Opt(_vip_v6, "v6 Virtual / Load Balanced IP")["-v"]["--virtual-ip-v6"]("IPv6 VIP") |
+    auto cli = session.cli() | Opt(_vip_v4, "IPv4 VIP")["-v"]["--virtual-ip-v4"]("v4 Virtual / Load Balanced IP") |
+               Opt(_vip_v6, "IPv6 VIP")["-v"]["--virtual-ip-v6"]("IPv6 VIPv6 Virtual / Load Balanced IP") |
                Opt(_local_ip_v4, "v4 local IP")["-l"]["--local-ip-v4"]("Local IPv4 IP") |
                Opt(_local_ip_v6, "v6 local IP")["-l"]["--local-ip-v6"]("Local IPv6 IP") |
                Opt(_remote_ip_v4, "v4 Remote IP")["-r"]["--remote-ip-v4"]("IPv4 Remote IP") |

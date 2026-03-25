@@ -107,3 +107,30 @@ EBPF_HELPER(int64_t, sample_ebpf_extension_helper_implicit_2, (uint32_t arg));
 #define sample_ebpf_extension_helper_implicit_2 \
     ((sample_ebpf_extension_helper_implicit_2_t)SAMPLE_EXT_HELPER_FN_BASE + 5)
 #endif
+
+/**
+ * @brief Map lookup element helper function for sample extension.
+ *
+ * @param[in] map Pointer to the map.
+ * @param[in] key Pointer to the key.
+ * @returns Pointer to the value if found or NULL.
+ */
+EBPF_HELPER(void*, sample_ext_helper_map_lookup_element, (void* map, const void* key));
+#ifndef __doxygen
+#define sample_ext_helper_map_lookup_element ((sample_ext_helper_map_lookup_element_t)SAMPLE_EXT_HELPER_FN_BASE + 6)
+#endif
+
+/**
+ * @brief Map lookup element helper function for sample extension.
+ *
+ * @param[in] map Pointer to the map.
+ * @param[in] key Pointer to the key.
+ * @param[out] value Pointer to the value buffer to be filled.
+ * @param[in] value_size Size of the value buffer.
+ *
+ * @returns 0 if the value was found and copied to the buffer, -1 otherwise.
+ */
+EBPF_HELPER(int64_t, sample_ext_helper_map_get_value, (void* map, const void* key, uint8_t* value, size_t value_size));
+#ifndef __doxygen
+#define sample_ext_helper_map_get_value ((sample_ext_helper_map_get_value_t)SAMPLE_EXT_HELPER_FN_BASE + 7)
+#endif

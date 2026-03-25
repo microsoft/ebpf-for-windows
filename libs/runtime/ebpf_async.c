@@ -46,8 +46,8 @@ ebpf_async_set_completion_callback(
     ebpf_async_tracker_t tracker = {on_complete};
 
     uint8_t* key = (uint8_t*)&context;
-    EBPF_RETURN_RESULT(
-        ebpf_hash_table_update(_ebpf_async_tracker_table, key, (uint8_t*)(&tracker), EBPF_HASH_TABLE_OPERATION_INSERT));
+    EBPF_RETURN_RESULT(ebpf_hash_table_update(
+        _ebpf_async_tracker_table, NULL, key, (uint8_t*)(&tracker), EBPF_HASH_TABLE_OPERATION_INSERT));
 }
 
 static ebpf_async_tracker_t*
@@ -67,7 +67,7 @@ static ebpf_result_t
 _remove_tracker(_In_ const void* context)
 {
     uint8_t* key = (uint8_t*)&context;
-    return ebpf_hash_table_delete(_ebpf_async_tracker_table, key);
+    return ebpf_hash_table_delete(_ebpf_async_tracker_table, NULL, key);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -122,6 +122,17 @@ ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_res
     if (on_complete) {
         on_complete(context, output_buffer_length, result);
     }
+    EBPF_RETURN_VOID();
+}
+
+void
+ebpf_async_complete_with_epoch(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_epoch_state_t epoch_state = {0};
+    ebpf_epoch_enter(&epoch_state);
+    ebpf_async_complete(context, output_buffer_length, result);
+    ebpf_epoch_exit(&epoch_state);
     EBPF_RETURN_VOID();
 }
 
