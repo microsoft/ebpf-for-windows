@@ -85,6 +85,11 @@ $Job = Start-Job -ScriptBlock {
         Run-KernelTests -Config $Config
         Write-Log "Running kernel tests completed"
 
+        # TEMPORARY: Deliberately crash the VM to validate dump collection pipeline.
+        # Remove this block after validation is complete.
+        Write-Log "*** DELIBERATE CRASH *** Generating kernel dump to validate dump collection pipeline."
+        Generate-KernelDumpOnVM
+
         Stop-eBPFComponents -GranularTracing $GranularTracing
     } catch [System.Management.Automation.RemoteException] {
         Write-Log $_.Exception.Message
