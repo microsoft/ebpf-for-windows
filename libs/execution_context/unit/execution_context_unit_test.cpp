@@ -1337,11 +1337,16 @@ TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_ar
     _wait_event event;
     REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
 
+    // Track currently-mapped pointers for unmap calls.
+    const void* mapped_consumer = nullptr;
+    const void* mapped_producer = nullptr;
+    const void* mapped_data = nullptr;
+
     // RAII guard: track whether the ring is mapped and unmap on scope exit.
     bool ring_mapped = false;
     auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
         if (ring_mapped) {
-            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0, mapped_consumer, mapped_producer, mapped_data);
         }
     });
 
@@ -1355,11 +1360,16 @@ TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_ar
             map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
         EBPF_SUCCESS);
     ring_mapped = true;
+    mapped_consumer = const_cast<size_t*>(consumer1);
+    mapped_producer = const_cast<size_t*>(producer1);
+    mapped_data = data1;
     REQUIRE(consumer1 != nullptr);
     REQUIRE(data1 != nullptr);
 
     // Unmap CPU 0's ring.
-    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_user(
+            map.get(), 0, const_cast<size_t*>(consumer1), const_cast<size_t*>(producer1), data1) == EBPF_SUCCESS);
     ring_mapped = false;
 
     // Re-map CPU 0's ring — must succeed after unmap cleared the guard.
@@ -1372,6 +1382,9 @@ TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_ar
             map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
         EBPF_SUCCESS);
     ring_mapped = true;
+    mapped_consumer = const_cast<size_t*>(consumer2);
+    mapped_producer = const_cast<size_t*>(producer2);
+    mapped_data = data2;
     REQUIRE(consumer2 != nullptr);
     REQUIRE(data2 != nullptr);
     // unmap_guard handles cleanup on scope exit.
@@ -1397,11 +1410,16 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
     _wait_event event;
     REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
 
+    // Track currently-mapped pointers for unmap calls.
+    const void* mapped_consumer = nullptr;
+    const void* mapped_producer = nullptr;
+    const void* mapped_data = nullptr;
+
     // RAII guard: track whether the ring is mapped and unmap on scope exit.
     bool ring_mapped = false;
     auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
         if (ring_mapped) {
-            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0, mapped_consumer, mapped_producer, mapped_data);
         }
     });
 
@@ -1415,11 +1433,16 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
             map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
         EBPF_SUCCESS);
     ring_mapped = true;
+    mapped_consumer = const_cast<size_t*>(consumer1);
+    mapped_producer = const_cast<size_t*>(producer1);
+    mapped_data = data1;
     REQUIRE(consumer1 != nullptr);
     REQUIRE(data1 != nullptr);
 
     // Unmap.
-    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_ring_buffer_map_unmap_user(
+            map.get(), 0, const_cast<size_t*>(consumer1), const_cast<size_t*>(producer1), data1) == EBPF_SUCCESS);
     ring_mapped = false;
 
     // Re-map — must succeed after unmap cleared the guard.
@@ -1432,6 +1455,9 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
             map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
         EBPF_SUCCESS);
     ring_mapped = true;
+    mapped_consumer = const_cast<size_t*>(consumer2);
+    mapped_producer = const_cast<size_t*>(producer2);
+    mapped_data = data2;
     REQUIRE(consumer2 != nullptr);
     REQUIRE(data2 != nullptr);
     // unmap_guard handles cleanup on scope exit.
