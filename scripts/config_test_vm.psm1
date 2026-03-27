@@ -576,79 +576,86 @@ function Import-ResultsFromVM
                 $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
                 # Stop KM ETW Traces.
                 Invoke-Command -Session $VMSession -ScriptBlock {
-                param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                      [Parameter(Mandatory=$True)] [string] $LogFileName,
-                      [Parameter(Mandatory=$True)] [string] $EtlFile)
-                $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-                Import-Module `
-                    $WorkingDirectory\common.psm1 `
-                    -ArgumentList ($LogFileName) `
-                    -Force `
-                    -WarningAction SilentlyContinue
-                Import-Module `
-                    $WorkingDirectory\tracing_utils.psm1 `
-                    -ArgumentList ($LogFileName, $WorkingDirectory) `
-                    -Force `
-                    -WarningAction SilentlyContinue
+                    param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                          [Parameter(Mandatory=$True)] [string] $LogFileName,
+                          [Parameter(Mandatory=$True)] [string] $EtlFile)
+                    $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+                    Import-Module `
+                        $WorkingDirectory\common.psm1 `
+                        -ArgumentList ($LogFileName) `
+                        -Force `
+                        -WarningAction SilentlyContinue
+                    Import-Module `
+                        $WorkingDirectory\tracing_utils.psm1 `
+                        -ArgumentList ($LogFileName, $WorkingDirectory) `
+                        -Force `
+                        -WarningAction SilentlyContinue
 
-                $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
-                Stop-WPRTrace -FileName $baseFileName
+                    $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
+                    Stop-WPRTrace -FileName $baseFileName
 
-                # Stop-WPRTrace puts the file in TestLogs and will therefore be collected in the subsequent block.
-            } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+                    # Stop-WPRTrace puts the file in TestLogs and will therefore be collected in the subsequent block.
+                } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+            } else {
+                Write-Log "*** WARNING *** Skipping KM trace stop on $VMName - no valid session."
+            }
         }
 
         # Copy tracing ETL files from Test VM (if any).
         Write-Log ("Copy ETL files from $VMSystemDrive\eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        if ($VMSession) {
+            # First, compress the ETL files on the VM
+            Invoke-Command -Session $VMSession -ScriptBlock {
+                param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                      [Parameter(Mandatory=$True)] [string] $LogFileName)
+                $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
 
-        # First, compress the ETL files on the VM
-        Invoke-Command -Session $VMSession -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory=$True)] [string] $LogFileName)
-            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+                # Ensure common module is loaded in the remote session so Write-Log and Compress-File are available.
+                Import-Module "$WorkingDirectory\common.psm1" -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-            # Ensure common module is loaded in the remote session so Write-Log and Compress-File are available.
-            Import-Module "$WorkingDirectory\common.psm1" -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
+                    Write-Log "Found ETL files in $WorkingDirectory\TestLogs"
+                    Get-ChildItem "$WorkingDirectory\TestLogs\*.etl" | ForEach-Object {
+                        Write-Log "  ETL file: $($_.Name), Size: $((($_.Length) / 1MB).ToString('F2')) MB"
+                    }
 
-            if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
-                Write-Log "Found ETL files in $WorkingDirectory\TestLogs"
-                Get-ChildItem "$WorkingDirectory\TestLogs\*.etl" | ForEach-Object {
-                    Write-Log "  ETL file: $($_.Name), Size: $((($_.Length) / 1MB).ToString('F2')) MB"
+                    Write-Log "Compressing ETL files..."
+                    $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\TestLogs\*.etl" -DestinationPath "$WorkingDirectory\traces.zip"
+                    if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\traces.zip")) {
+                        Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL files."
+                    } else {
+                        Write-Log "Successfully compressed ETL files to traces.zip"
+                    }
                 }
+            } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 
-                Write-Log "Compressing ETL files..."
-                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\TestLogs\*.etl" -DestinationPath "$WorkingDirectory\traces.zip"
-                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\traces.zip")) {
-                    Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL files."
-                } else {
-                    Write-Log "Successfully compressed ETL files to traces.zip"
+            # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
+            $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
+                -VMSession $VMSession `
+                -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
+                -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
+                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+
+            # Compress and copy the performance profile if present.
+            Invoke-Command -Session $VMSession -ScriptBlock {
+                if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
+                    tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
+                    dir $Env:SystemDrive\eBPF\bpf_performance*.etl
+                    Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
                 }
             }
-        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
-
-        # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
-        $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
-            -VMSession $VMSession `
-            -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
-            -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
-            -DestinationDirectory ".\TestLogs\$VMName\Logs"
-
-        # Compress and copy the performance profile if present.
-        Invoke-Command -Session $VMSession -ScriptBlock {
-            if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
-                tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
-                dir $Env:SystemDrive\eBPF\bpf_performance*.etl
-                Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
-            }
+            Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
+        } else {
+            Write-Log "*** WARNING *** Skipping ETL/perf copy from $VMName - no valid session."
         }
-        Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" `
-            -Destination ".\TestLogs\$VMName\Logs" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
 
         Write-Log "Completed importing results from $VMName"
     }
