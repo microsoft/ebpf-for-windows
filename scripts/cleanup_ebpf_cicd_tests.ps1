@@ -104,12 +104,27 @@ $JobTimedOut = `
     -TestHangTimeout (10*60) `
     -UserModeDumpFolder "C:\Dumps"
 
+# Check if the job failed (e.g., VM session died, cleanup threw an exception).
+$JobFailed = $Job.State -eq 'Failed'
+if ($JobFailed) {
+    try {
+        Receive-Job -Job $Job -ErrorAction SilentlyContinue 2>&1 | ForEach-Object { Write-Log $_ }
+    } catch {
+        Write-Log "Job error: $($_.Exception.Message)"
+    }
+}
+
 # Clean up
 Remove-Job -Job $Job -Force
 
 Pop-Location
 
 if ($JobTimedOut) {
+    exit 1
+}
+
+if ($JobFailed) {
+    Write-Log "exiting with error as cleanup job failed"
     exit 1
 }
 

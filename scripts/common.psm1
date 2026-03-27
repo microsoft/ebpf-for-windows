@@ -87,21 +87,45 @@ function Compress-File
 
     Write-Log "Compressing $SourcePath -> $DestinationPath"
 
+    # Use System.IO.Compression directly instead of Compress-Archive
+    # to avoid the 2GB MemoryStream limitation in Compress-Archive (affects files > 2GB).
+    Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+
     # Retry 5 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
     while ($retryCount -le 5) {
         try {
             $ErrorActionPreference = "Stop"
-            Compress-Archive `
-                -Path $SourcePath `
-                -DestinationPath $DestinationPath `
-                -CompressionLevel Fastest `
-                -Force
+
+            # Remove existing destination if present.
+            if (Test-Path $DestinationPath) {
+                Remove-Item $DestinationPath -Force
+            }
+
+            $zipArchive = [System.IO.Compression.ZipFile]::Open(
+                $DestinationPath,
+                [System.IO.Compression.ZipArchiveMode]::Create)
+
+            try {
+                $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction Stop
+                foreach ($file in $sourceFiles) {
+                    Write-Log "Adding $($file.Name) ($((($file.Length) / 1MB).ToString('F2')) MB) to archive..."
+                    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                        $zipArchive,
+                        $file.FullName,
+                        $file.Name,
+                        [System.IO.Compression.CompressionLevel]::Fastest) | Out-Null
+                }
+            } finally {
+                $zipArchive.Dispose()
+            }
 
             # Verify the compressed file was actually created.
             if (Test-Path $DestinationPath) {
-                Write-Log "Compression completed successfully."
+                $compressedSize = (Get-Item $DestinationPath).Length
+                Write-Log "Compression completed successfully. Compressed size: $(($compressedSize / 1MB).ToString('F2')) MB"
                 return $true
             } else {
                 throw "Compressed file was not created at $DestinationPath"
@@ -109,6 +133,10 @@ function Compress-File
         } catch {
             $ErrorMessage = "*** ERROR *** Failed to compress files (attempt $retryCount of 5): $($_.Exception.Message)"
             Write-Log $ErrorMessage
+            # Clean up partial zip file on failure.
+            if (Test-Path $DestinationPath) {
+                Remove-Item $DestinationPath -Force -ErrorAction Ignore
+            }
             if ($retryCount -lt 5) {
                 Start-Sleep -seconds (5 * $retryCount)
             }

@@ -127,6 +127,17 @@ $JobTimedOut = `
     -TestHangTimeout $TestHangTimeout `
     -UserModeDumpFolder $UserModeDumpFolder
 
+# Check if the job failed (e.g., VM session died, test threw an exception).
+$JobFailed = $Job.State -eq 'Failed'
+if ($JobFailed) {
+    # Surface the job's error before removing it.
+    try {
+        Receive-Job -Job $Job -ErrorAction SilentlyContinue 2>&1 | ForEach-Object { Write-Log $_ }
+    } catch {
+        Write-Log "Job error: $($_.Exception.Message)"
+    }
+}
+
 # Clean up
 Remove-Job -Job $Job -Force
 
@@ -134,6 +145,11 @@ Pop-Location
 
 if ($JobTimedOut) {
     Write-Log "exiting with error as job timed out"
+    exit 1
+}
+
+if ($JobFailed) {
+    Write-Log "exiting with error as job failed"
     exit 1
 }
 
