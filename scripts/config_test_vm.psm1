@@ -1,9 +1,7 @@
 ﻿# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([Parameter(Mandatory=$True)] [string] $Admin,
-       [Parameter(Mandatory=$True)] [SecureString] $AdminPassword,
-       [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 $sleepSeconds = 10
@@ -76,8 +74,6 @@ function Wait-AllVMsReadyForCommands
 function Wait-AllVMsToInitialize
 {
     param([Parameter(Mandatory=$True)]$VMList,
-          [Parameter(Mandatory=$True)][string] $UserName,
-          [Parameter(Mandatory=$True)][SecureString] $AdminPassword,
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $totalSleepTime = 0
@@ -108,7 +104,7 @@ function Wait-AllVMsToInitialize
         throw ("Did not get heartbeat from one or more VMs 5 minutes after starting")
     }
 
-    $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
     Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
 
     # Enable guest-services on each VM.
@@ -178,10 +174,10 @@ function Initialize-AllVMs
     if (-not $VMIsRemote) {
         # Wait for VMs to be ready.
         Write-Log "Waiting for all the VMs to be in ready state..." -ForegroundColor Yellow
-        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $VMList
     } else {
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential
+        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
+        Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$true
     }
 }
 
@@ -221,7 +217,7 @@ function Export-BuildArtifactsToVMs
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Exporting build artifacts to $VMName"
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
        if ($VMIsRemote) {
             $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
         } else {
@@ -289,7 +285,7 @@ function Install-eBPFComponentsOnVM
     )
 
     Write-Log "Installing eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
 
     $scriptBlock = {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
@@ -315,7 +311,7 @@ function Uninstall-eBPFComponentsOnVM
     param([parameter(Mandatory=$true)][string] $VMName)
 
     Write-Log "Unnstalling eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
@@ -335,7 +331,7 @@ function Stop-eBPFComponentsOnVM
           [parameter(Mandatory=$false)][bool] $GranularTracing = $false)
 
     Write-Log "Stopping eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator'
 
     Invoke-Command `
         -VMName $VMName `
@@ -419,6 +415,58 @@ function Compress-KernelModeDumpOnVM
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 }
 
+<#
+.SYNOPSIS
+    Ensures a PSSession to a VM is valid and usable, reconnecting if necessary.
+.PARAMETER VMName
+    The name of the VM.
+.PARAMETER CurrentSession
+    The current PSSession object (may be null or broken).
+.PARAMETER TestCredential
+    Credential to use for creating a new session.
+.RETURNS
+    A valid PSSession object, or $null if reconnection fails.
+#>
+function Get-ValidSession {
+    param(
+        [Parameter(Mandatory=$true)][string] $VMName,
+        [Parameter(Mandatory=$false)][System.Management.Automation.Runspaces.PSSession] $CurrentSession,
+        [Parameter(Mandatory=$true)][PSCredential] $TestCredential
+    )
+
+    # Check if current session is still usable.
+    if ($CurrentSession -and $CurrentSession.State -eq 'Opened' -and $CurrentSession.Availability -eq 'Available') {
+        return $CurrentSession
+    }
+
+    # Session is broken or unavailable - clean it up and create a new one.
+    if ($CurrentSession) {
+        $state = $CurrentSession.State
+        $avail = $CurrentSession.Availability
+        Write-Log "Session to $VMName is no longer valid (State: $state, Availability: $avail). Attempting to reconnect."
+        try { Remove-PSSession $CurrentSession -ErrorAction SilentlyContinue } catch {}
+    }
+
+    # Try to create a new session with retries.
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            $newSession = New-PSSession -VMName $VMName -Credential $TestCredential -ErrorAction Stop
+            if ($newSession) {
+                Write-Log "Successfully reconnected to $VMName (attempt $attempt)."
+                return $newSession
+            }
+        } catch {
+            Write-Log "Failed to reconnect to $VMName (attempt $attempt of 3): $($_.Exception.Message)"
+            if ($attempt -lt 3) {
+                Start-Sleep -Seconds (5 * $attempt)
+            }
+        }
+    }
+
+    Write-Log "*** WARNING *** Could not establish session to $VMName after 3 attempts."
+    return $null
+}
+
 #
 # Import test logs and dumps from VM.
 #
@@ -428,7 +476,7 @@ function Import-ResultsFromVM
           [Parameter(Mandatory=$true)] $KmTracing)
 
     # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-    Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+    Wait-AllVMsToInitialize -VMList $VMList
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -437,16 +485,21 @@ function Import-ResultsFromVM
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName"
         }
 
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator'
         $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
         if (!$VMSession) {
-            throw "Failed to create PowerShell session on $VMName."
+            Write-Log "*** WARNING *** Failed to create PowerShell session on $VMName. Skipping result import for this VM."
+            continue
         }
         $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
 
         # Archive and copy kernel crash dumps, if any.
         Write-Log "Processing kernel mode dump (if any) on VM $VMName"
-        Compress-KernelModeDumpOnVM -Session $VMSession
+        try {
+            Compress-KernelModeDumpOnVM -Session $VMSession
+        } catch {
+            Write-Log "*** WARNING *** Failed to compress kernel dumps on ${VMName}: $($_.Exception.Message)"
+        }
 
         $LocalKernelArchiveLocation = ".\TestLogs\$VMName\KernelDumps"
         if (!(Test-Path $LocalKernelArchiveLocation)) {
@@ -454,129 +507,155 @@ function Import-ResultsFromVM
         }
 
         # Copy kernel dumps from Test VM - try compressed first, then uncompressed from Windows folder
-        $result = CopyCompressedOrUncompressed-FileFromSession `
-            -VMSession $VMSession `
-            -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
-            -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
-            -DestinationDirectory $LocalKernelArchiveLocation
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        if ($VMSession) {
+            $result = CopyCompressedOrUncompressed-FileFromSession `
+                -VMSession $VMSession `
+                -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
+                -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
+                -DestinationDirectory $LocalKernelArchiveLocation
 
-        if ($result.Success) {
-            Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
+            if ($result.Success) {
+                Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
+            } else {
+                Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
+            }
         } else {
-            Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
+            Write-Log "*** WARNING *** Skipping kernel dump copy from $VMName - no valid session."
         }
 
         # Copy user mode crash dumps if any.
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\dumps" `
-            -Destination ".\TestLogs\$VMName" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        if ($VMSession) {
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\dumps" `
+                -Destination ".\TestLogs\$VMName" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
 
-        # Copy performance results from Test VM.
-        Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\eBPF\*.csv" `
-            -Destination ".\TestLogs\$VMName\Logs" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
+            # Copy performance results from Test VM.
+            Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\eBPF\*.csv" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
+        } else {
+            Write-Log "*** WARNING *** Skipping dump/CSV copy from $VMName - no valid session."
+        }
 
         # Copy logs from Test VM.
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
         }
-        $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP}
-        Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMTemp\$LogFileName" `
-            -Destination ".\TestLogs\$VMName\Logs" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        if ($VMSession) {
+            $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP} -ErrorAction SilentlyContinue
+            if ($VMTemp) {
+                Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
+                Copy-Item `
+                    -FromSession $VMSession `
+                    -Path "$VMTemp\$LogFileName" `
+                    -Destination ".\TestLogs\$VMName\Logs" `
+                    -Recurse `
+                    -Force `
+                    -ErrorAction Ignore 2>&1 | Write-Log
+            }
+        } else {
+            Write-Log "*** WARNING *** Skipping log copy from $VMName - no valid session."
+        }
 
         # Copy kernel mode traces, if enabled.
         if ($KmTracing) {
-            $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
-            # Stop KM ETW Traces.
-            Invoke-Command -Session $VMSession -ScriptBlock {
-                param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                      [Parameter(Mandatory=$True)] [string] $LogFileName,
-                      [Parameter(Mandatory=$True)] [string] $EtlFile)
-                $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-                Import-Module `
-                    $WorkingDirectory\common.psm1 `
-                    -ArgumentList ($LogFileName) `
-                    -Force `
-                    -WarningAction SilentlyContinue
-                Import-Module `
-                    $WorkingDirectory\tracing_utils.psm1 `
-                    -ArgumentList ($LogFileName, $WorkingDirectory) `
-                    -Force `
-                    -WarningAction SilentlyContinue
+            $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+            if ($VMSession) {
+                $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+                # Stop KM ETW Traces.
+                Invoke-Command -Session $VMSession -ScriptBlock {
+                    param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                          [Parameter(Mandatory=$True)] [string] $LogFileName,
+                          [Parameter(Mandatory=$True)] [string] $EtlFile)
+                    $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+                    Import-Module `
+                        $WorkingDirectory\common.psm1 `
+                        -ArgumentList ($LogFileName) `
+                        -Force `
+                        -WarningAction SilentlyContinue
+                    Import-Module `
+                        $WorkingDirectory\tracing_utils.psm1 `
+                        -ArgumentList ($LogFileName, $WorkingDirectory) `
+                        -Force `
+                        -WarningAction SilentlyContinue
 
-                $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
-                Stop-WPRTrace -FileName $baseFileName
+                    $baseFileName = [System.IO.Path]::GetFileNameWithoutExtension($EtlFile)
+                    Stop-WPRTrace -FileName $baseFileName
 
-                # Stop-WPRTrace puts the file in TestLogs and will therefore be collected in the subsequent block.
-            } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+                    # Stop-WPRTrace puts the file in TestLogs and will therefore be collected in the subsequent block.
+                } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
+            } else {
+                Write-Log "*** WARNING *** Skipping KM trace stop on $VMName - no valid session."
+            }
         }
 
         # Copy tracing ETL files from Test VM (if any).
         Write-Log ("Copy ETL files from $VMSystemDrive\eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        if ($VMSession) {
+            # First, compress the ETL files on the VM
+            Invoke-Command -Session $VMSession -ScriptBlock {
+                param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                      [Parameter(Mandatory=$True)] [string] $LogFileName)
+                $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
 
-        # First, compress the ETL files on the VM
-        Invoke-Command -Session $VMSession -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-                  [Parameter(Mandatory=$True)] [string] $LogFileName)
-            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+                # Ensure common module is loaded in the remote session so Write-Log and Compress-File are available.
+                Import-Module "$WorkingDirectory\common.psm1" -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-            # Ensure common module is loaded in the remote session so Write-Log and Compress-File are available.
-            Import-Module "$WorkingDirectory\common.psm1" -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
+                    Write-Log "Found ETL files in $WorkingDirectory\TestLogs"
+                    Get-ChildItem "$WorkingDirectory\TestLogs\*.etl" | ForEach-Object {
+                        Write-Log "  ETL file: $($_.Name), Size: $((($_.Length) / 1MB).ToString('F2')) MB"
+                    }
 
-            if (Test-Path "$WorkingDirectory\TestLogs\*.etl" -PathType Leaf) {
-                Write-Log "Found ETL files in $WorkingDirectory\TestLogs"
-                Get-ChildItem "$WorkingDirectory\TestLogs\*.etl" | ForEach-Object {
-                    Write-Log "  ETL file: $($_.Name), Size: $((($_.Length) / 1MB).ToString('F2')) MB"
+                    Write-Log "Compressing ETL files..."
+                    $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\TestLogs\*.etl" -DestinationPath "$WorkingDirectory\traces.zip"
+                    if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\traces.zip")) {
+                        Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL files."
+                    } else {
+                        Write-Log "Successfully compressed ETL files to traces.zip"
+                    }
                 }
+            } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 
-                Write-Log "Compressing ETL files..."
-                $compressionSucceeded = Compress-File -SourcePath "$WorkingDirectory\TestLogs\*.etl" -DestinationPath "$WorkingDirectory\traces.zip"
-                if (-not $compressionSucceeded -or -not (Test-Path "$WorkingDirectory\traces.zip")) {
-                    Write-Log "*** WARNING *** ETL compression failed on VM. Will attempt to copy uncompressed ETL files."
-                } else {
-                    Write-Log "Successfully compressed ETL files to traces.zip"
+            # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
+            $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
+                -VMSession $VMSession `
+                -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
+                -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
+                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+
+            # Compress and copy the performance profile if present.
+            Invoke-Command -Session $VMSession -ScriptBlock {
+                if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
+                    tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
+                    dir $Env:SystemDrive\eBPF\bpf_performance*.etl
+                    Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
                 }
             }
-        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
-
-        # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
-        $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
-            -VMSession $VMSession `
-            -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
-            -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
-            -DestinationDirectory ".\TestLogs\$VMName\Logs"
-
-        # Compress and copy the performance profile if present.
-        Invoke-Command -Session $VMSession -ScriptBlock {
-            if (Test-Path $Env:SystemDrive\eBPF\bpf_performance*.etl -PathType Leaf) {
-                tar czf $Env:SystemDrive\eBPF\bpf_perf_etls.tgz -C $Env:SystemDrive\eBPF bpf_performance*.etl
-                dir $Env:SystemDrive\eBPF\bpf_performance*.etl
-                Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
-            }
+            Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
+        } else {
+            Write-Log "*** WARNING *** Skipping ETL/perf copy from $VMName - no valid session."
         }
-        Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" `
-            -Destination ".\TestLogs\$VMName\Logs" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
 
         Write-Log "Completed importing results from $VMName"
     }
@@ -637,7 +716,7 @@ function Initialize-NetworkInterfaces {
 
     if ($ExecuteOnVM) {
         # Execute on VMs.
-        $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
@@ -658,7 +737,7 @@ function Log-OSBuildInformationOnVM
     param([parameter(Mandatory=$true)][string] $VMName,
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
     Invoke-CommandOnVM -VMName $VMName -VMIsRemote:$VMIsRemote -Credential $TestCredential -ScriptBlock {
         $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
         Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
@@ -685,7 +764,7 @@ function Execute-CommandOnVM {
     )
 
     try {
-        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $vmCredential = Get-VMCredential -Username 'Administrator'
         Write-Log "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
@@ -708,9 +787,6 @@ function Execute-CommandOnVM {
 .PARAMETER VmName
     The name of the VM to create.
 
-.PARAMETER UserPassword
-    The plain text password to use for the user accounts on the VM.
-
 .PARAMETER VhdPath
     The path to the VHD file to use for the VM.
 
@@ -727,12 +803,11 @@ function Execute-CommandOnVM {
     The name of the switch to use for the VM.
 
 .EXAMPLE
-    Create-VM -VmName "MyVM" -UserPassword "Password -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
+    Create-VM -VmName "MyVM" -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
 #>
 function Create-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
-        [Parameter(Mandatory=$True)][string]$UserPassword,
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
         [Parameter(Mandatory=$True)][Int64]$VMMemory,
@@ -761,8 +836,10 @@ function Create-VM {
         Write-Log "Moving $UnattendPath file to $VmStoragePath"
         Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $UserPassword
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $UserPassword
+
+        # Replace password placeholder in unattend.xml with the canonical password from Get-VMPassword.
+        $password = Get-VMPassword
+        (Get-Content -Path $VmUnattendPath -Raw).Replace('PLACEHOLDER_PASSWORD', $password) | Set-Content -Path $VmUnattendPath
 
         # Configure the VHD with the unattend file.
         Write-Log "Mounting VHD and applying unattend file"
@@ -775,9 +852,10 @@ function Create-VM {
         Apply-WindowsUnattend -Path $VmMountPath -UnattendPath $VmMountPath\Unattend.xml -ErrorAction Stop | Out-Null
         Dismount-WindowsImage -Path $VmMountPath -Save -ErrorAction Stop
 
-        # Create the VM
-        Write-Log "Creating the VM"
-        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
+        # Create the VM as Generation 2 with Secure Boot disabled so unsigned test drivers can load.
+        Write-Log "Creating the VM (Generation 2)"
+        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName -Generation 2
+        Set-VMFirmware -VMName $VmName -EnableSecureBoot Off
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
@@ -837,7 +915,7 @@ function Initialize-VM {
         # Start the VM
         Write-Log "Starting VM: $VmName"
         Start-VM -Name $VmName
-        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $vmList
 
         # Copy setup script to the VM and execute it.
         Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
@@ -845,7 +923,7 @@ function Initialize-VM {
         Execute-CommandOnVM -VMName $VmName -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine; cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
-        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $vmList
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
         for ($i = 0; $i -lt 5; $i += 1) {
@@ -1001,7 +1079,7 @@ function Enable-HVCIOnVM {
 
     try {
         Write-Log "Enabling HVCI on VM: $VmName"
-        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $vmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
         $commandScriptBlock = {
             # Enable HVCI
             New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
@@ -1022,9 +1100,9 @@ function Enable-HVCIOnVM {
     if (-not $VMIsRemote){
         # Wait for the VM to restart and be ready again
         Write-Log "Waiting for VM: $VmName to restart and be ready again"
-        Wait-AllVMsToInitialize -VMList $VMList -UserName $Admin -AdminPassword $AdminPassword
+        Wait-AllVMsToInitialize -VMList $VMList
     } else {
-        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
         Wait-AllVMsReadyForCommands -VMList $VMList -TestCredential $TestCredential -VMIsRemote:$VMIsRemote
     }
 

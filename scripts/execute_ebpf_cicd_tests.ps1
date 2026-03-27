@@ -1,9 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
-       [Parameter(Mandatory = $false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
-       [Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
+param ([Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
        [Parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
        [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
@@ -31,18 +29,9 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-        $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
-    } else {
-        $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-        $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
-    }
+    Write-Log "Tests will be executed on VM"
 } else {
-    # Username and password are not used when running on host - use empty but non-null values.
-    $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
-    $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
-    $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential("TestStandardUser", $EmptySecureString)
+    Write-Log "Executing on host"
 }
 
 $Job = Start-Job -ScriptBlock {
@@ -50,8 +39,6 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
         [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
         [Parameter(Mandatory = $True)] [bool] $VMIsRemote,
-        [Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
-        [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
         [Parameter(Mandatory = $True)] [PSCustomObject] $Config,
         [Parameter(Mandatory = $True)] [string] $SelfHostedRunnerName,
         [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
@@ -84,10 +71,6 @@ $Job = Start-Job -ScriptBlock {
             $ExecuteOnVM,
             $VMIsRemote,
             $VMName,
-            $AdminTestVMCredential.UserName,
-            $AdminTestVMCredential.Password,
-            $StandardUserTestVMCredential.UserName,
-            $StandardUserTestVMCredential.Password,
             $TestWorkingDirectory,
             $LogFileName,
             $TestMode,
@@ -116,8 +99,6 @@ $Job = Start-Job -ScriptBlock {
     $ExecuteOnHost,
     $ExecuteOnVM,
     $VMIsRemote,
-    $AdminTestVMCredential,
-    $StandardUserTestVMCredential,
     $Config,
     $SelfHostedRunnerName,
     $WorkingDirectory,
@@ -138,8 +119,6 @@ $JobTimedOut = `
     -CheckpointPrefix "Execute" `
     -ExecuteOnHost $ExecuteOnHost `
     -ExecuteOnVM $ExecuteOnVM `
-    -AdminTestVMCredential $AdminTestVMCredential `
-    -StandardUserTestVMCredential $StandardUserTestVMCredential `
     -VMIsRemote $VMIsRemote `
     -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
     -LogFileName $LogFileName `
