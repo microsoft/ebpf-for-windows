@@ -15,6 +15,8 @@ struct _ebpf_ring_descriptor
     MDL* user_mdl_producer;
     MDL* memory;
     void* base_address;
+    void* user_consumer_address;
+    void* user_producer_address;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -212,6 +214,9 @@ ebpf_ring_map_user(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    ring->user_consumer_address = *consumer;
+    ring->user_producer_address = *producer;
+
     *data = (uint8_t*)*producer + PAGE_SIZE;
     return EBPF_SUCCESS;
 }
@@ -220,9 +225,20 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(
     _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
 {
+    UNREFERENCED_PARAMETER(consumer);
+    UNREFERENCED_PARAMETER(producer);
     UNREFERENCED_PARAMETER(data);
-    MmUnmapLockedPages((void*)consumer, ring->user_mdl_consumer);
-    MmUnmapLockedPages((void*)producer, ring->user_mdl_producer);
+
+    // Use the addresses stored during ebpf_ring_map_user rather than caller-provided values,
+    // since the async (query_buffer) path does not return consumer/producer addresses to user mode.
+    if (ring->user_consumer_address == NULL || ring->user_producer_address == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
+    MmUnmapLockedPages(ring->user_producer_address, ring->user_mdl_producer);
+    ring->user_consumer_address = NULL;
+    ring->user_producer_address = NULL;
     // No-op for data, as it's part of the same mapping.
     return EBPF_SUCCESS;
 }
