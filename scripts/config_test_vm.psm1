@@ -431,7 +431,8 @@ function Get-ValidSession {
     param(
         [Parameter(Mandatory=$true)][string] $VMName,
         [Parameter(Mandatory=$false)][System.Management.Automation.Runspaces.PSSession] $CurrentSession,
-        [Parameter(Mandatory=$true)][PSCredential] $TestCredential
+        [Parameter(Mandatory=$true)][PSCredential] $TestCredential,
+        [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false
     )
 
     # Check if current session is still usable.
@@ -450,7 +451,7 @@ function Get-ValidSession {
     # Try to create a new session with retries.
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         try {
-            $newSession = New-PSSession -VMName $VMName -Credential $TestCredential -ErrorAction Stop
+            $newSession = New-SessionOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential
             if ($newSession) {
                 Write-Log "Successfully reconnected to $VMName (attempt $attempt)."
                 return $newSession
@@ -473,10 +474,11 @@ function Get-ValidSession {
 function Import-ResultsFromVM
 {
     param([Parameter(Mandatory=$True)] $VMList,
-          [Parameter(Mandatory=$true)] $KmTracing)
+          [Parameter(Mandatory=$true)] $KmTracing,
+          [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-    Wait-AllVMsToInitialize -VMList $VMList
+    Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -485,8 +487,8 @@ function Import-ResultsFromVM
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName"
         }
 
-        $TestCredential = Get-VMCredential -Username 'Administrator'
-        $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential
+        $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+        $VMSession = New-SessionOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential
         if (!$VMSession) {
             Write-Log "*** WARNING *** Failed to create PowerShell session on $VMName. Skipping result import for this VM."
             continue
@@ -507,7 +509,7 @@ function Import-ResultsFromVM
         }
 
         # Copy kernel dumps from Test VM - try compressed first, then uncompressed from Windows folder
-        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential -VMIsRemote $VMIsRemote
         if ($VMSession) {
             $result = CopyCompressedOrUncompressed-FileFromSession `
                 -VMSession $VMSession `
@@ -525,7 +527,7 @@ function Import-ResultsFromVM
         }
 
         # Copy user mode crash dumps if any.
-        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential -VMIsRemote $VMIsRemote
         if ($VMSession) {
             Copy-Item `
                 -FromSession $VMSession `
@@ -552,7 +554,7 @@ function Import-ResultsFromVM
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
         }
-        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential -VMIsRemote $VMIsRemote
         if ($VMSession) {
             $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP} -ErrorAction SilentlyContinue
             if ($VMTemp) {
@@ -571,7 +573,7 @@ function Import-ResultsFromVM
 
         # Copy kernel mode traces, if enabled.
         if ($KmTracing) {
-            $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+            $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential -VMIsRemote $VMIsRemote
             if ($VMSession) {
                 $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
                 # Stop KM ETW Traces.
@@ -603,7 +605,7 @@ function Import-ResultsFromVM
 
         # Copy tracing ETL files from Test VM (if any).
         Write-Log ("Copy ETL files from $VMSystemDrive\eBPF\TestLogs on $VMName to $pwd\TestLogs\$VMName\Logs")
-        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
+        $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential -VMIsRemote $VMIsRemote
         if ($VMSession) {
             # First, compress the ETL files on the VM
             Invoke-Command -Session $VMSession -ScriptBlock {

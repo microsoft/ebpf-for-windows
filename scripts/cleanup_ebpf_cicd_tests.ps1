@@ -62,7 +62,7 @@ $Job = Start-Job -ScriptBlock {
         }
 
         # Import logs from VMs.
-        Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
+        Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
 
         # Stop the VMs.
         Stop-AllVMs -VMList $VMList

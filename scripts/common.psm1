@@ -345,13 +345,18 @@ function CopyCompressedOrUncompressed-FileFromSession
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
         $uncompressedCopySucceeded = $false
 
-        # Handle wildcard paths by expanding them on the remote session first
+        # Handle wildcard paths by expanding them on the remote session first.
+        # Get file paths and sizes so we can skip files too large for Copy-Item -FromSession
+        # (large files over Hyper-V PowerShell Direct can kill the socket/session).
+        $MaxUncompressedCopySize = 2GB
         $sourceFiles = @()
         if ($UncompressedSourcePath -like "*\*.*") {
             try {
                 $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
                     param($Path)
-                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object {
+                        [PSCustomObject]@{ FullName = $_.FullName; Length = $_.Length; Name = $_.Name }
+                    }
                 } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
 
                 if ($sourceFiles.Count -eq 0) {
@@ -361,14 +366,37 @@ function CopyCompressedOrUncompressed-FileFromSession
                 Write-Log "Failed to expand wildcard path $UncompressedSourcePath : $($_.Exception.Message)"
             }
         } else {
-            $sourceFiles = @($UncompressedSourcePath)
+            # For non-wildcard paths, get size from remote session.
+            try {
+                $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
+                    param($Path)
+                    if (Test-Path $Path) {
+                        $f = Get-Item $Path
+                        [PSCustomObject]@{ FullName = $f.FullName; Length = $f.Length; Name = $f.Name }
+                    }
+                } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
+                if ($sourceFiles) { $sourceFiles = @($sourceFiles) } else { $sourceFiles = @() }
+            } catch {
+                $sourceFiles = @()
+            }
         }
 
         # Copy each file individually with retry logic
         $anyCopySucceeded = $false
-        foreach ($sourceFile in $sourceFiles) {
-            $fileName = Split-Path $sourceFile -Leaf
+        foreach ($fileInfo in $sourceFiles) {
+            $sourceFile = $fileInfo.FullName
+            $fileName = $fileInfo.Name
+            $fileSize = $fileInfo.Length
             $destPath = Join-Path $DestinationDirectory $fileName
+
+            # Skip files that are too large to copy over the session safely.
+            if ($fileSize -gt $MaxUncompressedCopySize) {
+                Write-Log ("*** WARNING *** Skipping $fileName ({0:F2} GB) - exceeds {1:F2} GB limit for uncompressed session copy. " +
+                    "This file should have been compressed first.") -f ($fileSize / 1GB), ($MaxUncompressedCopySize / 1GB)
+                continue
+            }
+
+            Write-Log ("Uncompressed file: $fileName, Size: {0:F2} MB" -f ($fileSize / 1MB))
 
             for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
                 try {
