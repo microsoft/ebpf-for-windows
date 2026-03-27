@@ -400,8 +400,12 @@ function Wait-TestJobToComplete
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
-        $JobOutput = Receive-Job -Job $job
-        $JobOutput | ForEach-Object { Write-Host $_ }
+        try {
+            $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+            $JobOutput | ForEach-Object { Write-Host $_ }
+        } catch {
+            Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
+        }
 
         Start-Sleep -Seconds 2
         $TimeElapsed += 2
@@ -443,8 +447,12 @@ function Wait-TestJobToComplete
     }
 
     # Print any remaining output after the job completes.
-    $JobOutput = Receive-Job -Job $job
-    $JobOutput | ForEach-Object { Write-Host $_ }
+    try {
+        $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        $JobOutput | ForEach-Object { Write-Host $_ }
+    } catch {
+        Write-Log "Warning: Failed to receive final job output (remote session may have ended): $($_.Exception.Message)"
+    }
 
     return $JobTimedOut
 }
