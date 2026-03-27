@@ -1316,6 +1316,67 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
     REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 
+// Test: Perf event array per-CPU ring map-unmap-remap cycle.
+// Validates that after unmapping a per-CPU ring, it can be re-mapped successfully.
+// This is the kernel-side prerequisite for the user-mode fix in ebpf_map_unsubscribe
+// that sends unmap IOCTLs after cancelling async subscriptions.
+TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // RAII guard: track whether the ring is mapped and unmap on scope exit.
+    bool ring_mapped = false;
+    auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (ring_mapped) {
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+        }
+    });
+
+    // First map of CPU 0's ring.
+    volatile size_t* consumer1 = nullptr;
+    volatile size_t* producer1 = nullptr;
+    uint8_t* data1 = nullptr;
+    size_t data_size1 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer1 != nullptr);
+    REQUIRE(data1 != nullptr);
+
+    // Unmap CPU 0's ring.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    ring_mapped = false;
+
+    // Re-map CPU 0's ring — must succeed after unmap cleared the guard.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer2 != nullptr);
+    REQUIRE(data2 != nullptr);
+    // unmap_guard handles cleanup on scope exit.
+}
+
 struct perf_event_array_test_async_context_t
 {
     uint8_t* buffer = NULL;
