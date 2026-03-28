@@ -235,7 +235,7 @@ function Invoke-ConnectRedirectTestHelper
 
     if ($script:VMIsRemote) {
         $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
-        $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
+        $Session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $true -Credential $Credential
     }
 
     # Build array of all IP addresses from all interfaces

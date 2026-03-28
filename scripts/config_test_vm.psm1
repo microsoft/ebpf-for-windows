@@ -218,10 +218,10 @@ function Export-BuildArtifactsToVMs
         $VMName = $VM.Name
         Write-Log "Exporting build artifacts to $VMName"
         $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-       if ($VMIsRemote) {
-            $VMSession = New-PSSession -ComputerName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
-        } else {
-            $VMSession = New-PSSession -VMName $VMName -Credential $TestCredential -ErrorAction SilentlyContinue
+        try {
+            $VMSession = New-SessionOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential
+        } catch {
+            $VMSession = $null
         }
         if (!$VMSession) {
             ThrowWithErrorMessage -ErrorMessage "Failed to create PowerShell session on $VMName."

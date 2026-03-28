@@ -454,17 +454,29 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
            [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
     $TimeElapsed = 0
+    $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
+    $TimeSinceLastOutput = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
         try {
             $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-            $JobOutput | ForEach-Object { Write-Host $_ }
+            if ($JobOutput) {
+                $JobOutput | ForEach-Object { Write-Host $_ }
+                $TimeSinceLastOutput = 0
+            }
         } catch {
             Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
         }
 
         Start-Sleep -Seconds 2
         $TimeElapsed += 2
+        $TimeSinceLastOutput += 2
+
+        # Emit periodic heartbeat so the GitHub log shows the runner is alive.
+        if ($TimeSinceLastOutput -ge $HeartbeatInterval) {
+            Write-Log "$CheckpointPrefix job still running (${TimeElapsed}s elapsed, job state: $($Job.State))."
+            $TimeSinceLastOutput = 0
+        }
 
         if ($TimeElapsed -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
@@ -490,8 +502,34 @@ function Wait-TestJobToComplete
                             $UserModeDumpFolder                        # UserModeDumpFolder
                         ) -Force -WarningAction SilentlyContinue
 
-                        # Generate kernel dump on the VM
-                        Generate-KernelDumpOnVM
+                        # Run Generate-KernelDumpOnVM in a sub-job with a timeout so it
+                        # cannot block the timeout handler indefinitely (the VM may be
+                        # unreachable, causing Invoke-Command to hang).
+                        $DumpJobTimeout = 600  # seconds
+                        Write-Log "Starting kernel dump generation (timeout: ${DumpJobTimeout}s)..."
+                        $dumpJob = Start-Job -ScriptBlock {
+                            param($ScriptRoot, $ExecuteOnHost, $ExecuteOnVM, $VMIsRemote,
+                                  $TestVMName, $TestWorkingDirectory, $LogFileName,
+                                  $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder)
+                            Import-Module "$ScriptRoot\vm_run_tests.psm1" -ArgumentList @(
+                                $ExecuteOnHost, $ExecuteOnVM, $VMIsRemote, $TestVMName,
+                                $TestWorkingDirectory, $LogFileName, $TestMode, $Options,
+                                $TestHangTimeout, $UserModeDumpFolder
+                            ) -Force -WarningAction SilentlyContinue
+                            Generate-KernelDumpOnVM
+                        } -ArgumentList @(
+                            $PSScriptRoot, $false, $true, $VMIsRemote,
+                            $TestVMName, $TestWorkingDirectory, $LogFileName,
+                            $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder
+                        )
+                        $dumpCompleted = $dumpJob | Wait-Job -Timeout $DumpJobTimeout
+                        if (-not $dumpCompleted) {
+                            Write-Log "Kernel dump generation timed out after ${DumpJobTimeout}s — VM may be unreachable."
+                            Stop-Job -Job $dumpJob -ErrorAction SilentlyContinue
+                        } else {
+                            Write-Log "Kernel dump generation completed."
+                        }
+                        Remove-Job -Job $dumpJob -Force -ErrorAction SilentlyContinue
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
@@ -998,12 +1036,19 @@ function New-SessionOnVM {
     param(
         [Parameter(Mandatory = $true)][string] $VMName,
         [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
-        [Parameter(Mandatory = $true)][PSCredential] $Credential
+        [Parameter(Mandatory = $true)][PSCredential] $Credential,
+        [Parameter(Mandatory = $false)][int] $TimeoutMs = 60000
     )
     $session = $null
-    Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote)"
+    Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote, Timeout: $($TimeoutMs/1000)s)"
+    # Set operation and open timeouts on remote (WinRM) sessions to prevent
+    # indefinite hangs when the VM is unreachable (e.g. after a crash).
+    # Note: -SessionOption is not supported with -VMName (PowerShell Direct),
+    # but PS Direct connections fail relatively quickly when the VM is down
+    # because the Hyper-V socket transport detects the VM state.
     if ($VMIsRemote) {
-        $session = New-PSSession -ComputerName $VMName -Credential $Credential -ErrorAction Stop
+        $sessionOption = New-PSSessionOption -OperationTimeout $TimeoutMs -OpenTimeout $TimeoutMs
+        $session = New-PSSession -ComputerName $VMName -Credential $Credential -SessionOption $sessionOption -ErrorAction Stop
     } else {
         $session = New-PSSession -VMName $VMName -Credential $Credential -ErrorAction Stop
     }
