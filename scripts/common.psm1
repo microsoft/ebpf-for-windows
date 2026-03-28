@@ -524,7 +524,7 @@ function Wait-TestJobToComplete
                         )
                         $dumpCompleted = $dumpJob | Wait-Job -Timeout $DumpJobTimeout
                         if (-not $dumpCompleted) {
-                            Write-Log "Kernel dump generation timed out after ${DumpJobTimeout}s — VM may be unreachable."
+                            Write-Log "Kernel dump generation timed out after ${DumpJobTimeout}s -- VM may be unreachable."
                             Stop-Job -Job $dumpJob -ErrorAction SilentlyContinue
                         } else {
                             Write-Log "Kernel dump generation completed."
