@@ -22,6 +22,7 @@ function Wait-AllVMsReadyForCommands
           [Parameter(Mandatory=$false)][bool] $VMIsRemote = $false)
 
     $totalSleepTime = 0
+    $probeTimeout = 30  # Max seconds to wait for a single Invoke-Command probe.
     $ReadyList = @{}
     do {
         foreach($VM in $VMList) {
@@ -30,8 +31,25 @@ function Wait-AllVMsReadyForCommands
                 Write-Log "Poking $VMName to see if it is ready to accept commands"
                 $ret = $False
                 try {
-                    Invoke-CommandOnVM -VMName $VMName -VMIsRemote $VMIsRemote -Credential $TestCredential -ErrorAction SilentlyContinue -ScriptBlock {$True}
-                    $ret = $True
+                    # Use -AsJob + Wait-Job to prevent Invoke-Command from blocking
+                    # indefinitely when the VM is partially up (heartbeat OK but PS
+                    # Direct transport hung).  Without this, the per-iteration sleep
+                    # never runs and $totalSleepTime never increments, so the outer
+                    # 5-minute timeout can never fire.
+                    if ($VMIsRemote) {
+                        $probeJob = Invoke-Command -ComputerName $VMName -Credential $TestCredential -ScriptBlock { $true } -AsJob -ErrorAction Stop
+                    } else {
+                        $probeJob = Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock { $true } -AsJob -ErrorAction Stop
+                    }
+                    $completed = $probeJob | Wait-Job -Timeout $probeTimeout
+                    if ($completed) {
+                        Receive-Job -Job $probeJob -ErrorAction Stop | Out-Null
+                        $ret = $True
+                    } else {
+                        Write-Log "Probe of $VMName timed out after ${probeTimeout}s -- will retry."
+                        Stop-Job -Job $probeJob -ErrorAction SilentlyContinue
+                    }
+                    Remove-Job -Job $probeJob -Force -ErrorAction SilentlyContinue
                 } catch {
                         if (-not $VMIsRemote) {
                         # Transient PS Direct failures during restore/boot often look like this:

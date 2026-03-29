@@ -18,6 +18,8 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
+Write-Log "Cleanup starting (ExecuteOnHost=$ExecuteOnHost, ExecuteOnVM=$ExecuteOnVM, VMIsRemote=$VMIsRemote, Timeout=${TestJobTimeout}s)"
+
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
@@ -48,21 +50,29 @@ $Job = Start-Job -ScriptBlock {
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-            $DumpFound = Invoke-CommandOnVM `
-                -VMName $VMName `
-                -VMIsRemote $VMIsRemote `
-                -Credential $TestCredential `
-                -ScriptBlock {
-                    Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
-                }
+            try {
+                $DumpFound = Invoke-CommandOnVM `
+                    -VMName $VMName `
+                    -VMIsRemote $VMIsRemote `
+                    -Credential $TestCredential `
+                    -ScriptBlock {
+                        Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
+                    }
 
-            if ($DumpFound -eq $True) {
-                Write-Log "Post-crash reboot detected on VM $VMName"
+                if ($DumpFound -eq $True) {
+                    Write-Log "Post-crash reboot detected on VM $VMName"
+                }
+            } catch {
+                Write-Log "*** WARNING *** Failed to check for crash dump on ${VMName}: $($_.Exception.Message). Continuing cleanup."
             }
         }
 
         # Import logs from VMs.
-        Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
+        try {
+            Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
+        } catch {
+            Write-Log "*** WARNING *** Failed to import results from VMs: $($_.Exception.Message). Continuing cleanup."
+        }
 
         # Stop the VMs.
         Stop-AllVMs -VMList $VMList
