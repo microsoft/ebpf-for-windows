@@ -31,13 +31,14 @@ function Invoke-OnHostOrVM {
     param(
         [Parameter(Mandatory = $true, Position = 0)][ScriptBlock] $ScriptBlock,
         [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
-        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session
+        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session,
+        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 0
     )
     if ($script:ExecuteOnHost) {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
-        Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
+        Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -TimeoutSeconds $TimeoutSeconds
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }
@@ -127,7 +128,7 @@ function Start-BackgroundProcess{
     $scriptBlock = {
         param($ProgramName, $Parameters, $WorkingDirectory)
         $ProgramName = "$WorkingDirectory\$ProgramName"
-        Start-Process -FilePath $ProgramName -ArgumentList $Parameters -PassThru -ErrorAction Stop
+        Start-Process -FilePath $ProgramName -ArgumentList $Parameters -PassThru -ErrorAction Stop | Out-Null
     }
     $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
     Write-Log "Starting $ProgramName with arguments $Parameters in a background session."
@@ -281,7 +282,10 @@ function Invoke-ConnectRedirectTestHelper
         Write-Log "Invoke-ConnectRedirectTest finished"
     }
     $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    # Timeout bounds the entire connect redirect invocation (3 test runs).
+    # If PS Direct dies, this ensures we detect it and fail fast rather than
+    # hanging for the full TestJobTimeout.
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 300)
 
     Stop-BackgroundProcess -ProgramName $ProgramName
 }
@@ -352,7 +356,9 @@ function Run-KernelTests {
         }
     }
     $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    # Timeout bounds the main driver test block.  If PS Direct dies mid-test,
+    # we detect it and fail fast so traces can be collected.
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {

@@ -1023,13 +1023,84 @@ function Invoke-CommandOnVM {
         [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
         [Parameter(Mandatory = $true)][PSCredential] $Credential,
         [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @()
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
+        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 0
     )
-    Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
+
+    if ($TimeoutSeconds -le 0) {
+        # Original behavior -- synchronous, no timeout.
+        Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
+        if ($VMIsRemote) {
+            Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        } else {
+            Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        }
+        return
+    }
+
+    # Bounded execution: use -AsJob so we can monitor progress and enforce a
+    # timeout.  This prevents a dead PS Direct transport from blocking the
+    # caller indefinitely.
+    Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote, Timeout: ${TimeoutSeconds}s)"
     if ($VMIsRemote) {
-        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        $invokeJob = Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -AsJob -ErrorAction Stop
     } else {
-        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+        $invokeJob = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -AsJob -ErrorAction Stop
+    }
+
+    $elapsed = 0
+    $pollInterval = 5
+    $heartbeatInterval = 30
+    $timeSinceOutput = 0
+
+    try {
+        while ($invokeJob.State -eq 'Running') {
+            if ($elapsed -ge $TimeoutSeconds) {
+                Write-Log "*** ERROR *** Command on VM $VMName timed out after ${TimeoutSeconds}s (PS Direct transport may be dead)."
+                Stop-Job -Job $invokeJob -ErrorAction SilentlyContinue
+                $invokeJob | Wait-Job -Timeout 30 | Out-Null
+                throw [System.TimeoutException]::new("Command on VM $VMName timed out after ${TimeoutSeconds}s")
+            }
+
+            Start-Sleep -Seconds $pollInterval
+            $elapsed += $pollInterval
+            $timeSinceOutput += $pollInterval
+
+            # Stream any available output from the remote command.
+            try {
+                $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
+                if ($output) {
+                    $output | ForEach-Object { Write-Host $_ }
+                    $timeSinceOutput = 0
+                }
+            } catch {
+                Write-Log "Warning: Failed to receive job output: $($_.Exception.Message)"
+            }
+
+            if ($timeSinceOutput -ge $heartbeatInterval) {
+                Write-Log "Invoke-CommandOnVM: waiting on $VMName (${elapsed}s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
+                $timeSinceOutput = 0
+            }
+        }
+
+        # Job finished -- drain remaining output.
+        try {
+            $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
+            if ($output) {
+                $output | ForEach-Object { Write-Host $_ }
+            }
+        } catch {}
+
+        # If the remote command failed, re-throw so the caller sees the error.
+        if ($invokeJob.State -eq 'Failed') {
+            $reason = $invokeJob.ChildJobs[0].JobStateInfo.Reason
+            if ($reason) {
+                throw $reason
+            }
+            throw "Command on VM $VMName failed."
+        }
+    } finally {
+        Remove-Job -Job $invokeJob -Force -ErrorAction SilentlyContinue
     }
 }
 

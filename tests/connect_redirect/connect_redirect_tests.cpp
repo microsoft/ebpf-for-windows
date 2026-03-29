@@ -828,6 +828,10 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6,
 int
 main(int argc, char* argv[])
 {
+    // Disable stdout buffering so output is visible in real time when
+    // stdout is redirected to a file (CI/CD test monitoring).
+    setvbuf(stdout, nullptr, _IONBF, 0);
+
     Catch::Session session;
 
     _is_main_thread = true;
