@@ -74,7 +74,7 @@ function Start-WPRTrace {
 function Stop-WPRTrace {
     param(
         [Parameter(Mandatory=$true)] [string] $FileName,
-        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 600
+        [Parameter(Mandatory=$false)] [int] $TimeoutSeconds = 120
     )
 
     try {
