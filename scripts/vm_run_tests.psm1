@@ -282,10 +282,10 @@ function Invoke-ConnectRedirectTestHelper
         Write-Log "Invoke-ConnectRedirectTest finished"
     }
     $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
-    # Timeout bounds the entire connect redirect invocation (3 test runs).
-    # If PS Direct dies, this ensures we detect it and fail fast rather than
-    # hanging for the full TestJobTimeout.
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 300)
+    # Timeout is a safety net (PS Direct drops are detected within seconds by
+    # the -AsJob polling).  Allow for one test hitting the per-test timeout
+    # plus overhead for the remaining invocations.
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
 
     Stop-BackgroundProcess -ProgramName $ProgramName
 }
@@ -356,9 +356,12 @@ function Run-KernelTests {
         }
     }
     $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
-    # Timeout bounds the main driver test block.  If PS Direct dies mid-test,
-    # we detect it and fail fast so traces can be collected.
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
+    # Timeout is a safety net -- when PS Direct drops, the -AsJob polling in
+    # Invoke-CommandOnVM detects it within seconds.  This timeout only guards
+    # against the edge case where the job stays 'Running' but is stuck.
+    # Use 2x TestHangTimeout to allow for normal multi-test execution plus one
+    # test hitting the per-test timeout before the inner exception propagates.
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
     Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {

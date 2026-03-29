@@ -31,7 +31,7 @@ param(
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
-    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
+    [Parameter(Mandatory=$False)][string]$VMMemory=8192MB
 )
 
 $ErrorActionPreference = "Stop"

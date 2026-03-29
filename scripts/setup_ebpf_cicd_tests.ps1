@@ -180,14 +180,23 @@ $JobTimedOut = `
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {
     try {
-        # Use Wait-Job timeout to prevent Receive-Job from hanging on a broken transport.
+        $childJob = $Job.ChildJobs[0]
+        if ($childJob -and $childJob.JobStateInfo.Reason) {
+            Write-Log "*** JOB FAILED *** $($childJob.JobStateInfo.Reason.GetType().Name): $($childJob.JobStateInfo.Reason.Message)"
+        } else {
+            Write-Log "*** JOB FAILED *** (no reason available, job state: $($Job.State))"
+        }
+    } catch {
+        Write-Log "*** JOB FAILED *** Could not retrieve reason: $($_.Exception.Message)"
+    }
+    try {
         $drainJob = Start-Job -ScriptBlock { param($Id); Receive-Job -Job (Get-Job -Id $Id) -ErrorAction SilentlyContinue 2>&1 } -ArgumentList $Job.Id
         $drainDone = $drainJob | Wait-Job -Timeout 30
         if ($drainDone) { Receive-Job -Job $drainJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ } }
         else { Write-Log "Warning: Timed out draining job output (30s)."; Stop-Job -Job $drainJob -ErrorAction SilentlyContinue }
         Remove-Job -Job $drainJob -Force -ErrorAction SilentlyContinue
     } catch {
-        Write-Log "Job error: $($_.Exception.Message)"
+        Write-Log "Job drain error: $($_.Exception.Message)"
     }
 }
 

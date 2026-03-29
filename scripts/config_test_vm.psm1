@@ -931,6 +931,8 @@ function Initialize-VM {
         Set-VMProcessor -VMName $VmName -Count $VMCpuCount
         Write-Log "Enabling Guest Service Interface"
         Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
+        Write-Log "Enabling Time Synchronization"
+        Enable-VMIntegrationService -VMName $VMName -Name 'Time Synchronization'
 
         # Start the VM
         Write-Log "Starting VM: $VmName"

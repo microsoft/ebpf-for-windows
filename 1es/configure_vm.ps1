@@ -27,5 +27,17 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Na
 # Enable driver verifier on the eBPF platform drivers.
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
+# --- CI stability optimizations ---
+# Set High Performance power plan to prevent CPU throttling.
+powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
+
+# Disable Windows Defender real-time monitoring to reduce CPU/memory pressure.
+Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+
+# Disable background services that compete for resources during test runs.
+Set-Service -Name WSearch -StartupType Disabled -ErrorAction SilentlyContinue  # Windows Search indexer
+Set-Service -Name SysMain -StartupType Disabled -ErrorAction SilentlyContinue  # Superfetch
+Set-Service -Name wuauserv -StartupType Disabled -ErrorAction SilentlyContinue  # Windows Update
+
 # Reboot the machine to apply the changes.
 Restart-Computer -Force
