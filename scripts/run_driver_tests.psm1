@@ -162,9 +162,37 @@ function Process-TestCompletion
         ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test $TestCommand failed to start."
     }
 
-    # Use Wait-Process for the process to terminate or timeout.
-    # See https://stackoverflow.com/a/23797762
-    Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
+    # Poll for process exit while tailing the output file so test progress is
+    # visible in the CI log in real time (rather than buffered until exit).
+    $TempOutputFile = "$env:TEMP\app_output.log"
+    $pollInterval = 5          # seconds between polls
+    $heartbeatInterval = 30    # seconds of silence before emitting a heartbeat
+    $elapsed = 0
+    $linesSeen = 0
+    $timeSinceOutput = 0
+
+    while (-not $TestProcess.HasExited -and $elapsed -lt $TestHangTimeout) {
+        Start-Sleep -Seconds $pollInterval
+        $elapsed += $pollInterval
+        $timeSinceOutput += $pollInterval
+
+        # Tail new lines from the output file.
+        if (Test-Path $TempOutputFile) {
+            $lines = @(Get-Content -Path $TempOutputFile -ErrorAction SilentlyContinue)
+            if ($lines.Count -gt $linesSeen) {
+                for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
+                    Write-Log -TraceMessage $lines[$i]
+                }
+                $linesSeen = $lines.Count
+                $timeSinceOutput = 0
+            }
+        }
+
+        if ($timeSinceOutput -ge $heartbeatInterval) {
+            Write-Log "$TestCommand still running (${elapsed}s / ${TestHangTimeout}s)..."
+            $timeSinceOutput = 0
+        }
+    }
 
     if (-not $TestProcess.HasExited) {
         Write-Log "`n*** ERROR *** Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.`n"
@@ -193,13 +221,14 @@ function Process-TestCompletion
         Write-Log "Throwing TestHungException for $TestCommand" -ForegroundColor Red
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
-        # Read and display the output (if any) from the temporary output file.
-        $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
-        # Process the log file line-by-line
+        # Flush any remaining output lines not yet printed by the polling loop.
         if ((Test-Path $TempOutputFile) -and (Get-Item $TempOutputFile).Length -gt 0) {
-            Write-Log "$TestCommand Output:`n" -ForegroundColor Green
-            Get-Content -Path $TempOutputFile | ForEach-Object {
-                Write-Log -TraceMessage $_
+            $lines = @(Get-Content -Path $TempOutputFile -ErrorAction SilentlyContinue)
+            if ($lines.Count -gt $linesSeen) {
+                Write-Log "$TestCommand Output (final):`n" -ForegroundColor Green
+                for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
+                    Write-Log -TraceMessage $lines[$i]
+                }
             }
             Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
         }
