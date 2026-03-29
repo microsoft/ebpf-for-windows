@@ -118,23 +118,36 @@ $JobTimedOut = `
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {
     try {
-        Receive-Job -Job $Job -ErrorAction SilentlyContinue 2>&1 | ForEach-Object { Write-Log $_ }
+        # Use a sub-job with timeout to prevent Receive-Job from hanging on a broken transport.
+        $drainJob = Start-Job -ScriptBlock { param($Id); Receive-Job -Job (Get-Job -Id $Id) -ErrorAction SilentlyContinue 2>&1 } -ArgumentList $Job.Id
+        $drainDone = $drainJob | Wait-Job -Timeout 30
+        if ($drainDone) { Receive-Job -Job $drainJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ } }
+        else { Write-Log "Warning: Timed out draining job output (30s)."; Stop-Job -Job $drainJob -ErrorAction SilentlyContinue }
+        Remove-Job -Job $drainJob -Force -ErrorAction SilentlyContinue
     } catch {
         Write-Log "Job error: $($_.Exception.Message)"
     }
 }
 
-# Clean up
-Remove-Job -Job $Job -Force
+# Clean up -- Stop-Job first (with timeout) to avoid Remove-Job hanging on a
+# blocked runspace (e.g. Invoke-Command stuck on a dead PS Direct transport).
+try {
+    Stop-Job -Job $Job -ErrorAction SilentlyContinue
+    $Job | Wait-Job -Timeout 30 | Out-Null
+} catch {}
+Remove-Job -Job $Job -Force -ErrorAction SilentlyContinue
 
 Pop-Location
 
 if ($JobTimedOut) {
+    Write-Log "Cleanup exiting with error: job timed out"
     exit 1
 }
 
 if ($JobFailed) {
-    Write-Log "exiting with error as cleanup job failed"
+    Write-Log "Cleanup exiting with error: job failed"
     exit 1
 }
+
+Write-Log "Cleanup completed successfully"
 
