@@ -148,20 +148,45 @@ function Confirm-VMTestResult {
         } else {
             $job = Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $checkScript -ArgumentList @($ExpectedMarker, $WaitSeconds) -AsJob -ErrorAction Stop
         }
-        # Wait for the polling script to complete (give it the full wait time + margin for transport).
-        $completed = $job | Wait-Job -Timeout ($WaitSeconds + 60)
-        if ($completed) {
-            $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-            if ($result -eq $true) {
-                Write-Log "Test result confirmed: marker found on VM."
-                return $true
-            }
-        } else {
-            Write-Log "Warning: Timed out waiting for test result on VM (${WaitSeconds}s + 60s margin)."
-            Stop-Job -Job $job -ErrorAction SilentlyContinue
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        # Poll the job with Receive-Job so output streams to the outer monitor
+        # in real time instead of being buffered until Wait-Job returns.
+        $totalTimeout = $WaitSeconds + 60
+        $pollElapsed = 0
+        $pollInterval = 5
+        $foundMarker = $false
+        while ($job.State -eq 'Running' -and $pollElapsed -lt $totalTimeout) {
+            Start-Sleep -Seconds $pollInterval
+            $pollElapsed += $pollInterval
+            try {
+                $output = Receive-Job -Job $job -ErrorAction SilentlyContinue 2>&1
+                if ($output) {
+                    $output | ForEach-Object {
+                        if ($_ -eq $true) { $foundMarker = $true }
+                        else { Write-Host $_ }
+                    }
+                }
+            } catch {}
         }
+        # Drain final output.
+        try {
+            $output = Receive-Job -Job $job -ErrorAction SilentlyContinue 2>&1
+            if ($output) {
+                $output | ForEach-Object {
+                    if ($_ -eq $true) { $foundMarker = $true }
+                    else { Write-Host $_ }
+                }
+            }
+        } catch {}
+        if ($foundMarker) {
+            Write-Log "Test result confirmed: marker found on VM."
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            return $true
+        }
+        if ($job.State -eq 'Running') {
+            Write-Log "Warning: Timed out waiting for test result on VM (${totalTimeout}s)."
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+        }
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
         return $false
     } catch {
         Write-Log "Warning: Could not verify test result on VM: $($_.Exception.Message)"

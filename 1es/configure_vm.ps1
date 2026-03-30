@@ -54,6 +54,17 @@ Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
 $defenderStatus = (Get-MpPreference -ErrorAction SilentlyContinue).DisableRealtimeMonitoring
 Write-Host "  Defender real-time monitoring: $(if ($defenderStatus) { 'Disabled' } else { 'Still enabled (may require elevated privileges)' })"
 
+# Add Defender exclusions for eBPF test paths. Even if real-time monitoring is
+# disabled above, Tamper Protection on newer Server SKUs can re-enable it.
+# Path/process exclusions survive that and prevent costly RSA re-verification
+# of the many native driver copies loaded during tests.
+$defenderPaths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
+$defenderExts  = @('.sys', '.exe', '.dll', '.etl')
+Add-MpPreference -ExclusionPath $defenderPaths -ErrorAction SilentlyContinue
+Add-MpPreference -ExclusionExtension $defenderExts -ErrorAction SilentlyContinue
+Write-Host "  Defender exclusion paths: $($defenderPaths -join ', ')"
+Write-Host "  Defender exclusion extensions: $($defenderExts -join ', ')"
+
 # Disable background services that compete for resources during test runs.
 foreach ($svc in @(
     @{ Name = 'WSearch';  Desc = 'Windows Search' },

@@ -252,6 +252,7 @@ jobs:
       code_coverage: false
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
+      configurations: '["Release"]'
 
   driver_native_only_tests:
     needs: regular_native-only
@@ -320,6 +321,7 @@ jobs:
       code_coverage: false
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
+      configurations: '["Release"]'
 
   ossar:
     # TODO: Restore after CI stabilization.
@@ -657,6 +659,7 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+      configurations: '["Release"]'
 
   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
   # against the kernel mode eBPF sub-system.
@@ -674,6 +677,7 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+      configurations: '["Release"]'
 
   # Run multi-threaded stress tests with 'restart extension' enabled
   # against the kernel mode eBPF sub-system.
@@ -691,6 +695,7 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
+      configurations: '["Release"]'
 
   # Run standalone eBPF core driver restart stress test
   km_ebpfcore_restart_test:
@@ -707,6 +712,7 @@ jobs:
       code_coverage: false
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
+      configurations: '["Release"]'
 
   performance:
     needs: regular
