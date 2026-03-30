@@ -176,15 +176,30 @@ function Process-TestCompletion
         $elapsed += $pollInterval
         $timeSinceOutput += $pollInterval
 
-        # Tail new lines from the output file.
+        # Tail new lines from the output file.  Use FileStream with
+        # FileShare.ReadWrite so we never conflict with the test process
+        # that holds the file open for writing.
         if (Test-Path $TempOutputFile) {
-            $lines = @(Get-Content -Path $TempOutputFile -ErrorAction SilentlyContinue)
-            if ($lines.Count -gt $linesSeen) {
-                for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                    Write-Log -TraceMessage $lines[$i]
+            try {
+                $fs = [System.IO.FileStream]::new(
+                    $TempOutputFile,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                $reader = [System.IO.StreamReader]::new($fs)
+                $content = $reader.ReadToEnd()
+                $reader.Close()
+                $fs.Close()
+                $lines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
+                if ($lines.Count -gt $linesSeen) {
+                    for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
+                        Write-Log -TraceMessage $lines[$i]
+                    }
+                    $linesSeen = $lines.Count
+                    $timeSinceOutput = 0
                 }
-                $linesSeen = $lines.Count
-                $timeSinceOutput = 0
+            } catch {
+                # File may be locked momentarily; skip this cycle and retry next poll.
             }
         }
 
@@ -223,12 +238,25 @@ function Process-TestCompletion
     } else {
         # Flush any remaining output lines not yet printed by the polling loop.
         if ((Test-Path $TempOutputFile) -and (Get-Item $TempOutputFile).Length -gt 0) {
-            $lines = @(Get-Content -Path $TempOutputFile -ErrorAction SilentlyContinue)
-            if ($lines.Count -gt $linesSeen) {
-                Write-Log "$TestCommand Output (final):`n" -ForegroundColor Green
-                for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                    Write-Log -TraceMessage $lines[$i]
+            try {
+                $fs = [System.IO.FileStream]::new(
+                    $TempOutputFile,
+                    [System.IO.FileMode]::Open,
+                    [System.IO.FileAccess]::Read,
+                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                $reader = [System.IO.StreamReader]::new($fs)
+                $content = $reader.ReadToEnd()
+                $reader.Close()
+                $fs.Close()
+                $lines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
+                if ($lines.Count -gt $linesSeen) {
+                    Write-Log "$TestCommand Output (final):`n" -ForegroundColor Green
+                    for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
+                        Write-Log -TraceMessage $lines[$i]
+                    }
                 }
+            } catch {
+                Write-Log "Warning: could not read final output: $($_.Exception.Message)"
             }
             Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
         }

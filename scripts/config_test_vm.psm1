@@ -934,6 +934,18 @@ function Initialize-VM {
         Write-Log "Enabling Time Synchronization"
         Enable-VMIntegrationService -VMName $VMName -Name 'Time Synchronization'
 
+        # Log the final host-side VM configuration for diagnostics.
+        $vmInfo = Get-VM -VMName $VmName
+        $vmMemMB = [math]::Round($vmInfo.MemoryStartup / 1MB)
+        $vmCpus = (Get-VMProcessor -VMName $VmName).Count
+        $integrationServices = Get-VMIntegrationService -VMName $VmName | Where-Object { $_.Enabled } | Select-Object -ExpandProperty Name
+        Write-Log "=== Host-side VM Configuration for $VmName ==="
+        Write-Log "  Generation:            $($vmInfo.Generation)"
+        Write-Log "  Memory:                ${vmMemMB} MB (Dynamic: $($vmInfo.DynamicMemoryEnabled))"
+        Write-Log "  Processors:            $vmCpus"
+        Write-Log "  Integration Services:  $($integrationServices -join ', ')"
+        Write-Log "================================================"
+
         # Start the VM
         Write-Log "Starting VM: $VmName"
         Start-VM -Name $VmName

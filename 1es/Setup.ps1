@@ -41,6 +41,14 @@ $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('C:\work', $logFileName) -WarningAction SilentlyContinue
 
+# Log VM configuration parameters.
+Write-Log "=== VM Configuration ==="
+Write-Log "  CPU Count:  $VMCpuCount"
+Write-Log "  Memory:     $([math]::Round($VMMemory / 1MB)) MB"
+Write-Log "  VHD Source: $BaseVhdDirPath"
+Write-Log "  Working:    $WorkingPath"
+Write-Log "========================"
+
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
 
