@@ -56,13 +56,16 @@ function Invoke-TestOnVM {
         [Parameter(Mandatory = $false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
     )
     Write-Log "=== Starting test: $TestName ==="
+    $resultMarker = "PASSED:$TestName"
 
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing,
-              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName)
+              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName,
+              $ResultMarker)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
         $env:EBPF_ENABLE_WER_REPORT = "yes"
+        Remove-Item "$env:TEMP\test_result.txt" -Force -ErrorAction Ignore
         Push-Location $WorkingDirectory
         $invokeArgs = @{
             TestName        = $TestName
@@ -75,18 +78,95 @@ function Invoke-TestOnVM {
         if ($SkipTracing)               { $invokeArgs['SkipTracing'] = $true }
         if ($TracingProfileName -ne "") { $invokeArgs['TracingProfileName'] = $TracingProfileName }
         Invoke-Test @invokeArgs
+        # Test passed -- write result marker so the host can verify if the
+        # PS Direct transport dies before delivering the result.
+        $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
         Pop-Location
     }
 
     $argList = @(
         $script:WorkingDirectory, $script:LogFileName, $TestTimeout, $script:UserModeDumpFolder, $GranularTracing,
-        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName
+        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName,
+        $resultMarker
     )
     # Each test gets its own PS Direct session. The TimeoutSeconds is a safety
     # net beyond the per-test hang timeout (which handles dump generation and
     # WPR trace collection before throwing).
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
+    try {
+        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
+    } catch {
+        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
+            Write-Log "Transport failure for $TestName -- verifying test result on VM..."
+            if (Confirm-VMTestResult -ExpectedMarker $resultMarker -WaitSeconds $TestTimeout) {
+                Write-Log "*** $TestName PASSED (confirmed on VM despite transport failure) ***"
+                return
+            }
+            Write-Log "Could not confirm $TestName passed on VM -- treating as failure."
+        }
+        throw
+    }
     Write-Log "=== Completed test: $TestName ==="
+}
+
+function Confirm-VMTestResult {
+    param(
+        [Parameter(Mandatory = $true)] [string] $ExpectedMarker,
+        [Parameter(Mandatory = $false)] [int] $WaitSeconds = 30
+    )
+    try {
+        Write-Log "Checking test result on VM (marker: $ExpectedMarker, wait: ${WaitSeconds}s)..."
+        $checkScript = {
+            param($Marker, $WaitSec)
+            # Poll for the marker file -- the test may still be running.
+            $elapsed = 0
+            $pollInterval = 10
+            while ($elapsed -lt $WaitSec) {
+                $resultFile = "$env:TEMP\test_result.txt"
+                if (Test-Path $resultFile) {
+                    $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
+                    if ($content -and $content.Trim() -eq $Marker) {
+                        return $true
+                    }
+                }
+                Start-Sleep -Seconds $pollInterval
+                $elapsed += $pollInterval
+                Write-Host "Waiting for test to complete (${elapsed}s / ${WaitSec}s)..."
+            }
+            # Final check.
+            $resultFile = "$env:TEMP\test_result.txt"
+            if (Test-Path $resultFile) {
+                $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
+                if ($content -and $content.Trim() -eq $Marker) {
+                    return $true
+                }
+            }
+            return $false
+        }
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
+        if ($script:VMIsRemote) {
+            $job = Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $checkScript -ArgumentList @($ExpectedMarker, $WaitSeconds) -AsJob -ErrorAction Stop
+        } else {
+            $job = Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $checkScript -ArgumentList @($ExpectedMarker, $WaitSeconds) -AsJob -ErrorAction Stop
+        }
+        # Wait for the polling script to complete (give it the full wait time + margin for transport).
+        $completed = $job | Wait-Job -Timeout ($WaitSeconds + 60)
+        if ($completed) {
+            $result = Receive-Job -Job $job -ErrorAction SilentlyContinue
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+            if ($result -eq $true) {
+                Write-Log "Test result confirmed: marker found on VM."
+                return $true
+            }
+        } else {
+            Write-Log "Warning: Timed out waiting for test result on VM (${WaitSeconds}s + 60s margin)."
+            Stop-Job -Job $job -ErrorAction SilentlyContinue
+            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        }
+        return $false
+    } catch {
+        Write-Log "Warning: Could not verify test result on VM: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 function Generate-KernelDumpOnVM {
@@ -305,11 +385,14 @@ function Invoke-ConnectRedirectTestHelper
 
     $InsecurePassword = Get-VMPassword
 
+    $resultMarker = "PASSED:connect_redirect:$UserType"
+
     $scriptBlock = {
-        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
+        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $ResultMarker)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
+        Remove-Item "$env:TEMP\test_result.txt" -Force -ErrorAction Ignore
         Write-Log "Invoking connect redirect tests [Mode=$UserType]"
         Invoke-ConnectRedirectTest `
             -LocalIPv4Address $LocalIPv4Address `
@@ -325,12 +408,26 @@ function Invoke-ConnectRedirectTestHelper
             -UserType $UserType `
             -WorkingDirectory $WorkingDirectory
         Write-Log "Invoke-ConnectRedirectTest finished"
+        $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
     }
-    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
+    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder, $resultMarker)
     # Timeout is a safety net (PS Direct drops are detected within seconds by
     # the -AsJob polling).  Allow for one test hitting the per-test timeout
     # plus overhead for the remaining invocations.
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
+    try {
+        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
+    } catch {
+        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
+            Write-Log "Transport failure for connect_redirect ($UserType) -- verifying test result on VM..."
+            if (Confirm-VMTestResult -ExpectedMarker $resultMarker -WaitSeconds $script:TestHangTimeout) {
+                Write-Log "*** connect_redirect ($UserType) PASSED (confirmed on VM despite transport failure) ***"
+                Stop-BackgroundProcess -ProgramName $ProgramName
+                return
+            }
+            Write-Log "Could not confirm connect_redirect ($UserType) passed on VM -- treating as failure."
+        }
+        throw
+    }
 
     Stop-BackgroundProcess -ProgramName $ProgramName
 }
@@ -374,7 +471,7 @@ function Run-KernelTests {
                 -VerboseLogs $VerboseLogs -TraceFileName "sample_ext_app.exe"
 
             Invoke-TestOnVM -TestName "socket_tests.exe" `
-                -TestTimeout 1800 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
+                -TestTimeout 600 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
 
             # System tests (CI/CD only) - run as SYSTEM via PsExec64.
             if ($_ -eq "ci/cd") {

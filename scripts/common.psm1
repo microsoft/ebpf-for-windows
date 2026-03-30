@@ -1067,7 +1067,8 @@ function Invoke-CommandOnVM {
     $heartbeatInterval = 30
     $timeSinceOutput = 0         # For heartbeat logging.
     $timeSinceRealOutput = 0     # For stale transport detection (only reset on actual output).
-    $staleOutputTimeout = 600    # 10 minutes with no output means transport is dead.
+    $staleOutputTimeout = 60     # 60 seconds with no output means transport is dead.
+                                 # Tests emit output via tailing every ~5s, so this is generous.
 
     try {
         while ($invokeJob.State -eq 'Running') {
@@ -1262,6 +1263,8 @@ function Invoke-ReconnectAndMonitor {
             # Poll the monitor job with the same output streaming pattern.
             $monitorElapsed = 0
             $monitorTimeSinceOutput = 0
+            $monitorTimeSinceRealOutput = 0
+            $monitorStaleTimeout = 60  # Same as main stale detection.
             while ($monitorJob.State -eq 'Running') {
                 if ($monitorElapsed -ge $RemainingTimeout) {
                     Write-Log "Reconnect monitor timed out after ${monitorElapsed}s."
@@ -1271,15 +1274,28 @@ function Invoke-ReconnectAndMonitor {
                     return $false
                 }
 
+                # If no real output for $monitorStaleTimeout, the reconnect
+                # session is also dead (e.g., test completed but the job is
+                # stuck returning the result over a broken transport).
+                if ($monitorTimeSinceRealOutput -ge $monitorStaleTimeout) {
+                    Write-Log "Reconnect monitor: no output for ${monitorTimeSinceRealOutput}s -- session is dead."
+                    Stop-Job -Job $monitorJob -ErrorAction SilentlyContinue
+                    $monitorJob | Wait-Job -Timeout 30 | Out-Null
+                    Remove-Job -Job $monitorJob -Force -ErrorAction SilentlyContinue
+                    return $false
+                }
+
                 Start-Sleep -Seconds 5
                 $monitorElapsed += 5
                 $monitorTimeSinceOutput += 5
+                $monitorTimeSinceRealOutput += 5
 
                 try {
                     $output = Receive-Job -Job $monitorJob -ErrorAction SilentlyContinue 2>&1
                     if ($output) {
                         $output | ForEach-Object { Write-Host $_ }
                         $monitorTimeSinceOutput = 0
+                        $monitorTimeSinceRealOutput = 0
                     }
                 } catch {}
 
