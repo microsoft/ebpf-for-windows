@@ -49,15 +49,33 @@ powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
 $activePlan = powercfg /getactivescheme
 Write-Host "  Power plan: $activePlan"
 
-# Disable Windows Defender real-time monitoring to reduce CPU/memory pressure.
+# Disable Windows Defender real-time monitoring and behavior monitoring to reduce
+# CPU/memory pressure. Set-MpPreference is a session-only setting that does NOT
+# persist across the reboot at the end of this script. Use Group Policy registry
+# keys instead, which survive reboots and are applied early during boot before
+# Tamper Protection can re-enable them. This is critical on Gen2 VMs where HVCI
+# causes Defender's Behavior Monitoring to intercept every driver load with a
+# full RSA signature verification — extremely expensive for the concurrency tests
+# that load/unload dozens of native .sys copies.
+$defenderRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+$rtpRegPath = "$defenderRegPath\Real-Time Protection"
+New-Item -Path $defenderRegPath -Force -ErrorAction SilentlyContinue | Out-Null
+New-Item -Path $rtpRegPath -Force -ErrorAction SilentlyContinue | Out-Null
+Set-ItemProperty -Path $defenderRegPath -Name "DisableAntiSpyware" -Value 1 -Type DWord -Force
+Set-ItemProperty -Path $rtpRegPath -Name "DisableRealtimeMonitoring" -Value 1 -Type DWord -Force
+Set-ItemProperty -Path $rtpRegPath -Name "DisableBehaviorMonitoring" -Value 1 -Type DWord -Force
+Set-ItemProperty -Path $rtpRegPath -Name "DisableOnAccessProtection" -Value 1 -Type DWord -Force
+Set-ItemProperty -Path $rtpRegPath -Name "DisableScanOnRealtimeEnable" -Value 1 -Type DWord -Force
+Write-Host "  Defender policy: Disabled via Group Policy registry keys (persists across reboot)"
+
+# Also set runtime preference as a best-effort for the current session.
 Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
 $defenderStatus = (Get-MpPreference -ErrorAction SilentlyContinue).DisableRealtimeMonitoring
-Write-Host "  Defender real-time monitoring: $(if ($defenderStatus) { 'Disabled' } else { 'Still enabled (may require elevated privileges)' })"
+Write-Host "  Defender real-time monitoring (runtime): $(if ($defenderStatus) { 'Disabled' } else { 'Still enabled (may require elevated privileges)' })"
 
-# Add Defender exclusions for eBPF test paths. Even if real-time monitoring is
-# disabled above, Tamper Protection on newer Server SKUs can re-enable it.
-# Path/process exclusions survive that and prevent costly RSA re-verification
-# of the many native driver copies loaded during tests.
+# Add Defender exclusions for eBPF test paths as a defense-in-depth measure.
+# If Tamper Protection or other mechanisms re-enable scanning, these exclusions
+# prevent costly re-verification of the many native driver copies loaded during tests.
 $defenderPaths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
 $defenderExts  = @('.sys', '.exe', '.dll', '.etl')
 Add-MpPreference -ExclusionPath $defenderPaths -ErrorAction SilentlyContinue
