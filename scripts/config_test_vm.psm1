@@ -584,6 +584,22 @@ function Import-ResultsFromVM
                     -Recurse `
                     -Force `
                     -ErrorAction Ignore 2>&1 | Write-Log
+
+                # Copy test output/error logs (app_output.log, app_error.log) which
+                # show how far the test progressed before a failure or hang.
+                foreach ($testLog in @("app_output.log", "app_error.log")) {
+                    $testLogPath = "$VMTemp\$testLog"
+                    $exists = Invoke-Command -Session $VMSession -ScriptBlock { param($p) Test-Path $p } -ArgumentList $testLogPath -ErrorAction SilentlyContinue
+                    if ($exists) {
+                        Write-Log "Copy $testLog from $VMTemp on $VMName to $pwd\TestLogs\$VMName\Logs"
+                        Copy-Item `
+                            -FromSession $VMSession `
+                            -Path $testLogPath `
+                            -Destination ".\TestLogs\$VMName\Logs" `
+                            -Force `
+                            -ErrorAction Ignore 2>&1 | Write-Log
+                    }
+                }
             }
         } else {
             Write-Log "*** WARNING *** Skipping log copy from $VMName - no valid session."

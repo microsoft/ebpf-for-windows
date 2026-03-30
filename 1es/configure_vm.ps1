@@ -33,8 +33,8 @@ Write-Host "  User-mode dumps: Type=2 (Full), Folder=c:\dumps"
 # Enable kernel dumps.
 Write-Host "Configuring kernel dumps..."
 New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -ErrorAction SilentlyContinue | Out-Null
-New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "CrashDumpEnabled" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue | Out-Null
-Write-Host "  Kernel dumps: Type=2 (Automatic)"
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "CrashDumpEnabled" -Value 1 -PropertyType DWord -ErrorAction SilentlyContinue | Out-Null
+Write-Host "  Kernel dumps: Type=1 (Full)"
 
 # Enable driver verifier on the eBPF platform drivers.
 Write-Host "Enabling Driver Verifier (standard) on eBPF drivers..."
