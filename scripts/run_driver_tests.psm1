@@ -396,48 +396,6 @@ function New-TestTuple {
     }
 }
 
-function Invoke-CICDTests
-{
-    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
-
-
-    Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
-
-    # Now create an array of test tuples, overriding only the necessary values
-    # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
-    # That causes the regression test to fail. So, we are skipping this test for now.
-
-    $TestList = @(
-        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
-        (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
-        (New-TestTuple -Test "sample_ext_app.exe"),
-        (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
-    )
-
-    foreach ($Test in $TestList) {
-        Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName $($Test.Test)
-    }
-
-    # Now run the system tests.
-
-    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
-    if ($ExecuteSystemTests) {
-        foreach ($Test in $SystemTestList) {
-            $TestCommand = "PsExec64.exe"
-            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
-            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName "$($Test.Test)_System"
-        }
-    }
-
-    if ($Env:BUILD_CONFIGURATION -eq "Release") {
-        Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs -SkipTracing
-    }
-
-    Pop-Location
-}
-
 function Invoke-ConnectRedirectTest
 {
     param([parameter(Mandatory = $true)][string] $LocalIPv4Address,
@@ -505,63 +463,6 @@ function Invoke-ConnectRedirectTest
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v6_$($UserType)"
 
         Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
-
-    Pop-Location
-}
-
-function Invoke-CICDStressTests
-{
-    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-          [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
-          [parameter(Mandatory = $false)][bool] $MultiThread = $false,
-          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
-          [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
-
-
-    Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
-
-    if (-not $MultiThread) {
-        Write-Log "Executing eBPF API IOCTL stress tests."
-        # run api test's ioctl_stress test.
-        $LASTEXITCODE = 0
-        $TestHangTimeout = 60*60 # 60 minutes hang timeout.
-        $api_stress_duration = 30*60 # 30 minutes test duration.
-        $TestCommand = "api_test.exe"
-        $TestArguments = "--stress-test-duration $api_stress_duration ioctl_stress"
-        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
-        Pop-Location
-        return
-    }
-
-    if ($RestartEbpfCore) {
-        Write-Log "Executing eBPF core restart stress test."
-
-        $LASTEXITCODE = 0
-
-        $TestCommand = ".\ebpf_restart_test_controller.exe"
-        $TestHangTimeout = 120*60 # 120 minutes hang timeout.
-        Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
-
-        Pop-Location
-        return
-    }
-
-    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
-
-    $LASTEXITCODE = 0
-
-    $TestHangTimeout = 120*60 # 120 minutes hang timeout.
-    $TestCommand = ".\ebpf_stress_tests_km.exe"
-    $TestArguments = " "
-    if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5"
-    } else {
-        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
-    }
-
-    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     Pop-Location
 }

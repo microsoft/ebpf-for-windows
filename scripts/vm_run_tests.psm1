@@ -44,6 +44,51 @@ function Invoke-OnHostOrVM {
     }
 }
 
+function Invoke-TestOnVM {
+    param(
+        [Parameter(Mandatory = $true)] [string] $TestName,
+        [Parameter(Mandatory = $false)] [string] $TestArgs = "",
+        [Parameter(Mandatory = $false)] [string] $InnerTestName = "",
+        [Parameter(Mandatory = $false)] [string] $TraceFileName = "",
+        [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false,
+        [Parameter(Mandatory = $false)] [int] $TestTimeout = 300,
+        [Parameter(Mandatory = $false)] [bool] $SkipTracing = $false,
+        [Parameter(Mandatory = $false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
+    )
+    Write-Log "=== Starting test: $TestName ==="
+
+    $scriptBlock = {
+        param($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing,
+              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+        $env:EBPF_ENABLE_WER_REPORT = "yes"
+        Push-Location $WorkingDirectory
+        $invokeArgs = @{
+            TestName        = $TestName
+            VerboseLogs     = $VerboseLogs
+            TestHangTimeout = $TestTimeout
+        }
+        if ($TestArgs -ne "")           { $invokeArgs['TestArgs'] = $TestArgs }
+        if ($InnerTestName -ne "")      { $invokeArgs['InnerTestName'] = $InnerTestName }
+        if ($TraceFileName -ne "")      { $invokeArgs['TraceFileName'] = $TraceFileName }
+        if ($SkipTracing)               { $invokeArgs['SkipTracing'] = $true }
+        if ($TracingProfileName -ne "") { $invokeArgs['TracingProfileName'] = $TracingProfileName }
+        Invoke-Test @invokeArgs
+        Pop-Location
+    }
+
+    $argList = @(
+        $script:WorkingDirectory, $script:LogFileName, $TestTimeout, $script:UserModeDumpFolder, $GranularTracing,
+        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName
+    )
+    # Each test gets its own PS Direct session. The TimeoutSeconds is a safety
+    # net beyond the per-test hang timeout (which handles dump generation and
+    # WPR trace collection before throwing).
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
+    Write-Log "=== Completed test: $TestName ==="
+}
+
 function Generate-KernelDumpOnVM {
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
@@ -311,60 +356,89 @@ function Run-KernelTests {
         [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
-    Write-Log "Execute Run-KernelTests"
+    $TestMode = $script:TestMode.ToLower()
+    Write-Log "Execute Run-KernelTests (TestMode=$TestMode)"
 
-    $scriptBlock = {
-        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
-        $TestMode = $TestMode.ToLower()
-        switch ($TestMode) {
-            "ci/cd" {
-                Invoke-CICDTests `
-                    -VerboseLogs $VerboseLogs `
-                    -ExecuteSystemTests $true `
-                    2>&1 | Write-Log
+    switch ($TestMode) {
+        { $_ -in "ci/cd", "regression" } {
+            # Regular tests - each gets its own PS Direct session.
+            Invoke-TestOnVM -TestName "api_test.exe" `
+                -TestArgs "~`"load_native_program_invalid4`" ~pinned_map_enum" `
+                -TestTimeout 600 -VerboseLogs $VerboseLogs -TraceFileName "api_test.exe"
+
+            Invoke-TestOnVM -TestName "bpftool_tests.exe" `
+                -TestArgs "~`"prog load map_in_map`" ~`"prog prog run`"" `
+                -VerboseLogs $VerboseLogs -TraceFileName "bpftool_tests.exe"
+
+            Invoke-TestOnVM -TestName "sample_ext_app.exe" `
+                -VerboseLogs $VerboseLogs -TraceFileName "sample_ext_app.exe"
+
+            Invoke-TestOnVM -TestName "socket_tests.exe" `
+                -TestTimeout 1800 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
+
+            # System tests (CI/CD only) - run as SYSTEM via PsExec64.
+            if ($_ -eq "ci/cd") {
+                $wd = $script:WorkingDirectory
+                Invoke-TestOnVM -TestName "PsExec64.exe" `
+                    -TestArgs "-accepteula -nobanner -s -w `"$wd`" `"$wd\api_test.exe`" `"-d yes`"" `
+                    -InnerTestName "api_test.exe" `
+                    -VerboseLogs $VerboseLogs -TraceFileName "api_test.exe_System"
             }
-            "regression" {
-                Invoke-CICDTests `
-                    -VerboseLogs $VerboseLogs `
-                    -ExecuteSystemTests $false `
-                    2>&1 | Write-Log
-            }
-            "stress" {
-                # Set MultiThread to true if options contains that string.
-                $MultiThread = $Options -contains "MultiThread"
-                # Set RestartExtension to true if options contains that string.
-                $RestartExtension = $Options -contains "RestartExtension"
-                # Set RestartEbpfCore to true if options contains that string.
-                $RestartEbpfCore = $Options -contains "RestartEbpfCore"
-                Invoke-CICDStressTests `
-                    -VerboseLogs $VerboseLogs `
-                    -MultiThread $MultiThread `
-                    -RestartExtension $RestartExtension `
-                    -RestartEbpfCore $RestartEbpfCore `
-                    2>&1 | Write-Log
-            }
-            "performance" {
-                # Set CaptureProfle to true if options contains that string.
-                $CaptureProfile = $Options -contains "CaptureProfile"
-                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
-            }
-            default {
-                throw "Invalid test mode: $TestMode"
+
+            # Performance smoke test (Release builds only).
+            if ($Env:BUILD_CONFIGURATION -eq "Release") {
+                Invoke-TestOnVM -TestName "ebpf_performance.exe" `
+                    -VerboseLogs $VerboseLogs -SkipTracing $true
             }
         }
-    }
-    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
-    # Timeout is a safety net -- when PS Direct drops, the -AsJob polling in
-    # Invoke-CommandOnVM detects it within seconds.  This timeout only guards
-    # against the edge case where the job stays 'Running' but is stuck.
-    # Use 2x TestHangTimeout to allow for normal multi-test execution plus one
-    # test hitting the per-test timeout before the inner exception propagates.
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
-    Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
-    if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
+        "stress" {
+            $MultiThread = $script:Options -contains "MultiThread"
+            $RestartExtension = $script:Options -contains "RestartExtension"
+            $RestartEbpfCore = $script:Options -contains "RestartEbpfCore"
+
+            if (-not $MultiThread) {
+                $StressDuration = 30 * 60
+                Invoke-TestOnVM -TestName "api_test.exe" `
+                    -TestArgs "--stress-test-duration $StressDuration ioctl_stress" `
+                    -TestTimeout (60 * 60) -VerboseLogs $VerboseLogs `
+                    -TracingProfileName "EbpfForWindowsProvider"
+            } elseif ($RestartEbpfCore) {
+                Invoke-TestOnVM -TestName "ebpf_restart_test_controller.exe" `
+                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
+                    -TracingProfileName "EbpfForWindowsProvider"
+            } else {
+                $StressArgs = if ($RestartExtension) { "-tt=8 -td=5 -erd=1000 -er=1" } else { "-tt=8 -td=5" }
+                Invoke-TestOnVM -TestName "ebpf_stress_tests_km.exe" `
+                    -TestArgs $StressArgs `
+                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
+                    -TracingProfileName "EbpfForWindowsProvider"
+            }
+        }
+
+        "performance" {
+            # Performance test has complex VM-side setup (stop/start services,
+            # remove verifier, extract zip). Keep as a single session.
+            $scriptBlock = {
+                param($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing, $VerboseLogs, $CaptureProfile)
+                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile
+            }
+            $CaptureProfile = $script:Options -contains "CaptureProfile"
+            $argList = @($script:WorkingDirectory, $script:LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder, $GranularTracing, $VerboseLogs, $CaptureProfile)
+            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
+        }
+
+        default {
+            throw "Invalid test mode: $TestMode"
+        }
+    }
+
+    Write-Log "Finished kernel tests for mode: $TestMode"
+
+    # XDP and Connect Redirect tests (CI/CD and Regression only).
+    if ($TestMode -in "ci/cd", "regression") {
         if ($script:RunXdpTests -eq $true) {
             Write-Log "Running XDP tests"
             Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName

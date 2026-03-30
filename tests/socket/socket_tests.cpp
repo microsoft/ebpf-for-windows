@@ -2460,6 +2460,9 @@ TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tes
 int
 main(int argc, char* argv[])
 {
+    // Disable stdout buffering so output is visible immediately when tailed.
+    setvbuf(stdout, nullptr, _IONBF, 0);
+
     WSAData data;
 
     _is_main_thread = true;
