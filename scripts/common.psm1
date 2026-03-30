@@ -19,7 +19,21 @@ function Write-Log
         if (![System.String]::IsNullOrEmpty($TraceMessage)) {
             $timestamp = (Get-Date).ToString('HH:mm:ss')
             Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
-            Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
+            # Write to the log file using FileStream with FileShare.ReadWrite to
+            # avoid locking conflicts when multiple callers write concurrently.
+            try {
+                $logPath = "$env:TEMP\$LogFileName"
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes("[$timestamp] :: $TraceMessage`r`n")
+                $fs = [System.IO.FileStream]::new(
+                    $logPath,
+                    [System.IO.FileMode]::Append,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                $fs.Write($bytes, 0, $bytes.Length)
+                $fs.Close()
+            } catch {
+                # Never let a log-write failure kill the process.
+            }
         }
     }
 }
