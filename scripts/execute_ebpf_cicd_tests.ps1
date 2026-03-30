@@ -82,6 +82,27 @@ $Job = Start-Job -ScriptBlock {
             $GranularTracing,
             $RunXdpTests) `
         -WarningAction SilentlyContinue
+
+    # Add Defender exclusions and disable real-time monitoring on the test VM.
+    # Defender settings do not persist across reboots, so this must be done right before test execution
+    if ($ExecuteOnVM) {
+        Write-Log "Adding Defender exclusions on $VMName"
+        $defenderScript = {
+            $paths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
+            $exts  = @('.sys', '.exe', '.dll', '.etl', '.o')
+            Add-MpPreference -ExclusionPath $paths -ErrorAction SilentlyContinue
+            Add-MpPreference -ExclusionExtension $exts -ErrorAction SilentlyContinue
+            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+        }
+        $cred = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+        if ($VMIsRemote) {
+            Invoke-Command -ComputerName $VMName -Credential $cred -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
+        } else {
+            Invoke-Command -VMName $VMName -Credential $cred -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
+        }
+        Write-Log "Defender exclusions applied on $VMName"
+    }
+
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config

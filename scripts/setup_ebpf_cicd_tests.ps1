@@ -85,28 +85,6 @@ $Job = Start-Job -ScriptBlock {
         $VMList = @()
     }
 
-    # TODO: Remove this block once the runner VM image includes these exclusions
-    # (i.e., after 1es/configure_vm.ps1 changes are baked into the image).
-    if ($ExecuteOnVM) {
-        foreach ($VM in $VMList) {
-            $VMName = $VM.Name
-            Write-Log "Adding Defender exclusions on $VMName"
-            $defenderScript = {
-                $paths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
-                $exts  = @('.sys', '.exe', '.dll', '.etl')
-                Add-MpPreference -ExclusionPath $paths -ErrorAction SilentlyContinue
-                Add-MpPreference -ExclusionExtension $exts -ErrorAction SilentlyContinue
-            }
-            if ($VMIsRemote) {
-                Invoke-Command -ComputerName $VMName -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
-            } else {
-                $cred = Get-VMCredential -Username 'Administrator' -VMIsRemote $false
-                Invoke-Command -VMName $VMName -Credential $cred -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
-            }
-            Write-Log "Defender exclusions applied on $VMName"
-        }
-    }
-
     if ($ExecuteOnVM) {
         # Export build artifacts to the test VMs. Attempt with a few retries.
         $MaxRetryCount = 5

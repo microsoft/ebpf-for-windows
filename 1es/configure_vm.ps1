@@ -77,7 +77,7 @@ Write-Host "  Defender real-time monitoring (runtime): $(if ($defenderStatus) { 
 # If Tamper Protection or other mechanisms re-enable scanning, these exclusions
 # prevent costly re-verification of the many native driver copies loaded during tests.
 $defenderPaths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
-$defenderExts  = @('.sys', '.exe', '.dll', '.etl')
+$defenderExts  = @('.sys', '.exe', '.dll', '.etl', '.o')
 Add-MpPreference -ExclusionPath $defenderPaths -ErrorAction SilentlyContinue
 Add-MpPreference -ExclusionExtension $defenderExts -ErrorAction SilentlyContinue
 Write-Host "  Defender exclusion paths: $($defenderPaths -join ', ')"
