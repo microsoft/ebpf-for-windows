@@ -332,8 +332,7 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
           [Parameter(Mandatory = $False)][switch] $SkipTracing,
-          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking",
-          [Parameter(Mandatory = $False)][string] $ResultMarker = "")
+          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking")
 
     $testPassed = $false
     try {
@@ -369,12 +368,6 @@ function Invoke-Test
         }
 
         $testPassed = $true
-        # Write the result marker immediately on success so the host can
-        # verify the test passed even if the PS Direct session dies during
-        # post-test cleanup (WPR trace stop, etc.).
-        if ($ResultMarker -ne "") {
-            $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
-        }
         Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
         Write-Log "`n==============================`n"
     }

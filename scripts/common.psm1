@@ -1065,10 +1065,7 @@ function Invoke-CommandOnVM {
     $elapsed = 0
     $pollInterval = 5
     $heartbeatInterval = 30
-    $timeSinceOutput = 0         # For heartbeat logging.
-    $timeSinceRealOutput = 0     # For stale transport detection (only reset on actual output).
-    $staleOutputTimeout = 60     # 60 seconds with no output means transport is dead.
-                                 # Tests emit output via tailing every ~5s, so this is generous.
+    $timeSinceOutput = 0
 
     try {
         while ($invokeJob.State -eq 'Running') {
@@ -1082,7 +1079,6 @@ function Invoke-CommandOnVM {
             Start-Sleep -Seconds $pollInterval
             $elapsed += $pollInterval
             $timeSinceOutput += $pollInterval
-            $timeSinceRealOutput += $pollInterval
 
             # Stream any available output from the remote command.
             try {
@@ -1090,7 +1086,6 @@ function Invoke-CommandOnVM {
                 if ($output) {
                     $output | ForEach-Object { Write-Host $_ }
                     $timeSinceOutput = 0
-                    $timeSinceRealOutput = 0
                 }
             } catch {
                 Write-Log "Warning: Failed to receive job output: $($_.Exception.Message)"
@@ -1099,26 +1094,6 @@ function Invoke-CommandOnVM {
             if ($timeSinceOutput -ge $heartbeatInterval) {
                 Write-Log "Invoke-CommandOnVM: waiting on $VMName (${elapsed}s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
                 $timeSinceOutput = 0
-            }
-
-            # Stale output detection: tests emit output every ~5s via heartbeats
-            # and tailing. If we get no output at all for $staleOutputTimeout,
-            # the PS Direct transport is dead (the job stays 'Running' but the
-            # channel is broken). Attempt to reconnect and resume monitoring.
-            if ($timeSinceRealOutput -ge $staleOutputTimeout) {
-                Write-Log "*** WARNING *** No output from VM $VMName for ${timeSinceRealOutput}s -- PS Direct transport may be dead."
-                Write-Log "Attempting to reconnect and resume monitoring..."
-                Stop-Job -Job $invokeJob -ErrorAction SilentlyContinue
-                $invokeJob | Wait-Job -Timeout 30 | Out-Null
-                Remove-Job -Job $invokeJob -Force -ErrorAction SilentlyContinue
-
-                # Attempt to reconnect and monitor the test process directly.
-                $reconnected = Invoke-ReconnectAndMonitor -VMName $VMName -VMIsRemote $VMIsRemote `
-                    -Credential $Credential -RemainingTimeout ($TimeoutSeconds - $elapsed)
-                if ($reconnected) {
-                    return  # Successfully monitored to completion.
-                }
-                throw [System.TimeoutException]::new("PS Direct transport to $VMName is dead (no output for ${timeSinceRealOutput}s, reconnect failed)")
             }
         }
 
@@ -1141,200 +1116,6 @@ function Invoke-CommandOnVM {
     } finally {
         Remove-Job -Job $invokeJob -Force -ErrorAction SilentlyContinue
     }
-}
-
-<#
-.SYNOPSIS
-    Reconnects to a VM after a PS Direct transport drop and monitors test completion.
-.DESCRIPTION
-    When the original PS Direct session dies, the test process (started via
-    Start-Process inside the VM) continues running. This function opens a fresh
-    PS Direct connection, finds the running test, tails its output file, and
-    waits for it to finish -- recovering from the transport drop transparently.
-#>
-function Invoke-ReconnectAndMonitor {
-    param(
-        [Parameter(Mandatory = $true)][string] $VMName,
-        [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
-        [Parameter(Mandatory = $true)][PSCredential] $Credential,
-        [Parameter(Mandatory = $true)][int] $RemainingTimeout
-    )
-
-    $maxReconnectAttempts = 3
-    for ($attempt = 1; $attempt -le $maxReconnectAttempts; $attempt++) {
-        Write-Log "Reconnect attempt $attempt of $maxReconnectAttempts to VM $VMName..."
-        try {
-            # Open a fresh PS Direct session to the VM.
-            $monitorScript = {
-                # Find any running test process (*.exe in the eBPF working directory).
-                $testProcs = Get-Process | Where-Object {
-                    $_.Path -and $_.Path -like '*\eBPF\*' -and $_.Path -like '*.exe'
-                }
-
-                if (-not $testProcs -or $testProcs.Count -eq 0) {
-                    # No test process found -- it may have already finished.
-                    $outputFile = "$env:TEMP\app_output.log"
-                    Write-Host "Reconnected: no test process running (test may have completed)"
-                    if (Test-Path $outputFile) {
-                        # Return a lightweight status -- do NOT include the full
-                        # log content, as serializing a large payload through a
-                        # flaky PS Direct transport can hang indefinitely.
-                        return @{
-                            Status = 'completed'
-                            Output = @("(test output available in $outputFile on the VM)")
-                            ExitCode = $null
-                            ProcessName = $null
-                        }
-                    }
-                    return @{ Status = 'no-process'; Output = @(); ExitCode = $null; ProcessName = $null }
-                }
-
-                # Monitor the first test process found.
-                $proc = $testProcs[0]
-                $outputFile = "$env:TEMP\app_output.log"
-                $linesSeen = 0
-                $allOutput = [System.Collections.Generic.List[string]]::new()
-
-                Write-Host "Reconnected: monitoring $($proc.ProcessName) (PID: $($proc.Id))"
-
-                while (-not $proc.HasExited) {
-                    Start-Sleep -Seconds 5
-                    if (Test-Path $outputFile) {
-                        try {
-                            $fs = [System.IO.FileStream]::new(
-                                $outputFile,
-                                [System.IO.FileMode]::Open,
-                                [System.IO.FileAccess]::Read,
-                                [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                            $reader = [System.IO.StreamReader]::new($fs)
-                            $raw = $reader.ReadToEnd()
-                            $reader.Close()
-                            $fs.Close()
-                            $lines = @($raw -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
-                            if ($lines.Count -gt $linesSeen) {
-                                for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                                    Write-Host $lines[$i]
-                                    $allOutput.Add($lines[$i])
-                                }
-                                $linesSeen = $lines.Count
-                            }
-                        } catch {
-                            # File may be locked momentarily; retry next cycle.
-                        }
-                    }
-                }
-
-                # Flush remaining output.
-                if (Test-Path $outputFile) {
-                    try {
-                        $fs = [System.IO.FileStream]::new(
-                            $outputFile,
-                            [System.IO.FileMode]::Open,
-                            [System.IO.FileAccess]::Read,
-                            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                        $reader = [System.IO.StreamReader]::new($fs)
-                        $raw = $reader.ReadToEnd()
-                        $reader.Close()
-                        $fs.Close()
-                        $lines = @($raw -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
-                        if ($lines.Count -gt $linesSeen) {
-                            for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                                Write-Host $lines[$i]
-                                $allOutput.Add($lines[$i])
-                            }
-                        }
-                    } catch {
-                        Write-Host "Warning: could not read final output: $($_.Exception.Message)"
-                    }
-                }
-
-                return @{
-                    Status = 'completed'
-                    Output = $allOutput.ToArray()
-                    ExitCode = $proc.ExitCode
-                    ProcessName = $proc.ProcessName
-                }
-            }
-
-            # Run the monitor script with -AsJob and a timeout.
-            if ($VMIsRemote) {
-                $monitorJob = Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $monitorScript -AsJob -ErrorAction Stop
-            } else {
-                $monitorJob = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $monitorScript -AsJob -ErrorAction Stop
-            }
-
-            # Poll the monitor job with the same output streaming pattern.
-            $monitorElapsed = 0
-            $monitorTimeSinceOutput = 0
-            $monitorTimeSinceRealOutput = 0
-            $monitorStaleTimeout = 60  # Same as main stale detection.
-            while ($monitorJob.State -eq 'Running') {
-                if ($monitorElapsed -ge $RemainingTimeout) {
-                    Write-Log "Reconnect monitor timed out after ${monitorElapsed}s."
-                    Stop-Job -Job $monitorJob -ErrorAction SilentlyContinue
-                    $monitorJob | Wait-Job -Timeout 30 | Out-Null
-                    Remove-Job -Job $monitorJob -Force -ErrorAction SilentlyContinue
-                    return $false
-                }
-
-                # If no real output for $monitorStaleTimeout, the reconnect
-                # session is also dead (e.g., test completed but the job is
-                # stuck returning the result over a broken transport).
-                if ($monitorTimeSinceRealOutput -ge $monitorStaleTimeout) {
-                    Write-Log "Reconnect monitor: no output for ${monitorTimeSinceRealOutput}s -- session is dead."
-                    Stop-Job -Job $monitorJob -ErrorAction SilentlyContinue
-                    $monitorJob | Wait-Job -Timeout 30 | Out-Null
-                    Remove-Job -Job $monitorJob -Force -ErrorAction SilentlyContinue
-                    return $false
-                }
-
-                Start-Sleep -Seconds 5
-                $monitorElapsed += 5
-                $monitorTimeSinceOutput += 5
-                $monitorTimeSinceRealOutput += 5
-
-                try {
-                    $output = Receive-Job -Job $monitorJob -ErrorAction SilentlyContinue 2>&1
-                    if ($output) {
-                        $output | ForEach-Object { Write-Host $_ }
-                        $monitorTimeSinceOutput = 0
-                        $monitorTimeSinceRealOutput = 0
-                    }
-                } catch {}
-
-                if ($monitorTimeSinceOutput -ge 30) {
-                    Write-Log "Reconnect monitor: waiting on $VMName (${monitorElapsed}s / ${RemainingTimeout}s)..."
-                    $monitorTimeSinceOutput = 0
-                }
-            }
-
-            # Drain final output.
-            try {
-                $output = Receive-Job -Job $monitorJob -ErrorAction SilentlyContinue 2>&1
-                if ($output) { $output | ForEach-Object { Write-Host $_ } }
-            } catch {}
-
-            if ($monitorJob.State -eq 'Failed') {
-                $reason = $monitorJob.ChildJobs[0].JobStateInfo.Reason
-                Write-Log "Reconnect monitor job failed: $($reason.Message)"
-                Remove-Job -Job $monitorJob -Force -ErrorAction SilentlyContinue
-                continue  # Try again.
-            }
-
-            Remove-Job -Job $monitorJob -Force -ErrorAction SilentlyContinue
-            Write-Log "Reconnect monitor completed successfully."
-            return $true
-
-        } catch {
-            Write-Log "Reconnect attempt $attempt failed: $($_.Exception.Message)"
-            if ($attempt -lt $maxReconnectAttempts) {
-                Start-Sleep -Seconds 10
-            }
-        }
-    }
-
-    Write-Log "All $maxReconnectAttempts reconnect attempts failed."
-    return $false
 }
 
 <#

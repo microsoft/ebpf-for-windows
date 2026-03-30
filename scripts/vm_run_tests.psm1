@@ -56,16 +56,13 @@ function Invoke-TestOnVM {
         [Parameter(Mandatory = $false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
     )
     Write-Log "=== Starting test: $TestName ==="
-    $resultMarker = "PASSED:$TestName"
 
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing,
-              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName,
-              $ResultMarker)
+              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
         $env:EBPF_ENABLE_WER_REPORT = "yes"
-        Remove-Item "$env:TEMP\test_result.txt" -Force -ErrorAction Ignore
         Push-Location $WorkingDirectory
         $invokeArgs = @{
             TestName        = $TestName
@@ -77,155 +74,19 @@ function Invoke-TestOnVM {
         if ($TraceFileName -ne "")      { $invokeArgs['TraceFileName'] = $TraceFileName }
         if ($SkipTracing)               { $invokeArgs['SkipTracing'] = $true }
         if ($TracingProfileName -ne "") { $invokeArgs['TracingProfileName'] = $TracingProfileName }
-        if ($ResultMarker -ne "")       { $invokeArgs['ResultMarker'] = $ResultMarker }
         Invoke-Test @invokeArgs
         Pop-Location
     }
 
     $argList = @(
         $script:WorkingDirectory, $script:LogFileName, $TestTimeout, $script:UserModeDumpFolder, $GranularTracing,
-        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName,
-        $resultMarker
+        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName
     )
     # Each test gets its own PS Direct session. The TimeoutSeconds is a safety
     # net beyond the per-test hang timeout (which handles dump generation and
     # WPR trace collection before throwing).
-    try {
-        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
-    } catch {
-        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
-            Write-Log "Transport failure for $TestName -- verifying test result on VM..."
-            if (Confirm-VMTestResult -ExpectedMarker $resultMarker -WaitSeconds $TestTimeout) {
-                Write-Log "*** $TestName PASSED (confirmed on VM despite transport failure) ***"
-                return
-            }
-            Write-Log "Could not confirm $TestName passed on VM -- treating as failure."
-        }
-        throw
-    }
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
     Write-Log "=== Completed test: $TestName ==="
-}
-
-function Confirm-VMTestResult {
-    param(
-        [Parameter(Mandatory = $true)] [string] $ExpectedMarker,
-        [Parameter(Mandatory = $false)] [int] $WaitSeconds = 30
-    )
-    try {
-        Write-Log "Checking test result on VM (marker: $ExpectedMarker, wait: ${WaitSeconds}s)..."
-        $checkScript = {
-            param($Marker, $WaitSec)
-            # Poll for the marker file -- the test may still be running.
-            $elapsed = 0
-            $pollInterval = 10
-            while ($elapsed -lt $WaitSec) {
-                $resultFile = "$env:TEMP\test_result.txt"
-                if (Test-Path $resultFile) {
-                    $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
-                    if ($content -and $content.Trim() -eq $Marker) {
-                        Write-Host "Marker file found: $Marker"
-                        return $true
-                    }
-                }
-                # Also check app_output.log for the Catch2 "All tests passed" message.
-                # This covers the case where the marker wasn't written but the test
-                # actually completed successfully.
-                $outputFile = "$env:TEMP\app_output.log"
-                if (Test-Path $outputFile) {
-                    try {
-                        $fs = [System.IO.FileStream]::new(
-                            $outputFile,
-                            [System.IO.FileMode]::Open,
-                            [System.IO.FileAccess]::Read,
-                            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                        $reader = [System.IO.StreamReader]::new($fs)
-                        $raw = $reader.ReadToEnd()
-                        $reader.Close()
-                        $fs.Close()
-                        if ($raw -match 'All tests passed') {
-                            Write-Host "Test output contains 'All tests passed' -- treating as success."
-                            return $true
-                        }
-                    } catch {
-                        # File may be locked; try again next cycle.
-                    }
-                }
-                Start-Sleep -Seconds $pollInterval
-                $elapsed += $pollInterval
-                Write-Host "Waiting for test to complete (${elapsed}s / ${WaitSec}s)..."
-            }
-            # Final check: marker file.
-            $resultFile = "$env:TEMP\test_result.txt"
-            if (Test-Path $resultFile) {
-                $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
-                if ($content -and $content.Trim() -eq $Marker) {
-                    Write-Host "Marker file found: $Marker"
-                    return $true
-                }
-            }
-            # Final check: app_output.log.
-            $outputFile = "$env:TEMP\app_output.log"
-            if (Test-Path $outputFile) {
-                try {
-                    $content = Get-Content $outputFile -Raw -ErrorAction SilentlyContinue
-                    if ($content -match 'All tests passed') {
-                        Write-Host "Test output contains 'All tests passed' -- treating as success."
-                        return $true
-                    }
-                } catch {}
-            }
-            return $false
-        }
-        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
-        if ($script:VMIsRemote) {
-            $job = Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $checkScript -ArgumentList @($ExpectedMarker, $WaitSeconds) -AsJob -ErrorAction Stop
-        } else {
-            $job = Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $checkScript -ArgumentList @($ExpectedMarker, $WaitSeconds) -AsJob -ErrorAction Stop
-        }
-        # Poll the job with Receive-Job so output streams to the outer monitor
-        # in real time instead of being buffered until Wait-Job returns.
-        $totalTimeout = $WaitSeconds + 60
-        $pollElapsed = 0
-        $pollInterval = 5
-        $foundMarker = $false
-        while ($job.State -eq 'Running' -and $pollElapsed -lt $totalTimeout) {
-            Start-Sleep -Seconds $pollInterval
-            $pollElapsed += $pollInterval
-            try {
-                $output = Receive-Job -Job $job -ErrorAction SilentlyContinue 2>&1
-                if ($output) {
-                    $output | ForEach-Object {
-                        if ($_ -eq $true) { $foundMarker = $true }
-                        else { Write-Host $_ }
-                    }
-                }
-            } catch {}
-        }
-        # Drain final output.
-        try {
-            $output = Receive-Job -Job $job -ErrorAction SilentlyContinue 2>&1
-            if ($output) {
-                $output | ForEach-Object {
-                    if ($_ -eq $true) { $foundMarker = $true }
-                    else { Write-Host $_ }
-                }
-            }
-        } catch {}
-        if ($foundMarker) {
-            Write-Log "Test result confirmed: marker found on VM."
-            Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-            return $true
-        }
-        if ($job.State -eq 'Running') {
-            Write-Log "Warning: Timed out waiting for test result on VM (${totalTimeout}s)."
-            Stop-Job -Job $job -ErrorAction SilentlyContinue
-        }
-        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
-        return $false
-    } catch {
-        Write-Log "Warning: Could not verify test result on VM: $($_.Exception.Message)"
-        return $false
-    }
 }
 
 function Generate-KernelDumpOnVM {

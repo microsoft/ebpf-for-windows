@@ -186,59 +186,6 @@ Remove-Job -Job $Job -Force -ErrorAction SilentlyContinue
 
 Pop-Location
 
-# Before declaring failure, try to verify whether the test actually passed
-# by checking app_output.log on the VM. This is the last-resort check when
-# PS Direct was dead during all intermediate monitoring but recovered after
-# a VM reboot.
-if (($JobTimedOut -or $JobFailed) -and $ExecuteOnVM) {
-    Write-Log "Job failed or timed out -- checking VM test output as last resort..."
-    try {
-        $VMList = $Config.VMMap.$SelfHostedRunnerName
-        $VMName = $VMList[0].Name
-        $cred = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        $outputCheckScript = {
-            $outputFile = "$env:TEMP\app_output.log"
-            if (Test-Path $outputFile) {
-                $content = Get-Content $outputFile -Raw -ErrorAction SilentlyContinue
-                if ($content -match 'All tests passed') {
-                    return "PASSED"
-                }
-            }
-            $markerFile = "$env:TEMP\test_result.txt"
-            if (Test-Path $markerFile) {
-                $content = Get-Content $markerFile -Raw -ErrorAction SilentlyContinue
-                if ($content -and $content.Trim() -match '^PASSED:') {
-                    return "PASSED"
-                }
-            }
-            return "UNKNOWN"
-        }
-        $checkJob = if ($VMIsRemote) {
-            Invoke-Command -ComputerName $VMName -Credential $cred -ScriptBlock $outputCheckScript -AsJob -ErrorAction Stop
-        } else {
-            Invoke-Command -VMName $VMName -Credential $cred -ScriptBlock $outputCheckScript -AsJob -ErrorAction Stop
-        }
-        $checkDone = $checkJob | Wait-Job -Timeout 60
-        if ($checkDone) {
-            $result = Receive-Job -Job $checkJob -ErrorAction SilentlyContinue
-            if ($result -eq "PASSED") {
-                Write-Log "*** OVERRIDE *** Test output on VM confirms all tests passed despite transport failure."
-                Write-Log "Treating as success."
-                $JobTimedOut = $false
-                $JobFailed = $false
-            } else {
-                Write-Log "VM test output check returned: $result (not a pass)"
-            }
-        } else {
-            Write-Log "Warning: Timed out checking VM test output (60s)."
-            Stop-Job -Job $checkJob -ErrorAction SilentlyContinue
-        }
-        Remove-Job -Job $checkJob -Force -ErrorAction SilentlyContinue
-    } catch {
-        Write-Log "Warning: Could not check VM test output: $($_.Exception.Message)"
-    }
-}
-
 if ($JobTimedOut) {
     Write-Log "exiting with error as job timed out"
     exit 1

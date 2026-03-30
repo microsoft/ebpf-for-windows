@@ -41,14 +41,6 @@ Write-Host "Enabling Driver Verifier (standard) on eBPF drivers..."
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 Write-Host "  Driver Verifier: ebpfcore.sys, netebpfext.sys, sample_ebpf_ext.sys"
 
-# --- CI stability optimizations ---
-Write-Host "Applying CI stability optimizations..."
-
-# Set High Performance power plan to prevent CPU throttling.
-powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
-$activePlan = powercfg /getactivescheme
-Write-Host "  Power plan: $activePlan"
-
 # Disable Windows Defender real-time monitoring and behavior monitoring to reduce
 # CPU/memory pressure, especially for validating drivers such as the test bpf programs.
 $defenderRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
@@ -61,17 +53,6 @@ Set-ItemProperty -Path $rtpRegPath -Name "DisableBehaviorMonitoring" -Value 1 -T
 Set-ItemProperty -Path $rtpRegPath -Name "DisableOnAccessProtection" -Value 1 -Type DWord -Force
 Set-ItemProperty -Path $rtpRegPath -Name "DisableScanOnRealtimeEnable" -Value 1 -Type DWord -Force
 Write-Host "  Defender policy: Disabled via Group Policy registry keys (persists across reboot)"
-
-# Disable background services that compete for resources during test runs.
-foreach ($svc in @(
-    @{ Name = 'WSearch';  Desc = 'Windows Search' },
-    @{ Name = 'SysMain';  Desc = 'Superfetch' },
-    @{ Name = 'wuauserv'; Desc = 'Windows Update' }
-)) {
-    Set-Service -Name $svc.Name -StartupType Disabled -ErrorAction SilentlyContinue
-    $startType = (Get-Service -Name $svc.Name -ErrorAction SilentlyContinue).StartType
-    Write-Host "  $($svc.Desc) ($($svc.Name)): $startType"
-}
 
 Write-Host "=== configure_vm.ps1: Configuration complete, rebooting ==="
 
