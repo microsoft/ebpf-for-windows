@@ -77,10 +77,8 @@ function Invoke-TestOnVM {
         if ($TraceFileName -ne "")      { $invokeArgs['TraceFileName'] = $TraceFileName }
         if ($SkipTracing)               { $invokeArgs['SkipTracing'] = $true }
         if ($TracingProfileName -ne "") { $invokeArgs['TracingProfileName'] = $TracingProfileName }
+        if ($ResultMarker -ne "")       { $invokeArgs['ResultMarker'] = $ResultMarker }
         Invoke-Test @invokeArgs
-        # Test passed -- write result marker so the host can verify if the
-        # PS Direct transport dies before delivering the result.
-        $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
         Pop-Location
     }
 
@@ -125,20 +123,56 @@ function Confirm-VMTestResult {
                 if (Test-Path $resultFile) {
                     $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
                     if ($content -and $content.Trim() -eq $Marker) {
+                        Write-Host "Marker file found: $Marker"
                         return $true
+                    }
+                }
+                # Also check app_output.log for the Catch2 "All tests passed" message.
+                # This covers the case where the marker wasn't written but the test
+                # actually completed successfully.
+                $outputFile = "$env:TEMP\app_output.log"
+                if (Test-Path $outputFile) {
+                    try {
+                        $fs = [System.IO.FileStream]::new(
+                            $outputFile,
+                            [System.IO.FileMode]::Open,
+                            [System.IO.FileAccess]::Read,
+                            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+                        $reader = [System.IO.StreamReader]::new($fs)
+                        $raw = $reader.ReadToEnd()
+                        $reader.Close()
+                        $fs.Close()
+                        if ($raw -match 'All tests passed') {
+                            Write-Host "Test output contains 'All tests passed' -- treating as success."
+                            return $true
+                        }
+                    } catch {
+                        # File may be locked; try again next cycle.
                     }
                 }
                 Start-Sleep -Seconds $pollInterval
                 $elapsed += $pollInterval
                 Write-Host "Waiting for test to complete (${elapsed}s / ${WaitSec}s)..."
             }
-            # Final check.
+            # Final check: marker file.
             $resultFile = "$env:TEMP\test_result.txt"
             if (Test-Path $resultFile) {
                 $content = Get-Content $resultFile -Raw -ErrorAction SilentlyContinue
                 if ($content -and $content.Trim() -eq $Marker) {
+                    Write-Host "Marker file found: $Marker"
                     return $true
                 }
+            }
+            # Final check: app_output.log.
+            $outputFile = "$env:TEMP\app_output.log"
+            if (Test-Path $outputFile) {
+                try {
+                    $content = Get-Content $outputFile -Raw -ErrorAction SilentlyContinue
+                    if ($content -match 'All tests passed') {
+                        Write-Host "Test output contains 'All tests passed' -- treating as success."
+                        return $true
+                    }
+                } catch {}
             }
             return $false
         }

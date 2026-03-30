@@ -58,6 +58,17 @@ function GetDriveFreeSpaceGB
 function Generate-KernelDump
 {
     Push-Location $WorkingDirectory
+
+    # Check if a genuine crash dump already exists (e.g., from a real bugcheck).
+    # If so, preserve it instead of overwriting with a NotMyFault-induced crash.
+    $existingDump = "$env:SystemRoot\MEMORY.DMP"
+    if (Test-Path $existingDump) {
+        $dumpInfo = Get-Item $existingDump
+        Write-Log "*** Existing kernel dump found: $existingDump (Size: $([math]::Round($dumpInfo.Length / 1MB)) MB, Created: $($dumpInfo.LastWriteTime)) ***"
+        Write-Log "Skipping NotMyFault crash to preserve genuine crash dump."
+        return
+    }
+
     $NotMyFaultBinary = "NotMyFault64.exe"
     Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
     $NotMyFaultBinaryPath = GetToolLocationPath -ToolName $NotMyFaultBinary
@@ -321,7 +332,8 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
           [Parameter(Mandatory = $False)][switch] $SkipTracing,
-          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking")
+          [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking",
+          [Parameter(Mandatory = $False)][string] $ResultMarker = "")
 
     $testPassed = $false
     try {
@@ -357,6 +369,12 @@ function Invoke-Test
         }
 
         $testPassed = $true
+        # Write the result marker immediately on success so the host can
+        # verify the test passed even if the PS Direct session dies during
+        # post-test cleanup (WPR trace stop, etc.).
+        if ($ResultMarker -ne "") {
+            $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
+        }
         Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
         Write-Log "`n==============================`n"
     }

@@ -1174,11 +1174,14 @@ function Invoke-ReconnectAndMonitor {
                 if (-not $testProcs -or $testProcs.Count -eq 0) {
                     # No test process found -- it may have already finished.
                     $outputFile = "$env:TEMP\app_output.log"
+                    Write-Host "Reconnected: no test process running (test may have completed)"
                     if (Test-Path $outputFile) {
-                        $content = Get-Content -Path $outputFile -ErrorAction SilentlyContinue
+                        # Return a lightweight status -- do NOT include the full
+                        # log content, as serializing a large payload through a
+                        # flaky PS Direct transport can hang indefinitely.
                         return @{
                             Status = 'completed'
-                            Output = $content
+                            Output = @("(test output available in $outputFile on the VM)")
                             ExitCode = $null
                             ProcessName = $null
                         }
