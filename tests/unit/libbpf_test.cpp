@@ -4601,13 +4601,12 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
     //       ebpf_program_t* program = programs[i];   // OOB at i=0!
     //       if (!program->autoload) { ...            // deref of null -> AV
     //
-    bool old_native_failures = get_native_module_failures();
     set_native_module_failures(true);
     bool access_violation_detected = false;
     int result = _try_bpf_object_load_detect_av(object, &access_violation_detected);
 
     // Phase 5: Restore state.
-    set_native_module_failures(old_native_failures);
+    set_native_module_failures(false);
     _set_invalid_parameter_handler(old_handler);
 #ifdef _DEBUG
     _CrtSetReportMode(_CRT_ASSERT, old_assert_mode);
