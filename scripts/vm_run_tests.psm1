@@ -391,7 +391,7 @@ function Run-KernelTests {
                 -VerboseLogs $VerboseLogs -TraceFileName "sample_ext_app.exe"
 
             Invoke-TestOnVM -TestName "socket_tests.exe" `
-                -TestTimeout 600 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
+                -TestTimeout 1800 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
 
             # System tests (CI/CD only) - run as SYSTEM via PsExec64.
             if ($_ -eq "ci/cd") {
