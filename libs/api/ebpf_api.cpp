@@ -2206,11 +2206,12 @@ _initialize_ebpf_programs_native(
     ebpf_result_t result = EBPF_SUCCESS;
 
     if (count_of_programs != programs.size()) {
-        EBPF_LOG_MESSAGE_UINT64(
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_API,
-            "_initialize_ebpf_programs_native: program count mismatch",
-            count_of_programs);
+            "_initialize_ebpf_programs_native: program count mismatch (kernel_count, user_count)",
+            (uint64_t)count_of_programs,
+            (uint64_t)programs.size());
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
