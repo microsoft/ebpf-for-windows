@@ -382,11 +382,8 @@ function Run-KernelTests {
                     -VerboseLogs $VerboseLogs -TraceFileName "api_test.exe_System"
             }
 
-            # Performance smoke test (Release builds only).
-            if ($Env:BUILD_CONFIGURATION -eq "Release") {
-                Invoke-TestOnVM -TestName "ebpf_performance.exe" `
-                    -TestTimeout 600 -VerboseLogs $VerboseLogs -SkipTracing $true
-            }
+            # Note: ebpf_performance.exe is NOT run here. The dedicated
+            # "performance" job in cicd.yml handles it via TestMode="Performance".
         }
 
         "stress" {
