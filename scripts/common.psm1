@@ -470,26 +470,20 @@ function Wait-TestJobToComplete
     $TimeElapsed = 0
     $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
     $TimeSinceLastOutput = 0
-    $PollSeconds = 2
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
-        # Use Wait-Job with a short timeout instead of Start-Sleep so we
-        # never block longer than PollSeconds even if Receive-Job would hang
-        # (e.g. when the child process is stuck on a dead PS Direct transport).
-        $Job | Wait-Job -Timeout $PollSeconds | Out-Null
-        $TimeElapsed += $PollSeconds
-        $TimeSinceLastOutput += $PollSeconds
+        Start-Sleep -Seconds 2
+        $TimeElapsed += 2
+        $TimeSinceLastOutput += 2
 
-        if ($Job.HasMoreData) {
-            try {
-                $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-                if ($JobOutput) {
-                    $JobOutput | ForEach-Object { Write-Host $_ }
-                    $TimeSinceLastOutput = 0
-                }
-            } catch {
-                Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
+        try {
+            $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+            if ($JobOutput) {
+                $JobOutput | ForEach-Object { Write-Host $_ }
+                $TimeSinceLastOutput = 0
             }
+        } catch {
+            Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
         }
 
         # Emit periodic heartbeat so the GitHub log shows the runner is alive.
@@ -1058,58 +1052,33 @@ function Invoke-CommandOnVM {
     $heartbeatInterval = 30
     $timeSinceOutput = 0
 
-    # Helper: non-blocking Receive-Job.  Receive-Job can block indefinitely
-    # when the PS Direct transport dies (VM kernel OOM, deadlock, etc.).
-    # We use Wait-Job with a short timeout first to avoid getting stuck.
-    function Receive-JobSafe {
-        param([Parameter(Mandatory=$true)] $Job)
-        # Wait-Job returns immediately if the job has output ready or has
-        # completed/failed.  The timeout ensures we never block longer than
-        # the poll interval even if the transport is dead.
-        $ready = $Job | Wait-Job -Timeout $pollInterval 2>$null
-        if ($ready -or $Job.State -ne 'Running') {
-            try {
-                $output = Receive-Job -Job $Job -ErrorAction SilentlyContinue 2>&1
-                return $output
-            } catch {
-                return $null
-            }
-        }
-        return $null
-    }
-
     try {
         while ($invokeJob.State -eq 'Running') {
             if ($elapsed -ge $TimeoutSeconds) {
                 Write-Log "*** ERROR *** Command on VM $VMName timed out after ${TimeoutSeconds}s."
                 # Drain any final output before killing the job.
                 try {
-                    $output = Receive-JobSafe -Job $invokeJob
+                    $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
                     if ($output) { $output | ForEach-Object { Write-Host $_ } }
                 } catch {}
                 Stop-Job -Job $invokeJob -ErrorAction SilentlyContinue
-                $invokeJob | Wait-Job -Timeout 30 | Out-Null
+                try { $invokeJob | Wait-Job -Timeout 30 | Out-Null } catch {}
                 throw [System.TimeoutException]::new("Command on VM $VMName timed out after ${TimeoutSeconds}s")
             }
 
-            # Use Wait-Job with a timeout equal to the poll interval.  This
-            # replaces Start-Sleep and also ensures Receive-Job won't block
-            # if the PS Direct transport has died (OOM, kernel deadlock, etc.).
-            $invokeJob | Wait-Job -Timeout $pollInterval | Out-Null
+            Start-Sleep -Seconds $pollInterval
             $elapsed += $pollInterval
             $timeSinceOutput += $pollInterval
 
             # Stream any available output from the remote command.
-            if ($invokeJob.HasMoreData) {
-                try {
-                    $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
-                    if ($output) {
-                        $output | ForEach-Object { Write-Host $_ }
-                        $timeSinceOutput = 0
-                    }
-                } catch {
-                    Write-Log "Warning: Failed to receive job output: $($_.Exception.Message)"
+            try {
+                $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
+                if ($output) {
+                    $output | ForEach-Object { Write-Host $_ }
+                    $timeSinceOutput = 0
                 }
+            } catch {
+                Write-Log "Warning: Failed to receive job output: $($_.Exception.Message)"
             }
 
             if ($timeSinceOutput -ge $heartbeatInterval) {
