@@ -113,7 +113,11 @@ $Job = Start-Job -ScriptBlock {
         Write-Log $_.Exception.Message
         Write-Log $_.ScriptStackTrace
         if ($_.CategoryInfo.Reason -eq "TimeoutException") {
-            Generate-KernelDumpOnVM
+            try {
+                Generate-KernelDumpOnVM
+            } catch {
+                Write-Log "Warning: kernel dump generation failed: $($_.Exception.Message)"
+            }
         }
         throw $_.Exception.Message
     }

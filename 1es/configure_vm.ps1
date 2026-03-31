@@ -41,6 +41,9 @@ Write-Host "Enabling Driver Verifier (standard) on eBPF drivers..."
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 Write-Host "  Driver Verifier: ebpfcore.sys, netebpfext.sys, sample_ebpf_ext.sys"
 
+# Disable Windows Search service to reduce resource contention during tests.
+Set-Service WSearch -StartupType Disabled
+
 # Disable Windows Defender real-time monitoring and behavior monitoring to reduce
 # CPU/memory pressure, especially for validating drivers such as the test bpf programs.
 $defenderRegPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"

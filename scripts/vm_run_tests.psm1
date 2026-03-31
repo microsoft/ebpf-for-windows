@@ -90,6 +90,9 @@ function Invoke-TestOnVM {
 }
 
 function Generate-KernelDumpOnVM {
+    param(
+        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 300
+    )
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
         Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue -Scope Global
@@ -97,7 +100,7 @@ function Generate-KernelDumpOnVM {
         Generate-KernelDump
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds $TimeoutSeconds
 }
 
 function Add-eBPFProgram {
