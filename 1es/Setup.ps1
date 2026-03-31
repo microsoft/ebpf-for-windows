@@ -31,7 +31,7 @@ param(
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
-    [Parameter(Mandatory=$False)][string]$VMMemory=8192MB
+    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,14 +40,6 @@ $ErrorActionPreference = "Stop"
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('C:\work', $logFileName) -WarningAction SilentlyContinue
-
-# Log VM configuration parameters.
-Write-Log "=== VM Configuration ==="
-Write-Log "  CPU Count:  $VMCpuCount"
-Write-Log "  Memory:     $([math]::Round($VMMemory / 1MB)) MB"
-Write-Log "  VHD Source: $BaseVhdDirPath"
-Write-Log "  Working:    $WorkingPath"
-Write-Log "========================"
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath

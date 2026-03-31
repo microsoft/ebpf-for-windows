@@ -55,15 +55,14 @@ jobs:
       generate_release_package: true
       build_msi: true
       build_nuget: true
-      # TODO: Restore to '["Debug", "FuzzerDebug", "Release"]' after CI stabilization.
-      configurations: '["Release"]'
+      configurations: '["Debug", "FuzzerDebug", "Release"]'
 
   onebranch:
     strategy:
       matrix:
         Architecture: ['x64', 'ARM64']
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -80,24 +79,27 @@ jobs:
 
   # Perform the native-only build.
   regular_native-only:
-    # TODO: Restore matrix with ['x64', 'ARM64'] and '["NativeOnlyDebug", "NativeOnlyRelease"]' after CI stabilization.
+    strategy:
+      matrix:
+        Architecture: ['x64', 'ARM64']
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
       repository: ${{ github.repository }}
-      build_artifact: Build-x64-native-only
+      build_artifact: Build-${{ matrix.Architecture }}-native-only
       build_msi: true
       build_nuget: true
       download_demo_repository: false
-      configurations: '["NativeOnlyRelease"]'
+      architecture: ${{ matrix.Architecture }}
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the unit tests in GitHub.
   unit_tests_appverif:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -113,9 +115,9 @@ jobs:
 
   # Run the unit tests in GitHub.
   unit_tests:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular
-    if: false # github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -131,9 +133,8 @@ jobs:
 
   # Run the unit tests for NativeOnly build in GitHub.
   unit_tests_native_only:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular_native-only
-    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -150,9 +151,8 @@ jobs:
 
   # Run the unit tests for NativeOnly build in GitHub.
   unit_tests_native_only_arm64:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular_native-only
-    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -169,9 +169,9 @@ jobs:
 
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -186,9 +186,9 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -214,9 +214,9 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: [regular, get_bpf_conformance_version]
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/${{ needs.get_bpf_conformance_version.outputs.version }}/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -252,7 +252,6 @@ jobs:
       code_coverage: false
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
-      configurations: '["Release"]'
 
   driver_native_only_tests:
     needs: regular_native-only
@@ -276,14 +275,13 @@ jobs:
       gather_dumps: false
       # Driver tests manually gather code coverage.
       code_coverage: false
-      configurations: '["NativeOnlyRelease"]'
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
 
   driver_native_only_arm64_tests:
     needs: regular_native-only
-    # TODO: Restore after CI stabilization.
-    if: false # github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
@@ -321,12 +319,11 @@ jobs:
       code_coverage: false
       # Skip ETW tracing as the individual testcases will capture their own traces.
       capture_etw: false
-      configurations: '["Release"]'
 
   ossar:
-    # TODO: Restore after CI stabilization.
+    # Always run this job.
     needs: regular
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -335,8 +332,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -347,8 +344,8 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -358,8 +355,7 @@ jobs:
 
   bpf2c_fuzzer:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -372,8 +368,7 @@ jobs:
 
   bpf2c_fuzzer_scheduled:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -386,8 +381,7 @@ jobs:
 
   execution_context_fuzzer:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -400,8 +394,7 @@ jobs:
 
   execution_context_fuzzer_scheduled:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -415,8 +408,7 @@ jobs:
   # Run the verifier fuzzer.
   verifier_fuzzer:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -429,8 +421,8 @@ jobs:
 
   verifier_fuzzer_scheduled:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -443,8 +435,8 @@ jobs:
 
   core_helper_fuzzer:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # Always run this job.
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -457,8 +449,8 @@ jobs:
 
   core_helper_fuzzer_scheduled:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -471,8 +463,7 @@ jobs:
 
   netebpfext_fuzzer:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -485,8 +476,7 @@ jobs:
 
   netebpfext_fuzzer_scheduled:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -500,8 +490,8 @@ jobs:
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # Always run this.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -514,8 +504,8 @@ jobs:
   # Run the quick stress tests in GitHub.
   stress:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # Always run this test.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -530,8 +520,7 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -549,8 +538,7 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -565,8 +553,7 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -582,8 +569,7 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -599,8 +585,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -616,8 +601,7 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -631,8 +615,7 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -659,7 +642,6 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
-      configurations: '["Release"]'
 
   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
   # against the kernel mode eBPF sub-system.
@@ -677,7 +659,6 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
-      configurations: '["Release"]'
 
   # Run multi-threaded stress tests with 'restart extension' enabled
   # against the kernel mode eBPF sub-system.
@@ -695,7 +676,6 @@ jobs:
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
-      configurations: '["Release"]'
 
   # Run standalone eBPF core driver restart stress test
   km_ebpfcore_restart_test:
@@ -712,12 +692,10 @@ jobs:
       code_coverage: false
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
-      configurations: '["Release"]'
 
   performance:
     needs: regular
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -729,8 +707,7 @@ jobs:
       configurations: '["Release"]'
 
   netperf:
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/netperf.yml
     with:
       sha: ${{ github.sha }}
@@ -741,8 +718,7 @@ jobs:
 
   upload_perf_results:
     needs: performance
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
@@ -754,8 +730,7 @@ jobs:
 
   upload_netperf_results_lab_2022:
     needs: netperf
-    # TODO: Restore after CI stabilization.
-    if: false # github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_netperf_results_lab_2022

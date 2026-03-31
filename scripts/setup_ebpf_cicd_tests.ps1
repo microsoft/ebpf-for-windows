@@ -190,11 +190,7 @@ if ($JobFailed) {
         Write-Log "*** JOB FAILED *** Could not retrieve reason: $($_.Exception.Message)"
     }
     try {
-        $drainJob = Start-Job -ScriptBlock { param($Id); Receive-Job -Job (Get-Job -Id $Id) -ErrorAction SilentlyContinue 2>&1 } -ArgumentList $Job.Id
-        $drainDone = $drainJob | Wait-Job -Timeout 30
-        if ($drainDone) { Receive-Job -Job $drainJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ } }
-        else { Write-Log "Warning: Timed out draining job output (30s)."; Stop-Job -Job $drainJob -ErrorAction SilentlyContinue }
-        Remove-Job -Job $drainJob -Force -ErrorAction SilentlyContinue
+        Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
     } catch {
         Write-Log "Job drain error: $($_.Exception.Message)"
     }

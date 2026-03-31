@@ -305,14 +305,11 @@ function Invoke-ConnectRedirectTestHelper
 
     $InsecurePassword = Get-VMPassword
 
-    $resultMarker = "PASSED:connect_redirect:$UserType"
-
     $scriptBlock = {
-        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $ResultMarker)
+        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
-        Remove-Item "$env:TEMP\test_result.txt" -Force -ErrorAction Ignore
         Write-Log "Invoking connect redirect tests [Mode=$UserType]"
         Invoke-ConnectRedirectTest `
             -LocalIPv4Address $LocalIPv4Address `
@@ -328,26 +325,9 @@ function Invoke-ConnectRedirectTestHelper
             -UserType $UserType `
             -WorkingDirectory $WorkingDirectory
         Write-Log "Invoke-ConnectRedirectTest finished"
-        $ResultMarker | Set-Content "$env:TEMP\test_result.txt" -Force
     }
-    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder, $resultMarker)
-    # Timeout is a safety net (PS Direct drops are detected within seconds by
-    # the -AsJob polling).  Allow for one test hitting the per-test timeout
-    # plus overhead for the remaining invocations.
-    try {
-        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
-    } catch {
-        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
-            Write-Log "Transport failure for connect_redirect ($UserType) -- verifying test result on VM..."
-            if (Confirm-VMTestResult -ExpectedMarker $resultMarker -WaitSeconds $script:TestHangTimeout) {
-                Write-Log "*** connect_redirect ($UserType) PASSED (confirmed on VM despite transport failure) ***"
-                Stop-BackgroundProcess -ProgramName $ProgramName
-                return
-            }
-            Write-Log "Could not confirm connect_redirect ($UserType) passed on VM -- treating as failure."
-        }
-        throw
-    }
+    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
 
     Stop-BackgroundProcess -ProgramName $ProgramName
 }

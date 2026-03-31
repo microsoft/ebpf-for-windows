@@ -555,28 +555,13 @@ function Wait-TestJobToComplete
     }
 
     # Print any remaining output after the job completes.
-    # Use a timeout to prevent Receive-Job from hanging on a broken transport.
     try {
-        $receiveJob = Start-Job -ScriptBlock {
-            param($JobId)
-            $parentJob = Get-Job -Id $JobId -ErrorAction SilentlyContinue
-            if ($parentJob) {
-                Receive-Job -Job $parentJob -ErrorAction SilentlyContinue 2>&1
-            }
-        } -ArgumentList $Job.Id
-        $receiveCompleted = $receiveJob | Wait-Job -Timeout 30
-        if ($receiveCompleted) {
-            $JobOutput = Receive-Job -Job $receiveJob -ErrorAction SilentlyContinue
-            if ($JobOutput) {
-                $JobOutput | ForEach-Object { Write-Host $_ }
-            }
-        } else {
-            Write-Log "Warning: Timed out receiving final job output (30s). Transport may be broken."
-            Stop-Job -Job $receiveJob -ErrorAction SilentlyContinue
+        $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        if ($JobOutput) {
+            $JobOutput | ForEach-Object { Write-Host $_ }
         }
-        Remove-Job -Job $receiveJob -Force -ErrorAction SilentlyContinue
     } catch {
-        Write-Log "Warning: Failed to receive final job output (remote session may have ended): $($_.Exception.Message)"
+        Write-Log "Warning: Failed to receive final job output: $($_.Exception.Message)"
     }
 
     return $JobTimedOut
