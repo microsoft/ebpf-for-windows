@@ -4584,13 +4584,13 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
     // Suppress the CRT assertion dialog in debug builds so it doesn't
     // block the test. Route assertions to debugger output only.
 #ifdef _DEBUG
-    int old_assert_mode = _CrtSetReportMode(_CRT_ASSERT, 0);
-    int old_error_mode = _CrtSetReportMode(_CRT_ERROR, 0);
+    int old_assert_mode = _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+    int old_error_mode = _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
 
     // Suppress Windows Error Reporting dialogs and Watson dumps.
     UINT old_error_flags = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
-    _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    unsigned int old_abort_behavior = _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
 
     // Phase 4: Attempt to load.
     // The kernel (mock) will report original_program_count programs via
@@ -4601,20 +4601,25 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
     //       ebpf_program_t* program = programs[i];   // OOB at i=0!
     //       if (!program->autoload) { ...            // deref of null -> AV
     //
+    bool old_native_failures = get_native_module_failures();
     set_native_module_failures(true);
     bool access_violation_detected = false;
     int result = _try_bpf_object_load_detect_av(object, &access_violation_detected);
 
     // Phase 5: Restore state.
+    set_native_module_failures(old_native_failures);
     _set_invalid_parameter_handler(old_handler);
 #ifdef _DEBUG
     _CrtSetReportMode(_CRT_ASSERT, old_assert_mode);
     _CrtSetReportMode(_CRT_ERROR, old_error_mode);
 #endif
+    _set_abort_behavior(old_abort_behavior, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
     SetErrorMode(old_error_flags);
     object->programs.swap(saved_programs);
 
-    // Phase 6: Verify results.
+    // Phase 6: Clean up and verify results.
+    bpf_object__close(object);
+
     if (access_violation_detected) {
         // BUG CONFIRMED: _initialize_ebpf_programs_native crashed because
         // it accessed programs[i] where i >= programs.size() without first
@@ -4633,6 +4638,4 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
         // vector whose data() is nullptr).
         REQUIRE(result < 0);
     }
-
-    bpf_object__close(object);
 }
