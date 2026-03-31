@@ -149,7 +149,7 @@ function Stop-eBPFServiceAndDrivers {
     param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
     if ($GranularTracing) {
-        Start-WPRTrace
+        Start-WPRTrace -KmTracing $true -KmTraceType "file"
     }
 
     # First, stop user mode service, so that EbpfCore does not hang on stop.
