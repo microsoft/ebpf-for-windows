@@ -21,7 +21,9 @@
     The number of CPUs to assign to each VM. Default is 4.
 
 .PARAMETER VMMemory
-    The amount of memory to assign to each VM. Default is 4096MB.
+    The amount of memory to assign to each VM. Default is 8192MB.
+    Gen 2 VMs with HVCI enabled and Driver Verifier require more memory
+    than Gen 1 VMs due to VBS and code integrity kernel overhead.
 
 .EXAMPLE
     .\Setup.ps1 -BaseUnattendPath 'C:\path\to\unattend.xml' -BaseVhdDirPath 'C:\path\to\vhd' -WorkingPath 'C:\vms'
@@ -31,7 +33,7 @@ param(
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
-    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
+    [Parameter(Mandatory=$False)][string]$VMMemory=8192MB
 )
 
 $ErrorActionPreference = "Stop"
