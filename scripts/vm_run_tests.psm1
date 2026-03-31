@@ -385,7 +385,7 @@ function Run-KernelTests {
             # Performance smoke test (Release builds only).
             if ($Env:BUILD_CONFIGURATION -eq "Release") {
                 Invoke-TestOnVM -TestName "ebpf_performance.exe" `
-                    -VerboseLogs $VerboseLogs -SkipTracing $true
+                    -TestTimeout 600 -VerboseLogs $VerboseLogs -SkipTracing $true
             }
         }
 
