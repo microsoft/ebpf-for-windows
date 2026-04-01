@@ -348,7 +348,8 @@ function Stop-eBPFComponents {
         Stop-eBPFServiceAndDrivers -GranularTracing $GranularTracing
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName, $GranularTracing)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    # Use a bounded timeout so a wedged VM doesn't block the caller indefinitely.
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 300
 }
 
 function Run-KernelTests {

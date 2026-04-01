@@ -660,6 +660,7 @@ jobs:
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       # The outer job timeout must exceed that.
       test_timeout: 9000
+      job_timeout: 210
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -672,13 +673,14 @@ jobs:
     with:
       name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
+      job_timeout: 210
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -697,6 +699,7 @@ jobs:
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
+      job_timeout: 210
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
 

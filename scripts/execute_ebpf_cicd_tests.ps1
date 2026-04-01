@@ -182,18 +182,28 @@ try {
     Stop-Job -Job $Job -ErrorAction SilentlyContinue
     $Job | Wait-Job -Timeout 30 | Out-Null
 } catch {}
-Remove-Job -Job $Job -Force -ErrorAction SilentlyContinue
+try {
+    $removeBlock = { Remove-Job -Job $using:Job -Force -ErrorAction SilentlyContinue }
+    $removeTask = [powershell]::Create().AddScript($removeBlock)
+    $asyncResult = $removeTask.BeginInvoke()
+    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+        Write-Log "Warning: Remove-Job timed out -- proceeding anyway."
+    }
+    $removeTask.Dispose()
+} catch {
+    Write-Log "Warning: Remove-Job cleanup failed: $($_.Exception.Message)"
+}
 
 Pop-Location
 
 if ($JobTimedOut) {
     Write-Log "exiting with error as job timed out"
-    exit 1
+    [Environment]::Exit(1)
 }
 
 if ($JobFailed) {
     Write-Log "exiting with error as job failed"
-    exit 1
+    [Environment]::Exit(1)
 }
 
 Write-Log "execute_ebpf_cicd_tests.ps1 completed successfully"

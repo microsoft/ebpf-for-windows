@@ -470,6 +470,14 @@ function Wait-TestJobToComplete
     $TimeElapsed = 0
     $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
     $TimeSinceLastOutput = 0
+
+    # Stream job output to a file instead of directly to stdout.  This prevents
+    # the polling loop from blocking when the runner agent / GitHub log ingestion
+    # creates back-pressure on the stdout pipe (4 KB buffer on Windows).  If
+    # Write-Host blocks, the entire loop freezes and no timeout can fire.
+    $outputLogPath = Join-Path $env:TEMP "test_job_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+    Write-Log "Job output streaming to: $outputLogPath"
+
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
         Start-Sleep -Seconds 2
@@ -479,7 +487,17 @@ function Wait-TestJobToComplete
         try {
             $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
             if ($JobOutput) {
-                $JobOutput | ForEach-Object { Write-Host $_ }
+                # Write output to file (non-blocking, avoids stdout pipe pressure).
+                $JobOutput | Out-File -FilePath $outputLogPath -Append -Encoding utf8
+                # Also write to stdout, but limit to avoid pipe saturation.
+                # Show the last few lines so the GitHub log has enough context.
+                $lines = @($JobOutput)
+                if ($lines.Count -le 5) {
+                    $lines | ForEach-Object { Write-Host $_ }
+                } else {
+                    Write-Host "... ($($lines.Count) lines, see full output in TestLogs)"
+                    $lines | Select-Object -Last 3 | ForEach-Object { Write-Host $_ }
+                }
                 $TimeSinceLastOutput = 0
             }
         } catch {
@@ -543,7 +561,16 @@ function Wait-TestJobToComplete
                         } else {
                             Write-Log "Kernel dump generation completed."
                         }
-                        Remove-Job -Job $dumpJob -Force -ErrorAction SilentlyContinue
+                        # Bounded removal to avoid hanging on stuck PS Direct transports.
+                        try {
+                            $removeBlock = { Remove-Job -Job $using:dumpJob -Force -ErrorAction SilentlyContinue }
+                            $removeTask = [powershell]::Create().AddScript($removeBlock)
+                            $asyncResult = $removeTask.BeginInvoke()
+                            if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                                Write-Log "Warning: Remove-Job for dump job timed out."
+                            }
+                            $removeTask.Dispose()
+                        } catch {}
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
@@ -558,11 +585,27 @@ function Wait-TestJobToComplete
     try {
         $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
         if ($JobOutput) {
-            $JobOutput | ForEach-Object { Write-Host $_ }
+            $JobOutput | Out-File -FilePath $outputLogPath -Append -Encoding utf8
+            $lines = @($JobOutput)
+            if ($lines.Count -le 20) {
+                $lines | ForEach-Object { Write-Host $_ }
+            } else {
+                Write-Host "... ($($lines.Count) final lines written to log)"
+                $lines | Select-Object -Last 5 | ForEach-Object { Write-Host $_ }
+            }
         }
     } catch {
         Write-Log "Warning: Failed to receive final job output: $($_.Exception.Message)"
     }
+
+    # Copy the job output log to TestLogs so it's uploaded as an artifact.
+    try {
+        if (Test-Path $outputLogPath) {
+            $testLogsDir = ".\TestLogs"
+            if (-not (Test-Path $testLogsDir)) { New-Item -ItemType Directory -Path $testLogsDir -Force | Out-Null }
+            Copy-Item -Path $outputLogPath -Destination "$testLogsDir\job_output.log" -Force -ErrorAction SilentlyContinue
+        }
+    } catch {}
 
     return $JobTimedOut
 }
@@ -1118,7 +1161,16 @@ function Invoke-CommandOnVM {
             throw "Command on VM $VMName failed."
         }
     } finally {
-        Remove-Job -Job $invokeJob -Force -ErrorAction SilentlyContinue
+        # Remove-Job -Force can hang if the PS Direct VMBus transport is stuck
+        # in an unmanaged call that Stop-Job couldn't interrupt. Run it on a
+        # background thread with a timeout so it cannot block the caller.
+        $removeBlock = { Remove-Job -Job $using:invokeJob -Force -ErrorAction SilentlyContinue }
+        $removeTask = [powershell]::Create().AddScript($removeBlock)
+        $asyncResult = $removeTask.BeginInvoke()
+        if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+            Write-Log "Warning: Remove-Job timed out for VM job -- disposing forcefully."
+        }
+        $removeTask.Dispose()
     }
 }
 

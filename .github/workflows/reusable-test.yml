@@ -64,6 +64,11 @@ on:
         required: false
         type: number
         default: 7200
+      job_timeout:
+        description: 'Overall job timeout in minutes (default: 180). Must exceed test_timeout/60 + cleanup overhead.'
+        required: false
+        type: number
+        default: 180
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -72,9 +77,9 @@ permissions:
 
 jobs:
   run_test:
-    # Due to app-verifier, unit tests take a lot longer to execute. Also, stress tests now take around 90 minutes.
-    # Increase the timeout to 180 minutes to accommodate stress tests with 2+ hour inner timeouts.
-    timeout-minutes: 180
+    # Job-level timeout enforced server-side by GitHub. This is the absolute backstop
+    # that terminates the job even if the runner is unresponsive.
+    timeout-minutes: ${{ inputs.job_timeout }}
 
     strategy:
       matrix:
@@ -320,6 +325,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd') && (inputs.fault_injection != true)
         id: run_test_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: ${{ inputs.test_timeout / 60 + 10 }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
@@ -327,6 +333,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES') && (inputs.fault_injection != true)
         id: run_test_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: ${{ inputs.test_timeout / 60 + 10 }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
@@ -360,6 +367,7 @@ jobs:
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd')
         id: run_post_test_command_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
@@ -368,6 +376,7 @@ jobs:
         if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES')
         id: run_post_test_command_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner'
 
