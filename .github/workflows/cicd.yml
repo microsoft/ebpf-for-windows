@@ -661,6 +661,7 @@ jobs:
       # The outer job timeout must exceed that.
       test_timeout: 9000
       job_timeout: 210
+      step_timeout: 160
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -681,6 +682,7 @@ jobs:
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
       job_timeout: 210
+      step_timeout: 160
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -700,6 +702,7 @@ jobs:
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
       job_timeout: 210
+      step_timeout: 160
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
 

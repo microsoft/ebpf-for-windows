@@ -65,10 +65,15 @@ on:
         type: number
         default: 7200
       job_timeout:
-        description: 'Overall job timeout in minutes (default: 180). Must exceed test_timeout/60 + cleanup overhead.'
+        description: 'Overall job timeout in minutes (default: 180). Must exceed step_timeout + cleanup overhead.'
         required: false
         type: number
         default: 180
+      step_timeout:
+        description: 'Timeout in minutes for the test step (default: 130). Must be less than job_timeout.'
+        required: false
+        type: number
+        default: 130
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -325,7 +330,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd') && (inputs.fault_injection != true)
         id: run_test_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.job_timeout - 50 }}
+        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
@@ -333,7 +338,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES') && (inputs.fault_injection != true)
         id: run_test_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.job_timeout - 50 }}
+        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
