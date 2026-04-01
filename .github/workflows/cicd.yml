@@ -657,6 +657,9 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
+      # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
+      # The outer job timeout must exceed that.
+      test_timeout: 9000
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -674,6 +677,8 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
+      # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
+      test_timeout: 9000
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -690,6 +695,8 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
+      # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
+      test_timeout: 9000
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
 
