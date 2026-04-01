@@ -3636,6 +3636,9 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
+    // RAII cleanup for the loaded object so it is freed even if assertions below fail.
+    auto object_cleanup = std::unique_ptr<bpf_object, decltype(&bpf_object__close)>(object, bpf_object__close);
+
     // Disable proof of verification via registry before any assertions that might fail.
     ebpf_store_update_proof_of_verification(0);
     
@@ -3657,8 +3660,6 @@ TEST_CASE("proof_of_verification_positive", "[native_tests][proof_of_verificatio
     _close(query_fd);
 
     std::cout << "Proof of verification passed for production-signed driver " << signed_driver_path << std::endl;
-
-    bpf_object__close(object);
 }
 
 /**
