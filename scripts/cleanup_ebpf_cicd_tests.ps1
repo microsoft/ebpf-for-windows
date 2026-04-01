@@ -1,34 +1,22 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory=$false)][bool] $KmTracing = $true,
+param ([parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+       [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost
 $ExecuteOnVM = (-not $ExecuteOnHost)
+$VMIsRemote = [bool]$VMIsRemote
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-
-if ($ExecuteOnVM) {
-    if ($SelfHostedRunnerName -eq "1ESRunner") {
-        $TestVMCredential = Retrieve-StoredCredential -Target $Target
-    } else {
-        $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-    }
-} else {
-    # Username and password are not used when running on host - use empty but non-null values.
-    $UserName = $env:USERNAME
-    $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
-    $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
-}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -36,7 +24,7 @@ $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) |
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
            [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
-           [Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
+           [Parameter(Mandatory = $True)] [bool] $VMIsRemote,
            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [parameter(Mandatory = $true)] [string] $LogFileName,
@@ -47,24 +35,23 @@ $Job = Start-Job -ScriptBlock {
 
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
     if ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
         # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-        Wait-AllVMsToInitialize `
-            -VMList $VMList `
-            -UserName $TestVMCredential.UserName `
-            -AdminPassword $TestVMCredential.Password
+        Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
         # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
         # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
         # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
-            $DumpFound = Invoke-Command `
+            $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+            $DumpFound = Invoke-CommandOnVM `
                 -VMName $VMName `
-                -Credential $TestVMCredential `
+                -VMIsRemote $VMIsRemote `
+                -Credential $TestCredential `
                 -ScriptBlock {
                     Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
                 }
@@ -92,7 +79,7 @@ $Job = Start-Job -ScriptBlock {
 }  -ArgumentList (
     $ExecuteOnHost,
     $ExecuteOnVM,
-    $TestVMCredential,
+    $VMIsRemote,
     $Config,
     $SelfHostedRunnerName,
     $LogFileName,
@@ -109,9 +96,7 @@ $JobTimedOut = `
     -CheckpointPrefix "Cleanup" `
     -ExecuteOnHost $ExecuteOnHost `
     -ExecuteOnVM $ExecuteOnVM `
-    -AdminTestVMCredential $TestVMCredential `
-    -StandardUserTestVMCredential $TestVMCredential `
-    -VMIsRemote $false `
+    -VMIsRemote $VMIsRemote `
     -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
     -LogFileName $LogFileName `
     -TestMode "CI/CD" `

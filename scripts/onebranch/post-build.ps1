@@ -46,33 +46,14 @@ $BinariesToCopy = @(
     "netebpfext.sys",
     "api_test.exe",
     "api_test.pdb",
-    "test_sample_ebpf.o",
-    "test_sample_ebpf.sys",
-    "bindmonitor.o",
-    "bindmonitor.sys",
-    "bindmonitor_ringbuf.o",
-    "bindmonitor_ringbuf.sys",
-    "bindmonitor_perf_event_array.o",
-    "bindmonitor_perf_event_array.sys",
-    "bindmonitor_tailcall.o",
-    "bindmonitor_tailcall.sys",
-    "tail_call_multiple.o",
-    "tail_call_multiple.sys",
-    "tail_call_max_exceed.o",
-    "tail_call_max_exceed.sys",
-    "pidtgid.o",
-    "pidtgid.sys",
-    "process_start_key.o",
-    "process_start_key.sys",
-    "thread_start_time.o",
-    "thread_start_time.sys",
-    "printk.o",
-    "printk.sys",
-    "multiple_programs.o",
-    "multiple_programs.sys",
-    "divide_by_zero.o",
-    "printk_unsafe.o",
-    "sample_ebpf_ext.sys"
+    "export_program_info.exe",
+    "export_program_info.pdb",
+    "export_program_info_sample.exe",
+    "export_program_info_sample.pdb",
+    "export_program_info_test.exe",
+    "export_program_info_test.pdb",
+    "socket_tests.exe",
+    "socket_tests.pdb"
 )
 
 function CopyPackages {
@@ -103,6 +84,16 @@ function CopyPackages {
             Copy-Item -Path $sourcePath -Destination $OutputBinDir
         } else {
             Write-Host "Warning: $sourcePath does not exist."
+        }
+    }
+
+    # Copy all eBPF program .o and .sys files (built by sample.vcxproj via bpf2c pipeline).
+    foreach ($pattern in @("*.o", "*.sys")) {
+        $files = Get-ChildItem -Path ".\$Arch\$Config\$pattern" -ErrorAction SilentlyContinue
+        foreach ($file in $files) {
+            if (-not (Test-Path -Path (Join-Path $OutputBinDir $file.Name))) {
+                Copy-Item -Path $file.FullName -Destination $OutputBinDir
+            }
         }
     }
 

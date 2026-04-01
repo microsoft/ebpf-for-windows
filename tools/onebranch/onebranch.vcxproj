@@ -64,6 +64,24 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\tests\api_test\api_test.vcxproj">
+      <Project>{12161211-5463-4aa9-9b6e-552552b475dc}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\sample\sample.vcxproj">
+      <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\undocked\tests\sample\ext\drv\sample_ext.vcxproj">
+      <Project>{c8d46543-5ae5-4e66-b9ce-8b84588b1c9e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\export_program_info_test\export_program_info_test.vcxproj">
+      <Project>{8b2f1f1a-3c4d-4e5f-9a6b-1c2d3e4f5a6b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\socket\socket_tests.vcxproj">
+      <Project>{eed9dac6-8b98-4c33-969a-e8cede8e985e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\undocked\tools\export_program_info_sample\export_program_info_sample.vcxproj">
+      <Project>{21c137ec-9ae3-4c8c-8e74-8bfcc999d856}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
