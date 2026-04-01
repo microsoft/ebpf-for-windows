@@ -6,7 +6,7 @@ param ([parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (10*60),
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (5*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
@@ -41,62 +41,53 @@ $Job = Start-Job -ScriptBlock {
 
     if ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
-        # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-        Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
-        # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
-        # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
-        # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
-        foreach ($VM in $VMList) {
-            $VMName = $VM.Name
-            $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-            try {
-                $DumpFound = Invoke-CommandOnVM `
-                    -VMName $VMName `
-                    -VMIsRemote $VMIsRemote `
-                    -Credential $TestCredential `
-                    -TimeoutSeconds 120 `
-                    -ScriptBlock {
-                        Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
+        # Wait for VMs to be ready.  If the VM crashed during the test, this
+        # may take a few minutes while it writes a crash dump and reboots.
+        # The function has a built-in 5-minute timeout; wrap in try/catch so
+        # a dead VM doesn't abort the entire cleanup.
+        $vmReady = $false
+        try {
+            Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
+            $vmReady = $true
+        } catch {
+            Write-Log "*** WARNING *** VM did not become ready: $($_.Exception.Message). Will attempt log import anyway."
+        }
+
+        # Check if we're here after a crash (only if VM is reachable).
+        if ($vmReady) {
+            foreach ($VM in $VMList) {
+                $VMName = $VM.Name
+                $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+                try {
+                    $DumpFound = Invoke-CommandOnVM `
+                        -VMName $VMName `
+                        -VMIsRemote $VMIsRemote `
+                        -Credential $TestCredential `
+                        -TimeoutSeconds 120 `
+                        -ScriptBlock {
+                            Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
+                        }
+
+                    if ($DumpFound -eq $True) {
+                        Write-Log "Post-crash reboot detected on VM $VMName"
                     }
-
-                if ($DumpFound -eq $True) {
-                    Write-Log "Post-crash reboot detected on VM $VMName"
+                } catch {
+                    Write-Log "*** WARNING *** Failed to check for crash dump on ${VMName}: $($_.Exception.Message). Continuing cleanup."
                 }
-            } catch {
-                Write-Log "*** WARNING *** Failed to check for crash dump on ${VMName}: $($_.Exception.Message). Continuing cleanup."
             }
         }
 
-        # Import logs from VMs with a bounded timeout.  Copy-Item -FromSession
-        # operations through PS Direct have no timeout mechanism; if the VMBus
-        # session hangs mid-copy the call blocks indefinitely.  Run the import
-        # in a sub-job so we can kill it if it takes too long.
-        $importTimeout = 300  # 5 minutes — enough for logs, dumps, ETL.
+        # Import logs from VMs.  Each step inside Import-ResultsFromVM is
+        # wrapped in try/catch with [Step N/6] labels.  If a Copy-Item hangs
+        # (VMBus stall), the outer Wait-TestJobToComplete timeout (300s) will
+        # kill this entire job.  We intentionally do NOT nest a sub-job here
+        # because PS Direct sessions can't be created from a doubly-nested
+        # background process.
         try {
-            Write-Log "Starting log import from VMs (timeout: ${importTimeout}s)..."
-            $importJob = Start-Job -ScriptBlock {
-                param($WorkingDirectory, $LogFileName, $VMListJson, $KmTracing, $VMIsRemote)
-                Push-Location $WorkingDirectory
-                Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-                Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-                $VMList = $VMListJson | ConvertFrom-Json
-                Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
-                Pop-Location
-            } -ArgumentList @($WorkingDirectory, $LogFileName, ($VMList | ConvertTo-Json -Depth 10), $KmTracing, $VMIsRemote)
-
-            $importCompleted = $importJob | Wait-Job -Timeout $importTimeout
-            if (-not $importCompleted) {
-                Write-Log "*** WARNING *** Log import timed out after ${importTimeout}s. Some logs may be missing."
-                Stop-Job -Job $importJob -ErrorAction SilentlyContinue
-            } else {
-                Receive-Job -Job $importJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
-                Write-Log "Log import completed."
-            }
-            # This is a local Start-Job (not PS Direct), so Remove-Job won't
-            # hang on VMBus.  Simple cleanup is sufficient.
-            $importJob | Wait-Job -Timeout 15 | Out-Null
-            Remove-Job -Job $importJob -Force -ErrorAction SilentlyContinue
+            Write-Log "Starting log import from VMs..."
+            Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
+            Write-Log "Log import completed."
         } catch {
             Write-Log "*** WARNING *** Failed to import results from VMs: $($_.Exception.Message). Continuing cleanup."
         }
@@ -183,14 +174,10 @@ try {
 Pop-Location
 
 if ($JobTimedOut) {
-    Write-Log "Cleanup exiting with error: job timed out"
-    [Environment]::Exit(1)
+    Write-Log "*** WARNING *** Cleanup timed out -- some logs may be missing but this is non-fatal."
+} elseif ($JobFailed) {
+    Write-Log "*** WARNING *** Cleanup job failed -- some logs may be missing but this is non-fatal."
+} else {
+    Write-Log "Cleanup completed successfully."
 }
-
-if ($JobFailed) {
-    Write-Log "Cleanup exiting with error: job failed"
-    [Environment]::Exit(1)
-}
-
-Write-Log "Cleanup completed successfully"
 

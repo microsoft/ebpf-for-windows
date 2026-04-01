@@ -269,7 +269,9 @@ function Process-TestCompletion
             } catch {
                 Write-Log "Warning: could not read final output: $($_.Exception.Message)"
             }
-            Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
+            # Do NOT delete app_output.log here; cleanup will copy it as a
+            # test artifact so the full output is available even when the
+            # GitHub log only shows truncated heartbeats.
         }
 
         $TestExitCode = $TestProcess.ExitCode
@@ -280,7 +282,7 @@ function Process-TestCompletion
                 Get-Content -Path $TempErrorFile | ForEach-Object {
                     Write-Log -TraceMessage $_ -ForegroundColor Red
                 }
-                Remove-Item -Path $TempErrorFile -Force -ErrorAction Ignore
+                # Do NOT delete app_error.log; cleanup will collect it.
             }
 
             $ErrorMessage = "*** ERROR *** $TestCommand failed with $TestExitCode."
