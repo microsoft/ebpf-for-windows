@@ -6,7 +6,7 @@ param ([parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (10*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
@@ -68,9 +68,40 @@ $Job = Start-Job -ScriptBlock {
             }
         }
 
-        # Import logs from VMs.
+        # Import logs from VMs with a bounded timeout.  Copy-Item -FromSession
+        # operations through PS Direct have no timeout mechanism; if the VMBus
+        # session hangs mid-copy the call blocks indefinitely.  Run the import
+        # in a sub-job so we can kill it if it takes too long.
+        $importTimeout = 300  # 5 minutes — enough for logs, dumps, ETL.
         try {
-            Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
+            Write-Log "Starting log import from VMs (timeout: ${importTimeout}s)..."
+            $importJob = Start-Job -ScriptBlock {
+                param($WorkingDirectory, $LogFileName, $VMListJson, $KmTracing, $VMIsRemote)
+                Push-Location $WorkingDirectory
+                Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+                Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+                $VMList = $VMListJson | ConvertFrom-Json
+                Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
+                Pop-Location
+            } -ArgumentList @($WorkingDirectory, $LogFileName, ($VMList | ConvertTo-Json -Depth 10), $KmTracing, $VMIsRemote)
+
+            $importCompleted = $importJob | Wait-Job -Timeout $importTimeout
+            if (-not $importCompleted) {
+                Write-Log "*** WARNING *** Log import timed out after ${importTimeout}s. Some logs may be missing."
+                Stop-Job -Job $importJob -ErrorAction SilentlyContinue
+            } else {
+                Receive-Job -Job $importJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
+                Write-Log "Log import completed."
+            }
+            try {
+                $removeBlock = { Remove-Job -Job $using:importJob -Force -ErrorAction SilentlyContinue }
+                $removeTask = [powershell]::Create().AddScript($removeBlock)
+                $asyncResult = $removeTask.BeginInvoke()
+                if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                    Write-Log "Warning: Remove-Job for import job timed out."
+                }
+                $removeTask.Dispose()
+            } catch {}
         } catch {
             Write-Log "*** WARNING *** Failed to import results from VMs: $($_.Exception.Message). Continuing cleanup."
         }
@@ -113,7 +144,8 @@ $JobTimedOut = `
     -TestMode "CI/CD" `
     -Options @("None") `
     -TestHangTimeout (10*60) `
-    -UserModeDumpFolder "C:\Dumps"
+    -UserModeDumpFolder "C:\Dumps" `
+    -SkipDumpOnTimeout $true
 
 # Check if the job failed (e.g., VM session died, cleanup threw an exception).
 $JobFailed = $Job.State -eq 'Failed'

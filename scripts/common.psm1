@@ -466,7 +466,8 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $false)] [string] $TestMode="CI/CD",
            [Parameter(Mandatory = $false)] [string[]] $Options=@("None"),
            [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
-           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
+           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps",
+           [Parameter(Mandatory = $false)] [bool] $SkipDumpOnTimeout=$false)
     $TimeElapsed = 0
     $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
     $TimeSinceLastOutput = 0
@@ -512,7 +513,7 @@ function Wait-TestJobToComplete
 
         if ($TimeElapsed -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
-                if ($ExecuteOnVM) {
+                if ($ExecuteOnVM -and -not $SkipDumpOnTimeout) {
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
