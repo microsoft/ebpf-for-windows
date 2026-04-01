@@ -394,15 +394,15 @@ function Run-KernelTests {
             $RestartExtension = $script:Options -contains "RestartExtension"
             $RestartEbpfCore = $script:Options -contains "RestartEbpfCore"
 
-            if (-not $MultiThread) {
+            if ($RestartEbpfCore) {
+                Invoke-TestOnVM -TestName "ebpf_restart_test_controller.exe" `
+                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
+                    -TracingProfileName "EbpfForWindowsProvider"
+            } elseif (-not $MultiThread) {
                 $StressDuration = 30 * 60
                 Invoke-TestOnVM -TestName "api_test.exe" `
                     -TestArgs "--stress-test-duration $StressDuration ioctl_stress" `
                     -TestTimeout (60 * 60) -VerboseLogs $VerboseLogs `
-                    -TracingProfileName "EbpfForWindowsProvider"
-            } elseif ($RestartEbpfCore) {
-                Invoke-TestOnVM -TestName "ebpf_restart_test_controller.exe" `
-                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
                     -TracingProfileName "EbpfForWindowsProvider"
             } else {
                 $StressArgs = if ($RestartExtension) { "-tt=8 -td=5 -erd=1000 -er=1" } else { "-tt=8 -td=5" }

@@ -55,6 +55,7 @@ $Job = Start-Job -ScriptBlock {
                     -VMName $VMName `
                     -VMIsRemote $VMIsRemote `
                     -Credential $TestCredential `
+                    -TimeoutSeconds 120 `
                     -ScriptBlock {
                         Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
                     }
