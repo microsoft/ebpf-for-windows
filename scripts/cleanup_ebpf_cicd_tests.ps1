@@ -93,15 +93,10 @@ $Job = Start-Job -ScriptBlock {
                 Receive-Job -Job $importJob -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
                 Write-Log "Log import completed."
             }
-            try {
-                $removeBlock = { Remove-Job -Job $using:importJob -Force -ErrorAction SilentlyContinue }
-                $removeTask = [powershell]::Create().AddScript($removeBlock)
-                $asyncResult = $removeTask.BeginInvoke()
-                if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                    Write-Log "Warning: Remove-Job for import job timed out."
-                }
-                $removeTask.Dispose()
-            } catch {}
+            # This is a local Start-Job (not PS Direct), so Remove-Job won't
+            # hang on VMBus.  Simple cleanup is sufficient.
+            $importJob | Wait-Job -Timeout 15 | Out-Null
+            Remove-Job -Job $importJob -Force -ErrorAction SilentlyContinue
         } catch {
             Write-Log "*** WARNING *** Failed to import results from VMs: $($_.Exception.Message). Continuing cleanup."
         }
