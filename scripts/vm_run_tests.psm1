@@ -124,7 +124,7 @@ function Add-eBPFProgram {
         return $ProgId
     }
     $argList = @($Program, $Interface, $script:WorkingDirectory, $LogFileName)
-    return (Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList)
+    return (Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120)
 }
 
 function Set-eBPFProgram {
@@ -141,7 +141,7 @@ function Set-eBPFProgram {
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
     }
     $argList = @($ProgId, $Interface, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
 function Remove-eBPFProgram {
@@ -158,7 +158,7 @@ function Remove-eBPFProgram {
         return $ProgId
     }
     $argList = @($ProgId, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
 function Start-BackgroundProcess{
@@ -193,7 +193,7 @@ function Stop-BackgroundProcess {
         Stop-Process -Name $ProgramName
     }
     $argList = @($ProgramName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 60
 }
 
 function Add-StandardUser {
@@ -227,7 +227,7 @@ function Add-StandardUser {
 
     # Invoke the script block.
     $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, $script:LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
 function Remove-StandardUser {
@@ -239,7 +239,7 @@ function Remove-StandardUser {
         Remove-LocalUser -Name $UserName
     }
     $argList = @($UserName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 60
 }
 
 function Add-FirewallRule {
@@ -255,7 +255,7 @@ function Add-FirewallRule {
         New-NetFirewallRule -DisplayName $RuleName -Program "$WorkingDirectory\$ProgramName" -Direction Inbound -Action Allow
     }
     $argList = @($ProgramName, $RuleName, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
 function Invoke-ConnectRedirectTestHelper

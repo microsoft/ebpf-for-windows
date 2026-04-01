@@ -133,11 +133,27 @@ function Stop-DriverWithTimeout {
         } else {
             # If timeout occurs, stop the job and handle the timeout scenario
             Stop-Job -Job $Job
-            Remove-Job -Job $Job
+            try {
+                $removeBlock = { Remove-Job -Job $using:Job -Force -ErrorAction SilentlyContinue }
+                $removeTask = [powershell]::Create().AddScript($removeBlock)
+                $asyncResult = $removeTask.BeginInvoke()
+                if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                    Write-Log "Warning: Remove-Job timed out for $DriverName stop job"
+                }
+                $removeTask.Dispose()
+            } catch {}
             throw [System.TimeoutException]::new("Failed to stop $DriverName driver in $Timeout seconds.")
         }
         # Cleanup the job
-        Remove-Job -Job $Job -Force
+        try {
+            $removeBlock = { Remove-Job -Job $using:Job -Force -ErrorAction SilentlyContinue }
+            $removeTask = [powershell]::Create().AddScript($removeBlock)
+            $asyncResult = $removeTask.BeginInvoke()
+            if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                Write-Log "Warning: Remove-Job timed out for $DriverName cleanup"
+            }
+            $removeTask.Dispose()
+        } catch {}
         Write-Log "$DriverName driver stopped." -ForegroundColor Green
     } else {
         Write-Log "$DriverName driver is not running." -ForegroundColor Green

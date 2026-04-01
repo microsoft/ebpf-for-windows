@@ -30,6 +30,18 @@ Write-Log "Execute starting (TestMode=$TestMode, ExecuteOnHost=$ExecuteOnHost, E
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
+# Apply scoped Defender exclusions on the HOST to prevent real-time scanning
+# from interfering with test execution (I/O stalls on .sys/.exe/.dll files).
+try {
+    Write-Log "Configuring host Defender exclusions for $WorkingDirectory"
+    Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
+    Add-MpPreference -ExclusionPath @($WorkingDirectory, $env:TEMP) -ErrorAction SilentlyContinue
+    Add-MpPreference -ExclusionExtension @('.sys', '.exe', '.dll', '.etl', '.o') -ErrorAction SilentlyContinue
+    Write-Log "Host Defender exclusions applied"
+} catch {
+    Write-Log "Warning: Failed to configure host Defender exclusions: $($_.Exception.Message)"
+}
+
 if ($ExecuteOnVM) {
     Write-Log "Tests will be executed on VM"
 } else {

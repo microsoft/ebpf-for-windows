@@ -871,7 +871,15 @@ function Expand-ZipFile {
                 break
             } else {
                 Stop-Job -Job $job
-                Remove-Job -Job $job
+                try {
+                    $removeBlock = { Remove-Job -Job $using:job -Force -ErrorAction SilentlyContinue }
+                    $removeTask = [powershell]::Create().AddScript($removeBlock)
+                    $asyncResult = $removeTask.BeginInvoke()
+                    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                        Write-Log "Warning: Remove-Job timed out in Expand-ZipFile"
+                    }
+                    $removeTask.Dispose()
+                } catch {}
                 if ($i -eq ($maxRetries - 1)) {
                     throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
                 } else {
@@ -922,7 +930,15 @@ function Get-ZipFileFromUrl {
                 break
             } else {
                 Stop-Job -Job $job
-                Remove-Job -Job $job
+                try {
+                    $removeBlock = { Remove-Job -Job $using:job -Force -ErrorAction SilentlyContinue }
+                    $removeTask = [powershell]::Create().AddScript($removeBlock)
+                    $asyncResult = $removeTask.BeginInvoke()
+                    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
+                        Write-Log "Warning: Remove-Job timed out in Get-ZipFileFromUrl"
+                    }
+                    $removeTask.Dispose()
+                } catch {}
                 if (Test-Path $DownloadFilePath) {
                     Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
                 }
@@ -1066,19 +1082,8 @@ function Invoke-CommandOnVM {
         [Parameter(Mandatory = $true)][PSCredential] $Credential,
         [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
         [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
-        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 0
+        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 300
     )
-
-    if ($TimeoutSeconds -le 0) {
-        # Original behavior -- synchronous, no timeout.
-        Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
-        if ($VMIsRemote) {
-            Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-        } else {
-            Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-        }
-        return
-    }
 
     # Bounded execution: use -AsJob so we can monitor progress and enforce a
     # timeout.  This prevents a dead PS Direct transport from blocking the

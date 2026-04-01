@@ -281,6 +281,7 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && contains(inputs.environment, 'ebpf_cicd')
         id: run_pre_test_command_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -RegressionArtifactsConfiguration ${{env.BUILD_CONFIGURATION}}
 
@@ -288,6 +289,7 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && contains(inputs.environment, '1ES')
         id: run_pre_test_command_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -RegressionArtifactsConfiguration ${{env.BUILD_CONFIGURATION}}
 
