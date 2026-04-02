@@ -456,7 +456,11 @@ function Invoke-CICDStressTests
         Write-Log "Executing eBPF API IOCTL stress tests."
         $TestHangTimeout = 60*60
         $api_stress_duration = 30*60
-        Invoke-Test -TestName "api_test.exe" -TestArgs "--stress-test-duration $api_stress_duration ioctl_stress" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        # Skip per-test file-mode WPR tracing for long stress tests — the setup
+        # phase already starts a memory-mode trace (-KmTraceType "memory") which
+        # is sufficient for diagnostics.  File-mode tracing for 30+ minutes generates
+        # multi-GB ETL files that can exhaust VM disk space.
+        Invoke-Test -TestName "api_test.exe" -TestArgs "--stress-test-duration $api_stress_duration ioctl_stress" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
         Pop-Location
         return
     }
@@ -464,7 +468,7 @@ function Invoke-CICDStressTests
     if ($RestartEbpfCore) {
         Write-Log "Executing eBPF core restart stress test."
         $TestHangTimeout = 120*60
-        Invoke-Test -TestName "ebpf_restart_test_controller.exe" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        Invoke-Test -TestName "ebpf_restart_test_controller.exe" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
         Pop-Location
         return
     }
@@ -476,7 +480,7 @@ function Invoke-CICDStressTests
     } else {
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
-    Invoke-Test -TestName "ebpf_stress_tests_km.exe" -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+    Invoke-Test -TestName "ebpf_stress_tests_km.exe" -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
 
     Pop-Location
 }
