@@ -3,6 +3,10 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
+# Flag set when a VM crash (PSRemotingTransportException) is detected.
+# Prevents cascading connection attempts to a dead VM.
+$script:VMCrashed = $false
+
 #
 # Common helper functions.
 #
@@ -468,7 +472,7 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
            [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps",
            [Parameter(Mandatory = $false)] [bool] $SkipDumpOnTimeout=$false)
-    $TimeElapsed = 0
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
     $TimeSinceLastOutput = 0
 
@@ -482,7 +486,6 @@ function Wait-TestJobToComplete
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
         Start-Sleep -Seconds 2
-        $TimeElapsed += 2
         $TimeSinceLastOutput += 2
 
         try {
@@ -507,11 +510,11 @@ function Wait-TestJobToComplete
 
         # Emit periodic heartbeat so the GitHub log shows the runner is alive.
         if ($TimeSinceLastOutput -ge $HeartbeatInterval) {
-            Write-Log "$CheckpointPrefix job still running (${TimeElapsed}s elapsed, job state: $($Job.State))."
+            Write-Log "$CheckpointPrefix job still running ($([int]$sw.Elapsed.TotalSeconds)s elapsed, job state: $($Job.State))."
             $TimeSinceLastOutput = 0
         }
 
-        if ($TimeElapsed -gt $TestJobTimeout) {
+        if ($sw.Elapsed.TotalSeconds -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
                 if ($ExecuteOnVM -and -not $SkipDumpOnTimeout) {
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -1087,6 +1090,12 @@ function Invoke-CommandOnVM {
         [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 300
     )
 
+    # Fast-fail if the VM has already crashed in this process to avoid
+    # cascading connection attempts that will hang on the dead transport.
+    if ($script:VMCrashed) {
+        throw "VM $VMName has already crashed — refusing new connection to avoid cascading hangs."
+    }
+
     # Bounded execution: use -AsJob so we can monitor progress and enforce a
     # timeout.  This prevents a dead PS Direct transport from blocking the
     # caller indefinitely.
@@ -1097,15 +1106,19 @@ function Invoke-CommandOnVM {
         $invokeJob = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -AsJob -ErrorAction Stop
     }
 
-    $elapsed = 0
+    # Use a Stopwatch for wall-clock accuracy.  The old accumulator-based
+    # counter ($elapsed += $pollInterval) becomes inaccurate if Receive-Job or
+    # any other operation in the loop blocks for longer than $pollInterval,
+    # which can happen when the PS Direct VMBus transport is stuck.
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $pollInterval = 5
     $heartbeatInterval = 30
     $timeSinceOutput = 0
 
     try {
         while ($invokeJob.State -eq 'Running') {
-            if ($elapsed -ge $TimeoutSeconds) {
-                Write-Log "*** ERROR *** Command on VM $VMName timed out after ${TimeoutSeconds}s."
+            if ($sw.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
+                Write-Log "*** ERROR *** Command on VM $VMName timed out after $([int]$sw.Elapsed.TotalSeconds)s (limit ${TimeoutSeconds}s)."
                 # Drain any final output before killing the job.
                 try {
                     $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
@@ -1119,13 +1132,21 @@ function Invoke-CommandOnVM {
                         }
                     }
                 } catch {}
-                Stop-Job -Job $invokeJob -ErrorAction SilentlyContinue
-                try { $invokeJob | Wait-Job -Timeout 30 | Out-Null } catch {}
-                throw [System.TimeoutException]::new("Command on VM $VMName timed out after ${TimeoutSeconds}s")
+                # Stop-Job can hang if the PS Direct VMBus transport is stuck.
+                # Run it on a background thread with a 30-second timeout.
+                $stopTask = [powershell]::Create().AddScript({
+                    param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue
+                }).AddArgument($invokeJob)
+                $stopAsync = $stopTask.BeginInvoke()
+                if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
+                    Write-Log "Warning: Stop-Job timed out on VM $VMName -- continuing."
+                }
+                try { $stopTask.EndInvoke($stopAsync) } catch {}
+                $stopTask.Dispose()
+                throw [System.TimeoutException]::new("Command on VM $VMName timed out after $([int]$sw.Elapsed.TotalSeconds)s")
             }
 
             Start-Sleep -Seconds $pollInterval
-            $elapsed += $pollInterval
             $timeSinceOutput += $pollInterval
 
             # Stream any available output from the remote command.
@@ -1147,13 +1168,13 @@ function Invoke-CommandOnVM {
             }
 
             if ($timeSinceOutput -ge $heartbeatInterval) {
-                Write-Log "Invoke-CommandOnVM: waiting on $VMName (${elapsed}s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
+                Write-Log "Invoke-CommandOnVM: waiting on $VMName ($([int]$sw.Elapsed.TotalSeconds)s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
                 $timeSinceOutput = 0
             }
         }
 
         # Job finished -- drain remaining output (job may have ended between polls).
-        Write-Log "Invoke-CommandOnVM: job on $VMName finished after ${elapsed}s (state: $($invokeJob.State))."
+        Write-Log "Invoke-CommandOnVM: job on $VMName finished after $([int]$sw.Elapsed.TotalSeconds)s (state: $($invokeJob.State))."
         try {
             $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
             if ($output) {
@@ -1189,6 +1210,10 @@ function Invoke-CommandOnVM {
         if ($invokeJob.State -eq 'Failed') {
             $reason = $invokeJob.ChildJobs[0].JobStateInfo.Reason
             if ($reason) {
+                if ($reason -is [System.Management.Automation.Remoting.PSRemotingTransportException]) {
+                    $script:VMCrashed = $true
+                    Write-Log "*** VM CRASH DETECTED *** Marking VM as crashed to prevent cascading connection attempts."
+                }
                 Write-Log "*** REMOTE FAILURE *** $($reason.GetType().Name): $($reason.Message)"
                 throw $reason
             }

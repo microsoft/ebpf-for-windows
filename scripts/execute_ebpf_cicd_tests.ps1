@@ -86,7 +86,7 @@ $workerHandle = $worker.Handle
 Write-Log "Worker started (PID=$($worker.Id))"
 
 # ── Phase 2: Poll for completion, tail output ───────────────────────
-$elapsed = 0
+$sw = [System.Diagnostics.Stopwatch]::StartNew()
 $pollInterval = 5
 $heartbeatInterval = 30
 $timeSinceOutput = 0
@@ -95,7 +95,6 @@ $timedOut = $false
 
 while (-not $worker.HasExited) {
     Start-Sleep -Seconds $pollInterval
-    $elapsed += $pollInterval
     $timeSinceOutput += $pollInterval
 
     # Tail new lines from the output file.  Use FileStream with ReadWrite
@@ -132,13 +131,13 @@ while (-not $worker.HasExited) {
     }
 
     if ($timeSinceOutput -ge $heartbeatInterval) {
-        Write-Log "Execute: worker running (${elapsed}s / ${TestJobTimeout}s, PID=$($worker.Id))..."
+        Write-Log "Execute: worker running ($([int]$sw.Elapsed.TotalSeconds)s / ${TestJobTimeout}s, PID=$($worker.Id))..."
         $timeSinceOutput = 0
     }
 
     # ── Timeout handling ────────────────────────────────────────────
-    if ($elapsed -ge $TestJobTimeout) {
-        Write-Log "*** TIMEOUT *** Worker has been running for ${elapsed}s (limit: ${TestJobTimeout}s)"
+    if ($sw.Elapsed.TotalSeconds -ge $TestJobTimeout) {
+        Write-Log "*** TIMEOUT *** Worker has been running for $([int]$sw.Elapsed.TotalSeconds)s (limit: ${TestJobTimeout}s)"
         $timedOut = $true
 
         # Attempt to generate crash dumps on the VM before killing the worker.
