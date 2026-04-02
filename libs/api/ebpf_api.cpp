@@ -4923,6 +4923,9 @@ _map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) const void* d
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+static _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index);
+
 bool
 ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) NO_EXCEPT_TRY
 {
@@ -4930,8 +4933,15 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
     ebpf_assert(subscription);
     boolean cancel_result = true;
 
+    // Collect CPU IDs before cancellation erases contexts from the map.
+    std::vector<uint32_t> cpu_ids_to_unmap;
+
     {
         std::scoped_lock lock{subscription->lock};
+
+        for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
+            cpu_ids_to_unmap.push_back(cpu_id);
+        }
 
         // Set the unsubscribed flag, so that if a completion callback is ongoing, it does not issue another async
         // IOCTL.
@@ -4980,6 +4990,12 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
         subscription->cleanup_complete_event.wait(lock_wait, all_done_or_failed);
         // Clean up remaining (failed) contexts.
         subscription->async_query_contexts.clear();
+    }
+
+    // Unmap per-CPU ring buffers so the kernel clears the user-mode mappings,
+    // allowing future perf_buffer__new / ring_buffer__new calls on the same map within this process.
+    for (uint32_t cpu_id : cpu_ids_to_unmap) {
+        (void)ebpf_ring_buffer_map_unmap_buffer_with_handle(subscription->map_handle, cpu_id);
     }
 
     delete subscription;
@@ -5290,6 +5306,17 @@ ebpf_ring_buffer_map_map_buffer(
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+// Shared helper: send unmap IOCTL by map handle and index.
+// The kernel uses its internally-stored addresses for unmapping, so no user-space
+// addresses need to be provided.
+static _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index)
+{
+    ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer_with_index(
     fd_t map_fd, uint64_t index, _In_opt_ void* consumer, _In_opt_ const void* producer, _In_opt_ const void* data)
@@ -5299,14 +5326,10 @@ ebpf_ring_buffer_map_unmap_buffer_with_index(
     UNREFERENCED_PARAMETER(consumer);
     UNREFERENCED_PARAMETER(producer);
     UNREFERENCED_PARAMETER(data);
-
-    ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid)
         return EBPF_INVALID_FD;
-    ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    ebpf_result_t result = ebpf_ring_buffer_map_unmap_buffer_with_handle(map_handle, index);
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
