@@ -1,4 +1,4 @@
-# Copyright (c) eBPF for Windows contributors
+﻿# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param (
@@ -437,7 +437,7 @@ function Run-KernelTests {
         }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
-        # Build SecureString via .NET directly — ConvertTo-SecureString requires
+        # Build SecureString via .NET directly -- ConvertTo-SecureString requires
         # the Microsoft.PowerShell.Security module which fails to load on ARM64.
         $plainPwd = Get-VMPassword
         $securePwd = [System.Security.SecureString]::new()

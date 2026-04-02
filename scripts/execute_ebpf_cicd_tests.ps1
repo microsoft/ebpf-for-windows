@@ -1,4 +1,4 @@
-# Copyright (c) eBPF for Windows contributors
+﻿# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # ──────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@
 # The monitor tails the output file for GitHub log visibility and
 # enforces a timeout.  On timeout it connects to the VM to generate
 # crash dumps, then kills the worker with Stop-Process -Force (which
-# is an OS-level kill — always succeeds, unlike Stop-Job on a stuck
+# is an OS-level kill -- always succeeds, unlike Stop-Job on a stuck
 # PS Direct transport).
 # ──────────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) |
 
 # ── Phase 1: Launch the worker process ──────────────────────────────
 # The worker runs in a separate powershell.exe process.  Its stdout
-# and stderr are redirected to files — no pipe, no back-pressure.
+# and stderr are redirected to files -- no pipe, no back-pressure.
 $workerScript = Join-Path $PSScriptRoot "execute_test_worker.ps1"
 $outputFile = Join-Path $env:TEMP "test_worker_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 $errorFile  = Join-Path $env:TEMP "test_worker_error_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
@@ -166,7 +166,7 @@ while (-not $worker.HasExited) {
         }
 
         # Kill the worker process.  Stop-Process -Force is an OS-level kill
-        # that always succeeds — unlike Stop-Job on a stuck PS Direct transport.
+        # that always succeeds -- unlike Stop-Job on a stuck PS Direct transport.
         Write-Log "Killing worker process (PID=$($worker.Id))..."
         try {
             Stop-Process -Id $worker.Id -Force -ErrorAction SilentlyContinue

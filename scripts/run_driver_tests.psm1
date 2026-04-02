@@ -456,7 +456,7 @@ function Invoke-CICDStressTests
         Write-Log "Executing eBPF API IOCTL stress tests."
         $TestHangTimeout = 60*60
         $api_stress_duration = 30*60
-        # Skip per-test file-mode WPR tracing for long stress tests — the setup
+        # Skip per-test file-mode WPR tracing for long stress tests -- the setup
         # phase already starts a memory-mode trace (-KmTraceType "memory") which
         # is sufficient for diagnostics.  File-mode tracing for 30+ minutes generates
         # multi-GB ETL files that can exhaust VM disk space.
@@ -504,7 +504,7 @@ function Invoke-ConnectRedirectTest
 
         $TestCommand = ".\connect_redirect_tests.exe"
 
-        # Exclude CONNECTED_UDP tests via Catch2 CLI filter — known Windows OS
+        # Exclude CONNECTED_UDP tests via Catch2 CLI filter -- known Windows OS
         # platform bug causes driver verifier pool leak failures (0xC4/0x62).
         $ExcludeFilter = " ~*CONNECTED_UDP*"
 

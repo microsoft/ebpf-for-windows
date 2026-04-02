@@ -497,7 +497,7 @@ function Import-ResultsFromVM
 
     # NOTE: The caller (cleanup_ebpf_cicd_tests.ps1) already calls
     # Wait-AllVMsToInitialize with a try/catch before invoking this function.
-    # Do NOT call it again here — it adds up to 5 minutes of delay if the VM
+    # Do NOT call it again here -- it adds up to 5 minutes of delay if the VM
     # is dead, and the caller has already determined whether the VM is reachable.
 
     foreach($VM in $VMList) {

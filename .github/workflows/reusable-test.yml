@@ -87,6 +87,7 @@ jobs:
     timeout-minutes: ${{ inputs.job_timeout }}
 
     strategy:
+      fail-fast: false
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
@@ -274,6 +275,7 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
         id: run_pre_test_command
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}}
 
@@ -348,6 +350,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_platform == 'arm64') && (inputs.fault_injection != true)
         id: run_test_github_runner
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName arm64_runner.log
 
@@ -355,6 +358,7 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES') && (inputs.build_platform != 'arm64')) && (inputs.fault_injection != true)
         id: run_test_without_code_coverage
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: ${{ inputs.step_timeout }}
         shell: cmd
         run: |
           set EBPF_ENABLE_WER_REPORT=yes
@@ -366,6 +370,7 @@ jobs:
         if: always() && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
         id: run_post_test_command
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}}
 

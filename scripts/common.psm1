@@ -1096,6 +1096,31 @@ function Invoke-CommandOnVM {
         throw "VM $VMName has already crashed -- refusing new connection to avoid cascading hangs."
     }
 
+    # Proactive VM health check: verify the VM is alive BEFORE attempting
+    # PS Direct.  On Gen2 VMs, if the VM has crashed, the VMBus socket can
+    # enter a half-open state where Invoke-Command -VMName -AsJob succeeds
+    # but the resulting job hangs indefinitely.  Checking the Hyper-V
+    # heartbeat integration service is cheap and catches this case.
+    if (-not $VMIsRemote) {
+        try {
+            $vmObj = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+            if ($vmObj) {
+                if ($vmObj.State -ne 'Running') {
+                    $script:VMCrashed = $true
+                    throw "VM $VMName is not running (state: $($vmObj.State)) -- refusing PS Direct connection."
+                }
+                $hb = (Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue |
+                       Where-Object { $_.Name -eq 'Heartbeat' }).PrimaryStatusDescription
+                if ($hb -and $hb -ne 'OK') {
+                    Write-Log "WARNING: VM $VMName heartbeat is '$hb' (expected 'OK') -- VM may be unhealthy."
+                }
+            }
+        } catch [Microsoft.HyperV.PowerShell.VirtualizationException] {
+            # Hyper-V cmdlets not available (e.g. running on a non-Hyper-V host).
+            # Fall through and let PS Direct attempt the connection.
+        }
+    }
+
     # Bounded execution: use -AsJob so we can monitor progress and enforce a
     # timeout.  This prevents a dead PS Direct transport from blocking the
     # caller indefinitely.
@@ -1170,6 +1195,43 @@ function Invoke-CommandOnVM {
             if ($timeSinceOutput -ge $heartbeatInterval) {
                 Write-Log "Invoke-CommandOnVM: waiting on $VMName ($([int]$sw.Elapsed.TotalSeconds)s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
                 $timeSinceOutput = 0
+
+                # Periodic VM health check: on Gen2 VMs, a VMBus crash can leave
+                # the PS Direct job in 'Running' state with a half-open socket
+                # for many minutes.  Checking the Hyper-V heartbeat integration
+                # service detects this within one poll interval (~5-30s) instead
+                # of waiting for the full timeout (potentially 40-150 minutes).
+                if (-not $VMIsRemote) {
+                    try {
+                        $vmState = (Get-VM -Name $VMName -ErrorAction SilentlyContinue).State
+                        if ($vmState -and $vmState -ne 'Running') {
+                            Write-Log "*** VM CRASH DETECTED *** VM $VMName state is '$vmState' (not Running)."
+                            $script:VMCrashed = $true
+                            # Force-stop the stuck job on a background thread.
+                            $stopTask = [powershell]::Create().AddScript({
+                                param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue
+                            }).AddArgument($invokeJob)
+                            $stopAsync = $stopTask.BeginInvoke()
+                            $stopAsync.AsyncWaitHandle.WaitOne(30000) | Out-Null
+                            try { $stopTask.EndInvoke($stopAsync) } catch {}
+                            $stopTask.Dispose()
+                            throw "VM $VMName crashed (state: $vmState) -- aborting PS Direct session."
+                        }
+                        $hb = (Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue |
+                               Where-Object { $_.Name -eq 'Heartbeat' }).PrimaryStatusDescription
+                        if ($hb -and $hb -ne 'OK') {
+                            Write-Log "*** VM UNHEALTHY *** VM $VMName heartbeat: '$hb'. Possible crash in progress."
+                            # Don't abort yet -- VM might be temporarily busy (e.g. writing crash dump).
+                            # But if heartbeat stays non-OK for 2+ consecutive checks, the Stopwatch
+                            # timeout will eventually fire.
+                        }
+                    } catch [Microsoft.HyperV.PowerShell.VirtualizationException] {
+                        # Hyper-V cmdlets not available; skip health check.
+                    } catch {
+                        if ($_.Exception.Message -match 'crashed|not Running') { throw }
+                        # Other errors (e.g., WMI timeout) are non-fatal; skip this check.
+                    }
+                }
             }
         }
 
@@ -1257,15 +1319,70 @@ function New-SessionOnVM {
     )
     $session = $null
     Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote, Timeout: $($TimeoutMs/1000)s)"
-    # Set operation and open timeouts on remote (WinRM) sessions to prevent
-    # indefinite hangs when the VM is unreachable (e.g. after a crash).
-    # Note: -SessionOption is not supported with -VMName (PowerShell Direct),
-    # but PS Direct connections fail relatively quickly when the VM is down
-    # because the Hyper-V socket transport detects the VM state.
+
+    # Fast-fail if the VM has already crashed.
+    if ($script:VMCrashed) {
+        throw "VM $VMName has already crashed -- refusing new session to avoid VMBus hang."
+    }
+
     if ($VMIsRemote) {
         $sessionOption = New-PSSessionOption -OperationTimeout $TimeoutMs -OpenTimeout $TimeoutMs
         $session = New-PSSession -ComputerName $VMName -Credential $Credential -SessionOption $sessionOption -ErrorAction Stop
     } else {
+        # For PS Direct (non-remote), New-PSSession -VMName has NO timeout
+        # parameter (-SessionOption is not supported).  On Gen2 VMs, a
+        # half-open VMBus socket can cause this call to hang indefinitely.
+        #
+        # Strategy: (1) check VM state, (2) probe with Invoke-Command -AsJob
+        # + Wait-Job -Timeout (proven pattern from Wait-AllVMsReadyForCommands),
+        # (3) if probe succeeds, New-PSSession should complete near-instantly.
+
+        # Step 1: Check VM state via Hyper-V management (instant, no VMBus).
+        try {
+            $vmObj = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+            if ($vmObj -and $vmObj.State -ne 'Running') {
+                $script:VMCrashed = $true
+                throw "VM $VMName is not running (state: $($vmObj.State)) -- refusing PS Direct session."
+            }
+        } catch {
+            if ($_.Exception.Message -match 'crashed|not running|refusing') { throw }
+        }
+
+        # Step 2: Probe connectivity with a bounded timeout.  If the VMBus
+        # socket is half-open (Gen2 crash), the probe job will hang and
+        # Wait-Job will return $null after the timeout.
+        $timeoutSec = [Math]::Max(1, [int]($TimeoutMs / 1000))
+        try {
+            $probeJob = Invoke-Command -VMName $VMName -Credential $Credential `
+                -ScriptBlock { $true } -AsJob -ErrorAction Stop
+        } catch {
+            Write-Log "*** ERROR *** Invoke-Command -AsJob probe to $VMName failed: $($_.Exception.Message)"
+            throw
+        }
+
+        $completed = $probeJob | Wait-Job -Timeout $timeoutSec
+        if (-not $completed) {
+            Write-Log "*** ERROR *** PS Direct probe to $VMName timed out after ${timeoutSec}s -- VMBus may be stuck."
+            $script:VMCrashed = $true
+            # Non-blocking cleanup of the stuck probe job.
+            $stopPs = [powershell]::Create().AddScript({
+                param($j)
+                Stop-Job -Job $j -ErrorAction SilentlyContinue
+                Remove-Job -Job $j -Force -ErrorAction SilentlyContinue
+            }).AddArgument($probeJob)
+            $stopAsync = $stopPs.BeginInvoke()
+            $stopAsync.AsyncWaitHandle.WaitOne(10000) | Out-Null
+            try { $stopPs.EndInvoke($stopAsync) } catch {}
+            $stopPs.Dispose()
+            throw "PS Direct probe to $VMName timed out after ${timeoutSec}s."
+        }
+
+        # Probe succeeded — drain output and clean up.
+        try { Receive-Job -Job $probeJob -ErrorAction SilentlyContinue | Out-Null } catch {}
+        Remove-Job -Job $probeJob -Force -ErrorAction SilentlyContinue
+
+        # Step 3: VMBus is working — create the actual session.  This should
+        # complete in under a second since the transport was just verified.
         $session = New-PSSession -VMName $VMName -Credential $Credential -ErrorAction Stop
     }
     return $session

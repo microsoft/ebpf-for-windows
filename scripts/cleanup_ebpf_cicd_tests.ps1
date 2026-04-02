@@ -153,11 +153,16 @@ if ($JobFailed) {
     }
 }
 
-# Clean up -- Stop-Job first (with timeout) to avoid Remove-Job hanging on a
-# blocked runspace (e.g. Invoke-Command stuck on a dead PS Direct transport).
+# Clean up -- Stop-Job can hang if the inner runspace is stuck on a dead
+# PS Direct transport, so run it on a background thread with a timeout.
 try {
-    Stop-Job -Job $Job -ErrorAction SilentlyContinue
-    $Job | Wait-Job -Timeout 30 | Out-Null
+    $stopTask = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
+    $stopAsync = $stopTask.BeginInvoke()
+    if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
+        Write-Log "Warning: Stop-Job timed out in cleanup -- proceeding anyway."
+    }
+    try { $stopTask.EndInvoke($stopAsync) } catch {}
+    $stopTask.Dispose()
 } catch {}
 try {
     $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
