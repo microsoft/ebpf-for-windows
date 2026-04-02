@@ -1178,13 +1178,12 @@ function Invoke-CommandOnVM {
             try {
                 $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
                 if ($output) {
-                    # Limit output to avoid pipe saturation between nested jobs.
                     $lines = @($output)
-                    if ($lines.Count -le 5) {
+                    if ($lines.Count -le 20) {
                         $lines | ForEach-Object { Write-Host $_ }
                     } else {
-                        Write-Host "... ($($lines.Count) lines from VM)"
-                        $lines | Select-Object -Last 3 | ForEach-Object { Write-Host $_ }
+                        Write-Host "... ($($lines.Count) lines from VM, showing last 15)"
+                        $lines | Select-Object -Last 15 | ForEach-Object { Write-Host $_ }
                     }
                     $timeSinceOutput = 0
                 }
@@ -1237,16 +1236,15 @@ function Invoke-CommandOnVM {
 
         # Job finished -- drain remaining output (job may have ended between polls).
         Write-Log "Invoke-CommandOnVM: job on $VMName finished after $([int]$sw.Elapsed.TotalSeconds)s (state: $($invokeJob.State))."
+        # Final drain -- show ALL remaining output so failure details are
+        # never lost.  During polling we throttle to avoid pipe saturation,
+        # but once the job is done we want every line for diagnosis.
         try {
             $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
             if ($output) {
                 $lines = @($output)
-                if ($lines.Count -le 20) {
-                    $lines | ForEach-Object { Write-Host $_ }
-                } else {
-                    Write-Host "... ($($lines.Count) final lines from VM, showing last 10)"
-                    $lines | Select-Object -Last 10 | ForEach-Object { Write-Host $_ }
-                }
+                Write-Host "--- Final output from VM ($($lines.Count) lines) ---"
+                $lines | ForEach-Object { Write-Host $_ }
             }
         } catch {}
 
@@ -1257,12 +1255,8 @@ function Invoke-CommandOnVM {
                     $childOutput = Receive-Job -Job $child -ErrorAction SilentlyContinue 2>&1
                     if ($childOutput) {
                         $clines = @($childOutput)
-                        if ($clines.Count -le 20) {
-                            $clines | ForEach-Object { Write-Host $_ }
-                        } else {
-                            Write-Host "... ($($clines.Count) child job lines, showing last 10)"
-                            $clines | Select-Object -Last 10 | ForEach-Object { Write-Host $_ }
-                        }
+                        Write-Host "--- Child job output ($($clines.Count) lines) ---"
+                        $clines | ForEach-Object { Write-Host $_ }
                     }
                 } catch {}
             }

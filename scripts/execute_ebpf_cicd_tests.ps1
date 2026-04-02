@@ -194,13 +194,9 @@ if (Test-Path $outputFile) {
         $allLines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
         if ($allLines.Count -gt $linesSeen) {
             $remaining = $allLines.Count - $linesSeen
-            if ($remaining -le 50) {
-                for ($i = $linesSeen; $i -lt $allLines.Count; $i++) {
-                    Write-Host $allLines[$i]
-                }
-            } else {
-                Write-Host "... ($remaining final lines, showing last 20)"
-                $allLines | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+            Write-Host "--- Final worker output ($remaining lines) ---"
+            for ($i = $linesSeen; $i -lt $allLines.Count; $i++) {
+                Write-Host $allLines[$i]
             }
         }
     } catch {}
@@ -223,6 +219,19 @@ try {
 # Determine exit status.
 $workerExitCode = $worker.ExitCode
 Write-Log "Worker exited with code: $workerExitCode (timedOut=$timedOut)"
+
+# Kill any orphaned child processes (e.g. wsmprovhost.exe from PS Direct
+# sessions created by the worker).  GitHub Actions tracks the entire process
+# tree and won't mark the step as complete until ALL descendants are dead.
+try {
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($worker.Id)" -ErrorAction SilentlyContinue
+    if ($children) {
+        foreach ($child in $children) {
+            Write-Log "Killing orphaned child process: $($child.Name) (PID=$($child.ProcessId))"
+            Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue
+        }
+    }
+} catch {}
 
 Pop-Location
 

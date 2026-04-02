@@ -161,36 +161,48 @@ function Remove-eBPFProgram {
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
-function Start-BackgroundProcess{
+function Start-BackgroundListeners {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName,
-        [Parameter(Mandatory = $true)] [string] $Parameters
+        [Parameter(Mandatory = $true)] [string[]] $IPAddresses,
+        [Parameter(Mandatory = $true)] [string[]] $Protocols,
+        [Parameter(Mandatory = $true)] [int[]] $Ports
     )
-    $session = $null
-    if ($script:ExecuteOnVM){
-        $VmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
-        $session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $VmCredential
-    } else {
-        $session = New-PSSession -ErrorAction Stop
-    }
+    # Start all listeners in a single remote call instead of creating a
+    # separate PS Direct session per listener.  The old approach leaked
+    # wsmprovhost.exe host processes that kept the CI step alive forever.
+    #
+    # Serialize arrays as pipe-delimited strings to avoid PowerShell
+    # array-flattening when passing through Invoke-Command -ArgumentList.
+    $ipStr = $IPAddresses -join '|'
+    $protoStr = $Protocols -join '|'
+    $portStr = ($Ports | ForEach-Object { $_.ToString() }) -join '|'
+
     $scriptBlock = {
-        param($ProgramName, $Parameters, $WorkingDirectory)
-        $ProgramName = "$WorkingDirectory\$ProgramName"
-        Start-Process -FilePath $ProgramName -ArgumentList $Parameters -PassThru -ErrorAction Stop | Out-Null
+        param($ProgramName, $IpStr, $ProtoStr, $PortStr, $WorkingDirectory)
+        $ProgramPath = "$WorkingDirectory\$ProgramName"
+        foreach ($IP in ($IpStr -split '\|')) {
+            foreach ($Proto in ($ProtoStr -split '\|')) {
+                foreach ($Port in ($PortStr -split '\|')) {
+                    Start-Process -FilePath $ProgramPath -ArgumentList "--protocol $Proto --local-port $Port --local-address $IP" -ErrorAction Stop | Out-Null
+                }
+            }
+        }
     }
-    $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
-    Write-Log "Starting $ProgramName with arguments $Parameters in a background session."
-    Invoke-Command -Session $Session -ScriptBlock $scriptBlock -ArgumentList $argList -ErrorAction Stop
+    $count = $IPAddresses.Count * $Protocols.Count * $Ports.Count
+    Write-Log "Starting $count $ProgramName listeners ($($IPAddresses.Count) IPs x $($Protocols.Count) protocols x $($Ports.Count) ports)."
+    $argList = @($ProgramName, $ipStr, $protoStr, $portStr, $script:WorkingDirectory)
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
 }
 
-function Stop-BackgroundProcess {
+function Stop-BackgroundListeners {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName
     )
     $scriptBlock = {
         param($ProgramName)
         $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
-        Stop-Process -Name $ProgramName
+        Stop-Process -Name $ProgramName -Force -ErrorAction SilentlyContinue
     }
     $argList = @($ProgramName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 60
@@ -282,57 +294,54 @@ function Invoke-ConnectRedirectTestHelper
     $ProgramName = "tcp_udp_listener.exe"
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
-    if ($script:VMIsRemote) {
-        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
-        $Session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $true -Credential $Credential
-    }
-
-    # Build array of all IP addresses from all interfaces
+    # Build array of all IP addresses from all interfaces.
     $IPAddresses = @()
     foreach ($Interface in $Interfaces) {
         $IPAddresses += $Interface.V4Address
         $IPAddresses += $Interface.V6Address
     }
 
-    # Start TCP and UDP listeners
+    # Start all TCP and UDP listeners in a single remote call.
     $Ports = @($DestinationPort, $ProxyPort)
     $Protocols = @("tcp", "udp")
+    Start-BackgroundListeners -ProgramName $ProgramName -IPAddresses $IPAddresses -Protocols $Protocols -Ports $Ports
 
-    foreach ($IPAddress in $IPAddresses) {
-        foreach ($Protocol in $Protocols) {
-            foreach ($Port in $Ports) {
-                Start-BackgroundProcess -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
-            }
+    # Wrap the test in try/finally so listeners are always cleaned up,
+    # even when the test throws.  Abandoned listeners were the root cause
+    # of CI steps spinning forever (orphaned host-side session processes).
+    try {
+        $InsecurePassword = Get-VMPassword
+
+        $scriptBlock = {
+            param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
+            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+            Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+
+            Write-Log "Invoking connect redirect tests [Mode=$UserType]"
+            Invoke-ConnectRedirectTest `
+                -LocalIPv4Address $LocalIPv4Address `
+                -LocalIPv6Address $LocalIPv6Address `
+                -RemoteIPv4Address $RemoteIPv4Address `
+                -RemoteIPv6Address $RemoteIPv6Address `
+                -VirtualIPv4Address $VirtualIPv4Address `
+                -VirtualIPv6Address $VirtualIPv6Address `
+                -DestinationPort $DestinationPort `
+                -ProxyPort $ProxyPort `
+                -StandardUserName $StandardUserName `
+                -StandardUserPassword $StandardUserPassword `
+                -UserType $UserType `
+                -WorkingDirectory $WorkingDirectory
+            Write-Log "Invoke-ConnectRedirectTest finished"
+        }
+        $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
+        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
+    } finally {
+        try {
+            Stop-BackgroundListeners -ProgramName $ProgramName
+        } catch {
+            Write-Log "Warning: Failed to stop background listeners: $($_.Exception.Message)"
         }
     }
-
-    $InsecurePassword = Get-VMPassword
-
-    $scriptBlock = {
-        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
-
-        Write-Log "Invoking connect redirect tests [Mode=$UserType]"
-        Invoke-ConnectRedirectTest `
-            -LocalIPv4Address $LocalIPv4Address `
-            -LocalIPv6Address $LocalIPv6Address `
-            -RemoteIPv4Address $RemoteIPv4Address `
-            -RemoteIPv6Address $RemoteIPv6Address `
-            -VirtualIPv4Address $VirtualIPv4Address `
-            -VirtualIPv6Address $VirtualIPv6Address `
-            -DestinationPort $DestinationPort `
-            -ProxyPort $ProxyPort `
-            -StandardUserName $StandardUserName `
-            -StandardUserPassword $StandardUserPassword `
-            -UserType $UserType `
-            -WorkingDirectory $WorkingDirectory
-        Write-Log "Invoke-ConnectRedirectTest finished"
-    }
-    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
-
-    Stop-BackgroundProcess -ProgramName $ProgramName
 }
 
 function Stop-eBPFComponents {
