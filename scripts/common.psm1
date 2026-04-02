@@ -1093,7 +1093,7 @@ function Invoke-CommandOnVM {
     # Fast-fail if the VM has already crashed in this process to avoid
     # cascading connection attempts that will hang on the dead transport.
     if ($script:VMCrashed) {
-        throw "VM $VMName has already crashed — refusing new connection to avoid cascading hangs."
+        throw "VM $VMName has already crashed -- refusing new connection to avoid cascading hangs."
     }
 
     # Bounded execution: use -AsJob so we can monitor progress and enforce a
