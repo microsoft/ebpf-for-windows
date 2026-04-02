@@ -362,16 +362,16 @@ jobs:
           powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run post test command
-        # Run the post test command even if the workflow has failed.
-        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
+        # Run the post test command even if the workflow has failed or been cancelled.
+        if: always() && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
         id: run_post_test_command
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
           ${{env.POST_COMMAND}}
 
       - name: Run post test command on self-hosted runner
-        # Run the post test command even if the workflow has failed.
-        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd')
+        # Run the post test command even if the workflow has failed or been cancelled.
+        if: always() && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd')
         id: run_post_test_command_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         timeout-minutes: 45
@@ -379,8 +379,8 @@ jobs:
           ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
       - name: Run post test command on 1ES runner
-        # Run the post test command even if the workflow has failed.
-        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES')
+        # Run the post test command even if the workflow has failed or been cancelled.
+        if: always() && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES')
         id: run_post_test_command_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         timeout-minutes: 45

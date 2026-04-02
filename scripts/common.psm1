@@ -790,7 +790,9 @@ function Retrieve-StoredCredential {
             $output = Invoke-PsExecScript -Script $Script
             $lines = $output -split "`n"
             $Username = $lines[0].Trim()
-            $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+            $plainPwd = $lines[1].Trim()
+            $Password = [System.Security.SecureString]::new()
+            foreach ($c in $plainPwd.ToCharArray()) { $Password.AppendChar($c) }
             if ($null -eq $Username -or $null -eq $Password) {
                 throw "Failed to retrieve the stored credential."
             }
@@ -843,7 +845,9 @@ function Get-VMCredential {
         }
         return Retrieve-StoredCredential -Target $CredentialTarget
     } else {
-        $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
+        $plainPwd = Get-VMPassword
+        $securePassword = [System.Security.SecureString]::new()
+        foreach ($c in $plainPwd.ToCharArray()) { $securePassword.AppendChar($c) }
         return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
     }
 }

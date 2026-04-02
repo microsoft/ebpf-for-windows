@@ -401,7 +401,12 @@ function Run-KernelTests {
                 $script:LogFileName, $GranularTracing,
                 $MultiThread, $RestartExtension, $RestartEbpfCore
             )
-            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
+            # Stress tests set their own inner per-binary timeout (up to 120 min
+            # for MT and restart variants).  The PS Direct session must stay alive
+            # for longer than the max inner timeout.  Use the larger of 2x the
+            # module-level TestHangTimeout and 150 minutes (inner max + buffer).
+            $stressSessionTimeout = [Math]::Max($script:TestHangTimeout * 2, 150 * 60)
+            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds $stressSessionTimeout
         }
 
         "performance" {
@@ -432,7 +437,12 @@ function Run-KernelTests {
         }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
-        Add-StandardUser -UserName 'VMStandardUser' -Password (ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force)
+        # Build SecureString via .NET directly — ConvertTo-SecureString requires
+        # the Microsoft.PowerShell.Security module which fails to load on ARM64.
+        $plainPwd = Get-VMPassword
+        $securePwd = [System.Security.SecureString]::new()
+        foreach ($c in $plainPwd.ToCharArray()) { $securePwd.AppendChar($c) }
+        Add-StandardUser -UserName 'VMStandardUser' -Password $securePwd
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
         Write-Log "Connect Redirect tests completed"
     }
