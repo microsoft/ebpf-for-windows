@@ -94,6 +94,7 @@ if ($ExecuteOnVM) {
     }
 }
 
+$exitCode = 0
 try {
     Write-Log "Running kernel tests"
     Run-KernelTests -Config $Config
@@ -110,9 +111,29 @@ try {
             Write-Log "Warning: kernel dump generation failed: $($_.Exception.Message)"
         }
     }
+    $exitCode = 1
+} finally {
+    # Kill any remaining child processes.  Invoke-CommandOnVM uses
+    # Invoke-Command -AsJob which creates in-process remoting jobs, but
+    # Wait-TestJobToComplete and Generate-KernelDumpOnVM use Start-Job
+    # which creates child powershell.exe processes.  If Stop-Job fails
+    # (stuck PS Direct transport), these children survive and keep the
+    # GitHub Actions step alive indefinitely.
+    try {
+        $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
+        if ($children) {
+            Write-Log "Killing $(@($children).Count) remaining child process(es) from worker..."
+            foreach ($child in $children) {
+                Write-Log "  $($child.Name) PID=$($child.ProcessId)"
+                & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
+            }
+        }
+    } catch {}
     Pop-Location
-    [Environment]::Exit(1)
 }
 
-Pop-Location
+if ($exitCode -ne 0) {
+    Write-Log "Worker exiting with failure"
+    exit $exitCode
+}
 Write-Log "Worker process completed successfully"

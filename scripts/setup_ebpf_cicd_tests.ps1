@@ -54,6 +54,13 @@ if ($TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
+# Elevate the GitHub Actions runner agent priority so it is not starved when the
+# inner VM drives sustained CPU load during stress tests.
+foreach ($proc in (Get-Process -Name 'Runner.Worker','Runner.Listener' -ErrorAction SilentlyContinue)) {
+    $proc.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::AboveNormal
+    Write-Log "Set $($proc.ProcessName) (PID $($proc.Id)) priority to AboveNormal"
+}
+
 $Job = Start-Job -ScriptBlock {
     param (
         [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
@@ -196,11 +203,16 @@ if ($JobFailed) {
     }
 }
 
-# Clean up -- Stop-Job first (with timeout) to avoid Remove-Job hanging on a
-# blocked runspace (e.g. Invoke-Command stuck on a dead PS Direct transport).
+# Clean up -- Stop-Job can hang if the inner runspace is stuck on a dead
+# PS Direct transport, so run it on a background thread with a timeout.
 try {
-    Stop-Job -Job $Job -ErrorAction SilentlyContinue
-    $Job | Wait-Job -Timeout 30 | Out-Null
+    $stopTask = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
+    $stopAsync = $stopTask.BeginInvoke()
+    if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
+        Write-Log "Warning: Stop-Job timed out in setup -- proceeding anyway."
+    }
+    try { $stopTask.EndInvoke($stopAsync) } catch {}
+    $stopTask.Dispose()
 } catch {}
 try {
     $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
@@ -214,6 +226,21 @@ try {
 }
 
 Pop-Location
+
+# Kill any remaining child processes.  Start-Job creates a separate
+# powershell.exe that may survive Stop-Job/Remove-Job if stuck on a dead
+# PS Direct transport.  These child processes are in the GitHub Actions
+# step's process tree and keep the step alive indefinitely.
+try {
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
+    if ($children) {
+        Write-Log "Killing $(@($children).Count) remaining child process(es) from setup..."
+        foreach ($child in $children) {
+            Write-Log "  $($child.Name) PID=$($child.ProcessId)"
+            & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
+        }
+    }
+} catch {}
 
 if ($JobTimedOut) {
     Write-Log "Setup exiting with error: job timed out"

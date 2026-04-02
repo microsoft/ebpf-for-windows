@@ -165,14 +165,17 @@ while (-not $worker.HasExited) {
             }
         }
 
-        # Kill the worker process.  Stop-Process -Force is an OS-level kill
-        # that always succeeds -- unlike Stop-Job on a stuck PS Direct transport.
-        Write-Log "Killing worker process (PID=$($worker.Id))..."
+        # Kill the worker AND all its descendants.  taskkill /T kills the
+        # entire process tree, including wsmprovhost.exe spawned by PS Direct.
+        # This MUST happen before the worker exits on its own, because once the
+        # worker dies, its children get reparented and we lose the parent PID link.
+        Write-Log "Killing worker process tree (PID=$($worker.Id))..."
         try {
-            Stop-Process -Id $worker.Id -Force -ErrorAction SilentlyContinue
+            $tkOut = & taskkill.exe /T /F /PID $worker.Id 2>&1
+            Write-Log "taskkill output: $tkOut"
             $worker.WaitForExit(30000) | Out-Null
         } catch {
-            Write-Log "Warning: Stop-Process failed: $($_.Exception.Message)"
+            Write-Log "Warning: taskkill failed: $($_.Exception.Message)"
         }
         break
     }
@@ -220,15 +223,17 @@ try {
 $workerExitCode = $worker.ExitCode
 Write-Log "Worker exited with code: $workerExitCode (timedOut=$timedOut)"
 
-# Kill any orphaned child processes (e.g. wsmprovhost.exe from PS Direct
-# sessions created by the worker).  GitHub Actions tracks the entire process
-# tree and won't mark the step as complete until ALL descendants are dead.
+# Kill any remaining child processes of THIS script (the monitor).
+# On the timeout path, Generate-KernelDumpOnVM creates Start-Job processes
+# that may survive.  On the normal path, there should be none, but check
+# anyway as a safety net.
 try {
-    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($worker.Id)" -ErrorAction SilentlyContinue
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
     if ($children) {
+        Write-Log "Killing $(@($children).Count) remaining child process(es) of monitor..."
         foreach ($child in $children) {
-            Write-Log "Killing orphaned child process: $($child.Name) (PID=$($child.ProcessId))"
-            Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue
+            Write-Log "  $($child.Name) PID=$($child.ProcessId)"
+            & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
         }
     }
 } catch {}

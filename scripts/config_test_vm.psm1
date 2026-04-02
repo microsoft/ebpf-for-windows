@@ -977,8 +977,11 @@ function Initialize-VM {
         )
 
         # Post VM creation configuration steps.
-        Write-Log "Setting VM processor count to $VMCpuCount"
-        Set-VMProcessor -VMName $VmName -Count $VMCpuCount
+        # Set CPU count and lower the relative weight so the host partition
+        # (which runs the GitHub Actions runner agent) is not starved when
+        # the inner VM drives sustained CPU load during stress tests.
+        Write-Log "Setting VM processor count to $VMCpuCount (RelativeWeight 80)"
+        Set-VMProcessor -VMName $VmName -Count $VMCpuCount -RelativeWeight 80
         Write-Log "Enabling Guest Service Interface"
         Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
         Write-Log "Enabling Time Synchronization"

@@ -175,6 +175,21 @@ try {
     Write-Log "Warning: Remove-Job cleanup failed: $($_.Exception.Message)"
 }
 
+# Kill any remaining child processes.  Start-Job creates a separate
+# powershell.exe that may survive Stop-Job/Remove-Job if stuck on a dead
+# PS Direct transport.  These child processes are in the GitHub Actions
+# step's process tree and keep the step alive indefinitely.
+try {
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
+    if ($children) {
+        Write-Log "Killing $(@($children).Count) remaining child process(es) from cleanup..."
+        foreach ($child in $children) {
+            Write-Log "  $($child.Name) PID=$($child.ProcessId)"
+            & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
+        }
+    }
+} catch {}
+
 Pop-Location
 
 if ($JobTimedOut) {
