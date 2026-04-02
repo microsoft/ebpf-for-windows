@@ -510,7 +510,16 @@ function Wait-TestJobToComplete
 
         # Emit periodic heartbeat so the GitHub log shows the runner is alive.
         if ($TimeSinceLastOutput -ge $HeartbeatInterval) {
-            Write-Log "$CheckpointPrefix job still running ($([int]$sw.Elapsed.TotalSeconds)s elapsed, job state: $($Job.State))."
+            $resInfo = ''
+            try {
+                $os = Get-CimInstance Win32_OperatingSystem
+                $freeMB = [math]::Round($os.FreePhysicalMemory / 1KB)
+                $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1KB)
+                $diskFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+                $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
+                $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
+            } catch {}
+            Write-Log "$CheckpointPrefix job still running ($([int]$sw.Elapsed.TotalSeconds)s elapsed, job state: $($Job.State))${resInfo}"
             $TimeSinceLastOutput = 0
         }
 
@@ -1192,7 +1201,16 @@ function Invoke-CommandOnVM {
             }
 
             if ($timeSinceOutput -ge $heartbeatInterval) {
-                Write-Log "Invoke-CommandOnVM: waiting on $VMName ($([int]$sw.Elapsed.TotalSeconds)s / ${TimeoutSeconds}s, job state: $($invokeJob.State))..."
+                $resInfo = ''
+                try {
+                    $os = Get-CimInstance Win32_OperatingSystem
+                    $freeMB = [math]::Round($os.FreePhysicalMemory / 1KB)
+                    $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1KB)
+                    $diskFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+                    $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
+                    $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
+                } catch {}
+                Write-Log "Invoke-CommandOnVM: waiting on $VMName ($([int]$sw.Elapsed.TotalSeconds)s / ${TimeoutSeconds}s, job state: $($invokeJob.State))${resInfo}"
                 $timeSinceOutput = 0
 
                 # Periodic VM health check: on Gen2 VMs, a VMBus crash can leave

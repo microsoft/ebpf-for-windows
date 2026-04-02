@@ -131,7 +131,18 @@ while (-not $worker.HasExited) {
     }
 
     if ($timeSinceOutput -ge $heartbeatInterval) {
-        Write-Log "Execute: worker running ($([int]$sw.Elapsed.TotalSeconds)s / ${TestJobTimeout}s, PID=$($worker.Id))..."
+        # Include host resource snapshot so the last heartbeat before a runner-lost
+        # failure reveals whether the host was under resource pressure.
+        $resInfo = ''
+        try {
+            $os = Get-CimInstance Win32_OperatingSystem
+            $freeMB = [math]::Round($os.FreePhysicalMemory / 1KB)
+            $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1KB)
+            $diskFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
+            $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
+            $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
+        } catch {}
+        Write-Log "Execute: worker running ($([int]$sw.Elapsed.TotalSeconds)s / ${TestJobTimeout}s, PID=$($worker.Id))${resInfo}"
         $timeSinceOutput = 0
     }
 
