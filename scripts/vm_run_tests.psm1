@@ -362,32 +362,25 @@ function Run-KernelTests {
 
     switch ($TestMode) {
         { $_ -in "ci/cd", "regression" } {
-            # Regular tests - each gets its own PS Direct session.
-            Invoke-TestOnVM -TestName "api_test.exe" `
-                -TestArgs "~`"load_native_program_invalid4`" ~pinned_map_enum" `
-                -TestTimeout 600 -VerboseLogs $VerboseLogs -TraceFileName "api_test.exe"
-
-            Invoke-TestOnVM -TestName "bpftool_tests.exe" `
-                -TestArgs "~`"prog load map_in_map`" ~`"prog prog run`"" `
-                -VerboseLogs $VerboseLogs -TraceFileName "bpftool_tests.exe"
-
-            Invoke-TestOnVM -TestName "sample_ext_app.exe" `
-                -VerboseLogs $VerboseLogs -TraceFileName "sample_ext_app.exe"
-
-            Invoke-TestOnVM -TestName "socket_tests.exe" `
-                -TestTimeout 1800 -VerboseLogs $VerboseLogs -TraceFileName "socket_tests.exe"
-
-            # System tests (CI/CD only) - run as SYSTEM via PsExec64.
-            if ($_ -eq "ci/cd") {
-                $wd = $script:WorkingDirectory
-                Invoke-TestOnVM -TestName "PsExec64.exe" `
-                    -TestArgs "-accepteula -nobanner -s -w `"$wd`" `"$wd\api_test.exe`" `"-d yes`"" `
-                    -InnerTestName "api_test.exe" `
-                    -VerboseLogs $VerboseLogs -TraceFileName "api_test.exe_System"
+            # All tests run in a SINGLE PS Direct session to avoid repeated
+            # session open/close cycles.  The worker process architecture
+            # (execute_test_worker.ps1) already handles timeout enforcement.
+            $scriptBlock = {
+                param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
+                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+                $ExecuteSystemTests = ($TestMode -eq "ci/cd")
+                Invoke-CICDTests -VerboseLogs $VerboseLogs -ExecuteSystemTests $ExecuteSystemTests
             }
-
-            # Note: ebpf_performance.exe is NOT run here. The dedicated
-            # "performance" job in cicd.yml handles it via TestMode="Performance".
+            $argList = @(
+                $script:WorkingDirectory, $VerboseLogs, $TestMode,
+                $script:TestHangTimeout, $script:UserModeDumpFolder,
+                $script:Options, $script:LogFileName, $GranularTracing
+            )
+            # Timeout = 2x TestHangTimeout to allow normal multi-test execution
+            # plus one test hitting the per-test timeout before the inner
+            # exception propagates.
+            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
         }
 
         "stress" {
@@ -395,28 +388,23 @@ function Run-KernelTests {
             $RestartExtension = $script:Options -contains "RestartExtension"
             $RestartEbpfCore = $script:Options -contains "RestartEbpfCore"
 
-            if ($RestartEbpfCore) {
-                Invoke-TestOnVM -TestName "ebpf_restart_test_controller.exe" `
-                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
-                    -TracingProfileName "EbpfForWindowsProvider"
-            } elseif (-not $MultiThread) {
-                $StressDuration = 30 * 60
-                Invoke-TestOnVM -TestName "api_test.exe" `
-                    -TestArgs "--stress-test-duration $StressDuration ioctl_stress" `
-                    -TestTimeout (60 * 60) -VerboseLogs $VerboseLogs `
-                    -TracingProfileName "EbpfForWindowsProvider"
-            } else {
-                $StressArgs = if ($RestartExtension) { "-tt=8 -td=5 -erd=1000 -er=1" } else { "-tt=8 -td=5" }
-                Invoke-TestOnVM -TestName "ebpf_stress_tests_km.exe" `
-                    -TestArgs $StressArgs `
-                    -TestTimeout (120 * 60) -VerboseLogs $VerboseLogs `
-                    -TracingProfileName "EbpfForWindowsProvider"
+            # Single PS Direct session for the entire stress test.
+            $scriptBlock = {
+                param($WorkingDirectory, $VerboseLogs, $TestHangTimeout, $UserModeDumpFolder, $LogFileName, $GranularTracing, $MultiThread, $RestartExtension, $RestartEbpfCore)
+                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+                Invoke-CICDStressTests -VerboseLogs $VerboseLogs -MultiThread $MultiThread -RestartExtension $RestartExtension -RestartEbpfCore $RestartEbpfCore
             }
+            $argList = @(
+                $script:WorkingDirectory, $VerboseLogs,
+                $script:TestHangTimeout, $script:UserModeDumpFolder,
+                $script:LogFileName, $GranularTracing,
+                $MultiThread, $RestartExtension, $RestartEbpfCore
+            )
+            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
         }
 
         "performance" {
-            # Performance test has complex VM-side setup (stop/start services,
-            # remove verifier, extract zip). Keep as a single session.
             $scriptBlock = {
                 param($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing, $VerboseLogs, $CaptureProfile)
                 Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue

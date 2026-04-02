@@ -409,6 +409,78 @@ function New-TestTuple {
     }
 }
 
+function Invoke-CICDTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
+
+    Push-Location $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    $TestList = @(
+        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
+        (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
+        (New-TestTuple -Test "sample_ext_app.exe"),
+        (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
+    )
+
+    foreach ($Test in $TestList) {
+        Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName $($Test.Test)
+    }
+
+    # Run the system tests.
+    if ($ExecuteSystemTests) {
+        $TestCommand = "PsExec64.exe"
+        $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\api_test.exe`" `"-d yes`""
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName "api_test.exe" -VerboseLogs $VerboseLogs -TestHangTimeout 300 -TraceFileName "api_test.exe_System"
+    }
+
+    if ($Env:BUILD_CONFIGURATION -eq "Release") {
+        Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs -SkipTracing
+    }
+
+    Pop-Location
+}
+
+function Invoke-CICDStressTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][bool] $MultiThread = $false,
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
+          [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
+
+    Push-Location $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    if (-not $MultiThread) {
+        Write-Log "Executing eBPF API IOCTL stress tests."
+        $TestHangTimeout = 60*60
+        $api_stress_duration = 30*60
+        Invoke-Test -TestName "api_test.exe" -TestArgs "--stress-test-duration $api_stress_duration ioctl_stress" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        Pop-Location
+        return
+    }
+
+    if ($RestartEbpfCore) {
+        Write-Log "Executing eBPF core restart stress test."
+        $TestHangTimeout = 120*60
+        Invoke-Test -TestName "ebpf_restart_test_controller.exe" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        Pop-Location
+        return
+    }
+
+    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
+    $TestHangTimeout = 120*60
+    if ($RestartExtension -eq $false) {
+        $TestArguments = "-tt=8 -td=5"
+    } else {
+        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
+    }
+    Invoke-Test -TestName "ebpf_stress_tests_km.exe" -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+
+    Pop-Location
+}
+
 function Invoke-ConnectRedirectTest
 {
     param([parameter(Mandatory = $true)][string] $LocalIPv4Address,

@@ -1,6 +1,23 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
+# ──────────────────────────────────────────────────────────────────────
+# MONITOR SCRIPT
+# ──────────────────────────────────────────────────────────────────────
+# Launches the test worker as a CHILD PROCESS whose stdout/stderr is
+# redirected to a file.  This completely eliminates the nested-pipe
+# back-pressure deadlock that caused jobs to hang:
+#
+#   Old:  VM Write-Host → VMBus pipe → Start-Job pipe → stdout pipe → GitHub
+#   New:  VM Write-Host → VMBus pipe → worker stdout → FILE (no back-pressure)
+#
+# The monitor tails the output file for GitHub log visibility and
+# enforces a timeout.  On timeout it connects to the VM to generate
+# crash dumps, then kills the worker with Stop-Process -Force (which
+# is an OS-level kill — always succeeds, unlike Stop-Job on a stuck
+# PS Direct transport).
+# ──────────────────────────────────────────────────────────────────────
+
 param ([Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
        [Parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
        [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
@@ -30,191 +47,193 @@ Write-Log "Execute starting (TestMode=$TestMode, ExecuteOnHost=$ExecuteOnHost, E
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-# Apply scoped Defender exclusions on the HOST to prevent real-time scanning
-# from interfering with test execution (I/O stalls on .sys/.exe/.dll files).
-try {
-    Write-Log "Configuring host Defender exclusions for $WorkingDirectory"
-    Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-    Add-MpPreference -ExclusionPath @($WorkingDirectory, $env:TEMP) -ErrorAction SilentlyContinue
-    Add-MpPreference -ExclusionExtension @('.sys', '.exe', '.dll', '.etl', '.o') -ErrorAction SilentlyContinue
-    Write-Log "Host Defender exclusions applied"
-} catch {
-    Write-Log "Warning: Failed to configure host Defender exclusions: $($_.Exception.Message)"
+# ── Phase 1: Launch the worker process ──────────────────────────────
+# The worker runs in a separate powershell.exe process.  Its stdout
+# and stderr are redirected to files — no pipe, no back-pressure.
+$workerScript = Join-Path $PSScriptRoot "execute_test_worker.ps1"
+$outputFile = Join-Path $env:TEMP "test_worker_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$errorFile  = Join-Path $env:TEMP "test_worker_error_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+
+# Build argument list.  Array elements are joined by Start-Process.
+$workerArgs = @(
+    "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+    "-File", $workerScript,
+    "-LogFileName", $LogFileName,
+    "-WorkingDirectory", $WorkingDirectory,
+    "-TestExecutionJsonFileName", $TestExecutionJsonFileName,
+    "-TestMode", $TestMode,
+    "-SelfHostedRunnerName", $SelfHostedRunnerName,
+    "-TestHangTimeout", $TestHangTimeout,
+    "-UserModeDumpFolder", $UserModeDumpFolder
+)
+if ($Options -and $Options.Count -gt 0) {
+    # Pass Options as a comma-separated string (Start-Process can't pass arrays).
+    $workerArgs += @("-OptionsString", ($Options -join ','))
 }
+if ($GranularTracing)  { $workerArgs += "-GranularTracing" }
+if ($RunXdpTests)      { $workerArgs += "-RunXdpTests" }
+if ($ExecuteOnHost)    { $workerArgs += "-ExecuteOnHost" }
+if ($VMIsRemote)       { $workerArgs += "-VMIsRemote" }
 
-if ($ExecuteOnVM) {
-    Write-Log "Tests will be executed on VM"
-} else {
-    Write-Log "Executing on host"
-}
+Write-Log "Starting worker process (output → $outputFile)"
+$worker = Start-Process -FilePath "powershell.exe" `
+    -ArgumentList $workerArgs `
+    -NoNewWindow -PassThru `
+    -RedirectStandardOutput $outputFile `
+    -RedirectStandardError $errorFile
+# Cache the handle so we can read ExitCode after the process exits.
+$workerHandle = $worker.Handle
+Write-Log "Worker started (PID=$($worker.Id))"
 
-$Job = Start-Job -ScriptBlock {
-    param (
-        [Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
-        [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
-        [Parameter(Mandatory = $True)] [bool] $VMIsRemote,
-        [Parameter(Mandatory = $True)] [PSCustomObject] $Config,
-        [Parameter(Mandatory = $True)] [string] $SelfHostedRunnerName,
-        [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
-        [Parameter(Mandatory = $True)] [string] $LogFileName,
-        [Parameter(Mandatory = $True)] [string] $TestMode,
-        [Parameter(Mandatory = $True)] [string[]] $Options,
-        [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-        [Parameter(Mandatory = $True)] [bool] $GranularTracing,
-        [Parameter(Mandatory = $True)] [bool] $RunXdpTests
-    )
-    Push-Location $WorkingDirectory
-    # Load other utility modules.
-    Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+# ── Phase 2: Poll for completion, tail output ───────────────────────
+$elapsed = 0
+$pollInterval = 5
+$heartbeatInterval = 30
+$timeSinceOutput = 0
+$linesSeen = 0
+$timedOut = $false
 
-    if ($ExecuteOnVM) {
-        Write-Log "Tests will be executed on VM" -ForegroundColor Cyan
-        $VMList = $Config.VMMap.$SelfHostedRunnerName
-        $VMName = $VMList[0].Name
-        $TestWorkingDirectory = "C:\ebpf"
-    } else {
-        Write-Log "Executing on host" -ForegroundColor Cyan
-        $VMName = $null
-        $TestWorkingDirectory = $WorkingDirectory
-    }
-    Import-Module $WorkingDirectory\vm_run_tests.psm1 `
-        -Force `
-        -ArgumentList(
-            $ExecuteOnHost,
-            $ExecuteOnVM,
-            $VMIsRemote,
-            $VMName,
-            $TestWorkingDirectory,
-            $LogFileName,
-            $TestMode,
-            $Options,
-            $TestHangTimeout,
-            $UserModeDumpFolder,
-            $GranularTracing,
-            $RunXdpTests) `
-        -WarningAction SilentlyContinue
+while (-not $worker.HasExited) {
+    Start-Sleep -Seconds $pollInterval
+    $elapsed += $pollInterval
+    $timeSinceOutput += $pollInterval
 
-    # Disable Defender real-time monitoring and add path/extension exclusions.
-    # These are not persisted across reboot and therefore need to be applied before test execution.
-    if ($ExecuteOnVM) {
-        Write-Log "Configuring Defender exclusions on $VMName"
-        $defenderScript = {
-            Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue
-            $paths = @('C:\eBPF', 'C:\Dumps', 'C:\KernelDumps', 'C:\Windows\System32\drivers')
-            $exts  = @('.sys', '.exe', '.dll', '.etl', '.o')
-            Add-MpPreference -ExclusionPath $paths -ErrorAction SilentlyContinue
-            Add-MpPreference -ExclusionExtension $exts -ErrorAction SilentlyContinue
+    # Tail new lines from the output file.  Use FileStream with ReadWrite
+    # sharing so we never conflict with the worker process that holds the
+    # file open for writing.
+    if (Test-Path $outputFile) {
+        try {
+            $fs = [System.IO.FileStream]::new(
+                $outputFile,
+                [System.IO.FileMode]::Open,
+                [System.IO.FileAccess]::Read,
+                [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+            $reader = [System.IO.StreamReader]::new($fs)
+            $content = $reader.ReadToEnd()
+            $reader.Close()
+            $fs.Close()
+            $allLines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
+            if ($allLines.Count -gt $linesSeen) {
+                $newCount = $allLines.Count - $linesSeen
+                if ($newCount -le 20) {
+                    for ($i = $linesSeen; $i -lt $allLines.Count; $i++) {
+                        Write-Host $allLines[$i]
+                    }
+                } else {
+                    Write-Host "... ($newCount new lines, showing last 10)"
+                    $allLines | Select-Object -Last 10 | ForEach-Object { Write-Host $_ }
+                }
+                $linesSeen = $allLines.Count
+                $timeSinceOutput = 0
+            }
+        } catch {
+            # File may be locked momentarily; skip this cycle.
         }
-        $cred = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-        if ($VMIsRemote) {
-            Invoke-Command -ComputerName $VMName -Credential $cred -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
-        } else {
-            Invoke-Command -VMName $VMName -Credential $cred -ScriptBlock $defenderScript -ErrorAction SilentlyContinue
-        }
-        Write-Log "Defender exclusions applied on $VMName"
     }
 
-    try {
-        Write-Log "Running kernel tests"
-        Run-KernelTests -Config $Config
-        Write-Log "Running kernel tests completed"
+    if ($timeSinceOutput -ge $heartbeatInterval) {
+        Write-Log "Execute: worker running (${elapsed}s / ${TestJobTimeout}s, PID=$($worker.Id))..."
+        $timeSinceOutput = 0
+    }
 
-        Stop-eBPFComponents -GranularTracing $GranularTracing
-    } catch {
-        Write-Log $_.Exception.Message
-        Write-Log $_.ScriptStackTrace
-        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
+    # ── Timeout handling ────────────────────────────────────────────
+    if ($elapsed -ge $TestJobTimeout) {
+        Write-Log "*** TIMEOUT *** Worker has been running for ${elapsed}s (limit: ${TestJobTimeout}s)"
+        $timedOut = $true
+
+        # Attempt to generate crash dumps on the VM before killing the worker.
+        if ($ExecuteOnVM) {
+            $VMList = $Config.VMMap.$SelfHostedRunnerName
+            $VMName = $VMList[0].Name
+            $TestWorkingDirectory = "C:\ebpf"
+            Write-Log "Generating kernel dump on $VMName due to timeout..."
             try {
-                Generate-KernelDumpOnVM
+                Import-Module $WorkingDirectory\vm_run_tests.psm1 `
+                    -Force `
+                    -ArgumentList(
+                        $false, $true, $VMIsRemote, $VMName, $TestWorkingDirectory,
+                        $LogFileName, $TestMode, $Options, $TestHangTimeout,
+                        $UserModeDumpFolder, $false, $false) `
+                    -WarningAction SilentlyContinue
+
+                # Generate-KernelDumpOnVM connects to the VM via PS Direct and
+                # runs NotMyFault64.exe to trigger a bluescreen with dump.
+                # The monitor process gets its own PS Direct session (separate
+                # from the worker's), so this works even if the worker is stuck.
+                Generate-KernelDumpOnVM -TimeoutSeconds 300
             } catch {
-                Write-Log "Warning: kernel dump generation failed: $($_.Exception.Message)"
+                Write-Log "Failed to generate kernel dump: $($_.Exception.Message)"
             }
         }
-        throw $_.Exception.Message
-    }
-    Pop-Location
-} -ArgumentList (
-    $ExecuteOnHost,
-    $ExecuteOnVM,
-    $VMIsRemote,
-    $Config,
-    $SelfHostedRunnerName,
-    $WorkingDirectory,
-    $LogFileName,
-    $TestMode,
-    $Options,
-    $TestHangTimeout,
-    $UserModeDumpFolder,
-    $GranularTracing,
-    $RunXdpTests)
 
-# Keep track of the last received output count
-$JobTimedOut = `
-    Wait-TestJobToComplete -Job $Job `
-    -Config $Config `
-    -SelfHostedRunnerName $SelfHostedRunnerName `
-    -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Execute" `
-    -ExecuteOnHost $ExecuteOnHost `
-    -ExecuteOnVM $ExecuteOnVM `
-    -VMIsRemote $VMIsRemote `
-    -TestWorkingDirectory $(if ($ExecuteOnVM) { "C:\ebpf" } else { $WorkingDirectory }) `
-    -LogFileName $LogFileName `
-    -TestMode $TestMode `
-    -Options $Options `
-    -TestHangTimeout $TestHangTimeout `
-    -UserModeDumpFolder $UserModeDumpFolder
-
-# Check if the job failed (e.g., VM session died, test threw an exception).
-$JobFailed = $Job.State -eq 'Failed'
-if ($JobFailed) {
-    # Surface the failure reason directly from the job state info.
-    try {
-        $childJob = $Job.ChildJobs[0]
-        if ($childJob -and $childJob.JobStateInfo.Reason) {
-            Write-Log "*** JOB FAILED *** $($childJob.JobStateInfo.Reason.GetType().Name): $($childJob.JobStateInfo.Reason.Message)"
-        } else {
-            Write-Log "*** JOB FAILED *** (no reason available, job state: $($Job.State))"
+        # Kill the worker process.  Stop-Process -Force is an OS-level kill
+        # that always succeeds — unlike Stop-Job on a stuck PS Direct transport.
+        Write-Log "Killing worker process (PID=$($worker.Id))..."
+        try {
+            Stop-Process -Id $worker.Id -Force -ErrorAction SilentlyContinue
+            $worker.WaitForExit(30000) | Out-Null
+        } catch {
+            Write-Log "Warning: Stop-Process failed: $($_.Exception.Message)"
         }
-    } catch {
-        Write-Log "*** JOB FAILED *** Could not retrieve reason: $($_.Exception.Message)"
-    }
-    # Drain any remaining output.
-    try {
-        Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
-    } catch {
-        Write-Log "Job drain error: $($_.Exception.Message)"
+        break
     }
 }
 
-# Clean up -- Stop-Job first (with timeout) to avoid Remove-Job hanging on a
-# blocked runspace (e.g. Invoke-Command stuck on a dead PS Direct transport).
-try {
-    Stop-Job -Job $Job -ErrorAction SilentlyContinue
-    $Job | Wait-Job -Timeout 30 | Out-Null
-} catch {}
-try {
-    $removeBlock = { Remove-Job -Job $using:Job -Force -ErrorAction SilentlyContinue }
-    $removeTask = [powershell]::Create().AddScript($removeBlock)
-    $asyncResult = $removeTask.BeginInvoke()
-    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-        Write-Log "Warning: Remove-Job timed out -- proceeding anyway."
-    }
-    $removeTask.Dispose()
-} catch {
-    Write-Log "Warning: Remove-Job cleanup failed: $($_.Exception.Message)"
+# ── Phase 3: Collect results ────────────────────────────────────────
+# Drain any final output lines.
+if (Test-Path $outputFile) {
+    try {
+        $fs = [System.IO.FileStream]::new(
+            $outputFile,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
+        $reader = [System.IO.StreamReader]::new($fs)
+        $content = $reader.ReadToEnd()
+        $reader.Close()
+        $fs.Close()
+        $allLines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
+        if ($allLines.Count -gt $linesSeen) {
+            $remaining = $allLines.Count - $linesSeen
+            if ($remaining -le 50) {
+                for ($i = $linesSeen; $i -lt $allLines.Count; $i++) {
+                    Write-Host $allLines[$i]
+                }
+            } else {
+                Write-Host "... ($remaining final lines, showing last 20)"
+                $allLines | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+            }
+        }
+    } catch {}
 }
+
+# Copy worker output logs to TestLogs for artifact upload.
+$testLogsDir = Join-Path $WorkingDirectory "TestLogs"
+if (-not (Test-Path $testLogsDir)) { New-Item -ItemType Directory -Path $testLogsDir -Force | Out-Null }
+try {
+    if (Test-Path $outputFile) {
+        Copy-Item -Path $outputFile -Destination (Join-Path $testLogsDir "worker_output.log") -Force -ErrorAction SilentlyContinue
+    }
+    if ((Test-Path $errorFile) -and (Get-Item $errorFile).Length -gt 0) {
+        Copy-Item -Path $errorFile -Destination (Join-Path $testLogsDir "worker_error.log") -Force -ErrorAction SilentlyContinue
+        Write-Log "Worker stderr (first 20 lines):"
+        Get-Content -Path $errorFile -TotalCount 20 -ErrorAction SilentlyContinue | ForEach-Object { Write-Log "  $_" }
+    }
+} catch {}
+
+# Determine exit status.
+$workerExitCode = $worker.ExitCode
+Write-Log "Worker exited with code: $workerExitCode (timedOut=$timedOut)"
 
 Pop-Location
 
-if ($JobTimedOut) {
-    Write-Log "exiting with error as job timed out"
+if ($timedOut) {
+    Write-Log "Exiting with error: worker timed out after ${TestJobTimeout}s"
     [Environment]::Exit(1)
 }
 
-if ($JobFailed) {
-    Write-Log "exiting with error as job failed"
+if ($workerExitCode -ne 0) {
+    Write-Log "Exiting with error: worker failed (exit code $workerExitCode)"
     [Environment]::Exit(1)
 }
 

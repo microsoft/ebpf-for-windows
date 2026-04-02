@@ -564,8 +564,7 @@ function Wait-TestJobToComplete
                         }
                         # Bounded removal to avoid hanging on stuck PS Direct transports.
                         try {
-                            $removeBlock = { Remove-Job -Job $using:dumpJob -Force -ErrorAction SilentlyContinue }
-                            $removeTask = [powershell]::Create().AddScript($removeBlock)
+                            $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($dumpJob)
                             $asyncResult = $removeTask.BeginInvoke()
                             if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
                                 Write-Log "Warning: Remove-Job for dump job timed out."
@@ -873,8 +872,7 @@ function Expand-ZipFile {
             } else {
                 Stop-Job -Job $job
                 try {
-                    $removeBlock = { Remove-Job -Job $using:job -Force -ErrorAction SilentlyContinue }
-                    $removeTask = [powershell]::Create().AddScript($removeBlock)
+                    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($job)
                     $asyncResult = $removeTask.BeginInvoke()
                     if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
                         Write-Log "Warning: Remove-Job timed out in Expand-ZipFile"
@@ -932,8 +930,7 @@ function Get-ZipFileFromUrl {
             } else {
                 Stop-Job -Job $job
                 try {
-                    $removeBlock = { Remove-Job -Job $using:job -Force -ErrorAction SilentlyContinue }
-                    $removeTask = [powershell]::Create().AddScript($removeBlock)
+                    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($job)
                     $asyncResult = $removeTask.BeginInvoke()
                     if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
                         Write-Log "Warning: Remove-Job timed out in Get-ZipFileFromUrl"
@@ -1197,8 +1194,7 @@ function Invoke-CommandOnVM {
         # Remove-Job -Force can hang if the PS Direct VMBus transport is stuck
         # in an unmanaged call that Stop-Job couldn't interrupt. Run it on a
         # background thread with a timeout so it cannot block the caller.
-        $removeBlock = { Remove-Job -Job $using:invokeJob -Force -ErrorAction SilentlyContinue }
-        $removeTask = [powershell]::Create().AddScript($removeBlock)
+        $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($invokeJob)
         $asyncResult = $removeTask.BeginInvoke()
         if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
             Write-Log "Warning: Remove-Job timed out for VM job -- disposing forcefully."
