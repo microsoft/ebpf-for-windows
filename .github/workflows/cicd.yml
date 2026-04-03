@@ -838,9 +838,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # TEMPORARY: Run 2 of km_mt_stress_tests for pipeline validation.
@@ -856,9 +853,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # TEMPORARY: Run 3 of km_mt_stress_tests for pipeline validation.
@@ -874,9 +868,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # Run multi-threaded stress tests with 'restart extension' enabled
@@ -894,9 +885,6 @@ jobs:
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
@@ -913,9 +901,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # TEMPORARY: Run 3 of km_mt_stress_tests_restart_extension for pipeline validation.
@@ -931,9 +916,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # Run standalone eBPF core driver restart stress test
@@ -949,9 +931,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # TEMPORARY: Run 2 of km_ebpfcore_restart_test for pipeline validation.
@@ -967,9 +946,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   # TEMPORARY: Run 3 of km_ebpfcore_restart_test for pipeline validation.
@@ -985,9 +961,6 @@ jobs:
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
-      test_timeout: 9000
-      job_timeout: 210
-      step_timeout: 160
       gather_dumps: false
 
   performance:
