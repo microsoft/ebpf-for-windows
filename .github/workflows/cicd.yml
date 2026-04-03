@@ -242,9 +242,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -254,7 +251,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_tests_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -270,9 +267,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -282,7 +276,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run2
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_tests_run2_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       capture_etw: false
@@ -295,9 +289,6 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -307,7 +298,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run3
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_tests_run3_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       capture_etw: false
@@ -320,9 +311,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -332,7 +320,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_native_only_tests_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -350,9 +338,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -362,7 +347,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run2
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_native_only_tests_run2_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
@@ -377,9 +362,6 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - 'server2022'
-          - 'server23h2'
-          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -389,7 +371,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run3
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_native_only_tests_run3_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
@@ -461,18 +443,13 @@ jobs:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.0.0-rc1" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: regression_driver_${{ matrix.image }}
+      name: regression_driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression_driver_ws2022-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -806,18 +783,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests_${{ matrix.image }}
+      name: km_ioctl_stress_tests
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ioctl_stress_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -827,18 +799,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests_${{ matrix.image }}_run2
+      name: km_ioctl_stress_tests_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ioctl_stress_tests_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -847,18 +814,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests_${{ matrix.image }}_run3
+      name: km_ioctl_stress_tests_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ioctl_stress_tests_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -868,18 +830,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_${{ matrix.image }}
+      name: km_mt_stress_tests
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -891,18 +848,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_${{ matrix.image }}_run2
+      name: km_mt_stress_tests_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -914,18 +866,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_${{ matrix.image }}_run3
+      name: km_mt_stress_tests_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -938,18 +885,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}
+      name: km_mt_stress_tests_restart_extension
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
@@ -963,18 +905,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}_run2
+      name: km_mt_stress_tests_restart_extension_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -986,18 +923,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}_run3
+      name: km_mt_stress_tests_restart_extension_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -1009,18 +941,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test_${{ matrix.image }}
+      name: km_ebpfcore_restart_test
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -1032,18 +959,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test_${{ matrix.image }}_run2
+      name: km_ebpfcore_restart_test_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -1055,18 +977,13 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
-    strategy:
-      matrix:
-        image:
-          - 'server2022'
-          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test_${{ matrix.image }}_run3
+      name: km_ebpfcore_restart_test_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
