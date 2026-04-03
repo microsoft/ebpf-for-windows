@@ -42,25 +42,6 @@ $Job = Start-Job -ScriptBlock {
         # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
         Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
-        # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
-        # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
-        # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
-        foreach ($VM in $VMList) {
-            $VMName = $VM.Name
-            $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-            $DumpFound = Invoke-CommandOnVM `
-                -VMName $VMName `
-                -VMIsRemote $VMIsRemote `
-                -Credential $TestCredential `
-                -ScriptBlock {
-                    Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
-                }
-
-            if ($DumpFound -eq $True) {
-                Write-Log "Post-crash reboot detected on VM $VMName"
-            }
-        }
-
         # Import logs from VMs.
         Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 

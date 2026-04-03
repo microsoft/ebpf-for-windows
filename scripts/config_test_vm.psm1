@@ -475,9 +475,7 @@ function Import-ResultsFromVM
     param([Parameter(Mandatory=$True)] $VMList,
           [Parameter(Mandatory=$true)] $KmTracing)
 
-    # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-    Wait-AllVMsToInitialize -VMList $VMList
-
+    # Note: caller (cleanup_ebpf_cicd_tests.ps1) already calls Wait-AllVMsToInitialize.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Importing TestLogs from $VMName"
@@ -509,16 +507,20 @@ function Import-ResultsFromVM
         # Copy kernel dumps from Test VM - try compressed first, then uncompressed from Windows folder
         $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
         if ($VMSession) {
-            $result = CopyCompressedOrUncompressed-FileFromSession `
-                -VMSession $VMSession `
-                -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
-                -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
-                -DestinationDirectory $LocalKernelArchiveLocation
+            try {
+                $result = CopyCompressedOrUncompressed-FileFromSession `
+                    -VMSession $VMSession `
+                    -CompressedSourcePath "$VMSystemDrive\KernelDumps\km_dumps.zip" `
+                    -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
+                    -DestinationDirectory $LocalKernelArchiveLocation
 
-            if ($result.Success) {
-                Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
-            } else {
-                Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
+                if ($result.Success) {
+                    Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
+                } else {
+                    Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
+                }
+            } catch {
+                Write-Log "*** WARNING *** Failed to copy kernel dumps from ${VMName}: $($_.Exception.Message)"
             }
         } else {
             Write-Log "*** WARNING *** Skipping kernel dump copy from $VMName - no valid session."
@@ -631,11 +633,15 @@ function Import-ResultsFromVM
             } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Ignore
 
             # Copy compressed ETL files from Test VM - try compressed first, then uncompressed fallback
-            $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
-                -VMSession $VMSession `
-                -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
-                -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
-                -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            try {
+                $tracingResult = CopyCompressedOrUncompressed-FileFromSession `
+                    -VMSession $VMSession `
+                    -CompressedSourcePath "$VMSystemDrive\eBPF\traces.zip" `
+                    -UncompressedSourcePath "$VMSystemDrive\eBPF\TestLogs\*.etl" `
+                    -DestinationDirectory ".\TestLogs\$VMName\Logs"
+            } catch {
+                Write-Log "*** WARNING *** Failed to copy ETL files from ${VMName}: $($_.Exception.Message)"
+            }
 
             # Compress and copy the performance profile if present.
             Invoke-Command -Session $VMSession -ScriptBlock {
@@ -644,7 +650,7 @@ function Import-ResultsFromVM
                     dir $Env:SystemDrive\eBPF\bpf_performance*.etl
                     Remove-Item -Path $Env:SystemDrive\eBPF\bpf_performance*.etl
                 }
-            }
+            } -ErrorAction Ignore
             Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
             Copy-Item `
                 -FromSession $VMSession `
