@@ -246,7 +246,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=driver_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -271,7 +271,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run2
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=driver_${{ matrix.image }}_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       capture_etw: false
@@ -293,7 +293,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run3
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=driver_${{ matrix.image }}_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       capture_etw: false
@@ -315,7 +315,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=natonly_${{ matrix.image }}-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -341,7 +341,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run2
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=natonly_${{ matrix.image }}_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
@@ -364,7 +364,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}_run3
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "1ES.HoldMachine=OnFailure", "JobId=natonly_${{ matrix.image }}_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       gather_dumps: false
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
@@ -403,7 +403,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=regression-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -729,7 +729,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_ioctl-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -744,7 +744,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_ioctl_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -758,7 +758,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_ioctl_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -774,7 +774,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mt-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -789,7 +789,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mt_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -803,7 +803,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mt_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -819,7 +819,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mtre-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -834,7 +834,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mtre_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -848,7 +848,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_mtre_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -863,7 +863,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_restart-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       # Dumps are gathered inside the VM, not on the runner.
       gather_dumps: false
@@ -878,7 +878,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_restart_run2-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -892,7 +892,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022", "1ES.HoldMachine=OnFailure", "JobId=km_restart_run3-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}"]'
       code_coverage: false
       gather_dumps: false
 
