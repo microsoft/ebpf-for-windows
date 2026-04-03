@@ -133,8 +133,6 @@ The `unattend.xml` uses `PLACEHOLDER_PASSWORD` tokens that are replaced at VM cr
 (in `Create-VM`) with the value from `Get-VMPassword`, ensuring a single source of truth.
 It configures:
 - OOBE auto-logon (via `<AutoLogon>`) for initial setup.
-- Winlogon registry-based auto-logon (via `FirstLogonCommands`) for persistent automatic console
-  logon per https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon.
 - Password expiration disabled for both accounts.
 
 ### Local vs Remote VMs
