@@ -75,7 +75,9 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
-    runs-on: ${{ fromJSON(inputs.environment) }}
+    # When a JobId label is present, append the configuration matrix job-index
+    # to ensure Debug and Release variants get unique 1ES runner assignments.
+    runs-on: ${{ contains(inputs.environment, 'JobId=') && fromJSON(replace(inputs.environment, '"]', format('-{0}"]', strategy.job-index))) || fromJSON(inputs.environment) }}
 
     env:
       # Configuration type to build.
