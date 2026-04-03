@@ -59,16 +59,6 @@ function Generate-KernelDump
 {
     Push-Location $WorkingDirectory
 
-    # Check if a genuine crash dump already exists (e.g., from a real bugcheck).
-    # If so, preserve it instead of overwriting with a NotMyFault-induced crash.
-    $existingDump = "$env:SystemRoot\MEMORY.DMP"
-    if (Test-Path $existingDump) {
-        $dumpInfo = Get-Item $existingDump
-        Write-Log "*** Existing kernel dump found: $existingDump (Size: $([math]::Round($dumpInfo.Length / 1MB)) MB, Created: $($dumpInfo.LastWriteTime)) ***"
-        Write-Log "Skipping NotMyFault crash to preserve genuine crash dump."
-        return
-    }
-
     $NotMyFaultBinary = "NotMyFault64.exe"
     Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
     $NotMyFaultBinaryPath = GetToolLocationPath -ToolName $NotMyFaultBinary
