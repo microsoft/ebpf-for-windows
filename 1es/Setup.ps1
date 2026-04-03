@@ -43,6 +43,20 @@ $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('C:\work', $logFileName) -WarningAction SilentlyContinue
 
+# Configure Defender exclusions for Hyper-V operations on the host.
+# VHD I/O, vmwp.exe (VM worker), and wsmprovhost.exe (PS Direct transport)
+# are heavy during VM creation and test execution.  Without exclusions,
+# Defender scans every VHD block, which adds latency and can cause timeouts.
+try {
+    Write-Log "Configuring host Defender exclusions for Hyper-V..."
+    Add-MpPreference -ExclusionPath @($WorkingPath, 'C:\work') -ErrorAction SilentlyContinue
+    Add-MpPreference -ExclusionExtension @('.vhd', '.vhdx', '.avhd', '.avhdx', '.vsv', '.iso') -ErrorAction SilentlyContinue
+    Add-MpPreference -ExclusionProcess @('vmwp.exe', 'vmms.exe', 'wsmprovhost.exe') -ErrorAction SilentlyContinue
+    Write-Log "Host Defender exclusions configured."
+} catch {
+    Write-Log "Warning: Failed to configure host Defender exclusions: $($_.Exception.Message)"
+}
+
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
 

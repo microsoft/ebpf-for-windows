@@ -85,11 +85,22 @@ $worker = Start-Process -FilePath "powershell.exe" `
 $workerHandle = $worker.Handle
 Write-Log "Worker started (PID=$($worker.Id))"
 
+# Resolve VM name for diagnostics (used in heartbeat & diagnostic dump).
+$VMName = $null
+if ($ExecuteOnVM) {
+    try {
+        $VMList = $Config.VMMap.$SelfHostedRunnerName
+        $VMName = $VMList[0].Name
+    } catch {}
+}
+
 # ── Phase 2: Poll for completion, tail output ───────────────────────
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $pollInterval = 5
-$heartbeatInterval = 30
+$heartbeatInterval = 15
+$diagnosticInterval = 300   # Full diagnostic snapshot every 5 minutes
 $timeSinceOutput = 0
+$timeSinceDiagnostic = 0
 $linesSeen = 0
 $timedOut = $false
 
@@ -130,6 +141,8 @@ while (-not $worker.HasExited) {
         }
     }
 
+    $timeSinceDiagnostic += $pollInterval
+
     if ($timeSinceOutput -ge $heartbeatInterval) {
         # Include host resource snapshot so the last heartbeat before a runner-lost
         # failure reveals whether the host was under resource pressure.
@@ -142,8 +155,77 @@ while (-not $worker.HasExited) {
             $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
             $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
         } catch {}
-        Write-Log "Execute: worker running ($([int]$sw.Elapsed.TotalSeconds)s / ${TestJobTimeout}s, PID=$($worker.Id))${resInfo}"
+
+        # Include VM health if running on a Hyper-V host.
+        $vmInfo = ''
+        if ($VMName) {
+            try {
+                $vm = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+                if ($vm) {
+                    $vmState = $vm.State
+                    $vmMemMB = [math]::Round($vm.MemoryAssigned / 1MB)
+                    $hb = (Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue |
+                           Where-Object { $_.Name -eq 'Heartbeat' }).PrimaryStatusDescription
+                    $vmInfo = " | VM: ${vmState}, HB=${hb}, Mem=${vmMemMB}MB"
+                    # Count wsmprovhost.exe (PS Direct transport) processes.
+                    $wsmCount = @(Get-Process wsmprovhost -ErrorAction SilentlyContinue).Count
+                    if ($wsmCount -gt 0) { $vmInfo += ", PSDirectProcs=${wsmCount}" }
+                } else {
+                    $vmInfo = ' | VM: NOT FOUND'
+                }
+            } catch {}
+        }
+
+        Write-Log "Execute: worker running ($([int]$sw.Elapsed.TotalSeconds)s / ${TestJobTimeout}s, PID=$($worker.Id))${resInfo}${vmInfo}"
         $timeSinceOutput = 0
+    }
+
+    # ── Periodic comprehensive diagnostic dump ──────────────────
+    # Every 5 minutes, emit a detailed snapshot of the system state.
+    # This maximizes the chance that the last visible output before
+    # a runner-lost failure contains actionable data.
+    if ($timeSinceDiagnostic -ge $diagnosticInterval) {
+        $timeSinceDiagnostic = 0
+        Write-Log "=== DIAGNOSTIC SNAPSHOT ($([int]$sw.Elapsed.TotalSeconds)s) ==="
+        try {
+            # Hyper-V VM details.
+            if ($VMName) {
+                $vm = Get-VM -Name $VMName -ErrorAction SilentlyContinue
+                if ($vm) {
+                    Write-Log "  VM '$VMName': State=$($vm.State), Uptime=$($vm.Uptime), MemAssigned=$([math]::Round($vm.MemoryAssigned/1MB))MB, CPUUsage=$($vm.CPUUsage)%"
+                    $intSvcs = Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue
+                    foreach ($svc in $intSvcs) {
+                        if ($svc.Enabled) {
+                            Write-Log "  IntSvc: $($svc.Name) = $($svc.PrimaryStatusDescription)"
+                        }
+                    }
+                } else {
+                    Write-Log "  VM '$VMName': NOT FOUND (may have been destroyed)"
+                }
+            }
+            # Key process summary.
+            $vmwp = @(Get-Process vmwp -ErrorAction SilentlyContinue)
+            $wsm = @(Get-Process wsmprovhost -ErrorAction SilentlyContinue)
+            $workerProc = Get-Process -Id $worker.Id -ErrorAction SilentlyContinue
+            Write-Log "  Processes: vmwp=$($vmwp.Count) (WS=$([math]::Round(($vmwp | Measure-Object WorkingSet64 -Sum).Sum/1MB))MB), wsmprovhost=$($wsm.Count), worker=$(if($workerProc){'alive'}else{'GONE'})"
+            # Total system handle & thread counts.
+            $totalHandles = (Get-Process -ErrorAction SilentlyContinue | Measure-Object HandleCount -Sum).Sum
+            $totalThreads = (Get-Process -ErrorAction SilentlyContinue | Measure-Object Threads -Sum -ErrorAction SilentlyContinue).Sum
+            Write-Log "  System: Handles=$totalHandles, Threads=$totalThreads"
+            # Recent Hyper-V errors in event log (last 5 min).
+            $since = (Get-Date).AddMinutes(-5)
+            $hvErrors = @(Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Hyper-V-Worker-Admin','Microsoft-Windows-Hyper-V-VMMS-Admin';Level=1,2;StartTime=$since} -MaxEvents 5 -ErrorAction SilentlyContinue)
+            if ($hvErrors.Count -gt 0) {
+                Write-Log "  *** HYPER-V RECENT ERRORS ($($hvErrors.Count)): ***"
+                foreach ($evt in $hvErrors) {
+                    $msg = $evt.Message -replace "`n"," " -replace "`r",""
+                    Write-Log "    [$($evt.TimeCreated)] $($evt.ProviderName): $msg"
+                }
+            }
+        } catch {
+            Write-Log "  Diagnostic snapshot error: $($_.Exception.Message)"
+        }
+        Write-Log "=== END DIAGNOSTIC SNAPSHOT ==="
     }
 
     # ── Timeout handling ────────────────────────────────────────────

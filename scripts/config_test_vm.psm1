@@ -928,6 +928,11 @@ function Create-VM {
         Set-VMFirmware -VMName $VmName -EnableSecureBoot Off
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
+        # Disable automatic (production) checkpoints.  Gen2 VMs default to
+        # automatic checkpoints enabled, which creates unexpected AVHD files
+        # and can interfere with explicit snapshot/restore operations.
+        Set-VM -VMName $VmName -AutomaticCheckpointsEnabled $false
+
         if ((Get-VM -VMName $vmName) -eq $null) {
             throw "Failed to create VM: $VMName"
         }

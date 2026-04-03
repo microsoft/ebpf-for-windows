@@ -1146,7 +1146,7 @@ function Invoke-CommandOnVM {
     # which can happen when the PS Direct VMBus transport is stuck.
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $pollInterval = 5
-    $heartbeatInterval = 30
+    $heartbeatInterval = 15
     $timeSinceOutput = 0
 
     try {
