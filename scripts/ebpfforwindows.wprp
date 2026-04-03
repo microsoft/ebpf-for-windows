@@ -8,27 +8,27 @@
     <!-- EventCollectors for File Mode -->
     <EventCollector Id="EventCollector_EbpfCoreProvider_File" Name="EbpfCoreProvider_File">
       <BufferSize Value="256" />
-      <Buffers Value="256" />
-      <MaximumFileSize Value="256" FileMode="Circular"/>
+      <Buffers Value="1024" />
+      <MaximumFileSize Value="1024" FileMode="Circular"/>
       <FileMax Value="2"/>
     </EventCollector>
 
     <EventCollector Id="EventCollector_EbpfNetworkingProvider_File" Name="EbpfNetworkingProvider_File">
-      <BufferSize Value="256" />
-      <Buffers Value="512" />
-      <MaximumFileSize Value="256" FileMode="Circular"/>
+      <BufferSize Value="512" />
+      <Buffers Value="2048" />
+      <MaximumFileSize Value="1024" FileMode="Circular"/>
       <FileMax Value="2"/>
     </EventCollector>
 
     <!-- EventCollectors for Memory Mode (no file-specific settings) -->
     <EventCollector Id="EventCollector_EbpfCoreProvider_Memory" Name="EbpfCoreProvider_Memory">
       <BufferSize Value="256" />
-      <Buffers Value="256" />
+      <Buffers Value="1024" />
     </EventCollector>
 
     <EventCollector Id="EventCollector_EbpfNetworkingProvider_Memory" Name="EbpfNetworkingProvider_Memory">
-      <BufferSize Value="256" />
-      <Buffers Value="512" />
+      <BufferSize Value="512" />
+      <Buffers Value="2048" />
     </EventCollector>
 
     <EventProvider Id="ExecutionContext" Name="394f321c-5cf4-404c-aa34-4df1428a7f9c" NonPagedMemory="true"/>

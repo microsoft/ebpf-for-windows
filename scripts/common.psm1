@@ -7,7 +7,6 @@ param ([parameter(Mandatory=$True)] [string] $LogFileName)
 # Common helper functions.
 #
 
-
 function Write-Log
 {
     [CmdletBinding()]
@@ -77,7 +76,6 @@ function Start-ProcessWithTimeout
         if (Test-Path $tempErr) { Remove-Item $tempErr -Force -ErrorAction SilentlyContinue }
     }
 }
-
 
 function Compress-File
 {
@@ -400,12 +398,8 @@ function Wait-TestJobToComplete
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
-        try {
-            $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-            $JobOutput | ForEach-Object { Write-Host $_ }
-        } catch {
-            Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
-        }
+        $JobOutput = Receive-Job -Job $job
+        $JobOutput | ForEach-Object { Write-Host $_ }
 
         Start-Sleep -Seconds 2
         $TimeElapsed += 2
@@ -447,12 +441,8 @@ function Wait-TestJobToComplete
     }
 
     # Print any remaining output after the job completes.
-    try {
-        $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-        $JobOutput | ForEach-Object { Write-Host $_ }
-    } catch {
-        Write-Log "Warning: Failed to receive final job output (remote session may have ended): $($_.Exception.Message)"
-    }
+    $JobOutput = Receive-Job -Job $job
+    $JobOutput | ForEach-Object { Write-Host $_ }
 
     return $JobTimedOut
 }
@@ -564,6 +554,23 @@ function Invoke-PsExecScript {
 
 <#
 .SYNOPSIS
+    Imports the CredentialManager, and installs it if necessary.
+
+.DESCRIPTION
+    This function imports the CredentialManager module and installs it if it is not already installed. It also ensures that any dependencies are installed.
+#>
+function Get-CredentialManager {
+    # Import the CredentialManager module. Ensure any dependencies are installed.
+    Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+    Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+    if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
+        Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
+    }
+    Import-Module CredentialManager -ErrorAction Stop
+}
+
+<#
+.SYNOPSIS
     Returns the well-known password used for inner test VM accounts.
 
 .DESCRIPTION
@@ -583,23 +590,6 @@ function Invoke-PsExecScript {
 #>
 function Get-VMPassword {
     return 'eBPF4W!n'
-}
-
-<#
-.SYNOPSIS
-    Imports the CredentialManager, and installs it if necessary.
-
-.DESCRIPTION
-    This function imports the CredentialManager module and installs it if it is not already installed. It also ensures that any dependencies are installed.
-#>
-function Get-CredentialManager {
-    # Import the CredentialManager module. Ensure any dependencies are installed.
-    Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-    Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-    if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
-        Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
-    }
-    Import-Module CredentialManager -ErrorAction Stop
 }
 
 <#
