@@ -277,6 +277,7 @@ function Invoke-Test
           [Parameter(Mandatory = $False)][switch] $SkipTracing,
           [Parameter(Mandatory = $False)][string] $TracingProfileName = "EbpfForWindows-Networking")
 
+    $testPassed = $false
     try {
         # Initialize arguments.
         if ($TestArgs -ne "") {
@@ -309,6 +310,7 @@ function Invoke-Test
             Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
         }
 
+        $testPassed = $true
         Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
         Write-Log "`n==============================`n"
     }
@@ -321,7 +323,13 @@ function Invoke-Test
             } else {
                 $traceName = $testName
             }
-            Stop-WPRTrace -FileName $traceName
+            $etlFilePath = Stop-WPRTrace -FileName $traceName
+
+            # Remove the ETL file if the test passed to save disk space.
+            if ($testPassed -and $etlFilePath -and (Test-Path $etlFilePath)) {
+                Write-Log "Test passed - removing ETL trace file to save disk space: $etlFilePath"
+                Remove-Item -Path $etlFilePath -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 }
