@@ -55,14 +55,15 @@ jobs:
       generate_release_package: true
       build_msi: true
       build_nuget: true
-      configurations: '["Debug", "FuzzerDebug", "Release"]'
+      # FuzzerDebug temporarily removed: all fuzzer tests disabled.
+      configurations: '["Debug", "Release"]'
 
   onebranch:
     strategy:
       matrix:
         Architecture: ['x64', 'ARM64']
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -81,7 +82,8 @@ jobs:
   regular_native-only:
     strategy:
       matrix:
-        Architecture: ['x64', 'ARM64']
+        # ARM64 build temporarily disabled: Focus on 1ES runner testing only.
+        Architecture: ['x64']
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
@@ -97,9 +99,9 @@ jobs:
 
   # Run the unit tests in GitHub.
   unit_tests_appverif:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -115,9 +117,9 @@ jobs:
 
   # Run the unit tests in GitHub.
   unit_tests:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -133,8 +135,9 @@ jobs:
 
   # Run the unit tests for NativeOnly build in GitHub.
   unit_tests_native_only:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular_native-only
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -151,8 +154,9 @@ jobs:
 
   # Run the unit tests for NativeOnly build in GitHub.
   unit_tests_native_only_arm64:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular_native-only
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -169,9 +173,9 @@ jobs:
 
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpf_ext_unit_tests
@@ -186,9 +190,9 @@ jobs:
 
   # Run the bpf2c tests in GitHub.
   bpf2c:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       test_command: .\bpf2c_tests.exe -d yes
@@ -202,6 +206,8 @@ jobs:
 
   # Job to read BPF conformance version from central file.
   get_bpf_conformance_version:
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.read_version.outputs.version }}
@@ -214,9 +220,9 @@ jobs:
 
   # Run the bpf2c conformance tests in GitHub.
   bpf2c_conformance:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: [regular, get_bpf_conformance_version]
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/${{ needs.get_bpf_conformance_version.outputs.version }}/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
@@ -236,6 +242,9 @@ jobs:
     strategy:
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -261,6 +270,9 @@ jobs:
     strategy:
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -283,6 +295,9 @@ jobs:
     strategy:
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -305,6 +320,9 @@ jobs:
       fail-fast: false
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -332,6 +350,9 @@ jobs:
       fail-fast: false
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -356,6 +377,9 @@ jobs:
       fail-fast: false
       matrix:
         image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
           - 'server2022_v2'
           - 'server23h2_v2'
           - 'server2025_v2'
@@ -373,7 +397,8 @@ jobs:
 
   driver_native_only_arm64_tests:
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
@@ -394,7 +419,8 @@ jobs:
   # TEMPORARY: Run 2 of driver_native_only_arm64_tests for pipeline validation.
   driver_native_only_arm64_tests_run2:
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
@@ -412,7 +438,8 @@ jobs:
   # TEMPORARY: Run 3 of driver_native_only_arm64_tests for pipeline validation.
   driver_native_only_arm64_tests_run3:
     needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
@@ -434,13 +461,18 @@ jobs:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -TestMode "Regression" -RegressionArtifactsVersion "1.0.0-rc1" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
-      name: regression_driver_ws2022
+      name: regression_driver_${{ matrix.image }}
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -449,9 +481,9 @@ jobs:
       capture_etw: false
 
   ossar:
-    # Always run this job.
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    if: false
     uses: ./.github/workflows/ossar-scan.yml
     with:
       build_artifact: Build-x64
@@ -460,8 +492,8 @@ jobs:
   # ---------------------------------------------------------------------------
   # Build with C++ static analyzer.
   analyze:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -472,8 +504,8 @@ jobs:
 
   # Build with C++ address sanitizer.
   sanitize:
-    # Only run on schedule and pull request.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
@@ -483,7 +515,8 @@ jobs:
 
   bpf2c_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -496,7 +529,8 @@ jobs:
 
   bpf2c_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: bpf2c_fuzzer
@@ -509,7 +543,8 @@ jobs:
 
   execution_context_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -522,7 +557,8 @@ jobs:
 
   execution_context_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
@@ -536,7 +572,8 @@ jobs:
   # Run the verifier fuzzer.
   verifier_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -549,8 +586,8 @@ jobs:
 
   verifier_fuzzer_scheduled:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: verifier_fuzzer
@@ -563,8 +600,8 @@ jobs:
 
   core_helper_fuzzer:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -577,8 +614,8 @@ jobs:
 
   core_helper_fuzzer_scheduled:
     needs: regular
-    # Always run this job.
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: core_helper_fuzzer
@@ -591,7 +628,8 @@ jobs:
 
   netebpfext_fuzzer:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -604,7 +642,8 @@ jobs:
 
   netebpfext_fuzzer_scheduled:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fuzzer
@@ -618,8 +657,8 @@ jobs:
   # Run Cilium regression tests in GitHub.
   cilium_tests:
     needs: regular
-    # Always run this.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: cilium_tests
@@ -632,8 +671,8 @@ jobs:
   # Run the quick stress tests in GitHub.
   stress:
     needs: regular
-    # Always run this test.
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: stress
@@ -648,7 +687,8 @@ jobs:
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
@@ -666,7 +706,8 @@ jobs:
   # Run the fault injection simulator in GitHub.
   fault_injection:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
@@ -681,7 +722,8 @@ jobs:
   # Run the low memory simulator for netebpfext_unit tests.
   fault_injection_netebpfext_unit:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection
@@ -697,7 +739,8 @@ jobs:
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
@@ -713,7 +756,8 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
@@ -729,7 +773,8 @@ jobs:
   # Runs on a schedule as this takes a long time to run.
   netebpfext_fault_injection_full:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: netebpfext_fault_injection_full
@@ -743,7 +788,8 @@ jobs:
   # Run multi-threaded stress tests against the user mode 'mock' framework.
   user_mode_multi_threaded_stress_test:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
@@ -760,13 +806,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests
+      name: km_ioctl_stress_tests_${{ matrix.image }}
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -776,13 +827,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests_run2
+      name: km_ioctl_stress_tests_${{ matrix.image }}_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -791,13 +847,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ioctl_stress_tests_run3
+      name: km_ioctl_stress_tests_${{ matrix.image }}_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -807,13 +868,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests
+      name: km_mt_stress_tests_${{ matrix.image }}
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -825,13 +891,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_run2
+      name: km_mt_stress_tests_${{ matrix.image }}_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -843,13 +914,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_run3
+      name: km_mt_stress_tests_${{ matrix.image }}_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -862,13 +938,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension
+      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       test_timeout: 9000
@@ -882,13 +963,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension_run2
+      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -900,13 +986,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_mt_stress_tests_restart_extension_run3
+      name: km_mt_stress_tests_restart_extension_${{ matrix.image }}_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -918,13 +1009,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test
+      name: km_ebpfcore_restart_test_${{ matrix.image }}
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -936,13 +1032,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test_run2
+      name: km_ebpfcore_restart_test_${{ matrix.image }}_run2
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -954,13 +1055,18 @@ jobs:
     needs: regular
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server2022_v2'
     with:
-      name: km_ebpfcore_restart_test_run3
+      name: km_ebpfcore_restart_test_${{ matrix.image }}_run3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       code_coverage: false
       test_timeout: 9000
       job_timeout: 210
@@ -969,7 +1075,8 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
@@ -981,7 +1088,8 @@ jobs:
       configurations: '["Release"]'
 
   netperf:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/netperf.yml
     with:
       sha: ${{ github.sha }}
@@ -992,7 +1100,8 @@ jobs:
 
   upload_perf_results:
     needs: performance
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
@@ -1004,7 +1113,8 @@ jobs:
 
   upload_netperf_results_lab_2022:
     needs: netperf
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TEMPORARILY DISABLED: Focus on 1ES runner testing only.
+    if: false
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_netperf_results_lab_2022
