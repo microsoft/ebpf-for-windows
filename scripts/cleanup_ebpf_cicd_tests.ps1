@@ -6,7 +6,7 @@ param ([parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (15*60),
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][switch] $VMIsRemote)
 
@@ -17,8 +17,6 @@ $VMIsRemote = [bool]$VMIsRemote
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-
-Write-Log "Cleanup starting (ExecuteOnHost=$ExecuteOnHost, ExecuteOnVM=$ExecuteOnVM, VMIsRemote=$VMIsRemote, Timeout=${TestJobTimeout}s)"
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -41,56 +39,30 @@ $Job = Start-Job -ScriptBlock {
 
     if ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
+        # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
+        Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
-        # Wait for VMs to be ready.  If the VM crashed during the test, this
-        # may take a few minutes while it writes a crash dump and reboots.
-        # The function has a built-in 5-minute timeout; wrap in try/catch so
-        # a dead VM doesn't abort the entire cleanup.
-        $vmReady = $false
-        try {
-            Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
-            $vmReady = $true
-        } catch {
-            Write-Log "*** WARNING *** VM did not become ready: $($_.Exception.Message). Will attempt log import anyway."
-        }
-
-        # Check if we're here after a crash (only if VM is reachable).
-        if ($vmReady) {
-            foreach ($VM in $VMList) {
-                $VMName = $VM.Name
-                $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-                try {
-                    $DumpFound = Invoke-CommandOnVM `
-                        -VMName $VMName `
-                        -VMIsRemote $VMIsRemote `
-                        -Credential $TestCredential `
-                        -TimeoutSeconds 120 `
-                        -ScriptBlock {
-                            Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
-                        }
-
-                    if ($DumpFound -eq $True) {
-                        Write-Log "Post-crash reboot detected on VM $VMName"
-                    }
-                } catch {
-                    Write-Log "*** WARNING *** Failed to check for crash dump on ${VMName}: $($_.Exception.Message). Continuing cleanup."
+        # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
+        # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
+        # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
+        foreach ($VM in $VMList) {
+            $VMName = $VM.Name
+            $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
+            $DumpFound = Invoke-CommandOnVM `
+                -VMName $VMName `
+                -VMIsRemote $VMIsRemote `
+                -Credential $TestCredential `
+                -ScriptBlock {
+                    Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
                 }
+
+            if ($DumpFound -eq $True) {
+                Write-Log "Post-crash reboot detected on VM $VMName"
             }
         }
 
-        # Import logs from VMs.  Each step inside Import-ResultsFromVM is
-        # wrapped in try/catch with [Step N/6] labels.  If a Copy-Item hangs
-        # (VMBus stall), the outer Wait-TestJobToComplete timeout (300s) will
-        # kill this entire job.  We intentionally do NOT nest a sub-job here
-        # because PS Direct sessions can't be created from a doubly-nested
-        # background process.
-        try {
-            Write-Log "Starting log import from VMs..."
-            Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing -VMIsRemote $VMIsRemote
-            Write-Log "Log import completed."
-        } catch {
-            Write-Log "*** WARNING *** Failed to import results from VMs: $($_.Exception.Message). Continuing cleanup."
-        }
+        # Import logs from VMs.
+        Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 
         # Stop the VMs.
         Stop-AllVMs -VMList $VMList
@@ -130,73 +102,28 @@ $JobTimedOut = `
     -TestMode "CI/CD" `
     -Options @("None") `
     -TestHangTimeout (10*60) `
-    -UserModeDumpFolder "C:\Dumps" `
-    -SkipDumpOnTimeout $true
+    -UserModeDumpFolder "C:\Dumps"
 
-# Check if the job failed (e.g., VM session died, cleanup threw an exception).
+# Check job result before cleanup.
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {
     try {
         $childJob = $Job.ChildJobs[0]
         if ($childJob -and $childJob.JobStateInfo.Reason) {
-            Write-Log "*** JOB FAILED *** $($childJob.JobStateInfo.Reason.GetType().Name): $($childJob.JobStateInfo.Reason.Message)"
-        } else {
-            Write-Log "*** JOB FAILED *** (no reason available, job state: $($Job.State))"
+            Write-Log "Cleanup job failed: $($childJob.JobStateInfo.Reason.Message)"
         }
-    } catch {
-        Write-Log "*** JOB FAILED *** Could not retrieve reason: $($_.Exception.Message)"
-    }
-    try {
-        Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
-    } catch {
-        Write-Log "Job drain error: $($_.Exception.Message)"
-    }
+    } catch {}
+    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
 }
 
-# Clean up -- Stop-Job can hang if the inner runspace is stuck on a dead
-# PS Direct transport, so run it on a background thread with a timeout.
-try {
-    $stopTask = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
-    $stopAsync = $stopTask.BeginInvoke()
-    if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
-        Write-Log "Warning: Stop-Job timed out in cleanup -- proceeding anyway."
-    }
-    try { $stopTask.EndInvoke($stopAsync) } catch {}
-    $stopTask.Dispose()
-} catch {}
-try {
-    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
-    $asyncResult = $removeTask.BeginInvoke()
-    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-        Write-Log "Warning: Remove-Job timed out -- proceeding anyway."
-    }
-    $removeTask.Dispose()
-} catch {
-    Write-Log "Warning: Remove-Job cleanup failed: $($_.Exception.Message)"
-}
-
-# Kill any remaining child processes.  Start-Job creates a separate
-# powershell.exe that may survive Stop-Job/Remove-Job if stuck on a dead
-# PS Direct transport.  These child processes are in the GitHub Actions
-# step's process tree and keep the step alive indefinitely.
-try {
-    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
-    if ($children) {
-        Write-Log "Killing $(@($children).Count) remaining child process(es) from cleanup..."
-        foreach ($child in $children) {
-            Write-Log "  $($child.Name) PID=$($child.ProcessId)"
-            & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
-        }
-    }
-} catch {}
+# Safe cleanup (bounded to prevent hangs on stuck transports).
+Remove-JobSafely -Job $Job
 
 Pop-Location
 
-if ($JobTimedOut) {
-    Write-Log "*** WARNING *** Cleanup timed out -- some logs may be missing but this is non-fatal."
-} elseif ($JobFailed) {
-    Write-Log "*** WARNING *** Cleanup job failed -- some logs may be missing but this is non-fatal."
-} else {
-    Write-Log "Cleanup completed successfully."
+if ($JobTimedOut -or $JobFailed) {
+    if ($JobTimedOut) { Write-Log "Cleanup timed out" }
+    if ($JobFailed) { Write-Log "Cleanup job failed" }
+    exit 1
 }
 

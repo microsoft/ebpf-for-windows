@@ -27,7 +27,6 @@ Push-Location $WorkingDirectory
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-Write-Log "Setup starting (ExecuteOnHost=$ExecuteOnHost, ExecuteOnVM=$ExecuteOnVM, VMIsRemote=$VMIsRemote, Timeout=${TestJobTimeout}s)"
 Write-Log "ExecuteOnHost: $ExecuteOnHost"
 Write-Log "ExecuteOnVM: $ExecuteOnVM"
 Write-Log "VMIsRemote: $VMIsRemote"
@@ -53,13 +52,6 @@ if ($TestMode -eq "Regression") {
 
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
-
-# Elevate the GitHub Actions runner agent priority so it is not starved when the
-# inner VM drives sustained CPU load during stress tests.
-foreach ($proc in (Get-Process -Name 'Runner.Worker','Runner.Listener' -ErrorAction SilentlyContinue)) {
-    $proc.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::AboveNormal
-    Write-Log "Set $($proc.ProcessName) (PID $($proc.Id)) priority to AboveNormal"
-}
 
 $Job = Start-Job -ScriptBlock {
     param (
@@ -183,73 +175,25 @@ $JobTimedOut = `
     -TestHangTimeout (10*60) `
     -UserModeDumpFolder "C:\Dumps"
 
-# Check if the job failed (e.g., VM session died, setup threw an exception).
+# Check job result before cleanup.
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {
     try {
         $childJob = $Job.ChildJobs[0]
         if ($childJob -and $childJob.JobStateInfo.Reason) {
-            Write-Log "*** JOB FAILED *** $($childJob.JobStateInfo.Reason.GetType().Name): $($childJob.JobStateInfo.Reason.Message)"
-        } else {
-            Write-Log "*** JOB FAILED *** (no reason available, job state: $($Job.State))"
+            Write-Log "Setup job failed: $($childJob.JobStateInfo.Reason.Message)"
         }
-    } catch {
-        Write-Log "*** JOB FAILED *** Could not retrieve reason: $($_.Exception.Message)"
-    }
-    try {
-        Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Log $_ }
-    } catch {
-        Write-Log "Job drain error: $($_.Exception.Message)"
-    }
+    } catch {}
+    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
 }
 
-# Clean up -- Stop-Job can hang if the inner runspace is stuck on a dead
-# PS Direct transport, so run it on a background thread with a timeout.
-try {
-    $stopTask = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
-    $stopAsync = $stopTask.BeginInvoke()
-    if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
-        Write-Log "Warning: Stop-Job timed out in setup -- proceeding anyway."
-    }
-    try { $stopTask.EndInvoke($stopAsync) } catch {}
-    $stopTask.Dispose()
-} catch {}
-try {
-    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
-    $asyncResult = $removeTask.BeginInvoke()
-    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-        Write-Log "Warning: Remove-Job timed out -- proceeding anyway."
-    }
-    $removeTask.Dispose()
-} catch {
-    Write-Log "Warning: Remove-Job cleanup failed: $($_.Exception.Message)"
-}
+# Safe cleanup (bounded to prevent hangs on stuck transports).
+Remove-JobSafely -Job $Job
 
 Pop-Location
 
-# Kill any remaining child processes.  Start-Job creates a separate
-# powershell.exe that may survive Stop-Job/Remove-Job if stuck on a dead
-# PS Direct transport.  These child processes are in the GitHub Actions
-# step's process tree and keep the step alive indefinitely.
-try {
-    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $PID" -ErrorAction SilentlyContinue
-    if ($children) {
-        Write-Log "Killing $(@($children).Count) remaining child process(es) from setup..."
-        foreach ($child in $children) {
-            Write-Log "  $($child.Name) PID=$($child.ProcessId)"
-            & taskkill.exe /T /F /PID $child.ProcessId 2>&1 | Out-Null
-        }
-    }
-} catch {}
-
-if ($JobTimedOut) {
-    Write-Log "Setup exiting with error: job timed out"
-    [Environment]::Exit(1)
+if ($JobTimedOut -or $JobFailed) {
+    if ($JobTimedOut) { Write-Log "Setup timed out" }
+    if ($JobFailed) { Write-Log "Setup job failed" }
+    exit 1
 }
-
-if ($JobFailed) {
-    Write-Log "Setup exiting with error: job failed"
-    [Environment]::Exit(1)
-}
-
-Write-Log "Setup completed successfully"

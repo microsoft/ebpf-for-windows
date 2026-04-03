@@ -21,9 +21,7 @@
     The number of CPUs to assign to each VM. Default is 4.
 
 .PARAMETER VMMemory
-    The amount of memory to assign to each VM. Default is 8192MB.
-    Gen 2 VMs with HVCI enabled and Driver Verifier require more memory
-    than Gen 1 VMs due to VBS and code integrity kernel overhead.
+    The amount of memory to assign to each VM. Default is 4096MB.
 
 .EXAMPLE
     .\Setup.ps1 -BaseUnattendPath 'C:\path\to\unattend.xml' -BaseVhdDirPath 'C:\path\to\vhd' -WorkingPath 'C:\vms'
@@ -33,7 +31,7 @@ param(
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
-    [Parameter(Mandatory=$False)][string]$VMMemory=8192MB
+    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
 )
 
 $ErrorActionPreference = "Stop"
@@ -42,20 +40,6 @@ $ErrorActionPreference = "Stop"
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('C:\work', $logFileName) -WarningAction SilentlyContinue
-
-# Configure Defender exclusions for Hyper-V operations on the host.
-# VHD I/O, vmwp.exe (VM worker), and wsmprovhost.exe (PS Direct transport)
-# are heavy during VM creation and test execution.  Without exclusions,
-# Defender scans every VHD block, which adds latency and can cause timeouts.
-try {
-    Write-Log "Configuring host Defender exclusions for Hyper-V..."
-    Add-MpPreference -ExclusionPath @($WorkingPath, 'C:\work') -ErrorAction SilentlyContinue
-    Add-MpPreference -ExclusionExtension @('.vhd', '.vhdx', '.avhd', '.avhdx', '.vsv', '.iso') -ErrorAction SilentlyContinue
-    Add-MpPreference -ExclusionProcess @('vmwp.exe', 'vmms.exe', 'wsmprovhost.exe') -ErrorAction SilentlyContinue
-    Write-Log "Host Defender exclusions configured."
-} catch {
-    Write-Log "Warning: Failed to configure host Defender exclusions: $($_.Exception.Message)"
-}
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath

@@ -58,17 +58,6 @@ function GetDriveFreeSpaceGB
 function Generate-KernelDump
 {
     Push-Location $WorkingDirectory
-
-    # Check if a genuine crash dump already exists (e.g., from a real bugcheck).
-    # If so, preserve it instead of overwriting with a NotMyFault-induced crash.
-    $existingDump = "$env:SystemRoot\MEMORY.DMP"
-    if (Test-Path $existingDump) {
-        $dumpInfo = Get-Item $existingDump
-        Write-Log "*** Existing kernel dump found: $existingDump (Size: $([math]::Round($dumpInfo.Length / 1MB)) MB, Created: $($dumpInfo.LastWriteTime)) ***"
-        Write-Log "Skipping NotMyFault crash to preserve genuine crash dump."
-        return
-    }
-
     $NotMyFaultBinary = "NotMyFault64.exe"
     Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
     $NotMyFaultBinaryPath = GetToolLocationPath -ToolName $NotMyFaultBinary
@@ -173,52 +162,9 @@ function Process-TestCompletion
         ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test $TestCommand failed to start."
     }
 
-    # Poll for process exit while tailing the output file so test progress is
-    # visible in the CI log in real time (rather than buffered until exit).
-    $TempOutputFile = "$env:TEMP\app_output.log"
-    $pollInterval = 5          # seconds between polls
-    $heartbeatInterval = 30    # seconds of silence before emitting a heartbeat
-    $elapsed = 0
-    $linesSeen = 0
-    $timeSinceOutput = 0
-
-    while (-not $TestProcess.HasExited -and $elapsed -lt $TestHangTimeout) {
-        Start-Sleep -Seconds $pollInterval
-        $elapsed += $pollInterval
-        $timeSinceOutput += $pollInterval
-
-        # Tail new lines from the output file.  Use FileStream with
-        # FileShare.ReadWrite so we never conflict with the test process
-        # that holds the file open for writing.
-        if (Test-Path $TempOutputFile) {
-            try {
-                $fs = [System.IO.FileStream]::new(
-                    $TempOutputFile,
-                    [System.IO.FileMode]::Open,
-                    [System.IO.FileAccess]::Read,
-                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                $reader = [System.IO.StreamReader]::new($fs)
-                $content = $reader.ReadToEnd()
-                $reader.Close()
-                $fs.Close()
-                $lines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
-                if ($lines.Count -gt $linesSeen) {
-                    for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                        Write-Log -TraceMessage $lines[$i]
-                    }
-                    $linesSeen = $lines.Count
-                    $timeSinceOutput = 0
-                }
-            } catch {
-                # File may be locked momentarily; skip this cycle and retry next poll.
-            }
-        }
-
-        if ($timeSinceOutput -ge $heartbeatInterval) {
-            Write-Log "$TestCommand still running (${elapsed}s / ${TestHangTimeout}s)..."
-            $timeSinceOutput = 0
-        }
-    }
+    # Use Wait-Process for the process to terminate or timeout.
+    # See https://stackoverflow.com/a/23797762
+    Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
 
     if (-not $TestProcess.HasExited) {
         Write-Log "`n*** ERROR *** Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.`n"
@@ -247,31 +193,15 @@ function Process-TestCompletion
         Write-Log "Throwing TestHungException for $TestCommand" -ForegroundColor Red
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
-        # Flush any remaining output lines not yet printed by the polling loop.
+        # Read and display the output (if any) from the temporary output file.
+        $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
+        # Process the log file line-by-line
         if ((Test-Path $TempOutputFile) -and (Get-Item $TempOutputFile).Length -gt 0) {
-            try {
-                $fs = [System.IO.FileStream]::new(
-                    $TempOutputFile,
-                    [System.IO.FileMode]::Open,
-                    [System.IO.FileAccess]::Read,
-                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                $reader = [System.IO.StreamReader]::new($fs)
-                $content = $reader.ReadToEnd()
-                $reader.Close()
-                $fs.Close()
-                $lines = @($content -split "`n" | ForEach-Object { $_.TrimEnd("`r") } | Where-Object { $_ -ne '' })
-                if ($lines.Count -gt $linesSeen) {
-                    Write-Log "$TestCommand Output (final):`n" -ForegroundColor Green
-                    for ($i = $linesSeen; $i -lt $lines.Count; $i++) {
-                        Write-Log -TraceMessage $lines[$i]
-                    }
-                }
-            } catch {
-                Write-Log "Warning: could not read final output: $($_.Exception.Message)"
+            Write-Log "$TestCommand Output:`n" -ForegroundColor Green
+            Get-Content -Path $TempOutputFile | ForEach-Object {
+                Write-Log -TraceMessage $_
             }
-            # Do NOT delete app_output.log here; cleanup will copy it as a
-            # test artifact so the full output is available even when the
-            # GitHub log only shows truncated heartbeats.
+            Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
         }
 
         $TestExitCode = $TestProcess.ExitCode
@@ -282,7 +212,7 @@ function Process-TestCompletion
                 Get-Content -Path $TempErrorFile | ForEach-Object {
                     Write-Log -TraceMessage $_ -ForegroundColor Red
                 }
-                # Do NOT delete app_error.log; cleanup will collect it.
+                Remove-Item -Path $TempErrorFile -Force -ErrorAction Ignore
             }
 
             $ErrorMessage = "*** ERROR *** $TestCommand failed with $TestExitCode."
@@ -414,8 +344,13 @@ function Invoke-CICDTests
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
           [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
 
+
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    # Now create an array of test tuples, overriding only the necessary values
+    # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
+    # That causes the regression test to fail. So, we are skipping this test for now.
 
     $TestList = @(
         (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
@@ -428,59 +363,20 @@ function Invoke-CICDTests
         Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName $($Test.Test)
     }
 
-    # Run the system tests.
+    # Now run the system tests.
+
+    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
     if ($ExecuteSystemTests) {
-        $TestCommand = "PsExec64.exe"
-        $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\api_test.exe`" `"-d yes`""
-        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName "api_test.exe" -VerboseLogs $VerboseLogs -TestHangTimeout 300 -TraceFileName "api_test.exe_System"
+        foreach ($Test in $SystemTestList) {
+            $TestCommand = "PsExec64.exe"
+            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout) -TraceFileName "$($Test.Test)_System"
+        }
     }
 
     if ($Env:BUILD_CONFIGURATION -eq "Release") {
         Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs -SkipTracing
     }
-
-    Pop-Location
-}
-
-function Invoke-CICDStressTests
-{
-    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][bool] $MultiThread = $false,
-          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
-          [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
-
-    Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
-
-    if (-not $MultiThread) {
-        Write-Log "Executing eBPF API IOCTL stress tests."
-        $TestHangTimeout = 60*60
-        $api_stress_duration = 30*60
-        # Skip per-test file-mode WPR tracing for long stress tests -- the setup
-        # phase already starts a memory-mode trace (-KmTraceType "memory") which
-        # is sufficient for diagnostics.  File-mode tracing for 30+ minutes generates
-        # multi-GB ETL files that can exhaust VM disk space.
-        Invoke-Test -TestName "api_test.exe" -TestArgs "--stress-test-duration $api_stress_duration ioctl_stress" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
-        Pop-Location
-        return
-    }
-
-    if ($RestartEbpfCore) {
-        Write-Log "Executing eBPF core restart stress test."
-        $TestHangTimeout = 120*60
-        Invoke-Test -TestName "ebpf_restart_test_controller.exe" -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
-        Pop-Location
-        return
-    }
-
-    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
-    $TestHangTimeout = 120*60
-    if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5"
-    } else {
-        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
-    }
-    Invoke-Test -TestName "ebpf_stress_tests_km.exe" -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -SkipTracing
 
     Pop-Location
 }
@@ -504,10 +400,6 @@ function Invoke-ConnectRedirectTest
 
         $TestCommand = ".\connect_redirect_tests.exe"
 
-        # Exclude CONNECTED_UDP tests via Catch2 CLI filter -- known Windows OS
-        # platform bug causes driver verifier pool leak failures (0xC4/0x62).
-        $ExcludeFilter = " ~*CONNECTED_UDP*"
-
         ## First run the test with both v4 and v6 programs attached.
         $TestArguments =
             " --virtual-ip-v4 $VirtualIPv4Address" +
@@ -520,8 +412,7 @@ function Invoke-ConnectRedirectTest
             " --proxy-port $ProxyPort" +
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
-            " --user-type $UserType" +
-            $ExcludeFilter
+            " --user-type $UserType"
 
         Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_v6_$($UserType)"
@@ -536,8 +427,7 @@ function Invoke-ConnectRedirectTest
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
             " --user-type $UserType" +
-            " [connect_authorize_redirect_tests_v4]" +
-            $ExcludeFilter
+            " [connect_authorize_redirect_tests_v4]"
 
         Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_$($UserType)"
@@ -552,13 +442,69 @@ function Invoke-ConnectRedirectTest
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
             " --user-type $UserType" +
-            " [connect_authorize_redirect_tests_v6]" +
-            $ExcludeFilter
+            " [connect_authorize_redirect_tests_v6]"
 
         Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v6_$($UserType)"
 
         Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
+
+    Pop-Location
+}
+
+function Invoke-CICDStressTests
+{
+    param([parameter(Mandatory = $true)][bool] $VerboseLogs,
+          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+          [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
+          [parameter(Mandatory = $false)][bool] $MultiThread = $false,
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
+          [parameter(Mandatory = $false)][bool] $RestartEbpfCore = $false)
+
+
+    Push-Location $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    if (-not $MultiThread) {
+        Write-Log "Executing eBPF API IOCTL stress tests."
+        # run api test's ioctl_stress test.
+        $LASTEXITCODE = 0
+        $TestHangTimeout = 60*60 # 60 minutes hang timeout.
+        $api_stress_duration = 30*60 # 30 minutes test duration.
+        $TestCommand = "api_test.exe"
+        $TestArguments = "--stress-test-duration $api_stress_duration ioctl_stress"
+        Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+        Pop-Location
+        return
+    }
+
+    if ($RestartEbpfCore) {
+        Write-Log "Executing eBPF core restart stress test."
+
+        $LASTEXITCODE = 0
+
+        $TestCommand = ".\ebpf_restart_test_controller.exe"
+        $TestHangTimeout = 120*60 # 120 minutes hang timeout.
+        Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
+
+        Pop-Location
+        return
+    }
+
+    Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
+
+    $LASTEXITCODE = 0
+
+    $TestHangTimeout = 120*60 # 120 minutes hang timeout.
+    $TestCommand = ".\ebpf_stress_tests_km.exe"
+    $TestArguments = " "
+    if ($RestartExtension -eq $false) {
+        $TestArguments = "-tt=8 -td=5"
+    } else {
+        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
+    }
+
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout -TracingProfileName "EbpfForWindowsProvider"
 
     Pop-Location
 }

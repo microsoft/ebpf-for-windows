@@ -59,21 +59,6 @@ on:
         required: false
         type: string
         default: 'x64'
-      test_timeout:
-        description: 'Timeout in seconds for the test job (default: 7200)'
-        required: false
-        type: number
-        default: 7200
-      job_timeout:
-        description: 'Overall job timeout in minutes (default: 180). Must exceed step_timeout + cleanup overhead.'
-        required: false
-        type: number
-        default: 180
-      step_timeout:
-        description: 'Timeout in minutes for the test step (default: 130). Must be less than job_timeout.'
-        required: false
-        type: number
-        default: 130
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
@@ -82,12 +67,11 @@ permissions:
 
 jobs:
   run_test:
-    # Job-level timeout enforced server-side by GitHub. This is the absolute backstop
-    # that terminates the job even if the runner is unresponsive.
-    timeout-minutes: ${{ inputs.job_timeout }}
+    # Due to app-verifier, unit tests take a lot longer to execute. Also, stress tests now take around 90 minutes.
+    # Increase the timeout to 150 minutes.
+    timeout-minutes: 150
 
     strategy:
-      fail-fast: false
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
@@ -104,7 +88,7 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
-      TEST_TIMEOUT: ${{inputs.test_timeout}}  # Configurable timeout for tests (default: 7200s / 2 hours).
+      TEST_TIMEOUT: 7200  # 2 hour timeout for tests.
 
     steps:
       - name: Harden Runner
@@ -275,7 +259,6 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
         id: run_pre_test_command
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}}
 
@@ -283,7 +266,6 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && contains(inputs.environment, 'ebpf_cicd')
         id: run_pre_test_command_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -RegressionArtifactsConfiguration ${{env.BUILD_CONFIGURATION}}
 
@@ -291,7 +273,6 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true' && contains(inputs.environment, '1ES')
         id: run_pre_test_command_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 30
         run: |
           ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -RegressionArtifactsConfiguration ${{env.BUILD_CONFIGURATION}}
 
@@ -334,7 +315,6 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd') && (inputs.fault_injection != true)
         id: run_test_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
@@ -342,7 +322,6 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES') && (inputs.fault_injection != true)
         id: run_test_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner' -TestJobTimeout ${{env.TEST_TIMEOUT}}
 
@@ -350,7 +329,6 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_platform == 'arm64') && (inputs.fault_injection != true)
         id: run_test_github_runner
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.step_timeout }}
         run: |
           ${{env.TEST_COMMAND}} -LogFileName arm64_runner.log
 
@@ -358,7 +336,6 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES') && (inputs.build_platform != 'arm64')) && (inputs.fault_injection != true)
         id: run_test_without_code_coverage
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: ${{ inputs.step_timeout }}
         shell: cmd
         run: |
           set EBPF_ENABLE_WER_REPORT=yes
@@ -366,29 +343,26 @@ jobs:
           powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run post test command
-        # Run the post test command even if the workflow has failed or been cancelled.
-        if: always() && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
+        # Run the post test command even if the workflow has failed.
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES'))
         id: run_post_test_command
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}}
 
       - name: Run post test command on self-hosted runner
-        # Run the post test command even if the workflow has failed or been cancelled.
-        if: always() && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd')
+        # Run the post test command even if the workflow has failed.
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'ebpf_cicd')
         id: run_post_test_command_self_hosted
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
       - name: Run post test command on 1ES runner
-        # Run the post test command even if the workflow has failed or been cancelled.
-        if: always() && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES')
+        # Run the post test command even if the workflow has failed.
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, '1ES')
         id: run_post_test_command_1es
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        timeout-minutes: 45
         run: |
           ${{env.POST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName '1ESRunner'
 

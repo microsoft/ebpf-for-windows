@@ -133,25 +133,11 @@ function Stop-DriverWithTimeout {
         } else {
             # If timeout occurs, stop the job and handle the timeout scenario
             Stop-Job -Job $Job
-            try {
-                $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
-                $asyncResult = $removeTask.BeginInvoke()
-                if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                    Write-Log "Warning: Remove-Job timed out for $DriverName stop job"
-                }
-                $removeTask.Dispose()
-            } catch {}
+            Remove-Job -Job $Job
             throw [System.TimeoutException]::new("Failed to stop $DriverName driver in $Timeout seconds.")
         }
         # Cleanup the job
-        try {
-            $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
-            $asyncResult = $removeTask.BeginInvoke()
-            if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                Write-Log "Warning: Remove-Job timed out for $DriverName cleanup"
-            }
-            $removeTask.Dispose()
-        } catch {}
+        Remove-Job -Job $Job -Force
         Write-Log "$DriverName driver stopped." -ForegroundColor Green
     } else {
         Write-Log "$DriverName driver is not running." -ForegroundColor Green
@@ -163,7 +149,7 @@ function Stop-eBPFServiceAndDrivers {
     param([parameter(Mandatory=$false)] [bool] $GranularTracing = $false)
 
     if ($GranularTracing) {
-        Start-WPRTrace -KmTracing $true -KmTraceType "file"
+        Start-WPRTrace
     }
 
     # First, stop user mode service, so that EbpfCore does not hang on stop.

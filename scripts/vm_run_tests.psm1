@@ -1,4 +1,4 @@
-﻿# Copyright (c) eBPF for Windows contributors
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param (
@@ -31,68 +31,19 @@ function Invoke-OnHostOrVM {
     param(
         [Parameter(Mandatory = $true, Position = 0)][ScriptBlock] $ScriptBlock,
         [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
-        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session,
-        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 0
+        [Parameter(Mandatory = $false)][System.Management.Automation.Runspaces.PSSession] $Session
     )
     if ($script:ExecuteOnHost) {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
-        Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -TimeoutSeconds $TimeoutSeconds
+        Invoke-CommandOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }
 }
 
-function Invoke-TestOnVM {
-    param(
-        [Parameter(Mandatory = $true)] [string] $TestName,
-        [Parameter(Mandatory = $false)] [string] $TestArgs = "",
-        [Parameter(Mandatory = $false)] [string] $InnerTestName = "",
-        [Parameter(Mandatory = $false)] [string] $TraceFileName = "",
-        [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false,
-        [Parameter(Mandatory = $false)] [int] $TestTimeout = 300,
-        [Parameter(Mandatory = $false)] [bool] $SkipTracing = $false,
-        [Parameter(Mandatory = $false)] [string] $TracingProfileName = "EbpfForWindows-Networking"
-    )
-    Write-Log "=== Starting test: $TestName ==="
-
-    $scriptBlock = {
-        param($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing,
-              $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName)
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
-        $env:EBPF_ENABLE_WER_REPORT = "yes"
-        Push-Location $WorkingDirectory
-        $invokeArgs = @{
-            TestName        = $TestName
-            VerboseLogs     = $VerboseLogs
-            TestHangTimeout = $TestTimeout
-        }
-        if ($TestArgs -ne "")           { $invokeArgs['TestArgs'] = $TestArgs }
-        if ($InnerTestName -ne "")      { $invokeArgs['InnerTestName'] = $InnerTestName }
-        if ($TraceFileName -ne "")      { $invokeArgs['TraceFileName'] = $TraceFileName }
-        if ($SkipTracing)               { $invokeArgs['SkipTracing'] = $true }
-        if ($TracingProfileName -ne "") { $invokeArgs['TracingProfileName'] = $TracingProfileName }
-        Invoke-Test @invokeArgs
-        Pop-Location
-    }
-
-    $argList = @(
-        $script:WorkingDirectory, $script:LogFileName, $TestTimeout, $script:UserModeDumpFolder, $GranularTracing,
-        $TestName, $TestArgs, $InnerTestName, $TraceFileName, $VerboseLogs, $SkipTracing, $TracingProfileName
-    )
-    # Each test gets its own PS Direct session. The TimeoutSeconds is a safety
-    # net beyond the per-test hang timeout (which handles dump generation and
-    # WPR trace collection before throwing).
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($TestTimeout + 600)
-    Write-Log "=== Completed test: $TestName ==="
-}
-
 function Generate-KernelDumpOnVM {
-    param(
-        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 300
-    )
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
         Import-Module "$WorkingDirectory\common.psm1" -ArgumentList $LogFileName -Force -WarningAction SilentlyContinue -Scope Global
@@ -100,7 +51,7 @@ function Generate-KernelDumpOnVM {
         Generate-KernelDump
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds $TimeoutSeconds
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Add-eBPFProgram {
@@ -124,7 +75,7 @@ function Add-eBPFProgram {
         return $ProgId
     }
     $argList = @($Program, $Interface, $script:WorkingDirectory, $LogFileName)
-    return (Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120)
+    return (Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList)
 }
 
 function Set-eBPFProgram {
@@ -141,7 +92,7 @@ function Set-eBPFProgram {
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
     }
     $argList = @($ProgId, $Interface, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Remove-eBPFProgram {
@@ -158,54 +109,42 @@ function Remove-eBPFProgram {
         return $ProgId
     }
     $argList = @($ProgId, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
-function Start-BackgroundListeners {
+function Start-BackgroundProcess{
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName,
-        [Parameter(Mandatory = $true)] [string[]] $IPAddresses,
-        [Parameter(Mandatory = $true)] [string[]] $Protocols,
-        [Parameter(Mandatory = $true)] [int[]] $Ports
+        [Parameter(Mandatory = $true)] [string] $Parameters
     )
-    # Start all listeners in a single remote call instead of creating a
-    # separate PS Direct session per listener.  The old approach leaked
-    # wsmprovhost.exe host processes that kept the CI step alive forever.
-    #
-    # Serialize arrays as pipe-delimited strings to avoid PowerShell
-    # array-flattening when passing through Invoke-Command -ArgumentList.
-    $ipStr = $IPAddresses -join '|'
-    $protoStr = $Protocols -join '|'
-    $portStr = ($Ports | ForEach-Object { $_.ToString() }) -join '|'
-
-    $scriptBlock = {
-        param($ProgramName, $IpStr, $ProtoStr, $PortStr, $WorkingDirectory)
-        $ProgramPath = "$WorkingDirectory\$ProgramName"
-        foreach ($IP in ($IpStr -split '\|')) {
-            foreach ($Proto in ($ProtoStr -split '\|')) {
-                foreach ($Port in ($PortStr -split '\|')) {
-                    Start-Process -FilePath $ProgramPath -ArgumentList "--protocol $Proto --local-port $Port --local-address $IP" -ErrorAction Stop | Out-Null
-                }
-            }
-        }
+    $session = $null
+    if ($script:ExecuteOnVM){
+        $VmCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $script:VMIsRemote
+        $session = New-SessionOnVM -VMName $script:VMName -VMIsRemote $script:VMIsRemote -Credential $VmCredential
+    } else {
+        $session = New-PSSession -ErrorAction Stop
     }
-    $count = $IPAddresses.Count * $Protocols.Count * $Ports.Count
-    Write-Log "Starting $count $ProgramName listeners ($($IPAddresses.Count) IPs x $($Protocols.Count) protocols x $($Ports.Count) ports)."
-    $argList = @($ProgramName, $ipStr, $protoStr, $portStr, $script:WorkingDirectory)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
+    $scriptBlock = {
+        param($ProgramName, $Parameters, $WorkingDirectory)
+        $ProgramName = "$WorkingDirectory\$ProgramName"
+        Start-Process -FilePath $ProgramName -ArgumentList $Parameters -PassThru -ErrorAction Stop
+    }
+    $argList = @($ProgramName, $Parameters, $script:WorkingDirectory)
+    Write-Log "Starting $ProgramName with arguments $Parameters in a background session."
+    Invoke-Command -Session $Session -ScriptBlock $scriptBlock -ArgumentList $argList -ErrorAction Stop
 }
 
-function Stop-BackgroundListeners {
+function Stop-BackgroundProcess {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName
     )
     $scriptBlock = {
         param($ProgramName)
         $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
-        Stop-Process -Name $ProgramName -Force -ErrorAction SilentlyContinue
+        Stop-Process -Name $ProgramName
     }
     $argList = @($ProgramName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 60
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Add-StandardUser {
@@ -239,7 +178,7 @@ function Add-StandardUser {
 
     # Invoke the script block.
     $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, $script:LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Remove-StandardUser {
@@ -251,7 +190,7 @@ function Remove-StandardUser {
         Remove-LocalUser -Name $UserName
     }
     $argList = @($UserName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 60
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Add-FirewallRule {
@@ -267,7 +206,7 @@ function Add-FirewallRule {
         New-NetFirewallRule -DisplayName $RuleName -Program "$WorkingDirectory\$ProgramName" -Direction Inbound -Action Allow
     }
     $argList = @($ProgramName, $RuleName, $script:WorkingDirectory, $LogFileName)
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 120
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Invoke-ConnectRedirectTestHelper
@@ -294,54 +233,57 @@ function Invoke-ConnectRedirectTestHelper
     $ProgramName = "tcp_udp_listener.exe"
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
-    # Build array of all IP addresses from all interfaces.
+    if ($script:VMIsRemote) {
+        $Credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
+        $Session = New-PSSession -ComputerName $script:VMName -Credential $Credential
+    }
+
+    # Build array of all IP addresses from all interfaces
     $IPAddresses = @()
     foreach ($Interface in $Interfaces) {
         $IPAddresses += $Interface.V4Address
         $IPAddresses += $Interface.V6Address
     }
 
-    # Start all TCP and UDP listeners in a single remote call.
+    # Start TCP and UDP listeners
     $Ports = @($DestinationPort, $ProxyPort)
     $Protocols = @("tcp", "udp")
-    Start-BackgroundListeners -ProgramName $ProgramName -IPAddresses $IPAddresses -Protocols $Protocols -Ports $Ports
 
-    # Wrap the test in try/finally so listeners are always cleaned up,
-    # even when the test throws.  Abandoned listeners were the root cause
-    # of CI steps spinning forever (orphaned host-side session processes).
-    try {
-        $InsecurePassword = Get-VMPassword
-
-        $scriptBlock = {
-            param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
-            Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-            Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
-
-            Write-Log "Invoking connect redirect tests [Mode=$UserType]"
-            Invoke-ConnectRedirectTest `
-                -LocalIPv4Address $LocalIPv4Address `
-                -LocalIPv6Address $LocalIPv6Address `
-                -RemoteIPv4Address $RemoteIPv4Address `
-                -RemoteIPv6Address $RemoteIPv6Address `
-                -VirtualIPv4Address $VirtualIPv4Address `
-                -VirtualIPv6Address $VirtualIPv6Address `
-                -DestinationPort $DestinationPort `
-                -ProxyPort $ProxyPort `
-                -StandardUserName $StandardUserName `
-                -StandardUserPassword $StandardUserPassword `
-                -UserType $UserType `
-                -WorkingDirectory $WorkingDirectory
-            Write-Log "Invoke-ConnectRedirectTest finished"
-        }
-        $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
-        Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
-    } finally {
-        try {
-            Stop-BackgroundListeners -ProgramName $ProgramName
-        } catch {
-            Write-Log "Warning: Failed to stop background listeners: $($_.Exception.Message)"
+    foreach ($IPAddress in $IPAddresses) {
+        foreach ($Protocol in $Protocols) {
+            foreach ($Port in $Ports) {
+                Start-BackgroundProcess -ProgramName $ProgramName -Parameters "--protocol $Protocol --local-port $Port --local-address $IPAddress"
+            }
         }
     }
+
+    $InsecurePassword = Get-VMPassword
+
+    $scriptBlock = {
+        param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+
+        Write-Log "Invoking connect redirect tests [Mode=$UserType]"
+        Invoke-ConnectRedirectTest `
+            -LocalIPv4Address $LocalIPv4Address `
+            -LocalIPv6Address $LocalIPv6Address `
+            -RemoteIPv4Address $RemoteIPv4Address `
+            -RemoteIPv6Address $RemoteIPv6Address `
+            -VirtualIPv4Address $VirtualIPv4Address `
+            -VirtualIPv6Address $VirtualIPv6Address `
+            -DestinationPort $DestinationPort `
+            -ProxyPort $ProxyPort `
+            -StandardUserName $StandardUserName `
+            -StandardUserPassword $StandardUserPassword `
+            -UserType $UserType `
+            -WorkingDirectory $WorkingDirectory
+        Write-Log "Invoke-ConnectRedirectTest finished"
+    }
+    $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, 'VMStandardUser', $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+
+    Stop-BackgroundProcess -ProgramName $ProgramName
 }
 
 function Stop-eBPFComponents {
@@ -357,8 +299,7 @@ function Stop-eBPFComponents {
         Stop-eBPFServiceAndDrivers -GranularTracing $GranularTracing
     }
     $argList = @($script:WorkingDirectory, $script:LogFileName, $GranularTracing)
-    # Use a bounded timeout so a wedged VM doesn't block the caller indefinitely.
-    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds 300
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
 function Run-KernelTests {
@@ -366,79 +307,55 @@ function Run-KernelTests {
         [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
-    $TestMode = $script:TestMode.ToLower()
-    Write-Log "Execute Run-KernelTests (TestMode=$TestMode)"
+    Write-Log "Execute Run-KernelTests"
 
-    switch ($TestMode) {
-        { $_ -in "ci/cd", "regression" } {
-            # All tests run in a SINGLE PS Direct session to avoid repeated
-            # session open/close cycles.  The worker process architecture
-            # (execute_test_worker.ps1) already handles timeout enforcement.
-            $scriptBlock = {
-                param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
-                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
-                $ExecuteSystemTests = ($TestMode -eq "ci/cd")
-                Invoke-CICDTests -VerboseLogs $VerboseLogs -ExecuteSystemTests $ExecuteSystemTests
+    $scriptBlock = {
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName, $GranularTracing)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
+        $TestMode = $TestMode.ToLower()
+        switch ($TestMode) {
+            "ci/cd" {
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $true `
+                    2>&1 | Write-Log
             }
-            $argList = @(
-                $script:WorkingDirectory, $VerboseLogs, $TestMode,
-                $script:TestHangTimeout, $script:UserModeDumpFolder,
-                $script:Options, $script:LogFileName, $GranularTracing
-            )
-            # Timeout = 2x TestHangTimeout to allow normal multi-test execution
-            # plus one test hitting the per-test timeout before the inner
-            # exception propagates.
-            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout * 2)
-        }
-
-        "stress" {
-            $MultiThread = $script:Options -contains "MultiThread"
-            $RestartExtension = $script:Options -contains "RestartExtension"
-            $RestartEbpfCore = $script:Options -contains "RestartEbpfCore"
-
-            # Single PS Direct session for the entire stress test.
-            $scriptBlock = {
-                param($WorkingDirectory, $VerboseLogs, $TestHangTimeout, $UserModeDumpFolder, $LogFileName, $GranularTracing, $MultiThread, $RestartExtension, $RestartEbpfCore)
-                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
-                Invoke-CICDStressTests -VerboseLogs $VerboseLogs -MultiThread $MultiThread -RestartExtension $RestartExtension -RestartEbpfCore $RestartEbpfCore
+            "regression" {
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $false `
+                    2>&1 | Write-Log
             }
-            $argList = @(
-                $script:WorkingDirectory, $VerboseLogs,
-                $script:TestHangTimeout, $script:UserModeDumpFolder,
-                $script:LogFileName, $GranularTracing,
-                $MultiThread, $RestartExtension, $RestartEbpfCore
-            )
-            # Stress tests set their own inner per-binary timeout (up to 120 min
-            # for MT and restart variants).  The PS Direct session must stay alive
-            # for longer than the max inner timeout.  Use the larger of 2x the
-            # module-level TestHangTimeout and 150 minutes (inner max + buffer).
-            $stressSessionTimeout = [Math]::Max($script:TestHangTimeout * 2, 150 * 60)
-            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds $stressSessionTimeout
-        }
-
-        "performance" {
-            $scriptBlock = {
-                param($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing, $VerboseLogs, $CaptureProfile)
-                Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-                Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder, $GranularTracing) -Force -WarningAction SilentlyContinue
-                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile
+            "stress" {
+                # Set MultiThread to true if options contains that string.
+                $MultiThread = $Options -contains "MultiThread"
+                # Set RestartExtension to true if options contains that string.
+                $RestartExtension = $Options -contains "RestartExtension"
+                # Set RestartEbpfCore to true if options contains that string.
+                $RestartEbpfCore = $Options -contains "RestartEbpfCore"
+                Invoke-CICDStressTests `
+                    -VerboseLogs $VerboseLogs `
+                    -MultiThread $MultiThread `
+                    -RestartExtension $RestartExtension `
+                    -RestartEbpfCore $RestartEbpfCore `
+                    2>&1 | Write-Log
             }
-            $CaptureProfile = $script:Options -contains "CaptureProfile"
-            $argList = @($script:WorkingDirectory, $script:LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder, $GranularTracing, $VerboseLogs, $CaptureProfile)
-            Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList -TimeoutSeconds ($script:TestHangTimeout + 600)
-        }
-
-        default {
-            throw "Invalid test mode: $TestMode"
+            "performance" {
+                # Set CaptureProfle to true if options contains that string.
+                $CaptureProfile = $Options -contains "CaptureProfile"
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
+            }
+            default {
+                throw "Invalid test mode: $TestMode"
+            }
         }
     }
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName, $GranularTracing)
+    Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
-    Write-Log "Finished kernel tests for mode: $TestMode"
-
-    # XDP and Connect Redirect tests (CI/CD and Regression only).
-    if ($TestMode -in "ci/cd", "regression") {
+    if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
         if ($script:RunXdpTests -eq $true) {
             Write-Log "Running XDP tests"
             Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
@@ -446,12 +363,7 @@ function Run-KernelTests {
         }
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
-        # Build SecureString via .NET directly -- ConvertTo-SecureString requires
-        # the Microsoft.PowerShell.Security module which fails to load on ARM64.
-        $plainPwd = Get-VMPassword
-        $securePwd = [System.Security.SecureString]::new()
-        foreach ($c in $plainPwd.ToCharArray()) { $securePwd.AppendChar($c) }
-        Add-StandardUser -UserName 'VMStandardUser' -Password $securePwd
+        Add-StandardUser -UserName 'VMStandardUser' -Password (ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force)
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
         Write-Log "Connect Redirect tests completed"
     }

@@ -633,8 +633,6 @@ DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, fa
 DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::UNCONNECTED_UDP)
 
 // IPv4, CONNECTED_UDP
-// NOTE: Excluded in CI via Catch2 CLI filter (~*CONNECTED_UDP*) due to known Windows OS platform bug
-// (redirect context memory leak causing driver verifier pool leak failures 0xC4/0x62 on NetEbpfExt unload).
 DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv4, TCP,
@@ -644,7 +642,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dua
 DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP(
     "v4_mapped", socket_family_t::Dual, true, connection_type_t::UNCONNECTED_UDP)
 
-// Dual stack socket, IPv4, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// Dual stack socket, IPv4, CONNECTED_UDP
 DECLARE_CONNECTION_AUTHORIZATION_V4_TEST_GROUP(
     "v4_mapped", socket_family_t::Dual, true, connection_type_t::CONNECTED_UDP)
 
@@ -654,7 +652,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, fa
 // IPv6, UNCONNECTED_UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::UNCONNECTED_UDP)
 
-// IPv6, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv6, TCP,
@@ -664,7 +662,7 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
     "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::UNCONNECTED_UDP)
 
-// Dual stack socket, IPv6, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// Dual stack socket, IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
     "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
@@ -796,8 +794,6 @@ DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, fals
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::UNCONNECTED_UDP)
 
 // IPv4, CONNECTED_UDP
-// NOTE: Excluded in CI via Catch2 CLI filter (~*CONNECTED_UDP*) due to known Windows OS platform bug
-// (redirect context memory leak causing driver verifier pool leak failures 0xC4/0x62 on NetEbpfExt unload).
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv4, TCP
@@ -807,7 +803,7 @@ DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual,
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP(
     "v4_mapped", socket_family_t::Dual, true, connection_type_t::UNCONNECTED_UDP)
 
-// Dual stack socket, IPv4, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// Dual stack socket, IPv4, CONNECTED_UDP
 DECLARE_CONNECTION_REDIRECTION_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, connection_type_t::CONNECTED_UDP)
 
 // IPv6, TCP
@@ -816,7 +812,7 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, fals
 // IPv6, UNCONNECTED_UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::UNCONNECTED_UDP)
 
-// IPv6, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::CONNECTED_UDP)
 
 // Dual stack socket, IPv6, TCP
@@ -826,16 +822,12 @@ DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6,
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP(
     "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::UNCONNECTED_UDP)
 
-// Dual stack socket, IPv6, CONNECTED_UDP (excluded in CI via Catch2 CLI, see above).
+// Dual stack socket, IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_REDIRECTION_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
 int
 main(int argc, char* argv[])
 {
-    // Disable stdout buffering so output is visible in real time when
-    // stdout is redirected to a file (CI/CD test monitoring).
-    setvbuf(stdout, nullptr, _IONBF, 0);
-
     Catch::Session session;
 
     _is_main_thread = true;

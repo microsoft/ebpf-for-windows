@@ -3,10 +3,6 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
-# Flag set when a VM crash (PSRemotingTransportException) is detected.
-# Prevents cascading connection attempts to a dead VM.
-$script:VMCrashed = $false
-
 #
 # Common helper functions.
 #
@@ -23,21 +19,7 @@ function Write-Log
         if (![System.String]::IsNullOrEmpty($TraceMessage)) {
             $timestamp = (Get-Date).ToString('HH:mm:ss')
             Write-Host "[$timestamp] :: $TraceMessage"-ForegroundColor $ForegroundColor
-            # Write to the log file using FileStream with FileShare.ReadWrite to
-            # avoid locking conflicts when multiple callers write concurrently.
-            try {
-                $logPath = "$env:TEMP\$LogFileName"
-                $bytes = [System.Text.Encoding]::UTF8.GetBytes("[$timestamp] :: $TraceMessage`r`n")
-                $fs = [System.IO.FileStream]::new(
-                    $logPath,
-                    [System.IO.FileMode]::Append,
-                    [System.IO.FileAccess]::Write,
-                    [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete)
-                $fs.Write($bytes, 0, $bytes.Length)
-                $fs.Close()
-            } catch {
-                # Never let a log-write failure kill the process.
-            }
+            Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
         }
     }
 }
@@ -105,45 +87,21 @@ function Compress-File
 
     Write-Log "Compressing $SourcePath -> $DestinationPath"
 
-    # Use System.IO.Compression directly instead of Compress-Archive
-    # to avoid the 2GB MemoryStream limitation in Compress-Archive (affects files > 2GB).
-    Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
-    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
-
     # Retry 5 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
     while ($retryCount -le 5) {
         try {
             $ErrorActionPreference = "Stop"
-
-            # Remove existing destination if present.
-            if (Test-Path $DestinationPath) {
-                Remove-Item $DestinationPath -Force
-            }
-
-            $zipArchive = [System.IO.Compression.ZipFile]::Open(
-                $DestinationPath,
-                [System.IO.Compression.ZipArchiveMode]::Create)
-
-            try {
-                $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction Stop
-                foreach ($file in $sourceFiles) {
-                    Write-Log "Adding $($file.Name) ($((($file.Length) / 1MB).ToString('F2')) MB) to archive..."
-                    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                        $zipArchive,
-                        $file.FullName,
-                        $file.Name,
-                        [System.IO.Compression.CompressionLevel]::Fastest) | Out-Null
-                }
-            } finally {
-                $zipArchive.Dispose()
-            }
+            Compress-Archive `
+                -Path $SourcePath `
+                -DestinationPath $DestinationPath `
+                -CompressionLevel Fastest `
+                -Force
 
             # Verify the compressed file was actually created.
             if (Test-Path $DestinationPath) {
-                $compressedSize = (Get-Item $DestinationPath).Length
-                Write-Log "Compression completed successfully. Compressed size: $(($compressedSize / 1MB).ToString('F2')) MB"
+                Write-Log "Compression completed successfully."
                 return $true
             } else {
                 throw "Compressed file was not created at $DestinationPath"
@@ -151,10 +109,6 @@ function Compress-File
         } catch {
             $ErrorMessage = "*** ERROR *** Failed to compress files (attempt $retryCount of 5): $($_.Exception.Message)"
             Write-Log $ErrorMessage
-            # Clean up partial zip file on failure.
-            if (Test-Path $DestinationPath) {
-                Remove-Item $DestinationPath -Force -ErrorAction Ignore
-            }
             if ($retryCount -lt 5) {
                 Start-Sleep -seconds (5 * $retryCount)
             }
@@ -363,18 +317,13 @@ function CopyCompressedOrUncompressed-FileFromSession
         $uncompressedDestPath = Join-Path $DestinationDirectory $uncompressedFileName
         $uncompressedCopySucceeded = $false
 
-        # Handle wildcard paths by expanding them on the remote session first.
-        # Get file paths and sizes so we can skip files too large for Copy-Item -FromSession
-        # (large files over Hyper-V PowerShell Direct can kill the socket/session).
-        $MaxUncompressedCopySize = 2GB
+        # Handle wildcard paths by expanding them on the remote session first
         $sourceFiles = @()
         if ($UncompressedSourcePath -like "*\*.*") {
             try {
                 $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
                     param($Path)
-                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object {
-                        [PSCustomObject]@{ FullName = $_.FullName; Length = $_.Length; Name = $_.Name }
-                    }
+                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
                 } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
 
                 if ($sourceFiles.Count -eq 0) {
@@ -384,37 +333,14 @@ function CopyCompressedOrUncompressed-FileFromSession
                 Write-Log "Failed to expand wildcard path $UncompressedSourcePath : $($_.Exception.Message)"
             }
         } else {
-            # For non-wildcard paths, get size from remote session.
-            try {
-                $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
-                    param($Path)
-                    if (Test-Path $Path) {
-                        $f = Get-Item $Path
-                        [PSCustomObject]@{ FullName = $f.FullName; Length = $f.Length; Name = $f.Name }
-                    }
-                } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
-                if ($sourceFiles) { $sourceFiles = @($sourceFiles) } else { $sourceFiles = @() }
-            } catch {
-                $sourceFiles = @()
-            }
+            $sourceFiles = @($UncompressedSourcePath)
         }
 
         # Copy each file individually with retry logic
         $anyCopySucceeded = $false
-        foreach ($fileInfo in $sourceFiles) {
-            $sourceFile = $fileInfo.FullName
-            $fileName = $fileInfo.Name
-            $fileSize = $fileInfo.Length
+        foreach ($sourceFile in $sourceFiles) {
+            $fileName = Split-Path $sourceFile -Leaf
             $destPath = Join-Path $DestinationDirectory $fileName
-
-            # Skip files that are too large to copy over the session safely.
-            if ($fileSize -gt $MaxUncompressedCopySize) {
-                Write-Log ("*** WARNING *** Skipping $fileName ({0:F2} GB) - exceeds {1:F2} GB limit for uncompressed session copy. " +
-                    "This file should have been compressed first.") -f ($fileSize / 1GB), ($MaxUncompressedCopySize / 1GB)
-                continue
-            }
-
-            Write-Log ("Uncompressed file: $fileName, Size: {0:F2} MB" -f ($fileSize / 1MB))
 
             for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
                 try {
@@ -455,6 +381,46 @@ function CopyCompressedOrUncompressed-FileFromSession
     }
 }
 
+<#
+.SYNOPSIS
+    Safely stops and removes a PowerShell job with bounded timeouts.
+.DESCRIPTION
+    Wraps Stop-Job and Remove-Job in bounded async calls to prevent hangs
+    when the job's transport (e.g. VMBus/PS Direct) is stuck.
+.PARAMETER Job
+    The job to stop and remove.
+.PARAMETER TimeoutMs
+    Maximum time in milliseconds to wait for each operation. Default 30000 (30s).
+#>
+function Remove-JobSafely {
+    param(
+        [Parameter(Mandatory=$true)] [System.Management.Automation.Job] $Job,
+        [Parameter(Mandatory=$false)] [int] $TimeoutMs = 30000
+    )
+    # Attempt Stop-Job with a timeout (it can hang on stuck transports).
+    if ($Job.State -eq 'Running') {
+        try {
+            $ps = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
+            $async = $ps.BeginInvoke()
+            if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+                Write-Log "Warning: Stop-Job timed out after $($TimeoutMs / 1000)s"
+            }
+            try { $ps.EndInvoke($async) } catch {}
+            $ps.Dispose()
+        } catch {}
+    }
+    # Attempt Remove-Job with a timeout.
+    try {
+        $ps = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
+        $async = $ps.BeginInvoke()
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+            Write-Log "Warning: Remove-Job timed out after $($TimeoutMs / 1000)s"
+        }
+        try { $ps.EndInvoke($async) } catch {}
+        $ps.Dispose()
+    } catch {}
+}
+
 function Wait-TestJobToComplete
 {
     param([Parameter(Mandatory = $true)] [System.Management.Automation.Job] $Job,
@@ -470,62 +436,23 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $false)] [string] $TestMode="CI/CD",
            [Parameter(Mandatory = $false)] [string[]] $Options=@("None"),
            [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
-           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps",
-           [Parameter(Mandatory = $false)] [bool] $SkipDumpOnTimeout=$false)
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $HeartbeatInterval = 30  # Log a heartbeat every 30 seconds of silence.
-    $TimeSinceLastOutput = 0
-
-    # Stream job output to a file instead of directly to stdout.  This prevents
-    # the polling loop from blocking when the runner agent / GitHub log ingestion
-    # creates back-pressure on the stdout pipe (4 KB buffer on Windows).  If
-    # Write-Host blocks, the entire loop freezes and no timeout can fire.
-    $outputLogPath = Join-Path $env:TEMP "test_job_output_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
-    Write-Log "Job output streaming to: $outputLogPath"
-
+           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
+    $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
-        Start-Sleep -Seconds 2
-        $TimeSinceLastOutput += 2
-
         try {
             $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-            if ($JobOutput) {
-                # Write output to file (non-blocking, avoids stdout pipe pressure).
-                $JobOutput | Out-File -FilePath $outputLogPath -Append -Encoding utf8
-                # Also write to stdout, but limit to avoid pipe saturation.
-                # Show the last few lines so the GitHub log has enough context.
-                $lines = @($JobOutput)
-                if ($lines.Count -le 5) {
-                    $lines | ForEach-Object { Write-Host $_ }
-                } else {
-                    Write-Host "... ($($lines.Count) lines, see full output in TestLogs)"
-                    $lines | Select-Object -Last 3 | ForEach-Object { Write-Host $_ }
-                }
-                $TimeSinceLastOutput = 0
-            }
+            $JobOutput | ForEach-Object { Write-Host $_ }
         } catch {
             Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
         }
 
-        # Emit periodic heartbeat so the GitHub log shows the runner is alive.
-        if ($TimeSinceLastOutput -ge $HeartbeatInterval) {
-            $resInfo = ''
-            try {
-                $os = Get-CimInstance Win32_OperatingSystem
-                $freeMB = [math]::Round($os.FreePhysicalMemory / 1KB)
-                $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1KB)
-                $diskFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
-                $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
-                $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
-            } catch {}
-            Write-Log "$CheckpointPrefix job still running ($([int]$sw.Elapsed.TotalSeconds)s elapsed, job state: $($Job.State))${resInfo}"
-            $TimeSinceLastOutput = 0
-        }
+        Start-Sleep -Seconds 2
+        $TimeElapsed += 2
 
-        if ($sw.Elapsed.TotalSeconds -gt $TestJobTimeout) {
+        if ($TimeElapsed -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
-                if ($ExecuteOnVM -and -not $SkipDumpOnTimeout) {
+                if ($ExecuteOnVM) {
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
@@ -547,42 +474,8 @@ function Wait-TestJobToComplete
                             $UserModeDumpFolder                        # UserModeDumpFolder
                         ) -Force -WarningAction SilentlyContinue
 
-                        # Run Generate-KernelDumpOnVM in a sub-job with a timeout so it
-                        # cannot block the timeout handler indefinitely (the VM may be
-                        # unreachable, causing Invoke-Command to hang).
-                        $DumpJobTimeout = 600  # seconds
-                        Write-Log "Starting kernel dump generation (timeout: ${DumpJobTimeout}s)..."
-                        $dumpJob = Start-Job -ScriptBlock {
-                            param($ScriptRoot, $ExecuteOnHost, $ExecuteOnVM, $VMIsRemote,
-                                  $TestVMName, $TestWorkingDirectory, $LogFileName,
-                                  $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder)
-                            Import-Module "$ScriptRoot\vm_run_tests.psm1" -ArgumentList @(
-                                $ExecuteOnHost, $ExecuteOnVM, $VMIsRemote, $TestVMName,
-                                $TestWorkingDirectory, $LogFileName, $TestMode, $Options,
-                                $TestHangTimeout, $UserModeDumpFolder
-                            ) -Force -WarningAction SilentlyContinue
-                            Generate-KernelDumpOnVM
-                        } -ArgumentList @(
-                            $PSScriptRoot, $false, $true, $VMIsRemote,
-                            $TestVMName, $TestWorkingDirectory, $LogFileName,
-                            $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder
-                        )
-                        $dumpCompleted = $dumpJob | Wait-Job -Timeout $DumpJobTimeout
-                        if (-not $dumpCompleted) {
-                            Write-Log "Kernel dump generation timed out after ${DumpJobTimeout}s -- VM may be unreachable."
-                            Stop-Job -Job $dumpJob -ErrorAction SilentlyContinue
-                        } else {
-                            Write-Log "Kernel dump generation completed."
-                        }
-                        # Bounded removal to avoid hanging on stuck PS Direct transports.
-                        try {
-                            $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($dumpJob)
-                            $asyncResult = $removeTask.BeginInvoke()
-                            if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                                Write-Log "Warning: Remove-Job for dump job timed out."
-                            }
-                            $removeTask.Dispose()
-                        } catch {}
+                        # Generate kernel dump on the VM
+                        Generate-KernelDumpOnVM
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
@@ -596,28 +489,10 @@ function Wait-TestJobToComplete
     # Print any remaining output after the job completes.
     try {
         $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
-        if ($JobOutput) {
-            $JobOutput | Out-File -FilePath $outputLogPath -Append -Encoding utf8
-            $lines = @($JobOutput)
-            if ($lines.Count -le 20) {
-                $lines | ForEach-Object { Write-Host $_ }
-            } else {
-                Write-Host "... ($($lines.Count) final lines written to log)"
-                $lines | Select-Object -Last 5 | ForEach-Object { Write-Host $_ }
-            }
-        }
+        $JobOutput | ForEach-Object { Write-Host $_ }
     } catch {
-        Write-Log "Warning: Failed to receive final job output: $($_.Exception.Message)"
+        Write-Log "Warning: Failed to receive final job output (remote session may have ended): $($_.Exception.Message)"
     }
-
-    # Copy the job output log to TestLogs so it's uploaded as an artifact.
-    try {
-        if (Test-Path $outputLogPath) {
-            $testLogsDir = ".\TestLogs"
-            if (-not (Test-Path $testLogsDir)) { New-Item -ItemType Directory -Path $testLogsDir -Force | Out-Null }
-            Copy-Item -Path $outputLogPath -Destination "$testLogsDir\job_output.log" -Force -ErrorAction SilentlyContinue
-        }
-    } catch {}
 
     return $JobTimedOut
 }
@@ -802,9 +677,7 @@ function Retrieve-StoredCredential {
             $output = Invoke-PsExecScript -Script $Script
             $lines = $output -split "`n"
             $Username = $lines[0].Trim()
-            $plainPwd = $lines[1].Trim()
-            $Password = [System.Security.SecureString]::new()
-            foreach ($c in $plainPwd.ToCharArray()) { $Password.AppendChar($c) }
+            $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
             if ($null -eq $Username -or $null -eq $Password) {
                 throw "Failed to retrieve the stored credential."
             }
@@ -857,9 +730,7 @@ function Get-VMCredential {
         }
         return Retrieve-StoredCredential -Target $CredentialTarget
     } else {
-        $plainPwd = Get-VMPassword
-        $securePassword = [System.Security.SecureString]::new()
-        foreach ($c in $plainPwd.ToCharArray()) { $securePassword.AppendChar($c) }
+        $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
         return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
     }
 }
@@ -887,14 +758,7 @@ function Expand-ZipFile {
                 break
             } else {
                 Stop-Job -Job $job
-                try {
-                    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($job)
-                    $asyncResult = $removeTask.BeginInvoke()
-                    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                        Write-Log "Warning: Remove-Job timed out in Expand-ZipFile"
-                    }
-                    $removeTask.Dispose()
-                } catch {}
+                Remove-Job -Job $job
                 if ($i -eq ($maxRetries - 1)) {
                     throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
                 } else {
@@ -945,14 +809,7 @@ function Get-ZipFileFromUrl {
                 break
             } else {
                 Stop-Job -Job $job
-                try {
-                    $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($job)
-                    $asyncResult = $removeTask.BeginInvoke()
-                    if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-                        Write-Log "Warning: Remove-Job timed out in Get-ZipFileFromUrl"
-                    }
-                    $removeTask.Dispose()
-                } catch {}
+                Remove-Job -Job $job
                 if (Test-Path $DownloadFilePath) {
                     Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
                 }
@@ -1095,214 +952,13 @@ function Invoke-CommandOnVM {
         [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
         [Parameter(Mandatory = $true)][PSCredential] $Credential,
         [Parameter(Mandatory = $true)][ScriptBlock] $ScriptBlock,
-        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @(),
-        [Parameter(Mandatory = $false)][int] $TimeoutSeconds = 300
+        [Parameter(Mandatory = $false)][object[]] $ArgumentList = @()
     )
-
-    # Fast-fail if the VM has already crashed in this process to avoid
-    # cascading connection attempts that will hang on the dead transport.
-    if ($script:VMCrashed) {
-        throw "VM $VMName has already crashed -- refusing new connection to avoid cascading hangs."
-    }
-
-    # Proactive VM health check: verify the VM is alive BEFORE attempting
-    # PS Direct.  On Gen2 VMs, if the VM has crashed, the VMBus socket can
-    # enter a half-open state where Invoke-Command -VMName -AsJob succeeds
-    # but the resulting job hangs indefinitely.  Checking the Hyper-V
-    # heartbeat integration service is cheap and catches this case.
-    if (-not $VMIsRemote) {
-        try {
-            $vmObj = Get-VM -Name $VMName -ErrorAction SilentlyContinue
-            if ($vmObj) {
-                if ($vmObj.State -ne 'Running') {
-                    $script:VMCrashed = $true
-                    throw "VM $VMName is not running (state: $($vmObj.State)) -- refusing PS Direct connection."
-                }
-                $hb = (Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue |
-                       Where-Object { $_.Name -eq 'Heartbeat' }).PrimaryStatusDescription
-                if ($hb -and $hb -ne 'OK') {
-                    Write-Log "WARNING: VM $VMName heartbeat is '$hb' (expected 'OK') -- VM may be unhealthy."
-                }
-            }
-        } catch [Microsoft.HyperV.PowerShell.VirtualizationException] {
-            # Hyper-V cmdlets not available (e.g. running on a non-Hyper-V host).
-            # Fall through and let PS Direct attempt the connection.
-        }
-    }
-
-    # Bounded execution: use -AsJob so we can monitor progress and enforce a
-    # timeout.  This prevents a dead PS Direct transport from blocking the
-    # caller indefinitely.
-    Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote, Timeout: ${TimeoutSeconds}s)"
+    Write-Log "Invoking command on VM: $VMName (IsRemote: $VMIsRemote)"
     if ($VMIsRemote) {
-        $invokeJob = Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -AsJob -ErrorAction Stop
+        Invoke-Command -ComputerName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
     } else {
-        $invokeJob = Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -AsJob -ErrorAction Stop
-    }
-
-    # Use a Stopwatch for wall-clock accuracy.  The old accumulator-based
-    # counter ($elapsed += $pollInterval) becomes inaccurate if Receive-Job or
-    # any other operation in the loop blocks for longer than $pollInterval,
-    # which can happen when the PS Direct VMBus transport is stuck.
-    $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $pollInterval = 5
-    $heartbeatInterval = 15
-    $timeSinceOutput = 0
-
-    try {
-        while ($invokeJob.State -eq 'Running') {
-            if ($sw.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
-                Write-Log "*** ERROR *** Command on VM $VMName timed out after $([int]$sw.Elapsed.TotalSeconds)s (limit ${TimeoutSeconds}s)."
-                # Drain any final output before killing the job.
-                try {
-                    $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
-                    if ($output) {
-                        $lines = @($output)
-                        if ($lines.Count -le 10) {
-                            $lines | ForEach-Object { Write-Host $_ }
-                        } else {
-                            Write-Host "... ($($lines.Count) lines from VM, showing last 5)"
-                            $lines | Select-Object -Last 5 | ForEach-Object { Write-Host $_ }
-                        }
-                    }
-                } catch {}
-                # Stop-Job can hang if the PS Direct VMBus transport is stuck.
-                # Run it on a background thread with a 30-second timeout.
-                $stopTask = [powershell]::Create().AddScript({
-                    param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue
-                }).AddArgument($invokeJob)
-                $stopAsync = $stopTask.BeginInvoke()
-                if (-not $stopAsync.AsyncWaitHandle.WaitOne(30000)) {
-                    Write-Log "Warning: Stop-Job timed out on VM $VMName -- continuing."
-                }
-                try { $stopTask.EndInvoke($stopAsync) } catch {}
-                $stopTask.Dispose()
-                throw [System.TimeoutException]::new("Command on VM $VMName timed out after $([int]$sw.Elapsed.TotalSeconds)s")
-            }
-
-            Start-Sleep -Seconds $pollInterval
-            $timeSinceOutput += $pollInterval
-
-            # Stream any available output from the remote command.
-            try {
-                $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
-                if ($output) {
-                    $lines = @($output)
-                    if ($lines.Count -le 20) {
-                        $lines | ForEach-Object { Write-Host $_ }
-                    } else {
-                        Write-Host "... ($($lines.Count) lines from VM, showing last 15)"
-                        $lines | Select-Object -Last 15 | ForEach-Object { Write-Host $_ }
-                    }
-                    $timeSinceOutput = 0
-                }
-            } catch {
-                Write-Log "Warning: Failed to receive job output: $($_.Exception.Message)"
-            }
-
-            if ($timeSinceOutput -ge $heartbeatInterval) {
-                $resInfo = ''
-                try {
-                    $os = Get-CimInstance Win32_OperatingSystem
-                    $freeMB = [math]::Round($os.FreePhysicalMemory / 1KB)
-                    $totalMB = [math]::Round($os.TotalVisibleMemorySize / 1KB)
-                    $diskFree = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
-                    $cpuLoad = [math]::Round((Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average)
-                    $resInfo = " | CPU: ${cpuLoad}% | RAM: ${freeMB}/${totalMB} MB free | Disk C: ${diskFree} GB free"
-                } catch {}
-                Write-Log "Invoke-CommandOnVM: waiting on $VMName ($([int]$sw.Elapsed.TotalSeconds)s / ${TimeoutSeconds}s, job state: $($invokeJob.State))${resInfo}"
-                $timeSinceOutput = 0
-
-                # Periodic VM health check: on Gen2 VMs, a VMBus crash can leave
-                # the PS Direct job in 'Running' state with a half-open socket
-                # for many minutes.  Checking the Hyper-V heartbeat integration
-                # service detects this within one poll interval (~5-30s) instead
-                # of waiting for the full timeout (potentially 40-150 minutes).
-                if (-not $VMIsRemote) {
-                    try {
-                        $vmState = (Get-VM -Name $VMName -ErrorAction SilentlyContinue).State
-                        if ($vmState -and $vmState -ne 'Running') {
-                            Write-Log "*** VM CRASH DETECTED *** VM $VMName state is '$vmState' (not Running)."
-                            $script:VMCrashed = $true
-                            # Force-stop the stuck job on a background thread.
-                            $stopTask = [powershell]::Create().AddScript({
-                                param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue
-                            }).AddArgument($invokeJob)
-                            $stopAsync = $stopTask.BeginInvoke()
-                            $stopAsync.AsyncWaitHandle.WaitOne(30000) | Out-Null
-                            try { $stopTask.EndInvoke($stopAsync) } catch {}
-                            $stopTask.Dispose()
-                            throw "VM $VMName crashed (state: $vmState) -- aborting PS Direct session."
-                        }
-                        $hb = (Get-VMIntegrationService -VMName $VMName -ErrorAction SilentlyContinue |
-                               Where-Object { $_.Name -eq 'Heartbeat' }).PrimaryStatusDescription
-                        if ($hb -and $hb -ne 'OK') {
-                            Write-Log "*** VM UNHEALTHY *** VM $VMName heartbeat: '$hb'. Possible crash in progress."
-                            # Don't abort yet -- VM might be temporarily busy (e.g. writing crash dump).
-                            # But if heartbeat stays non-OK for 2+ consecutive checks, the Stopwatch
-                            # timeout will eventually fire.
-                        }
-                    } catch [Microsoft.HyperV.PowerShell.VirtualizationException] {
-                        # Hyper-V cmdlets not available; skip health check.
-                    } catch {
-                        if ($_.Exception.Message -match 'crashed|not Running') { throw }
-                        # Other errors (e.g., WMI timeout) are non-fatal; skip this check.
-                    }
-                }
-            }
-        }
-
-        # Job finished -- drain remaining output (job may have ended between polls).
-        Write-Log "Invoke-CommandOnVM: job on $VMName finished after $([int]$sw.Elapsed.TotalSeconds)s (state: $($invokeJob.State))."
-        # Final drain -- show ALL remaining output so failure details are
-        # never lost.  During polling we throttle to avoid pipe saturation,
-        # but once the job is done we want every line for diagnosis.
-        try {
-            $output = Receive-Job -Job $invokeJob -ErrorAction SilentlyContinue 2>&1
-            if ($output) {
-                $lines = @($output)
-                Write-Host "--- Final output from VM ($($lines.Count) lines) ---"
-                $lines | ForEach-Object { Write-Host $_ }
-            }
-        } catch {}
-
-        # Also check child jobs for any error output that wasn't surfaced.
-        if ($invokeJob.ChildJobs.Count -gt 0) {
-            foreach ($child in $invokeJob.ChildJobs) {
-                try {
-                    $childOutput = Receive-Job -Job $child -ErrorAction SilentlyContinue 2>&1
-                    if ($childOutput) {
-                        $clines = @($childOutput)
-                        Write-Host "--- Child job output ($($clines.Count) lines) ---"
-                        $clines | ForEach-Object { Write-Host $_ }
-                    }
-                } catch {}
-            }
-        }
-
-        # If the remote command failed, re-throw so the caller sees the error.
-        if ($invokeJob.State -eq 'Failed') {
-            $reason = $invokeJob.ChildJobs[0].JobStateInfo.Reason
-            if ($reason) {
-                if ($reason -is [System.Management.Automation.Remoting.PSRemotingTransportException]) {
-                    $script:VMCrashed = $true
-                    Write-Log "*** VM CRASH DETECTED *** Marking VM as crashed to prevent cascading connection attempts."
-                }
-                Write-Log "*** REMOTE FAILURE *** $($reason.GetType().Name): $($reason.Message)"
-                throw $reason
-            }
-            throw "Command on VM $VMName failed."
-        }
-    } finally {
-        # Remove-Job -Force can hang if the PS Direct VMBus transport is stuck
-        # in an unmanaged call that Stop-Job couldn't interrupt. Run it on a
-        # background thread with a timeout so it cannot block the caller.
-        $removeTask = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($invokeJob)
-        $asyncResult = $removeTask.BeginInvoke()
-        if (-not $asyncResult.AsyncWaitHandle.WaitOne(15000)) {
-            Write-Log "Warning: Remove-Job timed out for VM job -- disposing forcefully."
-        }
-        $removeTask.Dispose()
+        Invoke-Command -VMName $VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
     }
 }
 
@@ -1326,75 +982,13 @@ function New-SessionOnVM {
     param(
         [Parameter(Mandatory = $true)][string] $VMName,
         [Parameter(Mandatory = $false)][bool] $VMIsRemote = $false,
-        [Parameter(Mandatory = $true)][PSCredential] $Credential,
-        [Parameter(Mandatory = $false)][int] $TimeoutMs = 60000
+        [Parameter(Mandatory = $true)][PSCredential] $Credential
     )
     $session = $null
-    Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote, Timeout: $($TimeoutMs/1000)s)"
-
-    # Fast-fail if the VM has already crashed.
-    if ($script:VMCrashed) {
-        throw "VM $VMName has already crashed -- refusing new session to avoid VMBus hang."
-    }
-
+    Write-Log "Creating new session on VM: $VMName (IsRemote: $VMIsRemote)"
     if ($VMIsRemote) {
-        $sessionOption = New-PSSessionOption -OperationTimeout $TimeoutMs -OpenTimeout $TimeoutMs
-        $session = New-PSSession -ComputerName $VMName -Credential $Credential -SessionOption $sessionOption -ErrorAction Stop
+        $session = New-PSSession -ComputerName $VMName -Credential $Credential -ErrorAction Stop
     } else {
-        # For PS Direct (non-remote), New-PSSession -VMName has NO timeout
-        # parameter (-SessionOption is not supported).  On Gen2 VMs, a
-        # half-open VMBus socket can cause this call to hang indefinitely.
-        #
-        # Strategy: (1) check VM state, (2) probe with Invoke-Command -AsJob
-        # + Wait-Job -Timeout (proven pattern from Wait-AllVMsReadyForCommands),
-        # (3) if probe succeeds, New-PSSession should complete near-instantly.
-
-        # Step 1: Check VM state via Hyper-V management (instant, no VMBus).
-        try {
-            $vmObj = Get-VM -Name $VMName -ErrorAction SilentlyContinue
-            if ($vmObj -and $vmObj.State -ne 'Running') {
-                $script:VMCrashed = $true
-                throw "VM $VMName is not running (state: $($vmObj.State)) -- refusing PS Direct session."
-            }
-        } catch {
-            if ($_.Exception.Message -match 'crashed|not running|refusing') { throw }
-        }
-
-        # Step 2: Probe connectivity with a bounded timeout.  If the VMBus
-        # socket is half-open (Gen2 crash), the probe job will hang and
-        # Wait-Job will return $null after the timeout.
-        $timeoutSec = [Math]::Max(1, [int]($TimeoutMs / 1000))
-        try {
-            $probeJob = Invoke-Command -VMName $VMName -Credential $Credential `
-                -ScriptBlock { $true } -AsJob -ErrorAction Stop
-        } catch {
-            Write-Log "*** ERROR *** Invoke-Command -AsJob probe to $VMName failed: $($_.Exception.Message)"
-            throw
-        }
-
-        $completed = $probeJob | Wait-Job -Timeout $timeoutSec
-        if (-not $completed) {
-            Write-Log "*** ERROR *** PS Direct probe to $VMName timed out after ${timeoutSec}s -- VMBus may be stuck."
-            $script:VMCrashed = $true
-            # Non-blocking cleanup of the stuck probe job.
-            $stopPs = [powershell]::Create().AddScript({
-                param($j)
-                Stop-Job -Job $j -ErrorAction SilentlyContinue
-                Remove-Job -Job $j -Force -ErrorAction SilentlyContinue
-            }).AddArgument($probeJob)
-            $stopAsync = $stopPs.BeginInvoke()
-            $stopAsync.AsyncWaitHandle.WaitOne(10000) | Out-Null
-            try { $stopPs.EndInvoke($stopAsync) } catch {}
-            $stopPs.Dispose()
-            throw "PS Direct probe to $VMName timed out after ${timeoutSec}s."
-        }
-
-        # Probe succeeded — drain output and clean up.
-        try { Receive-Job -Job $probeJob -ErrorAction SilentlyContinue | Out-Null } catch {}
-        Remove-Job -Job $probeJob -Force -ErrorAction SilentlyContinue
-
-        # Step 3: VMBus is working — create the actual session.  This should
-        # complete in under a second since the transport was just verified.
         $session = New-PSSession -VMName $VMName -Credential $Credential -ErrorAction Stop
     }
     return $session

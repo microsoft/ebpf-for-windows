@@ -3790,9 +3790,6 @@ TEST_CASE("custom_maps_program_load-native", "[custom_maps]") { _test_custom_map
 int
 main(int argc, char* argv[])
 {
-    // Disable stdout buffering so output is visible immediately when tailed.
-    setvbuf(stdout, nullptr, _IONBF, 0);
-
     Catch::Session session;
 
     using namespace Catch::Clara;
