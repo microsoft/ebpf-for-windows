@@ -590,6 +590,25 @@ extern "C"
     ebpf_free_trampoline_table(_Frees_ptr_opt_ ebpf_trampoline_table_t* trampoline_table);
 
     /**
+     * @brief Initialize a trampoline table with helper function IDs but no addresses.
+     * This sets up the trampoline entries so their addresses can be returned to callers,
+     * even before the actual helper function addresses are known. The helper function
+     * addresses will be filled in later when the extension provider attaches.
+     *
+     * @param[in, out] trampoline_table Trampoline table to initialize.
+     * @param[in] helper_function_count Count of helper functions.
+     * @param[in] helper_function_ids Array of helper function IDs.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_initialize_trampoline_table(
+        _Inout_ ebpf_trampoline_table_t* trampoline_table,
+        uint32_t helper_function_count,
+        _In_reads_(helper_function_count) const uint32_t* helper_function_ids);
+
+    /**
      * @brief Populate the function pointers in a trampoline table.
      *
      * @param[in, out] trampoline_table Trampoline table to populate.

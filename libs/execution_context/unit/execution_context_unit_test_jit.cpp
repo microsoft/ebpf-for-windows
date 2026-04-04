@@ -379,8 +379,8 @@ test_program_context()
     helper_function_address_t addresses[TOTAL_HELPER_COUNT] = {};
     uint32_t helper_function_ids[] = {1, 3, 2};
     REQUIRE(
-        ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
-        EBPF_SUCCESS);
+        ebpf_program_set_helper_function_ids(
+            program.get(), EBPF_CODE_JIT, EBPF_COUNT_OF(helper_function_ids), helper_function_ids) == EBPF_SUCCESS);
     REQUIRE(
         ebpf_program_get_helper_function_addresses(program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) ==
         EBPF_SUCCESS);
