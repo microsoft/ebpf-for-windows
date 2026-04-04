@@ -432,11 +432,11 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         // Connection test (sock_addr).
         execute_connection_attempt(client, server, test_case.address_family, test.expected_result, SOCKET_TEST_PORT);
 
-        if (test.expected_result == connection_test_result::allow) {
-            // Reset sockets for next test after allow.
-            client.reset();
-            server.reset();
-        }
+        // Reset sockets after every sub-test. After block: the server's complete_async_receive
+        // closes the socket on timeout to properly clean up overlapped I/O. After allow: the
+        // connection was consumed. Fresh sockets test the same eBPF hook behavior.
+        client.reset();
+        server.reset();
 
         ++test_index;
     }

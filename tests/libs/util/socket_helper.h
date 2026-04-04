@@ -151,6 +151,7 @@ typedef class _client_socket : public _base_socket
         socket_family_t family,
         _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
+    virtual ~_client_socket();
     virtual void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port) = 0;
