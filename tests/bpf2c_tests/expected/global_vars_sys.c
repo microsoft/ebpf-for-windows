@@ -307,13 +307,13 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
 #line 30 "sample/undocked/global_vars.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_LDDW pc=0 dst=r1 src=r2 offset=0 imm=3
+    // EBPF_OP_LDDW pc=0 dst=r1 src=r2 offset=0 imm=4
 #line 30 "sample/undocked/global_vars.c"
     r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=2 dst=r1 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     READ_ONCE_32(r1, r1, OFFSET(0));
-    // EBPF_OP_LDDW pc=3 dst=r2 src=r2 offset=0 imm=2
+    // EBPF_OP_LDDW pc=3 dst=r2 src=r2 offset=0 imm=5
 #line 30 "sample/undocked/global_vars.c"
     r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=5 dst=r2 src=r2 offset=0 imm=0
@@ -322,13 +322,13 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_ADD64_REG pc=6 dst=r2 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     r2 += r1;
-    // EBPF_OP_LDDW pc=7 dst=r1 src=r2 offset=0 imm=1
+    // EBPF_OP_LDDW pc=7 dst=r1 src=r2 offset=0 imm=6
 #line 30 "sample/undocked/global_vars.c"
     r1 = POINTER(runtime_context->global_variable_section_data[2].address_of_map_value + 0);
     // EBPF_OP_STXW pc=9 dst=r1 src=r2 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     WRITE_ONCE_32(r1, (uint32_t)r2, OFFSET(0));
-    // EBPF_OP_LDDW pc=10 dst=r2 src=r2 offset=0 imm=2
+    // EBPF_OP_LDDW pc=10 dst=r2 src=r2 offset=0 imm=5
 #line 31 "sample/undocked/global_vars.c"
     r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 4);
     // EBPF_OP_LDXW pc=12 dst=r2 src=r2 offset=0 imm=0
