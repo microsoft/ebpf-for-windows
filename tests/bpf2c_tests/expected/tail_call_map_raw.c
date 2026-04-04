@@ -177,12 +177,6 @@ caller(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 43 "sample/undocked/tail_call_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 43 "sample/undocked/tail_call_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 43 "sample/undocked/tail_call_map.c"
-        return 0;
-#line 43 "sample/undocked/tail_call_map.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
 #line 45 "sample/undocked/tail_call_map.c"
     r1 = r6;
@@ -196,7 +190,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 45 "sample/undocked/tail_call_map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/undocked/tail_call_map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 45 "sample/undocked/tail_call_map.c"
         return 0;
 #line 45 "sample/undocked/tail_call_map.c"

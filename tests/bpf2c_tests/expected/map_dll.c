@@ -348,12 +348,6 @@ test_maps(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=12 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -405,12 +399,6 @@ label_2:
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=31 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -461,12 +449,6 @@ label_3:
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=50 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -486,12 +468,6 @@ label_4:
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=58 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -548,12 +524,6 @@ label_5:
     // EBPF_OP_CALL pc=78 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 88 "sample/undocked/map.c"
-        return 0;
-#line 88 "sample/undocked/map.c"
-    }
 label_6:
     // EBPF_OP_MOV64_IMM pc=79 dst=r1 src=r0 offset=0 imm=100
 #line 88 "sample/undocked/map.c"
@@ -613,12 +583,6 @@ label_7:
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=13
 #line 205 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 205 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 205 "sample/undocked/map.c"
-        return 0;
-#line 205 "sample/undocked/map.c"
-    }
 label_8:
     // EBPF_OP_MOV64_REG pc=102 dst=r0 src=r6 offset=0 imm=0
 #line 218 "sample/undocked/map.c"
@@ -648,12 +612,6 @@ label_9:
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=112 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -689,12 +647,6 @@ label_10:
     // EBPF_OP_CALL pc=122 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
-#line 103 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
-#line 103 "sample/undocked/map.c"
-        return 0;
-#line 103 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=123 dst=r0 src=r0 offset=23 imm=0
 #line 104 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -790,12 +742,6 @@ label_11:
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=159 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -847,12 +793,6 @@ label_13:
     // EBPF_OP_CALL pc=177 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=178 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -903,12 +843,6 @@ label_14:
     // EBPF_OP_CALL pc=196 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=197 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -928,12 +862,6 @@ label_15:
     // EBPF_OP_CALL pc=204 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=205 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -990,12 +918,6 @@ label_16:
     // EBPF_OP_CALL pc=225 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 88 "sample/undocked/map.c"
-        return 0;
-#line 88 "sample/undocked/map.c"
-    }
 label_17:
     // EBPF_OP_MOV64_IMM pc=226 dst=r1 src=r0 offset=0 imm=0
 #line 88 "sample/undocked/map.c"
@@ -1082,12 +1004,6 @@ label_18:
     // EBPF_OP_CALL pc=259 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=260 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -1123,12 +1039,6 @@ label_19:
     // EBPF_OP_CALL pc=270 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
-#line 103 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
-#line 103 "sample/undocked/map.c"
-        return 0;
-#line 103 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=271 dst=r0 src=r0 offset=23 imm=0
 #line 104 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -1224,12 +1134,6 @@ label_20:
     // EBPF_OP_CALL pc=306 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=307 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -1281,12 +1185,6 @@ label_22:
     // EBPF_OP_CALL pc=325 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=326 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -1336,12 +1234,6 @@ label_22:
     // EBPF_OP_CALL pc=344 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=345 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -1361,12 +1253,6 @@ label_23:
     // EBPF_OP_CALL pc=352 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=353 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -1423,12 +1309,6 @@ label_24:
     // EBPF_OP_CALL pc=373 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 88 "sample/undocked/map.c"
-        return 0;
-#line 88 "sample/undocked/map.c"
-    }
 label_25:
     // EBPF_OP_MOV64_IMM pc=374 dst=r1 src=r0 offset=0 imm=0
 #line 88 "sample/undocked/map.c"
@@ -1518,12 +1398,6 @@ label_26:
     // EBPF_OP_CALL pc=407 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=408 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -1577,12 +1451,6 @@ label_27:
     // EBPF_OP_CALL pc=424 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=425 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -1614,12 +1482,6 @@ label_27:
     // EBPF_OP_CALL pc=434 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=435 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -1669,12 +1531,6 @@ label_27:
     // EBPF_OP_CALL pc=453 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=454 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -1694,12 +1550,6 @@ label_28:
     // EBPF_OP_CALL pc=461 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=462 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -1759,12 +1609,6 @@ label_29:
     // EBPF_OP_CALL pc=483 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=484 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -1822,12 +1666,6 @@ label_31:
     // EBPF_OP_CALL pc=504 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 93 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 93 "sample/undocked/map.c"
-        return 0;
-#line 93 "sample/undocked/map.c"
-    }
 label_32:
     // EBPF_OP_MOV64_IMM pc=505 dst=r1 src=r0 offset=0 imm=100
 #line 93 "sample/undocked/map.c"
@@ -1923,12 +1761,6 @@ label_33:
     // EBPF_OP_CALL pc=541 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=542 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -1980,12 +1812,6 @@ label_35:
     // EBPF_OP_CALL pc=560 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=561 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -2036,12 +1862,6 @@ label_36:
     // EBPF_OP_CALL pc=579 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=580 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -2061,12 +1881,6 @@ label_37:
     // EBPF_OP_CALL pc=587 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=588 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -2123,12 +1937,6 @@ label_38:
     // EBPF_OP_CALL pc=608 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 88 "sample/undocked/map.c"
-        return 0;
-#line 88 "sample/undocked/map.c"
-    }
 label_39:
     // EBPF_OP_MOV64_IMM pc=609 dst=r1 src=r0 offset=0 imm=100
 #line 88 "sample/undocked/map.c"
@@ -2209,12 +2017,6 @@ label_40:
     // EBPF_OP_CALL pc=640 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=641 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -2250,12 +2052,6 @@ label_41:
     // EBPF_OP_CALL pc=651 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
-#line 103 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
-#line 103 "sample/undocked/map.c"
-        return 0;
-#line 103 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=652 dst=r0 src=r0 offset=23 imm=0
 #line 104 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -2351,12 +2147,6 @@ label_42:
     // EBPF_OP_CALL pc=687 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/map.c"
-        return 0;
-#line 74 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=688 dst=r6 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r6 = r0;
@@ -2408,12 +2198,6 @@ label_44:
     // EBPF_OP_CALL pc=706 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 80 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 80 "sample/undocked/map.c"
-        return 0;
-#line 80 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=707 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -2464,12 +2248,6 @@ label_45:
     // EBPF_OP_CALL pc=725 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 82 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 82 "sample/undocked/map.c"
-        return 0;
-#line 82 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=726 dst=r6 src=r0 offset=0 imm=-1
 #line 82 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -2489,12 +2267,6 @@ label_46:
     // EBPF_OP_CALL pc=733 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 86 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 86 "sample/undocked/map.c"
-        return 0;
-#line 86 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=734 dst=r6 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
     r6 = r0;
@@ -2551,12 +2323,6 @@ label_47:
     // EBPF_OP_CALL pc=754 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 88 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 88 "sample/undocked/map.c"
-        return 0;
-#line 88 "sample/undocked/map.c"
-    }
 label_48:
     // EBPF_OP_MOV64_IMM pc=755 dst=r1 src=r0 offset=0 imm=0
 #line 88 "sample/undocked/map.c"
@@ -2643,12 +2409,6 @@ label_49:
     // EBPF_OP_CALL pc=789 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 92 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 92 "sample/undocked/map.c"
-        return 0;
-#line 92 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=790 dst=r6 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r6 = r0;
@@ -2684,12 +2444,6 @@ label_50:
     // EBPF_OP_CALL pc=800 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
-#line 103 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
-#line 103 "sample/undocked/map.c"
-        return 0;
-#line 103 "sample/undocked/map.c"
-    }
     // EBPF_OP_JNE_IMM pc=801 dst=r0 src=r0 offset=23 imm=0
 #line 104 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
@@ -2770,12 +2524,6 @@ label_51:
     // EBPF_OP_CALL pc=831 dst=r0 src=r0 offset=0 imm=18
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=832 dst=r6 src=r0 offset=0 imm=0
 #line 176 "sample/undocked/map.c"
     r6 = r0;
@@ -2863,12 +2611,6 @@ label_53:
     // EBPF_OP_CALL pc=865 dst=r0 src=r0 offset=0 imm=14
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=866 dst=r0 src=r0 offset=26 imm=0
 #line 176 "sample/undocked/map.c"
     goto label_58;
@@ -2937,12 +2679,6 @@ label_57:
     // EBPF_OP_CALL pc=890 dst=r0 src=r0 offset=0 imm=14
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=891 dst=r6 src=r0 offset=0 imm=-1
 #line 176 "sample/undocked/map.c"
     r6 = (uint64_t)4294967295;
@@ -2985,12 +2721,6 @@ label_59:
     // EBPF_OP_CALL pc=904 dst=r0 src=r0 offset=0 imm=18
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=905 dst=r7 src=r0 offset=0 imm=0
 #line 176 "sample/undocked/map.c"
     r7 = r0;
@@ -3078,12 +2808,6 @@ label_61:
     // EBPF_OP_CALL pc=938 dst=r0 src=r0 offset=0 imm=14
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=939 dst=r0 src=r0 offset=421 imm=0
 #line 176 "sample/undocked/map.c"
     goto label_90;
@@ -3146,12 +2870,6 @@ label_63:
     // EBPF_OP_CALL pc=964 dst=r0 src=r0 offset=0 imm=17
 #line 177 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 177 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 177 "sample/undocked/map.c"
-        return 0;
-#line 177 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=965 dst=r6 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
     r6 = r0;
@@ -3328,12 +3046,6 @@ label_68:
     // EBPF_OP_CALL pc=1030 dst=r0 src=r0 offset=0 imm=16
 #line 182 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 182 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 182 "sample/undocked/map.c"
-        return 0;
-#line 182 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1031 dst=r6 src=r0 offset=0 imm=0
 #line 182 "sample/undocked/map.c"
     r6 = r0;
@@ -3400,12 +3112,6 @@ label_69:
     // EBPF_OP_CALL pc=1050 dst=r0 src=r0 offset=0 imm=16
 #line 185 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 185 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 185 "sample/undocked/map.c"
-        return 0;
-#line 185 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1051 dst=r6 src=r0 offset=0 imm=0
 #line 185 "sample/undocked/map.c"
     r6 = r0;
@@ -3522,12 +3228,6 @@ label_70:
     // EBPF_OP_CALL pc=1095 dst=r0 src=r0 offset=0 imm=16
 #line 186 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 186 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 186 "sample/undocked/map.c"
-        return 0;
-#line 186 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1096 dst=r6 src=r0 offset=0 imm=0
 #line 186 "sample/undocked/map.c"
     r6 = r0;
@@ -3688,12 +3388,6 @@ label_73:
     // EBPF_OP_CALL pc=1158 dst=r0 src=r0 offset=0 imm=15
 #line 182 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[10].address(r1, r2, r3, r4, r5, context);
-#line 182 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[10].tail_call) && (r0 == 0)) {
-#line 182 "sample/undocked/map.c"
-        return 0;
-#line 182 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=1159 dst=r0 src=r0 offset=-267 imm=0
 #line 182 "sample/undocked/map.c"
     goto label_58;
@@ -3716,12 +3410,6 @@ label_74:
     // EBPF_OP_CALL pc=1166 dst=r0 src=r0 offset=0 imm=18
 #line 188 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 188 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 188 "sample/undocked/map.c"
-        return 0;
-#line 188 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1167 dst=r6 src=r0 offset=0 imm=0
 #line 188 "sample/undocked/map.c"
     r6 = r0;
@@ -3805,12 +3493,6 @@ label_75:
     // EBPF_OP_CALL pc=1198 dst=r0 src=r0 offset=0 imm=14
 #line 188 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 188 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 188 "sample/undocked/map.c"
-        return 0;
-#line 188 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=1199 dst=r0 src=r0 offset=-307 imm=0
 #line 188 "sample/undocked/map.c"
     goto label_58;
@@ -3935,12 +3617,6 @@ label_79:
     // EBPF_OP_CALL pc=1240 dst=r0 src=r0 offset=0 imm=18
 #line 196 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 196 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 196 "sample/undocked/map.c"
-        return 0;
-#line 196 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1241 dst=r6 src=r0 offset=0 imm=0
 #line 196 "sample/undocked/map.c"
     r6 = r0;
@@ -3985,12 +3661,6 @@ label_80:
     // EBPF_OP_CALL pc=1255 dst=r0 src=r0 offset=0 imm=17
 #line 193 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 193 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 193 "sample/undocked/map.c"
-        return 0;
-#line 193 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1256 dst=r6 src=r0 offset=0 imm=0
 #line 193 "sample/undocked/map.c"
     r6 = r0;
@@ -4172,12 +3842,6 @@ label_84:
     // EBPF_OP_CALL pc=1322 dst=r0 src=r0 offset=0 imm=17
 #line 197 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 197 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 197 "sample/undocked/map.c"
-        return 0;
-#line 197 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1323 dst=r6 src=r0 offset=0 imm=0
 #line 197 "sample/undocked/map.c"
     r6 = r0;
@@ -4285,12 +3949,6 @@ label_89:
     // EBPF_OP_CALL pc=1358 dst=r0 src=r0 offset=0 imm=14
 #line 176 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 176 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 176 "sample/undocked/map.c"
-        return 0;
-#line 176 "sample/undocked/map.c"
-    }
     // EBPF_OP_LDDW pc=1359 dst=r7 src=r0 offset=0 imm=-1
 #line 176 "sample/undocked/map.c"
     r7 = (uint64_t)4294967295;
@@ -4356,12 +4014,6 @@ label_90:
     // EBPF_OP_CALL pc=1384 dst=r0 src=r0 offset=0 imm=13
 #line 216 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 216 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 216 "sample/undocked/map.c"
-        return 0;
-#line 216 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1385 dst=r6 src=r7 offset=0 imm=0
 #line 216 "sample/undocked/map.c"
     r6 = r7;
@@ -4387,12 +4039,6 @@ label_91:
     // EBPF_OP_CALL pc=1393 dst=r0 src=r0 offset=0 imm=17
 #line 177 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 177 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 177 "sample/undocked/map.c"
-        return 0;
-#line 177 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1394 dst=r7 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
     r7 = r0;
@@ -4569,12 +4215,6 @@ label_96:
     // EBPF_OP_CALL pc=1459 dst=r0 src=r0 offset=0 imm=16
 #line 182 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 182 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 182 "sample/undocked/map.c"
-        return 0;
-#line 182 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1460 dst=r7 src=r0 offset=0 imm=0
 #line 182 "sample/undocked/map.c"
     r7 = r0;
@@ -4641,12 +4281,6 @@ label_97:
     // EBPF_OP_CALL pc=1479 dst=r0 src=r0 offset=0 imm=16
 #line 185 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 185 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 185 "sample/undocked/map.c"
-        return 0;
-#line 185 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1480 dst=r7 src=r0 offset=0 imm=0
 #line 185 "sample/undocked/map.c"
     r7 = r0;
@@ -4763,12 +4397,6 @@ label_98:
     // EBPF_OP_CALL pc=1524 dst=r0 src=r0 offset=0 imm=16
 #line 186 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5, context);
-#line 186 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
-#line 186 "sample/undocked/map.c"
-        return 0;
-#line 186 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1525 dst=r7 src=r0 offset=0 imm=0
 #line 186 "sample/undocked/map.c"
     r7 = r0;
@@ -4929,12 +4557,6 @@ label_101:
     // EBPF_OP_CALL pc=1587 dst=r0 src=r0 offset=0 imm=15
 #line 182 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[10].address(r1, r2, r3, r4, r5, context);
-#line 182 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[10].tail_call) && (r0 == 0)) {
-#line 182 "sample/undocked/map.c"
-        return 0;
-#line 182 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=1588 dst=r0 src=r0 offset=-228 imm=0
 #line 182 "sample/undocked/map.c"
     goto label_90;
@@ -4957,12 +4579,6 @@ label_102:
     // EBPF_OP_CALL pc=1595 dst=r0 src=r0 offset=0 imm=18
 #line 188 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 188 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 188 "sample/undocked/map.c"
-        return 0;
-#line 188 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1596 dst=r7 src=r0 offset=0 imm=0
 #line 188 "sample/undocked/map.c"
     r7 = r0;
@@ -5046,12 +4662,6 @@ label_103:
     // EBPF_OP_CALL pc=1627 dst=r0 src=r0 offset=0 imm=14
 #line 188 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5, context);
-#line 188 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
-#line 188 "sample/undocked/map.c"
-        return 0;
-#line 188 "sample/undocked/map.c"
-    }
     // EBPF_OP_JA pc=1628 dst=r0 src=r0 offset=-268 imm=0
 #line 188 "sample/undocked/map.c"
     goto label_90;
@@ -5176,12 +4786,6 @@ label_107:
     // EBPF_OP_CALL pc=1669 dst=r0 src=r0 offset=0 imm=18
 #line 196 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 196 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 196 "sample/undocked/map.c"
-        return 0;
-#line 196 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1670 dst=r7 src=r0 offset=0 imm=0
 #line 196 "sample/undocked/map.c"
     r7 = r0;
@@ -5226,12 +4830,6 @@ label_108:
     // EBPF_OP_CALL pc=1684 dst=r0 src=r0 offset=0 imm=17
 #line 193 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 193 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 193 "sample/undocked/map.c"
-        return 0;
-#line 193 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1685 dst=r7 src=r0 offset=0 imm=0
 #line 193 "sample/undocked/map.c"
     r7 = r0;
@@ -5419,12 +5017,6 @@ label_112:
     // EBPF_OP_CALL pc=1753 dst=r0 src=r0 offset=0 imm=17
 #line 197 "sample/undocked/map.c"
     r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5, context);
-#line 197 "sample/undocked/map.c"
-    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
-#line 197 "sample/undocked/map.c"
-        return 0;
-#line 197 "sample/undocked/map.c"
-    }
     // EBPF_OP_MOV64_REG pc=1754 dst=r7 src=r0 offset=0 imm=0
 #line 197 "sample/undocked/map.c"
     r7 = r0;

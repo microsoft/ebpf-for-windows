@@ -135,7 +135,7 @@ callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 41 "sample/undocked/tail_call_multiple.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/undocked/tail_call_multiple.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 41 "sample/undocked/tail_call_multiple.c"
         return 0;
 #line 41 "sample/undocked/tail_call_multiple.c"
@@ -240,7 +240,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 30 "sample/undocked/tail_call_multiple.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 30 "sample/undocked/tail_call_multiple.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 30 "sample/undocked/tail_call_multiple.c"
         return 0;
 #line 30 "sample/undocked/tail_call_multiple.c"

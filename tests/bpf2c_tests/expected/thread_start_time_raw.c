@@ -120,12 +120,6 @@ function_v4(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=2 dst=r0 src=r0 offset=0 imm=19
 #line 25 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 25 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 25 "sample/thread_start_time.c"
-        return 0;
-#line 25 "sample/thread_start_time.c"
-    }
     // EBPF_OP_MOV64_REG pc=3 dst=r6 src=r0 offset=0 imm=0
 #line 25 "sample/thread_start_time.c"
     r6 = r0;
@@ -133,11 +127,7 @@ function_v4(void* context, const program_runtime_context_t* runtime_context)
 #line 27 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 27 "sample/thread_start_time.c"
-        return 0;
-#line 27 "sample/thread_start_time.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_STXDW pc=5 dst=r10 src=r0 offset=-8 imm=0
 #line 27 "sample/thread_start_time.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -168,12 +158,6 @@ function_v4(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=2
 #line 30 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 30 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 30 "sample/thread_start_time.c"
-        return 0;
-#line 30 "sample/thread_start_time.c"
-    }
     // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/thread_start_time.c"
     r0 = IMMEDIATE(1);
@@ -253,12 +237,6 @@ function_v6(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=2 dst=r0 src=r0 offset=0 imm=19
 #line 25 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 25 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 25 "sample/thread_start_time.c"
-        return 0;
-#line 25 "sample/thread_start_time.c"
-    }
     // EBPF_OP_MOV64_REG pc=3 dst=r6 src=r0 offset=0 imm=0
 #line 25 "sample/thread_start_time.c"
     r6 = r0;
@@ -266,11 +244,7 @@ function_v6(void* context, const program_runtime_context_t* runtime_context)
 #line 27 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 27 "sample/thread_start_time.c"
-        return 0;
-#line 27 "sample/thread_start_time.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_STXDW pc=5 dst=r10 src=r0 offset=-8 imm=0
 #line 27 "sample/thread_start_time.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -301,12 +275,6 @@ function_v6(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=2
 #line 30 "sample/thread_start_time.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 30 "sample/thread_start_time.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 30 "sample/thread_start_time.c"
-        return 0;
-#line 30 "sample/thread_start_time.c"
-    }
     // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
 #line 46 "sample/thread_start_time.c"
     r0 = IMMEDIATE(1);

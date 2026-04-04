@@ -372,11 +372,7 @@ authorize_bind(void* context, const program_runtime_context_t* runtime_context)
 #line 105 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 105 "sample/bind_policy.c"
-        return 0;
-#line 105 "sample/bind_policy.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_REG pc=41 dst=r2 src=r10 offset=0 imm=0
 #line 105 "sample/bind_policy.c"
     r2 = r10;
@@ -389,12 +385,6 @@ authorize_bind(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=1
 #line 108 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 108 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 108 "sample/bind_policy.c"
-        return 0;
-#line 108 "sample/bind_policy.c"
-    }
     // EBPF_OP_MOV64_REG pc=46 dst=r6 src=r0 offset=0 imm=0
 #line 108 "sample/bind_policy.c"
     r6 = r0;
@@ -456,12 +446,6 @@ authorize_bind(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=69 dst=r0 src=r0 offset=0 imm=13
 #line 110 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 110 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 110 "sample/bind_policy.c"
-        return 0;
-#line 110 "sample/bind_policy.c"
-    }
     // EBPF_OP_JA pc=70 dst=r0 src=r0 offset=76 imm=0
 #line 110 "sample/bind_policy.c"
     goto label_4;
@@ -481,12 +465,6 @@ label_1:
     // EBPF_OP_CALL pc=76 dst=r0 src=r0 offset=0 imm=1
 #line 118 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 118 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 118 "sample/bind_policy.c"
-        return 0;
-#line 118 "sample/bind_policy.c"
-    }
     // EBPF_OP_MOV64_REG pc=77 dst=r6 src=r0 offset=0 imm=0
 #line 118 "sample/bind_policy.c"
     r6 = r0;
@@ -548,12 +526,6 @@ label_1:
     // EBPF_OP_CALL pc=100 dst=r0 src=r0 offset=0 imm=13
 #line 120 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 120 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 120 "sample/bind_policy.c"
-        return 0;
-#line 120 "sample/bind_policy.c"
-    }
     // EBPF_OP_JA pc=101 dst=r0 src=r0 offset=45 imm=0
 #line 120 "sample/bind_policy.c"
     goto label_4;
@@ -585,12 +557,6 @@ label_2:
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=1
 #line 130 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 130 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 130 "sample/bind_policy.c"
-        return 0;
-#line 130 "sample/bind_policy.c"
-    }
     // EBPF_OP_MOV64_REG pc=112 dst=r6 src=r0 offset=0 imm=0
 #line 130 "sample/bind_policy.c"
     r6 = r0;
@@ -652,12 +618,6 @@ label_2:
     // EBPF_OP_CALL pc=135 dst=r0 src=r0 offset=0 imm=13
 #line 132 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 132 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 132 "sample/bind_policy.c"
-        return 0;
-#line 132 "sample/bind_policy.c"
-    }
     // EBPF_OP_JA pc=136 dst=r0 src=r0 offset=10 imm=0
 #line 132 "sample/bind_policy.c"
     goto label_4;
@@ -680,12 +640,6 @@ label_3:
     // EBPF_OP_CALL pc=143 dst=r0 src=r0 offset=0 imm=1
 #line 140 "sample/bind_policy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 140 "sample/bind_policy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 140 "sample/bind_policy.c"
-        return 0;
-#line 140 "sample/bind_policy.c"
-    }
     // EBPF_OP_MOV64_REG pc=144 dst=r6 src=r0 offset=0 imm=0
 #line 140 "sample/bind_policy.c"
     r6 = r0;

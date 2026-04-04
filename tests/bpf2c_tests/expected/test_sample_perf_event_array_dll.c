@@ -161,12 +161,6 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=32
 #line 35 "sample/undocked/test_sample_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-        return 0;
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
-    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/test_sample_perf_event_array.c"

@@ -177,9 +177,6 @@ main(int argc, char** argv)
             } else {
                 runtime_context->helper_data[j].address =
                     reinterpret_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
-                if (runtime_context->helper_data[j].address == reinterpret_cast<helper_function_t>(_unwind)) {
-                    runtime_context->helper_data[j].tail_call = true;
-                }
             }
         }
     }

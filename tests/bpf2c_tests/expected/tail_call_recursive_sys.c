@@ -304,12 +304,6 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 51 "sample/undocked/tail_call_recursive.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 51 "sample/undocked/tail_call_recursive.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 51 "sample/undocked/tail_call_recursive.c"
-        return 0;
-#line 51 "sample/undocked/tail_call_recursive.c"
-    }
     // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=23 imm=0
 #line 52 "sample/undocked/tail_call_recursive.c"
     if (r0 == IMMEDIATE(0)) {
@@ -354,11 +348,7 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
 #line 56 "sample/undocked/tail_call_recursive.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 56 "sample/undocked/tail_call_recursive.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 56 "sample/undocked/tail_call_recursive.c"
-        return 0;
-#line 56 "sample/undocked/tail_call_recursive.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
 #line 59 "sample/undocked/tail_call_recursive.c"
     READ_ONCE_32(r1, r7, OFFSET(0));
@@ -381,7 +371,7 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
 #line 62 "sample/undocked/tail_call_recursive.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 62 "sample/undocked/tail_call_recursive.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
+    if (r0 == 0) {
 #line 62 "sample/undocked/tail_call_recursive.c"
         return 0;
 #line 62 "sample/undocked/tail_call_recursive.c"

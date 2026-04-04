@@ -159,12 +159,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 23 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 23 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 23 "sample/printk.c"
-        return 0;
-#line 23 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_REG pc=12 dst=r9 src=r0 offset=0 imm=0
 #line 23 "sample/printk.c"
     r9 = r0;
@@ -192,24 +186,12 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 24 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 24 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 24 "sample/printk.c"
-        return 0;
-#line 24 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 24 "sample/printk.c"
     r6 = r0;
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=19
 #line 27 "sample/printk.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 27 "sample/printk.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 27 "sample/printk.c"
-        return 0;
-#line 27 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_REG pc=23 dst=r8 src=r0 offset=0 imm=0
 #line 27 "sample/printk.c"
     r8 = r0;
@@ -255,12 +237,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=13
 #line 28 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 28 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 28 "sample/printk.c"
-        return 0;
-#line 28 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_IMM pc=40 dst=r1 src=r0 offset=0 imm=7695397
 #line 28 "sample/printk.c"
     r1 = IMMEDIATE(7695397);
@@ -297,12 +273,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=13
 #line 29 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 29 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 29 "sample/printk.c"
-        return 0;
-#line 29 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_IMM pc=54 dst=r1 src=r0 offset=0 imm=1819026725
 #line 29 "sample/printk.c"
     r1 = IMMEDIATE(1819026725);
@@ -342,12 +312,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=68 dst=r0 src=r0 offset=0 imm=13
 #line 30 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 30 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 30 "sample/printk.c"
-        return 0;
-#line 30 "sample/printk.c"
-    }
     // EBPF_OP_ADD64_REG pc=69 dst=r6 src=r0 offset=0 imm=0
 #line 30 "sample/printk.c"
     r6 += r0;
@@ -384,12 +348,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=82 dst=r0 src=r0 offset=0 imm=14
 #line 31 "sample/printk.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/printk.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 31 "sample/printk.c"
-        return 0;
-#line 31 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_IMM pc=83 dst=r1 src=r0 offset=0 imm=117
 #line 33 "sample/printk.c"
     r1 = IMMEDIATE(117);
@@ -438,12 +396,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=15
 #line 33 "sample/printk.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
-#line 33 "sample/printk.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 33 "sample/printk.c"
-        return 0;
-#line 33 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_IMM pc=100 dst=r1 src=r0 offset=0 imm=9504
 #line 33 "sample/printk.c"
     r1 = IMMEDIATE(9504);
@@ -477,12 +429,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=12
 #line 37 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 37 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 37 "sample/printk.c"
-        return 0;
-#line 37 "sample/printk.c"
-    }
     // EBPF_OP_LDDW pc=111 dst=r1 src=r0 offset=0 imm=843333954
 #line 37 "sample/printk.c"
     r1 = (uint64_t)7812660273793483074;
@@ -507,12 +453,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=119 dst=r0 src=r0 offset=0 imm=12
 #line 38 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 38 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 38 "sample/printk.c"
-        return 0;
-#line 38 "sample/printk.c"
-    }
     // EBPF_OP_LDDW pc=120 dst=r1 src=r0 offset=0 imm=860111170
 #line 38 "sample/printk.c"
     r1 = (uint64_t)7220718397787750722;
@@ -540,12 +480,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=129 dst=r0 src=r0 offset=0 imm=13
 #line 39 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 39 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 39 "sample/printk.c"
-        return 0;
-#line 39 "sample/printk.c"
-    }
     // EBPF_OP_LDDW pc=130 dst=r1 src=r0 offset=0 imm=876888386
 #line 39 "sample/printk.c"
     r1 = (uint64_t)31566017637663042;
@@ -570,12 +504,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=138 dst=r0 src=r0 offset=0 imm=13
 #line 40 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 40 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 40 "sample/printk.c"
-        return 0;
-#line 40 "sample/printk.c"
-    }
     // EBPF_OP_MOV64_IMM pc=139 dst=r1 src=r0 offset=0 imm=893665602
 #line 40 "sample/printk.c"
     r1 = IMMEDIATE(893665602);
@@ -603,12 +531,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=147 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 44 "sample/printk.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 44 "sample/printk.c"
-        return 0;
-#line 44 "sample/printk.c"
-    }
     // EBPF_OP_LDDW pc=148 dst=r1 src=r0 offset=0 imm=910442818
 #line 44 "sample/printk.c"
     r1 = (uint64_t)32973392554770754;
@@ -630,12 +552,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=155 dst=r0 src=r0 offset=0 imm=12
 #line 45 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 45 "sample/printk.c"
-        return 0;
-#line 45 "sample/printk.c"
-    }
     // EBPF_OP_STXB pc=156 dst=r10 src=r8 offset=-22 imm=0
 #line 48 "sample/printk.c"
     WRITE_ONCE_8(r10, (uint8_t)r8, OFFSET(-22));
@@ -666,12 +582,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=166 dst=r0 src=r0 offset=0 imm=12
 #line 48 "sample/printk.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 48 "sample/printk.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 48 "sample/printk.c"
-        return 0;
-#line 48 "sample/printk.c"
-    }
     // EBPF_OP_ADD64_REG pc=167 dst=r6 src=r0 offset=0 imm=0
 #line 48 "sample/printk.c"
     r6 += r0;

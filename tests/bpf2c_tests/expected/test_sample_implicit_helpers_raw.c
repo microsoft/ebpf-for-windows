@@ -174,11 +174,7 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 47 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_REG pc=9 dst=r8 src=r0 offset=0 imm=0
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
     r8 = r0;
@@ -194,12 +190,6 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 48 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 48 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 48 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
     r7 = r0;
@@ -235,12 +225,6 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=23 dst=r0 src=r0 offset=0 imm=65537
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 54 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 54 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 54 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_JEQ_IMM pc=24 dst=r7 src=r0 offset=9 imm=0
 #line 56 "sample/undocked/test_sample_implicit_helpers.c"
     if (r7 == IMMEDIATE(0)) {
@@ -269,12 +253,6 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=65538
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 57 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 57 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 57 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=0
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = IMMEDIATE(0);
@@ -289,12 +267,6 @@ label_1:
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=65539
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 68 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 68 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 68 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_STXDW pc=35 dst=r10 src=r0 offset=-24 imm=0
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-24));
@@ -305,11 +277,7 @@ label_1:
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_STXDW pc=38 dst=r10 src=r0 offset=-16 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-16));
@@ -337,24 +305,12 @@ label_1:
     // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
-#line 72 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
-#line 72 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 72 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_MOV64_REG pc=48 dst=r1 src=r6 offset=0 imm=0
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = r6;
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=65536
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
-#line 74 "sample/undocked/test_sample_implicit_helpers.c"
-        return 0;
-#line 74 "sample/undocked/test_sample_implicit_helpers.c"
-    }
     // EBPF_OP_JSGT_REG pc=50 dst=r7 src=r0 offset=1 imm=0
 #line 75 "sample/undocked/test_sample_implicit_helpers.c"
     if ((int64_t)r7 > (int64_t)r0) {

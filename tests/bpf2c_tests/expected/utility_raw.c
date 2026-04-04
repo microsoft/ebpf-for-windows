@@ -139,12 +139,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=23
 #line 31 "sample/utility.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/utility.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 31 "sample/utility.c"
-        return 0;
-#line 31 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=19 dst=r1 src=r0 offset=0 imm=0
 #line 31 "sample/utility.c"
     r1 = r0;
@@ -191,12 +185,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=32 dst=r0 src=r0 offset=0 imm=23
 #line 37 "sample/utility.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 37 "sample/utility.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 37 "sample/utility.c"
-        return 0;
-#line 37 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/utility.c"
     r1 = r0;
@@ -237,12 +225,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=23
 #line 43 "sample/utility.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 43 "sample/utility.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 43 "sample/utility.c"
-        return 0;
-#line 43 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=45 dst=r1 src=r0 offset=0 imm=0
 #line 43 "sample/utility.c"
     r1 = r0;
@@ -289,12 +271,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=58 dst=r0 src=r0 offset=0 imm=22
 #line 54 "sample/utility.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 54 "sample/utility.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 54 "sample/utility.c"
-        return 0;
-#line 54 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=59 dst=r1 src=r0 offset=0 imm=0
 #line 54 "sample/utility.c"
     r1 = r0;
@@ -369,12 +345,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=76 dst=r0 src=r0 offset=0 imm=24
 #line 64 "sample/utility.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 64 "sample/utility.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 64 "sample/utility.c"
-        return 0;
-#line 64 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=77 dst=r1 src=r0 offset=0 imm=0
 #line 64 "sample/utility.c"
     r1 = r0;
@@ -452,12 +422,6 @@ UtilityTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=95 dst=r0 src=r0 offset=0 imm=25
 #line 74 "sample/utility.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/utility.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 74 "sample/utility.c"
-        return 0;
-#line 74 "sample/utility.c"
-    }
     // EBPF_OP_MOV64_REG pc=96 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/utility.c"
     r1 = r0;

@@ -288,11 +288,7 @@ label_2:
 #line 44 "sample/sockops.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/sockops.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/sockops.c"
-        return 0;
-#line 44 "sample/sockops.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_STXB pc=38 dst=r10 src=r6 offset=-8 imm=0
 #line 48 "sample/sockops.c"
     WRITE_ONCE_8(r10, (uint8_t)r6, OFFSET(-8));
@@ -314,12 +310,6 @@ label_2:
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 26 "sample/sockops.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 26 "sample/sockops.c"
-        return 0;
-#line 26 "sample/sockops.c"
-    }
     // EBPF_OP_MOV64_REG pc=46 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
@@ -662,11 +652,7 @@ label_3:
 #line 67 "sample/sockops.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/sockops.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 67 "sample/sockops.c"
-        return 0;
-#line 67 "sample/sockops.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_STXB pc=159 dst=r10 src=r6 offset=-8 imm=0
 #line 71 "sample/sockops.c"
     WRITE_ONCE_8(r10, (uint8_t)r6, OFFSET(-8));
@@ -688,12 +674,6 @@ label_3:
     // EBPF_OP_CALL pc=166 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 26 "sample/sockops.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 26 "sample/sockops.c"
-        return 0;
-#line 26 "sample/sockops.c"
-    }
     // EBPF_OP_MOV64_REG pc=167 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
@@ -726,12 +706,6 @@ label_4:
     // EBPF_OP_CALL pc=177 dst=r0 src=r0 offset=0 imm=11
 #line 100 "sample/sockops.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 100 "sample/sockops.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 100 "sample/sockops.c"
-        return 0;
-#line 100 "sample/sockops.c"
-    }
 label_5:
     // EBPF_OP_EXIT pc=178 dst=r0 src=r0 offset=0 imm=0
 #line 103 "sample/sockops.c"

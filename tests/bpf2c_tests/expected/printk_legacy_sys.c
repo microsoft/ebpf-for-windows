@@ -279,12 +279,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 31 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 31 "sample/printk_legacy.c"
-        return 0;
-#line 31 "sample/printk_legacy.c"
-    }
     // EBPF_OP_MOV64_REG pc=12 dst=r8 src=r0 offset=0 imm=0
 #line 31 "sample/printk_legacy.c"
     r8 = r0;
@@ -312,12 +306,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 32 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 32 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 32 "sample/printk_legacy.c"
-        return 0;
-#line 32 "sample/printk_legacy.c"
-    }
     // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 32 "sample/printk_legacy.c"
     r6 = r0;
@@ -345,12 +333,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=13
 #line 35 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 35 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 35 "sample/printk_legacy.c"
-        return 0;
-#line 35 "sample/printk_legacy.c"
-    }
     // EBPF_OP_ADD64_REG pc=31 dst=r6 src=r0 offset=0 imm=0
 #line 35 "sample/printk_legacy.c"
     r6 += r0;
@@ -390,12 +372,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=14
 #line 36 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 36 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 36 "sample/printk_legacy.c"
-        return 0;
-#line 36 "sample/printk_legacy.c"
-    }
     // EBPF_OP_STXH pc=46 dst=r10 src=r9 offset=-4 imm=0
 #line 38 "sample/printk_legacy.c"
     WRITE_ONCE_16(r10, (uint16_t)r9, OFFSET(-4));
@@ -444,12 +420,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=15
 #line 38 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 38 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 38 "sample/printk_legacy.c"
-        return 0;
-#line 38 "sample/printk_legacy.c"
-    }
     // EBPF_OP_MOV64_IMM pc=64 dst=r1 src=r0 offset=0 imm=9504
 #line 38 "sample/printk_legacy.c"
     r1 = IMMEDIATE(9504);
@@ -483,12 +453,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=74 dst=r0 src=r0 offset=0 imm=12
 #line 42 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 42 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 42 "sample/printk_legacy.c"
-        return 0;
-#line 42 "sample/printk_legacy.c"
-    }
     // EBPF_OP_LDDW pc=75 dst=r1 src=r0 offset=0 imm=843333954
 #line 42 "sample/printk_legacy.c"
     r1 = (uint64_t)7812660273793483074;
@@ -513,12 +477,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=83 dst=r0 src=r0 offset=0 imm=12
 #line 43 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 43 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 43 "sample/printk_legacy.c"
-        return 0;
-#line 43 "sample/printk_legacy.c"
-    }
     // EBPF_OP_LDDW pc=84 dst=r1 src=r0 offset=0 imm=860111170
 #line 43 "sample/printk_legacy.c"
     r1 = (uint64_t)7220718397787750722;
@@ -546,12 +504,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=93 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 44 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 44 "sample/printk_legacy.c"
-        return 0;
-#line 44 "sample/printk_legacy.c"
-    }
     // EBPF_OP_LDDW pc=94 dst=r1 src=r0 offset=0 imm=876888386
 #line 44 "sample/printk_legacy.c"
     r1 = (uint64_t)31566017637663042;
@@ -576,12 +528,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=102 dst=r0 src=r0 offset=0 imm=13
 #line 45 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/printk_legacy.c"
-        return 0;
-#line 45 "sample/printk_legacy.c"
-    }
     // EBPF_OP_MOV64_IMM pc=103 dst=r1 src=r0 offset=0 imm=893665602
 #line 45 "sample/printk_legacy.c"
     r1 = IMMEDIATE(893665602);
@@ -609,12 +555,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=13
 #line 49 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 49 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 49 "sample/printk_legacy.c"
-        return 0;
-#line 49 "sample/printk_legacy.c"
-    }
     // EBPF_OP_LDDW pc=112 dst=r1 src=r0 offset=0 imm=910442818
 #line 49 "sample/printk_legacy.c"
     r1 = (uint64_t)32973392554770754;
@@ -636,12 +576,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=119 dst=r0 src=r0 offset=0 imm=12
 #line 50 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 50 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 50 "sample/printk_legacy.c"
-        return 0;
-#line 50 "sample/printk_legacy.c"
-    }
     // EBPF_OP_STXB pc=120 dst=r10 src=r8 offset=-22 imm=0
 #line 53 "sample/printk_legacy.c"
     WRITE_ONCE_8(r10, (uint8_t)r8, OFFSET(-22));
@@ -672,12 +606,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=130 dst=r0 src=r0 offset=0 imm=12
 #line 53 "sample/printk_legacy.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 53 "sample/printk_legacy.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 53 "sample/printk_legacy.c"
-        return 0;
-#line 53 "sample/printk_legacy.c"
-    }
     // EBPF_OP_ADD64_REG pc=131 dst=r6 src=r0 offset=0 imm=0
 #line 53 "sample/printk_legacy.c"
     r6 += r0;

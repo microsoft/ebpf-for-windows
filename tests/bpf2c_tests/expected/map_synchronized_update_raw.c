@@ -153,12 +153,6 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 49 "sample/undocked/map_synchronized_update.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 49 "sample/undocked/map_synchronized_update.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 49 "sample/undocked/map_synchronized_update.c"
-        return 0;
-#line 49 "sample/undocked/map_synchronized_update.c"
-    }
     // EBPF_OP_JNE_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
 #line 50 "sample/undocked/map_synchronized_update.c"
     if (r0 != IMMEDIATE(0)) {
@@ -184,12 +178,6 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 53 "sample/undocked/map_synchronized_update.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 53 "sample/undocked/map_synchronized_update.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 53 "sample/undocked/map_synchronized_update.c"
-        return 0;
-#line 53 "sample/undocked/map_synchronized_update.c"
-    }
     // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=16 imm=0
 #line 54 "sample/undocked/map_synchronized_update.c"
     if (r0 == IMMEDIATE(0)) {
@@ -210,12 +198,6 @@ label_1:
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=1
 #line 61 "sample/undocked/map_synchronized_update.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 61 "sample/undocked/map_synchronized_update.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 61 "sample/undocked/map_synchronized_update.c"
-        return 0;
-#line 61 "sample/undocked/map_synchronized_update.c"
-    }
     // EBPF_OP_JNE_IMM pc=21 dst=r0 src=r0 offset=11 imm=0
 #line 62 "sample/undocked/map_synchronized_update.c"
     if (r0 != IMMEDIATE(0)) {
@@ -241,12 +223,6 @@ label_1:
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 65 "sample/undocked/map_synchronized_update.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 65 "sample/undocked/map_synchronized_update.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 65 "sample/undocked/map_synchronized_update.c"
-        return 0;
-#line 65 "sample/undocked/map_synchronized_update.c"
-    }
     // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=2 imm=0
 #line 66 "sample/undocked/map_synchronized_update.c"
     if (r0 == IMMEDIATE(0)) {

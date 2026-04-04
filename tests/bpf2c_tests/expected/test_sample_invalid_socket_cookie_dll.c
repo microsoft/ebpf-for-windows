@@ -108,12 +108,6 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
     // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
-        return 0;
-#line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
-    }
     // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=175664236
 #line 31 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r1 = IMMEDIATE(175664236);
@@ -153,12 +147,6 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
-        return 0;
-#line 33 "sample/undocked/test_sample_invalid_socket_cookie.c"
-    }
     // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_sample_invalid_socket_cookie.c"
     r0 = IMMEDIATE(0);

@@ -177,12 +177,6 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/undocked/inner_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 60 "sample/undocked/inner_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 60 "sample/undocked/inner_map.c"
-        return 0;
-#line 60 "sample/undocked/inner_map.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 60 "sample/undocked/inner_map.c"
     r6 = r0;
@@ -208,12 +202,6 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 63 "sample/undocked/inner_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 63 "sample/undocked/inner_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 63 "sample/undocked/inner_map.c"
-        return 0;
-#line 63 "sample/undocked/inner_map.c"
-    }
     // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=4 imm=0
 #line 64 "sample/undocked/inner_map.c"
     if (r0 == IMMEDIATE(0)) {
@@ -248,12 +236,6 @@ label_3:
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=1
 #line 72 "sample/undocked/inner_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 72 "sample/undocked/inner_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 72 "sample/undocked/inner_map.c"
-        return 0;
-#line 72 "sample/undocked/inner_map.c"
-    }
     // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/inner_map.c"
     r1 = r0;
@@ -285,12 +267,6 @@ label_3:
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=1
 #line 75 "sample/undocked/inner_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 75 "sample/undocked/inner_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 75 "sample/undocked/inner_map.c"
-        return 0;
-#line 75 "sample/undocked/inner_map.c"
-    }
     // EBPF_OP_JEQ_IMM pc=34 dst=r0 src=r0 offset=1 imm=0
 #line 76 "sample/undocked/inner_map.c"
     if (r0 == IMMEDIATE(0)) {

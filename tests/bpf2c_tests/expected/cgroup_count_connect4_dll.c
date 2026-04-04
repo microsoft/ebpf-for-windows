@@ -173,12 +173,6 @@ count_tcp_connect4(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect4.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 48 "sample/cgroup_count_connect4.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 48 "sample/cgroup_count_connect4.c"
-        return 0;
-#line 48 "sample/cgroup_count_connect4.c"
-    }
     // EBPF_OP_JNE_IMM pc=12 dst=r0 src=r0 offset=11 imm=0
 #line 49 "sample/cgroup_count_connect4.c"
     if (r0 != IMMEDIATE(0)) {
@@ -213,12 +207,6 @@ count_tcp_connect4(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_count_connect4.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 51 "sample/cgroup_count_connect4.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 51 "sample/cgroup_count_connect4.c"
-        return 0;
-#line 51 "sample/cgroup_count_connect4.c"
-    }
     // EBPF_OP_JA pc=23 dst=r0 src=r0 offset=3 imm=0
 #line 51 "sample/cgroup_count_connect4.c"
     goto label_2;

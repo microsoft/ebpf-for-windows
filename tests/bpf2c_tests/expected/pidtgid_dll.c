@@ -193,11 +193,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 47 "sample/pidtgid.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/pidtgid.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 47 "sample/pidtgid.c"
-        return 0;
-#line 47 "sample/pidtgid.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
 #line 49 "sample/pidtgid.c"
     READ_ONCE_64(r1, r6, OFFSET(16));
@@ -240,12 +236,6 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 51 "sample/pidtgid.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 51 "sample/pidtgid.c"
-        return 0;
-#line 51 "sample/pidtgid.c"
-    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"

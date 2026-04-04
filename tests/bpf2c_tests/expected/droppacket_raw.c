@@ -139,12 +139,6 @@ DropPacket(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 57 "sample/droppacket.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 57 "sample/droppacket.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 57 "sample/droppacket.c"
-        return 0;
-#line 57 "sample/droppacket.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 57 "sample/droppacket.c"
     r1 = r0;
@@ -269,12 +263,6 @@ label_1:
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 81 "sample/droppacket.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 81 "sample/droppacket.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 81 "sample/droppacket.c"
-        return 0;
-#line 81 "sample/droppacket.c"
-    }
     // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
 #line 81 "sample/droppacket.c"
     r1 = r0;

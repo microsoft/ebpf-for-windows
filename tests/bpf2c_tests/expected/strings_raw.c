@@ -145,12 +145,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=29
 #line 33 "sample/strings.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 33 "sample/strings.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 33 "sample/strings.c"
-        return 0;
-#line 33 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=21 dst=r1 src=r0 offset=0 imm=0
 #line 33 "sample/strings.c"
     r1 = r0;
@@ -176,12 +170,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=29
 #line 37 "sample/strings.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 37 "sample/strings.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 37 "sample/strings.c"
-        return 0;
-#line 37 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/strings.c"
     r1 = r0;
@@ -207,12 +195,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=29
 #line 41 "sample/strings.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 41 "sample/strings.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 41 "sample/strings.c"
-        return 0;
-#line 41 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
 #line 41 "sample/strings.c"
     r1 = r0;
@@ -238,12 +220,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=29
 #line 45 "sample/strings.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 45 "sample/strings.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 45 "sample/strings.c"
-        return 0;
-#line 45 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r0 offset=0 imm=0
 #line 45 "sample/strings.c"
     r1 = r0;
@@ -278,12 +254,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=51 dst=r0 src=r0 offset=0 imm=27
 #line 49 "sample/strings.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 49 "sample/strings.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 49 "sample/strings.c"
-        return 0;
-#line 49 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=52 dst=r1 src=r0 offset=0 imm=0
 #line 49 "sample/strings.c"
     r1 = r0;
@@ -324,12 +294,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=23
 #line 55 "sample/strings.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 55 "sample/strings.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 55 "sample/strings.c"
-        return 0;
-#line 55 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=64 dst=r1 src=r0 offset=0 imm=0
 #line 55 "sample/strings.c"
     r1 = r0;
@@ -370,12 +334,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=75 dst=r0 src=r0 offset=0 imm=28
 #line 59 "sample/strings.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 59 "sample/strings.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 59 "sample/strings.c"
-        return 0;
-#line 59 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=76 dst=r1 src=r0 offset=0 imm=0
 #line 59 "sample/strings.c"
     r1 = r0;
@@ -428,12 +386,6 @@ StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=92 dst=r0 src=r0 offset=0 imm=23
 #line 68 "sample/strings.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 68 "sample/strings.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 68 "sample/strings.c"
-        return 0;
-#line 68 "sample/strings.c"
-    }
     // EBPF_OP_MOV64_REG pc=93 dst=r1 src=r0 offset=0 imm=0
 #line 68 "sample/strings.c"
     r1 = r0;

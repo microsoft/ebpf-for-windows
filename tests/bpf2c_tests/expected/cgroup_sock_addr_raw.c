@@ -192,11 +192,7 @@ authorize_connect4(void* context, const program_runtime_context_t* runtime_conte
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].address);
     // EBPF_OP_STXDW pc=15 dst=r10 src=r0 offset=-8 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -225,11 +221,7 @@ authorize_connect4(void* context, const program_runtime_context_t* runtime_conte
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[0].address);
@@ -239,12 +231,6 @@ authorize_connect4(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 60 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 60 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 60 "sample/cgroup_sock_addr.c"
-    }
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
@@ -392,11 +378,7 @@ authorize_connect6(void* context, const program_runtime_context_t* runtime_conte
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].address);
     // EBPF_OP_STXDW pc=21 dst=r10 src=r0 offset=-8 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -425,11 +407,7 @@ authorize_connect6(void* context, const program_runtime_context_t* runtime_conte
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
     // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[0].address);
@@ -439,12 +417,6 @@ authorize_connect6(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 76 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 76 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 76 "sample/cgroup_sock_addr.c"
-    }
     // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;
@@ -574,11 +546,7 @@ authorize_recv_accept4(void* context, const program_runtime_context_t* runtime_c
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].address);
     // EBPF_OP_STXDW pc=15 dst=r10 src=r0 offset=-8 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -607,11 +575,7 @@ authorize_recv_accept4(void* context, const program_runtime_context_t* runtime_c
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=2
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[1].address);
@@ -621,12 +585,6 @@ authorize_recv_accept4(void* context, const program_runtime_context_t* runtime_c
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 60 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 60 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 60 "sample/cgroup_sock_addr.c"
-    }
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
@@ -774,11 +732,7 @@ authorize_recv_accept6(void* context, const program_runtime_context_t* runtime_c
 #line 44 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 44 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].address);
     // EBPF_OP_STXDW pc=21 dst=r10 src=r0 offset=-8 imm=0
 #line 44 "sample/cgroup_sock_addr.c"
     WRITE_ONCE_64(r10, (uint64_t)r0, OFFSET(-8));
@@ -807,11 +761,7 @@ authorize_recv_accept6(void* context, const program_runtime_context_t* runtime_c
 #line 45 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 45 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 45 "sample/cgroup_sock_addr.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=2
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(runtime_context->map_data[1].address);
@@ -821,12 +771,6 @@ authorize_recv_accept6(void* context, const program_runtime_context_t* runtime_c
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 76 "sample/cgroup_sock_addr.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 76 "sample/cgroup_sock_addr.c"
-        return 0;
-#line 76 "sample/cgroup_sock_addr.c"
-    }
     // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;

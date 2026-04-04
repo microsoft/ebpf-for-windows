@@ -133,12 +133,6 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/undocked/hash_of_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 39 "sample/undocked/hash_of_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 39 "sample/undocked/hash_of_map.c"
-        return 0;
-#line 39 "sample/undocked/hash_of_map.c"
-    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=8 imm=0
 #line 40 "sample/undocked/hash_of_map.c"
     if (r0 == IMMEDIATE(0)) {
@@ -161,12 +155,6 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/hash_of_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 42 "sample/undocked/hash_of_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 42 "sample/undocked/hash_of_map.c"
-        return 0;
-#line 42 "sample/undocked/hash_of_map.c"
-    }
     // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
 #line 43 "sample/undocked/hash_of_map.c"
     if (r0 != IMMEDIATE(0)) {
