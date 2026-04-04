@@ -4495,7 +4495,7 @@ _program_flags_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("program_flag_test", "[libbpf]", _program_flags_test);
 
 // ============================================================================
-// Regression test: missing bounds check in _initialize_ebpf_programs_native
+// Regression test: native program count mismatch bounds validation
 // ============================================================================
 
 // Custom invalid parameter handler for debug builds.
@@ -4534,19 +4534,15 @@ _try_bpf_object_load_detect_av(_Inout_ struct bpf_object* object, _Out_ bool* ac
 
 TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
 {
-    // This test verifies the bug in _initialize_ebpf_programs_native
-    // (ebpf_api.cpp line ~2208): the function iterates using
-    // count_of_programs obtained from a kernel IOCTL reply without
-    // validating it against programs.size() (populated from PE section
-    // parsing in user mode). When these counts disagree, programs[i]
-    // reads past the vector bounds, dereferencing a null/garbage pointer
-    // and crashing with EXCEPTION_ACCESS_VIOLATION (0xC0000005).
+    // Regression test: when the kernel-reported program count disagrees
+    // with the user-mode parsed program count, native program loading
+    // must return an error instead of accessing out-of-bounds memory.
     //
     // We simulate the mismatch by emptying object->programs after
     // bpf_object__open (which populates it from PE parsing) but before
     // bpf_object__load (which gets count_of_programs from the kernel).
     // The kernel (mock) will still report the original program count,
-    // causing the loop to read programs[0] on an empty vector.
+    // causing a mismatch with the empty programs vector.
 
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -4561,17 +4557,12 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
     REQUIRE(original_program_count > 0);
 
     // Phase 2: Simulate kernel/PE program count mismatch.
-    // In the real bug scenario, the kernel's _get_programs() export
-    // returns a compile-time array size, while the user-mode PE parser
-    // computes (VirtualSize - program_offset) / sizeof(program_entry_t)
-    // and then filters for matching code sections. An unreferenced
-    // BPF_MAP_TYPE_PROG_ARRAY map changes string table alignment in
-    // the PE "programs" section, causing the user-mode calculation to
-    // produce a different (smaller) count.
+    // A mismatch can occur when the kernel's native module exports a
+    // compile-time program array size that differs from the count
+    // derived by the user-mode PE parser (e.g., due to PE section
+    // alignment differences caused by certain map types).
     //
     // We simulate this by swapping the programs vector to empty.
-    // After swap, object->programs has size=0 and capacity=0
-    // (data() is nullptr on MSVC).
     std::vector<ebpf_program_t*> saved_programs;
     saved_programs.swap(object->programs);
 
@@ -4594,13 +4585,8 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
 
     // Phase 4: Attempt to load.
     // The kernel (mock) will report original_program_count programs via
-    // the EBPF_OPERATION_LOAD_NATIVE_MODULE IOCTL reply. But
-    // object->programs has 0 entries. In _initialize_ebpf_programs_native:
-    //
-    //   for (int i = 0; i < count_of_programs; i++) {
-    //       ebpf_program_t* program = programs[i];   // OOB at i=0!
-    //       if (!program->autoload) { ...            // deref of null -> AV
-    //
+    // the IOCTL reply, but object->programs has 0 entries, creating a
+    // count mismatch that should be rejected with an error.
     set_native_module_failures(true);
     bool access_violation_detected = false;
     int result = _try_bpf_object_load_detect_av(object, &access_violation_detected);
@@ -4616,21 +4602,11 @@ TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
 
     // Phase 6: Verify results.
     if (access_violation_detected) {
-        // BUG CONFIRMED: _initialize_ebpf_programs_native crashed because
-        // it accessed programs[i] where i >= programs.size() without first
-        // checking that count_of_programs <= programs.size().
-        //
-        // After the fix (adding a bounds check that returns
-        // EBPF_INVALID_ARGUMENT when counts disagree), this test should
-        // pass without any access violation.
-        FAIL("BUG: _initialize_ebpf_programs_native crashes with access "
-             "violation when count_of_programs (from kernel IOCTL) exceeds "
-             "programs.size() (from PE parsing). A bounds check is needed "
-             "at the top of the loop in ebpf_api.cpp.");
+        FAIL("Native program loading crashed with an access violation due "
+             "to an out-of-bounds access when the kernel-reported program "
+             "count exceeds the user-mode parsed program count.");
     } else {
-        // No crash. Either the bug is fixed (returns error code) or the
-        // OOB access did not crash (extremely unlikely with an empty
-        // vector whose data() is nullptr).
+        // The count mismatch was correctly detected and an error was returned.
         REQUIRE(result < 0);
     }
 
