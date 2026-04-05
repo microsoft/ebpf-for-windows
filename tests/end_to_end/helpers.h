@@ -198,9 +198,9 @@ static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_ta
     .process_map_create = _test_sample_hash_map_create,
     .process_map_delete = _test_sample_hash_map_delete,
     .associate_program_function = _test_sample_map_associate_program,
-    .process_map_find_element = _test_sample_hash_map_find_entry,
-    .process_map_add_element = _test_sample_hash_map_update_entry,
-    .process_map_delete_element = _test_sample_hash_map_delete_entry};
+    .postprocess_map_find_element = _test_sample_hash_map_find_entry,
+    .preprocess_map_update_element = _test_sample_hash_map_update_entry,
+    .preprocess_map_delete_element = _test_sample_hash_map_delete_entry};
 
 static ebpf_base_map_provider_properties_t _test_sample_hash_map_provider_properties = {
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
@@ -245,15 +245,15 @@ typedef class _test_sample_map_provider
         _test_sample_hash_map_provider_data.base_properties->updates_original_value = object_map ? true : false;
 
         if (!register_crud_apis) {
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_find_element = nullptr;
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_add_element = nullptr;
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_delete_element = nullptr;
+            _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element = nullptr;
+            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element = nullptr;
+            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element = nullptr;
         } else {
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_find_element =
+            _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element =
                 _test_sample_hash_map_find_entry;
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_add_element =
+            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element =
                 _test_sample_hash_map_update_entry;
-            _test_sample_hash_map_provider_data.base_provider_table->process_map_delete_element =
+            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element =
                 _test_sample_hash_map_delete_entry;
         }
 

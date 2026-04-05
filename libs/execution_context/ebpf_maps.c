@@ -4387,9 +4387,9 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             break;
         }
 
-        if (map->provider_dispatch->process_map_delete_element != NULL) {
+        if (map->provider_dispatch->preprocess_map_delete_element != NULL) {
             // Call provider to notify deletion.
-            map->provider_dispatch->process_map_delete_element(
+            map->provider_dispatch->preprocess_map_delete_element(
                 map->provider_context,
                 map->core_map.custom_map_context,
                 map->core_map.ebpf_map_definition.key_size,
@@ -4470,7 +4470,7 @@ _ebpf_custom_map_update_hash_map_entry(
         memset(out_value, 0, custom_map->actual_value_size);
     }
 
-    if (custom_map->provider_dispatch->process_map_add_element) {
+    if (custom_map->provider_dispatch->preprocess_map_update_element) {
         // Acquire lock to serialize updates.
         lock_state = ebpf_lock_lock(&custom_map->lock);
         lock_acquired = true;
@@ -4479,7 +4479,7 @@ _ebpf_custom_map_update_hash_map_entry(
         provider_flags = _get_provider_flags(flags, false);
         size_t out_value_size =
             UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? custom_map->actual_value_size : 0;
-        result = custom_map->provider_dispatch->process_map_add_element(
+        result = custom_map->provider_dispatch->preprocess_map_update_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
@@ -4499,11 +4499,11 @@ _ebpf_custom_map_update_hash_map_entry(
     ebpf_custom_map_operation_context_t operation_context = {flags, true};
 
     result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
-    if (result != EBPF_SUCCESS && custom_map->provider_dispatch->process_map_delete_element != NULL) {
+    if (result != EBPF_SUCCESS && custom_map->provider_dispatch->preprocess_map_delete_element != NULL) {
         // The hash map update failed after the provider was notified of the add.
         // Notify the provider of the deletion to undo the add.
         provider_flags = _get_provider_flags(flags, true);
-        custom_map->provider_dispatch->process_map_delete_element(
+        custom_map->provider_dispatch->preprocess_map_delete_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
@@ -4542,8 +4542,8 @@ _custom_hash_map_notification(
             break;
         }
         provider_flags = _get_provider_flags(op_context->flags, op_context->is_update);
-        if (custom_map->provider_dispatch->process_map_delete_element != NULL) {
-            result = custom_map->provider_dispatch->process_map_delete_element(
+        if (custom_map->provider_dispatch->preprocess_map_delete_element != NULL) {
+            result = custom_map->provider_dispatch->preprocess_map_delete_element(
                 custom_map->provider_context,
                 custom_map->core_map.custom_map_context,
                 custom_map->core_map.ebpf_map_definition.key_size,
@@ -4686,9 +4686,9 @@ ebpf_custom_map_create(
 
     // If the provider updates original value, validate that find, add and delete functions are not null.
     if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
-        if (custom_map->provider_dispatch->process_map_find_element == NULL ||
-            custom_map->provider_dispatch->process_map_add_element == NULL ||
-            custom_map->provider_dispatch->process_map_delete_element == NULL) {
+        if (custom_map->provider_dispatch->postprocess_map_find_element == NULL ||
+            custom_map->provider_dispatch->preprocess_map_update_element == NULL ||
+            custom_map->provider_dispatch->preprocess_map_delete_element == NULL) {
             result = EBPF_INVALID_ARGUMENT;
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4962,14 +4962,14 @@ ebpf_custom_map_find_entry(
     // Call the provider's find function.
     __analysis_assume(provider_dispatch != NULL);
     uint8_t* value_pointer = NULL;
-    if (provider_dispatch->process_map_find_element != NULL) {
+    if (provider_dispatch->postprocess_map_find_element != NULL) {
         value_pointer = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags) ? value : NULL;
         size_t out_value_size = UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)
                                     ? custom_map->core_map.ebpf_map_definition.value_size
                                     : 0;
 
         // Call provider's find function to process the found element.
-        result = provider_dispatch->process_map_find_element(
+        result = provider_dispatch->postprocess_map_find_element(
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
             key_size,
