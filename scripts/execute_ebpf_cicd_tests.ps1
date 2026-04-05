@@ -133,7 +133,7 @@ Remove-Job -Job $Job -Force
 Pop-Location
 
 if ($JobTimedOut) {
-    Write-Log "exiting with error as job timed out"
+    Write-Log "*** ERROR *** execute_ebpf_cicd_tests.ps1 exiting with error (job timed out or failed)"
     exit 1
 }
 
