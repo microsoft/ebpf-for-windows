@@ -136,9 +136,15 @@ if ($JobFailed) {
         if ($childJob -and $childJob.JobStateInfo.Reason) {
             Write-Log "Test job failed: $($childJob.JobStateInfo.Reason.Message)"
         }
-    } catch {}
+    } catch {
+        Write-Log "Warning: Failed to read test job state: $($_.Exception.Message)"
+    }
     # Drain any remaining output from the failed job.
-    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
+    try {
+        Receive-Job -Job $Job -ErrorAction SilentlyContinue
+    } catch {
+        Write-Log "Warning: Failed to receive test job output: $($_.Exception.Message)"
+    }
 }
 
 # Safe cleanup (bounded to prevent hangs on stuck transports).

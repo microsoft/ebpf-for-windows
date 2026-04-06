@@ -404,7 +404,7 @@ function Compress-KernelModeDumpOnVM
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
             $result = CompressOrCopy-File -SourcePath "$KernelModeDumpFileSourcePath\*.dmp" -DestinationDirectory $KernelModeDumpFileDestinationPath -CompressedFileName "km_dumps.zip"
-            if ($result.Success) {
+            if ($result.CompressedCopySucceeded) {
                 Write-Log "Successfully compressed kernel dumps: $($result.FinalPath)"
             } else {
                 Write-Log "Used uncompressed kernel dump fallback: $($result.FinalPath)"
@@ -514,7 +514,7 @@ function Import-ResultsFromVM
                     -UncompressedSourcePath "$VMSystemDrive\Windows\*.dmp" `
                     -DestinationDirectory $LocalKernelArchiveLocation
 
-                if ($result.Success) {
+                if ($result.CompressedCopySucceeded) {
                     Write-Log "Successfully copied compressed kernel dumps from ${VMName}: $($result.FinalPath)"
                 } else {
                     Write-Log "Used uncompressed kernel dump fallback from ${VMName}: $($result.FinalPath)"
@@ -529,17 +529,21 @@ function Import-ResultsFromVM
         # Copy user mode crash dumps if any.
         $VMSession = Get-ValidSession -VMName $VMName -CurrentSession $VMSession -TestCredential $TestCredential
         if ($VMSession) {
-            Invoke-WithTimeout -OperationName "Copy user dumps from $VMName" -ScriptBlock {
-                param($session, $src, $dst)
-                Copy-Item -FromSession $session -Path $src -Destination $dst -Recurse -Force -ErrorAction Ignore
-            } -ArgumentList @($VMSession, "$VMSystemDrive\dumps", ".\TestLogs\$VMName")
+            Copy-FromSessionWithTimeout `
+                -Session $VMSession `
+                -Path "$VMSystemDrive\dumps" `
+                -Destination ".\TestLogs\$VMName" `
+                -OperationName "Copy user dumps from $VMName" `
+                -Recurse
 
             # Copy performance results from Test VM.
             Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-            Invoke-WithTimeout -OperationName "Copy CSV results from $VMName" -ScriptBlock {
-                param($session, $src, $dst)
-                Copy-Item -FromSession $session -Path $src -Destination $dst -Recurse -Force -ErrorAction Ignore
-            } -ArgumentList @($VMSession, "$VMSystemDrive\eBPF\*.csv", ".\TestLogs\$VMName\Logs")
+            Copy-FromSessionWithTimeout `
+                -Session $VMSession `
+                -Path "$VMSystemDrive\eBPF\*.csv" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -OperationName "Copy CSV results from $VMName" `
+                -Recurse
         } else {
             Write-Log "*** WARNING *** Skipping dump/CSV copy from $VMName - no valid session."
         }
@@ -556,10 +560,12 @@ function Import-ResultsFromVM
             } -ArgumentList @($VMSession)
             if ($VMTemp) {
                 Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
-                Invoke-WithTimeout -OperationName "Copy log file from $VMName" -ScriptBlock {
-                    param($session, $src, $dst)
-                    Copy-Item -FromSession $session -Path $src -Destination $dst -Recurse -Force -ErrorAction Ignore
-                } -ArgumentList @($VMSession, "$VMTemp\$LogFileName", ".\TestLogs\$VMName\Logs")
+                Copy-FromSessionWithTimeout `
+                    -Session $VMSession `
+                    -Path "$VMTemp\$LogFileName" `
+                    -Destination ".\TestLogs\$VMName\Logs" `
+                    -OperationName "Copy log file from $VMName" `
+                    -Recurse
             }
         } else {
             Write-Log "*** WARNING *** Skipping log copy from $VMName - no valid session."
@@ -653,10 +659,12 @@ function Import-ResultsFromVM
                 } -ErrorAction Ignore
             } -ArgumentList @($VMSession)
             Write-Log ("Copy performance profile from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
-            Invoke-WithTimeout -OperationName "Copy perf profile from $VMName" -ScriptBlock {
-                param($session, $src, $dst)
-                Copy-Item -FromSession $session -Path $src -Destination $dst -Recurse -Force -ErrorAction Ignore
-            } -ArgumentList @($VMSession, "$VMSystemDrive\eBPF\bpf_perf_etls.tgz", ".\TestLogs\$VMName\Logs")
+            Copy-FromSessionWithTimeout `
+                -Session $VMSession `
+                -Path "$VMSystemDrive\eBPF\bpf_perf_etls.tgz" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -OperationName "Copy perf profile from $VMName" `
+                -Recurse
         } else {
             Write-Log "*** WARNING *** Skipping ETL/perf copy from $VMName - no valid session."
         }

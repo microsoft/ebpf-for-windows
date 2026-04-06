@@ -93,8 +93,14 @@ if ($JobFailed) {
         if ($childJob -and $childJob.JobStateInfo.Reason) {
             Write-Log "Cleanup job failed: $($childJob.JobStateInfo.Reason.Message)"
         }
-    } catch {}
-    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
+    } catch {
+        Write-Log "Warning: Failed to read cleanup job state: $($_.Exception.Message)"
+    }
+    try {
+        Receive-Job -Job $Job -ErrorAction SilentlyContinue
+    } catch {
+        Write-Log "Warning: Failed to receive cleanup job output: $($_.Exception.Message)"
+    }
 }
 
 # Safe cleanup (bounded to prevent hangs on stuck transports).
