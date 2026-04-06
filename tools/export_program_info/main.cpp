@@ -49,6 +49,13 @@ main(int argc, char** argv)
             std::cout << "Failed export_global_helper_information() - ERROR #" << status << std::endl;
             return 1;
         }
+
+        std::cout << "Exporting proof of verification settings." << std::endl;
+        status = export_proof_of_verification();
+        if (status != ERROR_SUCCESS) {
+            std::cout << "Failed export_proof_of_verification() - ERROR #" << status << std::endl;
+            return 1;
+        }
     } else {
         std::cout << "Clearing eBPF store." << std::endl;
         status = clear_ebpf_store();
