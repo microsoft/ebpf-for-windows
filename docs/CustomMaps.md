@@ -67,8 +67,8 @@ typedef struct _ebpf_map_provider_dispatch_table {
     _Notnull_ ebpf_process_map_delete_t process_map_delete;
     _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
     ebpf_process_map_find_element_t process_map_find_element;
-    ebpf_process_map_add_element_t process_map_add_element;
-    ebpf_process_map_delete_element_t process_map_delete_element;
+    ebpf_preprocess_map_element_addition_t preprocess_map_element_addition;
+    ebpf_preprocess_map_element_deletion_t preprocess_map_element_deletion;
 } ebpf_base_map_provider_dispatch_table_t;
 ```
 
@@ -79,7 +79,7 @@ needs to implement the dispatch table. The eBPF runtime invokes these functions 
 
 `process_map_create`, `process_map_delete`, and `associate_program_function` are required to be non-NULL. If the
 extension sets `updates_original_value` to true, the CRUD callback fields (`process_map_find_element`,
-`process_map_add_element`, `process_map_delete_element`) must also be non-NULL, otherwise eBPFCore will fail the
+`preprocess_map_element_addition`, `preprocess_map_element_deletion`) must also be non-NULL, otherwise eBPFCore will fail the
 map creation. If `updates_original_value` is false, these CRUD fields can be optionally NULL.
 
 ---
@@ -157,14 +157,14 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
 
 ---
 
-#### `ebpf_process_map_add_element_t` — Add/Update Element (optional)
+#### `ebpf_preprocess_map_element_addition_t` — Add/Update Element (optional)
 
 Called *before* writing to the base map. If the provider sets `updates_original_value` to true, the extension can
 transform the user-provided value (e.g., user fd → kernel pointer) via `out_value`, which eBPFCore then stores in
 the base map. If `updates_original_value` is false, `out_value` will be NULL and `out_value_size` will be 0.
 
 ```c
-typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_element_addition_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -178,7 +178,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
 
 ---
 
-#### `ebpf_process_map_delete_element_t` — Delete Element (optional)
+#### `ebpf_preprocess_map_element_deletion_t` — Delete Element (optional)
 
 Called *before* the entry is deleted from the base map. This allows the extension to perform cleanup (e.g., releasing
 kernel resources). The `flags` parameter indicates the context: `EBPF_MAP_OPERATION_UPDATE` if the delete is part of
@@ -187,7 +187,7 @@ a replace operation, `EBPF_MAP_OPERATION_MAP_CLEANUP` if the map itself is being
 `EBPF_MAP_OPERATION_MAP_CLEANUP` is set, the provider must not fail the deletion.
 
 ```c
-typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_element_deletion_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -214,7 +214,7 @@ The following flags are used with the CRUD dispatch functions:
 
 For a custom map that stores kernel objects (similar to how XSKMAP might work), the insert operation works as follows:
 1. User calls `bpf_map_update_elem()` with a user-mode handle (e.g., 4-byte fd) as the value.
-2. eBPFCore invokes `process_map_add_element` with the handle in `in_value`.
+2. eBPFCore invokes `preprocess_map_element_addition` with the handle in `in_value`.
 3. The extension validates the handle and converts it to a kernel pointer, writing it into `out_value`.
 4. eBPFCore stores the kernel pointer (from `out_value`) in the underlying hash map.
 5. On lookup, eBPFCore retrieves the kernel pointer and invokes `process_map_find_element`, which converts it
@@ -227,7 +227,7 @@ If the extension returns an `actual_value_size` different from the user-specifie
 storage format. For example:
 - User declares a map with `value_size=4` (to store socket fds).
 - Extension's `process_map_create` returns `actual_value_size=8` (to store kernel pointers).
-- On insert: user passes 4-byte fd → `process_map_add_element` converts to 8-byte pointer → stored in base map.
+- On insert: user passes 4-byte fd → `preprocess_map_element_addition` converts to 8-byte pointer → stored in base map.
 - On lookup: 8-byte pointer retrieved → `process_map_find_element` converts to 4-byte fd → returned to user.
 
 Without these callbacks, eBPFCore cannot perform the size/format translation.
@@ -406,35 +406,29 @@ typedef struct _ebpf_map_metadata_table_properties {
 } ebpf_map_metadata_table_properties_t;
 ```
 
-### Why the Signatures Differ
+### Differences in Signatures
 
-The internal and provider dispatch tables serve fundamentally different roles, which necessitates different
-function signatures:
+This section enumrates the differences in the custom map provider dispatch tables, and the intertnal dispatch table
+used by eBPF core for implementing native maps.
 
-1. **Abstraction Boundary**: Internal functions operate directly on eBPF core's internal map structure
-   (`ebpf_core_map_t*`), giving them full access to the map's data, metadata, and configuration. Provider
-   functions operate through opaque context pointers (`binding_context` and `map_context`) because extensions
-   must not depend on or access eBPF core's internal data structures. This maintains a clean ABI boundary
-   and enables independent versioning of the core runtime and extensions.
-
-2. **Notification vs. Implementation**: Internal dispatch functions **are** the map CRUD implementation --
+1. **Notification vs. Implementation**: Internal dispatch functions **are** the map CRUD implementation --
    they directly manipulate the underlying data structure (hash table, array, etc.). Provider dispatch
-   functions are **notifications** -- eBPF core performs the actual CRUD using the base map type, and
-   invokes the provider callbacks to allow the extension to validate, transform, or track the operation.
-   For example, during an update, eBPF core first calls the provider's `process_map_add_element`, then
+   functions act like hooks in the actual map CRUD impelemtation -- eBPF core performs the actual CRUD using the base
+   map type, and invokes the provider callbacks to allow the extension to validate, transform, or track the operation.
+   For example, during an update, eBPF core first calls the provider's `preprocess_map_element_addition`, then
    inserts the (potentially transformed) value into the hash table.
 
-3. **Value Transformation (in/out pattern)**: Provider functions use an explicit `in_value` / `out_value`
+2. **Value Transformation (in/out pattern)**: Provider functions use an explicit `in_value` / `out_value`
    pattern with separate size parameters, allowing the extension to receive the existing stored value and
    optionally provide a different value to be stored. Internal functions directly read and write values
    in-place since they own the memory.
 
-4. **Flag Semantics**: Provider functions use `EBPF_MAP_OPERATION_*` flags (`EBPF_MAP_OPERATION_HELPER`,
+3. **Flag Semantics**: Provider functions use `EBPF_MAP_OPERATION_*` flags (`EBPF_MAP_OPERATION_HELPER`,
    `EBPF_MAP_OPERATION_UPDATE`, `EBPF_MAP_OPERATION_MAP_CLEANUP`) to inform the extension about the
    calling context. Internal functions use different mechanisms such as `ebpf_map_option_t` for update
    semantics (ANY, NOEXIST, EXIST) and separate function pointers for per-CPU operations.
 
-5. **Subset of Operations**: The provider dispatch table does not include `next_key_and_value`,
+4. **Subset of Operations**: The provider dispatch table does not include `next_key_and_value`,
    `update_entry_with_handle`, `update_entry_per_cpu`, ring buffer operations, or perf event array
    operations. Key enumeration and per-CPU handling are transparently managed by the base map
    implementation in eBPF core, and handle-based updates are not applicable to custom map extensions.
