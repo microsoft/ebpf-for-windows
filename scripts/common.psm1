@@ -427,6 +427,7 @@ function Remove-JobSafely {
     )
     # Attempt Stop-Job with a timeout (it can hang on stuck transports).
     if ($Job.State -eq 'Running') {
+        $ps = $null
         try {
             $ps = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
             $async = $ps.BeginInvoke()
@@ -434,10 +435,12 @@ function Remove-JobSafely {
                 Write-Log "Warning: Stop-Job timed out after $($TimeoutMs / 1000)s"
             }
             try { $ps.EndInvoke($async) } catch {}
-            $ps.Dispose()
-        } catch {}
+        } catch {} finally {
+            if ($ps) { $ps.Dispose() }
+        }
     }
     # Attempt Remove-Job with a timeout.
+    $ps = $null
     try {
         $ps = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
         $async = $ps.BeginInvoke()
@@ -445,8 +448,9 @@ function Remove-JobSafely {
             Write-Log "Warning: Remove-Job timed out after $($TimeoutMs / 1000)s"
         }
         try { $ps.EndInvoke($async) } catch {}
-        $ps.Dispose()
-    } catch {}
+    } catch {} finally {
+        if ($ps) { $ps.Dispose() }
+    }
 }
 
 <#
