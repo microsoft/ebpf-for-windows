@@ -125,7 +125,8 @@ $JobTimedOut = `
     -TestMode $TestMode `
     -Options $Options `
     -TestHangTimeout $TestHangTimeout `
-    -UserModeDumpFolder $UserModeDumpFolder
+    -UserModeDumpFolder $UserModeDumpFolder `
+    -GenerateKernelDumpOnTimeout $true
 
 # Check job result before cleanup.
 $JobFailed = $Job.State -eq 'Failed'
