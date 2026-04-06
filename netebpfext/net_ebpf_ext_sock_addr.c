@@ -1578,7 +1578,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     // Store the FLAGS field.
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 
-    // Copy additional network layer properties (available for AUTH_CONNECT and AUTH_RECV_ACCEPT layers).
+    // Copy additional network layer properties (available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT layers).
     if (fields->interface_type_field != 0) {
         sock_addr_ctx->interface_type = incoming_values[fields->interface_type_field].value.uint32;
     } else {
@@ -1873,7 +1873,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
-    // AUTH_CONNECT programs run for all non-REJECT verdicts from the redirect layer.
+    // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
     // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow auth programs
     // to run so they can make decisions based on route-dependent metadata.
     // The verdict priority system ensures REJECT from auth overrides PROCEED_HARD,
@@ -1909,7 +1909,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         NET_EBPF_EXT_LOG_MESSAGE_UINT32(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "AUTH_CONNECT attach point skipped due to prior REJECT verdict",
+            "CONNECT_AUTHORIZATION attach point skipped due to prior REJECT verdict",
             verdict);
     }
 
@@ -2108,7 +2108,7 @@ _cache_connection_context_verdict(
     uint64_t handle)
 {
     if (verdict != BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT) {
-        // Create a connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
+        // Create a connection context and add it to list for the CONNECT_AUTHORIZATION layer callout to enforce the
         // verdict of the program.
         if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) {
             if (v4_mapped) {
@@ -2119,8 +2119,8 @@ _cache_connection_context_verdict(
                 // If verdict is reject, the sock_addr_ctx is already in IPv4 format because we didn't need to
                 // convert it to IPv6 for redirection processing.
                 if (redirected) {
-                    // For IPv4-mapped IPv6 connections, the AUTH_CONNECT callout for the original destination returns
-                    // 0.0.0.0 as the IP, so cache the verdict under 0.0.0.0.
+                    // For IPv4-mapped IPv6 connections, the CONNECT_AUTHORIZATION callout for the original destination
+                    // returns 0.0.0.0 as the IP, so cache the verdict under 0.0.0.0.
                     _convert_ipv4_mapped_to_ipv4(sock_addr_ctx_original);
 
                     sock_addr_ctx_original->user_ip4 = 0;
@@ -2131,7 +2131,7 @@ _cache_connection_context_verdict(
 
             if (redirected) {
                 // From testing, if the protocol is TCP and the final destination IP is not a loopback address,
-                // WFP invokes the AUTH_CONNECT callout for redirected connections twice,
+                // WFP invokes the CONNECT_AUTHORIZATION callout for redirected connections twice,
                 // once for the original destination and once for the redirected destination.
                 // Both callouts need to decide on a hard permit verdict for the overall verdict to be
                 // hard permit. We cache the verdict for both the original and redirected destination
@@ -2176,7 +2176,7 @@ _net_ebpf_extension_sock_addr_is_connect_program(_In_ const net_ebpf_extension_h
  * If the program returns a PROCEED verdict, the connection is permitted by the callout.
  * If the program modifies the destination IP of the connection, connection redirection will be performed by this
  * callout. If on the other hand, the program returns a REJECT verdict, that decision will be cached and enforced
- * later by a corresponding callout at WFP AUTH_CONNECT layer.
+ * later by a corresponding callout at the WFP CONNECT_AUTHORIZATION layer.
  * By default, the local variable for verdict is set to REJECT.
  */
 void

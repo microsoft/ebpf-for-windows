@@ -645,7 +645,7 @@ TEMPLATE_TEST_CASE("connection_test_connect_hard_permit", "[sock_addr_tests]", A
          }});
 }
 
-// auth_connect tests - using AUTH_CONNECT attach type for egress filtering.
+// connect_authorization tests - using CONNECT_AUTHORIZATION attach type for egress filtering.
 TEMPLATE_TEST_CASE("connection_test_connect_authorization", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
     constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
@@ -765,10 +765,11 @@ helper_functions_validation_test(
     // Load the programs.
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
-    const char* auth_connect_program_name =
+    const char* connect_authorization_program_name =
         (address_family == AF_INET) ? "test_sock_addr_helpers_v4" : "test_sock_addr_helpers_v6";
-    bpf_program* auth_connect_program = bpf_object__find_program_by_name(object, auth_connect_program_name);
-    SAFE_REQUIRE(auth_connect_program != nullptr);
+    bpf_program* connect_authorization_program =
+        bpf_object__find_program_by_name(object, connect_authorization_program_name);
+    SAFE_REQUIRE(connect_authorization_program != nullptr);
 
     // Get maps to retrieve helper function results.
     bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
@@ -776,17 +777,20 @@ helper_functions_validation_test(
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
-    // Attach the auth connect program at the appropriate AUTH_CONNECT layer.
-    bpf_attach_type auth_connect_attach_type =
+    // Attach the connect authorization program at the appropriate CONNECT_AUTHORIZATION layer.
+    bpf_attach_type connect_authorization_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION;
     int result = bpf_prog_attach(
-        bpf_program__fd(const_cast<const bpf_program*>(auth_connect_program)), 0, auth_connect_attach_type, 0);
+        bpf_program__fd(const_cast<const bpf_program*>(connect_authorization_program)),
+        0,
+        connect_authorization_attach_type,
+        0);
     SAFE_REQUIRE(result == 0);
 
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
-    // Send message to trigger the AUTH_CONNECT program.
+    // Send message to trigger the CONNECT_AUTHORIZATION program.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     if (address_family == AF_INET) {
@@ -796,7 +800,7 @@ helper_functions_validation_test(
     }
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
-    // Complete the connection to ensure AUTH_CONNECT program was invoked.
+    // Complete the connection to ensure CONNECT_AUTHORIZATION program was invoked.
     receiver_socket.complete_async_receive();
 
     // Calculate connection ID (same as in the eBPF program).
@@ -846,7 +850,7 @@ helper_functions_validation_test(
         (address_family == AF_INET) ? "IPv4" : "IPv6");
 }
 
-TEST_CASE("auth_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+TEST_CASE("connect_authorization_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -854,7 +858,7 @@ TEST_CASE("auth_connect_helper_functions_validation_tcp_v4", "[sock_addr_tests][
     helper_functions_validation_test(AF_INET, stream_client_socket, stream_server_socket, IPPROTO_TCP);
 }
 
-TEST_CASE("auth_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+TEST_CASE("connect_authorization_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
 {
     stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
     stream_server_socket_t stream_server_socket(SOCK_STREAM, IPPROTO_TCP, SOCKET_TEST_PORT);
@@ -863,7 +867,8 @@ TEST_CASE("auth_connect_helper_functions_validation_tcp_v6", "[sock_addr_tests][
 }
 
 TEST_CASE(
-    "auth_connect_conditional_policy_validation_tcp_v4", "[sock_addr_tests][helper_validation][conditional_policy]")
+    "connect_authorization_conditional_policy_validation_tcp_v4",
+    "[sock_addr_tests][helper_validation][conditional_policy]")
 {
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
@@ -883,7 +888,7 @@ TEST_CASE(
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
 
-    // Attach the conditional auth program.
+    // Attach the conditional authorization program.
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(conditional_program)),
         0,
@@ -898,7 +903,7 @@ TEST_CASE(
     // Post an asynchronous receive on the receiver socket.
     stream_server_socket.post_async_receive();
 
-    // Send message to trigger the conditional AUTH_CONNECT program.
+    // Send message to trigger the conditional CONNECT_AUTHORIZATION program.
     const char* message = CLIENT_MESSAGE;
     sockaddr_storage destination_address{};
     IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
