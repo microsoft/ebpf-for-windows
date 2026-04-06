@@ -42,25 +42,6 @@ $Job = Start-Job -ScriptBlock {
         # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
         Wait-AllVMsToInitialize -VMList $VMList -VMIsRemote $VMIsRemote
 
-        # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
-        # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
-        # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
-        foreach ($VM in $VMList) {
-            $VMName = $VM.Name
-            $TestCredential = Get-VMCredential -Username 'Administrator' -VMIsRemote $VMIsRemote
-            $DumpFound = Invoke-CommandOnVM `
-                -VMName $VMName `
-                -VMIsRemote $VMIsRemote `
-                -Credential $TestCredential `
-                -ScriptBlock {
-                    Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
-                }
-
-            if ($DumpFound -eq $True) {
-                Write-Log "Post-crash reboot detected on VM $VMName"
-            }
-        }
-
         # Import logs from VMs.
         Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 
@@ -104,13 +85,26 @@ $JobTimedOut = `
     -TestHangTimeout (10*60) `
     -UserModeDumpFolder "C:\Dumps"
 
-# Clean up
-Remove-Job -Job $Job -Force
+# Check job result before cleanup.
+$JobFailed = $Job.State -eq 'Failed'
+if ($JobFailed) {
+    try {
+        $childJob = $Job.ChildJobs[0]
+        if ($childJob -and $childJob.JobStateInfo.Reason) {
+            Write-Log "Cleanup job failed: $($childJob.JobStateInfo.Reason.Message)"
+        }
+    } catch {}
+    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
+}
+
+# Safe cleanup (bounded to prevent hangs on stuck transports).
+Remove-JobSafely -Job $Job
 
 Pop-Location
 
-if ($JobTimedOut) {
-    Write-Log "*** ERROR *** cleanup_ebpf_cicd_tests.ps1 exiting with error (job timed out or failed)"
+if ($JobTimedOut -or $JobFailed) {
+    if ($JobTimedOut) { Write-Log "Cleanup timed out" }
+    if ($JobFailed) { Write-Log "Cleanup job failed" }
     exit 1
 }
 

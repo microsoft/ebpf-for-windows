@@ -125,15 +125,30 @@ $JobTimedOut = `
     -TestMode $TestMode `
     -Options $Options `
     -TestHangTimeout $TestHangTimeout `
-    -UserModeDumpFolder $UserModeDumpFolder
+    -UserModeDumpFolder $UserModeDumpFolder `
+    -GenerateKernelDumpOnTimeout $true
 
-# Clean up
-Remove-Job -Job $Job -Force
+# Check job result before cleanup.
+$JobFailed = $Job.State -eq 'Failed'
+if ($JobFailed) {
+    try {
+        $childJob = $Job.ChildJobs[0]
+        if ($childJob -and $childJob.JobStateInfo.Reason) {
+            Write-Log "Test job failed: $($childJob.JobStateInfo.Reason.Message)"
+        }
+    } catch {}
+    # Drain any remaining output from the failed job.
+    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
+}
+
+# Safe cleanup (bounded to prevent hangs on stuck transports).
+Remove-JobSafely -Job $Job
 
 Pop-Location
 
-if ($JobTimedOut) {
-    Write-Log "*** ERROR *** execute_ebpf_cicd_tests.ps1 exiting with error (job timed out or failed)"
+if ($JobTimedOut -or $JobFailed) {
+    if ($JobTimedOut) { Write-Log "Exiting with error: job timed out" }
+    if ($JobFailed) { Write-Log "Exiting with error: job failed" }
     exit 1
 }
 

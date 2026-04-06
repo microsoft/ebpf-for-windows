@@ -175,12 +175,25 @@ $JobTimedOut = `
     -TestHangTimeout (10*60) `
     -UserModeDumpFolder "C:\Dumps"
 
-# Clean up.
-Remove-Job -Job $Job -Force
+# Check job result before cleanup.
+$JobFailed = $Job.State -eq 'Failed'
+if ($JobFailed) {
+    try {
+        $childJob = $Job.ChildJobs[0]
+        if ($childJob -and $childJob.JobStateInfo.Reason) {
+            Write-Log "Setup job failed: $($childJob.JobStateInfo.Reason.Message)"
+        }
+    } catch {}
+    try { Receive-Job -Job $Job -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_ } } catch {}
+}
+
+# Safe cleanup (bounded to prevent hangs on stuck transports).
+Remove-JobSafely -Job $Job
 
 Pop-Location
 
-if ($JobTimedOut) {
-    Write-Log "*** ERROR *** setup_ebpf_cicd_tests.ps1 exiting with error (job timed out or failed)"
+if ($JobTimedOut -or $JobFailed) {
+    if ($JobTimedOut) { Write-Log "Setup timed out" }
+    if ($JobFailed) { Write-Log "Setup job failed" }
     exit 1
 }
