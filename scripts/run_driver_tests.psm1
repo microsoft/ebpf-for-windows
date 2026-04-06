@@ -58,6 +58,7 @@ function GetDriveFreeSpaceGB
 function Generate-KernelDump
 {
     Push-Location $WorkingDirectory
+
     $NotMyFaultBinary = "NotMyFault64.exe"
     Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
     $NotMyFaultBinaryPath = GetToolLocationPath -ToolName $NotMyFaultBinary

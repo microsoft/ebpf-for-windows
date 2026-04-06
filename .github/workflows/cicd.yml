@@ -251,7 +251,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -276,7 +276,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver_native_only_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=natonly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -318,7 +318,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: regression_driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression_driver_ws2022-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=regression-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -658,7 +658,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ioctl_stress_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ioctl-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -673,7 +673,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       code_coverage: false
       gather_dumps: false
 
@@ -687,7 +687,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("MultiThread", "RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mt_stress_tests_restart_extension-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_mtre-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       code_coverage: false
       # Inner test timeout is 7200s, Invoke-CommandOnVM adds 600s = 7800s.
       # For this test, we only want kernel mode dumps and not user mode dumps.
@@ -703,7 +703,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartEbpfCore")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_ebpfcore_restart_test-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022_v2", "JobId=km_restart-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-{0}"]'
       code_coverage: false
       gather_dumps: false
 
