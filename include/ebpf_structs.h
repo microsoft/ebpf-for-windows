@@ -270,7 +270,7 @@ typedef enum bpf_prog_type bpf_prog_type_t;
 
 #define XDP_FLAGS_REPLACE 0x01
 
-// The link type is used to tell which union member is present.
+// The link type is used to tell which union member is present
 // in the bpf_link_info struct.  There is exactly one non-zero value
 // per union member.
 enum bpf_link_type
