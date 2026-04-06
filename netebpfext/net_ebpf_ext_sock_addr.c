@@ -228,10 +228,11 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool address_changed : 1;
     bool v4_mapped : 1;
     // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
-    uint32_t interface_type;          ///< Interface type.
-    uint32_t tunnel_type;             ///< Tunnel type (0 if not a tunnel).
-    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID.
-    uint32_t sub_interface_index;     ///< Sub-interface index.
+    // Fields are set to (uint32_t)-1 or (uint64_t)-1 when not available for the current attach type.
+    uint32_t interface_type;          ///< Interface type. UINT32_MAX if not available.
+    uint32_t tunnel_type;             ///< Tunnel type. 0 if not a tunnel, UINT32_MAX if not available.
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID. UINT64_MAX if not available.
+    uint32_t sub_interface_index;     ///< Sub-interface index. UINT32_MAX if not available.
 } net_ebpf_sock_addr_t;
 
 /**
