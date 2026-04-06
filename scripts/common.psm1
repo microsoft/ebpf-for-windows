@@ -7,6 +7,7 @@ param ([parameter(Mandatory=$True)] [string] $LogFileName)
 # Common helper functions.
 #
 
+
 function Write-Log
 {
     [CmdletBinding()]
@@ -77,15 +78,6 @@ function Start-ProcessWithTimeout
     }
 }
 
-function New-Credential
-{
-    param([Parameter(Mandatory=$True)][string] $UserName,
-          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
-
-    $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
-    return $Credential
-}
-
 
 function Compress-File
 {
@@ -95,17 +87,38 @@ function Compress-File
 
     Write-Log "Compressing $SourcePath -> $DestinationPath"
 
+    # Use System.IO.Compression directly instead of Compress-Archive
+    # to avoid the 2GB MemoryStream limitation in Compress-Archive (affects files > 2GB).
+    Add-Type -AssemblyName System.IO.Compression -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName System.IO.Compression.FileSystem -ErrorAction SilentlyContinue
+
     # Retry 5 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
     while ($retryCount -le 5) {
         try {
             $ErrorActionPreference = "Stop"
-            Compress-Archive `
-                -Path $SourcePath `
-                -DestinationPath $DestinationPath `
-                -CompressionLevel Fastest `
-                -Force
+            if (Test-Path $DestinationPath) {
+                Remove-Item $DestinationPath -Force
+            }
+
+            $zipArchive = [System.IO.Compression.ZipFile]::Open(
+                $DestinationPath,
+                [System.IO.Compression.ZipArchiveMode]::Create)
+
+            try {
+                $sourceFiles = Get-ChildItem -Path $SourcePath -ErrorAction Stop
+                foreach ($file in $sourceFiles) {
+                    Write-Log "Adding $($file.Name) ($((($file.Length) / 1MB).ToString('F2')) MB) to archive..."
+                    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                        $zipArchive,
+                        $file.FullName,
+                        $file.Name,
+                        [System.IO.Compression.CompressionLevel]::Fastest) | Out-Null
+                }
+            } finally {
+                $zipArchive.Dispose()
+            }
 
             # Verify the compressed file was actually created.
             if (Test-Path $DestinationPath) {
@@ -117,6 +130,10 @@ function Compress-File
         } catch {
             $ErrorMessage = "*** ERROR *** Failed to compress files (attempt $retryCount of 5): $($_.Exception.Message)"
             Write-Log $ErrorMessage
+            # Clean up partial zip file on failure.
+            if (Test-Path $DestinationPath) {
+                Remove-Item $DestinationPath -Force -ErrorAction Ignore
+            }
             if ($retryCount -lt 5) {
                 Start-Sleep -seconds (5 * $retryCount)
             }
@@ -398,8 +415,6 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnHost=$false,
            [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true,
-           [Parameter(Mandatory = $false)] [PSCredential] $AdminTestVMCredential,
-           [Parameter(Mandatory = $false)] [PSCredential] $StandardUserTestVMCredential,
            [Parameter(Mandatory = $false)] [bool] $VMIsRemote=$false,
            [Parameter(Mandatory = $false)] [string] $TestWorkingDirectory="C:\ebpf",
            [Parameter(Mandatory = $false)] [string] $LogFileName="timeout_kernel_dump.log",
@@ -410,8 +425,12 @@ function Wait-TestJobToComplete
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
-        $JobOutput = Receive-Job -Job $job
-        $JobOutput | ForEach-Object { Write-Host $_ }
+        try {
+            $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+            $JobOutput | ForEach-Object { Write-Host $_ }
+        } catch {
+            Write-Log "Warning: Failed to receive job output (remote session may have ended): $($_.Exception.Message)"
+        }
 
         Start-Sleep -Seconds 2
         $TimeElapsed += 2
@@ -432,10 +451,6 @@ function Wait-TestJobToComplete
                             $true,                                     # ExecuteOnVM
                             $VMIsRemote,                               # VMIsRemote
                             $TestVMName,                               # VMName
-                            $AdminTestVMCredential.UserName,           # Admin
-                            $AdminTestVMCredential.Password,           # AdminPassword
-                            $StandardUserTestVMCredential.UserName,    # StandardUser
-                            $StandardUserTestVMCredential.Password,    # StandardUserPassword
                             $TestWorkingDirectory,                     # WorkingDirectory
                             $LogFileName,                              # LogFileName
                             $TestMode,                                 # TestMode
@@ -457,8 +472,24 @@ function Wait-TestJobToComplete
     }
 
     # Print any remaining output after the job completes.
-    $JobOutput = Receive-Job -Job $job
-    $JobOutput | ForEach-Object { Write-Host $_ }
+    try {
+        $JobOutput = Receive-Job -Job $job -ErrorAction SilentlyContinue
+        $JobOutput | ForEach-Object { Write-Host $_ }
+    } catch {
+        Write-Log "Warning: Failed to receive final job output (remote session may have ended): $($_.Exception.Message)"
+    }
+
+    # Check the job's final state and report failures as errors.
+    if ($Job.State -eq 'Failed') {
+        $jobError = $Job.ChildJobs[0].JobStateInfo.Reason
+        if ($jobError) {
+            Write-Log "*** ERROR *** Job failed with error: $($jobError.Message)"
+            Write-Log "Stack trace: $($jobError.ScriptStackTrace)"
+        } else {
+            Write-Log "*** ERROR *** Job failed with unknown error."
+        }
+        return $true  # Signal failure to the caller.
+    }
 
     return $JobTimedOut
 }
@@ -570,6 +601,29 @@ function Invoke-PsExecScript {
 
 <#
 .SYNOPSIS
+    Returns the well-known password used for inner test VM accounts.
+
+.DESCRIPTION
+    Single source of truth for the VM password used by both the Administrator and
+    VMStandardUser accounts on the inner test VMs. All scripts that need the password
+    should call this function rather than hardcoding the value.
+
+    A simple well-known password is acceptable here because these are ephemeral nested
+    test VMs that are not network-accessible outside the host. They are created, used
+    for CI/CD test execution, and destroyed within a single pipeline run. The password
+    only needs to meet Windows complexity requirements and remain consistent between
+    the unattend.xml provisioning (via PLACEHOLDER_PASSWORD substitution in Create-VM)
+    and the PowerShell Direct credentials used by the test scripts.
+
+.OUTPUTS
+    [String] The VM password.
+#>
+function Get-VMPassword {
+    return 'eBPF4W!n'
+}
+
+<#
+.SYNOPSIS
     Imports the CredentialManager, and installs it if necessary.
 
 .DESCRIPTION
@@ -583,22 +637,6 @@ function Get-CredentialManager {
         Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
     }
     Import-Module CredentialManager -ErrorAction Stop
-}
-
-<#
-.SYNOPSIS
-    Generates a strong password using the credential manager.
-
-.DESCRIPTION
-    This function generates a strong password using the CredentialManager module.
-
-.OUTPUTS
-    [String]
-    The generated strong password.
-#>
-function New-UniquePassword {
-    Get-CredentialManager
-    return Get-StrongPassword
 }
 
 <#
@@ -654,38 +692,44 @@ function Retrieve-StoredCredential {
 
 <#
 .SYNOPSIS
-    Stores a credential in the Windows Credential Manager using PsExec.
+    Creates a PSCredential for the specified VM user.
+
+.DESCRIPTION
+    For local VMs (PowerShell Direct), creates a PSCredential using the well-known
+    password from Get-VMPassword.
+
+    For remote VMs (WinRM), retrieves the credential from Windows Credential Manager
+    using the specified target name. The credential must have been previously stored
+    with New-StoredCredential using `-Persist LocalMachine`.
 
 .PARAMETER Username
     The username for the credential.
 
-.PARAMETER Password
-    The password for the credential as a secure string.
-
-.PARAMETER Target
-    The name of the stored credential. Default is "MyStoredCredential".
-
-.DESCRIPTION
-    This function uses PsExec to run a PowerShell script in the LocalSystem account context to store a credential in the Windows Credential Manager.
+.PARAMETER VMIsRemote
+    When true, retrieves the credential from Credential Manager instead of using
+    the hardcoded password. Defaults to false.
 
 .EXAMPLE
-    $securePassword = ConvertTo-SecureString "YourPassword" -AsPlainText -Force
-    $credential = Generate-NewCredential -Username "YourUsername" -Password $securePassword -Target "MyStoredCredential"
+    $credential = Get-VMCredential -Username 'Administrator'
+    $credential = Get-VMCredential -Username 'Administrator' -VMIsRemote $true
 #>
-function Generate-NewCredential {
+function Get-VMCredential {
     param (
         [Parameter(Mandatory=$True)][string]$Username,
-        [Parameter(Mandatory=$True)][string]$Password,
-        [Parameter(Mandatory=$True)][string]$Target
+        [Parameter(Mandatory=$false)][bool]$VMIsRemote = $false
     )
-    Get-CredentialManager
-    $Script = @"
-        Import-Module CredentialManager -ErrorAction Stop;
-        New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password' -Persist LocalMachine;
-"@
-
-    $output = Invoke-PsExecScript -Script $Script
-    return (Retrieve-StoredCredential -Target $Target)
+    if ($VMIsRemote) {
+        # Determine the Credential Manager target based on username.
+        if ($Username -eq 'Administrator') {
+            $CredentialTarget = 'TEST_VM'
+        } else {
+            $CredentialTarget = 'TEST_VM_STANDARD'
+        }
+        return Retrieve-StoredCredential -Target $CredentialTarget
+    } else {
+        $securePassword = ConvertTo-SecureString -String (Get-VMPassword) -AsPlainText -Force
+        return [System.Management.Automation.PSCredential]::new($Username, $securePassword)
+    }
 }
 
 
