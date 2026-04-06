@@ -92,6 +92,10 @@ See [docs/DevelopmentGuide.md](../docs/DevelopmentGuide.md) for full details. Ke
 
 eBPF extensions are kernel drivers providing hooks/helpers via NMR. See [docs/eBpfExtensions.md](../docs/eBpfExtensions.md).
 
+## Crash Dump Debugging
+
+See [docs/CrashDumpDebugging.md](../docs/CrashDumpDebugging.md) for instructions on downloading and analyzing crash dumps from CI failures. Use the `debug-crash-dump` skill for agent-assisted dump analysis.
+
 ## Tracing
 
 See "Using tracing" section in [docs/GettingStarted.md](../docs/GettingStarted.md). Quick reference:

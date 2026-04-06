@@ -45,11 +45,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -62,11 +63,12 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "flow_id_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                    // Current Version.
+         80,                   // Struct size up to the last field.
+         80,                   // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_RINGBUF, // Type of map.
@@ -100,24 +102,24 @@ _get_global_variable_sections(
 
 static helper_function_entry_t flow_id_monitor_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65536,
-        "helper_id_65536",
+     {1, 40, 40}, // Version header.
+     65536,
+     "helper_id_65536",
     },
     {
-        {1, 40, 40}, // Version header.
-        19,
-        "helper_id_19",
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
     {
-        {1, 40, 40}, // Version header.
-        11,
-        "helper_id_11",
+     {1, 40, 40}, // Version header.
+     11,
+     "helper_id_11",
     },
 };
 
@@ -248,12 +250,6 @@ flow_id_monitor(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=65536
 #line 55 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 55 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 55 "sample/sockops_flow_id.c"
-        return 0;
-#line 55 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=21 dst=r7 src=r0 offset=0 imm=0
 #line 55 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -338,12 +334,6 @@ label_1:
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=65536
 #line 55 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 55 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 55 "sample/sockops_flow_id.c"
-        return 0;
-#line 55 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=46 dst=r7 src=r0 offset=0 imm=0
 #line 55 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -428,12 +418,6 @@ label_2:
     // EBPF_OP_CALL pc=70 dst=r0 src=r0 offset=0 imm=65536
 #line 55 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 55 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 55 "sample/sockops_flow_id.c"
-        return 0;
-#line 55 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=71 dst=r7 src=r0 offset=0 imm=0
 #line 55 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -468,12 +452,6 @@ label_3:
     // EBPF_OP_CALL pc=81 dst=r0 src=r0 offset=0 imm=65536
 #line 83 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 83 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 83 "sample/sockops_flow_id.c"
-        return 0;
-#line 83 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=82 dst=r7 src=r0 offset=0 imm=0
 #line 83 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -571,12 +549,6 @@ label_4:
     // EBPF_OP_CALL pc=113 dst=r0 src=r0 offset=0 imm=19
 #line 89 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 89 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 89 "sample/sockops_flow_id.c"
-        return 0;
-#line 89 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_RSH64_IMM pc=114 dst=r0 src=r0 offset=0 imm=32
 #line 89 "sample/sockops_flow_id.c"
     r0 >>= (IMMEDIATE(32) & 63);
@@ -596,12 +568,6 @@ label_5:
     // EBPF_OP_CALL pc=119 dst=r0 src=r0 offset=0 imm=65536
 #line 83 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 83 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 83 "sample/sockops_flow_id.c"
-        return 0;
-#line 83 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=120 dst=r7 src=r0 offset=0 imm=0
 #line 83 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -699,12 +665,6 @@ label_6:
     // EBPF_OP_CALL pc=151 dst=r0 src=r0 offset=0 imm=19
 #line 89 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 89 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 89 "sample/sockops_flow_id.c"
-        return 0;
-#line 89 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_IMM pc=152 dst=r1 src=r0 offset=0 imm=257
 #line 89 "sample/sockops_flow_id.c"
     r1 = IMMEDIATE(257);
@@ -718,12 +678,6 @@ label_7:
     // EBPF_OP_CALL pc=155 dst=r0 src=r0 offset=0 imm=65536
 #line 83 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 83 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 83 "sample/sockops_flow_id.c"
-        return 0;
-#line 83 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_REG pc=156 dst=r7 src=r0 offset=0 imm=0
 #line 83 "sample/sockops_flow_id.c"
     r7 = r0;
@@ -821,12 +775,6 @@ label_8:
     // EBPF_OP_CALL pc=187 dst=r0 src=r0 offset=0 imm=19
 #line 89 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 89 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 89 "sample/sockops_flow_id.c"
-        return 0;
-#line 89 "sample/sockops_flow_id.c"
-    }
     // EBPF_OP_MOV64_IMM pc=188 dst=r1 src=r0 offset=0 imm=256
 #line 89 "sample/sockops_flow_id.c"
     r1 = IMMEDIATE(256);
@@ -875,11 +823,7 @@ label_10:
 #line 89 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 89 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 89 "sample/sockops_flow_id.c"
-        return 0;
-#line 89 "sample/sockops_flow_id.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_LDDW pc=204 dst=r1 src=r1 offset=0 imm=2
 #line 89 "sample/sockops_flow_id.c"
     r1 = POINTER(runtime_context->map_data[1].address);
@@ -895,12 +839,6 @@ label_10:
     // EBPF_OP_CALL pc=209 dst=r0 src=r0 offset=0 imm=11
 #line 89 "sample/sockops_flow_id.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
-#line 89 "sample/sockops_flow_id.c"
-    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
-#line 89 "sample/sockops_flow_id.c"
-        return 0;
-#line 89 "sample/sockops_flow_id.c"
-    }
 label_11:
     // EBPF_OP_EXIT pc=210 dst=r0 src=r0 offset=0 imm=0
 #line 136 "sample/sockops_flow_id.c"

@@ -92,10 +92,13 @@ function Stop-WPRTrace {
         $exitCode = Start-ProcessWithTimeout -FilePath "wpr.exe" -ArgumentList @("-stop", "`"$traceFile`"") -TimeoutSeconds $TimeoutSeconds
         if ($exitCode -eq 0) {
             Write-Log "Successfully stopped WPR trace: $traceFile"
+            return $traceFile
         } else {
             Write-Log "Failed to stop WPR trace with exit code $exitCode (This may be expected if no trace session was in progress)"
+            return $null
         }
     } catch {
         Write-Log "Exception stopping WPR trace. This may be expected if no trace session was in progress. Error: $_" -ForegroundColor Red
+        return $null
     }
 }
