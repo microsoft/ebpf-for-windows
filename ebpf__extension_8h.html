@@ -117,7 +117,7 @@ Data Structures</h2></td></tr>
 Macros</h2></td></tr>
 <tr class="memitem:a42b9951c28e46cd53fd399009dd6eb79" id="r_a42b9951c28e46cd53fd399009dd6eb79"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a42b9951c28e46cd53fd399009dd6eb79">EBPF_MAP_OPERATION_HELPER</a></td></tr>
 <tr class="separator:a42b9951c28e46cd53fd399009dd6eb79"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a85ebbb668c665b9a6e739460c4bde234" id="r_a85ebbb668c665b9a6e739460c4bde234"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a85ebbb668c665b9a6e739460c4bde234">EBPF_MAP_OPERATION_UPDATE</a>&#160;&#160;&#160;0x02      /* Update operation. */</td></tr>
+<tr class="memitem:a85ebbb668c665b9a6e739460c4bde234" id="r_a85ebbb668c665b9a6e739460c4bde234"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a85ebbb668c665b9a6e739460c4bde234">EBPF_MAP_OPERATION_UPDATE</a>&#160;&#160;&#160;0x02 /* Update operation. */</td></tr>
 <tr class="separator:a85ebbb668c665b9a6e739460c4bde234"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58faa78517602f4947721e10154550e0" id="r_a58faa78517602f4947721e10154550e0"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a58faa78517602f4947721e10154550e0">EBPF_MAP_OPERATION_MAP_CLEANUP</a>&#160;&#160;&#160;0x04 /* Map cleanup operation. */</td></tr>
 <tr class="separator:a58faa78517602f4947721e10154550e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,15 +169,15 @@ Typedefs</h2></td></tr>
 <tr class="memitem:abfc6de92d87a442706515caeba90db2d" id="r_abfc6de92d87a442706515caeba90db2d"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#abfc6de92d87a442706515caeba90db2d">ebpf_process_map_delete_t</a>) (void *binding_context, void *map_context)</td></tr>
 <tr class="memdesc:abfc6de92d87a442706515caeba90db2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Process a map delete notification.  <br /></td></tr>
 <tr class="separator:abfc6de92d87a442706515caeba90db2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27cfcc8ffd9fecafe67986801f6d9452" id="r_a27cfcc8ffd9fecafe67986801f6d9452"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a27cfcc8ffd9fecafe67986801f6d9452">ebpf_process_map_find_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
-<tr class="memdesc:a27cfcc8ffd9fecafe67986801f6d9452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find (lookup) an element in a provider-backed map.  <br /></td></tr>
-<tr class="separator:a27cfcc8ffd9fecafe67986801f6d9452"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a46702a3be1dbd5c54489b0af48ef4c98" id="r_a46702a3be1dbd5c54489b0af48ef4c98"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a46702a3be1dbd5c54489b0af48ef4c98">ebpf_process_map_add_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
-<tr class="memdesc:a46702a3be1dbd5c54489b0af48ef4c98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add or update (insert/replace) an element in a provider-backed map.  <br /></td></tr>
-<tr class="separator:a46702a3be1dbd5c54489b0af48ef4c98"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1d265dc74dec519f2b12543db9d7aca2" id="r_a1d265dc74dec519f2b12543db9d7aca2"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a1d265dc74dec519f2b12543db9d7aca2">ebpf_process_map_delete_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td></tr>
-<tr class="memdesc:a1d265dc74dec519f2b12543db9d7aca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete an element from a provider-backed map.  <br /></td></tr>
-<tr class="separator:a1d265dc74dec519f2b12543db9d7aca2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd899770611123424aa5ac3ca72f834d" id="r_acd899770611123424aa5ac3ca72f834d"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#acd899770611123424aa5ac3ca72f834d">ebpf_postprocess_map_find_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
+<tr class="memdesc:acd899770611123424aa5ac3ca72f834d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Post-process a found element in a provider-backed map (called after the core lookup).  <br /></td></tr>
+<tr class="separator:acd899770611123424aa5ac3ca72f834d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab2dc2e0646149765e36e0f9f0d6e8d5b" id="r_ab2dc2e0646149765e36e0f9f0d6e8d5b"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ab2dc2e0646149765e36e0f9f0d6e8d5b">ebpf_preprocess_map_update_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td></tr>
+<tr class="memdesc:ab2dc2e0646149765e36e0f9f0d6e8d5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pre-process an element update in a provider-backed map (called before the core update).  <br /></td></tr>
+<tr class="separator:ab2dc2e0646149765e36e0f9f0d6e8d5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd51a8ba0db9164bb27605f8e6246662" id="r_abd51a8ba0db9164bb27605f8e6246662"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#abd51a8ba0db9164bb27605f8e6246662">ebpf_preprocess_map_delete_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td></tr>
+<tr class="memdesc:abd51a8ba0db9164bb27605f8e6246662"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pre-process an element deletion from a provider-backed map (called before the core delete).  <br /></td></tr>
+<tr class="separator:abd51a8ba0db9164bb27605f8e6246662"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae1a972ffea1a59369934dd9e429dfabe" id="r_ae1a972ffea1a59369934dd9e429dfabe"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ae1a972ffea1a59369934dd9e429dfabe">ebpf_map_associate_program_type_t</a>) (void *binding_context, void *map_context, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type)</td></tr>
 <tr class="memdesc:ae1a972ffea1a59369934dd9e429dfabe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associate a program type with the map, which allows the map to be used by programs of that type.  <br /></td></tr>
 <tr class="separator:ae1a972ffea1a59369934dd9e429dfabe"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -294,9 +294,9 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<b>Value:</b><div class="fragment"><div class="line">                                        0x01 <span class="comment">/* Called by a BPF program. When this flag is not set, the provider function is</span></div>
-<div class="line"><span class="comment">                                        * called in the context of the original user mode process, so the provider may</span></div>
-<div class="line"><span class="comment">                                        * implicitly use the current process&#39;s handle table (e.g., to resolve file</span></div>
+<b>Value:</b><div class="fragment"><div class="line">    0x01                               <span class="comment">/* Called by a BPF program. When this flag is not set, the provider function is \</span></div>
+<div class="line"><span class="comment">                                        * called in the context of the original user mode process, so the provider may \</span></div>
+<div class="line"><span class="comment">                                        * implicitly use the current process&#39;s handle table (e.g., to resolve file     \</span></div>
 <div class="line"><span class="comment">                                        * descriptors passed as map values). */</span></div>
 </div><!-- fragment -->
 </div>
@@ -322,7 +322,7 @@ Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_MAP_OPERATION_UPDATE&#160;&#160;&#160;0x02      /* Update operation. */</td>
+          <td class="memname">#define EBPF_MAP_OPERATION_UPDATE&#160;&#160;&#160;0x02 /* Update operation. */</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -693,19 +693,100 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a46702a3be1dbd5c54489b0af48ef4c98" name="a46702a3be1dbd5c54489b0af48ef4c98"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a46702a3be1dbd5c54489b0af48ef4c98">&#9670;&#160;</a></span>ebpf_process_map_add_element_t</h2>
+<a id="acd899770611123424aa5ac3ca72f834d" name="acd899770611123424aa5ac3ca72f834d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acd899770611123424aa5ac3ca72f834d">&#9670;&#160;</a></span>ebpf_postprocess_map_find_element_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_add_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_postprocess_map_find_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Add or update (insert/replace) an element in a provider-backed map. </p>
+<p>Post-process a found element in a provider-backed map (called after the core lookup). </p>
+<p>If the provider does not update the original value, i.e., <code>updates_original_value</code> is set to false in ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Optionally, pointer to the key being looked up. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the provider's stored value buffer for the entry. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the output value buffer. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional output buffer to receive the value bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Find flags. Supported values: EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
+    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="abd51a8ba0db9164bb27605f8e6246662" name="abd51a8ba0db9164bb27605f8e6246662"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd51a8ba0db9164bb27605f8e6246662">&#9670;&#160;</a></span>ebpf_preprocess_map_delete_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_preprocess_map_delete_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pre-process an element deletion from a provider-backed map (called before the core delete). </p>
+<p>This function can be called in three scenarios:</p><ol type="1">
+<li>Normal map element deletion.</li>
+<li>Deletion performed as part of an update operation (replacing an existing entry).</li>
+<li>Deletion performed as part of map cleanup. When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter. In both these cases, the provider must not fail the deletion.</li>
+</ol>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. If the key is not found, the map is unchanged. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry being deleted. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
+    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ab2dc2e0646149765e36e0f9f0d6e8d5b" name="ab2dc2e0646149765e36e0f9f0d6e8d5b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab2dc2e0646149765e36e0f9f0d6e8d5b">&#9670;&#160;</a></span>ebpf_preprocess_map_update_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_preprocess_map_update_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pre-process an element update in a provider-backed map (called before the core update). </p>
 <p>If the provider does not update the original value, i.e., <code>updates_original_value</code> is set to false in ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -721,6 +802,9 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section note"><dt>Note</dt><dd>If this function succeeds but the subsequent core map update fails, the eBPF runtime will call ebpf_preprocess_map_delete_element_t with the EBPF_MAP_OPERATION_UPDATE flag to allow the provider to undo any state changes made during this call. </dd>
+<dd>
+In a replace operation (updating an existing key), after the core update succeeds, ebpf_preprocess_map_delete_element_t will be called for the old value being replaced, also with the EBPF_MAP_OPERATION_UPDATE flag set.</dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
@@ -771,47 +855,6 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a1d265dc74dec519f2b12543db9d7aca2" name="a1d265dc74dec519f2b12543db9d7aca2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1d265dc74dec519f2b12543db9d7aca2">&#9670;&#160;</a></span>ebpf_process_map_delete_element_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_delete_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Delete an element from a provider-backed map. </p>
-<p>This function can be called in three scenarios:</p><ol type="1">
-<li>Normal map element deletion.</li>
-<li>Deletion performed as part of an update operation (replacing an existing entry).</li>
-<li>Deletion performed as part of map cleanup. When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter. In both these cases, the provider must not fail the deletion.</li>
-</ol>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. If the key is not found, the map is unchanged. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry being deleted. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
-    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
 <a id="abfc6de92d87a442706515caeba90db2d" name="abfc6de92d87a442706515caeba90db2d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abfc6de92d87a442706515caeba90db2d">&#9670;&#160;</a></span>ebpf_process_map_delete_t</h2>
 
@@ -829,46 +872,6 @@ Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The map context to delete. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="a27cfcc8ffd9fecafe67986801f6d9452" name="a27cfcc8ffd9fecafe67986801f6d9452"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a27cfcc8ffd9fecafe67986801f6d9452">&#9670;&#160;</a></span>ebpf_process_map_find_element_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_process_map_find_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t in_value_size, _In_reads_(in_value_size) const uint8_t *in_value, size_t out_value_size, _Out_writes_opt_(out_value_size) uint8_t *out_value, uint32_t flags)</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Find (lookup) an element in a provider-backed map. </p>
-<p>If the provider does not update the original value, i.e., <code>updates_original_value</code> is set to false in ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Optionally, pointer to the key being looked up. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">in_value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">in_value</td><td>Pointer to the provider's stored value buffer for the entry. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">out_value_size</td><td>The size in bytes of the output value buffer. </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">out_value</td><td>Optional output buffer to receive the value bytes. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Find flags. Supported values: EBPF_MAP_OPERATION_HELPER - The lookup is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">EBPF_OPERATION_NOT_SUPPORTED</td><td>The operation is not supported. </td></tr>
-    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are incorrect. </td></tr>
-    <tr><td class="paramname">EBPF_KEY_NOT_FOUND</td><td>The key was not found in the map. </td></tr>
   </table>
   </dd>
 </dl>
