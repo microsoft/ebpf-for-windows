@@ -210,7 +210,8 @@ ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context, _In_ net_ebpf_extension_wfp_filter_context_t* filter_context, _Out_ uint32_t* result)
 {
-    return net_ebpf_extension_hook_invoke_filtered_programs(program_context, filter_context, result, NULL);
+    return net_ebpf_extension_hook_invoke_filtered_programs(
+        program_context, filter_context, result, NULL /*filter_function*/);
 }
 
 ebpf_result_t

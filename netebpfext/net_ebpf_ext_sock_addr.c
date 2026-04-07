@@ -1593,17 +1593,11 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 
     // Copy additional network layer properties (available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT layers).
-    if (fields->interface_type_field != 0) {
-        sock_addr_ctx->interface_type = incoming_values[fields->interface_type_field].value.uint32;
-    } else {
-        sock_addr_ctx->interface_type = (uint32_t)-1;
-    }
+    sock_addr_ctx->interface_type =
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : (uint32_t)-1;
 
-    if (fields->tunnel_type_field != 0) {
-        sock_addr_ctx->tunnel_type = incoming_values[fields->tunnel_type_field].value.uint32;
-    } else {
-        sock_addr_ctx->tunnel_type = (uint32_t)-1;
-    }
+    sock_addr_ctx->tunnel_type =
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : (uint32_t)-1;
 
     // Next hop can be NULL.
     if ((fields->next_hop_interface_field != 0) && (incoming_values[fields->next_hop_interface_field].value.uint64)) {
@@ -1612,11 +1606,9 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         sock_addr_ctx->next_hop_interface_luid = (uint64_t)-1;
     }
 
-    if (fields->sub_interface_index_field != 0) {
-        sock_addr_ctx->sub_interface_index = incoming_values[fields->sub_interface_index_field].value.uint32;
-    } else {
-        sock_addr_ctx->sub_interface_index = (uint32_t)-1;
-    }
+    sock_addr_ctx->sub_interface_index = (fields->sub_interface_index_field != 0)
+                                             ? incoming_values[fields->sub_interface_index_field].value.uint32
+                                             : (uint32_t)-1;
 }
 
 static void
@@ -1678,6 +1670,10 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
         // the context (redirected), override the verdict to REJECT and block the connection.
         if (redirected &&
             (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "CONNECT_AUTHORIZATION program attempted redirect — overriding verdict to REJECT.");
             context->verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
         }
         return FALSE;
