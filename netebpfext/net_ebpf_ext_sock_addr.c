@@ -1888,10 +1888,10 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
-    // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow auth programs
+    // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow authorization programs
     // to run so they can make decisions based on route-dependent metadata.
-    // The verdict priority system ensures REJECT from auth overrides PROCEED_HARD,
-    // while PROCEED_SOFT from auth does not downgrade PROCEED_HARD.
+    // The verdict priority system ensures REJECT from authorization overrides PROCEED_HARD,
+    // while PROCEED_SOFT from authorization does not downgrade PROCEED_HARD.
     if (verdict != BPF_SOCK_ADDR_VERDICT_REJECT) {
         // Initialize the accumulated verdict with the cached redirect-layer verdict.
         net_ebpf_sock_addr_ctx.verdict = verdict;
@@ -2155,7 +2155,7 @@ _cache_connection_context_verdict(
             }
         }
 
-        // If the connection is redirected and rejected, only one invocation of auth-connect needs to decide on
+        // If the connection is redirected and rejected, only one invocation of connect-authorization needs to decide on
         // reject for the overall verdict to be reject.
         _net_ebpf_ext_insert_connection_context_to_list(handle, sock_addr_ctx, verdict);
 
@@ -2398,7 +2398,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
 
             // If _net_ebpf_ext_process_redirect_verdict fails, skip caching the verdict
-            // to avoid cache bloat if auth-connect layer is never evaluated for some reason.
+            // to avoid cache bloat if connect-authorization layer is never evaluated for some reason.
             cache_verdict = FALSE;
             goto Exit;
         }
