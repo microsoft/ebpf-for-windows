@@ -236,16 +236,16 @@ jobs:
     strategy:
       matrix:
         image:
-          - 'server2022_v2'
-          - 'server23h2_v2'
-          - 'server2025_v2'
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=driver-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}_v2", "JobId=driver-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
@@ -261,16 +261,16 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - 'server2022_v2'
-          - 'server23h2_v2'
-          - 'server2025_v2'
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -EnableHVCI "On" -GranularTracing
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -GranularTracing
       post_test: .\cleanup_ebpf_cicd_tests.ps1
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}", "JobId=natonly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}_v2", "JobId=natonly-${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}-${{ strategy.job-index }}-{0}"]'
       # Driver test copies dumps to testlog folder.
       gather_dumps: false
       # Driver tests manually gather code coverage.
