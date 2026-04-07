@@ -354,6 +354,15 @@ _ebpf_sock_addr_get_network_context(
         return -1;
     }
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+
+    // This helper is only supported at CONNECT_AUTHORIZATION and RECV_ACCEPT layers.
+    if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_CONNECT_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_CONNECT_V6 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6) {
+        return -1;
+    }
+
     bpf_sock_addr_network_context_t net_ctx = {0};
     net_ctx.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
     net_ctx.interface_type = sock_addr_ctx->interface_type;
