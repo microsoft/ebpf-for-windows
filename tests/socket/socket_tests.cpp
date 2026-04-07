@@ -815,35 +815,34 @@ helper_functions_validation_test(
     // Validate that the network context helper returned reasonable values.
     bpf_sock_addr_network_context_t net_ctx = {0};
     result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
-    if (result == 0) {
-        printf(
-            "Network context - Version: %u, Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u\n",
-            net_ctx.version,
-            net_ctx.interface_type,
-            net_ctx.tunnel_type,
-            net_ctx.next_hop_interface_luid,
-            net_ctx.sub_interface_index);
+    SAFE_REQUIRE(result == 0);
+    printf(
+        "Network context - Version: %u, Interface: %u, Tunnel: %u, Next-hop: %llu, SubInterface: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type,
+        net_ctx.next_hop_interface_luid,
+        net_ctx.sub_interface_index);
 
-        // Version should be 1.
-        SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+    // Version should be 1.
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
 
-        // Interface type should be a valid IANA-assigned value or UINT32_MAX if not available.
-        // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
-        bool valid_interface_type =
-            (net_ctx.interface_type == 6 || net_ctx.interface_type == 24 || net_ctx.interface_type == 71 ||
-             net_ctx.interface_type == 131 || net_ctx.interface_type == (uint32_t)-1);
-        SAFE_REQUIRE(valid_interface_type);
+    // Interface type should be a valid IANA-assigned value or UINT32_MAX if not available.
+    // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
+    bool valid_interface_type =
+        (net_ctx.interface_type == 6 || net_ctx.interface_type == 24 || net_ctx.interface_type == 71 ||
+         net_ctx.interface_type == 131 || net_ctx.interface_type == (uint32_t)-1);
+    SAFE_REQUIRE(valid_interface_type);
 
-        // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
-        bool valid_tunnel_type = (net_ctx.tunnel_type >= 0 && net_ctx.tunnel_type <= 100);
-        SAFE_REQUIRE(valid_tunnel_type);
+    // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
+    bool valid_tunnel_type = (net_ctx.tunnel_type >= 0 && net_ctx.tunnel_type <= 100);
+    SAFE_REQUIRE(valid_tunnel_type);
 
-        // Validate that at least some network context is available.
-        bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) ||
-                                   (net_ctx.next_hop_interface_luid != (uint64_t)-1) ||
-                                   (net_ctx.sub_interface_index != (uint32_t)-1);
-        SAFE_REQUIRE(has_network_context);
-    }
+    // Validate that at least some network context is available.
+    bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) ||
+                               (net_ctx.next_hop_interface_luid != (uint64_t)-1) ||
+                               (net_ctx.sub_interface_index != (uint32_t)-1);
+    SAFE_REQUIRE(has_network_context);
 
     printf(
         "Helper functions validation test completed successfully for %s\n",
