@@ -350,16 +350,21 @@ static int
 _ebpf_sock_addr_get_network_context(
     _In_ const bpf_sock_addr_t* ctx, _Out_writes_(context_size) void* context_ptr, uint32_t context_size)
 {
-    if (context_size < sizeof(bpf_sock_addr_network_context_t)) {
+    if (context_size == 0 || context_ptr == NULL) {
         return -1;
     }
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
-    net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
-    net_ctx->interface_type = sock_addr_ctx->interface_type;
-    net_ctx->tunnel_type = sock_addr_ctx->tunnel_type;
-    net_ctx->next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
-    net_ctx->sub_interface_index = sock_addr_ctx->sub_interface_index;
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    net_ctx.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+    net_ctx.interface_type = sock_addr_ctx->interface_type;
+    net_ctx.tunnel_type = sock_addr_ctx->tunnel_type;
+    net_ctx.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
+    net_ctx.sub_interface_index = sock_addr_ctx->sub_interface_index;
+
+    // Copy only what the caller's struct can hold, allowing older programs
+    // compiled against a smaller struct version to still work.
+    uint32_t copy_size = (context_size < sizeof(net_ctx)) ? context_size : (uint32_t)sizeof(net_ctx);
+    memcpy(context_ptr, &net_ctx, copy_size);
     return 0;
 }
 
