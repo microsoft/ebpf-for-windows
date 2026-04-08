@@ -10,6 +10,7 @@
 #include "map_descriptors.hpp"
 #include "windows_platform_common.hpp"
 
+#include <deque>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -19,9 +20,11 @@ thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
 // Per-instruction map annotations from the most recent verification.
-// Strings in _map_annotation_names are owned by this vector; the ebpf_verifier_map_info_t
-// entries in _map_annotations point into them.
-thread_local static std::vector<std::string> _map_annotation_names;
+// Strings in _map_annotation_names are owned by this deque; the ebpf_verifier_map_info_t
+// entries in _map_annotations hold c_str() pointers into them.
+// A deque is used (instead of vector) because push_back never invalidates
+// references or pointers to existing elements.
+thread_local static std::deque<std::string> _map_annotation_names;
 thread_local static std::vector<ebpf_verifier_map_info_t> _map_annotations;
 
 const char*
