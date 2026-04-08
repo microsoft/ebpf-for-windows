@@ -85,6 +85,10 @@ $JobTimedOut = `
     -TestHangTimeout (10*60) `
     -UserModeDumpFolder "C:\Dumps"
 
+# Re-import common.psm1 in case Wait-TestJobToComplete's timeout handler
+# forcefully re-imported it (via vm_run_tests.psm1), removing it from this scope.
+Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction SilentlyContinue
+
 # Check job result before cleanup.
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {

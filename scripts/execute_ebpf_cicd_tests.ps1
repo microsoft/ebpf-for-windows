@@ -128,6 +128,11 @@ $JobTimedOut = `
     -UserModeDumpFolder $UserModeDumpFolder `
     -GenerateKernelDumpOnTimeout $true
 
+# Re-import common.psm1 in case the kernel-dump timeout handler inside
+# Wait-TestJobToComplete forcefully re-imported it (via vm_run_tests.psm1),
+# which removes it from this script's scope.
+Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction SilentlyContinue
+
 # Check job result before cleanup.
 $JobFailed = $Job.State -eq 'Failed'
 if ($JobFailed) {

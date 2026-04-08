@@ -602,6 +602,17 @@ function Wait-TestJobToComplete
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
+
+                    # Restore common.psm1 globally. The Import-Module -Force of
+                    # vm_run_tests.psm1 above causes common.psm1 to be forcefully
+                    # re-imported into that module's scope, which removes it from the
+                    # session-wide module table and breaks callers that previously
+                    # imported it (e.g. execute_ebpf_cicd_tests.ps1 loses Write-Log
+                    # and Remove-JobSafely).
+                    Import-Module "$PSScriptRoot\common.psm1" -Force `
+                        -ArgumentList ($LogFileName) `
+                        -WarningAction SilentlyContinue `
+                        -Scope Global
                 }
                 $JobTimedOut = $true
                 break
