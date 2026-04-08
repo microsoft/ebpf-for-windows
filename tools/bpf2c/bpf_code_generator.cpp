@@ -368,7 +368,7 @@ bpf_code_generator::set_program_hash_info(
 }
 
 void
-bpf_code_generator::set_map_annotations(_In_reads_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
+bpf_code_generator::set_map_annotations(_In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
 {
     _map_annotations.clear();
     if (annotations != nullptr) {

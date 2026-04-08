@@ -348,9 +348,9 @@ ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_get_map_annotations_from_verifier(
-    _Outptr_result_buffer_(*count) const ebpf_verifier_map_info_t** annotations, _Out_ size_t* count) noexcept
+    _Outptr_result_buffer_maybenull_(*count) const ebpf_verifier_map_info_t** annotations, _Out_ size_t* count) noexcept
 {
-    *annotations = _map_annotations.empty() ? nullptr : _map_annotations.data();
     *count = _map_annotations.size();
+    *annotations = (*count > 0) ? _map_annotations.data() : nullptr;
     return EBPF_SUCCESS;
 }

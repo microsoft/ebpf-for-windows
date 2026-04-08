@@ -304,7 +304,7 @@ class bpf_code_generator
      * @param[in] count Number of annotations.
      */
     void
-    set_map_annotations(_In_reads_(count) const ebpf_verifier_map_info_t* annotations, size_t count);
+    set_map_annotations(_In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count);
 
   private:
     typedef struct _helper_function
@@ -348,7 +348,7 @@ class bpf_code_generator
 
     typedef struct _global_variable_section
     {
-        size_t index;
+        size_t index{0};
         std::vector<uint8_t> initial_data;
     } global_variable_section_t;
 
@@ -361,7 +361,7 @@ class bpf_code_generator
         struct _ebpf_api_program_info* api_program_info{};
         unsafe_string elf_section_name;
         unsafe_string pe_section_name;
-        size_t offset_in_section; // Byte offset of program in section.
+        size_t offset_in_section{0}; // Byte offset of program in section.
         unsafe_string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};

@@ -138,7 +138,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_map_annotations_from_verifier(
-        _Outptr_result_buffer_(*count) const ebpf_verifier_map_info_t** annotations,
+        _Outptr_result_buffer_maybenull_(*count) const ebpf_verifier_map_info_t** annotations,
         _Out_ size_t* count) EBPF_NO_EXCEPT;
 
     typedef enum _ebpf_verification_verbosity
