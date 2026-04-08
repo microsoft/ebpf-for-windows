@@ -308,12 +308,6 @@ label_1:
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
 #line 44 "sample/ambiguous_array_map.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 44 "sample/ambiguous_array_map.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/ambiguous_array_map.c"
-        return 0;
-#line 44 "sample/ambiguous_array_map.c"
-    }
     // EBPF_OP_JEQ_IMM pc=12 dst=r0 src=r0 offset=1 imm=0
 #line 45 "sample/ambiguous_array_map.c"
     if (r0 == IMMEDIATE(0)) {
@@ -367,7 +361,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 1;
+    version->minor = 2;
     version->revision = 0;
 }
 

@@ -167,20 +167,7 @@ sequential0(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 133 "sample/undocked/tail_call_sequential.c"
     }
-#line 133 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 133 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 133 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 133 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 133 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 133 "sample/undocked/tail_call_sequential.c"
-        }
-#line 133 "sample/undocked/tail_call_sequential.c"
-    }
+    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -358,20 +345,6 @@ sequential1(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
     {
-#line 134 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 134 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 134 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 134 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 134 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 134 "sample/undocked/tail_call_sequential.c"
-        }
-#line 134 "sample/undocked/tail_call_sequential.c"
-    }
 #line 134 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -566,20 +539,6 @@ sequential10(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 143 "sample/undocked/tail_call_sequential.c"
     {
-#line 143 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 143 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 143 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 143 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 143 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 143 "sample/undocked/tail_call_sequential.c"
-        }
-#line 143 "sample/undocked/tail_call_sequential.c"
-    }
 #line 143 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -791,20 +750,6 @@ sequential11(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 144 "sample/undocked/tail_call_sequential.c"
     }
-#line 144 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 144 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 144 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 144 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 144 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 144 "sample/undocked/tail_call_sequential.c"
-        }
-#line 144 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -988,20 +933,6 @@ sequential12(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 145 "sample/undocked/tail_call_sequential.c"
     {
-#line 145 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 145 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 145 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 145 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 145 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 145 "sample/undocked/tail_call_sequential.c"
-        }
-#line 145 "sample/undocked/tail_call_sequential.c"
-    }
 #line 145 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -1213,20 +1144,6 @@ sequential13(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 146 "sample/undocked/tail_call_sequential.c"
     }
-#line 146 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 146 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 146 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 146 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 146 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 146 "sample/undocked/tail_call_sequential.c"
-        }
-#line 146 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1410,20 +1327,6 @@ sequential14(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 147 "sample/undocked/tail_call_sequential.c"
     {
-#line 147 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 147 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 147 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 147 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 147 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 147 "sample/undocked/tail_call_sequential.c"
-        }
-#line 147 "sample/undocked/tail_call_sequential.c"
-    }
 #line 147 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1635,20 +1538,6 @@ sequential15(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 148 "sample/undocked/tail_call_sequential.c"
     }
-#line 148 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 148 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 148 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 148 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 148 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 148 "sample/undocked/tail_call_sequential.c"
-        }
-#line 148 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1832,20 +1721,6 @@ sequential16(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 149 "sample/undocked/tail_call_sequential.c"
     {
-#line 149 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 149 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 149 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 149 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 149 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 149 "sample/undocked/tail_call_sequential.c"
-        }
-#line 149 "sample/undocked/tail_call_sequential.c"
-    }
 #line 149 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -2057,20 +1932,6 @@ sequential17(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 150 "sample/undocked/tail_call_sequential.c"
     }
-#line 150 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 150 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 150 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 150 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 150 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 150 "sample/undocked/tail_call_sequential.c"
-        }
-#line 150 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2254,20 +2115,6 @@ sequential18(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 151 "sample/undocked/tail_call_sequential.c"
     {
-#line 151 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 151 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 151 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 151 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 151 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 151 "sample/undocked/tail_call_sequential.c"
-        }
-#line 151 "sample/undocked/tail_call_sequential.c"
-    }
 #line 151 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2479,20 +2326,6 @@ sequential19(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 152 "sample/undocked/tail_call_sequential.c"
     }
-#line 152 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 152 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 152 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 152 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 152 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 152 "sample/undocked/tail_call_sequential.c"
-        }
-#line 152 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2688,20 +2521,6 @@ sequential2(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 135 "sample/undocked/tail_call_sequential.c"
     }
-#line 135 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 135 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 135 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 135 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 135 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 135 "sample/undocked/tail_call_sequential.c"
-        }
-#line 135 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2882,20 +2701,6 @@ sequential20(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 153 "sample/undocked/tail_call_sequential.c"
     {
-#line 153 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 153 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 153 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 153 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 153 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 153 "sample/undocked/tail_call_sequential.c"
-        }
-#line 153 "sample/undocked/tail_call_sequential.c"
-    }
 #line 153 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -3107,20 +2912,6 @@ sequential21(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 154 "sample/undocked/tail_call_sequential.c"
     }
-#line 154 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 154 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 154 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 154 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 154 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 154 "sample/undocked/tail_call_sequential.c"
-        }
-#line 154 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3304,20 +3095,6 @@ sequential22(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 155 "sample/undocked/tail_call_sequential.c"
     {
-#line 155 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 155 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 155 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 155 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 155 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 155 "sample/undocked/tail_call_sequential.c"
-        }
-#line 155 "sample/undocked/tail_call_sequential.c"
-    }
 #line 155 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3529,20 +3306,6 @@ sequential23(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 156 "sample/undocked/tail_call_sequential.c"
     }
-#line 156 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 156 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 156 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 156 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 156 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 156 "sample/undocked/tail_call_sequential.c"
-        }
-#line 156 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3726,20 +3489,6 @@ sequential24(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 157 "sample/undocked/tail_call_sequential.c"
     {
-#line 157 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 157 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 157 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 157 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 157 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 157 "sample/undocked/tail_call_sequential.c"
-        }
-#line 157 "sample/undocked/tail_call_sequential.c"
-    }
 #line 157 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3951,20 +3700,6 @@ sequential25(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 158 "sample/undocked/tail_call_sequential.c"
     }
-#line 158 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 158 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 158 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 158 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 158 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 158 "sample/undocked/tail_call_sequential.c"
-        }
-#line 158 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4148,20 +3883,6 @@ sequential26(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 159 "sample/undocked/tail_call_sequential.c"
     {
-#line 159 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 159 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 159 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 159 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 159 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 159 "sample/undocked/tail_call_sequential.c"
-        }
-#line 159 "sample/undocked/tail_call_sequential.c"
-    }
 #line 159 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -4373,20 +4094,6 @@ sequential27(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 160 "sample/undocked/tail_call_sequential.c"
     }
-#line 160 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 160 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 160 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 160 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 160 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 160 "sample/undocked/tail_call_sequential.c"
-        }
-#line 160 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4570,20 +4277,6 @@ sequential28(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 161 "sample/undocked/tail_call_sequential.c"
     {
-#line 161 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 161 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 161 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 161 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 161 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 161 "sample/undocked/tail_call_sequential.c"
-        }
-#line 161 "sample/undocked/tail_call_sequential.c"
-    }
 #line 161 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4795,20 +4488,6 @@ sequential29(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 162 "sample/undocked/tail_call_sequential.c"
     }
-#line 162 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 162 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 162 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 162 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 162 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 162 "sample/undocked/tail_call_sequential.c"
-        }
-#line 162 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5004,20 +4683,6 @@ sequential3(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 136 "sample/undocked/tail_call_sequential.c"
     }
-#line 136 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 136 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 136 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 136 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 136 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 136 "sample/undocked/tail_call_sequential.c"
-        }
-#line 136 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5198,20 +4863,6 @@ sequential30(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 163 "sample/undocked/tail_call_sequential.c"
     {
-#line 163 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 163 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 163 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 163 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 163 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 163 "sample/undocked/tail_call_sequential.c"
-        }
-#line 163 "sample/undocked/tail_call_sequential.c"
-    }
 #line 163 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -5423,20 +5074,6 @@ sequential31(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 164 "sample/undocked/tail_call_sequential.c"
     }
-#line 164 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 164 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 164 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 164 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 164 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 164 "sample/undocked/tail_call_sequential.c"
-        }
-#line 164 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5620,20 +5257,6 @@ sequential32(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 165 "sample/undocked/tail_call_sequential.c"
     {
-#line 165 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 165 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 165 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 165 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 165 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 165 "sample/undocked/tail_call_sequential.c"
-        }
-#line 165 "sample/undocked/tail_call_sequential.c"
-    }
 #line 165 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5845,20 +5468,6 @@ sequential33(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 166 "sample/undocked/tail_call_sequential.c"
     }
-#line 166 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 166 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 166 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 166 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 166 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 166 "sample/undocked/tail_call_sequential.c"
-        }
-#line 166 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -6042,20 +5651,6 @@ sequential34(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 167 "sample/undocked/tail_call_sequential.c"
     {
-#line 167 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 167 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 167 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 167 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 167 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 167 "sample/undocked/tail_call_sequential.c"
-        }
-#line 167 "sample/undocked/tail_call_sequential.c"
-    }
 #line 167 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -6265,20 +5860,6 @@ sequential4(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 137 "sample/undocked/tail_call_sequential.c"
     }
-#line 137 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 137 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 137 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 137 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 137 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 137 "sample/undocked/tail_call_sequential.c"
-        }
-#line 137 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -6457,20 +6038,6 @@ sequential5(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 138 "sample/undocked/tail_call_sequential.c"
     {
-#line 138 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 138 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 138 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 138 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 138 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 138 "sample/undocked/tail_call_sequential.c"
-        }
-#line 138 "sample/undocked/tail_call_sequential.c"
-    }
 #line 138 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -6677,20 +6244,6 @@ sequential6(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 139 "sample/undocked/tail_call_sequential.c"
     }
-#line 139 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 139 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 139 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 139 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 139 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 139 "sample/undocked/tail_call_sequential.c"
-        }
-#line 139 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -6869,20 +6422,6 @@ sequential7(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 140 "sample/undocked/tail_call_sequential.c"
     {
-#line 140 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 140 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 140 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 140 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 140 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 140 "sample/undocked/tail_call_sequential.c"
-        }
-#line 140 "sample/undocked/tail_call_sequential.c"
-    }
 #line 140 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -7089,20 +6628,6 @@ sequential8(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 141 "sample/undocked/tail_call_sequential.c"
     }
-#line 141 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 141 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 141 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 141 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 141 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 141 "sample/undocked/tail_call_sequential.c"
-        }
-#line 141 "sample/undocked/tail_call_sequential.c"
-    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -7281,20 +6806,6 @@ sequential9(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 142 "sample/undocked/tail_call_sequential.c"
     {
-#line 142 "sample/undocked/tail_call_sequential.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 142 "sample/undocked/tail_call_sequential.c"
-        if (_array_key < 1) {
-#line 142 "sample/undocked/tail_call_sequential.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 142 "sample/undocked/tail_call_sequential.c"
-        } else {
-#line 142 "sample/undocked/tail_call_sequential.c"
-            r0 = 0;
-#line 142 "sample/undocked/tail_call_sequential.c"
-        }
-#line 142 "sample/undocked/tail_call_sequential.c"
-    }
 #line 142 "sample/undocked/tail_call_sequential.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
 #line 142 "sample/undocked/tail_call_sequential.c"

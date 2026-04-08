@@ -234,12 +234,6 @@ caller(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 41 "sample/undocked/tail_call.c"
     }
-#line 41 "sample/undocked/tail_call.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 41 "sample/undocked/tail_call.c"
-        return 0;
-#line 41 "sample/undocked/tail_call.c"
-    }
     // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 42 "sample/undocked/tail_call.c"
     if (r0 == IMMEDIATE(0)) {

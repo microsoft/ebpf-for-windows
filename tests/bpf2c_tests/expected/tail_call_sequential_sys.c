@@ -322,6 +322,7 @@ sequential0(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 133 "sample/undocked/tail_call_sequential.c"
     }
+    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1

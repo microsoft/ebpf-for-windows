@@ -193,12 +193,6 @@ recurse(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 51 "sample/undocked/tail_call_recursive.c"
     }
-#line 51 "sample/undocked/tail_call_recursive.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 51 "sample/undocked/tail_call_recursive.c"
-        return 0;
-#line 51 "sample/undocked/tail_call_recursive.c"
-    }
     // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=23 imm=0
 #line 52 "sample/undocked/tail_call_recursive.c"
     if (r0 == IMMEDIATE(0)) {

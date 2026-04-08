@@ -225,12 +225,6 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
         }
 #line 58 "sample/undocked/map_reuse_2.c"
     }
-#line 58 "sample/undocked/map_reuse_2.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 58 "sample/undocked/map_reuse_2.c"
-        return 0;
-#line 58 "sample/undocked/map_reuse_2.c"
-    }
     // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
 #line 59 "sample/undocked/map_reuse_2.c"
     if (r0 != IMMEDIATE(0)) {
