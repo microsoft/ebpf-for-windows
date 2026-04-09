@@ -182,7 +182,7 @@
     <ClInclude Include="..\net_ebpf_ext_sock_addr.h" />
     <ClInclude Include="..\net_ebpf_ext_sock_ops.h" />
     <ClInclude Include="..\net_ebpf_ext_structs.h" />
-    <ClInclude Include="..\net_ebpf_ext_tracelog.h" />
+    <ClInclude Include="..\..\external\ebpf-extension-common\include\ebpf_ext_tracelog.h" />
     <ClInclude Include="netebpfext_platform.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
