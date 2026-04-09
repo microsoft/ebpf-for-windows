@@ -353,6 +353,10 @@ _ebpf_sock_addr_get_network_context(
     if (context_size == 0 || context_ptr == NULL) {
         return -1;
     }
+
+    // Zero the output buffer upfront to satisfy the _Out_writes_ annotation on all paths.
+    memset(context_ptr, 0, context_size);
+
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
 
     // This helper is only supported at CONNECT_AUTHORIZATION and RECV_ACCEPT layers.
