@@ -74,7 +74,7 @@
 #define CREATE_PROGRAM_DATA_OFFSET              28
 #define CREATE_MAP_DATA_OFFSET                  40
 #define LOAD_CODE_CODE_OFFSET                   20
-#define FIND_ELEMENT_KEY_OFFSET                 20
+#define FIND_ELEMENT_KEY_OFFSET                 17
 #define MAP_UPDATE_DATA_OFFSET                  20
 #define MAP_UPDATE_WITH_HANDLE_KEY_OFFSET       28
 #define DELETE_ELEMENT_KEY_OFFSET               16
@@ -82,12 +82,12 @@
 #define UPDATE_PINNING_PATH_OFFSET              16
 #define GET_PINNED_OBJECT_PATH_OFFSET            8
 #define LINK_PROGRAM_DATA_OFFSET                32
-#define UNLINK_PROGRAM_DATA_OFFSET              42
+#define UNLINK_PROGRAM_DATA_OFFSET              41
 #define MAP_WRITE_DATA_DATA_OFFSET              24
 #define LOAD_NATIVE_MODULE_DATA_OFFSET          24
 #define PROGRAM_TEST_RUN_DATA_OFFSET            42
 #define DELETE_ELEMENT_BATCH_KEYS_OFFSET        16
-#define GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET     20
+#define GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET     17
 #define PINNED_OBJECT_PATH_START_PATH_OFFSET    12
 
 
@@ -167,8 +167,7 @@ where (MessageLength >= LOAD_CODE_CODE_OFFSET)
   Body layout after 8-byte header:
     ebpf_handle_t handle       (8 bytes, offset 8)
     bool find_and_delete       (1 byte, offset 16)
-    padding                    (3 bytes, offset 17)
-    uint8_t key[]              (variable, offset 20)
+    uint8_t key[]              (variable, offset 17)
 
   Validates: minimum length, variable key region.
 */
@@ -177,7 +176,6 @@ where (MessageLength >= FIND_ELEMENT_KEY_OFFSET)
 {
     UINT8 Handle[8];
     UINT8 FindAndDelete;
-    UINT8 Padding[3];
     UINT8 Key[:byte-size (UINT32)(MessageLength - FIND_ELEMENT_KEY_OFFSET)];
 } MAP_FIND_ELEMENT_BODY;
 
@@ -306,8 +304,7 @@ where (MessageLength >= LINK_PROGRAM_DATA_OFFSET)
     ebpf_handle_t program_handle    (8 bytes, offset 16)
     ebpf_attach_type_t attach_type  (GUID, 16 bytes, offset 24)
     bool attach_data_present        (1 byte, offset 40)
-    padding                         (1 byte, offset 41)
-    uint8_t data[]                  (variable, offset 42)
+    uint8_t data[]                  (variable, offset 41)
 */
 typedef struct _UNLINK_PROGRAM_BODY (UINT16 MessageLength)
 where (MessageLength >= UNLINK_PROGRAM_DATA_OFFSET)
@@ -316,7 +313,6 @@ where (MessageLength >= UNLINK_PROGRAM_DATA_OFFSET)
     UINT8 ProgramHandle[8];
     UINT8 AttachType[16];
     UINT8 AttachDataPresent;
-    UINT8 Padding;
     UINT8 Data[:byte-size (UINT32)(MessageLength - UNLINK_PROGRAM_DATA_OFFSET)];
 } UNLINK_PROGRAM_BODY;
 
@@ -421,15 +417,13 @@ where (MessageLength >= DELETE_ELEMENT_BATCH_KEYS_OFFSET)
   Body layout after 8-byte header:
     ebpf_handle_t handle       (8 bytes, offset 8)
     bool find_and_delete       (1 byte, offset 16)
-    padding                    (3 bytes, offset 17)
-    uint8_t previous_key[]     (variable, offset 20)
+    uint8_t previous_key[]     (variable, offset 17)
 */
 typedef struct _MAP_GET_NEXT_KEY_VALUE_BATCH_BODY (UINT16 MessageLength)
 where (MessageLength >= GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET)
 {
     UINT8 Handle[8];
     UINT8 FindAndDelete;
-    UINT8 Padding[3];
     UINT8 PreviousKey[:byte-size (UINT32)(MessageLength - GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET)];
 } MAP_GET_NEXT_KEY_VALUE_BATCH_BODY;
 
