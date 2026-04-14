@@ -828,8 +828,8 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_base_map_provider_dis
 
     if (local_dispatch_table.header.version == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
         if (local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
-            if (local_dispatch_table.process_map_create == NULL || local_dispatch_table.process_map_delete == NULL ||
-                local_dispatch_table.associate_program_function == NULL) {
+            if (local_dispatch_table.preprocess_map_create == NULL || local_dispatch_table.postprocess_map_delete == NULL ||
+                local_dispatch_table.preprocess_associate_program_type == NULL) {
                 return false;
             }
         } else {

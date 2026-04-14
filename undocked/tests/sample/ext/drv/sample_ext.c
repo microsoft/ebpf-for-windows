@@ -162,9 +162,9 @@ _sample_map_associate_program(
 // Sample map extension data.
 static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER,
-    .process_map_create = _sample_map_create,
-    .process_map_delete = _sample_map_delete,
-    .associate_program_function = _sample_map_associate_program,
+    .preprocess_map_create = _sample_map_create,
+    .postprocess_map_delete = _sample_map_delete,
+    .preprocess_associate_program_type = _sample_map_associate_program,
     .postprocess_map_find_element = _sample_map_find_entry,
     .preprocess_map_update_element = _sample_map_update_entry,
     .preprocess_map_delete_element = _sample_map_delete_entry};

@@ -151,7 +151,7 @@ typedef struct _ebpf_execution_context_state
  * @param[in] max_entries The maximum number of entries in the map.
  * @param[out] actual_value_size The value size in bytes that will actually be stored in the map.
  * @param[out] map_context Provider-defined per-map context. The eBPF core will pass this back to subsequent map
- *             operations and will eventually pass it to ebpf_process_map_delete_t.
+ *             operations and will eventually pass it to ebpf_postprocess_map_delete_t.
  *
  * Note: When a map lookup happens from user mode, the value is copied into the buffer provided by the user,
  * whereas when a map lookup happens from a BPF program, a pointer to the value is provided to the program,
@@ -164,7 +164,7 @@ typedef struct _ebpf_execution_context_state
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  */
-typedef ebpf_result_t (*ebpf_process_map_create_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_create_t)(
     _In_ void* binding_context,
     uint32_t map_type,
     uint32_t key_size,
@@ -179,7 +179,7 @@ typedef ebpf_result_t (*ebpf_process_map_create_t)(
  * @param[in] binding_context The binding context provided when the map provider was bound.
  * @param[in] map_context The map context to delete.
  */
-typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
+typedef void (*ebpf_postprocess_map_delete_t)(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
 
 /**
  * @brief Post-process a found element in a provider-backed map (called after the core lookup).
@@ -306,7 +306,7 @@ typedef ebpf_result_t (*ebpf_preprocess_map_delete_element_t)(
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  */
-typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_associate_program_type_t)(
     _In_ void* binding_context, _In_ void* map_context, _In_ const ebpf_program_type_t* program_type);
 
 typedef struct _ebpf_base_map_provider_properties
@@ -323,9 +323,9 @@ typedef struct _ebpf_base_map_provider_properties
 typedef struct _ebpf_map_provider_dispatch_table
 {
     ebpf_extension_header_t header;
-    _Notnull_ ebpf_process_map_create_t process_map_create;
-    _Notnull_ ebpf_process_map_delete_t process_map_delete;
-    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
+    _Notnull_ ebpf_preprocess_map_create_t preprocess_map_create;
+    _Notnull_ ebpf_postprocess_map_delete_t postprocess_map_delete;
+    _Notnull_ ebpf_preprocess_map_associate_program_type_t preprocess_associate_program_type;
     ebpf_postprocess_map_find_element_t postprocess_map_find_element;
     ebpf_preprocess_map_update_element_t preprocess_map_update_element;
     ebpf_preprocess_map_delete_element_t preprocess_map_delete_element;

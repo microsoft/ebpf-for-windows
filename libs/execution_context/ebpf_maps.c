@@ -4640,7 +4640,7 @@ ebpf_custom_map_create(
     rundown_acquired = true;
 
     // Invoke extension to validate map parameters and get actual value size.
-    result = custom_map->provider_dispatch->process_map_create(
+    result = custom_map->provider_dispatch->preprocess_map_create(
         custom_map->provider_context,
         map_definition->type,
         map_definition->key_size,
@@ -4653,7 +4653,7 @@ ebpf_custom_map_create(
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "process_map_create failed for custom map type",
+            "preprocess_map_create failed for custom map type",
             custom_map->core_map.ebpf_map_definition.type);
 
         result = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -4721,7 +4721,7 @@ Done:
     if (custom_map) {
         if (custom_map_context && custom_map->provider_dispatch) {
             // Clean up custom map data if map creation failed.
-            custom_map->provider_dispatch->process_map_delete(custom_map->provider_context, custom_map_context);
+            custom_map->provider_dispatch->postprocess_map_delete(custom_map->provider_context, custom_map_context);
         }
         if (rundown_acquired) {
             ExReleaseRundownProtection(&custom_map->provider_rundown_reference);
@@ -4741,7 +4741,7 @@ ebpf_custom_map_delete(_In_ _Post_ptr_invalid_ ebpf_core_map_t* map)
     }
 
     // Call provider to notify map deletion.
-    custom_map->provider_dispatch->process_map_delete(
+    custom_map->provider_dispatch->postprocess_map_delete(
         custom_map->provider_context, custom_map->core_map.custom_map_context);
 
     // Now that the map is deleted, release the rundown reference acquired during map creation.
@@ -5098,11 +5098,11 @@ ebpf_custom_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const struct _eb
 
     // Get provider dispatch.
     ebpf_base_map_provider_dispatch_table_t* provider_dispatch = custom_map->provider_dispatch;
-    ebpf_assert(provider_dispatch != NULL && provider_dispatch->associate_program_function != NULL);
+    ebpf_assert(provider_dispatch != NULL && provider_dispatch->preprocess_associate_program_type != NULL);
     // Call the provider's associate program function.
     __analysis_assume(provider_dispatch != NULL);
-    __analysis_assume(provider_dispatch->associate_program_function != NULL);
-    result = provider_dispatch->associate_program_function(
+    __analysis_assume(provider_dispatch->preprocess_associate_program_type != NULL);
+    result = provider_dispatch->preprocess_associate_program_type(
         custom_map->provider_context, custom_map->core_map.custom_map_context, &program_type);
 
     return result;

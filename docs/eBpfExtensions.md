@@ -616,23 +616,23 @@ The Map Type for the custom maps also comes from the same map type numbering spa
 typedef struct _ebpf_map_provider_dispatch_table
 {
     ebpf_extension_header_t header;
-    _Notnull_ ebpf_process_map_create_t process_map_create;
-    _Notnull_ ebpf_process_map_delete_t process_map_delete;
-    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
+    _Notnull_ ebpf_preprocess_map_create_t preprocess_map_create;
+    _Notnull_ ebpf_postprocess_map_delete_t postprocess_map_delete;
+    _Notnull_ ebpf_preprocess_map_associate_program_type_t preprocess_associate_program_type;
     ebpf_postprocess_map_find_element_t postprocess_map_find_element;
     ebpf_preprocess_map_update_element_t preprocess_map_update_element;
     ebpf_preprocess_map_delete_element_t preprocess_map_delete_element;
 } ebpf_base_map_provider_dispatch_table_t;
 ```
 This is the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
-1. `process_map_create` - Called by eBPF runtime to process map creation.
-2. `process_map_delete` - Called by eBPF runtime to process map deletion.
-3. `associate_program_function` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
+1. `preprocess_map_create` - Called by eBPF runtime to process map creation.
+2. `postprocess_map_delete` - Called by eBPF runtime to process map deletion.
+3. `preprocess_associate_program_type` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
 4. `postprocess_map_find_element` - Function to post-process a map entry after lookup.
 5. `preprocess_map_update_element` - Function to pre-process a map entry before an add/update operation.
 5. `preprocess_map_delete_element` - Function to pre-process a map entry before a delete operation.
 
-When `process_map_create` is invoked, the extension will allocate a map context, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the other APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
+When `preprocess_map_create` is invoked, the extension will allocate a map context, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the other APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
 
 The `postprocess_map_find_element`, `preprocess_map_update_element`, and `preprocess_map_delete_element` functions each receive a `flags` parameter. When `EBPF_MAP_OPERATION_HELPER` is set in `flags`, the operation is being invoked from a BPF program. When `EBPF_MAP_OPERATION_HELPER` is **not** set, the function is called in the context of the original user mode process. In that case, the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).
 
