@@ -143,6 +143,7 @@ The `program_runtime_context_t` must include BTF-resolved function addresses:
 ```c
 typedef struct _program_runtime_context
 {
+    ebpf_native_module_header_t header;
     helper_function_data_t* helper_data;
     map_data_t* map_data;
     global_variable_section_data_t* global_variable_section_data;

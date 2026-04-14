@@ -270,9 +270,9 @@ typedef struct _btf_resolved_function_data
 } btf_resolved_function_data_t;
 
 // Proposed extension to include/bpf2c.h program_runtime_context_t.
-// The existing header field is omitted here for brevity.
 typedef struct _program_runtime_context
 {
+    ebpf_native_module_header_t header;
     helper_function_data_t* helper_data;
     map_data_t* map_data;
     global_variable_section_data_t* global_variable_section_data;
