@@ -269,6 +269,7 @@ ebpf_verify_program(
                 const std::string* map_name = nullptr;
                 uint32_t value_size = 0;
                 uint32_t max_entries = 0;
+                bool is_inner_map_template = false;
                 for (const auto& desc : info.map_descriptors) {
                     if (desc.original_fd == start_fd) {
                         if (!desc.name.empty()) {
@@ -277,6 +278,7 @@ ebpf_verify_program(
                         }
                         value_size = desc.value_size;
                         max_entries = desc.max_entries;
+                        is_inner_map_template = desc.is_inner_map_template;
                         break;
                     }
                 }
@@ -292,6 +294,7 @@ ebpf_verify_program(
                 ann.map_type = *map_type;
                 ann.value_size = value_size;
                 ann.max_entries = max_entries;
+                ann.is_inner_map_template = is_inner_map_template;
                 _map_annotations.push_back(ann);
             }
         }

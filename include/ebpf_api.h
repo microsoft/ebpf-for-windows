@@ -128,6 +128,7 @@ extern "C"
         uint32_t map_type;           ///< Map type (e.g., BPF_MAP_TYPE_ARRAY).
         uint32_t value_size;         ///< Map value size in bytes.
         uint32_t max_entries;        ///< Map maximum entries.
+        bool is_inner_map_template;  ///< True if this map is only an inner map template.
     } ebpf_verifier_map_info_t;
 
     /**
