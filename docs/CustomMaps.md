@@ -111,7 +111,7 @@ typedef ebpf_result_t (*ebpf_preprocess_map_create_t)(
 
 #### `ebpf_postprocess_map_delete_t` — Map Deletion (required)
 
-eBPF runtime invokes `process_map_delete` to notify the extension that the map is being deleted. The extension
+eBPF runtime invokes `process_map_delete` to notify the extension that the map has been deleted. The extension
 should free its per-map context.
 
 ```c
