@@ -402,6 +402,8 @@ function Invoke-ConnectRedirectTest
         $TestCommand = ".\connect_redirect_tests.exe"
 
         ## First run the test with both v4 and v6 programs attached.
+        # Exclude CONNECTED_UDP tests: known Windows OS platform bug causes redirect context memory leak,
+        # triggering Driver Verifier pool leak failures (0xC4/0x62) on NetEbpfExt unload.
         $TestArguments =
             " --virtual-ip-v4 $VirtualIPv4Address" +
             " --virtual-ip-v6 $VirtualIPv6Address" +
@@ -413,7 +415,8 @@ function Invoke-ConnectRedirectTest
             " --proxy-port $ProxyPort" +
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
-            " --user-type $UserType"
+            " --user-type $UserType" +
+            " ~*CONNECTED_UDP*"
 
         Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_v6_$($UserType)"
@@ -428,7 +431,7 @@ function Invoke-ConnectRedirectTest
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
             " --user-type $UserType" +
-            " [connect_authorize_redirect_tests_v4]"
+            " [connect_authorize_redirect_tests_v4] ~*CONNECTED_UDP*"
 
         Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v4_$($UserType)"
@@ -443,7 +446,7 @@ function Invoke-ConnectRedirectTest
             " --user-name $StandardUserName" +
             " --password $StandardUserPassword" +
             " --user-type $UserType" +
-            " [connect_authorize_redirect_tests_v6]"
+            " [connect_authorize_redirect_tests_v6] ~*CONNECTED_UDP*"
 
         Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout -TraceFileName "connect_redirect_v6_$($UserType)"

@@ -124,6 +124,32 @@ dynamic name which may change whenver a new 1ES image is used.
 - Existing tests were updated to use `contains(inputs.environment, '1ES')` as an indicator that the
 job is using the 1ES runner (and negation of this condition to indicate it is not using the 1ES runner).
 
+## Handling Breaking Changes to Runner Images
+When making changes that could break existing CI/CD (e.g., OS generation changes, driver verifier
+configuration, kernel settings), avoid modifying images in-place. Instead, use a versioned
+side-by-side approach:
+
+1. **Create a new storage blob container** with a versioned name (e.g., `server2022-v2`).
+2. **Create a new 1ES image** using the new container, following the steps in
+   `Creating a New Image` above. Name the image with the version suffix (e.g., `server2022_v2`).
+3. **Add the new image to the 1ES Hosted Pool** alongside the existing image.
+4. **Update `cicd.yml`** to run tests against the new image. During validation, you can run
+   both old and new images in parallel using a matrix strategy or duplicate jobs:
+   ```yaml
+   environment:
+       '[
+           "self-hosted",
+           "1ES.Pool=ebpf-cicd-runner-pool-server-2019",
+           "1ES.ImageOverride=server2022_v2"
+       ]'
+   ```
+5. **Validate** that all tests pass on the new image across multiple CI runs.
+6. **Remove the old image** from the pool and update `cicd.yml` to use only the new image.
+7. **Clean up** the old storage blob container once no branches reference it.
+
+This approach ensures that the default branch remains stable while iterating on image changes,
+and provides a rollback path if issues are discovered.
+
 ## Inner VM Credential Management
 The inner VM uses a hardcoded well-known password defined in the `Get-VMPassword` function in
 `common.psm1`. This password is used for both the Administrator and VMStandardUser accounts.

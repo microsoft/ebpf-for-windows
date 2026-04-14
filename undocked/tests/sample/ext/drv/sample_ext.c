@@ -165,9 +165,9 @@ static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .process_map_create = _sample_map_create,
     .process_map_delete = _sample_map_delete,
     .associate_program_function = _sample_map_associate_program,
-    .process_map_find_element = _sample_map_find_entry,
-    .process_map_add_element = _sample_map_update_entry,
-    .process_map_delete_element = _sample_map_delete_entry};
+    .postprocess_map_find_element = _sample_map_find_entry,
+    .preprocess_map_update_element = _sample_map_update_entry,
+    .preprocess_map_delete_element = _sample_map_delete_entry};
 
 static ebpf_base_map_provider_properties_t _sample_map_provider_properties = {
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};

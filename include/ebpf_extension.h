@@ -6,11 +6,12 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
-#define EBPF_MAP_OPERATION_HELPER 0x01 /* Called by a BPF program. When this flag is not set, the provider function is
-                                        * called in the context of the original user mode process, so the provider may
-                                        * implicitly use the current process's handle table (e.g., to resolve file
+#define EBPF_MAP_OPERATION_HELPER                                                                                      \
+    0x01                               /* Called by a BPF program. When this flag is not set, the provider function is \
+                                        * called in the context of the original user mode process, so the provider may \
+                                        * implicitly use the current process's handle table (e.g., to resolve file     \
                                         * descriptors passed as map values). */
-#define EBPF_MAP_OPERATION_UPDATE 0x02      /* Update operation. */
+#define EBPF_MAP_OPERATION_UPDATE 0x02 /* Update operation. */
 #define EBPF_MAP_OPERATION_MAP_CLEANUP 0x04 /* Map cleanup operation. */
 
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
@@ -181,7 +182,7 @@ typedef ebpf_result_t (*ebpf_process_map_create_t)(
 typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
 
 /**
- * @brief Find (lookup) an element in a provider-backed map.
+ * @brief Post-process a found element in a provider-backed map (called after the core lookup).
  *
  * If the provider does not update the original value, i.e., `updates_original_value` is set to false in
  * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
@@ -204,7 +205,7 @@ typedef void (*ebpf_process_map_delete_t)(_In_ void* binding_context, _In_ _Post
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
  */
-typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
+typedef ebpf_result_t (*ebpf_postprocess_map_find_element_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -216,7 +217,7 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
     uint32_t flags);
 
 /**
- * @brief Add or update (insert/replace) an element in a provider-backed map.
+ * @brief Pre-process an element update in a provider-backed map (called before the core update).
  *
  * If the provider does not update the original value, i.e., `updates_original_value` is set to false in
  * ebpf_base_map_provider_properties_t, out_value will be NULL and out_value_size will be 0.
@@ -235,12 +236,19 @@ typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
  *      is called in the context of the original user mode process, so the provider may implicitly use the current
  *      process's handle table (e.g., to resolve file descriptors passed as map values).
  *
+ * @note If this function succeeds but the subsequent core map update fails, the eBPF runtime will call
+ *       ebpf_preprocess_map_delete_element_t with the EBPF_MAP_OPERATION_UPDATE flag to allow the provider to
+ *       undo any state changes made during this call.
+ * @note In a replace operation (updating an existing key), after the core update succeeds,
+ *       ebpf_preprocess_map_delete_element_t will be called for the old value being replaced, also with the
+ *       EBPF_MAP_OPERATION_UPDATE flag set.
+ *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Unable to allocate memory.
  */
-typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_update_element_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -252,7 +260,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
     uint32_t flags);
 
 /**
- * @brief Delete an element from a provider-backed map.
+ * @brief Pre-process an element deletion from a provider-backed map (called before the core delete).
  *
  * This function can be called in three scenarios:
  *      1. Normal map element deletion.
@@ -279,7 +287,7 @@ typedef ebpf_result_t (*ebpf_process_map_add_element_t)(
  * @retval EBPF_KEY_NOT_FOUND The key was not found in the map.
  * @retval EBPF_OPERATION_NOT_SUPPORTED The operation is not supported.
  */
-typedef ebpf_result_t (*ebpf_process_map_delete_element_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_delete_element_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -318,9 +326,9 @@ typedef struct _ebpf_map_provider_dispatch_table
     _Notnull_ ebpf_process_map_create_t process_map_create;
     _Notnull_ ebpf_process_map_delete_t process_map_delete;
     _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
-    ebpf_process_map_find_element_t process_map_find_element;
-    ebpf_process_map_add_element_t process_map_add_element;
-    ebpf_process_map_delete_element_t process_map_delete_element;
+    ebpf_postprocess_map_find_element_t postprocess_map_find_element;
+    ebpf_preprocess_map_update_element_t preprocess_map_update_element;
+    ebpf_preprocess_map_delete_element_t preprocess_map_delete_element;
 } ebpf_base_map_provider_dispatch_table_t;
 
 /**

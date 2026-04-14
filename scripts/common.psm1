@@ -165,14 +165,14 @@ function Compress-File
 
 .OUTPUTS
     Returns a hashtable with the following properties:
-    - Success: Boolean indicating if compression succeeded
-    - CompressedPath: Path to compressed file (if compression succeeded)
-    - UncompressedPath: Path to uncompressed file (if compression failed)
+    - CompressedCopySucceeded: Boolean indicating if the compressed copy was used ($true) or fell back to uncompressed ($false)
+    - CompressedPath: Path to compressed file (if compressed copy succeeded)
+    - UncompressedPath: Path to uncompressed file (if fell back to uncompressed)
     - FinalPath: Path to the final file that was copied
 
 .EXAMPLE
     $result = CompressOrCopy-File -SourcePath "C:\dumps\*.dmp" -DestinationDirectory "C:\output" -CompressedFileName "dumps.zip"
-    if ($result.Success) {
+    if ($result.CompressedCopySucceeded) {
         Write-Host "Compression succeeded: $($result.FinalPath)"
     } else {
         Write-Host "Compression failed, using uncompressed: $($result.FinalPath)"
@@ -213,7 +213,7 @@ function CompressOrCopy-File
         Write-Log "Copied compressed file: $($compressedFile.Name), Size: $((($compressedFile.Length) / 1MB).ToString("F2")) MB"
 
         return @{
-            Success = $true
+            CompressedCopySucceeded = $true
             CompressedPath = $finalCompressedPath
             UncompressedPath = ""
             FinalPath = $finalCompressedPath
@@ -238,7 +238,7 @@ function CompressOrCopy-File
         }
 
         return @{
-            Success = $false
+            CompressedCopySucceeded = $false
             CompressedPath = ""
             UncompressedPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
             FinalPath = if ($copiedPaths.Count -gt 0) { $copiedPaths -join "; " } else { "" }
@@ -268,14 +268,14 @@ function CompressOrCopy-File
 
 .OUTPUTS
     Returns a hashtable with the following properties:
-    - Success: Boolean indicating if compressed copy succeeded
+    - CompressedCopySucceeded: Boolean indicating if the compressed copy was used ($true) or fell back to uncompressed ($false)
     - CompressedPath: Path to compressed file (if compressed copy succeeded)
-    - UncompressedPath: Path to uncompressed file (if compressed copy failed)
+    - UncompressedPath: Path to uncompressed file (if fell back to uncompressed)
     - FinalPath: Path to the final file that was copied
 
 .EXAMPLE
     $result = CopyCompressedOrUncompressed-FileFromSession -VMSession $session -CompressedSourcePath "C:\eBPF\trace.zip" -UncompressedSourcePath "C:\eBPF\trace.etl" -DestinationDirectory ".\Logs"
-    if ($result.Success) {
+    if ($result.CompressedCopySucceeded) {
         Write-Host "Compressed copy succeeded: $($result.FinalPath)"
     } else {
         Write-Host "Using uncompressed fallback: $($result.FinalPath)"
@@ -307,13 +307,13 @@ function CopyCompressedOrUncompressed-FileFromSession
     for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
         try {
             Write-Log "Attempting compressed file copy (attempt $attempt of $MaxRetries)"
-            Copy-Item `
-                -FromSession $VMSession `
+            $copyResult = Copy-FromSessionWithTimeout `
+                -Session $VMSession `
                 -Path $CompressedSourcePath `
                 -Destination $DestinationDirectory `
+                -OperationName "Compressed file copy" `
                 -Recurse `
-                -Force `
-                -ErrorAction Stop
+                -CopyErrorAction 'Stop'
 
             # Check if compressed copy succeeded.
             if (Test-Path $compressedDestPath) {
@@ -331,7 +331,7 @@ function CopyCompressedOrUncompressed-FileFromSession
 
     if ($compressedCopySucceeded) {
         return @{
-            Success = $true
+            CompressedCopySucceeded = $true
             CompressedPath = $compressedDestPath
             UncompressedPath = ""
             FinalPath = $compressedDestPath
@@ -346,12 +346,15 @@ function CopyCompressedOrUncompressed-FileFromSession
         $sourceFiles = @()
         if ($UncompressedSourcePath -like "*\*.*") {
             try {
-                $sourceFiles = Invoke-Command -Session $VMSession -ScriptBlock {
-                    param($Path)
-                    Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
-                } -ArgumentList $UncompressedSourcePath -ErrorAction SilentlyContinue
+                $sourceFiles = Invoke-WithTimeout -OperationName "Expand wildcard path" -TimeoutMs 30000 -ScriptBlock {
+                    param($session, $path)
+                    Invoke-Command -Session $session -ScriptBlock {
+                        param($Path)
+                        Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+                    } -ArgumentList $path -ErrorAction SilentlyContinue
+                } -ArgumentList @($VMSession, $UncompressedSourcePath)
 
-                if ($sourceFiles.Count -eq 0) {
+                if (-not $sourceFiles -or $sourceFiles.Count -eq 0) {
                     Write-Log "No files found matching pattern: $UncompressedSourcePath"
                 }
             } catch {
@@ -370,12 +373,12 @@ function CopyCompressedOrUncompressed-FileFromSession
             for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
                 try {
                     Write-Log "Attempting to copy $sourceFile (attempt $attempt of $MaxRetries)"
-                    Copy-Item `
-                        -FromSession $VMSession `
+                    $copyResult = Copy-FromSessionWithTimeout `
+                        -Session $VMSession `
                         -Path $sourceFile `
                         -Destination $DestinationDirectory `
-                        -Force `
-                        -ErrorAction Stop
+                        -OperationName "Copy $fileName" `
+                        -CopyErrorAction 'Stop'
 
                     # Check if copy succeeded.
                     if (Test-Path $destPath) {
@@ -398,12 +401,146 @@ function CopyCompressedOrUncompressed-FileFromSession
         }
 
         return @{
-            Success = $false
+            CompressedCopySucceeded = $false
             CompressedPath = ""
             UncompressedPath = $uncompressedDestPath
             FinalPath = $uncompressedDestPath
         }
     }
+}
+
+<#
+.SYNOPSIS
+    Safely stops and removes a PowerShell job with bounded timeouts.
+.DESCRIPTION
+    Wraps Stop-Job and Remove-Job in bounded async calls to prevent hangs
+    when the job's transport (e.g. VMBus/PS Direct) is stuck.
+.PARAMETER Job
+    The job to stop and remove.
+.PARAMETER TimeoutMs
+    Maximum time in milliseconds to wait for each operation. Default 30000 (30s).
+#>
+function Remove-JobSafely {
+    param(
+        [Parameter(Mandatory=$true)] [System.Management.Automation.Job] $Job,
+        [Parameter(Mandatory=$false)] [int] $TimeoutMs = 30000
+    )
+    # Attempt Stop-Job with a timeout (it can hang on stuck transports).
+    if ($Job.State -eq 'Running') {
+        $ps = $null
+        try {
+            $ps = [powershell]::Create().AddScript({ param($j) Stop-Job -Job $j -ErrorAction SilentlyContinue }).AddArgument($Job)
+            $async = $ps.BeginInvoke()
+            if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+                Write-Log "Warning: Stop-Job timed out after $($TimeoutMs / 1000)s"
+            }
+            try { $ps.EndInvoke($async) } catch {}
+        } catch {} finally {
+            if ($ps) { $ps.Dispose() }
+        }
+    }
+    # Attempt Remove-Job with a timeout.
+    $ps = $null
+    try {
+        $ps = [powershell]::Create().AddScript({ param($j) Remove-Job -Job $j -Force -ErrorAction SilentlyContinue }).AddArgument($Job)
+        $async = $ps.BeginInvoke()
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+            Write-Log "Warning: Remove-Job timed out after $($TimeoutMs / 1000)s"
+        }
+        try { $ps.EndInvoke($async) } catch {}
+    } catch {} finally {
+        if ($ps) { $ps.Dispose() }
+    }
+}
+
+<#
+.SYNOPSIS
+    Runs a script block with a bounded timeout using a separate PowerShell runspace.
+.DESCRIPTION
+    Executes the given script block in a new runspace. If the operation does not complete
+    within TimeoutMs, it is stopped and $null is returned. This prevents any single
+    operation (e.g. Copy-Item -FromSession over a stuck PS Direct transport) from
+    blocking indefinitely.
+.PARAMETER ScriptBlock
+    The script block to execute.
+.PARAMETER ArgumentList
+    Arguments to pass to the script block.
+.PARAMETER TimeoutMs
+    Maximum time in milliseconds to wait. Default 300000 (5 minutes).
+.PARAMETER OperationName
+    Descriptive name for log messages.
+#>
+function Invoke-WithTimeout {
+    param(
+        [Parameter(Mandatory=$true)] [ScriptBlock] $ScriptBlock,
+        [Parameter(Mandatory=$false)] [object[]] $ArgumentList = @(),
+        [Parameter(Mandatory=$false)] [int] $TimeoutMs = 300000,
+        [Parameter(Mandatory=$false)] [string] $OperationName = "Operation"
+    )
+    try {
+        $ps = [powershell]::Create()
+        $null = $ps.AddScript($ScriptBlock)
+        foreach ($arg in $ArgumentList) {
+            $null = $ps.AddArgument($arg)
+        }
+        $async = $ps.BeginInvoke()
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs)) {
+            Write-Log "Warning: $OperationName timed out after $($TimeoutMs / 1000)s"
+            try { $ps.Stop() } catch {}
+            return $null
+        }
+        return $ps.EndInvoke($async)
+    } catch {
+        Write-Log "Warning: $OperationName failed: $($_.Exception.Message)"
+        return $null
+    } finally {
+        if ($ps) { $ps.Dispose() }
+    }
+}
+
+<#
+.SYNOPSIS
+    Copies a file from a remote PS session with a bounded timeout.
+.DESCRIPTION
+    Wraps Copy-Item -FromSession inside Invoke-WithTimeout to prevent hangs
+    on stuck PS Direct transports.
+.PARAMETER Session
+    The PSSession to copy from.
+.PARAMETER Path
+    Source path on the remote session.
+.PARAMETER Destination
+    Local destination path.
+.PARAMETER OperationName
+    Descriptive name for log messages.
+.PARAMETER TimeoutMs
+    Maximum time in milliseconds to wait. Default 300000 (5 minutes).
+.PARAMETER Recurse
+    Whether to copy recursively.
+.PARAMETER CopyErrorAction
+    ErrorAction for the inner Copy-Item call. Default 'Ignore'.
+#>
+function Copy-FromSessionWithTimeout {
+    param(
+        [Parameter(Mandatory=$true)] [System.Management.Automation.Runspaces.PSSession] $Session,
+        [Parameter(Mandatory=$true)] [string] $Path,
+        [Parameter(Mandatory=$true)] [string] $Destination,
+        [Parameter(Mandatory=$false)] [string] $OperationName = "Copy file from session",
+        [Parameter(Mandatory=$false)] [int] $TimeoutMs = 300000,
+        [Parameter(Mandatory=$false)] [switch] $Recurse,
+        [Parameter(Mandatory=$false)] [string] $CopyErrorAction = 'Ignore'
+    )
+    Invoke-WithTimeout -OperationName $OperationName -TimeoutMs $TimeoutMs -ScriptBlock {
+        param($session, $src, $dst, $recurse, $errorAction)
+        $params = @{
+            FromSession = $session
+            Path        = $src
+            Destination = $dst
+            Force       = $true
+            ErrorAction = $errorAction
+        }
+        if ($recurse) { $params['Recurse'] = $true }
+        Copy-Item @params
+    } -ArgumentList @($Session, $Path, $Destination, [bool]$Recurse, $CopyErrorAction)
 }
 
 function Wait-TestJobToComplete
@@ -421,7 +558,8 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $false)] [string] $TestMode="CI/CD",
            [Parameter(Mandatory = $false)] [string[]] $Options=@("None"),
            [Parameter(Mandatory = $false)] [int] $TestHangTimeout=(10*60),
-           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps")
+           [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder="C:\Dumps",
+           [Parameter(Mandatory = $false)] [bool] $GenerateKernelDumpOnTimeout=$false)
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time.
     while ($Job.State -eq 'Running') {
@@ -437,13 +575,13 @@ function Wait-TestJobToComplete
 
         if ($TimeElapsed -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
-                if ($ExecuteOnVM) {
+                Write-Host "Job on $CheckpointPrefix has timed out after $($TestJobTimeout / 60) minutes." -ForegroundColor Yellow
+                if ($GenerateKernelDumpOnTimeout -and $ExecuteOnVM) {
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
                     # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
 
                     try {
-                        Write-Host "Running kernel test job on $TestVMName has timed out after $($TestJobTimeout / 60) minutes." -ForegroundColor Yellow
                         Write-Log "Generating kernel dump due to test timeout on $TestVMName"
 
                         Import-Module "$PSScriptRoot\vm_run_tests.psm1" -ArgumentList @(
@@ -464,6 +602,17 @@ function Wait-TestJobToComplete
                     } catch {
                         # Do nothing - this is expected as the VM will crash.
                     }
+
+                    # Restore common.psm1 globally. The Import-Module -Force of
+                    # vm_run_tests.psm1 above causes common.psm1 to be forcefully
+                    # re-imported into that module's scope, which removes it from the
+                    # session-wide module table and breaks callers that previously
+                    # imported it (e.g. execute_ebpf_cicd_tests.ps1 loses Write-Log
+                    # and Remove-JobSafely).
+                    Import-Module "$PSScriptRoot\common.psm1" -Force `
+                        -ArgumentList ($LogFileName) `
+                        -WarningAction SilentlyContinue `
+                        -Scope Global
                 }
                 $JobTimedOut = $true
                 break

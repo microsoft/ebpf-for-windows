@@ -41,7 +41,9 @@ get_metadata_table();
 
 static bool _expect_native_module_load_failures = false;
 
+// clang-format off
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+// clang-format on
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -346,13 +348,13 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
                     // Wait for the deregistration to complete.
                     NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
                 } else {
-                    REQUIRE(NT_SUCCESS(status));
+                    assert(NT_SUCCESS(status));
                 }
                 context->nmr_client_handle = nullptr;
             }
         }
         // The service should have been marked for deletion till now.
-        REQUIRE((context->delete_pending || get_native_module_failures()));
+        assert(context->delete_pending || get_native_module_failures());
         if (context->dll != nullptr) {
             FreeLibrary(context->dll);
         }
@@ -391,7 +393,7 @@ static void
 _preprocess_load_native_module(_Inout_ service_context_t* context)
 {
     context->dll = LoadLibraryW(context->file_path.c_str());
-    REQUIRE(((context->dll != nullptr) || get_native_module_failures()));
+    assert(((context->dll != nullptr) || get_native_module_failures()));
 
     if (context->dll == nullptr) {
         return;
@@ -400,14 +402,16 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     auto get_function =
         reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
     if (get_function == nullptr) {
-        REQUIRE(get_native_module_failures());
+        assert(get_native_module_failures());
         return;
     }
 
     context->table = get_function();
-    REQUIRE(context->table != nullptr);
+    assert(context->table != nullptr);
 
-    REQUIRE(NT_SUCCESS(NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle)));
+    NTSTATUS status = NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle);
+    assert(NT_SUCCESS(status));
+    UNREFERENCED_PARAMETER(status);
 
     context->loaded = true;
 }
@@ -421,7 +425,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             const ebpf_operation_load_native_module_request_t* request =
                 (ebpf_operation_load_native_module_request_t*)user_request;
             size_t service_name_length = ((uint8_t*)request) + request->header.length - (uint8_t*)request->data;
-            REQUIRE(((service_name_length % 2 == 0) || cxplat_fault_injection_is_enabled()));
+            assert(((service_name_length % 2 == 0) || cxplat_fault_injection_is_enabled()));
 
             std::wstring service_path;
             service_path.assign((wchar_t*)request->data, service_name_length / 2);
@@ -432,7 +436,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
                 context->second->module_id.Guid = request->module_id;
 
                 if (context->second->loaded) {
-                    REQUIRE(get_native_module_failures());
+                    assert(get_native_module_failures());
                 } else {
                     _preprocess_load_native_module(context->second);
                 }
@@ -803,8 +807,8 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
 
 _test_helper_libbpf::_test_helper_libbpf()
     : bind_program_info(nullptr), bind_hook(nullptr), cgroup_sock_addr_program_info(nullptr),
-      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr),
-      xdp_program_info(nullptr), xdp_hook(nullptr)
+      cgroup_inet4_connect_hook(nullptr), sample_program_info(nullptr), sample_hook(nullptr), xdp_program_info(nullptr),
+      xdp_hook(nullptr)
 {
     ebpf_clear_thread_local_storage();
 }

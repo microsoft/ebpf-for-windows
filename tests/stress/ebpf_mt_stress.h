@@ -37,7 +37,7 @@ _log(log_level msg_level, const std::string_view& fmt, Args&&... args)
 {
     extern log_level cur_log_level;
     if (msg_level <= cur_log_level) {
-        std::cout << std::vformat(fmt, std::make_format_args(args...)) << "\n";
+        std::cerr << std::vformat(fmt, std::make_format_args(args...)) << "\n";
     }
 }
 
@@ -96,7 +96,6 @@ struct test_program_attributes
     std::string extension_name{};
     test_thread_function_t test_thread_function{nullptr};
     bpf_prog_type program_type{BPF_PROG_TYPE_UNSPEC};
-    ebpf_execution_type_t execution_type{EBPF_EXECUTION_ANY};
 };
 
 inline std::variant<bool, test_program_attributes>

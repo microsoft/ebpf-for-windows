@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "api_internal.h"
 #include "bpf/bpf.h"
 #pragma warning(push)
 #pragma warning(disable : 4200)
@@ -19,6 +20,8 @@
 #include "test_helper.hpp"
 
 #include <chrono>
+#include <crtdbg.h>
+#include <cstdlib>
 #include <fstream>
 #include <mutex>
 #include <stop_token>
@@ -4490,3 +4493,124 @@ _program_flags_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("program_flag_test", "[libbpf]", _program_flags_test);
+
+// ============================================================================
+// Regression test: native program count mismatch bounds validation
+// ============================================================================
+
+// Custom invalid parameter handler for debug builds.
+// In debug mode, MSVC STL iterator debugging detects the out-of-bounds
+// vector access and calls the invalid parameter handler instead of allowing
+// the raw memory read. We convert it to an access violation structured
+// exception so the SEH handler below can catch it uniformly.
+static void
+_test_oob_invalid_parameter_handler(
+    const wchar_t* expression, const wchar_t* function, const wchar_t* file, unsigned int line, uintptr_t reserved)
+{
+    UNREFERENCED_PARAMETER(expression);
+    UNREFERENCED_PARAMETER(function);
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    UNREFERENCED_PARAMETER(reserved);
+    RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
+}
+
+// SEH helper — must not contain C++ objects with non-trivial destructors,
+// as SEH and C++ exception unwinding are incompatible under /EHsc.
+static int
+_try_bpf_object_load_detect_av(_Inout_ struct bpf_object* object, _Out_ bool* access_violation_detected)
+{
+    *access_violation_detected = false;
+    int result = 0;
+    __try {
+        result = bpf_object__load(object);
+    } __except (
+        GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+        *access_violation_detected = true;
+        result = -1;
+    }
+    return result;
+}
+
+TEST_CASE("native_program_count_mismatch_oob_access", "[native][regression]")
+{
+    // Regression test: when the kernel-reported program count disagrees
+    // with the user-mode parsed program count, native program loading
+    // must return an error instead of accessing out-of-bounds memory.
+    //
+    // We simulate the mismatch by emptying object->programs after
+    // bpf_object__open (which populates it from PE parsing) but before
+    // bpf_object__load (which gets count_of_programs from the kernel).
+    // The kernel (mock) will still report the original program count,
+    // causing a mismatch with the empty programs vector.
+
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Phase 1: Open a valid native module.
+    // This parses the PE file's "programs" section and populates
+    // object->programs with the discovered eBPF program entries.
+    struct bpf_object* object = bpf_object__open("droppacket_um.dll");
+    REQUIRE(object != nullptr);
+
+    size_t original_program_count = object->programs.size();
+    REQUIRE(original_program_count > 0);
+
+    // Phase 2: Simulate kernel/PE program count mismatch.
+    // A mismatch can occur when the kernel's native module exports a
+    // compile-time program array size that differs from the count
+    // derived by the user-mode PE parser (e.g., due to PE section
+    // alignment differences caused by certain map types).
+    //
+    // We simulate this by swapping the programs vector to empty.
+    std::vector<ebpf_program_t*> saved_programs;
+    saved_programs.swap(object->programs);
+
+    // Phase 3: Set up handlers for both debug and release builds.
+    // - Release: operator[] on empty vector reads from nullptr -> AV.
+    // - Debug: STL iterator debugging fires _invalid_parameter before
+    //   the memory access. Our custom handler converts it to an AV.
+    auto old_handler = _set_invalid_parameter_handler(_test_oob_invalid_parameter_handler);
+
+    // Suppress the CRT assertion dialog in debug builds so it doesn't
+    // block the test. Route assertions to debugger output only.
+#ifdef _DEBUG
+    int old_assert_mode = _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
+    int old_error_mode = _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+
+    // Suppress Windows Error Reporting dialogs and Watson dumps.
+    UINT old_error_flags = SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    unsigned int old_abort_behavior = _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+
+    // Phase 4: Attempt to load.
+    // The kernel (mock) will report original_program_count programs via
+    // the IOCTL reply, but object->programs has 0 entries, creating a
+    // count mismatch that should be rejected with an error.
+    set_native_module_failures(true);
+    bool access_violation_detected = false;
+    int result = _try_bpf_object_load_detect_av(object, &access_violation_detected);
+
+    // Phase 5: Restore state.
+    set_native_module_failures(false);
+    _set_invalid_parameter_handler(old_handler);
+#ifdef _DEBUG
+    _CrtSetReportMode(_CRT_ASSERT, old_assert_mode);
+    _CrtSetReportMode(_CRT_ERROR, old_error_mode);
+#endif
+    _set_abort_behavior(old_abort_behavior, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+    SetErrorMode(old_error_flags);
+    object->programs.swap(saved_programs);
+
+    // Phase 6: Clean up and verify results.
+    bpf_object__close(object);
+
+    if (access_violation_detected) {
+        FAIL("Native program loading crashed with an access violation due "
+             "to an out-of-bounds access when the kernel-reported program "
+             "count exceeds the user-mode parsed program count.");
+    } else {
+        // The count mismatch was correctly detected and an error was returned.
+        REQUIRE(result < 0);
+    }
+}
