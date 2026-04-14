@@ -63,10 +63,10 @@ is the transformed version (e.g., a kernel pointer) that should not be directly 
 ```c
 typedef struct _ebpf_map_provider_dispatch_table {
     ebpf_extension_header_t header;
-    _Notnull_ ebpf_process_map_create_t process_map_create;
-    _Notnull_ ebpf_process_map_delete_t process_map_delete;
-    _Notnull_ ebpf_map_associate_program_type_t associate_program_function;
-    ebpf_process_map_find_element_t process_map_find_element;
+    _Notnull_ ebpf_preprocess_map_create_t preprocess_map_create;
+    _Notnull_ ebpf_postprocess_map_delete_t postprocess_map_delete;
+    _Notnull_ ebpf_preprocess_map_associate_program_type_t preprocess_associate_program_type;
+    ebpf_postprocess_map_find_element_t postprocess_map_find_element;
     ebpf_preprocess_map_element_addition_t preprocess_map_element_addition;
     ebpf_preprocess_map_element_deletion_t preprocess_map_element_deletion;
 } ebpf_base_map_provider_dispatch_table_t;
@@ -77,14 +77,14 @@ typedef struct _ebpf_map_provider_dispatch_table {
 The function pointer types used in the dispatch table are defined in `ebpf_extension.h`. An extension (provider)
 needs to implement the dispatch table. The eBPF runtime invokes these functions as described below.
 
-`process_map_create`, `process_map_delete`, and `associate_program_function` are required to be non-NULL. If the
-extension sets `updates_original_value` to true, the CRUD callback fields (`process_map_find_element`,
+`preprocess_map_create`, `postprocess_map_delete`, and `preprocess_associate_program_type` are required to be non-NULL. If the
+extension sets `updates_original_value` to true, the CRUD callback fields (`postprocess_map_find_element`,
 `preprocess_map_element_addition`, `preprocess_map_element_deletion`) must also be non-NULL, otherwise eBPFCore will fail the
 map creation. If `updates_original_value` is false, these CRUD fields can be optionally NULL.
 
 ---
 
-#### `ebpf_process_map_create_t` — Map Creation (required)
+#### `ebpf_preprocess_map_create_t` — Map Creation (required)
 
 eBPF runtime invokes `process_map_create` to validate the key and value sizes, allocate a provider-defined per-map
 context, and optionally return a different `actual_value_size`. The extension allocates a map context and returns a
@@ -97,7 +97,7 @@ can read or modify the value in place. Therefore, for maps where an extension in
 being stored in the map, map CRUD operations from BPF programs are disallowed by the eBPF runtime.
 
 ```c
-typedef ebpf_result_t (*ebpf_process_map_create_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_create_t)(
     _In_ void* binding_context,
     uint32_t map_type,
     uint32_t key_size,
@@ -109,26 +109,26 @@ typedef ebpf_result_t (*ebpf_process_map_create_t)(
 
 ---
 
-#### `ebpf_process_map_delete_t` — Map Deletion (required)
+#### `ebpf_postprocess_map_delete_t` — Map Deletion (required)
 
 eBPF runtime invokes `process_map_delete` to notify the extension that the map is being deleted. The extension
 should free its per-map context.
 
 ```c
-typedef void (*ebpf_process_map_delete_t)(
+typedef void (*ebpf_postprocess_map_delete_t)(
     _In_ void* binding_context,
     _In_ _Post_invalid_ void* map_context);
 ```
 
 ---
 
-#### `ebpf_map_associate_program_type_t` — Associate Program (required)
+#### `ebpf_preprocess_map_associate_program_type_t` — Associate Program (required)
 
 eBPF runtime invokes `associate_program_function` before a custom map is associated with a program. The extension
 can validate whether the map type is compatible with the given program type.
 
 ```c
-typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
+typedef ebpf_result_t (*ebpf_preprocess_map_associate_program_type_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     _In_ const ebpf_program_type_t* program_type);
@@ -136,14 +136,14 @@ typedef ebpf_result_t (*ebpf_map_associate_program_type_t)(
 
 ---
 
-#### `ebpf_process_map_find_element_t` — Find Element (optional)
+#### `ebpf_postprocess_map_find_element_t` — Find Element (optional)
 
 Called *after* reading from the base map. If the provider sets `updates_original_value` to true, the extension can
 transform the retrieved value (e.g., kernel pointer → user-visible value) via `out_value` before returning to the
 caller. If `updates_original_value` is false, `out_value` will be NULL and `out_value_size` will be 0.
 
 ```c
-typedef ebpf_result_t (*ebpf_process_map_find_element_t)(
+typedef ebpf_result_t (*ebpf_postprocess_map_find_element_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
