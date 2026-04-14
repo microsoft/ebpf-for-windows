@@ -170,11 +170,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -208,14 +209,14 @@ _get_global_variable_sections(
 
 static helper_function_entry_t count_tcp_connect_authorization4_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
 };
 
@@ -297,12 +298,6 @@ count_tcp_connect_authorization4(void* context, const program_runtime_context_t*
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/cgroup_connect_authorization4.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 41 "sample/cgroup_connect_authorization4.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 41 "sample/cgroup_connect_authorization4.c"
-        return 0;
-#line 41 "sample/cgroup_connect_authorization4.c"
-    }
     // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
 #line 41 "sample/cgroup_connect_authorization4.c"
     r1 = IMMEDIATE(1);
@@ -347,12 +342,6 @@ label_1:
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=2
 #line 46 "sample/cgroup_connect_authorization4.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 46 "sample/cgroup_connect_authorization4.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 46 "sample/cgroup_connect_authorization4.c"
-        return 0;
-#line 46 "sample/cgroup_connect_authorization4.c"
-    }
     // EBPF_OP_LDXDW pc=26 dst=r1 src=r10 offset=-16 imm=0
 #line 51 "sample/cgroup_connect_authorization4.c"
     READ_ONCE_64(r1, r10, OFFSET(-16));
@@ -412,7 +401,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 1;
+    version->minor = 2;
     version->revision = 0;
 }
 

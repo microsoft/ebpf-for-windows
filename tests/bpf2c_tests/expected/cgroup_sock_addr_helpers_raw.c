@@ -15,11 +15,12 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -32,11 +33,12 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "network_context_map"},
-    {{0, 0},
+    {
+     {0, 0},
      {
-         1,  // Current Version.
-         80, // Struct size up to the last field.
-         80, // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -70,19 +72,19 @@ _get_global_variable_sections(
 
 static helper_function_entry_t conditional_auth_v4_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65538,
-        "helper_id_65538",
+     {1, 40, 40}, // Version header.
+     65538,
+     "helper_id_65538",
     },
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
 };
 
@@ -165,12 +167,6 @@ conditional_auth_v4(void* context, const program_runtime_context_t* runtime_cont
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=65538
 #line 66 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 66 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 66 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 66 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_LSH64_IMM pc=12 dst=r0 src=r0 offset=0 imm=32
 #line 66 "sample/cgroup_sock_addr_helpers.c"
     r0 <<= (IMMEDIATE(32) & 63);
@@ -228,12 +224,6 @@ conditional_auth_v4(void* context, const program_runtime_context_t* runtime_cont
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=1
 #line 74 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 74 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 74 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 74 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_JEQ_IMM pc=28 dst=r0 src=r0 offset=3 imm=0
 #line 74 "sample/cgroup_sock_addr_helpers.c"
     if (r0 == IMMEDIATE(0)) {
@@ -272,12 +262,6 @@ label_1:
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=2
 #line 81 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 81 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 81 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 81 "sample/cgroup_sock_addr_helpers.c"
-    }
 label_2:
     // EBPF_OP_MOV64_REG pc=40 dst=r0 src=r6 offset=0 imm=0
 #line 81 "sample/cgroup_sock_addr_helpers.c"
@@ -292,19 +276,19 @@ label_2:
 
 static helper_function_entry_t test_sock_addr_helpers_v4_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65538,
-        "helper_id_65538",
+     {1, 40, 40}, // Version header.
+     65538,
+     "helper_id_65538",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
 };
 
@@ -403,12 +387,6 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
     // EBPF_OP_CALL pc=16 dst=r0 src=r0 offset=0 imm=65538
 #line 67 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 67 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 67 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 67 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_LSH64_IMM pc=17 dst=r0 src=r0 offset=0 imm=32
 #line 67 "sample/cgroup_sock_addr_helpers.c"
     r0 <<= (IMMEDIATE(32) & 63);
@@ -444,11 +422,7 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
 #line 74 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 74 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 74 "sample/cgroup_sock_addr_helpers.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=28 dst=r6 src=r0 offset=0 imm=1
 #line 74 "sample/cgroup_sock_addr_helpers.c"
     r6 = IMMEDIATE(1);
@@ -470,12 +444,6 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=1
 #line 79 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 79 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 79 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 79 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_JEQ_IMM pc=36 dst=r0 src=r0 offset=3 imm=0
 #line 80 "sample/cgroup_sock_addr_helpers.c"
     if (r0 == IMMEDIATE(0)) {
@@ -514,12 +482,6 @@ label_1:
     // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=2
 #line 83 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 83 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 83 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 83 "sample/cgroup_sock_addr_helpers.c"
-    }
 label_2:
     // EBPF_OP_MOV64_REG pc=48 dst=r0 src=r6 offset=0 imm=0
 #line 86 "sample/cgroup_sock_addr_helpers.c"
@@ -534,19 +496,19 @@ label_2:
 
 static helper_function_entry_t test_sock_addr_helpers_v6_helpers[] = {
     {
-        {1, 40, 40}, // Version header.
-        65538,
-        "helper_id_65538",
+     {1, 40, 40}, // Version header.
+     65538,
+     "helper_id_65538",
     },
     {
-        {1, 40, 40}, // Version header.
-        2,
-        "helper_id_2",
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
     },
     {
-        {1, 40, 40}, // Version header.
-        1,
-        "helper_id_1",
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
     },
 };
 
@@ -651,12 +613,6 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=65538
 #line 108 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 108 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 108 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 108 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_LSH64_IMM pc=19 dst=r0 src=r0 offset=0 imm=32
 #line 108 "sample/cgroup_sock_addr_helpers.c"
     r0 <<= (IMMEDIATE(32) & 63);
@@ -692,11 +648,7 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
 #line 114 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 114 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 114 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 114 "sample/cgroup_sock_addr_helpers.c"
-    }
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=30 dst=r1 src=r0 offset=0 imm=2
 #line 114 "sample/cgroup_sock_addr_helpers.c"
     r1 = IMMEDIATE(2);
@@ -721,12 +673,6 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
     // EBPF_OP_CALL pc=38 dst=r0 src=r0 offset=0 imm=1
 #line 119 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
-#line 119 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
-#line 119 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 119 "sample/cgroup_sock_addr_helpers.c"
-    }
     // EBPF_OP_JEQ_IMM pc=39 dst=r0 src=r0 offset=3 imm=0
 #line 120 "sample/cgroup_sock_addr_helpers.c"
     if (r0 == IMMEDIATE(0)) {
@@ -765,12 +711,6 @@ label_1:
     // EBPF_OP_CALL pc=50 dst=r0 src=r0 offset=0 imm=2
 #line 123 "sample/cgroup_sock_addr_helpers.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 123 "sample/cgroup_sock_addr_helpers.c"
-    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 123 "sample/cgroup_sock_addr_helpers.c"
-        return 0;
-#line 123 "sample/cgroup_sock_addr_helpers.c"
-    }
 label_2:
     // EBPF_OP_MOV64_REG pc=51 dst=r0 src=r6 offset=0 imm=0
 #line 126 "sample/cgroup_sock_addr_helpers.c"
@@ -844,7 +784,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 1;
+    version->minor = 2;
     version->revision = 0;
 }
 
