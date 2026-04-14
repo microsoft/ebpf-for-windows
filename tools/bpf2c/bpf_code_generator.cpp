@@ -1735,8 +1735,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 if (helper_id == BPF_FUNC_map_lookup_elem) {
                     auto ann_it = map_annotations.find(output.instruction_offset);
                     if (ann_it != map_annotations.end() && ann_it->second.map_name != nullptr &&
-                        ann_it->second.map_type == BPF_MAP_TYPE_ARRAY &&
-                        !ann_it->second.is_inner_map_template) {
+                        ann_it->second.map_type == BPF_MAP_TYPE_ARRAY && !ann_it->second.is_inner_map_template) {
                         // Look up the map in bpf2c's own map_definitions by name
                         // to get the correct runtime map_data index.
                         auto map_it = map_definitions.find(ann_it->second.map_name);
