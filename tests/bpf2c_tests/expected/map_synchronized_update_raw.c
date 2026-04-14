@@ -177,7 +177,21 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
     r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 53 "sample/undocked/map_synchronized_update.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 53 "sample/undocked/map_synchronized_update.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 53 "sample/undocked/map_synchronized_update.c"
+        if (_array_key < 1) {
+#line 53 "sample/undocked/map_synchronized_update.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
+#line 53 "sample/undocked/map_synchronized_update.c"
+        } else {
+#line 53 "sample/undocked/map_synchronized_update.c"
+            r0 = 0;
+#line 53 "sample/undocked/map_synchronized_update.c"
+        }
+#line 53 "sample/undocked/map_synchronized_update.c"
+    }
     // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=16 imm=0
 #line 54 "sample/undocked/map_synchronized_update.c"
     if (r0 == IMMEDIATE(0)) {

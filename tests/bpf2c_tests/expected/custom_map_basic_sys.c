@@ -545,7 +545,21 @@ test_map_find_and_delete_element(void* context, const program_runtime_context_t*
     r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 88 "sample/undocked/custom_map_basic.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 88 "sample/undocked/custom_map_basic.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 88 "sample/undocked/custom_map_basic.c"
+        if (_array_key < 1) {
+#line 88 "sample/undocked/custom_map_basic.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[2].array_data + (uint64_t)_array_key * 4);
+#line 88 "sample/undocked/custom_map_basic.c"
+        } else {
+#line 88 "sample/undocked/custom_map_basic.c"
+            r0 = 0;
+#line 88 "sample/undocked/custom_map_basic.c"
+        }
+#line 88 "sample/undocked/custom_map_basic.c"
+    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
 #line 89 "sample/undocked/custom_map_basic.c"
     if (r0 == IMMEDIATE(0)) {

@@ -210,21 +210,7 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
     r1 = r0;
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=1
 #line 57 "sample/undocked/map_reuse.c"
-    {
-#line 57 "sample/undocked/map_reuse.c"
-        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 57 "sample/undocked/map_reuse.c"
-        if (_array_key < 1) {
-#line 57 "sample/undocked/map_reuse.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[2].array_data + (uint64_t)_array_key * 4);
-#line 57 "sample/undocked/map_reuse.c"
-        } else {
-#line 57 "sample/undocked/map_reuse.c"
-            r0 = 0;
-#line 57 "sample/undocked/map_reuse.c"
-        }
-#line 57 "sample/undocked/map_reuse.c"
-    }
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
     // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
 #line 58 "sample/undocked/map_reuse.c"
     if (r0 != IMMEDIATE(0)) {
