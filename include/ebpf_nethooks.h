@@ -184,8 +184,8 @@ typedef struct _bpf_sock_addr_network_context
     uint32_t version;                 ///< Struct version (currently 1).
     uint32_t interface_type;          ///< IANA interface type, or UINT32_MAX if not available.
     uint32_t tunnel_type;             ///< IANA tunnel type; 0 if not a tunnel, or UINT32_MAX if not available.
-    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID, or UINT64_MAX if not available.
-    uint32_t sub_interface_index;     ///< Sub-interface index, or UINT32_MAX if not available.
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID, or 0 if not available.
+    uint32_t sub_interface_index;     ///< Sub-interface index, or 0 if not available.
 } bpf_sock_addr_network_context_t;
 
 #define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1

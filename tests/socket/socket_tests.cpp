@@ -828,10 +828,10 @@ helper_functions_validation_test(
     SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
 
     // Interface type should be a valid IANA-assigned value or UINT32_MAX if not available.
-    // Common values: 6 (Ethernet), 71 (WiFi), 24 (loopback), 131 (tunnel).
     bool valid_interface_type =
-        (net_ctx.interface_type == 6 || net_ctx.interface_type == 24 || net_ctx.interface_type == 71 ||
-         net_ctx.interface_type == 131 || net_ctx.interface_type == (uint32_t)-1);
+        (net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD || net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK ||
+         net_ctx.interface_type == IF_TYPE_IEEE80211 || net_ctx.interface_type == IF_TYPE_TUNNEL ||
+         net_ctx.interface_type == (uint32_t)-1);
     SAFE_REQUIRE(valid_interface_type);
 
     // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
@@ -839,9 +839,8 @@ helper_functions_validation_test(
     SAFE_REQUIRE(valid_tunnel_type);
 
     // Validate that at least some network context is available.
-    bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) ||
-                               (net_ctx.next_hop_interface_luid != (uint64_t)-1) ||
-                               (net_ctx.sub_interface_index != (uint32_t)-1);
+    bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) || (net_ctx.next_hop_interface_luid != 0) ||
+                               (net_ctx.sub_interface_index != 0);
     SAFE_REQUIRE(has_network_context);
 
     printf(
