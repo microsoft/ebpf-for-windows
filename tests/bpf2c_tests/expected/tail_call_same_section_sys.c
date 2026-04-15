@@ -390,7 +390,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 38 "sample/undocked/tail_call_same_section.c"
     }
 #line 38 "sample/undocked/tail_call_same_section.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].array_data);
     // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
 #line 38 "sample/undocked/tail_call_same_section.c"
     r2 = r10;

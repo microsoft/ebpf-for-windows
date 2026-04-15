@@ -386,7 +386,7 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
 #line 67 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].array_data);
     // EBPF_OP_MOV64_REG pc=20 dst=r2 src=r10 offset=0 imm=0
 #line 67 "sample/bindmonitor.c"
     r2 = r10;

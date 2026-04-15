@@ -1218,6 +1218,13 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
     }
 }
 
+static bool
+is_optimized_array_lookup(const ebpf_verifier_map_info_t& ann)
+{
+    return ann.helper_id == BPF_FUNC_map_lookup_elem && ann.map_name != nullptr && ann.map_type == BPF_MAP_TYPE_ARRAY &&
+           !ann.is_inner_map_template;
+}
+
 void
 bpf_code_generator::bpf_code_generator_program::encode_instructions(
     std::map<unsafe_string, map_info_t>& map_definitions,
@@ -1734,8 +1741,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 bool inlined = false;
                 if (helper_id == BPF_FUNC_map_lookup_elem) {
                     auto ann_it = map_annotations.find(output.instruction_offset);
-                    if (ann_it != map_annotations.end() && ann_it->second.map_name != nullptr &&
-                        ann_it->second.map_type == BPF_MAP_TYPE_ARRAY && !ann_it->second.is_inner_map_template) {
+                    if (ann_it != map_annotations.end() && is_optimized_array_lookup(ann_it->second)) {
                         // Look up the map in bpf2c's own map_definitions by name
                         // to get the correct runtime map_data index.
                         auto map_it = map_definitions.find(ann_it->second.map_name);
@@ -1787,9 +1793,36 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                         !program_output[j].relocation.empty()) {
                         auto future_map = map_definitions.find(program_output[j].relocation);
                         if (future_map != map_definitions.end()) {
-                            output.lines.push_back(std::format(
-                                "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[{}].address);",
-                                future_map->second.index));
+                            // Determine if the next map operation will be an optimized
+                            // array lookup by scanning forward from the LDDW to find
+                            // the associated CALL and checking its annotation.
+                            bool future_is_optimized_array = false;
+                            for (size_t k = j + 1; k < program_output.size(); k++) {
+                                auto& k_inst = program_output[k].instruction;
+                                if (k_inst.opcode == INST_OP_CALL && k_inst.src == INST_CALL_STATIC_HELPER) {
+                                    auto future_ann = map_annotations.find(program_output[k].instruction_offset);
+                                    if (future_ann != map_annotations.end() &&
+                                        is_optimized_array_lookup(future_ann->second)) {
+                                        future_is_optimized_array = true;
+                                    }
+                                    break;
+                                }
+                                if (program_output[k].jump_target || (k_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP ||
+                                    (k_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP32) {
+                                    break;
+                                }
+                            }
+                            if (future_is_optimized_array) {
+                                output.lines.push_back(std::format(
+                                    "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, "
+                                    "runtime_context->map_data[{}].array_data);",
+                                    future_map->second.index));
+                            } else {
+                                output.lines.push_back(std::format(
+                                    "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, "
+                                    "runtime_context->map_data[{}].address);",
+                                    future_map->second.index));
+                            }
                         }
                         break;
                     }

@@ -1506,7 +1506,7 @@ test_map_read_helper_value(void* context, const program_runtime_context_t* runti
 #line 89 "sample/undocked/custom_map_basic.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 89 "sample/undocked/custom_map_basic.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[2].array_data);
     // EBPF_OP_STXW pc=11 dst=r10 src=r6 offset=-4 imm=0
 #line 89 "sample/undocked/custom_map_basic.c"
     WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));

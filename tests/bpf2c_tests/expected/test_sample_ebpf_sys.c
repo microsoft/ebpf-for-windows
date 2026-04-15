@@ -309,7 +309,7 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
 #line 39 "sample/undocked/test_sample_ebpf.c"
     }
 #line 39 "sample/undocked/test_sample_ebpf.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].array_data);
     // EBPF_OP_MOV64_REG pc=9 dst=r8 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/test_sample_ebpf.c"
     r8 = r0;

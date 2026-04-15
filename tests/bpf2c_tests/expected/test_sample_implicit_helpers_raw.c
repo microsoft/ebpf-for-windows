@@ -188,7 +188,7 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
     }
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[0].array_data);
     // EBPF_OP_MOV64_REG pc=9 dst=r8 src=r0 offset=0 imm=0
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
     r8 = r0;

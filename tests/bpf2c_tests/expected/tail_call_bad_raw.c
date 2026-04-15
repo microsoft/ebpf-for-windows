@@ -179,7 +179,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 39 "sample/undocked/tail_call_bad.c"
     }
 #line 39 "sample/undocked/tail_call_bad.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].address);
+    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].array_data);
     // EBPF_OP_MOV64_REG pc=6 dst=r6 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/tail_call_bad.c"
     r6 = r0;
