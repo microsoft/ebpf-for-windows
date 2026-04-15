@@ -809,7 +809,9 @@ helper_functions_validation_test(
         connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
     } else {
         // For IPv6, use simplified hash based on loopback address.
-        connection_id = (in6addr_loopback.u.Word[0] ^ in6addr_loopback.u.Word[7]) ^ (htons(SOCKET_TEST_PORT) << 16);
+        // Must use 32-bit dwords to match the eBPF program's user_ip6[0] ^ user_ip6[3].
+        const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+        connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
     }
 
     // Validate that the network context helper returned reasonable values.
