@@ -26,6 +26,7 @@
 
 #include <chrono>
 #include <future>
+#include <ifdef.h>
 #include <iostream>
 #include <ipifcons.h>
 #include <memory>
@@ -829,20 +830,25 @@ helper_functions_validation_test(
     // Version should be 1.
     SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
 
-    // Interface type should be a valid IANA-assigned value or UINT32_MAX if not available.
+    // Interface type should be a valid IANA-assigned value or 0 (unspecified).
     bool valid_interface_type =
-        (net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD || net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK ||
-         net_ctx.interface_type == IF_TYPE_IEEE80211 || net_ctx.interface_type == IF_TYPE_TUNNEL ||
-         net_ctx.interface_type == (uint32_t)-1);
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
     SAFE_REQUIRE(valid_interface_type);
 
-    // Tunnel type should be 0 (no tunnel) or a valid IANA tunnel type.
-    bool valid_tunnel_type = (net_ctx.tunnel_type >= 0 && net_ctx.tunnel_type <= 100);
+    // Tunnel type should be TUNNEL_TYPE_NONE (no tunnel) or a valid IANA tunnel type.
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
     SAFE_REQUIRE(valid_tunnel_type);
 
     // Validate that at least some network context is available.
-    bool has_network_context = (net_ctx.interface_type != (uint32_t)-1) || (net_ctx.next_hop_interface_luid != 0) ||
-                               (net_ctx.sub_interface_index != 0);
+    bool has_network_context = (net_ctx.interface_type != 0) ||
+                               (net_ctx.next_hop_interface_luid != NET_IFLUID_UNSPECIFIED) ||
+                               (net_ctx.sub_interface_index != NET_IFINDEX_UNSPECIFIED);
     SAFE_REQUIRE(has_network_context);
 
     printf(

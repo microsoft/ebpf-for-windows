@@ -229,8 +229,8 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool v4_mapped : 1;
     // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
     // Fields use SDK-defined "unspecified" values when not available for the current attach type.
-    uint32_t interface_type;          ///< Interface type. UINT32_MAX if not available.
-    uint32_t tunnel_type;             ///< Tunnel type. 0 if not a tunnel, UINT32_MAX if not available.
+    uint32_t interface_type;          ///< Interface type. 0 if not available.
+    uint32_t tunnel_type;             ///< Tunnel type. TUNNEL_TYPE_NONE if not a tunnel or not available.
     uint64_t next_hop_interface_luid; ///< Next-hop interface LUID. NET_IFLUID_UNSPECIFIED (0) if not available.
     uint32_t sub_interface_index;     ///< Sub-interface index. NET_IFINDEX_UNSPECIFIED (0) if not available.
 } net_ebpf_sock_addr_t;
@@ -1598,10 +1598,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
     // Copy additional network layer properties (available for CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT layers).
     sock_addr_ctx->interface_type =
-        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : (uint32_t)-1;
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
 
     sock_addr_ctx->tunnel_type =
-        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : (uint32_t)-1;
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
 
     // Next hop can be NULL.
     if ((fields->next_hop_interface_field != 0) && (incoming_values[fields->next_hop_interface_field].value.uint64)) {

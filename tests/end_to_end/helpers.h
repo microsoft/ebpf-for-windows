@@ -29,6 +29,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier
 #include <ndis/nbl.h>
 #endif
+#include <ifdef.h>
 #include <vector>
 
 #define CONCAT(s1, s2) s1 s2
@@ -1121,10 +1122,10 @@ _ebpf_sock_addr_get_network_context(
     }
     bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
     net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
-    net_ctx->interface_type = (uint32_t)-1;
-    net_ctx->tunnel_type = 0;
-    net_ctx->next_hop_interface_luid = (uint64_t)-1;
-    net_ctx->sub_interface_index = (uint32_t)-1;
+    net_ctx->interface_type = 0;
+    net_ctx->tunnel_type = TUNNEL_TYPE_NONE;
+    net_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
+    net_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
     return 0;
 }
 
