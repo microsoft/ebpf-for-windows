@@ -531,7 +531,8 @@ _update_authorization_policy_map(
 // This proves the connect_authorization attach point runs after connect and
 // sees the post-redirect destination.
 void
-redirect_then_auth_reject_test(bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
+redirect_then_auth_reject_test(
+    bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
 {
     client_socket_t* sender_socket = nullptr;
     get_client_socket(dual_stack, &sender_socket);
@@ -555,7 +556,13 @@ redirect_then_auth_reject_test(bool dual_stack, _Inout_ sockaddr_storage& destin
     // Clean up policy maps.
     _update_authorization_policy_map(proxy, _globals.proxy_port, 0, false);
     _update_policy_map(
-        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, false);
+        destination,
+        proxy,
+        _globals.destination_port,
+        _globals.proxy_port,
+        _globals.connection_type,
+        dual_stack,
+        false);
 
     delete sender_socket;
 }
@@ -563,7 +570,8 @@ redirect_then_auth_reject_test(bool dual_stack, _Inout_ sockaddr_storage& destin
 // Test that authorization allows a connection after redirect, proving the
 // combined redirect + authorization flow works end-to-end.
 void
-redirect_then_auth_allow_test(bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
+redirect_then_auth_allow_test(
+    bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
 {
     client_socket_t* sender_socket = nullptr;
     get_client_socket(dual_stack, &sender_socket);
@@ -587,7 +595,13 @@ redirect_then_auth_allow_test(bool dual_stack, _Inout_ sockaddr_storage& destina
     // Clean up.
     _update_authorization_policy_map(proxy, _globals.proxy_port, 0, false);
     _update_policy_map(
-        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, false);
+        destination,
+        proxy,
+        _globals.destination_port,
+        _globals.proxy_port,
+        _globals.connection_type,
+        dual_stack,
+        false);
 
     delete sender_socket;
 }
@@ -762,57 +776,57 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
 // 2. Authorization can reject a connection that redirect allowed.
 // 3. Authorization can allow a connection through the combined flow.
 
-#define DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(destination, proxy)                                              \
+#define DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(destination, proxy)                                             \
     void combined_redirect_auth_tests_##destination##_##proxy##(                                                     \
         ADDRESS_FAMILY family, connection_type_t connection_type, bool dual_stack, _In_ test_addresses_t& addresses) \
-    {                                                                                                                 \
-        _initialize_test_globals();                                                                                   \
-        _globals.family = family;                                                                                     \
-        _globals.connection_type = connection_type;                                                                   \
-        /* Attach authorization programs if not already attached. */                                                  \
-        if (!_globals.attach_authorization_programs) {                                                                \
-            _globals.attach_authorization_programs = true;                                                            \
-            int result;                                                                                               \
-            if (_globals.attach_v4_program) {                                                                         \
-                bpf_program* auth_v4 =                                                                                \
-                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization4");            \
-                SAFE_REQUIRE(auth_v4 != nullptr);                                                                     \
-                result = bpf_prog_attach(                                                                             \
-                    bpf_program__fd(const_cast<const bpf_program*>(auth_v4)),                                         \
-                    0,                                                                                                \
-                    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,                                                           \
-                    0);                                                                                               \
-                SAFE_REQUIRE(result == 0);                                                                            \
-            }                                                                                                         \
-            if (_globals.attach_v6_program) {                                                                         \
-                bpf_program* auth_v6 =                                                                                \
-                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization6");            \
-                SAFE_REQUIRE(auth_v6 != nullptr);                                                                     \
-                result = bpf_prog_attach(                                                                             \
-                    bpf_program__fd(const_cast<const bpf_program*>(auth_v6)),                                         \
-                    0,                                                                                                \
-                    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,                                                           \
-                    0);                                                                                               \
-                SAFE_REQUIRE(result == 0);                                                                            \
-            }                                                                                                         \
-        }                                                                                                             \
+    {                                                                                                                \
+        _initialize_test_globals();                                                                                  \
+        _globals.family = family;                                                                                    \
+        _globals.connection_type = connection_type;                                                                  \
+        /* Attach authorization programs if not already attached. */                                                 \
+        if (!_globals.attach_authorization_programs) {                                                               \
+            _globals.attach_authorization_programs = true;                                                           \
+            int result;                                                                                              \
+            if (_globals.attach_v4_program) {                                                                        \
+                bpf_program* auth_v4 =                                                                               \
+                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization4");           \
+                SAFE_REQUIRE(auth_v4 != nullptr);                                                                    \
+                result = bpf_prog_attach(                                                                            \
+                    bpf_program__fd(const_cast<const bpf_program*>(auth_v4)),                                        \
+                    0,                                                                                               \
+                    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,                                                          \
+                    0);                                                                                              \
+                SAFE_REQUIRE(result == 0);                                                                           \
+            }                                                                                                        \
+            if (_globals.attach_v6_program) {                                                                        \
+                bpf_program* auth_v6 =                                                                               \
+                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization6");           \
+                SAFE_REQUIRE(auth_v6 != nullptr);                                                                    \
+                result = bpf_prog_attach(                                                                            \
+                    bpf_program__fd(const_cast<const bpf_program*>(auth_v6)),                                        \
+                    0,                                                                                               \
+                    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,                                                          \
+                    0);                                                                                              \
+                SAFE_REQUIRE(result == 0);                                                                           \
+            }                                                                                                        \
+        }                                                                                                            \
         printf("COMBINED REDIRECT+AUTH: " #destination " -> " #proxy " | reject after redirect\n");                  \
-        redirect_then_auth_reject_test(dual_stack, addresses.##destination##, addresses.##proxy##);                   \
+        redirect_then_auth_reject_test(dual_stack, addresses.##destination##, addresses.##proxy##);                  \
         printf("COMBINED REDIRECT+AUTH: " #destination " -> " #proxy " | allow after redirect\n");                   \
-        redirect_then_auth_allow_test(dual_stack, addresses.##destination##, addresses.##proxy##);                    \
+        redirect_then_auth_allow_test(dual_stack, addresses.##destination##, addresses.##proxy##);                   \
     }
 
 DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(vip_address, remote_address)
 DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(vip_address, loopback_address)
 
-#define DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                                                   \
-    socket_family_name, socket_family_type, dual_stack, connection_type, destination, proxy)                            \
-    TEST_CASE(                                                                                                          \
-        socket_family_name "_" #destination "_" #proxy "_" #connection_type,                                            \
-        "[connect_combined_redirect_auth_tests_v4]")                                                                    \
-    {                                                                                                                    \
-        combined_redirect_auth_tests_##destination##_##proxy##(                                                         \
-            AF_INET, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]);                        \
+#define DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                             \
+    socket_family_name, socket_family_type, dual_stack, connection_type, destination, proxy)     \
+    TEST_CASE(                                                                                   \
+        socket_family_name "_" #destination "_" #proxy "_" #connection_type,                     \
+        "[connect_combined_redirect_auth_tests_v4]")                                             \
+    {                                                                                            \
+        combined_redirect_auth_tests_##destination##_##proxy##(                                  \
+            AF_INET, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]); \
     }
 
 // IPv4, TCP combined redirect + authorization tests.
