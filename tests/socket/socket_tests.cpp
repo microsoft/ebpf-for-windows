@@ -887,7 +887,7 @@ TEST_CASE(
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Use the conditional authorization program that makes policy decisions.
-    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_auth_v4");
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
     SAFE_REQUIRE(conditional_program != nullptr);
 
     // Get the connection count map to verify tunnel connection tracking.
