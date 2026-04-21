@@ -233,7 +233,7 @@ typedef uint8_t* ebpf_lru_entry_t;
     ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map->partition_count)))
 
 #define EBPF_LOG_MAP_OPERATION(flags, operation, map, key)                                            \
-    if (((flags)&EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {                 \
+    if (((flags) & EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {               \
         EBPF_LOG_MESSAGE_UTF8_STRING(                                                                 \
             EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map "##operation, &(map)->name); \
         EBPF_LOG_MESSAGE_BINARY(                                                                      \
@@ -4274,8 +4274,8 @@ static ebpf_map_type_t _supported_base_map_types[] = {BPF_MAP_TYPE_HASH};
 
 #define EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE 0x1
 
-#define UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(flags)                      \
-    (((flags)&EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE) == \
+#define UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(flags)                        \
+    (((flags) & EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE) == \
      EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE)
 
 /**
@@ -4479,8 +4479,8 @@ _ebpf_custom_map_update_hash_map_entry(
 
     if (custom_map->provider_dispatch->preprocess_map_update_element) {
         // Acquire lock to serialize updates.
-        // lock_state = ebpf_lock_lock(&custom_map->lock);
-        // lock_acquired = true;
+        lock_state = ebpf_lock_lock(&custom_map->lock);
+        lock_acquired = true;
 
         // Invoke provider to process the update.
         provider_flags = _get_provider_flags(flags, false);
