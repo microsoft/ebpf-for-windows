@@ -131,7 +131,7 @@ exit:
  */
 SEC("cgroup/connect_authorization4")
 int
-conditional_auth_v4(bpf_sock_addr_t* ctx)
+conditional_authorization_v4(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
@@ -161,6 +161,42 @@ conditional_auth_v4(bpf_sock_addr_t* ctx)
         }
         bpf_map_update_elem(&connection_count_map, &tunnel_key, &tunnel_count, BPF_ANY);
     }
+
+exit:
+    return retval;
+}
+
+/**
+ * @brief Test program for RECV_ACCEPT IPv4 that demonstrates bpf_sock_addr_get_network_context
+ * works at the recv_accept attach point (not just connect_authorization).
+ */
+SEC("cgroup/recv_accept4")
+int
+test_recv_accept_helpers_v4(bpf_sock_addr_t* ctx)
+{
+    int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    if (ctx->protocol != IPPROTO_TCP) {
+        goto exit;
+    }
+
+    uint32_t connection_id = ctx->user_ip4 ^ (ctx->user_port << 16);
+
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
+
+    bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
+
+    uint32_t counter_key = 3; // Different key for recv_accept.
+    uint64_t count = 1;
+    uint64_t* existing_count = bpf_map_lookup_elem(&connection_count_map, &counter_key);
+    if (existing_count) {
+        count = *existing_count + 1;
+    }
+    bpf_map_update_elem(&connection_count_map, &counter_key, &count, BPF_ANY);
 
 exit:
     return retval;
