@@ -7,8 +7,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{7629d5d0-5a80-4528-87ed-60fc83c5552b}</ProjectGuid>
-    <RootNamespace>nuget</RootNamespace>
+    <ProjectGuid>{D7A1A443-1C17-4B3E-A835-EC4592E9E4D1}</ProjectGuid>
+    <RootNamespace>sample-package</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
@@ -76,14 +76,6 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PostBuildEvent>
-      <Command>pushd $(OutDir)
-if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
-popd $(OutDir)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <ClCompile>
@@ -96,14 +88,6 @@ popd $(OutDir)</Command>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PostBuildEvent>
-      <Command>pushd $(OutDir)
-if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
-popd $(OutDir)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
@@ -120,14 +104,6 @@ popd $(OutDir)</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PostBuildEvent>
-      <Command>pushd $(OutDir)
-if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
-popd $(OutDir)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
@@ -144,36 +120,32 @@ popd $(OutDir)</Command>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
-    <PostBuildEvent>
-      <Command>pushd $(OutDir)
-if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
-type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
-powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
-popd $(OutDir)</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <CustomBuild Include="ebpf-for-windows.nuspec.in">
+  <!-- In accordance to what is defined in sample.vcxproj, the build is disabled for the 'Analysis' CI/CD build, as it does not generate the .o artifacts. -->
+  <ItemGroup Condition="'$(Analysis)'==''">
+    <CustomBuild Include="ebpf-for-windows-samples.nuspec.in">
       <FileType>Document</FileType>
-      <Outputs>$(OutDir)eBPF-for-Windows.$(Platform)$(NugetConfigSuffix).$(EbpfVersion).nupkg</Outputs>
-      <AdditionalInputs>$(SolutionDir)scripts\Set-Version.ps1;$(SolutionDir)Directory.Build.props;$(SolutionDir)include\git_commit_id.h;$(SolutionDir)tools\nuget\ebpf-for-windows.props.in</AdditionalInputs>
-      <Command>
-        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).nuspec -Architecture $(Platform) -ConfigSuffix '$(NugetConfigSuffix)'
-        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.props.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).props -Architecture $(Platform)
-        NuGet.exe pack $(OutDir)ebpf-for-windows.$(Platform).nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)'=='Debug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\sample-package\ebpf-for-windows-samples.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-samples.nuspec -Architecture '$(Platform)' -Configuration '$(Configuration)'
+NuGet.exe pack $(OutDir)ebpf-for-windows-samples.nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)'=='NativeOnlyDebug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\sample-package\ebpf-for-windows-samples.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-samples.nuspec -Architecture '$(Platform)' -Configuration '$(Configuration)'
+NuGet.exe pack $(OutDir)ebpf-for-windows-samples.nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)'=='Release'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\sample-package\ebpf-for-windows-samples.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-samples.nuspec -Architecture '$(Platform)' -Configuration '$(Configuration)'
+NuGet.exe pack $(OutDir)ebpf-for-windows-samples.nuspec -OutputDirectory $(OutDir)</Command>
+      <Command Condition="'$(Configuration)'=='NativeOnlyRelease'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\sample-package\ebpf-for-windows-samples.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-samples.nuspec -Architecture '$(Platform)' -Configuration '$(Configuration)'
+NuGet.exe pack $(OutDir)ebpf-for-windows-samples.nuspec -OutputDirectory $(OutDir)</Command>
+      <Outputs Condition="'$(Configuration)'=='Debug'">eBPF-for-Windows-Samples.$(Platform).Debug.$(EbpfVersion).nupkg</Outputs>
+      <Outputs Condition="'$(Configuration)'=='NativeOnlyDebug'">eBPF-for-Windows-Samples.$(Platform).NativeOnlyDebug.$(EbpfVersion).nupkg</Outputs>
+      <Outputs Condition="'$(Configuration)'=='Release'">eBPF-for-Windows-Samples.$(Platform).$(EbpfVersion).nupkg</Outputs>
+      <Outputs Condition="'$(Configuration)'=='NativeOnlyRelease'">eBPF-for-Windows-Samples.$(Platform).$(EbpfVersion).nupkg</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
-      <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
+    <ProjectReference Include="..\..\tests\sample\sample.vcxproj">
+      <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\external\usersim\src\usersim.vcxproj">
-      <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\bpf2c\bpf2c.vcxproj">
-      <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
-    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
