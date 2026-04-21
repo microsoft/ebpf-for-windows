@@ -506,7 +506,7 @@ authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 // Helper to update the authorization_policy_map (separate from the redirect policy_map).
 static void
 _update_authorization_policy_map(
-    _In_ const sockaddr_storage& destination, uint16_t destination_port, int32_t verdict, bool add)
+    _In_ const sockaddr_storage& destination, uint16_t destination_port, uint32_t verdict, bool add)
 {
     bpf_map* auth_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "authorization_policy_map");
     SAFE_REQUIRE(auth_map != nullptr);
