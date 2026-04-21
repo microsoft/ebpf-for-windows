@@ -21,7 +21,10 @@ the decision is to create a new release the release manager must proceed with th
    1. Push the topic branch into upstream. For example:
       ```bash
       git push upstream release/0.12
-1. Once the release branch is created, commits can be cherry-picked from the main branch (including feature work and bug fixes) as deemed necessary
+1. Once the release branch is created, follow the process in the [Updating the Product Version](ReleaseProcess.md#updating-the-product-version)
+   to update the version of the product in the main branch, for the next release. The main branch should always be ahead of the latest release branch
+   by one minor version. For example, if the latest release is `vX.Y`, then the version of the main branch should be updated to `"vX.(Y+1).0`.
+2. Once the release branch is created, commits can be cherry-picked from the main branch (including feature work and bug fixes) as deemed necessary.
    by the maintainers and the release managers.
 1. Create a tag on the *latest commit* on the release branch. The tag name must begin with `"Release-v"` and include the release version e.g., `"Release-v0.21"`.
 1. The tag creation will automatically trigger the "`CI/CD`" workflow for the `release/X.Y` branch.
@@ -29,10 +32,7 @@ the decision is to create a new release the release manager must proceed with th
 1. In the triage meeting following the successful validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release.
    If not, move on to the following steps.
 1. The `sign-off` label will be added to the issue created in step 1.
-1. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
-1. Follow the process in the [Updating the Product Version](ReleaseProcess.md#updating-the-product-version) to update the version of the product in the main branch,
-   for the next release. The main branch should always be ahead of the latest release branch by one minor version. For example, if the latest release is `vX.Y`,
-   then the version of the main branch should be updated to `"vX.(Y+1).0`.
+1. Publish the release as per the [Publishing the Release to GitHub](ReleaseProcess.md#publishing-the-release-to-github) process.
 
 ## Release Branch Validation
 

@@ -1,7 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ($InputFile, $OutputFile, [parameter(Mandatory=$false)]$VCToolsRedistDir, [parameter(Mandatory=$false)]$architecture, [parameter(Mandatory=$false)]$configuration)
+param ($InputFile, $OutputFile, [parameter(Mandatory=$false)]$VCToolsRedistDir, [parameter(Mandatory=$false)]$architecture, [parameter(Mandatory=$false)]$configuration, [parameter(Mandatory=$false)]$ConfigSuffix)
 
 # The git commit ID is in the include directory and is in the format:
 # #define GIT_COMMIT_ID "some commit id"
@@ -35,7 +35,9 @@ $content = $content.Replace("{version_no_modifier}", $version_no_modifier)
 $content = $content.Replace("{VCToolsRedistDir}", $VCToolsRedistDir)
 $content = $content.Replace("{git_commit_id}", $git_commit_id)
 $content = $content.Replace("{architecture}", $architecture)
-if ($configuration -match "Release") {
+if ($PSBoundParameters.ContainsKey('ConfigSuffix')) {
+    $content = $content.Replace("{configuration}", $ConfigSuffix)
+} elseif ($configuration -match "Release") {
     $content = $content.Replace("{configuration}", "")
 } else {
     $content = $content.Replace("{configuration}", ".$configuration")
