@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!-- Copyright (c) eBPF for Windows contributors
+     SPDX-License-Identifier: MIT
+  -->
+<package>
+	<metadata>
+		<title>eBPF for Windows Samples</title>
+		<id>eBPF-for-Windows-Samples.{architecture}{configuration}</id>
+		<version>{version}</version>
+		<authors>eBPF for Windows Contributors</authors>
+		<owners>eBPF for Windows Contributors</owners>
+		<requireLicenseAcceptance>false</requireLicenseAcceptance>
+		<license type="expression">MIT</license>
+		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
+		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
+		<tags>ebpf native samples</tags>
+		<description>eBPF for Windows Sample Programs</description>
+		<readme>README.md</readme>
+	</metadata>
+	<files>
+		<file src="..\..\tools\sample-package\README.md" target="."/>
+		<!--eBPF sample programs -->
+		<file src="*.o" target="samples"/>
+	</files>
+</package>
