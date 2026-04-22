@@ -8,6 +8,7 @@
 #include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "map_descriptors.hpp"
+#include "windows_platform_common.hpp"
 
 #include <stdint.h>
 #include <string>
@@ -160,6 +161,7 @@ ebpf_clear_thread_local_storage() noexcept
     clear_map_descriptors();
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
+    set_verification_program_type(nullptr);
     clean_up_sync_device_handle();
 }
 
@@ -181,16 +183,16 @@ ebpf_verify_program(
         if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             throw std::runtime_error("Unspecified program type.");
         }
+        set_verification_program_type(&info.type);
         const auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
-        auto analysis_result = prevail::analyze(program);
+        auto analysis_result = prevail::analyze(program, options);
         if (options.verbosity_opts.print_invariants) {
             print_invariants(os, program, options.verbosity_opts.simplify, analysis_result);
         }
         bool pass = !analysis_result.failed;
         if (options.verbosity_opts.print_failures) {
-            prevail::thread_local_options.verbosity_opts.print_line_info = true;
             if (auto verification_error = analysis_result.find_first_error()) {
-                print_error(os, *verification_error);
+                print_error(os, *verification_error, program, true);
             }
         }
         // Count unreachable labels reported by the analysis result.
@@ -199,7 +201,8 @@ ebpf_verify_program(
         if (options.verbosity_opts.collect_instruction_deps && analysis_result.failed) {
             // Limit to 1 slice to keep diagnostic output concise for the API consumer.
             prevail::AnalysisResult::SliceParams slice_params{.max_slices = 1};
-            auto slices = analysis_result.compute_failure_slices(program, slice_params);
+            prevail::AnalysisContext context{info, options, *info.platform};
+            auto slices = analysis_result.compute_failure_slices(program, slice_params, context);
             print_failure_slices(os, program, options.verbosity_opts.simplify, analysis_result, slices);
         }
         // Get the warning count by counting invariants with errors.

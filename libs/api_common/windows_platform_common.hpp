@@ -6,10 +6,10 @@
 #include "ebpf_structs.h"
 
 prevail::EbpfHelperPrototype
-get_helper_prototype_windows(int32_t n);
+get_helper_prototype_windows(int32_t n, const prevail::EbpfProgramType& program_type);
 
 bool
-is_helper_usable_windows(int32_t n);
+is_helper_usable_windows(int32_t n, const prevail::EbpfProgramType& program_type);
 
 prevail::EbpfMapType
 get_map_type_windows(uint32_t platform_specific_type);
@@ -20,8 +20,8 @@ get_program_type_windows(const GUID& program_type);
 prevail::EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string& path);
 
-prevail::EbpfMapDescriptor&
-get_map_descriptor_windows(int map_fd);
+const prevail::EbpfMapDescriptor&
+get_map_descriptor_windows(int map_fd, const prevail::ProgramInfo& info);
 
 _Must_inspect_result_ ebpf_result_t
 get_bpf_program_and_attach_type(
@@ -45,6 +45,12 @@ clear_ebpf_provider_data();
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
     get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info);
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    get_program_type_info(const prevail::EbpfProgramType& program_type, _Outptr_ const ebpf_program_info_t** info);
+
+void
+set_verification_program_type(const prevail::EbpfProgramType* type);
 
 void
 clear_program_info_cache();

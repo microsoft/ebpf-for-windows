@@ -26,10 +26,10 @@ _get_helper_function_prototype(const ebpf_program_info_t* info, unsigned int n)
 
 // Check whether a given integer is a valid helper ID.
 bool
-is_helper_usable_windows(int32_t n)
+is_helper_usable_windows(int32_t n, const prevail::EbpfProgramType& program_type)
 {
     const ebpf_program_info_t* info = nullptr;
-    ebpf_result_t result = get_program_type_info_from_tls(&info);
+    ebpf_result_t result = get_program_type_info(program_type, &info);
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("helper not usable: ") + std::to_string(n));
     }
@@ -38,10 +38,10 @@ is_helper_usable_windows(int32_t n)
 
 // Get the prototype for the helper with a given ID.
 prevail::EbpfHelperPrototype
-get_helper_prototype_windows(int32_t n)
+get_helper_prototype_windows(int32_t n, const prevail::EbpfProgramType& program_type)
 {
     const ebpf_program_info_t* info = nullptr;
-    ebpf_result_t result = get_program_type_info_from_tls(&info);
+    ebpf_result_t result = get_program_type_info(program_type, &info);
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("program type info not found."));
     }
