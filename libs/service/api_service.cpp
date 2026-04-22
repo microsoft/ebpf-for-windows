@@ -622,12 +622,26 @@ _ebpf_is_proof_of_verification_required()
         EBPF_PARAMETERS_REGISTRY_PATH,
         KEY_READ,
         &parameters_key);
-    if (reg_result == EBPF_SUCCESS) {
-        (void)ebpf_read_registry_value_dword(
-            parameters_key,
-            EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
-            &proof_of_verification_value);
-        ebpf_close_registry_key(parameters_key);
+    if (reg_result == EBPF_FILE_NOT_FOUND) {
+        // Key not present — feature not opted into, verification not required.
+        return false;
+    }
+    if (reg_result != EBPF_SUCCESS) {
+        // Unexpected error opening registry key — fail closed (require verification).
+        return true;
+    }
+    reg_result = ebpf_read_registry_value_dword(
+        parameters_key,
+        EBPF_PROOF_OF_VERIFICATION_REGISTRY_VALUE,
+        &proof_of_verification_value);
+    ebpf_close_registry_key(parameters_key);
+    if (reg_result == EBPF_FILE_NOT_FOUND) {
+        // Value not present — feature not opted into, verification not required.
+        return false;
+    }
+    if (reg_result != EBPF_SUCCESS) {
+        // Unexpected error reading registry value — fail closed (require verification).
+        return true;
     }
     return proof_of_verification_value != 0;
 }
