@@ -410,8 +410,10 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     assert(context->table != nullptr);
 
     NTSTATUS status = NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle);
-    assert(NT_SUCCESS(status));
-    UNREFERENCED_PARAMETER(status);
+    if (!NT_SUCCESS(status)) {
+        assert(get_native_module_failures());
+        return;
+    }
 
     context->loaded = true;
 }
