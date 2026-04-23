@@ -663,7 +663,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     if (count_of_map_handles) {
-        map_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_map_handles, EBPF_POOL_TAG_CORE);
+        size_t map_handles_length = 0;
+        result = ebpf_safe_size_t_multiply(sizeof(ebpf_handle_t), count_of_map_handles, &map_handles_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        map_handles = ebpf_allocate_with_tag(map_handles_length, EBPF_POOL_TAG_CORE);
         if (map_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -671,7 +676,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     if (count_of_program_handles) {
-        program_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_program_handles, EBPF_POOL_TAG_CORE);
+        size_t program_handles_length = 0;
+        result = ebpf_safe_size_t_multiply(sizeof(ebpf_handle_t), count_of_program_handles, &program_handles_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        program_handles = ebpf_allocate_with_tag(program_handles_length, EBPF_POOL_TAG_CORE);
         if (program_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -812,7 +822,11 @@ _ebpf_core_protocol_map_update_element_batch(
         goto Done;
     }
 
-    key_and_value_length = (size_t)map_definition->key_size + (size_t)map_definition->value_size;
+    retval = ebpf_safe_size_t_add(
+        (size_t)map_definition->key_size, (size_t)map_definition->value_size, &key_and_value_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (key_and_value_length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -1627,11 +1641,16 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_info_internal_t* local_map_info = NULL;
     uint16_t index;
-    size_t allocation_size = sizeof(ebpf_map_info_internal_t) * entry_count;
+    size_t allocation_size = 0;
 
     ebpf_assert(map_info);
     ebpf_assert(entry_count);
     ebpf_assert(pinning_entries);
+
+    result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_info_internal_t), entry_count, &allocation_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     local_map_info = (ebpf_map_info_internal_t*)ebpf_allocate_with_tag(allocation_size, EBPF_POOL_TAG_CORE);
     if (local_map_info == NULL) {
@@ -2367,7 +2386,12 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
     }
 
     // Make a copy of the original format string.
-    char* output = (char*)ebpf_allocate_with_tag(fmt_size + 1, EBPF_POOL_TAG_CORE);
+    size_t output_length = 0;
+    if (ebpf_safe_size_t_add(fmt_size, 1, &output_length) != EBPF_SUCCESS) {
+        return -1;
+    }
+
+    char* output = (char*)ebpf_allocate_with_tag(output_length, EBPF_POOL_TAG_CORE);
     if (output == NULL) {
         return -1;
     }

@@ -90,12 +90,15 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     size_t kernel_pages = 1;
     size_t user_pages = 2;
-    size_t header_length = (kernel_pages + user_pages) * PAGE_SIZE;
+    size_t total_page_count = 0;
+    size_t header_length = 0;
     size_t data_section_length = 0;
     size_t total_mapped_size = 0;
     size_t view_length = 0;
 
-    if ((ebpf_safe_size_t_multiply(length, 2, &data_section_length) != EBPF_SUCCESS) ||
+    if ((ebpf_safe_size_t_add(kernel_pages, user_pages, &total_page_count) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(total_page_count, PAGE_SIZE, &header_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(length, 2, &data_section_length) != EBPF_SUCCESS) ||
         (ebpf_safe_size_t_add(header_length, data_section_length, &total_mapped_size) != EBPF_SUCCESS) ||
         (ebpf_safe_size_t_add(header_length, length, &view_length) != EBPF_SUCCESS) || (view_length > UINT32_MAX)) {
         EBPF_LOG_MESSAGE_UINT64(

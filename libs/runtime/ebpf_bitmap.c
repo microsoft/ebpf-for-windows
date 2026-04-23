@@ -56,14 +56,22 @@ static_assert(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor
 size_t
 ebpf_bitmap_size(size_t bit_count)
 {
-    return EBPF_OFFSET_OF(ebpf_bitmap_t, data) + BIT_COUNT_TO_BLOCK_COUNT(bit_count) * sizeof(size_t);
+    size_t bitmap_data_length = 0;
+    size_t bitmap_size = 0;
+    ebpf_assert_success(
+        ebpf_safe_size_t_multiply(BIT_COUNT_TO_BLOCK_COUNT(bit_count), sizeof(size_t), &bitmap_data_length));
+    ebpf_assert_success(ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_bitmap_t, data), bitmap_data_length, &bitmap_size));
+    return bitmap_size;
 }
 
 void
 ebpf_bitmap_initialize(_Out_ ebpf_bitmap_t* bitmap, size_t bit_count)
 {
+    size_t bitmap_data_length = 0;
     bitmap->bit_count = bit_count;
-    memset(bitmap->data, 0, BIT_COUNT_TO_BLOCK_COUNT(bit_count) * sizeof(size_t));
+    ebpf_assert_success(
+        ebpf_safe_size_t_multiply(BIT_COUNT_TO_BLOCK_COUNT(bit_count), sizeof(size_t), &bitmap_data_length));
+    memset(bitmap->data, 0, bitmap_data_length);
 }
 
 bool

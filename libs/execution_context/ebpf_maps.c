@@ -2302,8 +2302,16 @@ _create_queue_map(
     if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
-    size_t circular_map_size =
-        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    size_t circular_map_size = 0;
+    result = ebpf_safe_size_t_multiply(map_definition->max_entries, sizeof(uint8_t*), &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    result =
+        ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots), circular_map_size, &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
     result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, 0, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
@@ -2322,8 +2330,16 @@ _create_stack_map(
     if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
-    size_t circular_map_size =
-        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    size_t circular_map_size = 0;
+    result = ebpf_safe_size_t_multiply(map_definition->max_entries, sizeof(uint8_t*), &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    result =
+        ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots), circular_map_size, &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
     result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, 0, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
@@ -3110,8 +3126,16 @@ _create_perf_event_array_map(
         goto Exit;
     }
 
-    size_t perf_event_array_map_size =
-        EBPF_OFFSET_OF(ebpf_core_perf_event_array_map_t, rings) + cpu_count * sizeof(ebpf_core_perf_ring_t);
+    size_t perf_event_array_map_size = 0;
+    result = ebpf_safe_size_t_multiply(cpu_count, sizeof(ebpf_core_perf_ring_t), &perf_event_array_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_core_perf_event_array_map_t, rings), perf_event_array_map_size, &perf_event_array_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     perf_event_array_map = ebpf_epoch_allocate_with_tag(perf_event_array_map_size, EBPF_POOL_TAG_MAP);
     if (perf_event_array_map == NULL) {
@@ -4168,8 +4192,17 @@ ebpf_map_get_next_key_and_value_batch(
 
     // Copy as many key/value pairs as we can fit in the output buffer.
     for (;;) {
+        size_t record_length = 0;
+        size_t value_offset = 0;
+
+        result = ebpf_safe_size_t_add(key_size, value_size, &record_length);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
         // Check if we have enough space to write the next key and value.
-        if ((output_length + key_size + value_size) > maximum_output_length) {
+        result = ebpf_safe_size_t_add(output_length, record_length, &value_offset);
+        if (result != EBPF_SUCCESS || value_offset > maximum_output_length) {
             // Output buffer is full.
             break;
         }
@@ -4183,12 +4216,17 @@ ebpf_map_get_next_key_and_value_batch(
             break;
         }
 
+        result = ebpf_safe_size_t_add(output_length, key_size, &value_offset);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
         if (IS_NESTED_MAP(map->ebpf_map_definition.type)) {
             // Get the ID from the object.
             ebpf_core_object_t* object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)next_value);
-            *(uint32_t*)(key_and_value + output_length + key_size) = object ? object->id : 0;
+            *(uint32_t*)(key_and_value + value_offset) = object ? object->id : 0;
         } else {
-            memcpy(key_and_value + output_length + key_size, next_value, value_size);
+            memcpy(key_and_value + value_offset, next_value, value_size);
         }
 
         if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
@@ -4204,7 +4242,10 @@ ebpf_map_get_next_key_and_value_batch(
         previous_key = key_and_value + output_length;
 
         // Advance the output buffer pointer.
-        output_length += key_size + value_size;
+        result = ebpf_safe_size_t_add(value_offset, value_size, &output_length);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
     }
 
     if (result == EBPF_NO_MORE_KEYS && output_length != 0) {

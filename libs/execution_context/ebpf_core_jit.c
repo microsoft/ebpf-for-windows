@@ -113,14 +113,25 @@ ebpf_core_protocol_resolve_helper(
     uint32_t* request_helper_ids = NULL;
     size_t required_reply_length = 0;
     size_t helper_id_length;
+    size_t helper_addresses_length = 0;
+    size_t request_helper_ids_length = 0;
     ebpf_result_t return_value = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id), &helper_id_length);
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
     size_t count_of_helpers = helper_id_length / sizeof(request->helper_id[0]);
-    required_reply_length =
-        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + count_of_helpers * sizeof(reply->address[0]);
+    return_value = ebpf_safe_size_t_multiply(count_of_helpers, sizeof(reply->address[0]), &helper_addresses_length);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+    return_value = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address),
+        helper_addresses_length,
+        &required_reply_length);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
     size_t helper_index;
 
     if (reply_length < required_reply_length) {
@@ -129,7 +140,11 @@ ebpf_core_protocol_resolve_helper(
     }
 
     if (count_of_helpers != 0) {
-        request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(count_of_helpers * sizeof(uint32_t), EBPF_POOL_TAG_CORE);
+        return_value = ebpf_safe_size_t_multiply(count_of_helpers, sizeof(uint32_t), &request_helper_ids_length);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+        request_helper_ids = (uint32_t*)ebpf_allocate_with_tag(request_helper_ids_length, EBPF_POOL_TAG_CORE);
         if (request_helper_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Done;

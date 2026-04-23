@@ -223,6 +223,7 @@ net_ebpf_extension_wfp_filter_context_create(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
     uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
+    size_t client_contexts_length = 0;
 
     EBPF_EXT_LOG_ENTRY();
 
@@ -241,18 +242,21 @@ net_ebpf_extension_wfp_filter_context_create(
 
     memset(local_filter_context, 0, filter_context_size);
 
+    status = RtlSizeTMult(client_context_count_max, sizeof(net_ebpf_extension_hook_client_t*), &client_contexts_length);
+    if (!NT_SUCCESS(status)) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+
     local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
-        NonPagedPoolNx,
-        client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*),
-        NET_EBPF_EXTENSION_POOL_TAG);
+        NonPagedPoolNx, client_contexts_length, NET_EBPF_EXTENSION_POOL_TAG);
     EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
         local_filter_context->client_contexts,
         "local_filter_context - client_contexts",
         result);
 
-    memset(
-        local_filter_context->client_contexts, 0, client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*));
+    memset(local_filter_context->client_contexts, 0, client_contexts_length);
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
@@ -411,6 +415,7 @@ net_ebpf_extension_add_wfp_filters(
     ebpf_result_t result = EBPF_SUCCESS;
     bool is_in_transaction = FALSE;
     net_ebpf_ext_wfp_filter_id_t* local_filter_ids = NULL;
+    size_t filter_ids_length = 0;
     *filter_ids = NULL;
 
     EBPF_EXT_LOG_ENTRY();
@@ -423,12 +428,18 @@ net_ebpf_extension_add_wfp_filters(
         goto Exit;
     }
 
+    status = RtlSizeTMult(sizeof(net_ebpf_ext_wfp_filter_id_t), filter_count, &filter_ids_length);
+    if (!NT_SUCCESS(status)) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+
     local_filter_ids = (net_ebpf_ext_wfp_filter_id_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count), NET_EBPF_EXTENSION_POOL_TAG);
+        NonPagedPoolNx, filter_ids_length, NET_EBPF_EXTENSION_POOL_TAG);
     EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_ids, "local_filter_ids", result);
 
-    memset(local_filter_ids, 0, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count));
+    memset(local_filter_ids, 0, filter_ids_length);
 
     status = FwpmTransactionBegin(wfp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
@@ -1070,10 +1081,15 @@ net_ebpf_ext_remove_client_context(
     }
     ASSERT(found == TRUE);
     if (index != filter_context->client_context_count) {
+        size_t client_contexts_length = 0;
+        ASSERT(NT_SUCCESS(RtlSizeTMult(
+            filter_context->client_context_count - index,
+            sizeof(net_ebpf_extension_hook_client_t*),
+            &client_contexts_length)));
         memcpy(
             &filter_context->client_contexts[index],
             &filter_context->client_contexts[index + 1],
-            (filter_context->client_context_count - index) * sizeof(net_ebpf_extension_hook_client_t*));
+            client_contexts_length);
 
         filter_context->client_contexts[filter_context->client_context_count] = NULL;
     }

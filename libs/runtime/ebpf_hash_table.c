@@ -343,9 +343,12 @@ static ebpf_hash_bucket_entry_t*
 _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_header_t* bucket, size_t index)
 {
     uint8_t* offset = (uint8_t*)bucket->entries;
-    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + key_size;
+    size_t entry_size = 0;
+    size_t entry_offset = 0;
+    ebpf_assert_success(ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key), key_size, &entry_size));
+    ebpf_assert_success(ebpf_safe_size_t_multiply(index, entry_size, &entry_offset));
 
-    return (ebpf_hash_bucket_entry_t*)(offset + (size_t)index * entry_size);
+    return (ebpf_hash_bucket_entry_t*)(offset + entry_offset);
 }
 
 /**
@@ -397,12 +400,42 @@ _ebpf_hash_table_bucket_insert(
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
-    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
-    size_t old_bucket_size = old_bucket ? entry_size * old_bucket->count + sizeof(ebpf_hash_bucket_header_t) : 0;
-    size_t new_bucket_size =
-        entry_size * ((old_bucket ? old_bucket->count : 0) + 1) + sizeof(ebpf_hash_bucket_header_t);
+    size_t entry_size = 0;
+    size_t old_bucket_size = 0;
+    size_t new_bucket_size = 0;
+    size_t old_bucket_entry_count = old_bucket ? old_bucket->count : 0;
+    size_t new_bucket_entry_count = 0;
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
     ebpf_hash_bucket_header_t* backup_bucket = NULL;
+
+    result = ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key), hash_table->key_size, &entry_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    if (old_bucket != NULL) {
+        result = ebpf_safe_size_t_multiply(entry_size, old_bucket_entry_count, &old_bucket_size);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        result = ebpf_safe_size_t_add(old_bucket_size, sizeof(ebpf_hash_bucket_header_t), &old_bucket_size);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+    }
+
+    result = ebpf_safe_size_t_add(old_bucket_entry_count, 1, &new_bucket_entry_count);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_multiply(entry_size, new_bucket_entry_count, &new_bucket_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_add(new_bucket_size, sizeof(ebpf_hash_bucket_header_t), &new_bucket_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
         size_t new_entry_count = ebpf_interlocked_increment_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
@@ -552,9 +585,22 @@ _ebpf_hash_table_bucket_update(
     _Outptr_ ebpf_hash_bucket_header_t** new_bucket)
 {
     ebpf_result_t result;
-    size_t entry_size = EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key) + hash_table->key_size;
-    size_t old_bucket_size = entry_size * old_bucket->count + sizeof(ebpf_hash_bucket_header_t);
+    size_t entry_size = 0;
+    size_t old_bucket_size = 0;
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
+
+    result = ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key), hash_table->key_size, &entry_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_multiply(entry_size, old_bucket->count, &old_bucket_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_add(old_bucket_size, sizeof(ebpf_hash_bucket_header_t), &old_bucket_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     // Allocate new bucket.
     local_new_bucket = hash_table->allocate(old_bucket_size, hash_table->allocation_tag);

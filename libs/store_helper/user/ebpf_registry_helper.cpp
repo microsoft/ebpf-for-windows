@@ -24,7 +24,12 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
-    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(length * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
+    size_t wide_length = 0;
+    if (length <= 0 || ebpf_safe_size_t_multiply((size_t)length, sizeof(wchar_t), &wide_length) != EBPF_SUCCESS) {
+        return nullptr;
+    }
+
+    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(wide_length, EBPF_POOL_TAG_DEFAULT);
     if (wide == nullptr) {
         return nullptr;
     }

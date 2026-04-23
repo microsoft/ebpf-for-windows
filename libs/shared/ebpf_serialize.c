@@ -225,7 +225,10 @@ ebpf_deserialize_map_info_array(
 
         if (source->pin_path_length > 0) {
             // Allocate the buffer to hold the pin path in destination map info structure.
-            destination_pin_path_length = ((size_t)source->pin_path_length) + 1;
+            result = ebpf_safe_size_t_add((size_t)source->pin_path_length, 1, &destination_pin_path_length);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
             destination->pin_path = ebpf_allocate_with_tag(destination_pin_path_length, EBPF_POOL_TAG_DEFAULT);
             if (destination->pin_path == NULL) {
                 result = EBPF_NO_MEMORY;

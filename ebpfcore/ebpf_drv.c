@@ -115,7 +115,27 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     // Allocate and initialize a DACL with one ACE.
-    ULONG aclSize = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(sid) - sizeof(ULONG);
+    size_t acl_size = 0;
+    size_t sid_length = RtlLengthSid(sid);
+    size_t ace_size = 0;
+    ebpf_result_t safe_result = EBPF_SUCCESS;
+    ULONG aclSize = 0;
+    safe_result = ebpf_safe_size_t_add(sizeof(ACL), sizeof(ACCESS_ALLOWED_ACE), &ace_size);
+    if (safe_result != EBPF_SUCCESS) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    safe_result = ebpf_safe_size_t_add(ace_size, sid_length, &acl_size);
+    if (safe_result != EBPF_SUCCESS) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    safe_result = ebpf_safe_size_t_subtract(acl_size, sizeof(ULONG), &acl_size);
+    if (safe_result != EBPF_SUCCESS || acl_size > MAXULONG) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    aclSize = (ULONG)acl_size;
     dacl = (PACL)ebpf_allocate_with_tag(aclSize, 'fpBE'); // Use a tag to help with debugging memory leaks.
     if (dacl == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
