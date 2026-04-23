@@ -47,6 +47,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     size_t requested_page_count = 0;
     size_t mapped_memory_length = 0;
     size_t data_mapped_length = 0;
+    size_t header_page_count = 0;
+    size_t header_mapped_length = 0;
     size_t total_mapped_size = 0;
     size_t user_mdl_producer_length = 0;
 
@@ -72,7 +74,13 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         result = ebpf_safe_size_t_multiply(length, 2, &data_mapped_length);
     }
     if (result == EBPF_SUCCESS) {
-        result = ebpf_safe_size_t_add((kernel_pages + user_pages) * PAGE_SIZE, data_mapped_length, &total_mapped_size);
+        result = ebpf_safe_size_t_add(kernel_pages, user_pages, &header_page_count);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(header_page_count, PAGE_SIZE, &header_mapped_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(header_mapped_length, data_mapped_length, &total_mapped_size);
     }
     if (result == EBPF_SUCCESS) {
         result = ebpf_safe_size_t_add(PAGE_SIZE, data_mapped_length, &user_mdl_producer_length);

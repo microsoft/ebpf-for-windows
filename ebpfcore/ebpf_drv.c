@@ -526,6 +526,15 @@ _ebpf_driver_io_device_control(
                     }
                 }
 
+                if ((actual_input_length > UINT16_MAX) || (actual_output_length > UINT16_MAX)) {
+                    status = STATUS_INVALID_PARAMETER;
+                    EBPF_LOG_MESSAGE(
+                        EBPF_TRACELOG_LEVEL_ERROR,
+                        EBPF_TRACELOG_KEYWORD_ERROR,
+                        "Input or output buffer length exceeds protocol limit");
+                    goto Done;
+                }
+
                 if (async) {
                     WdfObjectReference(request);
                     async_context = request;

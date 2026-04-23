@@ -223,9 +223,8 @@ _resolve_maps_in_byte_code(
              &request_buffer_length) != EBPF_SUCCESS) ||
         (ebpf_safe_size_t_multiply(map_fds.size(), sizeof(uint64_t), &reply_address_array_length) != EBPF_SUCCESS) ||
         (ebpf_safe_size_t_add(
-             offsetof(ebpf_operation_resolve_map_reply_t, address),
-             reply_address_array_length,
-             &reply_buffer_length) != EBPF_SUCCESS)) {
+             offsetof(ebpf_operation_resolve_map_reply_t, address), reply_address_array_length, &reply_buffer_length) !=
+         EBPF_SUCCESS)) {
         return EBPF_ARITHMETIC_OVERFLOW;
     }
 

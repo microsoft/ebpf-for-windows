@@ -4678,7 +4678,9 @@ ebpf_get_next_pinned_object_path(
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH);
     size_t reply_next_path_len = 0;
     result = ebpf_safe_size_t_subtract(
-        reply->header.length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path), &reply_next_path_len);
+        reply->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path),
+        &reply_next_path_len);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }

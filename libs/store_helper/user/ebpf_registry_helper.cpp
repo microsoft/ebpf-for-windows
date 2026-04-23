@@ -236,8 +236,7 @@ ebpf_convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
     // The UUID string read from registry also contains the opening and closing braces.
     // Remove those before converting to UUID.
     wchar_t truncated_string[GUID_STRING_LENGTH + 1] = {0};
-    if ((string_length < 2) ||
-        (ebpf_safe_size_t_subtract(string_length, 2, &truncated_length) != EBPF_SUCCESS) ||
+    if ((string_length < 2) || (ebpf_safe_size_t_subtract(string_length, 2, &truncated_length) != EBPF_SUCCESS) ||
         (ebpf_safe_size_t_multiply(truncated_length, sizeof(wchar_t), &copy_length) != EBPF_SUCCESS) ||
         (copy_length >= sizeof(truncated_string))) {
         return EBPF_INVALID_ARGUMENT;

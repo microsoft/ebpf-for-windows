@@ -10,8 +10,8 @@
 #include "map_descriptors.hpp"
 #include "windows_platform_common.hpp"
 
-#include <stdint.h>
 #include <stdexcept>
+#include <stdint.h>
 #include <string>
 #include <vector>
 

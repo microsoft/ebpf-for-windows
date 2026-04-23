@@ -88,7 +88,8 @@ ebpf_core_protocol_create_program(
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
-    retval = ebpf_safe_size_t_subtract(request->program_name_offset, request->section_name_offset, &section_name_length);
+    retval =
+        ebpf_safe_size_t_subtract(request->program_name_offset, request->section_name_offset, &section_name_length);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }

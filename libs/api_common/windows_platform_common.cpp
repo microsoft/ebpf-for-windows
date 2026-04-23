@@ -537,8 +537,8 @@ _update_global_helpers_for_program_information(
             result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
-        result = ebpf_safe_size_t_multiply(
-            total_helper_count, sizeof(ebpf_helper_function_prototype_t), &total_helper_size);
+        result =
+            ebpf_safe_size_t_multiply(total_helper_count, sizeof(ebpf_helper_function_prototype_t), &total_helper_size);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }

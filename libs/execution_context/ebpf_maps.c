@@ -714,7 +714,14 @@ _update_array_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
+    size_t entry_offset = 0;
+    ebpf_result_t result =
+        ebpf_safe_size_t_multiply((size_t)key_value, map->ebpf_map_definition.value_size, &entry_offset);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    uint8_t* entry = &map->data[entry_offset];
     if (data) {
         memcpy(entry, data, map->ebpf_map_definition.value_size);
     } else {
@@ -1601,12 +1608,6 @@ _create_lru_hash_map(
 
     size_t lru_entry_size = EBPF_LRU_ENTRY_SIZE(partition_count, map_definition->key_size);
 
-    // Add the key size to the entry size.
-    retval = ebpf_safe_size_t_add(lru_entry_size, map_definition->key_size, &lru_entry_size);
-    if (retval != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
     // Align the supplemental value to 8 byte boundary.
     // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
     size_t padded_value_size = 0;
@@ -1621,8 +1622,7 @@ _create_lru_hash_map(
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
-    retval = ebpf_safe_size_t_add(
-        lru_entry_size, value_padding, &supplemental_value_size);
+    retval = ebpf_safe_size_t_add(lru_entry_size, value_padding, &supplemental_value_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -3682,7 +3682,19 @@ ebpf_map_create(
     }
 
     if (properties->per_cpu) {
-        local_map_definition.value_size = cpu_count * EBPF_PAD_8(local_map_definition.value_size);
+        size_t padded_value_size = 0;
+        size_t per_cpu_value_size = 0;
+        result = ebpf_safe_size_t_add(local_map_definition.value_size, 7, &padded_value_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        padded_value_size &= ~((size_t)7);
+        result = ebpf_safe_size_t_multiply(cpu_count, padded_value_size, &per_cpu_value_size);
+        if ((result != EBPF_SUCCESS) || (per_cpu_value_size > UINT32_MAX)) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        local_map_definition.value_size = (uint32_t)per_cpu_value_size;
     }
 
     if (map_name->length >= BPF_OBJ_NAME_LEN) {
