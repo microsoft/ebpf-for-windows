@@ -30,6 +30,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
+    ebpf_result_t result;
 
     ebpf_ring_descriptor_t* ring_descriptor =
         ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -43,7 +44,13 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     const size_t kernel_pages = 1;
     const size_t user_pages = 2; // consumer, producer
-    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 / 2 - (kernel_pages + user_pages) * PAGE_SIZE)) {
+    size_t requested_page_count = 0;
+    size_t mapped_memory_length = 0;
+    size_t data_mapped_length = 0;
+    size_t total_mapped_size = 0;
+    size_t user_mdl_producer_length = 0;
+
+    if (length % PAGE_SIZE != 0) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -54,9 +61,23 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
 
     size_t data_pages = length / PAGE_SIZE;
-    size_t requested_page_count = kernel_pages + user_pages + data_pages;
-
-    if (requested_page_count < data_pages) {
+    result = ebpf_safe_size_t_add(kernel_pages, user_pages, &requested_page_count);
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(requested_page_count, data_pages, &requested_page_count);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(requested_page_count, PAGE_SIZE, &mapped_memory_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_multiply(length, 2, &data_mapped_length);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add((kernel_pages + user_pages) * PAGE_SIZE, data_mapped_length, &total_mapped_size);
+    }
+    if (result == EBPF_SUCCESS) {
+        result = ebpf_safe_size_t_add(PAGE_SIZE, data_mapped_length, &user_mdl_producer_length);
+    }
+    if ((result != EBPF_SUCCESS) || (total_mapped_size > MAXULONG) || (user_mdl_producer_length > MAXULONG)) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is too large", length);
@@ -64,7 +85,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
 
     // Allocate pages using ebpf_map_memory.
-    ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
+    ring_descriptor->memory = ebpf_map_memory(mapped_memory_length);
     if (!ring_descriptor->memory) {
         status = STATUS_NO_MEMORY;
         goto Done;
@@ -72,8 +93,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     source_mdl = ring_descriptor->memory;
 
     // Create a MDL big enough to include the header and double-mapped pages.
-    uint32_t total_mapped_size = (uint32_t)((kernel_pages + user_pages) * PAGE_SIZE + length * 2);
-    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
+    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, (ULONG)total_mapped_size, FALSE, FALSE, NULL);
     if (!ring_descriptor->kernel_mdl) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
@@ -88,7 +108,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, PAGE_SIZE + ((ULONG)length * 2), FALSE, FALSE, NULL);
+    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, (ULONG)user_mdl_producer_length, FALSE, FALSE, NULL);
     if (!ring_descriptor->user_mdl_producer) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
@@ -434,7 +454,16 @@ _convert_utf8_string_to_unicode_string(
     }
 
     // Add space for null terminator.
-    ULONG required_bytes = bytes_in_unicode_string + sizeof(wchar_t);
+    uint32_t required_bytes = 0;
+    if (cxplat_safe_uint32_t_add(bytes_in_unicode_string, sizeof(wchar_t), &required_bytes) != CXPLAT_STATUS_SUCCESS) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "_convert_utf8_string_to_unicode_string: File path too long");
+        goto Done;
+    }
+
     if (required_bytes > USHORT_MAX) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE(
