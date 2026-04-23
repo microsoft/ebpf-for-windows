@@ -1025,7 +1025,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     // Before we acquire any references, make sure
     // all maps can be associated.
     for (index = 0; index < maps_count; index++) {
-        ebpf_map_t* map = program_maps[index];
+        ebpf_map_t* map = maps[index];
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
             goto Done;
@@ -1045,7 +1045,7 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)maps[index]);
     }
     ebpf_lock_unlock(&program->lock, state);
 
