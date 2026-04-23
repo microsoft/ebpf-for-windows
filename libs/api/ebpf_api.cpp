@@ -1750,12 +1750,30 @@ ebpf_program_query_info(
     }
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_QUERY_PROGRAM_INFO);
 
-    size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
-    size_t section_name_length = reply->header.length - reply->section_name_offset;
+    size_t file_name_length = 0;
+    size_t section_name_length = 0;
+    size_t file_name_allocation_length = 0;
+    size_t section_name_allocation_length = 0;
+    result = ebpf_safe_size_t_subtract(reply->section_name_offset, reply->file_name_offset, &file_name_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    result = ebpf_safe_size_t_subtract(reply->header.length, reply->section_name_offset, &section_name_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    result = ebpf_safe_size_t_add(file_name_length, 1, &file_name_allocation_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    result = ebpf_safe_size_t_add(section_name_length, 1, &section_name_allocation_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     char* local_file_name =
-        reinterpret_cast<char*>(ebpf_allocate_with_tag(file_name_length + 1, EBPF_POOL_TAG_DEFAULT));
+        reinterpret_cast<char*>(ebpf_allocate_with_tag(file_name_allocation_length, EBPF_POOL_TAG_DEFAULT));
     char* local_section_name =
-        reinterpret_cast<char*>(ebpf_allocate_with_tag(section_name_length + 1, EBPF_POOL_TAG_DEFAULT));
+        reinterpret_cast<char*>(ebpf_allocate_with_tag(section_name_allocation_length, EBPF_POOL_TAG_DEFAULT));
 
     if (!local_file_name || !local_section_name) {
         ebpf_free(local_file_name);
@@ -4658,8 +4676,12 @@ ebpf_get_next_pinned_object_path(
         EBPF_RETURN_RESULT(result);
     }
     ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH);
-    size_t reply_next_path_len =
-        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+    size_t reply_next_path_len = 0;
+    result = ebpf_safe_size_t_subtract(
+        reply->header.length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path), &reply_next_path_len);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     strncpy_s(next_path, next_path_len, (char*)reply->next_path, reply_next_path_len);
     *type = reply->type;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
@@ -5543,9 +5565,16 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
             }
         }
         if (options->context_out) {
-            size_t context_size_out = reply->header.length -
-                                      EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) -
-                                      reply->context_offset;
+            size_t context_size_out = 0;
+            result = ebpf_safe_size_t_subtract(
+                reply->header.length, EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data), &context_size_out);
+            if (result != EBPF_SUCCESS) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            result = ebpf_safe_size_t_subtract(context_size_out, reply->context_offset, &context_size_out);
+            if (result != EBPF_SUCCESS) {
+                return EBPF_INVALID_ARGUMENT;
+            }
             if (context_size_out > options->context_size_out) {
                 options->context_size_out = context_size_out;
                 return EBPF_INSUFFICIENT_BUFFER;

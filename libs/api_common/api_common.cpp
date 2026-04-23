@@ -11,6 +11,7 @@
 #include "windows_platform_common.hpp"
 
 #include <stdint.h>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -38,9 +39,14 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
 std::vector<uint8_t>
 convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
 {
+    size_t byte_count = 0;
+    if (ebpf_safe_size_t_multiply(instructions.size(), sizeof(ebpf_inst), &byte_count) != EBPF_SUCCESS) {
+        throw std::overflow_error("instruction byte count overflow");
+    }
+
     return {
         reinterpret_cast<const uint8_t*>(instructions.data()),
-        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+        reinterpret_cast<const uint8_t*>(instructions.data()) + byte_count};
 }
 
 int

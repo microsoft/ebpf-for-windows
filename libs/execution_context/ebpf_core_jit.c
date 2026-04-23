@@ -83,9 +83,19 @@ ebpf_core_protocol_create_program(
     file_name = (uint8_t*)request->data;
     section_name = ((uint8_t*)request) + request->section_name_offset;
     program_name = ((uint8_t*)request) + request->program_name_offset;
-    file_name_length = section_name - file_name;
-    section_name_length = program_name - section_name;
-    program_name_length = ((uint8_t*)request) + request->header.length - program_name;
+    retval = ebpf_safe_size_t_subtract(
+        request->section_name_offset, EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data), &file_name_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    retval = ebpf_safe_size_t_subtract(request->program_name_offset, request->section_name_offset, &section_name_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+    retval = ebpf_safe_size_t_subtract(request->header.length, request->program_name_offset, &program_name_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     parameters.program_type = request->program_type;
     parameters.program_name.value = program_name;
@@ -180,8 +190,17 @@ ebpf_core_protocol_resolve_map(
         goto Done;
     }
     uint32_t count_of_maps = (uint32_t)(map_handle_length / sizeof(request->map_handle[0]));
-    size_t required_reply_length =
-        EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address) + count_of_maps * sizeof(reply->address[0]);
+    size_t map_address_array_length = 0;
+    size_t required_reply_length = 0;
+    return_value = ebpf_safe_size_t_multiply(count_of_maps, sizeof(reply->address[0]), &map_address_array_length);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+    return_value = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_map_reply_t, address), map_address_array_length, &required_reply_length);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (reply_length < required_reply_length) {
         return EBPF_INVALID_ARGUMENT;

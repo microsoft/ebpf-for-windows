@@ -1609,9 +1609,20 @@ _create_lru_hash_map(
 
     // Align the supplemental value to 8 byte boundary.
     // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
+    size_t padded_value_size = 0;
+    size_t value_padding = 0;
     size_t supplemental_value_size;
+    retval = ebpf_safe_size_t_add(map_definition->value_size, 7, &padded_value_size);
+    if (retval != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    padded_value_size &= ~((size_t)7);
+    retval = ebpf_safe_size_t_subtract(padded_value_size, map_definition->value_size, &value_padding);
+    if (retval != EBPF_SUCCESS) {
+        goto Exit;
+    }
     retval = ebpf_safe_size_t_add(
-        lru_entry_size, EBPF_PAD_8(map_definition->value_size) - map_definition->value_size, &supplemental_value_size);
+        lru_entry_size, value_padding, &supplemental_value_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -3276,7 +3287,12 @@ ebpf_perf_event_array_map_output_with_capture(
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
     uint8_t* record_data;
-    result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
+    size_t total_length = 0;
+    result = ebpf_safe_size_t_add(length, extra_length, &total_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, total_length);
     if (result != EBPF_SUCCESS) {
         // Non-atomic increment is safe: per-CPU counter updated at DISPATCH_LEVEL.
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
@@ -4041,7 +4057,9 @@ ebpf_map_get_info(
     ebpf_assert(sizeof(info->name) >= map->name.length);
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
     if (map->name.length < sizeof(info->name)) {
-        memset(info->name + map->name.length, 0, sizeof(info->name) - map->name.length);
+        size_t remaining_name_length = 0;
+        ebpf_assert_success(ebpf_safe_size_t_subtract(sizeof(info->name), map->name.length, &remaining_name_length));
+        memset(info->name + map->name.length, 0, remaining_name_length);
     }
 
     // Copy the local map info to the user supplied buffer, as much as will fit.

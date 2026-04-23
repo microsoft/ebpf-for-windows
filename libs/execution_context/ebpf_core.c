@@ -563,7 +563,11 @@ _ebpf_core_protocol_create_map(
 
     if (request->header.length > EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data)) {
         map_name.value = (uint8_t*)request->data;
-        map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
+        retval = ebpf_safe_size_t_subtract(
+            request->header.length, EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data), &map_name.length);
+        if (retval != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(retval);
+        }
     }
 
     retval = ebpf_core_create_map(&map_name, &request->ebpf_map_definition, request->inner_map_handle, &reply->handle);
@@ -1262,8 +1266,14 @@ _ebpf_core_protocol_query_program_info(
         goto Done;
     }
 
+    uint32_t section_name_offset = 0;
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)file_name.length;
+    retval = ebpf_safe_uint32_t_add(reply->file_name_offset, (uint32_t)file_name.length, &section_name_offset);
+    if ((retval != EBPF_SUCCESS) || (section_name_offset > UINT16_MAX)) {
+        retval = EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
+    reply->section_name_offset = (uint16_t)section_name_offset;
 
     memcpy(reply->data, file_name.value, file_name.length);
     memcpy(reply->data + file_name.length, section_name.value, section_name.length);
@@ -1896,8 +1906,13 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
-        reply->header.length =
-            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
+        size_t required_reply_length = 0;
+        result = ebpf_safe_size_t_add(
+            next_path.length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path), &required_reply_length);
+        if ((result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            EBPF_RETURN_RESULT(EBPF_ARITHMETIC_OVERFLOW);
+        }
+        reply->header.length = (uint16_t)required_reply_length;
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -1935,8 +1950,13 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
-        reply->header.length =
-            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+        size_t required_reply_length = 0;
+        result = ebpf_safe_size_t_add(
+            next_path.length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path), &required_reply_length);
+        if ((result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            EBPF_RETURN_RESULT(EBPF_ARITHMETIC_OVERFLOW);
+        }
+        reply->header.length = (uint16_t)required_reply_length;
         reply->type = object_type;
     }
     EBPF_RETURN_RESULT(result);
