@@ -416,6 +416,7 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         assert(get_native_module_failures());
         FreeLibrary(context->dll);
         context->dll = nullptr;
+        context->table = nullptr;
         return;
     }
 
