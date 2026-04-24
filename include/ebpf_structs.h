@@ -33,6 +33,7 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
     BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
     BPF_MAP_TYPE_SAMPLE_HASH_MAP = 15,  ///< Sample hash map type.
+    BPF_MAP_TYPE_XSKMAP = 16,           ///< AF_XDP socket (XSK) map.
     BPF_MAP_TYPE_MAX                    ///< Maximum value for map types.
 } ebpf_map_type_t;
 
@@ -56,6 +57,8 @@ static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_STACK),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_RINGBUF),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERF_EVENT_ARRAY),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_SAMPLE_HASH_MAP),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_XSKMAP),
 };
 
 static const char* const _ebpf_map_display_names[] = {
@@ -74,6 +77,8 @@ static const char* const _ebpf_map_display_names[] = {
     "stack",
     "ringbuf",
     "perf_event_array",
+    "sample_hash_map",
+    "xskmap",
 };
 
 typedef enum ebpf_map_option
