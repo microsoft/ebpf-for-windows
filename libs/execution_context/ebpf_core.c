@@ -2452,12 +2452,13 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
      */
     long bytes_written = -1;
     const char* p;
+    const char* output_end = output + strlen(output);
     int specifier_count = 0;
     for (p = output; *p; p++) {
         if (*p != '%') {
             continue;
         }
-        if (p[1] == 0) {
+        if ((p + 1) > output_end) {
             break;
         }
         if (p[1] == '%') {
@@ -2474,9 +2475,10 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (p[1] != 'l' || p[2] == 0) {
+        if (((p + 2) > output_end) || (p[1] != 'l')) {
             break;
         }
+#pragma warning(suppress : 6385) // p[2] is guarded by the explicit output_end bounds check above.
         if (strchr(PRINTK_SPECIFIER_CHARS, p[2])) {
             // We found a legal two character specifier.
             p += 2;
@@ -2484,7 +2486,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (p[2] != 'l' || p[3] == 0) {
+        if (((p + 3) > output_end) || (p[2] != 'l')) {
             break;
         }
         if (strchr(PRINTK_SPECIFIER_CHARS, p[3])) {

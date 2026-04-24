@@ -568,7 +568,16 @@ _update_global_helpers_for_program_information(
 #pragma warning(pop)
 
         if (program_info->count_of_program_type_specific_helpers > 0) {
+            size_t destination_helper_count = 0;
             size_t helper_copy_size = 0;
+            result = ebpf_safe_size_t_subtract(total_helper_count, global_helper_count, &destination_helper_count);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+            if (program_info->count_of_program_type_specific_helpers > destination_helper_count) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
             result = ebpf_safe_size_t_multiply(
                 program_info->count_of_program_type_specific_helpers,
                 sizeof(ebpf_helper_function_prototype_t),
@@ -576,10 +585,13 @@ _update_global_helpers_for_program_information(
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
-            memcpy(
-                new_helpers + global_helper_count,
-                program_info->program_type_specific_helper_prototype,
-                helper_copy_size);
+
+            ebpf_helper_function_prototype_t* source_helpers =
+                (ebpf_helper_function_prototype_t*)program_info->program_type_specific_helper_prototype;
+            for (size_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+#pragma warning(suppress : 6385) // Source helper array length matches count_of_program_type_specific_helpers.
+                new_helpers[global_helper_count + i] = source_helpers[i];
+            }
             ebpf_free((void*)program_info->program_type_specific_helper_prototype);
         }
 
