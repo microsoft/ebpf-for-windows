@@ -1627,10 +1627,11 @@ _ebpf_core_protocol_get_program_info(
         program_info, reply->data, serialization_buffer_size, &reply->size, &required_length);
 
     if (retval != EBPF_SUCCESS) {
+        ebpf_result_t length_result;
         size_t required_reply_length = 0;
-        retval = ebpf_safe_size_t_add(
+        length_result = ebpf_safe_size_t_add(
             required_length, EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data), &required_reply_length);
-        if ((retval != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+        if ((length_result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
             reply->header.length = UINT16_MAX;
         } else {
             reply->header.length = (uint16_t)required_reply_length;
@@ -1720,12 +1721,13 @@ _ebpf_core_protocol_serialize_map_info_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
+        ebpf_result_t length_result;
         size_t required_reply_length = 0;
-        result = ebpf_safe_size_t_add(
+        length_result = ebpf_safe_size_t_add(
             required_serialization_length,
             EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data),
             &required_reply_length);
-        if ((result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+        if ((length_result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
             map_info_reply->header.length = UINT16_MAX;
         } else {
             map_info_reply->header.length = (uint16_t)required_reply_length;
@@ -2458,7 +2460,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
         if (*p != '%') {
             continue;
         }
-        if ((p + 1) > output_end) {
+        if ((p + 1) >= output_end) {
             break;
         }
         if (p[1] == '%') {
@@ -2475,7 +2477,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (((p + 2) > output_end) || (p[1] != 'l')) {
+        if (((p + 2) >= output_end) || (p[1] != 'l')) {
             break;
         }
 #pragma warning(suppress : 6385) // p[2] is guarded by the explicit output_end bounds check above.
@@ -2486,7 +2488,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (((p + 3) > output_end) || (p[2] != 'l')) {
+        if (((p + 3) >= output_end) || (p[2] != 'l')) {
             break;
         }
         if (strchr(PRINTK_SPECIFIER_CHARS, p[3])) {

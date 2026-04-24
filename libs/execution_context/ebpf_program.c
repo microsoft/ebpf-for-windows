@@ -1042,11 +1042,12 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     }
     // Now go through again and acquire references.
     program->maps = program_maps;
-    program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)maps[index]);
+#pragma warning(suppress : 6385) // program_maps was allocated and populated for maps_count entries above.
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program_maps[index]);
     }
+    program_maps = NULL;
     ebpf_lock_unlock(&program->lock, state);
 
 Done:
