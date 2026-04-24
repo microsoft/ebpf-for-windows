@@ -2171,7 +2171,9 @@ _create_lpm_map(
     ebpf_result_t result = EBPF_SUCCESS;
     // Key is uint32_t prefix length plus space for a max length prefix.
     // - Only the prefix length plus prefix_length bits are actually used in an lpm key.
-    size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8;
+    size_t key_suffix_size = 0;
+    size_t max_prefix_length = 0;
+    size_t prefix_length_bit_count = 0;
     size_t prefix_bitmap_size = 0;
     size_t lpm_data_size = 0;
     ebpf_core_lpm_map_t* lpm_map = NULL;
@@ -2185,7 +2187,25 @@ _create_lpm_map(
         goto Exit;
     }
 
-    prefix_bitmap_size = ebpf_bitmap_size(max_prefix_length + 1);
+    if (map_definition->key_size < sizeof(uint32_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    result = ebpf_safe_size_t_subtract(map_definition->key_size, sizeof(uint32_t), &key_suffix_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_multiply(key_suffix_size, 8, &max_prefix_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_add(max_prefix_length, 1, &prefix_length_bit_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    prefix_bitmap_size = ebpf_bitmap_size(prefix_length_bit_count);
     if (prefix_bitmap_size == MAXSIZE_T) {
         result = EBPF_ARITHMETIC_OVERFLOW;
         goto Exit;
@@ -2210,7 +2230,7 @@ _create_lpm_map(
     }
     lpm_map->max_prefix = (uint32_t)max_prefix_length;
     // Add one to max_prefix_length to account for max length prefixes in the prefix_length bitmap.
-    result = ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, max_prefix_length + 1);
+    result = ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, prefix_length_bit_count);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

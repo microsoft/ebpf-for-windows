@@ -345,8 +345,12 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
     uint8_t* offset = (uint8_t*)bucket->entries;
     size_t entry_size = 0;
     size_t entry_offset = 0;
-    ebpf_assert_success(ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key), key_size, &entry_size));
-    ebpf_assert_success(ebpf_safe_size_t_multiply(index, entry_size, &entry_offset));
+    if (ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_hash_bucket_entry_t, key), key_size, &entry_size) != EBPF_SUCCESS) {
+        return NULL;
+    }
+    if (ebpf_safe_size_t_multiply(index, entry_size, &entry_offset) != EBPF_SUCCESS) {
+        return NULL;
+    }
 
     return (ebpf_hash_bucket_entry_t*)(offset + entry_offset);
 }
@@ -468,6 +472,10 @@ _ebpf_hash_table_bucket_insert(
     // Append new key, data, and backup bucket.
     ebpf_hash_bucket_entry_t* entry =
         _ebpf_hash_table_bucket_entry(hash_table->key_size, local_new_bucket, local_new_bucket->count);
+    if (entry == NULL) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
 
     entry->backup_bucket = backup_bucket;
     backup_bucket = NULL;
@@ -505,15 +513,21 @@ Done:
  * @param[in] key_index Location of the key to remove.
  * @param[out] new_bucket The new bucket with the entry removed. On success the caller owns this memory.
  */
-static void
+static ebpf_result_t
 _ebpf_hash_table_bucket_delete(
     _Inout_ ebpf_hash_table_t* hash_table,
     _In_ const ebpf_hash_bucket_header_t* old_bucket,
     size_t key_index,
     _Outptr_result_maybenull_ ebpf_hash_bucket_header_t** new_bucket)
 {
-    ebpf_hash_bucket_header_t* backup_bucket =
-        _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, old_bucket->count - 1)->backup_bucket;
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_hash_bucket_entry_t* last_entry =
+        _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, old_bucket->count - 1);
+    if (last_entry == NULL) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
+    ebpf_hash_bucket_header_t* backup_bucket = last_entry->backup_bucket;
 
     // Delete the bucket if removing last entry.
     if (old_bucket->count == 1) {
@@ -535,6 +549,10 @@ _ebpf_hash_table_bucket_delete(
             _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
         ebpf_hash_bucket_entry_t* new_entry =
             _ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, backup_bucket->count);
+        if (old_entry == NULL || new_entry == NULL) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Done;
+        }
 
         new_entry->data = old_entry->data;
         memcpy(new_entry->key, old_entry->key, hash_table->key_size);
@@ -545,6 +563,10 @@ _ebpf_hash_table_bucket_delete(
     for (size_t index = 0; index < old_bucket->count - 1; index++) {
         ebpf_hash_bucket_entry_t* old_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
         ebpf_hash_bucket_entry_t* new_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, index);
+        if (old_entry == NULL || new_entry == NULL) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Done;
+        }
 
         new_entry->backup_bucket = old_entry->backup_bucket;
         // Bucket at index N > 0 should have a backup bucket of size N - 1.
@@ -559,7 +581,7 @@ Done:
         ebpf_interlocked_decrement_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
     }
 
-    return;
+    return result;
 }
 
 /**
@@ -613,6 +635,10 @@ _ebpf_hash_table_bucket_update(
     memcpy(local_new_bucket, old_bucket, old_bucket_size);
 
     ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, local_new_bucket, key_index);
+    if (entry == NULL) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
 
     entry->data = data;
 
@@ -703,6 +729,10 @@ _ebpf_hash_table_replace_bucket(
     // Find the entry in the bucket, if any.
     for (index = 0; index < old_bucket_count; index++) {
         ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, index);
+        if (entry == NULL) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Done;
+        }
         if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
             old_data = entry->data;
             break;
@@ -750,8 +780,7 @@ _ebpf_hash_table_replace_bucket(
                 }
             }
             // No failure path after successful delete notification.
-            _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
-            result = EBPF_SUCCESS;
+            result = _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
         }
         break;
     default:
@@ -904,6 +933,9 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
             for (inner_index = 0; inner_index < bucket->count; inner_index++) {
                 ebpf_hash_bucket_entry_t* entry =
                     _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, inner_index);
+                if (entry == NULL) {
+                    break;
+                }
                 hash_table->free(entry->data);
                 hash_table->free(entry->backup_bucket);
             }
@@ -937,6 +969,10 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
 
     for (index = 0; index < bucket->count; index++) {
         ebpf_hash_bucket_entry_t* entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, index);
+        if (entry == NULL) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
         if (_ebpf_hash_table_compare(hash_table, key, entry->key) == 0) {
             data = entry->data;
             break;
@@ -1047,6 +1083,10 @@ ebpf_hash_table_next_key_pointer_and_value(
         // Pick first entry if no previous key.
         if (!previous_key) {
             next_entry = _ebpf_hash_table_bucket_entry(hash_table->key_size, bucket, 0);
+            if (!next_entry) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Done;
+            }
             break;
         }
 

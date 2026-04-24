@@ -1025,7 +1025,8 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     // Before we acquire any references, make sure
     // all maps can be associated.
     for (index = 0; index < maps_count; index++) {
-        ebpf_map_t* map = maps[index];
+#pragma warning(suppress : 6385) // program_maps was allocated and populated for maps_count entries above.
+        ebpf_map_t* map = program_maps[index];
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
             goto Done;
