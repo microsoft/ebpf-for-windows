@@ -1092,7 +1092,7 @@ net_ebpf_ext_remove_client_context(
             filter_context->client_context_count - index,
             sizeof(net_ebpf_extension_hook_client_t*),
             &client_contexts_length)));
-        memcpy(
+        memmove(
             &filter_context->client_contexts[index],
             &filter_context->client_contexts[index + 1],
             client_contexts_length);
