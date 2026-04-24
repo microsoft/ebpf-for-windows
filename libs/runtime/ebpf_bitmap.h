@@ -14,7 +14,7 @@ extern "C"
      * @brief Compute the size in bytes required to hold a ebpf_bitmap_t.
      *
      * @param[in] bit_count Count of bits the bitmap will hold.
-     * @return Size in bytes required.
+     * @return Size in bytes required, or MAXSIZE_T on overflow.
      */
     size_t
     ebpf_bitmap_size(size_t bit_count);
@@ -24,8 +24,10 @@ extern "C"
      *
      * @param[out] bitmap Pointer to the bitmap.
      * @param[in] bit_count Count of bits to be stored.
+     * @retval EBPF_SUCCESS The bitmap was initialized.
+     * @retval EBPF_ARITHMETIC_OVERFLOW The bitmap size overflowed.
      */
-    void
+    ebpf_result_t
     ebpf_bitmap_initialize(_Out_ ebpf_bitmap_t* bitmap, size_t bit_count);
 
     /**

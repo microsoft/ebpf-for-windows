@@ -56,22 +56,34 @@ static_assert(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor
 size_t
 ebpf_bitmap_size(size_t bit_count)
 {
+    size_t adjusted_bit_count = 0;
+    size_t block_count = 0;
     size_t bitmap_data_length = 0;
     size_t bitmap_size = 0;
-    ebpf_assert_success(
-        ebpf_safe_size_t_multiply(BIT_COUNT_TO_BLOCK_COUNT(bit_count), sizeof(size_t), &bitmap_data_length));
-    ebpf_assert_success(ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_bitmap_t, data), bitmap_data_length, &bitmap_size));
+    if (ebpf_safe_size_t_add(bit_count, BITS_IN_BLOCK - 1, &adjusted_bit_count) != EBPF_SUCCESS) {
+        return MAXSIZE_T;
+    }
+    block_count = adjusted_bit_count / BITS_IN_BLOCK;
+    if (ebpf_safe_size_t_multiply(block_count, sizeof(uint64_t), &bitmap_data_length) != EBPF_SUCCESS) {
+        return MAXSIZE_T;
+    }
+    if (ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_bitmap_t, data), bitmap_data_length, &bitmap_size) != EBPF_SUCCESS) {
+        return MAXSIZE_T;
+    }
     return bitmap_size;
 }
 
-void
+ebpf_result_t
 ebpf_bitmap_initialize(_Out_ ebpf_bitmap_t* bitmap, size_t bit_count)
 {
-    size_t bitmap_data_length = 0;
+    size_t bitmap_size = ebpf_bitmap_size(bit_count);
+    if (bitmap_size == MAXSIZE_T) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+
     bitmap->bit_count = bit_count;
-    ebpf_assert_success(
-        ebpf_safe_size_t_multiply(BIT_COUNT_TO_BLOCK_COUNT(bit_count), sizeof(size_t), &bitmap_data_length));
-    memset(bitmap->data, 0, bitmap_data_length);
+    memset(bitmap->data, 0, bitmap_size - EBPF_OFFSET_OF(ebpf_bitmap_t, data));
+    return EBPF_SUCCESS;
 }
 
 bool
