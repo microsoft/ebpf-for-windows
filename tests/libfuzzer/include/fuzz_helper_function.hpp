@@ -394,15 +394,6 @@ template <typename context_type> class fuzz_helper_function
             },
         },
         {
-            "BPF_MAP_TYPE_PERCPU_ARRAY",
-            {
-                BPF_MAP_TYPE_PERCPU_ARRAY,
-                0,
-                4,
-                10,
-            },
-        },
-        {
             "BPF_MAP_TYPE_RINGBUF",
             {
                 BPF_MAP_TYPE_RINGBUF,
@@ -418,6 +409,24 @@ template <typename context_type> class fuzz_helper_function
                 0,
                 4,
                 64 * 1024,
+            },
+        },
+        {
+            "BPF_MAP_TYPE_SAMPLE_HASH_MAP",
+            {
+                BPF_MAP_TYPE_SAMPLE_HASH_MAP,
+                4,
+                4,
+                10,
+            },
+        },
+        {
+            "BPF_MAP_TYPE_XSKMAP",
+            {
+                BPF_MAP_TYPE_XSKMAP,
+                4,
+                4,
+                10,
             },
         },
     };
