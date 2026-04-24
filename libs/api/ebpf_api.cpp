@@ -619,6 +619,10 @@ _ebpf_map_lookup_element_batch_helper(
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data);
     max_entries_per_batch /= entry_size;
+    if (max_entries_per_batch == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     while (count_returned < input_count) {
         // Fetch the next batch of entries.
@@ -904,6 +908,10 @@ _update_map_element_batch(
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data);
     max_entries_per_batch /= entry_size;
+    if (max_entries_per_batch == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     try {
         for (size_t key_index = 0; key_index < input_count;) {

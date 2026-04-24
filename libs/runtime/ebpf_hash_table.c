@@ -506,12 +506,13 @@ Done:
  * Caller must free the old bucket.
  * Memory from the last entry's backup_bucket is used to build the new bucket.
  * Caller must ensure that the entry is in the bucket.
- * Operation can't fail.
  *
  * @param[in] hash_table The hash table.
  * @param[in] old_bucket The immutable old bucket to copy.
  * @param[in] key_index Location of the key to remove.
  * @param[out] new_bucket The new bucket with the entry removed. On success the caller owns this memory.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_ARITHMETIC_OVERFLOW Arithmetic overflow occurred while computing bucket entry offsets.
  */
 static ebpf_result_t
 _ebpf_hash_table_bucket_delete(
