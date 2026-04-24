@@ -1072,34 +1072,33 @@ net_ebpf_ext_remove_client_context(
     _In_ const struct _net_ebpf_extension_hook_client* hook_client)
 {
     KIRQL old_irql;
-    uint32_t index;
+    uint32_t index = 0;
     bool found = FALSE;
 
     old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
 
     for (index = 0; index < filter_context->client_context_count; index++) {
         if (filter_context->client_contexts[index] == hook_client) {
-            filter_context->client_contexts[index] = NULL;
             filter_context->client_context_count--;
             found = TRUE;
             break;
         }
     }
-    ASSERT(found == TRUE);
-    if (index != filter_context->client_context_count) {
-        size_t client_contexts_length = 0;
-        ASSERT(NT_SUCCESS(RtlSizeTMult(
-            filter_context->client_context_count - index,
-            sizeof(net_ebpf_extension_hook_client_t*),
-            &client_contexts_length)));
-        memmove(
-            &filter_context->client_contexts[index],
-            &filter_context->client_contexts[index + 1],
-            client_contexts_length);
-
-        filter_context->client_contexts[filter_context->client_context_count] = NULL;
+    if (!found) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_remove_client_context: Client context not found");
+        ASSERT(FALSE);
+        goto Exit;
     }
 
+    for (; index < filter_context->client_context_count; index++) {
+        filter_context->client_contexts[index] = filter_context->client_contexts[index + 1];
+    }
+    filter_context->client_contexts[filter_context->client_context_count] = NULL;
+
+Exit:
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
 
