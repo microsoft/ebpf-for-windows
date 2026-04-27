@@ -36,17 +36,19 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
     return new_string;
 }
 
-std::vector<uint8_t>
-convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
+ebpf_result_t
+convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions, std::vector<uint8_t>& byte_code)
 {
     size_t byte_count = 0;
-    if (ebpf_safe_size_t_multiply(instructions.size(), sizeof(ebpf_inst), &byte_count) != EBPF_SUCCESS) {
-        throw std::overflow_error("instruction byte count overflow");
+    ebpf_result_t result = ebpf_safe_size_t_multiply(instructions.size(), sizeof(ebpf_inst), &byte_count);
+    if (result != EBPF_SUCCESS) {
+        return result;
     }
 
-    return {
+    byte_code = {
         reinterpret_cast<const uint8_t*>(instructions.data()),
         reinterpret_cast<const uint8_t*>(instructions.data()) + byte_count};
+    return EBPF_SUCCESS;
 }
 
 int

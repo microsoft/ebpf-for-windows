@@ -713,7 +713,11 @@ ebpf_api_elf_enumerate_programs(
             }
 
             info->offset_in_section = raw_program.insn_off;
-            std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
+            std::vector<uint8_t> raw_data;
+            result = convert_ebpf_program_to_bytes(raw_program.prog, raw_data);
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("instruction byte count overflow");
+            }
             info->raw_data_size = raw_data.size();
             info->raw_data = (char*)ebpf_allocate_with_tag(info->raw_data_size, EBPF_POOL_TAG_DEFAULT);
             if (info->raw_data == nullptr) {
