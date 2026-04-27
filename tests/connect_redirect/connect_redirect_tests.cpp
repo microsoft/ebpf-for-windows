@@ -506,7 +506,7 @@ authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 // Helper to update the authorization_policy_map (separate from the redirect policy_map).
 static void
 _update_authorization_policy_map(
-    _In_ const sockaddr_storage& destination, uint16_t destination_port, uint32_t verdict, bool add)
+    _In_ const sockaddr_storage& destination, uint16_t destination_port, uint32_t verdict, bool dual_stack, bool add)
 {
     bpf_map* auth_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "authorization_policy_map");
     SAFE_REQUIRE(auth_map != nullptr);
@@ -516,7 +516,13 @@ _update_authorization_policy_map(
     destination_entry_key_t key = {0};
     destination_entry_value_t value = {.verdict = verdict};
 
-    INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+    if (_globals.family == AF_INET && dual_stack) {
+        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
+    } else {
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+    }
     key.protocol = _get_ip_proto_from_connection_type(_globals.connection_type);
     key.destination_port = htons(destination_port);
 
@@ -542,7 +548,7 @@ redirect_then_auth_reject_test(
         destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
 
     // Set up authorization policy to REJECT the proxy (post-redirect) destination.
-    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_REJECT, true);
+    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_REJECT, dual_stack, true);
 
     // Connection should fail because authorization rejects after redirect.
     {
@@ -554,7 +560,7 @@ redirect_then_auth_reject_test(
     }
 
     // Clean up policy maps.
-    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, false);
+    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
     _update_policy_map(
         destination,
         proxy,
@@ -581,7 +587,7 @@ redirect_then_auth_allow_test(
         destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
 
     // Set up authorization policy to ALLOW the proxy (post-redirect) destination.
-    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, true);
+    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, dual_stack, true);
 
     // Connection should succeed: redirect then authorized.
     {
@@ -593,7 +599,7 @@ redirect_then_auth_allow_test(
     }
 
     // Clean up.
-    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, false);
+    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
     _update_policy_map(
         destination,
         proxy,
