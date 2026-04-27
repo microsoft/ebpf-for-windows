@@ -51,6 +51,25 @@ update_audit_map_entry(bpf_sock_addr_t* ctx)
     bpf_map_update_elem(&audit_map, &key, &entry, 0);
 }
 
+__inline void
+initialize_destination_entry_v4(bpf_sock_addr_t* ctx, destination_entry_key_t* entry)
+{
+    entry->destination_ip.ipv4 = ctx->user_ip4;
+    entry->destination_port = ctx->user_port;
+    entry->protocol = ctx->protocol;
+}
+
+__inline void
+initialize_destination_entry_v6(bpf_sock_addr_t* ctx, destination_entry_key_t* entry)
+{
+    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
+    // where the scope id or interface is not provided, so the policy can match the
+    // wrong address.
+    __builtin_memcpy(entry->destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
+    entry->destination_port = ctx->user_port;
+    entry->protocol = ctx->protocol;
+}
+
 __inline int
 redirect_v4(bpf_sock_addr_t* ctx)
 {
@@ -62,9 +81,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    entry.destination_ip.ipv4 = ctx->user_ip4;
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v4(ctx, &entry);
 
     // Find the entry in the policy map.
     destination_entry_value_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -98,12 +115,7 @@ redirect_v6(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
-    // where the scope id or interface is not provided, so the policy can match the
-    // wrong address.
-    __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v6(ctx, &entry);
 
     // Find the entry in the policy map.
     destination_entry_value_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -159,9 +171,7 @@ authorize_v4(bpf_sock_addr_t* ctx)
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    entry.destination_ip.ipv4 = ctx->user_ip4;
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v4(ctx, &entry);
 
     destination_entry_value_t* auth_policy = bpf_map_lookup_elem(&authorization_policy_map, &entry);
     if (auth_policy != NULL) {
@@ -181,9 +191,7 @@ authorize_v6(bpf_sock_addr_t* ctx)
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v6(ctx, &entry);
 
     destination_entry_value_t* auth_policy = bpf_map_lookup_elem(&authorization_policy_map, &entry);
     if (auth_policy != NULL) {

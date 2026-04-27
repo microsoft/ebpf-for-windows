@@ -829,11 +829,51 @@ DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(vip_address, loopback_address)
             AF_INET, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]); \
     }
 
-// IPv4, TCP combined redirect + authorization tests.
-DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(
-    "ipv4", socket_family_t::IPv4, false, connection_type_t::TCP, vip_address, remote_address)
-DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(
-    "ipv4", socket_family_t::IPv4, false, connection_type_t::TCP, vip_address, loopback_address)
+#define DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP(socket_family_name, socket_family_type, dual_stack, connection_type) \
+    DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                                                       \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, remote_address)             \
+    DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                                                       \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address)
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                              \
+    socket_family_name, socket_family_type, dual_stack, connection_type, destination, proxy)      \
+    TEST_CASE(                                                                                    \
+        socket_family_name "_" #destination "_" #proxy "_" #connection_type,                      \
+        "[connect_combined_redirect_auth_tests_v6]")                                              \
+    {                                                                                             \
+        combined_redirect_auth_tests_##destination##_##proxy##(                                   \
+            AF_INET6, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]); \
+    }
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP(socket_family_name, socket_family_type, dual_stack, connection_type) \
+    DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                                                       \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, remote_address)             \
+    DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                                                       \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address)
+
+// IPv4 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::CONNECTED_UDP)
+
+// Dual stack socket, IPv4 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP(
+    "v4_mapped", socket_family_t::Dual, true, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP(
+    "v4_mapped", socket_family_t::Dual, true, connection_type_t::CONNECTED_UDP)
+
+// IPv6 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::CONNECTED_UDP)
+
+// Dual stack socket, IPv6 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP(
+    "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP(
+    "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
 #define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)                   \
     void connection_redirection_tests_##original_destination##_##new_destination##(                                   \
