@@ -531,8 +531,8 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
     }
     assert(value_size != 0);
     if (BPF_MAP_TYPE_PER_CPU(type)) {
-        if (cxplat_safe_uint32_t_multiply(EBPF_PAD_8(value_size), libbpf_num_possible_cpus(), &value_size) !=
-            CXPLAT_STATUS_SUCCESS) {
+        if (ebpf_safe_uint32_t_multiply(EBPF_PAD_8(value_size), libbpf_num_possible_cpus(), &value_size) !=
+            EBPF_SUCCESS) {
             result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
@@ -1481,6 +1481,11 @@ _create_program(
     result = ebpf_safe_size_t_add(section_name_offset, section_name.size(), &program_name_offset);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
+    }
+
+    if ((request_buffer_size > UINT16_MAX) || (section_name_offset > UINT16_MAX) ||
+        (program_name_offset > UINT16_MAX)) {
+        EBPF_RETURN_RESULT(EBPF_ARITHMETIC_OVERFLOW);
     }
 
     request_buffer.resize(request_buffer_size);

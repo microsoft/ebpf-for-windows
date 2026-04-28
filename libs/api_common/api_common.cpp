@@ -26,6 +26,9 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
     if (ebpf_safe_size_t_add(string.size(), 1, &string_length) != EBPF_SUCCESS) {
         return nullptr;
     }
+    if ((length != nullptr) && (string_length > UINT32_MAX)) {
+        return nullptr;
+    }
     new_string = (char*)ebpf_allocate_with_tag(string_length, EBPF_POOL_TAG_DEFAULT);
     if (new_string != nullptr) {
         strcpy_s(new_string, string_length, string.c_str());

@@ -542,14 +542,20 @@ ebpf_deserialize_program_info(
     }
 
     // Check if sufficient buffer is remaining for program type descriptor name.
-    if (buffer_left < sizeof(serialized_program_type_descriptor->name_length)) {
+    if (buffer_left < serialized_program_type_descriptor->name_length) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     // Allocate and deserialize program type descriptor name.
+    size_t program_type_descriptor_name_allocation_length = 0;
+    result = ebpf_safe_size_t_add(
+        serialized_program_type_descriptor->name_length, 1, &program_type_descriptor_name_allocation_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
     local_program_type_descriptor_name =
-        (char*)ebpf_allocate_with_tag(serialized_program_type_descriptor->name_length + 1, EBPF_POOL_TAG_DEFAULT);
+        (char*)ebpf_allocate_with_tag(program_type_descriptor_name_allocation_length, EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor_name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -558,6 +564,7 @@ ebpf_deserialize_program_info(
         local_program_type_descriptor_name,
         serialized_program_type_descriptor->name,
         serialized_program_type_descriptor->name_length);
+    local_program_type_descriptor_name[serialized_program_type_descriptor->name_length] = '\0';
     local_program_type_descriptor->name = local_program_type_descriptor_name;
 
     // Adjust remaining buffer length.
@@ -650,13 +657,20 @@ ebpf_deserialize_program_info(
         }
 
         // Allocate buffer and serialize helper function name.
+        size_t helper_function_name_allocation_length = 0;
+        result =
+            ebpf_safe_size_t_add(serialized_helper_prototype->name_length, 1, &helper_function_name_allocation_length);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
         local_helper_function_name =
-            (char*)ebpf_allocate_with_tag(serialized_helper_prototype->name_length + 1, EBPF_POOL_TAG_DEFAULT);
+            (char*)ebpf_allocate_with_tag(helper_function_name_allocation_length, EBPF_POOL_TAG_DEFAULT);
         if (local_helper_function_name == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
         memcpy(local_helper_function_name, serialized_helper_prototype->name, serialized_helper_prototype->name_length);
+        local_helper_function_name[serialized_helper_prototype->name_length] = '\0';
         helper_prototype->name = local_helper_function_name;
 
         // Adjust remaining buffer length.
