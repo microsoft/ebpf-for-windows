@@ -146,12 +146,6 @@ perf_event_cpu_target(void* context, const program_runtime_context_t* runtime_co
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=32
 #line 37 "sample/undocked/perf_event_cpu_target.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 37 "sample/undocked/perf_event_cpu_target.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 37 "sample/undocked/perf_event_cpu_target.c"
-        return 0;
-#line 37 "sample/undocked/perf_event_cpu_target.c"
-    }
 label_1:
     // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
 #line 38 "sample/undocked/perf_event_cpu_target.c"
@@ -192,7 +186,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 2;
+    version->minor = 3;
     version->revision = 0;
 }
 

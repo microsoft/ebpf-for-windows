@@ -211,12 +211,6 @@ label_3:
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=1
 #line 31 "sample/undocked/lru_map_test.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/undocked/lru_map_test.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 31 "sample/undocked/lru_map_test.c"
-        return 0;
-#line 31 "sample/undocked/lru_map_test.c"
-    }
     // EBPF_OP_MOV64_IMM pc=23 dst=r1 src=r0 offset=0 imm=1
 #line 31 "sample/undocked/lru_map_test.c"
     r1 = IMMEDIATE(1);
@@ -269,7 +263,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 2;
+    version->minor = 3;
     version->revision = 0;
 }
 
