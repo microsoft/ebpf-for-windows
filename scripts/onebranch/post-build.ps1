@@ -53,7 +53,9 @@ $BinariesToCopy = @(
     "export_program_info_test.exe",
     "export_program_info_test.pdb",
     "socket_tests.exe",
-    "socket_tests.pdb"
+    "socket_tests.pdb",
+    "connect_redirect_tests.exe",
+    "connect_redirect_tests.pdb"
 )
 
 function CopyPackages {
