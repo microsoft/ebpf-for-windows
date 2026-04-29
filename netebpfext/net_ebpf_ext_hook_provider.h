@@ -127,7 +127,7 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     _Out_ uint32_t* result);
 
 /**
- * @brief Expand stack and invoke a filter set of eBPF programs attached to the specified filter context.
+ * @brief Expand stack and invoke a filtered set of eBPF programs attached to the specified filter context.
  *
  * @param[in,out] program_context Context to pass to eBPF program.
  * @param[in,out] filter_context Filter context to invoke the programs from.

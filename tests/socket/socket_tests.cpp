@@ -927,7 +927,7 @@ TEST_CASE(
     if (result == 0) {
         printf("Tunnel connection count: %llu\n", tunnel_count);
         // For loopback, tunnel count should typically be 0.
-        SAFE_REQUIRE(tunnel_count >= 0);
+        SAFE_REQUIRE(tunnel_count == 0);
     }
 
     printf("Conditional policy validation test completed successfully\n");

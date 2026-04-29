@@ -726,6 +726,14 @@ _net_ebpf_ext_is_cgroup_connect_attach_type(_In_ const ebpf_attach_type_t* attac
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0);
 }
 
+static bool
+_net_ebpf_ext_needs_redirect_handle(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return (
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0);
+}
+
 //
 // NMR Registration Helper Routines.
 //
@@ -781,8 +789,8 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         local_filter_context->v4_attach_type = TRUE;
     }
 
-    // Allocate redirect handle for this filter context, only in the case of INET*_CONNECT attach types.
-    if (_net_ebpf_ext_is_cgroup_connect_attach_type(filter_parameters_array->attach_type)) {
+    // Allocate redirect handle only for redirect-capable connect attach types.
+    if (_net_ebpf_ext_needs_redirect_handle(filter_parameters_array->attach_type)) {
         status = FwpsRedirectHandleCreate(
             &EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &local_filter_context->redirect_handle);
         if (!NT_SUCCESS(status)) {
