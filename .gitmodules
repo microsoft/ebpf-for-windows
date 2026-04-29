@@ -23,7 +23,7 @@
 	url = https://github.com/microsoft/usersim.git
 [submodule "external/ebpf-extension-common"]
 	path = external/ebpf-extension-common
-	url =  https://github.com/LakshK98/ebpf-extension-common.git
+	url =  https://github.com/microsoft/ebpf-extension-common.git
 [submodule "tests/external/kissfft"]
 	path = tests/external/kissfft
 	url = https://github.com/mborgerding/kissfft
