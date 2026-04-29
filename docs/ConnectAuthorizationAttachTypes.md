@@ -219,6 +219,15 @@ When both are present, the effective decision is:
 - Otherwise, a **`BPF_SOCK_ADDR_VERDICT_PROCEED_HARD`** decision may be used to produce a hard-permit (terminating) decision in WFP.
 - Otherwise, the connection proceeds as a soft-permit.
 
+#### Redirected Connection Behavior
+
+If a connection is redirected at the `CONNECT` / `CONNECT_REDIRECT` layer, the
+`CONNECT_AUTHORIZATION` program may be invoked twice: once with the 5-tuple for
+the original destination and once with the 5-tuple for the redirected
+destination. Programs attached to `cgroup/connect_authorization4` or
+`cgroup/connect_authorization6` should therefore tolerate multiple
+authorization callbacks for a single redirected outbound connection.
+
 #### Behavior When No CONNECT Program Is Attached
 
 If no CONNECT program is attached for a given cgroup, outbound connections that reach the authorization layer will still invoke any attached CONNECT_AUTHORIZATION programs. For the purposes of determining whether CONNECT_AUTHORIZATION runs, the absence of a CONNECT program is equivalent to the CONNECT layer returning `BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT`.
