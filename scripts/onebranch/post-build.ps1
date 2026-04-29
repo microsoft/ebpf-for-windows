@@ -55,7 +55,9 @@ $BinariesToCopy = @(
     "socket_tests.exe",
     "socket_tests.pdb",
     "connect_redirect_tests.exe",
-    "connect_redirect_tests.pdb"
+    "connect_redirect_tests.pdb",
+    "tcp_udp_listener.exe",
+    "tcp_udp_listener.pdb"
 )
 
 function CopyPackages {
