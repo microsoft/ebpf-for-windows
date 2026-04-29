@@ -178,4 +178,9 @@ popd $(OutDir)</Command>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <!-- Delete the nupkg before the up-to-date check so nuget pack always re-runs.
+       Used by scripts/onebranch/post-build.ps1 to repack with signed binaries. -->
+  <Target Name="ForceRepack" BeforeTargets="CustomBuild" Condition="'$(ForceRepack)'=='true'">
+    <Delete Files="$(OutDir)eBPF-for-Windows.$(Platform)$(NugetConfigSuffix).$(EbpfVersion).nupkg" />
+  </Target>
 </Project>
