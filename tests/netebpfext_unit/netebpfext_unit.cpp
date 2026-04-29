@@ -415,6 +415,8 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
     test_sock_addr_client_context_header_t client_context_header = {0};
+    client_context_header.context.base.desired_attach_types = {
+        BPF_CGROUP_INET4_CONNECT, BPF_CGROUP_INET6_CONNECT, BPF_CGROUP_INET4_RECV_ACCEPT, BPF_CGROUP_INET6_RECV_ACCEPT};
     test_sock_addr_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
 
