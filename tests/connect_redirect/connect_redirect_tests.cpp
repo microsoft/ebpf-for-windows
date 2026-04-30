@@ -63,6 +63,7 @@ typedef struct _test_globals
     test_addresses_t addresses[socket_family_t::Max] = {0};
     bool attach_v4_program = false;
     bool attach_v6_program = false;
+    bool attach_authorization_programs = false;
     bpf_object_ptr bpf_object;
 } test_globals_t;
 
@@ -502,6 +503,115 @@ authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
     delete sender_socket;
 }
 
+// Helper to update the authorization_policy_map (separate from the redirect policy_map).
+static void
+_update_authorization_policy_map(
+    _In_ const sockaddr_storage& destination, uint16_t destination_port, uint32_t verdict, bool dual_stack, bool add)
+{
+    bpf_map* auth_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "authorization_policy_map");
+    SAFE_REQUIRE(auth_map != nullptr);
+
+    fd_t map_fd = bpf_map__fd(auth_map);
+
+    destination_entry_key_t key = {0};
+    destination_entry_value_t value = {.verdict = verdict};
+
+    if (_globals.family == AF_INET && dual_stack) {
+        struct sockaddr_in6* v6_destination = (struct sockaddr_in6*)&destination;
+        INET_SET_ADDRESS(
+            AF_INET6, (PUCHAR)&key.destination_ip, IN6_GET_ADDR_V4MAPPED((IN6_ADDR*)&v6_destination->sin6_addr));
+    } else {
+        INET_SET_ADDRESS(_globals.family, (PUCHAR)&key.destination_ip, INETADDR_ADDRESS((PSOCKADDR)&destination));
+    }
+    key.protocol = _get_ip_proto_from_connection_type(_globals.connection_type);
+    key.destination_port = htons(destination_port);
+
+    if (add) {
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    } else {
+        SAFE_REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
+    }
+}
+
+// Test that authorization can reject a connection after redirect allows it.
+// This proves the connect_authorization attach point runs after connect and
+// sees the post-redirect destination.
+void
+redirect_then_auth_reject_test(
+    bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
+{
+    client_socket_t* sender_socket = nullptr;
+    get_client_socket(dual_stack, &sender_socket);
+
+    // Set up redirect policy to allow and redirect.
+    _update_policy_map(
+        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
+
+    // Set up authorization policy to REJECT the proxy (post-redirect) destination.
+    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_REJECT, dual_stack, true);
+
+    // Connection should fail because authorization rejects after redirect.
+    {
+        impersonation_helper_t helper(_globals.user_type);
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+        sender_socket->post_async_receive(true);
+        sender_socket->complete_async_receive(1000, true);
+    }
+
+    // Clean up policy maps.
+    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
+    _update_policy_map(
+        destination,
+        proxy,
+        _globals.destination_port,
+        _globals.proxy_port,
+        _globals.connection_type,
+        dual_stack,
+        false);
+
+    delete sender_socket;
+}
+
+// Test that authorization allows a connection after redirect, proving the
+// combined redirect + authorization flow works end-to-end.
+void
+redirect_then_auth_allow_test(
+    bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
+{
+    client_socket_t* sender_socket = nullptr;
+    get_client_socket(dual_stack, &sender_socket);
+
+    // Set up redirect policy to allow and redirect.
+    _update_policy_map(
+        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
+
+    // Set up authorization policy to ALLOW the proxy (post-redirect) destination.
+    _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, dual_stack, true);
+
+    // Connection should succeed: redirect then authorized.
+    {
+        impersonation_helper_t helper(_globals.user_type);
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
+        sender_socket->post_async_receive();
+        sender_socket->complete_async_receive(2000, false);
+    }
+
+    // Clean up.
+    _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
+    _update_policy_map(
+        destination,
+        proxy,
+        _globals.destination_port,
+        _globals.proxy_port,
+        _globals.connection_type,
+        dual_stack,
+        false);
+
+    delete sender_socket;
+}
+
 void
 connect_redirect_test_wrapper(
     _In_ const sockaddr_storage& source_address,
@@ -665,6 +775,111 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
 // Dual stack socket, IPv6, CONNECTED_UDP
 DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
     "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
+
+// Combined redirect + authorization test cases.
+// These tests verify that:
+// 1. Authorization runs after redirect and sees the post-redirect destination.
+// 2. Authorization can reject a connection that redirect allowed.
+// 3. Authorization can allow a connection through the combined flow.
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(destination, proxy)                                             \
+    void combined_redirect_auth_tests_##destination##_##proxy##(                                                     \
+        ADDRESS_FAMILY family, connection_type_t connection_type, bool dual_stack, _In_ test_addresses_t& addresses) \
+    {                                                                                                                \
+        _initialize_test_globals();                                                                                  \
+        _globals.family = family;                                                                                    \
+        _globals.connection_type = connection_type;                                                                  \
+        /* Attach authorization programs if not already attached. */                                                 \
+        if (!_globals.attach_authorization_programs) {                                                               \
+            _globals.attach_authorization_programs = true;                                                           \
+            int result;                                                                                              \
+            if (_globals.attach_v4_program) {                                                                        \
+                bpf_program* auth_v4 =                                                                               \
+                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization4");           \
+                SAFE_REQUIRE(auth_v4 != nullptr);                                                                    \
+                result = bpf_prog_attach(                                                                            \
+                    bpf_program__fd(const_cast<const bpf_program*>(auth_v4)),                                        \
+                    0,                                                                                               \
+                    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,                                                          \
+                    0);                                                                                              \
+                SAFE_REQUIRE(result == 0);                                                                           \
+            }                                                                                                        \
+            if (_globals.attach_v6_program) {                                                                        \
+                bpf_program* auth_v6 =                                                                               \
+                    bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_authorization6");           \
+                SAFE_REQUIRE(auth_v6 != nullptr);                                                                    \
+                result = bpf_prog_attach(                                                                            \
+                    bpf_program__fd(const_cast<const bpf_program*>(auth_v6)),                                        \
+                    0,                                                                                               \
+                    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,                                                          \
+                    0);                                                                                              \
+                SAFE_REQUIRE(result == 0);                                                                           \
+            }                                                                                                        \
+        }                                                                                                            \
+        printf("COMBINED REDIRECT+AUTH: " #destination " -> " #proxy " | reject after redirect\n");                  \
+        redirect_then_auth_reject_test(dual_stack, addresses.##destination##, addresses.##proxy##);                  \
+        printf("COMBINED REDIRECT+AUTH: " #destination " -> " #proxy " | allow after redirect\n");                   \
+        redirect_then_auth_allow_test(dual_stack, addresses.##destination##, addresses.##proxy##);                   \
+    }
+
+DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(vip_address, remote_address)
+DECLARE_COMBINED_REDIRECT_AUTH_TEST_FUNCTION(vip_address, loopback_address)
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                             \
+    socket_family_name, socket_family_type, dual_stack, connection_type, destination, proxy)     \
+    TEST_CASE(                                                                                   \
+        socket_family_name "_" #destination "_" #proxy "_" #connection_type,                     \
+        "[connect_combined_redirect_auth_tests_v4]")                                             \
+    {                                                                                            \
+        combined_redirect_auth_tests_##destination##_##proxy##(                                  \
+            AF_INET, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]); \
+    }
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP(                                                     \
+    socket_family_name, socket_family_type, dual_stack, connection_type)                                  \
+    DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                                          \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, remote_address) \
+    DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_CASE(                                                          \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address)
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                              \
+    socket_family_name, socket_family_type, dual_stack, connection_type, destination, proxy)      \
+    TEST_CASE(                                                                                    \
+        socket_family_name "_" #destination "_" #proxy "_" #connection_type,                      \
+        "[connect_combined_redirect_auth_tests_v6]")                                              \
+    {                                                                                             \
+        combined_redirect_auth_tests_##destination##_##proxy##(                                   \
+            AF_INET6, connection_type, (dual_stack), _globals.addresses[##socket_family_type##]); \
+    }
+
+#define DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP(                                                     \
+    socket_family_name, socket_family_type, dual_stack, connection_type)                                  \
+    DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                                          \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, remote_address) \
+    DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_CASE(                                                          \
+        socket_family_name, socket_family_type, dual_stack, connection_type, vip_address, loopback_address)
+
+// IPv4 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("ipv4", socket_family_t::IPv4, false, connection_type_t::CONNECTED_UDP)
+
+// Dual stack socket, IPv4 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP(
+    "v4_mapped", socket_family_t::Dual, true, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V4_TEST_GROUP("v4_mapped", socket_family_t::Dual, true, connection_type_t::CONNECTED_UDP)
+
+// IPv6 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("ipv6", socket_family_t::IPv6, false, connection_type_t::CONNECTED_UDP)
+
+// Dual stack socket, IPv6 combined redirect + authorization tests.
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::TCP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP(
+    "dual_ipv6", socket_family_t::IPv6, true, connection_type_t::UNCONNECTED_UDP)
+DECLARE_COMBINED_REDIRECT_AUTH_V6_TEST_GROUP("dual_ipv6", socket_family_t::IPv6, true, connection_type_t::CONNECTED_UDP)
 
 #define DECLARE_CONNECTION_REDIRECTION_TEST_FUNCTION(source, original_destination, new_destination)                   \
     void connection_redirection_tests_##original_destination##_##new_destination##(                                   \

@@ -10,7 +10,7 @@
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*const name##_t) args
 #endif
 
-// BIND hook
+// BIND hook.
 
 typedef enum _bind_operation
 {
@@ -155,6 +155,7 @@ typedef enum
 {
     BPF_FUNC_sock_addr_get_current_pid_tgid = SOCK_ADDR_EXT_HELPER_FN_BASE + 1,
     BPF_FUNC_sock_addr_set_redirect_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 2,
+    BPF_FUNC_sock_addr_get_network_context = SOCK_ADDR_EXT_HELPER_FN_BASE + 3,
 } ebpf_sock_addr_helper_id_t;
 
 /**
@@ -175,6 +176,36 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 #endif
 
 /**
+ * @brief Network context information for the connection.
+ * Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.
+ */
+typedef struct _bpf_sock_addr_network_context
+{
+    uint32_t version;                 ///< Struct version (currently 1).
+    uint32_t interface_type;          ///< IANA interface type, or UINT32_MAX if not available.
+    uint32_t tunnel_type;             ///< IANA tunnel type; 0 if not a tunnel, or UINT32_MAX if not available.
+    uint64_t next_hop_interface_luid; ///< Next-hop interface LUID, or 0 if not available.
+    uint32_t sub_interface_index;     ///< Sub-interface index, or 0 if not available.
+} bpf_sock_addr_network_context_t;
+
+#define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
+
+/**
+ * @brief Get the network context for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
+ *
+ * @param[in] ctx Pointer to bpf_sock_addr_t context.
+ * @param[out] context_ptr Pointer to bpf_sock_addr_network_context_t struct to be filled.
+ * @param[in] context_size Size of the struct (used for version management).
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 A failure occurred (e.g., network context unavailable at current attach layer).
+ */
+EBPF_HELPER(int, bpf_sock_addr_get_network_context, (bpf_sock_addr_t * ctx, void* context_ptr, uint32_t context_size));
+#ifndef __doxygen
+#define bpf_sock_addr_get_network_context ((bpf_sock_addr_get_network_context_t)BPF_FUNC_sock_addr_get_network_context)
+#endif
+
+/**
  * @brief Handle socket operation. Currently supports ingress/egress connection initialization.
  *
  * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
@@ -184,6 +215,8 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION
  *
  * @param[in] context \ref bpf_sock_addr_t
  * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation. Maps to a hard block in WFP.

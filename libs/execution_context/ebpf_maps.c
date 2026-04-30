@@ -43,6 +43,13 @@ static ebpf_hash_table_t* _ebpf_map_type_metadata_table = NULL;
 static inline bool
 _ebpf_map_type_is_valid(uint32_t map_type)
 {
+    static_assert(
+        EBPF_COUNT_OF(_ebpf_map_type_names) == BPF_MAP_TYPE_MAX,
+        "_ebpf_map_type_names must have BPF_MAP_TYPE_MAX entries");
+    static_assert(
+        EBPF_COUNT_OF(_ebpf_map_display_names) == BPF_MAP_TYPE_MAX,
+        "_ebpf_map_display_names must have BPF_MAP_TYPE_MAX entries");
+
     return (map_type < BPF_MAP_TYPE_MAX);
 }
 

@@ -29,6 +29,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #pragma warning(disable : 4324) // structure was padded due to alignment specifier
 #include <ndis/nbl.h>
 #endif
+#include <ifdef.h>
 #include <vector>
 
 #define CONCAT(s1, s2) s1 s2
@@ -1111,6 +1112,23 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     return -ENOTSUP;
 }
 
+static int
+_ebpf_sock_addr_get_network_context(
+    _In_ const bpf_sock_addr_t* ctx, _Out_writes_(context_size) void* context_ptr, uint32_t context_size)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    if (context_size < sizeof(bpf_sock_addr_network_context_t)) {
+        return -1;
+    }
+    bpf_sock_addr_network_context_t* net_ctx = (bpf_sock_addr_network_context_t*)context_ptr;
+    net_ctx->version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+    net_ctx->interface_type = 0;
+    net_ctx->tunnel_type = TUNNEL_TYPE_NONE;
+    net_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
+    net_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
+    return 0;
+}
+
 static uint64_t
 _ebpf_sock_addr_get_current_pid_tgid_implicit(
     uint64_t dummy_param1,
@@ -1221,7 +1239,10 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_set_redirect_context,
+    (void*)_ebpf_sock_addr_get_network_context,
+};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

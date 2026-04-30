@@ -210,6 +210,7 @@ DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("bin
 DECLARE_TEST("bpf_call", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
+DECLARE_TEST("cgroup_sock_addr_helpers", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
 DECLARE_TEST("divide_by_zero", _test_mode::Verify)
 DECLARE_TEST("hash_of_map", _test_mode::Verify)

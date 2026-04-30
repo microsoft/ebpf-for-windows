@@ -403,6 +403,8 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         reinterpret_cast<decltype(&get_metadata_table)>(GetProcAddress(context->dll, "get_metadata_table"));
     if (get_function == nullptr) {
         assert(get_native_module_failures());
+        FreeLibrary(context->dll);
+        context->dll = nullptr;
         return;
     }
 
@@ -410,8 +412,13 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
     assert(context->table != nullptr);
 
     NTSTATUS status = NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle);
-    assert(NT_SUCCESS(status));
-    UNREFERENCED_PARAMETER(status);
+    if (!NT_SUCCESS(status)) {
+        assert(get_native_module_failures());
+        FreeLibrary(context->dll);
+        context->dll = nullptr;
+        context->table = nullptr;
+        return;
+    }
 
     context->loaded = true;
 }
