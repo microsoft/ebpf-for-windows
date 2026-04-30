@@ -221,4 +221,23 @@ $(OutputPath)export_program_info_sample.exe</Command>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!-- This project consumes the extracted .nupkg from $(OutDir)undocked\ebpf-for-windows
+       (see AdditionalIncludeDirectories above). When the .nupkg is suppressed via
+       /p:SkipNugetPackages=true, that include tree doesn't exist, so skip the build
+       entirely instead of failing on missing headers.
+
+       NOTE: We MUST NOT define new <Target Name="Build"> elements unconditionally,
+       because MSBuild target overriding happens at parse time regardless of the
+       target's Condition - that would silently no-op the inherited Build target
+       even on default builds. Instead, conditionally redirect the *DependsOn
+       property chains so that when the property is unset the PropertyGroup is
+       omitted entirely and the inherited Cpp.targets behavior is preserved. -->
+  <PropertyGroup Condition="'$(SkipNugetPackages)'=='true'">
+    <BuildDependsOn>SkipNugetPackagesMessage</BuildDependsOn>
+    <RebuildDependsOn>SkipNugetPackagesMessage</RebuildDependsOn>
+    <CleanDependsOn>SkipNugetPackagesMessage</CleanDependsOn>
+  </PropertyGroup>
+  <Target Name="SkipNugetPackagesMessage" Condition="'$(SkipNugetPackages)'=='true'">
+    <Message Importance="high" Text="Skipping $(MSBuildProjectFile) because SkipNugetPackages is true (this project validates the extracted .nupkg)." />
+  </Target>
 </Project>

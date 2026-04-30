@@ -122,7 +122,7 @@
     </Link>
   </ItemDefinitionGroup>
   <!-- In accordance to what is defined in sample.vcxproj, the build is disabled for the 'Analysis' CI/CD build, as it does not generate the .o artifacts. -->
-  <ItemGroup Condition="'$(Analysis)'==''">
+  <ItemGroup Condition="'$(Analysis)'=='' AND '$(SkipNugetPackages)'!='true'">
     <CustomBuild Include="ebpf-for-windows-samples.nuspec.in">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)'=='Debug'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\sample-package\ebpf-for-windows-samples.nuspec.in -OutputFile $(OutDir)ebpf-for-windows-samples.nuspec -Architecture '$(Platform)' -Configuration '$(Configuration)'
