@@ -205,7 +205,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type.
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
      *
@@ -351,6 +351,20 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_PROCESS
      */
     BPF_ATTACH_TYPE_PROCESS = 11,
+
+    /** @brief Attach type for handling IPv4 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+
+    /** @brief Attach type for handling IPv6 TCP connect() or UDP send
+     * authorization (before connection is authorized).
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
 
     __MAX_BPF_ATTACH_TYPE,
 };

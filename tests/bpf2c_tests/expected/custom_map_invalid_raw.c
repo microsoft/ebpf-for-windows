@@ -18,19 +18,19 @@ static map_entry_t _maps[] = {
     {
      {0, 0},
      {
-         1,               // Current Version.
-         80,              // Struct size up to the last field.
-         80,              // Total struct size including padding.
+         1,                            // Current Version.
+         80,                           // Struct size up to the last field.
+         80,                           // Total struct size including padding.
      },
      {
-         15,              // Type of map.
-         4,               // Size in bytes of a map key.
-         4,               // Size in bytes of a map value.
-         1,               // Maximum number of entries allowed in the map.
-         0,               // Inner map index.
-         LIBBPF_PIN_NONE, // Pinning type for the map.
-         10,              // Identifier for a map template.
-         0,               // The id of the inner map template.
+         BPF_MAP_TYPE_SAMPLE_HASH_MAP, // Type of map.
+         4,                            // Size in bytes of a map key.
+         4,                            // Size in bytes of a map value.
+         1,                            // Maximum number of entries allowed in the map.
+         0,                            // Inner map index.
+         LIBBPF_PIN_NONE,              // Pinning type for the map.
+         10,                           // Identifier for a map template.
+         0,                            // The id of the inner map template.
      },
      "sample_array_map"},
 };
@@ -115,12 +115,6 @@ access_map(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 35 "sample/undocked/custom_map_invalid.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 35 "sample/undocked/custom_map_invalid.c"
-    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 35 "sample/undocked/custom_map_invalid.c"
-        return 0;
-#line 35 "sample/undocked/custom_map_invalid.c"
-    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 36 "sample/undocked/custom_map_invalid.c"
     if (r0 == IMMEDIATE(0)) {
@@ -180,7 +174,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 2;
+    version->minor = 3;
     version->revision = 0;
 }
 

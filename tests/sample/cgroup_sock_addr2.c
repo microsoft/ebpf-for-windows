@@ -51,6 +51,25 @@ update_audit_map_entry(bpf_sock_addr_t* ctx)
     bpf_map_update_elem(&audit_map, &key, &entry, 0);
 }
 
+__inline void
+initialize_destination_entry_v4(bpf_sock_addr_t* ctx, destination_entry_key_t* entry)
+{
+    entry->destination_ip.ipv4 = ctx->user_ip4;
+    entry->destination_port = ctx->user_port;
+    entry->protocol = ctx->protocol;
+}
+
+__inline void
+initialize_destination_entry_v6(bpf_sock_addr_t* ctx, destination_entry_key_t* entry)
+{
+    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
+    // where the scope id or interface is not provided, so the policy can match the
+    // wrong address.
+    __builtin_memcpy(entry->destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
+    entry->destination_port = ctx->user_port;
+    entry->protocol = ctx->protocol;
+}
+
 __inline int
 redirect_v4(bpf_sock_addr_t* ctx)
 {
@@ -62,9 +81,7 @@ redirect_v4(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    entry.destination_ip.ipv4 = ctx->user_ip4;
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v4(ctx, &entry);
 
     // Find the entry in the policy map.
     destination_entry_value_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -98,12 +115,7 @@ redirect_v6(bpf_sock_addr_t* ctx)
         return verdict;
     }
 
-    // Copy the IPv6 address. Note this has a design flaw for scoped IPv6 addresses
-    // where the scope id or interface is not provided, so the policy can match the
-    // wrong address.
-    __builtin_memcpy(entry.destination_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
-    entry.destination_port = ctx->user_port;
-    entry.protocol = ctx->protocol;
+    initialize_destination_entry_v6(ctx, &entry);
 
     // Find the entry in the policy map.
     destination_entry_value_t* policy = bpf_map_lookup_elem(&policy_map, &entry);
@@ -137,4 +149,68 @@ int
 connect_redirect6(bpf_sock_addr_t* ctx)
 {
     return redirect_v6(ctx);
+}
+
+// Separate authorization policy map for connect_authorization programs.
+// Keeping this separate from the redirect policy_map allows tests to
+// independently control redirect and authorization decisions.
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, destination_entry_key_t);
+    __type(value, destination_entry_value_t);
+    __uint(max_entries, 100);
+} authorization_policy_map SEC(".maps");
+
+__inline int
+authorize_v4(bpf_sock_addr_t* ctx)
+{
+    destination_entry_key_t entry = {0};
+
+    if (((ctx->protocol != IPPROTO_TCP) && (ctx->protocol != IPPROTO_UDP)) || (ctx->family != AF_INET)) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
+
+    initialize_destination_entry_v4(ctx, &entry);
+
+    destination_entry_value_t* auth_policy = bpf_map_lookup_elem(&authorization_policy_map, &entry);
+    if (auth_policy != NULL) {
+        return auth_policy->verdict;
+    }
+
+    // No policy entry means allow by default.
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+}
+
+__inline int
+authorize_v6(bpf_sock_addr_t* ctx)
+{
+    destination_entry_key_t entry = {0};
+
+    if (((ctx->protocol != IPPROTO_TCP) && (ctx->protocol != IPPROTO_UDP)) || (ctx->family != AF_INET6)) {
+        return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    }
+
+    initialize_destination_entry_v6(ctx, &entry);
+
+    destination_entry_value_t* auth_policy = bpf_map_lookup_elem(&authorization_policy_map, &entry);
+    if (auth_policy != NULL) {
+        return auth_policy->verdict;
+    }
+
+    return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+}
+
+SEC("cgroup/connect_authorization4")
+int
+connect_authorization4(bpf_sock_addr_t* ctx)
+{
+    return authorize_v4(ctx);
+}
+
+SEC("cgroup/connect_authorization6")
+int
+connect_authorization6(bpf_sock_addr_t* ctx)
+{
+    return authorize_v6(ctx);
 }

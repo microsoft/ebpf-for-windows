@@ -107,3 +107,5 @@ typedef struct _bind_audit_entry
     uint32_t action_taken; ///< Action taken (bind_action_t values).
     uint64_t timestamp;    ///< Timestamp from bpf_ktime_get_ns().
 } bind_audit_entry_t;
+
+// Note: bpf_sock_addr_network_context_t from ebpf_nethooks.h is used directly for test verification.
