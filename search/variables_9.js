@@ -16,5 +16,6 @@ var searchData=
   ['insns_13',['insns',['../structbpf__load__program__attr.html#a56b58c5cecf868bf4bbbe0faf0885933',1,'bpf_load_program_attr::insns'],['../structsys__bpf__prog__load__attr__t.html#aeab62594fbba911922f660c8f93842c1',1,'sys_bpf_prog_load_attr_t::insns']]],
   ['insns_5fcnt_14',['insns_cnt',['../structbpf__load__program__attr.html#a3b8461c73f29ad562402eee25176de96',1,'bpf_load_program_attr']]],
   ['interface_5fluid_15',['interface_luid',['../structbpf__sock__addr.html#aac2c7b68bd8f71553f5449f225a0e6a3',1,'bpf_sock_addr::interface_luid'],['../struct__bpf__sock__ops.html#aaf26ad8f372bc7456645690f5a9a602e',1,'_bpf_sock_ops::interface_luid']]],
-  ['is_5fprivileged_16',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
+  ['interface_5ftype_16',['interface_type',['../struct__bpf__sock__addr__network__context.html#a195cd50b732b464d7b114e1091d95ea6',1,'_bpf_sock_addr_network_context']]],
+  ['is_5fprivileged_17',['is_privileged',['../struct__ebpf__program__type__descriptor.html#aafa9c2f4ceef8b382998f6e445c38121',1,'_ebpf_program_type_descriptor']]]
 ];

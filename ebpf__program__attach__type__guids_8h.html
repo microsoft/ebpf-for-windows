@@ -89,8 +89,12 @@ Macros</h2></td></tr>
 <tr class="separator:a4b66fe90b04c773296202017e4e39f2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc36aafaa597cf2a8cafc6fa5aa22185" id="r_abc36aafaa597cf2a8cafc6fa5aa22185"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#abc36aafaa597cf2a8cafc6fa5aa22185">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID</a></td></tr>
 <tr class="separator:abc36aafaa597cf2a8cafc6fa5aa22185"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1a7ff1ba90095a05a080b07e8374d46" id="r_ac1a7ff1ba90095a05a080b07e8374d46"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#ac1a7ff1ba90095a05a080b07e8374d46">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</a></td></tr>
+<tr class="separator:ac1a7ff1ba90095a05a080b07e8374d46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a864f39a8b8adfd27989e434cfce02a31" id="r_a864f39a8b8adfd27989e434cfce02a31"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a864f39a8b8adfd27989e434cfce02a31">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</a></td></tr>
 <tr class="separator:a864f39a8b8adfd27989e434cfce02a31"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7feaad073112f0a6c81cdb2fa442c166" id="r_a7feaad073112f0a6c81cdb2fa442c166"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a7feaad073112f0a6c81cdb2fa442c166">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</a></td></tr>
+<tr class="separator:a7feaad073112f0a6c81cdb2fa442c166"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a73a680b7036027abc0dd1c7d266e7a38" id="r_a73a680b7036027abc0dd1c7d266e7a38"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a73a680b7036027abc0dd1c7d266e7a38">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</a></td></tr>
 <tr class="separator:a73a680b7036027abc0dd1c7d266e7a38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a779d15082bb6905b3d2fb7d467886a7c" id="r_a779d15082bb6905b3d2fb7d467886a7c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a779d15082bb6905b3d2fb7d467886a7c">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</a></td></tr>
@@ -127,9 +131,15 @@ Variables</h2></td></tr>
 <tr class="memitem:aaa35c1d16dc23ca2f9bc1db993ab039b" id="r_aaa35c1d16dc23ca2f9bc1db993ab039b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a></td></tr>
 <tr class="memdesc:aaa35c1d16dc23ca2f9bc1db993ab039b"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET4_CONNECT hook will be invoked for connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to a unique remote address/port tuple.  <br /></td></tr>
 <tr class="separator:aaa35c1d16dc23ca2f9bc1db993ab039b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83a6495ad2f27b2462eae84e9b52be14" id="r_a83a6495ad2f27b2462eae84e9b52be14"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a83a6495ad2f27b2462eae84e9b52be14">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION</a></td></tr>
+<tr class="memdesc:a83a6495ad2f27b2462eae84e9b52be14"><td class="mdescLeft">&#160;</td><td class="mdescRight">The program attached to the INET4_CONNECT_AUTHORIZATION hook will be invoked for connect() calls on TCP or UDP sockets before the connection is authorized.  <br /></td></tr>
+<tr class="separator:a83a6495ad2f27b2462eae84e9b52be14"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2de51e8e61c2553ff487d89dda5d6139" id="r_a2de51e8e61c2553ff487d89dda5d6139"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT</a></td></tr>
 <tr class="memdesc:a2de51e8e61c2553ff487d89dda5d6139"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET6_CONNECT hook will be invoked for connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to a unique remote address/port tuple.  <br /></td></tr>
 <tr class="separator:a2de51e8e61c2553ff487d89dda5d6139"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a554912e7868e324c7f7c3e427aacde02" id="r_a554912e7868e324c7f7c3e427aacde02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a554912e7868e324c7f7c3e427aacde02">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION</a></td></tr>
+<tr class="memdesc:a554912e7868e324c7f7c3e427aacde02"><td class="mdescLeft">&#160;</td><td class="mdescRight">The program attached to the INET6_CONNECT_AUTHORIZATION hook will be invoked for connect() calls on TCP or UDP sockets before the connection is authorized.  <br /></td></tr>
+<tr class="separator:a554912e7868e324c7f7c3e427aacde02"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac54908adeb179df4240bf68998663148" id="r_ac54908adeb179df4240bf68998663148"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</a></td></tr>
 <tr class="memdesc:ac54908adeb179df4240bf68998663148"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET4_RECV_ACCEPT hook will get invoked for TCP accept() calls or for the first unicast UDP packet from a unique remote address/port tuple.  <br /></td></tr>
 <tr class="separator:ac54908adeb179df4240bf68998663148"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -184,6 +194,23 @@ Variables</h2></td></tr>
 </div><!-- fragment -->
 </div>
 </div>
+<a id="ac1a7ff1ba90095a05a080b07e8374d46" name="ac1a7ff1ba90095a05a080b07e8374d46"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac1a7ff1ba90095a05a080b07e8374d46">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
+<div class="line">        0x6076c13a, 0xf04f, 0x4ff8, { 0x83, 0x80, 0x90, 0x85, 0x53, 0xf2, 0x22, 0x76 } \</div>
+<div class="line">    }</div>
+</div><!-- fragment -->
+</div>
+</div>
 <a id="abc36aafaa597cf2a8cafc6fa5aa22185" name="abc36aafaa597cf2a8cafc6fa5aa22185"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abc36aafaa597cf2a8cafc6fa5aa22185">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID</h2>
 
@@ -214,6 +241,23 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
 <div class="line">        0xa82e37b3, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \</div>
+<div class="line">    }</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a7feaad073112f0a6c81cdb2fa442c166" name="a7feaad073112f0a6c81cdb2fa442c166"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7feaad073112f0a6c81cdb2fa442c166">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
+<div class="line">        0x54b0b6ed, 0x432a, 0x4674, { 0x8b, 0x27, 0x8d, 0x9f, 0x5b, 0x40, 0xc6, 0x75 } \</div>
 <div class="line">    }</div>
 </div><!-- fragment -->
 </div>
@@ -443,6 +487,26 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a83a6495ad2f27b2462eae84e9b52be14" name="a83a6495ad2f27b2462eae84e9b52be14"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83a6495ad2f27b2462eae84e9b52be14">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#ac1a7ff1ba90095a05a080b07e8374d46">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</a></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_ac1a7ff1ba90095a05a080b07e8374d46"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#ac1a7ff1ba90095a05a080b07e8374d46">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:47</div></div>
+</div><!-- fragment -->
+<p>The program attached to the INET4_CONNECT_AUTHORIZATION hook will be invoked for connect() calls on TCP or UDP sockets before the connection is authorized. </p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
+
+</div>
+</div>
 <a id="ac54908adeb179df4240bf68998663148" name="ac54908adeb179df4240bf68998663148"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac54908adeb179df4240bf68998663148">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</h2>
 
@@ -456,7 +520,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a73a680b7036027abc0dd1c7d266e7a38">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</a></div>
-<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a73a680b7036027abc0dd1c7d266e7a38"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a73a680b7036027abc0dd1c7d266e7a38">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:60</div></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a73a680b7036027abc0dd1c7d266e7a38"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a73a680b7036027abc0dd1c7d266e7a38">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:86</div></div>
 </div><!-- fragment -->
 <p>The programs attached to the INET4_RECV_ACCEPT hook will get invoked for TCP accept() calls or for the first unicast UDP packet from a unique remote address/port tuple. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
@@ -476,9 +540,29 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a864f39a8b8adfd27989e434cfce02a31">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</a></div>
-<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a864f39a8b8adfd27989e434cfce02a31"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a864f39a8b8adfd27989e434cfce02a31">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:47</div></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a864f39a8b8adfd27989e434cfce02a31"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a864f39a8b8adfd27989e434cfce02a31">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:60</div></div>
 </div><!-- fragment -->
 <p>The programs attached to the INET6_CONNECT hook will be invoked for connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to a unique remote address/port tuple. </p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
+
+</div>
+</div>
+<a id="a554912e7868e324c7f7c3e427aacde02" name="a554912e7868e324c7f7c3e427aacde02"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a554912e7868e324c7f7c3e427aacde02">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a7feaad073112f0a6c81cdb2fa442c166">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</a></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a7feaad073112f0a6c81cdb2fa442c166"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a7feaad073112f0a6c81cdb2fa442c166">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:73</div></div>
+</div><!-- fragment -->
+<p>The program attached to the INET6_CONNECT_AUTHORIZATION hook will be invoked for connect() calls on TCP or UDP sockets before the connection is authorized. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
 
 </div>
@@ -496,7 +580,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a779d15082bb6905b3d2fb7d467886a7c">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</a></div>
-<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a779d15082bb6905b3d2fb7d467886a7c"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a779d15082bb6905b3d2fb7d467886a7c">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:73</div></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a779d15082bb6905b3d2fb7d467886a7c"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a779d15082bb6905b3d2fb7d467886a7c">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:99</div></div>
 </div><!-- fragment -->
 <p>The programs attached to the INET6_RECV_ACCEPT hook will get invoked for TCP accept() calls or for the first unicast UDP packet from a unique remote address/port tuple. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
@@ -619,7 +703,7 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div>
-<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_abc5aa6be2d353c39873d4cf117b31474"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div><div class="ttdeci">#define EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:153</div></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_abc5aa6be2d353c39873d4cf117b31474"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div><div class="ttdeci">#define EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:179</div></div>
 </div><!-- fragment -->
 <p>Program type for handling various socket operations such as connect(), accept() etc. </p>
 <p>eBPF program prototype: <a class="el" href="ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0">sock_addr_hook_t</a></p>

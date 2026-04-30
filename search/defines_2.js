@@ -14,5 +14,6 @@ var searchData=
   ['bpf_5fntohl_11',['bpf_ntohl',['../bpf__endian_8h.html#af00de0e4ad75ac60bc837d0a002054cc',1,'bpf_endian.h']]],
   ['bpf_5fntohs_12',['bpf_ntohs',['../bpf__endian_8h.html#a809ca78691cdb5e0fd36b7b313f98cda',1,'bpf_endian.h']]],
   ['bpf_5fobj_5fname_5flen_13',['BPF_OBJ_NAME_LEN',['../ebpf__structs_8h.html#abc5e07d826c22d4c2b46fd1fb5a2e93e',1,'ebpf_structs.h']]],
-  ['bpf_5fobject_5f_5ffor_5feach_5fsafe_14',['bpf_object__for_each_safe',['../libbpf__legacy_8h.html#a4dd7f926c4a6ec1ba481639dc3139cc1',1,'libbpf_legacy.h']]]
+  ['bpf_5fobject_5f_5ffor_5feach_5fsafe_14',['bpf_object__for_each_safe',['../libbpf__legacy_8h.html#a4dd7f926c4a6ec1ba481639dc3139cc1',1,'libbpf_legacy.h']]],
+  ['bpf_5fsock_5faddr_5fnetwork_5fcontext_5fversion_15',['BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION',['../ebpf__nethooks_8h.html#a7ef574b6f7ad649121905e23d7886992',1,'ebpf_nethooks.h']]]
 ];

@@ -285,6 +285,9 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac73facab23b5d6e53a3115bdfc6e1e9c">BPF_ATTACH_TYPE_SAMPLE</a>
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaffc0af7b4e6a18a0cdf3187e77ddedc9">BPF_ATTACH_TYPE_NETEVENT</a> = 10
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7">BPF_ATTACH_TYPE_PROCESS</a> = 11
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac67ab245a553a0dbc7fdd0ed7952dd88">BPF_CGROUP_INET4_CONNECT_AUTHORIZATION</a>
+, <br />
+&#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30">BPF_CGROUP_INET6_CONNECT_AUTHORIZATION</a>
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
 <br />
  }</td></tr>
@@ -696,6 +699,12 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7" name="aac6b4c09fa267f53c1d213551e0ccd5aa765370307d808f0cb37d5f80b4be4ef7"></a>BPF_ATTACH_TYPE_PROCESS&#160;</td><td class="fielddoc"><p>Attach type for handling process creation/deletion events. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a04b28e58b818684b87047b0a90f8d506">BPF_PROG_TYPE_PROCESS</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aac67ab245a553a0dbc7fdd0ed7952dd88" name="aac6b4c09fa267f53c1d213551e0ccd5aac67ab245a553a0dbc7fdd0ed7952dd88"></a>BPF_CGROUP_INET4_CONNECT_AUTHORIZATION&#160;</td><td class="fielddoc"><p>Attach type for handling IPv4 TCP connect() or UDP send authorization (before connection is authorized). </p>
+<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30" name="aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30"></a>BPF_CGROUP_INET6_CONNECT_AUTHORIZATION&#160;</td><td class="fielddoc"><p>Attach type for handling IPv6 TCP connect() or UDP send authorization (before connection is authorized). </p>
+<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a" name="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a"></a>__MAX_BPF_ATTACH_TYPE&#160;</td><td class="fielddoc"></td></tr>
 </table>
