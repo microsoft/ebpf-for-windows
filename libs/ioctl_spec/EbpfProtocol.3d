@@ -56,8 +56,8 @@
 #define OP_GET_PINNED_OBJECT                 12
 #define OP_LINK_PROGRAM                      13
 #define OP_UNLINK_PROGRAM                    14
-#define OP_MAP_WRITE_DATA                    31
-#define OP_LOAD_NATIVE_MODULE                32
+#define OP_MAP_WRITE_DATA                    30
+#define OP_LOAD_NATIVE_MODULE                31
 #define OP_PROGRAM_TEST_RUN                  33
 #define OP_MAP_UPDATE_ELEMENT_BATCH          34
 #define OP_MAP_DELETE_ELEMENT_BATCH           35

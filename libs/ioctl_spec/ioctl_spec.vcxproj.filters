@@ -18,6 +18,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ebpf_protocol_layout_check.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(OutDir)\EbpfProtocol.h">
       <Filter>Generated Files</Filter>
     </ClInclude>

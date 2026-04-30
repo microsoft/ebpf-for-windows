@@ -22,6 +22,7 @@
 
 #pragma warning(pop)
 
+#include "ebpf_protocol_layout_check.h"
 #include "ebpf_protocol_validator.h"
 
 // EverParse error callback (required by generated wrapper code).
