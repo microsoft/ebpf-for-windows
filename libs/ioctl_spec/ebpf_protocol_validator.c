@@ -37,5 +37,6 @@ EbpfProtocolEverParseError(const char* struct_name, const char* field_name, cons
 _Must_inspect_result_ bool
 ebpf_protocol_validate_ioctl_message(_In_reads_bytes_(length) const uint8_t* buffer, uint32_t length)
 {
+    // EverParse takes a mutable buffer pointer here, but validation is read-only in practice.
     return (bool)EbpfProtocolCheckEbpfIoctlMessage(length, (uint8_t*)buffer, length);
 }
