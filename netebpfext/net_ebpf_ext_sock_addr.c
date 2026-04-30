@@ -1676,9 +1676,9 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
         // the context (redirected), override the verdict to REJECT and block the connection.
         if (redirected &&
             (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "CONNECT_AUTHORIZATION program attempted redirect — overriding verdict to REJECT.");
             context->verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
         }
@@ -1922,9 +1922,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         }
     } else {
         // Attach point not invoked due to prior REJECT verdict.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "CONNECT_AUTHORIZATION attach point skipped due to prior REJECT verdict",
             verdict);
     }
