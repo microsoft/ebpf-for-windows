@@ -7,6 +7,10 @@
 
 #include <intrin.h>
 
+#define EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL                                              \
+    (EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE | EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE | \
+     EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE | EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE)
+
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
 // modified.
@@ -607,7 +611,7 @@ _ebpf_hash_table_replace_bucket(
     // Tracks whether ALLOCATE notification for new_data succeeded.
     // If notification fails, new_data cannot be assumed to be initialized, and we must not invoke FREE notification.
     bool new_data_notified = false;
-    // Tracks whether FREE notification for old_data (delete operation) succeeded.
+    // Tracks whether FREE notification for old_data was already sent (for the delete case, under the bucket lock).
     bool old_data_notified = false;
 
     bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
@@ -686,11 +690,11 @@ _ebpf_hash_table_replace_bucket(
             result = EBPF_KEY_NOT_FOUND;
         } else {
             if (hash_table->notification_callback &&
-                (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE)) {
+                (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE)) {
                 result = hash_table->notification_callback(
                     hash_table->notification_context,
                     operation_context,
-                    EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+                    EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE,
                     key,
                     old_data);
                 old_data_notified = true;
@@ -827,6 +831,13 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     if (table->notification_callback == NULL) {
         notification_flags = EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE;
     }
+
+    // At most one of PRE_FREE and FREE can be set. They represent mutually exclusive
+    // invocation points (before vs after the entry is removed from the hash table).
+    ebpf_assert(
+        (notification_flags & (EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE | EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE)) !=
+        (EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE | EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE));
+
     table->notification_flags = notification_flags;
 
     *hash_table = table;

@@ -621,7 +621,8 @@ typedef struct _ebpf_map_provider_dispatch_table
     _Notnull_ ebpf_preprocess_map_associate_program_type_t preprocess_associate_program_type;
     ebpf_postprocess_map_find_element_t postprocess_map_find_element;
     ebpf_preprocess_map_update_element_t preprocess_map_update_element;
-    ebpf_preprocess_map_delete_element_t preprocess_map_delete_element;
+    ebpf_preprocess_map_delete_element_t preprocess_map_delete_element;   // Deprecated.
+    ebpf_postprocess_map_delete_element_t postprocess_map_delete_element; // Preferred.
 } ebpf_base_map_provider_dispatch_table_t;
 ```
 This is the dispatch table that the extension needs to implement and provide to eBPF runtime. It contains the following fields:
@@ -630,11 +631,16 @@ This is the dispatch table that the extension needs to implement and provide to 
 3. `preprocess_associate_program_type` - Called by eBPF runtime to validate if a specific map can be associated with the supplied program type. eBPFCore invokes this function before an custom map is associated with a program.
 4. `postprocess_map_find_element` - Function to post-process a map entry after lookup.
 5. `preprocess_map_update_element` - Function to pre-process a map entry before an add/update operation.
-5. `preprocess_map_delete_element` - Function to pre-process a map entry before a delete operation.
+6. `preprocess_map_delete_element` - **(Deprecated)** Function to pre-process a map entry before a delete operation. Called under the per-bucket lock. New providers should use `postprocess_map_delete_element` instead.
+7. `postprocess_map_delete_element` - **(Preferred)** Function to post-process a map entry after a delete operation. Called after the per-bucket lock is released.
+
+A provider must set **exactly one** of `preprocess_map_delete_element` or `postprocess_map_delete_element`, not both.
+Old providers compiled against the previous SDK will only have `preprocess_map_delete_element`; the runtime detects
+this via the `header.size` field and treats `postprocess_map_delete_element` as NULL.
 
 When `preprocess_map_create` is invoked, the extension will allocate a map context, and return a pointer to it (called `map_context`) back to the eBPF runtime. When any of the other APIs are invoked for this map, the extension will get this `map_context` back as an input parameter.
 
-The `postprocess_map_find_element`, `preprocess_map_update_element`, and `preprocess_map_delete_element` functions each receive a `flags` parameter. When `EBPF_MAP_OPERATION_HELPER` is set in `flags`, the operation is being invoked from a BPF program. When `EBPF_MAP_OPERATION_HELPER` is **not** set, the function is called in the context of the original user mode process. In that case, the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).
+The `postprocess_map_find_element`, `preprocess_map_update_element`, and `preprocess_map_delete_element`/`postprocess_map_delete_element` functions each receive a `flags` parameter. When `EBPF_MAP_OPERATION_HELPER` is set in `flags`, the operation is being invoked from a BPF program. When `EBPF_MAP_OPERATION_HELPER` is **not** set, the function is called in the context of the original user mode process. In that case, the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).
 
 #### `ebpf_map_client_data_t` Struct
 `ebpf_map_client_data_t` is the client data that is provided by eBPFCore to the extension when it attaches to the NMR provider. It is defined as below:

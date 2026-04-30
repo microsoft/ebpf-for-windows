@@ -3771,7 +3771,8 @@ DECLARE_JIT_TEST_CASES(
 
 // This test validates custom map user APIs.
 void
-_test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool register_crud_apis)
+_test_custom_maps_user_apis(
+    ebpf_map_type_t map_type, bool object_map, bool register_crud_apis, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3799,7 +3800,9 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool regi
 
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(map_type, object_map, register_crud_apis) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(map_type, object_map, register_crud_apis, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     fd_t custom_map_fd = bpf_map_create(map_type, "custom_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
     if (object_map && !register_crud_apis) {
@@ -4048,14 +4051,22 @@ _test_custom_maps_user_apis(ebpf_map_type_t map_type, bool object_map, bool regi
 
 TEST_CASE("custom_maps_user_apis", "[custom_maps]")
 {
-    // object_map = true, register_crud_apis = true.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true);
-    // object_map = false, register_crud_apis = true.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true);
-    // object_map = true, register_crud_apis = false.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false);
-    // object_map = false, register_crud_apis = false.
-    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false);
+    // object_map = true, register_crud_apis = true, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, true);
+    // object_map = true, register_crud_apis = true, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, false);
+    // object_map = true, register_crud_apis = false, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false, true);
+    // object_map = true, register_crud_apis = false, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, false, false);
+    // object_map = false, register_crud_apis = true, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, true);
+    // object_map = false, register_crud_apis = true, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, false);
+    // object_map = false, register_crud_apis = false, use_postprocess_delete = true
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false, true);
+    // object_map = false, register_crud_apis = false, use_postprocess_delete = false
+    _test_custom_maps_user_apis(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, false, false);
 }
 
 TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")
@@ -4081,7 +4092,8 @@ TEST_CASE("custom_maps_invalid_map_type", "[custom_maps]")
     REQUIRE(invalid_map_fd < 0);
 }
 
-TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
+static void
+_test_custom_maps_user_apis_negative(bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4091,7 +4103,9 @@ TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     // 1. Create a custom map.
     fd_t custom_map_fd =
@@ -4138,11 +4152,16 @@ TEST_CASE("custom_maps_user_apis_negative", "[custom_maps]")
     Platform::_close(custom_map_fd);
 }
 
+TEST_CASE("custom_maps_user_apis_negative_postprocess", "[custom_maps]") { _test_custom_maps_user_apis_negative(true); }
+
+TEST_CASE("custom_maps_user_apis_negative_preprocess", "[custom_maps]") { _test_custom_maps_user_apis_negative(false); }
+
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 
 void
-_test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebpf_execution_type_t execution_type)
+_test_custom_maps_program_load_common(
+    ebpf_map_type_t type, bool object_map, ebpf_execution_type_t execution_type, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4167,7 +4186,9 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
 
     // Initialize provider for SAMPLE_HASH_MAP.
     test_sample_map_provider_t sample_hash_map_provider;
-    REQUIRE(sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, object_map) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_hash_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, object_map, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     auto require_and_close_object = [&](bool condition) {
         if (!condition) {
@@ -4386,14 +4407,17 @@ _test_custom_maps_program_load_common(ebpf_map_type_t type, bool object_map, ebp
 void
 _test_custom_maps_program_load(ebpf_execution_type_t execution_type)
 {
-    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type);
-    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type);
+    // Test all combinations of object_map and use_postprocess_delete.
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type, true);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, execution_type, false);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type, true);
+    _test_custom_maps_program_load_common(BPF_MAP_TYPE_SAMPLE_HASH_MAP, false, execution_type, false);
 }
 
 DECLARE_ALL_TEST_CASES("custom_maps_program_load", "[end_to_end][custom_maps]", _test_custom_maps_program_load);
 
 static void
-_test_custom_maps_invalid(ebpf_execution_type_t execution_type)
+_test_custom_maps_invalid_common(ebpf_execution_type_t execution_type, bool use_postprocess_delete)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -4409,7 +4433,9 @@ _test_custom_maps_invalid(ebpf_execution_type_t execution_type)
         (execution_type == EBPF_EXECUTION_NATIVE) ? "custom_map_invalid_um.dll" : "custom_map_invalid.o";
 
     test_sample_map_provider_t sample_map_provider;
-    REQUIRE(sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
 
     // Try to load the program with invalid custom map usage.
     result =
@@ -4423,4 +4449,259 @@ _test_custom_maps_invalid(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+static void
+_test_custom_maps_invalid(ebpf_execution_type_t execution_type)
+{
+    _test_custom_maps_invalid_common(execution_type, true);
+    _test_custom_maps_invalid_common(execution_type, false);
+}
+
 DECLARE_ALL_TEST_CASES("custom_maps_invalid", "[end_to_end][custom_maps][!mayfail]", _test_custom_maps_invalid);
+
+static void
+_test_custom_maps_concurrent_update_and_query(bool use_postprocess_delete)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Use object map (object_map = true) so the provider manages value ownership
+    // (allocating/freeing heap objects on update/delete), exercising the provider callback paths.
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
+
+    // 1. Create a custom map.
+    const uint32_t map_size = 10;
+    fd_t custom_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "concurrent_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(custom_map_fd > 0);
+
+    // Close the map fd before REQUIRE to prevent a hang during stack unwinding.
+    auto require_and_close = [](bool condition, fd_t& fd) {
+        if (!condition) {
+            Platform::_close(fd);
+            fd = ebpf_fd_invalid;
+        }
+        REQUIRE(condition);
+    };
+
+    // 2. Insert entries with keys 1 and 2.
+    uint32_t key1 = 1;
+    uint32_t key2 = 2;
+    uint32_t initial_value1 = 100;
+    uint32_t initial_value2 = 200;
+    require_and_close(bpf_map_update_elem(custom_map_fd, &key1, &initial_value1, 0) == 0, custom_map_fd);
+    require_and_close(bpf_map_update_elem(custom_map_fd, &key2, &initial_value2, 0) == 0, custom_map_fd);
+
+    const auto test_duration = std::chrono::seconds(10);
+    const uint32_t value_range = 1000;
+    std::atomic<bool> stop{false};
+    std::atomic<uint32_t> errors{0};
+
+    auto update_key1_fn = [&](uint32_t thread_id) {
+        uint32_t i = 0;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 1000 + thread_id * value_range + (i % value_range);
+            if (bpf_map_update_elem(custom_map_fd, &key1, &value, 0) != 0) {
+                errors++;
+            }
+            i++;
+        }
+    };
+
+    auto update_key2_fn = [&](uint32_t thread_id) {
+        uint32_t i = 0;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 2000 + thread_id * value_range + (i % value_range);
+            if (bpf_map_update_elem(custom_map_fd, &key2, &value, 0) != 0) {
+                errors++;
+            }
+            i++;
+        }
+    };
+
+    auto query_fn = [&]() {
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t value = 0;
+            int result = bpf_map_lookup_elem(custom_map_fd, &key1, &value);
+            if (result != 0) {
+                errors++;
+            } else if (value != initial_value1 && (value < 1000 || value >= 1000 + 2 * value_range)) {
+                errors++;
+            }
+            result = bpf_map_lookup_elem(custom_map_fd, &key2, &value);
+            if (result != 0) {
+                errors++;
+            } else if (value != initial_value2 && (value < 2000 || value >= 2000 + 2 * value_range)) {
+                errors++;
+            }
+        }
+    };
+
+    std::jthread t1(update_key1_fn, 0);
+    std::jthread t2(update_key1_fn, 1);
+    std::jthread t3(update_key2_fn, 0);
+    std::jthread t4(update_key2_fn, 1);
+    std::jthread t5(query_fn);
+    std::jthread t6(query_fn);
+
+    std::this_thread::sleep_for(test_duration);
+    stop.store(true);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+    t6.join();
+
+    require_and_close(errors.load() == 0, custom_map_fd);
+
+    uint32_t final_value1 = 0;
+    uint32_t final_value2 = 0;
+    require_and_close(bpf_map_lookup_elem(custom_map_fd, &key1, &final_value1) == 0, custom_map_fd);
+    require_and_close(bpf_map_lookup_elem(custom_map_fd, &key2, &final_value2) == 0, custom_map_fd);
+
+    Platform::_close(custom_map_fd);
+
+    REQUIRE(final_value1 >= 1000);
+    REQUIRE(final_value1 < 1000 + 2 * value_range);
+    REQUIRE(final_value2 >= 2000);
+    REQUIRE(final_value2 < 2000 + 2 * value_range);
+}
+
+TEST_CASE("custom_maps_concurrent_update_and_query_postprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_update_and_query(true);
+}
+
+TEST_CASE("custom_maps_concurrent_update_and_query_preprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_update_and_query(false);
+}
+
+static void
+_test_custom_maps_concurrent_insert_delete_and_query(bool use_postprocess_delete)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    auto require_and_close = [](bool condition, fd_t& fd) {
+        if (!condition) {
+            Platform::_close(fd);
+            fd = ebpf_fd_invalid;
+        }
+        REQUIRE(condition);
+    };
+
+    // Use object map (object_map = true) so the provider manages value ownership.
+    test_sample_map_provider_t sample_map_provider;
+    REQUIRE(
+        sample_map_provider.initialize(BPF_MAP_TYPE_SAMPLE_HASH_MAP, true, true, use_postprocess_delete) ==
+        EBPF_SUCCESS);
+
+    const uint32_t map_size = 512;
+    const uint32_t shared_key_count = 64;
+    fd_t custom_map_fd = bpf_map_create(
+        BPF_MAP_TYPE_SAMPLE_HASH_MAP, "concurrent_del_map", sizeof(uint32_t), sizeof(uint32_t), map_size, nullptr);
+    REQUIRE(custom_map_fd > 0);
+
+    const auto test_duration = std::chrono::seconds(10);
+    std::atomic<bool> stop{false};
+
+    auto insert_delete_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            uint32_t value = (thread_id << 16) | (i & 0xFFFF);
+            if (bpf_map_update_elem(custom_map_fd, &key, &value, 0) == 0) {
+                uint32_t lookup_value = 0;
+                bpf_map_lookup_elem(custom_map_fd, &key, &lookup_value);
+                bpf_map_delete_elem(custom_map_fd, &key);
+            }
+            i++;
+        }
+    };
+
+    auto inserter_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            uint32_t value = (thread_id << 16) | (i & 0xFFFF);
+            bpf_map_update_elem(custom_map_fd, &key, &value, 0);
+            i++;
+        }
+    };
+
+    auto deleter_fn = [&](uint32_t thread_id) {
+        uint32_t i = thread_id;
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t key = i % shared_key_count;
+            bpf_map_delete_elem(custom_map_fd, &key);
+            i++;
+        }
+    };
+
+    auto query_fn = [&]() {
+        while (!stop.load(std::memory_order_relaxed)) {
+            uint32_t next_key = 0;
+            uint32_t value = 0;
+            int result = bpf_map_get_next_key(custom_map_fd, nullptr, &next_key);
+            while (result == 0 && !stop.load(std::memory_order_relaxed)) {
+                uint32_t key = next_key;
+                bpf_map_lookup_elem(custom_map_fd, &key, &value);
+                result = bpf_map_get_next_key(custom_map_fd, &key, &next_key);
+            }
+        }
+    };
+
+    std::jthread t1(insert_delete_fn, 0);
+    std::jthread t2(insert_delete_fn, 1);
+    std::jthread t3(insert_delete_fn, 2);
+    std::jthread t4(insert_delete_fn, 3);
+    std::jthread t5(inserter_fn, 0);
+    std::jthread t6(inserter_fn, 1);
+    std::jthread t7(deleter_fn, 0);
+    std::jthread t8(deleter_fn, 1);
+    std::jthread t9(query_fn);
+    std::jthread t10(query_fn);
+
+    std::this_thread::sleep_for(test_duration);
+    stop.store(true);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+    t6.join();
+    t7.join();
+    t8.join();
+    t9.join();
+    t10.join();
+
+    for (uint32_t k = 0; k < shared_key_count; k++) {
+        bpf_map_delete_elem(custom_map_fd, &k);
+    }
+
+    uint32_t next_key = 0;
+    int next_key_result = bpf_map_get_next_key(custom_map_fd, nullptr, &next_key);
+    require_and_close(next_key_result < 0, custom_map_fd);
+
+    Platform::_close(custom_map_fd);
+}
+
+TEST_CASE("custom_maps_concurrent_insert_delete_and_query_postprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_insert_delete_and_query(true);
+}
+
+TEST_CASE("custom_maps_concurrent_insert_delete_and_query_preprocess", "[custom_maps]")
+{
+    _test_custom_maps_concurrent_insert_delete_and_query(false);
+}
