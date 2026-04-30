@@ -153,7 +153,15 @@ powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archiv
 popd $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemGroup>
+  <!-- Skip the nuget pack step when the consumer signals it isn't interested
+       in the .nupkg artifact (e.g. test / signing / sanitize pipelines that
+       build the full solution but only consume the loose binaries). The
+       default behaviour is unchanged - the .nupkg is still built in every
+       configuration the .sln maps this project into, so devs running the
+       solution locally and any explicit `/t:tools\nuget` invocations
+       continue to produce a package. Downstream callers can opt out with
+       `msbuild ... /p:SkipNugetPackages=true`. -->
+  <ItemGroup Condition="'$(SkipNugetPackages)'!='true'">
     <CustomBuild Include="ebpf-for-windows.nuspec.in">
       <FileType>Document</FileType>
       <Outputs>$(OutDir)eBPF-for-Windows.$(Platform)$(NugetConfigSuffix).$(EbpfVersion).nupkg</Outputs>
