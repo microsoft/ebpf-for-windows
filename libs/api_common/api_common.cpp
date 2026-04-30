@@ -112,7 +112,10 @@ ebpf_object_get_info(
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
 
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    result = ebpf_safe_size_t_to_uint16(request_buffer.size(), &request->header.length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
     if (info != nullptr) {
