@@ -944,8 +944,8 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
         datagram_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
         datagram_server_socket.complete_async_receive(false);
-        // Cancel send operation.
-        datagram_client_socket.cancel_send_message();
+        // Cancel pending I/O on the client socket.
+        datagram_client_socket.cancel_pending_io();
     } else // TCP traffic.
     {
         stream_client_socket_t stream_client_socket(SOCK_STREAM, IPPROTO_TCP, 0);
@@ -964,8 +964,8 @@ send_traffic(IPPROTO protocol, bool is_ipv6)
         stream_client_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
 
         stream_server_socket.complete_async_receive(false);
-        // Cancel send operation.
-        stream_client_socket.cancel_send_message();
+        // Cancel pending I/O on the client socket.
+        stream_client_socket.cancel_pending_io();
     }
 }
 

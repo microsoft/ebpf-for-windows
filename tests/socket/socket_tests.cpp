@@ -57,8 +57,8 @@ _change_egress_policy_test_ingress_block(
     // Send the packet. It should be dropped by the receive/accept program.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
     receiver_socket.complete_async_receive(true);
-    // Cancel send operation.
-    sender_socket.cancel_send_message();
+    // Cancel pending I/O on the sender socket.
+    sender_socket.cancel_pending_io();
 }
 
 /**
@@ -227,7 +227,7 @@ execute_connection_attempt(
 
     if (expected_result == connection_test_result::block) {
         server->complete_async_receive(true);
-        client->cancel_send_message();
+        client->cancel_pending_io();
     } else if (expected_result == connection_test_result::allow) {
         client->complete_async_send(1000, expected_result_t::SUCCESS);
         server->complete_async_receive(false);
@@ -1516,8 +1516,8 @@ validate_connection_multi_attach(
     if (expected_result == RESULT_DROP) {
         // The packet should be blocked.
         receiver_socket->complete_async_receive(true);
-        // Cancel send operation.
-        sender_socket->cancel_send_message();
+        // Cancel pending I/O on the sender socket.
+        sender_socket->cancel_pending_io();
     } else if (expected_result == RESULT_ALLOW) {
         // The packet should be allowed by the connect program.
         receiver_socket->complete_async_receive();
