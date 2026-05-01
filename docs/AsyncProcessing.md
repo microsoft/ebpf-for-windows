@@ -1216,6 +1216,76 @@ populated. No `VERDICT_RECEIVED` lifecycle state is needed.
 > additional WFP reference held across pend->complete, etc.)
 > only if a layer-specific analysis or test surface a real issue.
 
+#### Best-effort fence at PASSIVE-level `classifyFn`
+
+When `classifyFn` runs at `PASSIVE_LEVEL`, the IRQL barrier that
+makes the DISPATCH-level threaded-DPC mechanism correct is not
+available. Concretely:
+
+- The threaded-DPC routine is a priority-31 kernel thread that can
+  preempt the `classifyFn` thread on the same CPU. Once the DPC is
+  queued (which happens synchronously inside the classify wrapper
+  before `classifyFn` returns), there is no kernel primitive that
+  prevents it from running before `classifyFn` has unwound.
+- Other deferral mechanisms (non-threaded DPC, system work item,
+  KQUEUE worker) all run at PASSIVE on a separate kernel thread and
+  have the same property -- the scheduler can schedule them on top
+  of (or in parallel with) the still-active `classifyFn`.
+- WFP exposes no API to fence on "classify pipeline fully unwound"
+  -- the only state we can observe is *our* classify wrapper's
+  position, not WFP's internal post-classify cleanup.
+
+The mitigation adopted at PASSIVE layers is a **best-effort
+signal-at-end fence**:
+
+1. The classify wrapper allocates (or reuses, from the entry's
+   internal state) a `KEVENT`, initialized non-signaled, before
+   calling the WFP pend API.
+2. Immediately after the WFP pend API returns success, the wrapper
+   continues to do whatever post-pend bookkeeping is required, then
+   -- as the **last statement** before returning to WFP -- signals
+   the event with `KeSetEvent()`.
+3. The deferred completion path (threaded DPC, work item, whichever
+   is configured for this layer) does `KeWaitForSingleObject` on
+   the event before invoking the WFP completion API. The wait
+   blocks the deferred path until the wrapper's last instruction
+   has executed.
+
+**Why this is "best-effort" rather than airtight:**
+
+- The signal is emitted from inside the wrapper. The wrapper
+  necessarily returns to WFP after that, and WFP performs its own
+  post-classify-pipeline cleanup before the dispatch fully unwinds.
+  Any work the deferred path does between waking on the event and
+  calling the WFP completion API is racing against WFP's internal
+  post-classify state, which we cannot observe.
+- The pended operation's state is stable as soon as the WFP pend
+  API returns success (that is the API's contract -- the operation
+  is in WFP's "pended" data structures and a valid pended-op handle
+  exists). The completion API operates on the pended-op handle, not
+  on the classify pipeline state, so cross-thread completion on a
+  properly-pended op is *expected* to be safe even while WFP is
+  still doing post-classify cleanup.
+- That expectation depends on WFP-internal invariants we cannot
+  independently verify. The signal-at-end fence narrows the race
+  window from "completion may race with the wrapper" to "completion
+  may race only with WFP-internal post-classify cleanup," but it
+  cannot close the window entirely.
+
+**Open dependency on the WFP team:** This residual race is a
+known, documented limitation of the design at PASSIVE-level
+`classifyFn` layers. It cannot be closed from the callout side
+without a new WFP API (e.g., a "post-classify-unwind" callback or
+an explicit reference held across pend->complete that WFP itself
+fences on). Confirmation from the WFP team that cross-thread
+completion on a successfully-pended op is safe during WFP's
+post-classify cleanup is required to consider this mitigation
+production-ready. If the WFP team determines the race is not
+benign, the fallback is either (a) restrict pend/complete to layers
+WFP guarantees deliver `classifyFn` at DISPATCH, or (b) adopt a
+per-entry WFP reference held across pend->complete that
+WFP-internal code fences on.
+
 WFP holds an internal classify-side reference on the auth context
 for the duration of the original `classifyFn`. If
 `FwpsCompleteOperation()` is invoked while that reference is still
@@ -1326,6 +1396,27 @@ implementation.
 > [`FwpsCompleteOperation`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpscompleteoperation0)
 > should be consulted alongside the sample during implementation.
 
+> **PASSIVE-level `classifyFn` -- residual race on COMPLETE.**
+> WFP delivers `ALE_AUTH_CONNECT` and `ALE_AUTH_RECV_ACCEPT` at
+> `PASSIVE_LEVEL` for the synchronous initial classify on the
+> calling user-mode thread (the typical case for TCP outbound
+> `connect()` and inbound accept). The threaded-DPC ordering
+> guarantee that closes
+> [Race B](#race-b-in-classifyfn-fwpscompleteoperation-drops-auth-context-refcount-2---1)
+> at DISPATCH does **not** apply at PASSIVE -- the threaded-DPC
+> worker thread can preempt the `classifyFn` thread.
+>
+> The implementation must therefore use the
+> [best-effort signal-at-end fence](#best-effort-fence-at-passive-level-classifyfn)
+> on these layers: the classify wrapper signals a per-entry
+> `KEVENT` as its last statement before returning to WFP, and the
+> deferred completion path waits on that event before invoking
+> `FwpsCompleteOperation()`. This narrows but does not close the
+> race; correctness depends on WFP-internal guarantees that
+> cross-thread `FwpsCompleteOperation()` on a successfully-pended
+> op is safe during WFP's post-classify cleanup. Confirmation
+> from the WFP team is an open dependency for this design.
+
 > **Per-protocol packet availability at ALE layers** (per the
 > [WFP layer requirements and restrictions](https://learn.microsoft.com/en-us/windows-hardware/drivers/network/wfp-layer-requirements-and-restrictions)):
 >
@@ -1406,7 +1497,7 @@ defers `FwpsCompleteOperation` until after the original `classifyFn`
 unwinds. **This design adopts the same mitigation**: the COMPLETE
 path always runs `FwpsCompleteOperation` from a threaded DPC
 targeted at the recorded `classifyfn_cpu` (see
-[Race B](#race-b-in-classifyfn-fwpscompleteoperation-drops-auth-context-refcount-2--1)).
+[Race B](#race-b-in-classifyfn-fwpscompleteoperation-drops-auth-context-refcount-2---1)).
 By the time the DPC runs, the original `classifyFn` has unwound and
 the flow's pending flag has been cleared, so reinject succeeds.
 
@@ -1751,12 +1842,22 @@ The following changes to ebpfcore are required to support this design:
 4. **Classify callback pend/complete integration** -- self-injection
    check, injection handle lifecycle, and synthesized COMPLETE
    handling for non-PEND verdicts after a successful `pend()`.
-5. **CONTINUE support** -- save program context at pend time,
+5. **PASSIVE-level `classifyFn` fence** -- for layers WFP delivers
+   `classifyFn` at `PASSIVE_LEVEL` (e.g., TCP `ALE_AUTH_CONNECT` /
+   `ALE_AUTH_RECV_ACCEPT` initial classify), implement the per-entry
+   `KEVENT` signal-at-end fence on the classify wrapper and the
+   matching wait in the deferred completion path. See
+   [Best-effort fence at PASSIVE-level classifyFn](#best-effort-fence-at-passive-level-classifyfn).
+   Required wherever a layer can deliver classify at PASSIVE and
+   there is any path that triggers the WFP completion API from a
+   deferred context (extension-synthesized COMPLETE or
+   orchestrator-driven COMPLETE).
+6. **CONTINUE support** -- save program context at pend time,
    worker-thread re-invocation, and re-PEND skip on re-invocation
    context (no live `classifyFn`).
-6. **Multi-program chain handling** -- PEND as early exit, aggregate
+7. **Multi-program chain handling** -- PEND as early exit, aggregate
    verdict save/restore, and verdict combining on COMPLETE.
-7. **STREAM layer design and implementation** (prerequisite for STREAM
+8. **STREAM layer design and implementation** (prerequisite for STREAM
    pend/complete). Must support data accumulation with WFP-level
    withholding and per-flow lifecycle. See
    [STREAM layer prerequisite note](#stream-layer).
