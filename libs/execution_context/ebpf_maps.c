@@ -1632,6 +1632,10 @@ _create_lru_hash_map(
         goto Exit;
     }
 
+    ebpf_hash_table_notification_type_t notification_types = EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE |
+                                                             EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE |
+                                                             EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE;
+
     retval = _create_hash_map_internal(
         lru_map_size,
         map_definition,
@@ -1640,7 +1644,7 @@ _create_lru_hash_map(
         true,
         NULL,
         _lru_hash_table_notification,
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL,
+        notification_types,
         (ebpf_core_map_t**)&lru_map);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
@@ -4279,6 +4283,45 @@ static ebpf_map_type_t _supported_base_map_types[] = {BPF_MAP_TYPE_HASH};
      EBPF_CUSTOM_MAP_PROVIDER_FLAG_UPDATES_ORIGINAL_VALUE)
 
 /**
+ * @brief Helper to check if the provider has any delete element callback registered
+ * (either the deprecated preprocess or the new postprocess).
+ */
+#define HAS_DELETE_ELEMENT_CALLBACK(dispatch) \
+    ((dispatch)->postprocess_map_delete_element != NULL || (dispatch)->preprocess_map_delete_element != NULL)
+
+/**
+ * @brief Invoke the provider's delete element callback (either preprocess or postprocess).
+ * Exactly one of the two should be non-NULL (validated at map creation time).
+ *
+ * @return EBPF_SUCCESS always for postprocess (void). For preprocess (deprecated),
+ * returns the result of the callback which may abort a delete operation.
+ */
+static ebpf_result_t
+_invoke_delete_element_callback(
+    _In_ const ebpf_base_map_provider_dispatch_table_t* dispatch,
+    _In_ void* provider_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags)
+{
+    if (dispatch->postprocess_map_delete_element != NULL) {
+        dispatch->postprocess_map_delete_element(
+            provider_context, map_context, key_size, key, value_size, value, flags);
+        return EBPF_SUCCESS;
+    } else if (dispatch->preprocess_map_delete_element != NULL) {
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warning when calling the old callback.
+        return dispatch->preprocess_map_delete_element(
+            provider_context, map_context, key_size, key, value_size, value, flags);
+#pragma warning(pop)
+    }
+    return EBPF_SUCCESS;
+}
+
+/**
  * @brief custom map structure with NMR client components.
  */
 typedef struct _ebpf_custom_map
@@ -4359,7 +4402,10 @@ typedef struct _ebpf_custom_map_operation_context
 
 static ebpf_result_t
 _ebpf_custom_map_create_hash_map(
-    _In_ const ebpf_map_definition_in_memory_t* map_definition, uint32_t value_size, _Inout_ ebpf_core_map_t* map)
+    _In_ const ebpf_map_definition_in_memory_t* map_definition,
+    uint32_t value_size,
+    bool pre_free_notification_supported,
+    _Inout_ ebpf_core_map_t* map)
 {
     ebpf_result_t result;
     size_t actual_value_size = max(value_size, map_definition->value_size);
@@ -4371,7 +4417,8 @@ _ebpf_custom_map_create_hash_map(
         true,
         NULL,
         _custom_hash_map_notification,
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
+        pre_free_notification_supported ? EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE
+                                        : EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
         map);
     EBPF_RETURN_RESULT(result);
 }
@@ -4394,9 +4441,10 @@ _clean_up_custom_hash_map(_Inout_ ebpf_custom_map_t* map)
             break;
         }
 
-        if (map->provider_dispatch->preprocess_map_delete_element != NULL) {
+        if (HAS_DELETE_ELEMENT_CALLBACK(map->provider_dispatch)) {
             // Call provider to notify deletion.
-            map->provider_dispatch->preprocess_map_delete_element(
+            _invoke_delete_element_callback(
+                map->provider_dispatch,
                 map->provider_context,
                 map->core_map.custom_map_context,
                 map->core_map.ebpf_map_definition.key_size,
@@ -4459,8 +4507,6 @@ _ebpf_custom_map_update_hash_map_entry(
     }
     uint8_t* out_value = NULL;
     uint32_t provider_flags;
-    ebpf_lock_state_t lock_state = 0;
-    bool lock_acquired = false;
 
     UNREFERENCED_PARAMETER(key_size);
     UNREFERENCED_PARAMETER(value_size);
@@ -4478,9 +4524,9 @@ _ebpf_custom_map_update_hash_map_entry(
     }
 
     if (custom_map->provider_dispatch->preprocess_map_update_element) {
-        // Acquire lock to serialize updates.
-        lock_state = ebpf_lock_lock(&custom_map->lock);
-        lock_acquired = true;
+        // Note: We do not need to hold the lock while invoking the provider callback and
+        // updating the value in the map, as the per-bucket lock in the hash map implementation
+        // will ensure the lookup and update are atomic.
 
         // Invoke provider to process the update.
         provider_flags = _get_provider_flags(flags, false);
@@ -4506,11 +4552,12 @@ _ebpf_custom_map_update_hash_map_entry(
     ebpf_custom_map_operation_context_t operation_context = {flags, true};
 
     result = _update_hash_map_entry_operation_context(map, (uint8_t*)&operation_context, key, new_value, option);
-    if (result != EBPF_SUCCESS && custom_map->provider_dispatch->preprocess_map_delete_element != NULL) {
+    if (result != EBPF_SUCCESS && HAS_DELETE_ELEMENT_CALLBACK(custom_map->provider_dispatch)) {
         // The hash map update failed after the provider was notified of the add.
         // Notify the provider of the deletion to undo the add.
         provider_flags = _get_provider_flags(flags, true);
-        custom_map->provider_dispatch->preprocess_map_delete_element(
+        _invoke_delete_element_callback(
+            custom_map->provider_dispatch,
             custom_map->provider_context,
             custom_map->core_map.custom_map_context,
             custom_map->core_map.ebpf_map_definition.key_size,
@@ -4521,9 +4568,6 @@ _ebpf_custom_map_update_hash_map_entry(
     }
 
 Exit:
-    if (lock_acquired) {
-        ebpf_lock_unlock(&custom_map->lock, lock_state);
-    }
     ebpf_free(out_value);
 
     return result;
@@ -4543,14 +4587,16 @@ _custom_hash_map_notification(
     uint32_t provider_flags;
 
     switch (type) {
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE:
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         if (!op_context) {
             // Skip free notification if no operation context is provided.
             break;
         }
         provider_flags = _get_provider_flags(op_context->flags, op_context->is_update);
-        if (custom_map->provider_dispatch->preprocess_map_delete_element != NULL) {
-            result = custom_map->provider_dispatch->preprocess_map_delete_element(
+        if (HAS_DELETE_ELEMENT_CALLBACK(custom_map->provider_dispatch)) {
+            result = _invoke_delete_element_callback(
+                custom_map->provider_dispatch,
                 custom_map->provider_context,
                 custom_map->core_map.custom_map_context,
                 custom_map->core_map.ebpf_map_definition.key_size,
@@ -4695,7 +4741,8 @@ ebpf_custom_map_create(
     if (UPDATE_ORIGINAL_VALUE_FLAG_PRESENT(custom_map->provider_flags)) {
         if (custom_map->provider_dispatch->postprocess_map_find_element == NULL ||
             custom_map->provider_dispatch->preprocess_map_update_element == NULL ||
-            custom_map->provider_dispatch->preprocess_map_delete_element == NULL) {
+            custom_map->provider_dispatch->postprocess_map_delete_element == NULL &&
+                custom_map->provider_dispatch->preprocess_map_delete_element == NULL) {
             result = EBPF_INVALID_ARGUMENT;
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -4707,8 +4754,12 @@ ebpf_custom_map_create(
         }
     }
 
+    bool pre_free_notification_supported =
+        (custom_map->provider_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE) != 0;
+
     // Create hash map.
-    result = _ebpf_custom_map_create_hash_map(map_definition, actual_value_size, &custom_map->core_map);
+    result = _ebpf_custom_map_create_hash_map(
+        map_definition, actual_value_size, pre_free_notification_supported, &custom_map->core_map);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -5060,10 +5111,8 @@ ebpf_custom_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(k
         ebpf_custom_map_operation_context_t operation_context = {0};
         operation_context.flags = flags;
 
-        ebpf_lock_state_t lock_state = ebpf_lock_lock(&custom_map->lock);
         ebpf_result_t result =
             _delete_hash_map_entry_operation_context(&custom_map->core_map, (uint8_t*)&operation_context, key);
-        ebpf_lock_unlock(&custom_map->lock, lock_state);
         return result;
     } else {
         EBPF_LOG_MESSAGE_UINT64(

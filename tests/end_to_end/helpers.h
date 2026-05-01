@@ -162,7 +162,7 @@ _test_sample_hash_map_create(
 static void
 _test_sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ void* map_context);
 
-static ebpf_result_t
+static void
 _test_sample_hash_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -171,6 +171,19 @@ _test_sample_hash_map_delete_entry(
     size_t value_size,
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags);
+
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warning for the preprocess typedef.
+static ebpf_result_t
+_test_sample_hash_map_preprocess_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
+#pragma warning(pop)
 
 _Success_(return == EBPF_SUCCESS) static ebpf_result_t _test_sample_hash_map_find_entry(
     _In_ void* binding_context,
@@ -201,7 +214,7 @@ static ebpf_base_map_provider_dispatch_table_t _test_sample_hash_map_dispatch_ta
     .preprocess_associate_program_type = _test_sample_map_associate_program,
     .postprocess_map_find_element = _test_sample_hash_map_find_entry,
     .preprocess_map_update_element = _test_sample_hash_map_update_entry,
-    .preprocess_map_delete_element = _test_sample_hash_map_delete_entry};
+    .postprocess_map_delete_element = _test_sample_hash_map_delete_entry};
 
 static ebpf_base_map_provider_properties_t _test_sample_hash_map_provider_properties = {
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
@@ -232,7 +245,7 @@ typedef class _test_sample_map_provider
     }
 
     ebpf_result_t
-    initialize(uint32_t map_type, bool object_map, bool register_crud_apis = true)
+    initialize(uint32_t map_type, bool object_map, bool register_crud_apis = true, bool use_postprocess_delete = true)
     {
         _object_map = object_map;
         if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP || map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP_UNREGISTERED) {
@@ -245,17 +258,40 @@ typedef class _test_sample_map_provider
 
         _test_sample_hash_map_provider_data.base_properties->updates_original_value = object_map ? true : false;
 
+        // Always clear both delete callbacks first.
+        _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_delete_element = nullptr;
+#pragma warning(push)
+#pragma warning(disable : 4996)
+        _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element = nullptr;
+#pragma warning(pop)
+
         if (!register_crud_apis) {
             _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element = nullptr;
             _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element = nullptr;
-            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element = nullptr;
         } else {
             _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_find_element =
                 _test_sample_hash_map_find_entry;
             _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_update_element =
                 _test_sample_hash_map_update_entry;
-            _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element =
-                _test_sample_hash_map_delete_entry;
+
+            // Set exactly one of preprocess or postprocess delete callback.
+            if (use_postprocess_delete) {
+                _test_sample_hash_map_provider_data.base_provider_table->postprocess_map_delete_element =
+                    _test_sample_hash_map_delete_entry;
+                // Report the new (larger) header size.
+                _test_sample_hash_map_provider_data.base_provider_table->header.size =
+                    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE;
+            } else {
+                // Simulate an old-style provider using the deprecated preprocess callback.
+#pragma warning(push)
+#pragma warning(disable : 4996)
+                _test_sample_hash_map_provider_data.base_provider_table->preprocess_map_delete_element =
+                    _test_sample_hash_map_preprocess_delete_entry;
+#pragma warning(pop)
+                // Report the old (smaller) header size to simulate a provider compiled with the old SDK.
+                _test_sample_hash_map_provider_data.base_provider_table->header.size =
+                    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_V1_SIZE_0;
+            }
         }
 
         // Register as NMR provider
@@ -414,7 +450,7 @@ _test_sample_hash_map_delete(_In_ void* binding_context, _In_ _Post_invalid_ voi
     ebpf_free(context);
 }
 
-static ebpf_result_t
+static void
 _test_sample_hash_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -432,27 +468,33 @@ _test_sample_hash_map_delete_entry(
     UNREFERENCED_PARAMETER(value_size);
 
     if (provider->object_map() && (flags & EBPF_MAP_OPERATION_HELPER)) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
-    }
-
-    // Allocate dummy memory to trigger fault injection if enabled.
-    if (!(flags & EBPF_MAP_OPERATION_UPDATE) && !(flags & EBPF_MAP_OPERATION_MAP_CLEANUP)) {
-        void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
-        if (dummy_memory == NULL) {
-            return EBPF_OPERATION_NOT_SUPPORTED;
-        } else {
-            ebpf_free(dummy_memory);
-        }
+        return;
     }
 
     if (!provider->object_map()) {
         // Nothing to do.
     } else {
-        return _sample_object_hash_map_delete_entry_common(provider->dispatch_table(), value_size, value, flags);
+        _sample_object_hash_map_delete_entry_common(provider->dispatch_table(), value_size, value, flags);
     }
+}
 
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warning for the preprocess typedef.
+static ebpf_result_t
+_test_sample_hash_map_preprocess_delete_entry(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags)
+{
+    // Delegate to the void version and return EBPF_SUCCESS.
+    _test_sample_hash_map_delete_entry(binding_context, map_context, key_size, key, value_size, value, flags);
     return EBPF_SUCCESS;
 }
+#pragma warning(pop)
 
 // XDP program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {

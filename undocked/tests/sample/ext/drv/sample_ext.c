@@ -145,7 +145,7 @@ _sample_map_update_entry(
     _Out_writes_opt_(out_value_size) uint8_t* out_value,
     uint32_t flags);
 
-static ebpf_result_t
+static void
 _sample_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -167,7 +167,7 @@ static ebpf_base_map_provider_dispatch_table_t _sample_map_dispatch_table = {
     .preprocess_associate_program_type = _sample_map_associate_program,
     .postprocess_map_find_element = _sample_map_find_entry,
     .preprocess_map_update_element = _sample_map_update_entry,
-    .preprocess_map_delete_element = _sample_map_delete_entry};
+    .postprocess_map_delete_element = _sample_map_delete_entry};
 
 static ebpf_base_map_provider_properties_t _sample_map_provider_properties = {
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_HEADER, true};
@@ -1223,7 +1223,7 @@ _sample_map_update_entry(
     }
 }
 
-static ebpf_result_t
+static void
 _sample_map_delete_entry(
     _In_ void* binding_context,
     _In_ void* map_context,
@@ -1241,14 +1241,12 @@ _sample_map_delete_entry(
 
     // Disallow delete from BPF program as this is an object map.
     if (flags & EBPF_MAP_OPERATION_HELPER) {
-        return EBPF_OPERATION_NOT_SUPPORTED;
+        return;
     }
 
     uint32_t map_type = MAP_TYPE(context);
     if (map_type == BPF_MAP_TYPE_SAMPLE_HASH_MAP) {
-        return _sample_object_hash_map_delete_entry_common(context->client_dispatch, value_size, value, flags);
-    } else {
-        return EBPF_INVALID_ARGUMENT;
+        _sample_object_hash_map_delete_entry_common(context->client_dispatch, value_size, value, flags);
     }
 }
 

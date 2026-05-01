@@ -131,7 +131,10 @@ size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
 #define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, preprocess_map_delete_element)
-size_t _ebpf_map_provider_dispatch_table_supported_size[] = {EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0};
+#define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, postprocess_map_delete_element)
+size_t _ebpf_map_provider_dispatch_table_supported_size[] = {
+    EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0, EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1};
 
 #define EBPF_BASE_MAP_PROVIDER_PROPERTIES_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_properties_t, updates_original_value)
@@ -827,9 +830,21 @@ _ebpf_validate_map_provider_dispatch_table(_In_ const ebpf_base_map_provider_dis
         min(dispatch_table->header.size, sizeof(ebpf_base_map_provider_dispatch_table_t)));
 
     if (local_dispatch_table.header.version == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION) {
-        if (local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE) {
-            if (local_dispatch_table.preprocess_map_create == NULL || local_dispatch_table.postprocess_map_delete == NULL ||
+        if (local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0 ||
+            local_dispatch_table.header.size == EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1) {
+            if (local_dispatch_table.preprocess_map_create == NULL ||
+                local_dispatch_table.postprocess_map_delete == NULL ||
                 local_dispatch_table.preprocess_associate_program_type == NULL) {
+                return false;
+            }
+            // Validate that exactly one of preprocess_map_delete_element (deprecated) or
+            // postprocess_map_delete_element (new) is set, not both.
+            bool has_preprocess = (local_dispatch_table.header.size >= EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_0) &&
+                                  (local_dispatch_table.preprocess_map_delete_element != NULL);
+            bool has_postprocess = (local_dispatch_table.header.size >= EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_SIZE_1) &&
+                                   (local_dispatch_table.postprocess_map_delete_element != NULL);
+            if (has_preprocess && has_postprocess) {
+                // Both set — not allowed.
                 return false;
             }
         } else {

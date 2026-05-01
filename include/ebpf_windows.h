@@ -159,8 +159,10 @@ typedef enum _ebpf_helper_function
      EBPF_MAP_CLIENT_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION 1
-#define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE \
+#define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_V1_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, preprocess_map_delete_element)
+#define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_base_map_provider_dispatch_table_t, postprocess_map_delete_element)
 #define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_base_map_provider_dispatch_table_t)
 #define EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_HEADER             \
     {EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION,      \
