@@ -1821,6 +1821,30 @@ The following changes to ebpfcore are required to support this design:
      access the program context internally (to store the pend key and
      map pointer for post-return processing) while keeping `ctx` out
      of the helper's BPF-visible signature.
+5. **Provider-side map handle / enumeration support**
+   - To run the extension-driven periodic stale-entry purge
+     referenced in
+     [Edge case 1](#1-stale-pended-operations-complete-never-arrives)
+     (netebpfext's low-frequency back-stop timer), netebpfext must be
+     able to (a) obtain a stable kernel-mode handle to its own custom
+     map at provider-attach time, and (b) enumerate live entries on
+     that handle. Today the dispatch-table callbacks
+     (`preprocess_map_update_element`,
+     `postprocess_map_delete_element`,
+     `postprocess_map_find_element`) deliver per-key context only --
+     the provider has no map handle and no enumeration entry point,
+     so it cannot iterate independently of an inbound op.
+   - Required:
+     - Pass the map handle (or an opaque provider-scoped reference
+       equivalent) to the custom map provider at registration /
+       attach, retained for the provider's lifetime.
+     - Expose a kernel-mode enumeration API (snapshot or
+       cursor-style) that walks the live entry set and routes
+       through the same dispatch-table semantics + per-bucket lock
+       as the new kernel-mode CRUD APIs in item 2, so that
+       concurrent CRUD remains serialized identically. Used by the
+       periodic stale-entry sweep and by any future provider-driven
+       background cleanup.
 
 ## netebpfext work breakdown
 
