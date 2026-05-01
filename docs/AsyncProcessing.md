@@ -178,8 +178,9 @@ and the async orchestrator (which reacts to the pend
 and issues a verdict once finished).
 
 > **Note:** This design requires several ebpfcore changes: a new
-> custom map type enum, full CRUD support for custom map operations
-> (from both user mode and kernel mode), and namespace isolation.
+> custom map type enum, **kernel-mode CRUD APIs** for custom map
+> operations (user-mode and BPF-program-driven CRUD via the existing
+> dispatch-table callbacks already works), and namespace isolation.
 > See [ebpfcore platform requirements](#ebpfcore-platform-requirements)
 > for details.
 
@@ -1783,34 +1784,35 @@ The following changes to ebpfcore are required to support this design:
      interprets it as "operation absorbed and held until the
      orchestrator issues a COMPLETE." The corresponding WFP outcome
      is layer-specific (see [Per-layer async design](#per-layer-async-design)).
-2. **Custom map operation callbacks** *(extends existing lookup-only support to full CRUD)*
-   - **User-mode / orchestrator-driven callbacks (existing
-     dispatch-table machinery):** The custom map provider already
-     exposes `preprocess_map_update_element`,
+2. **Custom map operation callbacks** *(extends existing user-mode and BPF-program-driven CRUD with new kernel-mode CRUD entry points)*
+   - **User-mode and BPF-program-driven callbacks (existing
+     dispatch-table machinery, no new wiring):** The custom map
+     framework already invokes
+     `preprocess_map_update_element`,
      `postprocess_map_delete_element`, and
-     `postprocess_map_find_element`. For this map type,
-     `bpf_map_update_elem` covers both insert and replace semantics,
-     so no separate add callback is needed. The COMPLETE path uses
-     `bpf_map_update_elem` to store the verdict and `bpf_map_delete_elem`
-     to trigger WFP completion via these callbacks.
+     `postprocess_map_find_element` on both the user-mode
+     `bpf_map_*` syscall path and the BPF-program-helper path -- no
+     new ebpfcore work needed for these paths. For this map type the
+     orchestrator drives the COMPLETE path with `bpf_map_update_elem`
+     (insert/replace) and `bpf_map_delete_elem` (triggers WFP
+     completion via the postprocess delete callback).
    - **Extension-initiated kernel-mode operations (new APIs
      required):** ebpfcore must expose kernel-mode entry points that
      allow a custom map provider to perform CRUD on its own map from
-     kernel mode -- outside the normal eBPF helper or user-mode map
-     operation path. These APIs do not exist today and must be added.
+     kernel mode -- outside the user-mode and BPF-helper paths.
+     These APIs do not exist today and must be added.
      They must route through the same dispatch-table callbacks as
-     the user-mode path (so that all state transitions remain
-     observable by the provider) and must integrate with the same
-     per-bucket lock so concurrent operations on the same key are
-     serialized identically regardless of caller. Required for:
-     inserting entries with full pend
-     context populated (in the `pend()` helper, after a successful
-     WFP pend API call), reading entries (in COMPLETE and CONTINUE
-     processing), and deleting entries (rollback on
-     `FwpsPendOperation()` failure inside the helper, synthesized
-     COMPLETE for a non-PEND verdict after `pend()`, post-completion
-     cleanup from the threaded DPC, and the extension-driven
-     periodic stale-entry purge in
+     the user-mode and BPF-helper paths (so all state transitions
+     remain observable by the provider) and must integrate with the
+     same per-bucket lock so concurrent operations on the same key
+     are serialized identically regardless of caller. Required for:
+     inserting entries with full pend context populated (in the
+     `pend()` helper handler, after a successful WFP pend API call),
+     reading entries (in COMPLETE and CONTINUE processing), and
+     deleting entries (rollback on `FwpsPendOperation()` failure
+     inside the helper, synthesized COMPLETE for a non-PEND verdict
+     after `pend()`, post-completion cleanup from the threaded DPC,
+     and the extension-driven periodic stale-entry purge in
      [Edge case 1](#1-stale-pended-operations-complete-never-arrives)).
      The provider must receive a stable kernel-mode map handle (or
      opaque provider-scoped reference) at registration / attach --
