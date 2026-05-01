@@ -59,7 +59,7 @@ _ebpf_program_descriptor_free(_Frees_ptr_opt_ prevail::EbpfProgramType* descript
         EBPF_RETURN_VOID();
     }
 
-    ebpf_free((void*)descriptor->context_descriptor);
+    ebpf_free((void*)descriptor->ctx_descriptor);
     ebpf_free((void*)descriptor->platform_specific_data);
 
     delete descriptor;
@@ -158,14 +158,14 @@ _get_program_descriptor_from_info(
             goto Exit;
         }
         type->name = std::string(name);
-        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(
+        type->ctx_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(
             sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
-        if (type->context_descriptor == nullptr) {
+        if (type->ctx_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
         memcpy(
-            (void*)type->context_descriptor,
+            (void*)type->ctx_descriptor,
             info->program_type_descriptor->context_descriptor,
             sizeof(ebpf_context_descriptor_t));
         ebpf_program_type_t* program_type =
@@ -473,12 +473,13 @@ get_map_type_windows(uint32_t platform_specific_type)
 }
 
 const prevail::EbpfMapDescriptor&
-get_map_descriptor_windows(int original_fd, const prevail::ProgramInfo& info)
+get_map_descriptor_windows(int original_fd, const std::vector<prevail::EbpfMapDescriptor>& descriptors)
 {
-    // First check if we already have the map descriptor cached.
-    const prevail::EbpfMapDescriptor* map = prevail::find_map_descriptor(original_fd, info);
-    if (map != nullptr) {
-        return *map;
+    // First check if we already have the map descriptor in the provided descriptors.
+    for (const auto& map : descriptors) {
+        if (map.original_fd == original_fd) {
+            return map;
+        }
     }
 
     return get_map_descriptor(original_fd);

@@ -171,7 +171,7 @@ ebpf_verify_program(
     std::ostream& os,
     _In_ const prevail::InstructionSeq& instruction_sequence,
     _In_ const prevail::ProgramInfo& info,
-    _In_ const prevail::ebpf_verifier_options_t& options,
+    _In_ const prevail::VerifierOptions& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
 {
     stats->total_unreachable = 0;
@@ -184,26 +184,26 @@ ebpf_verify_program(
             throw std::runtime_error("Unspecified program type.");
         }
         set_verification_program_type(&info.type);
-        const auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
-        auto analysis_result = prevail::analyze(program, options);
+        auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
+        prevail::AnalysisContext context{std::move(program), options};
+        auto analysis_result = prevail::analyze(context);
         if (options.verbosity_opts.print_invariants) {
-            print_invariants(os, program, options.verbosity_opts.simplify, analysis_result);
+            print_invariants(os, context.program, analysis_result, options.verbosity_opts);
         }
         bool pass = !analysis_result.failed;
         if (options.verbosity_opts.print_failures) {
             if (auto verification_error = analysis_result.find_first_error()) {
-                print_error(os, *verification_error, program, true);
+                print_error(os, *verification_error, context.program, options.verbosity_opts);
             }
         }
         // Count unreachable labels reported by the analysis result.
-        stats->total_unreachable = (int)analysis_result.find_unreachable(program).size();
+        stats->total_unreachable = (int)analysis_result.find_unreachable(context.program).size();
         // Handle failure slice output when collect_instruction_deps is enabled.
         if (options.verbosity_opts.collect_instruction_deps && analysis_result.failed) {
             // Limit to 1 slice to keep diagnostic output concise for the API consumer.
             prevail::AnalysisResult::SliceParams slice_params{.max_slices = 1};
-            prevail::AnalysisContext context{info, options, *info.platform};
-            auto slices = analysis_result.compute_failure_slices(program, slice_params, context);
-            print_failure_slices(os, program, options.verbosity_opts.simplify, analysis_result, slices);
+            auto slices = analysis_result.compute_failure_slices(slice_params, context);
+            print_failure_slices(os, context.program, analysis_result, slices, options.verbosity_opts);
         }
         // Get the warning count by counting invariants with errors.
         stats->total_warnings = 0;
@@ -220,19 +220,19 @@ ebpf_verify_program(
     }
 }
 
-prevail::ebpf_verifier_options_t
+prevail::VerifierOptions
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 {
-    prevail::ebpf_verifier_options_t verifier_options{};
-    verifier_options.cfg_opts.check_for_termination = true;
-    verifier_options.cfg_opts.must_have_exit = true;
+    prevail::VerifierOptions verifier_options{};
+    verifier_options.runtime.check_for_termination = true;
+    verifier_options.must_have_exit = true;
     verifier_options.verbosity_opts.print_invariants = (verbosity >= EBPF_VERIFICATION_VERBOSITY_VERBOSE);
     verifier_options.verbosity_opts.print_line_info = true;
     verifier_options.mock_map_fds = true;
-    verifier_options.strict = false;
-    verifier_options.allow_division_by_zero = true;
-    verifier_options.setup_constraints = true;
-    verifier_options.big_endian = false;
+    verifier_options.runtime.strict = false;
+    verifier_options.runtime.allow_division_by_zero = true;
+    verifier_options.runtime.setup_constraints = true;
+    verifier_options.runtime.big_endian = false;
     if (verbosity == EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL) {
         verifier_options.verbosity_opts.collect_instruction_deps = true;
         verifier_options.verbosity_opts.simplify = false;

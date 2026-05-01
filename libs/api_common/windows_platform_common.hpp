@@ -21,7 +21,7 @@ prevail::EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string& path);
 
 const prevail::EbpfMapDescriptor&
-get_map_descriptor_windows(int map_fd, const prevail::ProgramInfo& info);
+get_map_descriptor_windows(int map_fd, const std::vector<prevail::EbpfMapDescriptor>& descriptors);
 
 _Must_inspect_result_ ebpf_result_t
 get_bpf_program_and_attach_type(

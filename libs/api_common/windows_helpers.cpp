@@ -50,7 +50,7 @@ get_helper_prototype_windows(int32_t n, const prevail::EbpfProgramType& program_
     if (info->program_type_descriptor == nullptr) {
         throw std::runtime_error(std::string("program type descriptor not found."));
     }
-    verifier_prototype.context_descriptor = info->program_type_descriptor->context_descriptor;
+    verifier_prototype.ctx_descriptor = info->program_type_descriptor->context_descriptor;
 
     // Helper ID needs to be non-negative for Windows.
     if (n < 0) {

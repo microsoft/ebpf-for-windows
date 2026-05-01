@@ -26,7 +26,7 @@ _parse_maps_section_windows(
     size_t map_record_size,
     int map_count,
     const struct prevail::ebpf_platform_t*,
-    prevail::ebpf_verifier_options_t)
+    const prevail::VerifierOptions&)
 {
     UNREFERENCED_PARAMETER(verifier_map_descriptors);
 

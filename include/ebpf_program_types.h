@@ -6,6 +6,10 @@
 #include "ebpf_result.h"
 #include "ebpf_windows.h"
 
+// The verifier renamed ebpf_context_descriptor_t to ebpf_ctx_descriptor_t.
+// Provide backwards compatibility for existing code.
+typedef ebpf_ctx_descriptor_t ebpf_context_descriptor_t;
+
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
 
