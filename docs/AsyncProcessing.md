@@ -1368,11 +1368,6 @@ effectively claims the final decision for the operation.
 > operators can diagnose why a given program was not invoked for a
 > particular operation.
 
-## WFP implementation requirements
-
-The async processing design relies on several WFP-specific contracts.
-Layer-specific requirements are documented in the following sections.
-
 ## Per-layer async design
 
 The pend/complete mechanism uses different WFP async APIs at each layer.
@@ -1805,7 +1800,13 @@ The following changes to ebpfcore are required to support this design:
      processing), and deleting entries (rollback on
      `FwpsPendOperation()` failure inside the helper, synthesized
      COMPLETE for a non-PEND verdict after `pend()`, post-completion
-     cleanup from the threaded DPC).
+     cleanup from the threaded DPC, and the extension-driven
+     periodic stale-entry purge in
+     [Edge case 1](#1-stale-pended-operations-complete-never-arrives)).
+     The provider must receive a stable kernel-mode map handle (or
+     opaque provider-scoped reference) at registration / attach --
+     retained for the provider's lifetime -- to use as the map
+     identifier on these APIs.
 3. **Namespace isolation**
    - Ensure custom maps support namespace isolation
      ([PR #4424](https://github.com/microsoft/ebpf-for-windows/pull/4424))
@@ -1817,34 +1818,10 @@ The following changes to ebpfcore are required to support this design:
      requiring an explicit `ctx` parameter.
    - ebpfcore sets the implicit context in a per-CPU slot (or
      thread-local) before invoking the eBPF program and clears it on
-     return. This allows extension helpers like `pend_operation()` to
+     return. This allows extension helpers like `bpf_pend_operation()` to
      access the program context internally (to store the pend key and
      map pointer for post-return processing) while keeping `ctx` out
      of the helper's BPF-visible signature.
-5. **Provider-side map handle / enumeration support**
-   - To run the extension-driven periodic stale-entry purge
-     referenced in
-     [Edge case 1](#1-stale-pended-operations-complete-never-arrives)
-     (netebpfext's low-frequency back-stop timer), netebpfext must be
-     able to (a) obtain a stable kernel-mode handle to its own custom
-     map at provider-attach time, and (b) enumerate live entries on
-     that handle. Today the dispatch-table callbacks
-     (`preprocess_map_update_element`,
-     `postprocess_map_delete_element`,
-     `postprocess_map_find_element`) deliver per-key context only --
-     the provider has no map handle and no enumeration entry point,
-     so it cannot iterate independently of an inbound op.
-   - Required:
-     - Pass the map handle (or an opaque provider-scoped reference
-       equivalent) to the custom map provider at registration /
-       attach, retained for the provider's lifetime.
-     - Expose a kernel-mode enumeration API (snapshot or
-       cursor-style) that walks the live entry set and routes
-       through the same dispatch-table semantics + per-bucket lock
-       as the new kernel-mode CRUD APIs in item 2, so that
-       concurrent CRUD remains serialized identically. Used by the
-       periodic stale-entry sweep and by any future provider-driven
-       background cleanup.
 
 ## netebpfext work breakdown
 
