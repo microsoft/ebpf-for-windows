@@ -178,6 +178,9 @@ Typedefs</h2></td></tr>
 <tr class="memitem:abd51a8ba0db9164bb27605f8e6246662" id="r_abd51a8ba0db9164bb27605f8e6246662"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#abd51a8ba0db9164bb27605f8e6246662">ebpf_preprocess_map_delete_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td></tr>
 <tr class="memdesc:abd51a8ba0db9164bb27605f8e6246662"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pre-process an element deletion from a provider-backed map (called before the core delete).  <br /></td></tr>
 <tr class="separator:abd51a8ba0db9164bb27605f8e6246662"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2f2c4120473ce07ae0aed6044f7fbe4e" id="r_a2f2c4120473ce07ae0aed6044f7fbe4e"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a2f2c4120473ce07ae0aed6044f7fbe4e">ebpf_postprocess_map_delete_element_t</a>) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td></tr>
+<tr class="memdesc:a2f2c4120473ce07ae0aed6044f7fbe4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Post-process an element deletion from a provider-backed map (called after the core delete).  <br /></td></tr>
+<tr class="separator:a2f2c4120473ce07ae0aed6044f7fbe4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0bdc9eb35035b97b4781c44c9b25828" id="r_ac0bdc9eb35035b97b4781c44c9b25828"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ac0bdc9eb35035b97b4781c44c9b25828">ebpf_preprocess_map_associate_program_type_t</a>) (void *binding_context, void *map_context, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type)</td></tr>
 <tr class="memdesc:ac0bdc9eb35035b97b4781c44c9b25828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associate a program type with the map, which allows the map to be used by programs of that type.  <br /></td></tr>
 <tr class="separator:ac0bdc9eb35035b97b4781c44c9b25828"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -422,7 +425,8 @@ Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Dispatch table implemented by the eBPF extension to provide map operations. This table is used to provide map operations to the eBPF core. </p>
+<p>Dispatch table implemented by the eBPF extension to provide map operations. This table is used to provide map operations to the eBPF core.</p>
+<p>A provider must set exactly one of preprocess_map_delete_element (deprecated) or postprocess_map_delete_element (preferred). Setting both or neither is an error. Old providers compiled against the previous SDK will only have preprocess_map_delete_element; the runtime detects this via the header size field and treats postprocess_map_delete_element as NULL. </p>
 
 </div>
 </div>
@@ -662,6 +666,41 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a2f2c4120473ce07ae0aed6044f7fbe4e" name="a2f2c4120473ce07ae0aed6044f7fbe4e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2f2c4120473ce07ae0aed6044f7fbe4e">&#9670;&#160;</a></span>ebpf_postprocess_map_delete_element_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef void(* ebpf_postprocess_map_delete_element_t) (void *binding_context, void *map_context, size_t key_size, _In_reads_opt_(key_size) const uint8_t *key, size_t value_size, _In_reads_(value_size) const uint8_t *value, uint32_t flags)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Post-process an element deletion from a provider-backed map (called after the core delete). </p>
+<p>This is the preferred callback for handling element deletions. It is invoked after the entry has been removed from the hash table and after the per-bucket lock has been released. A provider must register exactly one of preprocess_map_delete_element or postprocess_map_delete_element, not both.</p>
+<p>This function can be called in three scenarios:</p><ol type="1">
+<li>Normal map element deletion.</li>
+<li>Deletion performed as part of an update operation (replacing an existing entry).</li>
+<li>Deletion performed as part of map cleanup. When deletion is part of an update operation, EBPF_MAP_OPERATION_UPDATE is set in the flags parameter. When map cleanup is in progress, EBPF_MAP_OPERATION_MAP_CLEANUP is set in the flags parameter.</li>
+</ol>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key that was deleted. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry that was deleted. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
+  </table>
+  </dd>
+</dl>
+<p>IRQL: When EBPF_MAP_OPERATION_HELPER is not set (user-mode caller), this function is called at PASSIVE_LEVEL. Currently, the eBPF runtime blocks map delete operations from BPF programs when <code>updates_original_value</code> is true, so this callback is not invoked at DISPATCH_LEVEL in that configuration. If <code>updates_original_value</code> is false, this callback may be invoked at up to DISPATCH_LEVEL when called from a BPF program. </p>
+
+</div>
+</div>
 <a id="a451abc889456f877e6293123aa902faf" name="a451abc889456f877e6293123aa902faf"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a451abc889456f877e6293123aa902faf">&#9670;&#160;</a></span>ebpf_postprocess_map_delete_t</h2>
 
@@ -807,6 +846,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Pre-process an element deletion from a provider-backed map (called before the core delete). </p>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000017">Deprecated:</a></b></dt><dd>Use ebpf_postprocess_map_delete_element_t instead. This callback is invoked before the entry is removed from the hash table, under the per-bucket lock. New providers should use ebpf_postprocess_map_delete_element_t, which is invoked after the entry is removed from the hash table. A provider must register exactly one of preprocess_map_delete_element or postprocess_map_delete_element, not both.</dd></dl>
 <p>This function can be called in three scenarios:</p><ol type="1">
 <li>Normal map element deletion.</li>
 <li>Deletion performed as part of an update operation (replacing an existing entry).</li>
@@ -817,10 +857,10 @@ Functions</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">binding_context</td><td>The binding context provided when the map provider was bound. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">map_context</td><td>The eBPF map context. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">key_size</td><td>The size of the key in bytes. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. If the key is not found, the map is unchanged. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>Pointer to the key to delete. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value_size</td><td>The size in bytes of the provider's stored value buffer. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Pointer to the provider's stored value buffer for the entry being deleted. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program. When this flag is not set, the function is called in the context of the original user mode process, so the provider may implicitly use the current process's handle table (e.g., to resolve file descriptors passed as map values).</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Delete flags. Possible values: EBPF_MAP_OPERATION_UPDATE - The delete is invoked as part of an update operation. EBPF_MAP_OPERATION_MAP_CLEANUP - The delete is invoked as part of a map cleanup operation. EBPF_MAP_OPERATION_HELPER - The delete is invoked from a BPF program.</td></tr>
   </table>
   </dd>
 </dl>
@@ -863,9 +903,10 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section note"><dt>Note</dt><dd>If this function succeeds but the subsequent core map update fails, the eBPF runtime will call ebpf_preprocess_map_delete_element_t with the EBPF_MAP_OPERATION_UPDATE flag to allow the provider to undo any state changes made during this call. </dd>
+<dl class="section note"><dt>Note</dt><dd>If this function succeeds but the subsequent core map update fails, the eBPF runtime will call ebpf_postprocess_map_delete_element_t with the EBPF_MAP_OPERATION_UPDATE flag to allow the provider to undo any state changes made during this call. </dd>
 <dd>
-In a replace operation (updating an existing key), after the core update succeeds, ebpf_preprocess_map_delete_element_t will be called for the old value being replaced, also with the EBPF_MAP_OPERATION_UPDATE flag set.</dd></dl>
+In a replace operation (updating an existing key), after the core update succeeds, ebpf_postprocess_map_delete_element_t will be called for the old value being replaced, also with the EBPF_MAP_OPERATION_UPDATE flag set.</dd></dl>
+<p>IRQL: When EBPF_MAP_OPERATION_HELPER is not set (user-mode caller), this function is called at PASSIVE_LEVEL. Currently, the eBPF runtime blocks map update operations from BPF programs when <code>updates_original_value</code> is true, so this callback is not invoked at DISPATCH_LEVEL in that configuration. If <code>updates_original_value</code> is false, this callback may be invoked at up to DISPATCH_LEVEL when called from a BPF program.</p>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>

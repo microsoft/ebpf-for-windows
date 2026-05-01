@@ -93,9 +93,12 @@ Data Fields</h2></td></tr>
 <tr class="separator:a6d308f1503231e51c20291e6f8f07c67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a90c0ad5ec20928f7ecbe2f7457fb52e9" id="r_a90c0ad5ec20928f7ecbe2f7457fb52e9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__extension_8h.html#abd51a8ba0db9164bb27605f8e6246662">ebpf_preprocess_map_delete_element_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__provider__dispatch__table.html#a90c0ad5ec20928f7ecbe2f7457fb52e9">preprocess_map_delete_element</a></td></tr>
 <tr class="separator:a90c0ad5ec20928f7ecbe2f7457fb52e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7a2cb50280f52643fc2e6cb6c1c6cdf4" id="r_a7a2cb50280f52643fc2e6cb6c1c6cdf4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__extension_8h.html#a2f2c4120473ce07ae0aed6044f7fbe4e">ebpf_postprocess_map_delete_element_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__provider__dispatch__table.html#a7a2cb50280f52643fc2e6cb6c1c6cdf4">postprocess_map_delete_element</a></td></tr>
+<tr class="separator:a7a2cb50280f52643fc2e6cb6c1c6cdf4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Dispatch table implemented by the eBPF extension to provide map operations. This table is used to provide map operations to the eBPF core. </p>
+<div class="textblock"><p>Dispatch table implemented by the eBPF extension to provide map operations. This table is used to provide map operations to the eBPF core.</p>
+<p>A provider must set exactly one of preprocess_map_delete_element (deprecated) or postprocess_map_delete_element (preferred). Setting both or neither is an error. Old providers compiled against the previous SDK will only have preprocess_map_delete_element; the runtime detects this via the header size field and treats postprocess_map_delete_element as NULL. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
 <a id="ac57e55212b55fdaca5425c987f006760" name="ac57e55212b55fdaca5425c987f006760"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ac57e55212b55fdaca5425c987f006760">&#9670;&#160;</a></span>header</h2>
@@ -122,6 +125,21 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7a2cb50280f52643fc2e6cb6c1c6cdf4" name="a7a2cb50280f52643fc2e6cb6c1c6cdf4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7a2cb50280f52643fc2e6cb6c1c6cdf4">&#9670;&#160;</a></span>postprocess_map_delete_element</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__extension_8h.html#a2f2c4120473ce07ae0aed6044f7fbe4e">ebpf_postprocess_map_delete_element_t</a> _ebpf_map_provider_dispatch_table::postprocess_map_delete_element</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Preferred. Set this instead of preprocess_map_delete_element. </p>
 
 </div>
 </div>
@@ -178,6 +196,7 @@ Data Fields</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Deprecated. Use postprocess_map_delete_element instead. </p>
 
 </div>
 </div>
