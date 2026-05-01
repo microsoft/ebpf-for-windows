@@ -711,6 +711,15 @@ struct {
    gone or in a completing state and the work item drops without
    invoking the program. Otherwise, the extension re-invokes the
    eBPF program through ebpfcore using the saved program context.
+   The program re-invoked is the `originating_program` recorded in
+   the pend entry's internal state -- the same program in the chain
+   that returned PEND. This matters because the pend map may be
+   shared across multiple programs at the same attach point (e.g.,
+   compartment), and only the originating program holds the
+   continuation_map state needed to resume. The remaining programs
+   in the chain (N+1..M) are not invoked on CONTINUE for the same
+   reason they were not invoked on the original classify -- PEND is
+   an early exit (see [Multi-program semantics](#multiple-attached-programs-and-pend)).
    netebpfext's classify wrapper runs in this context -- the same
    wrapper that handles the normal classify path. Because there is
    no live WFP `classifyFn` context on this thread, the program must
@@ -1892,6 +1901,14 @@ typedef struct _net_ebpf_ext_pend_internal_state {
     uint16_t layer_id;                      // Discriminator for the layer_params union
     net_ebpf_ext_pend_lifecycle_t lifecycle_state;
     uint32_t aggregate_verdict;
+    const ebpf_program_t* originating_program; // Program in the chain that returned PEND;
+                                               // re-invoked on CONTINUE so the same program
+                                               // resumes evaluation (chain is short-circuited
+                                               // at this program -- see Multi-program semantics).
+                                               // Necessary because (a) the pend map may be shared
+                                               // across multiple programs at the same attach point
+                                               // and (b) only the originating program holds the
+                                               // continuation_map state needed to resume.
 
     PROCESSOR_NUMBER classifyfn_cpu;        // CPU that ran the original classifyFn;
                                             // target processor for the threaded DPC
