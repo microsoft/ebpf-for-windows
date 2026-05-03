@@ -1,0 +1,521 @@
+// Copyright (c) eBPF for Windows contributors
+// SPDX-License-Identifier: MIT
+
+/*
+
+  3d Specification of the eBPF for Windows IOCTL protocol message format.
+
+  The IOCTL protocol is defined in libs/execution_context/ebpf_protocol.h.
+  Messages are exchanged between user-mode (ebpfapi.dll) and kernel-mode
+  (ebpfcore.sys) via METHOD_BUFFERED DeviceIoControl.
+
+  Each message starts with an ebpf_operation_header_t:
+    uint16_t length              -- total message size in bytes
+    ebpf_operation_id_t id       -- operation type (4-byte enum on MSVC)
+
+  The header is 8 bytes on x64 MSVC (2 bytes padding between length and id).
+
+  This specification validates:
+  - Header length and operation ID range
+  - Offset field ordering (create_program)
+  - Enum field ranges (code_type, map_option, object_type)
+  - context_offset bounds (program_test_run)
+  - Variable-length data region consistency with header length
+  - Minimum message sizes for all operations with variable-length bodies
+
+  The C integration code MUST include static_assert checks to verify that
+  struct layout assumptions (offsets, sizes) match the actual compiler output.
+  See ebpf_protocol_layout_check.h.
+
+  Entry point: EBPF_IOCTL_MESSAGE
+  Generated validator: EbpfProtocolCheckEbpfIoctlMessage()
+*/
+
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+// Header layout: uint16_t(2) + pad(2) + enum(4) = 8 bytes
+#define HEADER_SIZE         8
+#define HEADER_PAD_SIZE     2
+
+// Maximum valid operation ID (EBPF_OPERATION_LINK_SET_LEGACY_MODE = 45)
+#define MAX_OPERATION_ID    45
+
+// Operation IDs that need specific validation
+#define OP_CREATE_PROGRAM                    2
+#define OP_CREATE_MAP                        3
+#define OP_LOAD_CODE                         4
+#define OP_MAP_FIND_ELEMENT                  5
+#define OP_MAP_UPDATE_ELEMENT                6
+#define OP_MAP_UPDATE_ELEMENT_WITH_HANDLE    7
+#define OP_MAP_DELETE_ELEMENT                8
+#define OP_MAP_GET_NEXT_KEY                  9
+#define OP_UPDATE_PINNING                    11
+#define OP_GET_PINNED_OBJECT                 12
+#define OP_LINK_PROGRAM                      13
+#define OP_UNLINK_PROGRAM                    14
+#define OP_MAP_WRITE_DATA                    30
+#define OP_LOAD_NATIVE_MODULE                31
+#define OP_PROGRAM_TEST_RUN                  33
+#define OP_MAP_UPDATE_ELEMENT_BATCH          34
+#define OP_MAP_DELETE_ELEMENT_BATCH           35
+#define OP_MAP_GET_NEXT_KEY_VALUE_BATCH       36
+#define OP_GET_NEXT_PINNED_OBJECT_PATH       38
+
+// Enum maximums
+#define EBPF_CODE_TYPE_MAX      3     // EBPF_CODE_NATIVE
+#define EBPF_MAP_OPTION_MAX     2     // EBPF_EXIST
+#define EBPF_OBJECT_TYPE_MAX    3     // EBPF_OBJECT_PROGRAM
+
+// Byte offset of variable-length data from start of message.
+// Must match offsetof() on the C struct (x64 MSVC, default packing).
+#define CREATE_PROGRAM_DATA_OFFSET              28
+#define CREATE_MAP_DATA_OFFSET                  40
+#define LOAD_CODE_CODE_OFFSET                   20
+#define FIND_ELEMENT_KEY_OFFSET                 17
+#define MAP_UPDATE_DATA_OFFSET                  20
+#define MAP_UPDATE_WITH_HANDLE_KEY_OFFSET       28
+#define DELETE_ELEMENT_KEY_OFFSET               16
+#define GET_NEXT_KEY_PREVIOUS_KEY_OFFSET        16
+#define UPDATE_PINNING_PATH_OFFSET              16
+#define GET_PINNED_OBJECT_PATH_OFFSET            8
+#define LINK_PROGRAM_DATA_OFFSET                32
+#define UNLINK_PROGRAM_DATA_OFFSET              41
+#define MAP_WRITE_DATA_DATA_OFFSET              24
+#define LOAD_NATIVE_MODULE_DATA_OFFSET          24
+#define PROGRAM_TEST_RUN_DATA_OFFSET            42
+#define DELETE_ELEMENT_BATCH_KEYS_OFFSET        16
+#define GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET     17
+#define PINNED_OBJECT_PATH_START_PATH_OFFSET    12
+
+
+// ============================================================================
+// Operation-specific body types
+// ============================================================================
+
+/*
+  EBPF_OPERATION_CREATE_PROGRAM (id=2)
+
+  Body layout after 8-byte header:
+    ebpf_program_type_t program_type    (GUID, 16 bytes, offset 8)
+    uint16_t section_name_offset        (2 bytes, offset 24)
+    uint16_t program_name_offset        (2 bytes, offset 26)
+    uint8_t data[]                      (variable, offset 28)
+
+  Validates: data_offset <= section_name_offset <= program_name_offset <= length
+*/
+typedef struct _CREATE_PROGRAM_BODY (UINT16 MessageLength)
+where (MessageLength >= CREATE_PROGRAM_DATA_OFFSET)
+{
+    UINT8 ProgramType[16];
+
+    UINT16 SectionNameOffset
+        { SectionNameOffset >= CREATE_PROGRAM_DATA_OFFSET &&
+          SectionNameOffset <= MessageLength };
+
+    UINT16 ProgramNameOffset
+        { ProgramNameOffset >= SectionNameOffset &&
+          ProgramNameOffset <= MessageLength };
+
+    UINT8 Data[:byte-size (UINT32)(MessageLength - CREATE_PROGRAM_DATA_OFFSET)];
+} CREATE_PROGRAM_BODY;
+
+
+/*
+  EBPF_OPERATION_CREATE_MAP (id=3)
+
+  Body layout after 8-byte header:
+    ebpf_map_definition_in_memory_t    (24 bytes, offset 8)
+    ebpf_handle_t inner_map_handle     (8 bytes, offset 32)
+    uint8_t data[]                     (variable, offset 40 - map name)
+
+  Validates: minimum length for fixed fields, variable data region.
+*/
+typedef struct _CREATE_MAP_BODY (UINT16 MessageLength)
+where (MessageLength >= CREATE_MAP_DATA_OFFSET)
+{
+    UINT8 MapDefinition[24];
+    UINT8 InnerMapHandle[8];
+    UINT8 Data[:byte-size (UINT32)(MessageLength - CREATE_MAP_DATA_OFFSET)];
+} CREATE_MAP_BODY;
+
+
+/*
+  EBPF_OPERATION_LOAD_CODE (id=4)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t program_handle    (8 bytes, offset 8)
+    ebpf_code_type_t code_type      (4-byte enum, offset 16)
+    uint8_t code[]                  (variable, offset 20)
+
+  Validates: code_type in [0, EBPF_CODE_NATIVE]
+*/
+typedef struct _LOAD_CODE_BODY (UINT16 MessageLength)
+where (MessageLength >= LOAD_CODE_CODE_OFFSET)
+{
+    UINT8 ProgramHandle[8];
+    UINT32 CodeType { CodeType <= EBPF_CODE_TYPE_MAX };
+    UINT8 Code[:byte-size (UINT32)(MessageLength - LOAD_CODE_CODE_OFFSET)];
+} LOAD_CODE_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_FIND_ELEMENT (id=5)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle       (8 bytes, offset 8)
+    bool find_and_delete       (1 byte, offset 16)
+    uint8_t key[]              (variable, offset 17)
+
+  Validates: minimum length, variable key region.
+*/
+typedef struct _MAP_FIND_ELEMENT_BODY (UINT16 MessageLength)
+where (MessageLength >= FIND_ELEMENT_KEY_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 FindAndDelete;
+    UINT8 Key[:byte-size (UINT32)(MessageLength - FIND_ELEMENT_KEY_OFFSET)];
+} MAP_FIND_ELEMENT_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_UPDATE_ELEMENT (id=6)
+  EBPF_OPERATION_MAP_UPDATE_ELEMENT_BATCH (id=34)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle        (8 bytes, offset 8)
+    ebpf_map_option_t option    (4-byte enum, offset 16)
+    uint8_t data[]              (variable, offset 20)
+
+  Validates: option in [0, EBPF_EXIST]
+*/
+typedef struct _MAP_UPDATE_BODY (UINT16 MessageLength)
+where (MessageLength >= MAP_UPDATE_DATA_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT32 Option { Option <= EBPF_MAP_OPTION_MAX };
+    UINT8 Data[:byte-size (UINT32)(MessageLength - MAP_UPDATE_DATA_OFFSET)];
+} MAP_UPDATE_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_UPDATE_ELEMENT_WITH_HANDLE (id=7)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t map_handle      (8 bytes, offset 8)
+    ebpf_handle_t value_handle    (8 bytes, offset 16)
+    ebpf_map_option_t option      (4-byte enum, offset 24)
+    uint8_t key[]                 (variable, offset 28)
+
+  Validates: option in [0, EBPF_EXIST]
+*/
+typedef struct _MAP_UPDATE_WITH_HANDLE_BODY (UINT16 MessageLength)
+where (MessageLength >= MAP_UPDATE_WITH_HANDLE_KEY_OFFSET)
+{
+    UINT8 MapHandle[8];
+    UINT8 ValueHandle[8];
+    UINT32 Option { Option <= EBPF_MAP_OPTION_MAX };
+    UINT8 Key[:byte-size (UINT32)(MessageLength - MAP_UPDATE_WITH_HANDLE_KEY_OFFSET)];
+} MAP_UPDATE_WITH_HANDLE_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_DELETE_ELEMENT (id=8)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle    (8 bytes, offset 8)
+    uint8_t key[]           (variable, offset 16)
+*/
+typedef struct _MAP_DELETE_ELEMENT_BODY (UINT16 MessageLength)
+where (MessageLength >= DELETE_ELEMENT_KEY_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 Key[:byte-size (UINT32)(MessageLength - DELETE_ELEMENT_KEY_OFFSET)];
+} MAP_DELETE_ELEMENT_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_GET_NEXT_KEY (id=9)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle        (8 bytes, offset 8)
+    uint8_t previous_key[]      (variable, offset 16)
+*/
+typedef struct _MAP_GET_NEXT_KEY_BODY (UINT16 MessageLength)
+where (MessageLength >= GET_NEXT_KEY_PREVIOUS_KEY_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 PreviousKey[:byte-size (UINT32)(MessageLength - GET_NEXT_KEY_PREVIOUS_KEY_OFFSET)];
+} MAP_GET_NEXT_KEY_BODY;
+
+
+/*
+  EBPF_OPERATION_UPDATE_PINNING (id=11)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle    (8 bytes, offset 8)
+    uint8_t path[]          (variable, offset 16)
+*/
+typedef struct _UPDATE_PINNING_BODY (UINT16 MessageLength)
+where (MessageLength >= UPDATE_PINNING_PATH_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 Path[:byte-size (UINT32)(MessageLength - UPDATE_PINNING_PATH_OFFSET)];
+} UPDATE_PINNING_BODY;
+
+
+/*
+  EBPF_OPERATION_GET_PINNED_OBJECT (id=12)
+
+  Body layout after 8-byte header:
+    uint8_t path[]    (variable, offset 8)
+*/
+typedef struct _GET_PINNED_OBJECT_BODY (UINT16 MessageLength)
+where (MessageLength >= GET_PINNED_OBJECT_PATH_OFFSET)
+{
+    UINT8 Path[:byte-size (UINT32)(MessageLength - GET_PINNED_OBJECT_PATH_OFFSET)];
+} GET_PINNED_OBJECT_BODY;
+
+
+/*
+  EBPF_OPERATION_LINK_PROGRAM (id=13)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t program_handle    (8 bytes, offset 8)
+    ebpf_attach_type_t attach_type  (GUID, 16 bytes, offset 16)
+    uint8_t data[]                  (variable, offset 32)
+*/
+typedef struct _LINK_PROGRAM_BODY (UINT16 MessageLength)
+where (MessageLength >= LINK_PROGRAM_DATA_OFFSET)
+{
+    UINT8 ProgramHandle[8];
+    UINT8 AttachType[16];
+    UINT8 Data[:byte-size (UINT32)(MessageLength - LINK_PROGRAM_DATA_OFFSET)];
+} LINK_PROGRAM_BODY;
+
+
+/*
+  EBPF_OPERATION_UNLINK_PROGRAM (id=14)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t link_handle       (8 bytes, offset 8)
+    ebpf_handle_t program_handle    (8 bytes, offset 16)
+    ebpf_attach_type_t attach_type  (GUID, 16 bytes, offset 24)
+    bool attach_data_present        (1 byte, offset 40)
+    uint8_t data[]                  (variable, offset 41)
+*/
+typedef struct _UNLINK_PROGRAM_BODY (UINT16 MessageLength)
+where (MessageLength >= UNLINK_PROGRAM_DATA_OFFSET)
+{
+    UINT8 LinkHandle[8];
+    UINT8 ProgramHandle[8];
+    UINT8 AttachType[16];
+    UINT8 AttachDataPresent;
+    UINT8 Data[:byte-size (UINT32)(MessageLength - UNLINK_PROGRAM_DATA_OFFSET)];
+} UNLINK_PROGRAM_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_WRITE_DATA (id=31)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t map_handle    (8 bytes, offset 8)
+    uint64_t flags              (8 bytes, offset 16)
+    uint8_t data[]              (variable, offset 24)
+*/
+typedef struct _MAP_WRITE_DATA_BODY (UINT16 MessageLength)
+where (MessageLength >= MAP_WRITE_DATA_DATA_OFFSET)
+{
+    UINT8 MapHandle[8];
+    UINT8 Flags[8];
+    UINT8 Data[:byte-size (UINT32)(MessageLength - MAP_WRITE_DATA_DATA_OFFSET)];
+} MAP_WRITE_DATA_BODY;
+
+
+/*
+  EBPF_OPERATION_LOAD_NATIVE_MODULE (id=32)
+
+  Body layout after 8-byte header:
+    GUID module_id    (16 bytes, offset 8)
+    uint8_t data[]    (variable, offset 24 - service name, UTF16)
+*/
+typedef struct _LOAD_NATIVE_MODULE_BODY (UINT16 MessageLength)
+where (MessageLength >= LOAD_NATIVE_MODULE_DATA_OFFSET)
+{
+    UINT8 ModuleId[16];
+    UINT8 Data[:byte-size (UINT32)(MessageLength - LOAD_NATIVE_MODULE_DATA_OFFSET)];
+} LOAD_NATIVE_MODULE_BODY;
+
+
+/*
+  EBPF_OPERATION_PROGRAM_TEST_RUN (id=33)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t program_handle    (8 bytes, offset 8)
+    size_t repeat_count             (8 bytes, offset 16)
+    uint32_t flags                  (4 bytes, offset 24)
+    uint32_t cpu                    (4 bytes, offset 28)
+    size_t batch_size               (8 bytes, offset 32)
+    uint16_t context_offset         (2 bytes, offset 40)
+    uint8_t data[]                  (variable, offset 42)
+
+  The data region (length - 42 bytes) is split by context_offset into:
+    [input_data | context]
+  So context_offset must not exceed the data region size.
+*/
+typedef struct _PROGRAM_TEST_RUN_BODY (UINT16 MessageLength)
+where (MessageLength >= PROGRAM_TEST_RUN_DATA_OFFSET)
+{
+    UINT8 ProgramHandle[8];
+    UINT8 RepeatCount[8];
+    UINT32 Flags;
+    UINT32 Cpu;
+    UINT8 BatchSize[8];
+    UINT16 ContextOffset
+        { ContextOffset <= MessageLength - PROGRAM_TEST_RUN_DATA_OFFSET };
+    UINT8 Data[:byte-size (UINT32)(MessageLength - PROGRAM_TEST_RUN_DATA_OFFSET)];
+} PROGRAM_TEST_RUN_BODY;
+
+
+/*
+  EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH (id=38)
+
+  Body layout after 8-byte header:
+    ebpf_object_type_t type     (4-byte enum, offset 8)
+    uint8_t start_path[]        (variable, offset 12)
+
+  Validates: type in [0, EBPF_OBJECT_PROGRAM]
+*/
+typedef struct _PINNED_OBJECT_PATH_BODY (UINT16 MessageLength)
+where (MessageLength >= PINNED_OBJECT_PATH_START_PATH_OFFSET)
+{
+    UINT32 ObjectType { ObjectType <= EBPF_OBJECT_TYPE_MAX };
+    UINT8 StartPath[:byte-size (UINT32)(MessageLength - PINNED_OBJECT_PATH_START_PATH_OFFSET)];
+} PINNED_OBJECT_PATH_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH (id=35)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle    (8 bytes, offset 8)
+    uint8_t keys[]          (variable, offset 16 - concatenated keys)
+*/
+typedef struct _MAP_DELETE_ELEMENT_BATCH_BODY (UINT16 MessageLength)
+where (MessageLength >= DELETE_ELEMENT_BATCH_KEYS_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 Keys[:byte-size (UINT32)(MessageLength - DELETE_ELEMENT_BATCH_KEYS_OFFSET)];
+} MAP_DELETE_ELEMENT_BATCH_BODY;
+
+
+/*
+  EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH (id=36)
+
+  Body layout after 8-byte header:
+    ebpf_handle_t handle       (8 bytes, offset 8)
+    bool find_and_delete       (1 byte, offset 16)
+    uint8_t previous_key[]     (variable, offset 17)
+*/
+typedef struct _MAP_GET_NEXT_KEY_VALUE_BATCH_BODY (UINT16 MessageLength)
+where (MessageLength >= GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET)
+{
+    UINT8 Handle[8];
+    UINT8 FindAndDelete;
+    UINT8 PreviousKey[:byte-size (UINT32)(MessageLength - GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET)];
+} MAP_GET_NEXT_KEY_VALUE_BATCH_BODY;
+
+
+/*
+  Generic body for operations that don't need field-level validation.
+  Just validates that the buffer contains enough bytes for the declared length.
+*/
+typedef struct _GENERIC_BODY (UINT16 MessageLength)
+where (MessageLength >= HEADER_SIZE)
+{
+    UINT8 Rest[:byte-size (UINT32)(MessageLength - HEADER_SIZE)];
+} GENERIC_BODY;
+
+
+// ============================================================================
+// Operation body dispatcher
+// ============================================================================
+
+casetype _OPERATION_BODY (UINT32 Id, UINT16 MessageLength)
+{
+    switch (Id) {
+        case OP_CREATE_PROGRAM:
+            CREATE_PROGRAM_BODY(MessageLength)                  CreateProgram;
+        case OP_CREATE_MAP:
+            CREATE_MAP_BODY(MessageLength)                      CreateMap;
+        case OP_LOAD_CODE:
+            LOAD_CODE_BODY(MessageLength)                       LoadCode;
+        case OP_MAP_FIND_ELEMENT:
+            MAP_FIND_ELEMENT_BODY(MessageLength)                MapFindElement;
+        case OP_MAP_UPDATE_ELEMENT:
+            MAP_UPDATE_BODY(MessageLength)                      MapUpdate;
+        case OP_MAP_UPDATE_ELEMENT_WITH_HANDLE:
+            MAP_UPDATE_WITH_HANDLE_BODY(MessageLength)          MapUpdateWithHandle;
+        case OP_MAP_DELETE_ELEMENT:
+            MAP_DELETE_ELEMENT_BODY(MessageLength)              MapDeleteElement;
+        case OP_MAP_GET_NEXT_KEY:
+            MAP_GET_NEXT_KEY_BODY(MessageLength)                MapGetNextKey;
+        case OP_UPDATE_PINNING:
+            UPDATE_PINNING_BODY(MessageLength)                  UpdatePinning;
+        case OP_GET_PINNED_OBJECT:
+            GET_PINNED_OBJECT_BODY(MessageLength)               GetPinnedObject;
+        case OP_LINK_PROGRAM:
+            LINK_PROGRAM_BODY(MessageLength)                    LinkProgram;
+        case OP_UNLINK_PROGRAM:
+            UNLINK_PROGRAM_BODY(MessageLength)                  UnlinkProgram;
+        case OP_MAP_WRITE_DATA:
+            MAP_WRITE_DATA_BODY(MessageLength)                  MapWriteData;
+        case OP_LOAD_NATIVE_MODULE:
+            LOAD_NATIVE_MODULE_BODY(MessageLength)              LoadNativeModule;
+        case OP_PROGRAM_TEST_RUN:
+            PROGRAM_TEST_RUN_BODY(MessageLength)                ProgramTestRun;
+        case OP_MAP_UPDATE_ELEMENT_BATCH:
+            MAP_UPDATE_BODY(MessageLength)                      MapUpdateBatch;
+        case OP_MAP_DELETE_ELEMENT_BATCH:
+            MAP_DELETE_ELEMENT_BATCH_BODY(MessageLength)        MapDeleteElementBatch;
+        case OP_MAP_GET_NEXT_KEY_VALUE_BATCH:
+            MAP_GET_NEXT_KEY_VALUE_BATCH_BODY(MessageLength)    MapGetNextKeyValueBatch;
+        case OP_GET_NEXT_PINNED_OBJECT_PATH:
+            PINNED_OBJECT_PATH_BODY(MessageLength)              PinnedObjectPath;
+        default:
+            GENERIC_BODY(MessageLength)                         Generic;
+    }
+} OPERATION_BODY;
+
+
+// ============================================================================
+// Entry point
+// ============================================================================
+
+/*
+  Validates an eBPF IOCTL request message.
+
+  Arguments:
+    BufferLength: number of bytes available in the input buffer.
+
+  Generated function:
+    BOOLEAN EbpfProtocolCheckEbpfIoctlMessage(
+        uint32_t BufferLength, uint8_t *base, uint32_t len);
+*/
+entrypoint
+typedef struct _EBPF_IOCTL_MESSAGE (UINT32 BufferLength)
+{
+    // ebpf_operation_header_t.length
+    UINT16 Length { Length >= HEADER_SIZE && Length <= BufferLength };
+
+    // Padding between uint16_t length and 4-byte-aligned enum id
+    UINT8 HeaderPad[HEADER_PAD_SIZE];
+
+    // ebpf_operation_header_t.id (4-byte enum)
+    UINT32 Id { Id <= MAX_OPERATION_ID };
+
+    // Operation-specific body
+    OPERATION_BODY(Id, Length) Body;
+} EBPF_IOCTL_MESSAGE;
