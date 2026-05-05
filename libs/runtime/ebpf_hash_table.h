@@ -26,9 +26,9 @@ extern "C"
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_NONE = 0x0,     //< No notifications.
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE = 0x1, //< A key + value have been allocated.
         EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE = 0x2,     //< A key + value have been freed.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE = 0x4,      //< A key + value have been used.
-        EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALL = 0x7,      //< All notification types.
-    } ebpf_hash_table_notification_type_t;
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE = 0x4, //< A key + value are about to be freed.
+        EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE = 0x8,      //< A key + value have been used.
+    } _Enum_is_bitflag_ ebpf_hash_table_notification_type_t;
 
     typedef ebpf_result_t (*ebpf_hash_table_notification_function)(
         _Inout_ void* context,

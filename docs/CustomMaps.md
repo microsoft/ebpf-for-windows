@@ -68,7 +68,8 @@ typedef struct _ebpf_map_provider_dispatch_table {
     _Notnull_ ebpf_preprocess_map_associate_program_type_t preprocess_associate_program_type;
     ebpf_postprocess_map_find_element_t postprocess_map_find_element;
     ebpf_preprocess_map_element_addition_t preprocess_map_element_addition;
-    ebpf_preprocess_map_element_deletion_t preprocess_map_element_deletion;
+    ebpf_preprocess_map_element_deletion_t preprocess_map_element_deletion;   // Deprecated.
+    ebpf_postprocess_map_element_deletion_t postprocess_map_element_deletion; // Preferred.
 } ebpf_base_map_provider_dispatch_table_t;
 ```
 
@@ -79,8 +80,12 @@ needs to implement the dispatch table. The eBPF runtime invokes these functions 
 
 `preprocess_map_create`, `postprocess_map_delete`, and `preprocess_associate_program_type` are required to be non-NULL. If the
 extension sets `updates_original_value` to true, the CRUD callback fields (`postprocess_map_find_element`,
-`preprocess_map_element_addition`, `preprocess_map_element_deletion`) must also be non-NULL, otherwise eBPFCore will fail the
-map creation. If `updates_original_value` is false, these CRUD fields can be optionally NULL.
+`preprocess_map_element_addition`, and one of `preprocess_map_element_deletion` or `postprocess_map_element_deletion`)
+must also be non-NULL, otherwise eBPFCore will fail the map creation. If `updates_original_value` is false, these
+CRUD fields can be optionally NULL.
+
+A provider must set **exactly one** of `preprocess_map_element_deletion` (deprecated) or
+`postprocess_map_element_deletion` (preferred). Setting both is an error and will cause map creation to fail.
 
 ---
 
@@ -178,16 +183,40 @@ typedef ebpf_result_t (*ebpf_preprocess_map_element_addition_t)(
 
 ---
 
-#### `ebpf_preprocess_map_element_deletion_t` — Delete Element (optional)
+#### `ebpf_preprocess_map_element_deletion_t` — Delete Element, Deprecated (optional)
 
-Called *before* the entry is deleted from the base map. This allows the extension to perform cleanup (e.g., releasing
-kernel resources). The `flags` parameter indicates the context: `EBPF_MAP_OPERATION_UPDATE` if the delete is part of
-a replace operation, `EBPF_MAP_OPERATION_MAP_CLEANUP` if the map itself is being destroyed, and
-`EBPF_MAP_OPERATION_HELPER` if invoked from a BPF program. When `EBPF_MAP_OPERATION_UPDATE` or
+> **Deprecated.** Use `ebpf_postprocess_map_element_deletion_t` instead. This callback is retained for backward
+> compatibility with providers compiled against older SDK versions. New providers should use
+> `postprocess_map_element_deletion`.
+
+Called *before* the entry is deleted from the base map, under the per-bucket lock. This allows the extension to
+perform cleanup or reject the delete. The `flags` parameter indicates the context: `EBPF_MAP_OPERATION_UPDATE` if
+the delete is part of a replace operation, `EBPF_MAP_OPERATION_MAP_CLEANUP` if the map itself is being destroyed,
+and `EBPF_MAP_OPERATION_HELPER` if invoked from a BPF program. When `EBPF_MAP_OPERATION_UPDATE` or
 `EBPF_MAP_OPERATION_MAP_CLEANUP` is set, the provider must not fail the deletion.
 
 ```c
 typedef ebpf_result_t (*ebpf_preprocess_map_element_deletion_t)(
+    _In_ void* binding_context,
+    _In_ void* map_context,
+    size_t key_size,
+    _In_reads_opt_(key_size) const uint8_t* key,
+    size_t value_size,
+    _In_reads_(value_size) const uint8_t* value,
+    uint32_t flags);
+```
+
+---
+
+#### `ebpf_postprocess_map_element_deletion_t` — Delete Element, Preferred (optional)
+
+Called *after* the entry is deleted from the base map. This allows the extension to perform cleanup (e.g., releasing
+kernel resources). The `flags` parameter indicates the context: `EBPF_MAP_OPERATION_UPDATE` if the delete is part of
+a replace operation, `EBPF_MAP_OPERATION_MAP_CLEANUP` if the map itself is being destroyed, and
+`EBPF_MAP_OPERATION_HELPER` if invoked from a BPF program.
+
+```c
+typedef void (*ebpf_postprocess_map_element_deletion_t)(
     _In_ void* binding_context,
     _In_ void* map_context,
     size_t key_size,
@@ -432,6 +461,50 @@ used by eBPF core for implementing native maps.
    `update_entry_with_handle`, `update_entry_per_cpu`, ring buffer operations, or perf event array
    operations. Key enumeration and per-CPU handling are transparently managed by the base map
    implementation in eBPF core, and handle-based updates are not applicable to custom map extensions.
+
+## Concurrency and IRQL
+
+The update and delete callbacks (`preprocess_map_element_addition` and
+`preprocess_map_element_deletion`/`postprocess_map_element_deletion`) may be
+invoked concurrently from multiple threads. The eBPF runtime does **not** provide per-key serialization at the
+callback level. However, the underlying base map implementation (hash table) uses per-bucket locks that guarantee
+the following:
+
+- When an update replaces an existing value for a key, the delete callback for the displaced old value is invoked
+  **exactly once**. For example, if thread T1 updates key K from value V to V1, and thread T2 concurrently updates
+  key K to V2, the delete callback for V is invoked exactly once (by whichever thread's update displaces it).
+
+- For providers using `postprocess_map_element_deletion` (preferred): For **explicit delete** operations, the
+  delete callback is invoked after the entry has been removed from the hash table and after the per-bucket lock
+  has been released.
+
+- For providers using `preprocess_map_element_deletion` (deprecated): For **explicit delete** operations, the
+  delete callback is invoked *before* the entry is removed, while the per-bucket lock is held. This allows the
+  callback to reject the delete by returning a failure result.
+
+- For **update/replace** operations (where an existing value is displaced by a new value), the delete callback for
+  the old value is invoked **after** the per-bucket lock is released for both callback types.
+
+- Callbacks for keys in **different** buckets may execute concurrently without any serialization.
+
+Extension providers must ensure their callback implementations are safe for concurrent invocation. If the provider
+maintains per-key state (e.g., reference counts on kernel objects), it must use appropriate synchronization
+(spinlocks, interlocked operations, etc.) to protect that state.
+
+### IRQL Restrictions
+
+The IRQL at which callbacks are invoked depends on the caller:
+
+| Caller | IRQL | Flag |
+|--------|------|------|
+| User-mode API (e.g., `bpf_map_update_elem`) | PASSIVE_LEVEL | `EBPF_MAP_OPERATION_HELPER` **not** set |
+| BPF program helper | Up to DISPATCH_LEVEL | `EBPF_MAP_OPERATION_HELPER` set |
+| Map cleanup (map destruction) | PASSIVE_LEVEL | `EBPF_MAP_OPERATION_MAP_CLEANUP` set |
+
+**Note:** When `updates_original_value` is set to `true` in `ebpf_base_map_provider_properties_t`, the eBPF runtime
+blocks map CRUD operations from BPF programs. In this configuration, the update and delete callbacks are only invoked
+from user-mode callers at PASSIVE_LEVEL and will never be invoked at DISPATCH_LEVEL. Providers that set
+`updates_original_value` to `false` must ensure their callbacks are safe to execute at DISPATCH_LEVEL.
 
 ## Memory Management and RCU Semantics
 Since the base map is implemented in eBPFCore, it automatically uses epoch-based APIs for memory allocation.
