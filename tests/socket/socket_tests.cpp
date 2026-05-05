@@ -702,6 +702,7 @@ TEMPLATE_TEST_CASE(
          .tests{
              {
                  .description = "Context mutation at CONNECT_AUTHORIZATION is rejected",
+                 .expected_result = connection_test_result::block,
              },
          }});
 }
