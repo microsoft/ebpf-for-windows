@@ -684,6 +684,28 @@ TEMPLATE_TEST_CASE("connection_test_connect_authorization", "[sock_addr_tests]",
          }});
 }
 
+TEMPLATE_TEST_CASE(
+    "connection_test_connect_authorization_readonly_context", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_authorization_readonly_context",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_connect_authorization_readonly",
+               .programs{
+                   {(family == AF_INET) ? "mutate_connect_authorization4" : "mutate_connect_authorization6",
+                    (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                        : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}}}}},
+         .tests{
+             {
+                 .description = "Context mutation at CONNECT_AUTHORIZATION is rejected",
+             },
+         }});
+}
+
 // Bind policy basic functionality tests.
 TEMPLATE_TEST_CASE("bind_policy_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
