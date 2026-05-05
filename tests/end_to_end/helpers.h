@@ -489,6 +489,16 @@ _test_sample_hash_map_preprocess_delete_entry(
     _In_reads_(value_size) const uint8_t* value,
     uint32_t flags)
 {
+    // Allocate dummy memory to trigger fault injection if enabled.
+    if (!(flags & EBPF_MAP_OPERATION_UPDATE) && !(flags & EBPF_MAP_OPERATION_MAP_CLEANUP)) {
+        void* dummy_memory = ebpf_allocate_with_tag(16, EBPF_POOL_TAG_DEFAULT);
+        if (dummy_memory == NULL) {
+            return EBPF_OPERATION_NOT_SUPPORTED;
+        } else {
+            ebpf_free(dummy_memory);
+        }
+    }
+
     // Delegate to the void version and return EBPF_SUCCESS.
     _test_sample_hash_map_delete_entry(binding_context, map_context, key_size, key, value_size, value, flags);
     return EBPF_SUCCESS;
