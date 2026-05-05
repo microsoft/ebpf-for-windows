@@ -4924,7 +4924,7 @@ _map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) const void* d
 CATCH_NO_MEMORY_EBPF_RESULT
 
 static _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index);
+ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) noexcept;
 
 bool
 ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) NO_EXCEPT_TRY
@@ -5311,11 +5311,13 @@ CATCH_NO_MEMORY_EBPF_RESULT
 // addresses need to be provided.
 static _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index)
+    NO_EXCEPT_TRY
 {
     ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
     return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer_with_index(

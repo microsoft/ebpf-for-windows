@@ -167,6 +167,8 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     }
 
     // Release process reference if still held (user never called unmap).
+    // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
+#pragma warning(suppress : 6001)
     if (ring->user_process != NULL) {
         ObDereferenceObject(ring->user_process);
         ring->user_process = NULL;
