@@ -731,25 +731,22 @@ Done:
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
     if (hash_table->notification_callback &&
-        (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE)) {
+        ((hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE) ||
+         (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE))) {
+        ebpf_hash_table_notification_type_t type =
+            (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE)
+                ? EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE
+                : EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE;
         if (new_data && new_data_notified) {
             // Ignore return value from FREE notification during cleanup.
             (void)hash_table->notification_callback(
-                hash_table->notification_context,
-                operation_context,
-                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
-                key,
-                new_data);
+                hash_table->notification_context, operation_context, type, key, new_data);
         }
         if (old_data && !old_data_notified) {
             // Old data leaves the hash table due to an update/replace.
             // Ignore return value from FREE notification.
             (void)hash_table->notification_callback(
-                hash_table->notification_context,
-                operation_context,
-                EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE,
-                key,
-                old_data);
+                hash_table->notification_context, operation_context, type, key, old_data);
         }
     }
 
