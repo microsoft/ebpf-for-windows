@@ -91,7 +91,7 @@ typedef class _base_socket
      * @param[out] message Pointer to the received message buffer.
      */
     void
-    get_received_message(_Out_ uint32_t& message_size, _Outref_result_buffer_(message_size) char*& message);
+    get_received_message(_Out_ DWORD& message_size, _Outref_result_buffer_(message_size) char*& message);
 
     /**
      * @brief Get the actual error code from the bind operation.
@@ -120,8 +120,8 @@ typedef class _base_socket
     int protocol;
     uint16_t port;
     std::vector<char> recv_buffer;
-    uint32_t recv_flags;
-    uint32_t bytes_received = 0;
+    DWORD recv_flags;
+    DWORD bytes_received = 0;
     sockaddr_storage local_address;
     mutable int local_address_size;
     int _actual_bind_error{0};
@@ -151,6 +151,7 @@ typedef class _client_socket : public _base_socket
         socket_family_t family,
         _In_ const sockaddr_storage& source_address = {},
         int expected_bind_error = 0);
+    virtual ~_client_socket() noexcept;
     virtual void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port) = 0;
@@ -160,14 +161,15 @@ typedef class _client_socket : public _base_socket
     post_async_receive(bool error_expected = false);
     virtual void
     complete_async_receive(int timeout_in_ms, bool timeout_or_error_expected);
-    virtual void
-    cancel_send_message() = 0;
+    void
+    cancel_pending_io();
     void
     close();
 
   protected:
     WSAOVERLAPPED overlapped;
     bool receive_posted;
+    bool send_posted;
 } client_socket_t;
 
 /**
@@ -198,8 +200,6 @@ typedef class _datagram_client_socket : public _client_socket
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
-    void
-    cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
 
@@ -238,8 +238,6 @@ typedef class _stream_client_socket : public _client_socket
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
     void
-    cancel_send_message();
-    void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
 
   private:
@@ -277,7 +275,7 @@ typedef class _server_socket : public _base_socket
         uint16_t port,
         _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0);
-    ~_server_socket();
+    ~_server_socket() noexcept;
 
     /**
      * @brief Complete an asynchronous receive operation.
@@ -353,8 +351,12 @@ typedef class _server_socket : public _base_socket
     query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size) = 0;
 
   protected:
+    void
+    cancel_pending_io();
     WSAOVERLAPPED overlapped;
     LPFN_WSARECVMSG receive_message;
+    bool receive_posted = false;
+    bool send_posted = false;
 } receiver_socket_t;
 
 /**

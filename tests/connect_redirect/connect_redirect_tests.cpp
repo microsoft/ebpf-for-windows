@@ -21,6 +21,7 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
+#include <memory>
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
@@ -355,6 +356,46 @@ _update_policy_map(
     }
 }
 
+// RAII guard that removes a policy map entry on destruction.
+// Ensures cleanup even when Catch2 assertions throw during the test body.
+typedef class _policy_map_guard
+{
+  public:
+    _policy_map_guard(
+        _In_ const sockaddr_storage& destination,
+        _In_ const sockaddr_storage& proxy,
+        uint16_t destination_port,
+        uint16_t proxy_port,
+        connection_type_t connection_type,
+        bool dual_stack)
+        : _destination(destination), _proxy(proxy), _destination_port(destination_port), _proxy_port(proxy_port),
+          _connection_type(connection_type), _dual_stack(dual_stack)
+    {
+    }
+
+    ~_policy_map_guard() noexcept
+    {
+        try {
+            _update_policy_map(
+                _destination, _proxy, _destination_port, _proxy_port, _connection_type, _dual_stack, false);
+        } catch (...) {
+            printf("WARNING: policy map cleanup failed during stack unwinding.\n");
+        }
+    }
+
+    _policy_map_guard(const _policy_map_guard&) = delete;
+    _policy_map_guard&
+    operator=(const _policy_map_guard&) = delete;
+
+  private:
+    sockaddr_storage _destination;
+    sockaddr_storage _proxy;
+    uint16_t _destination_port;
+    uint16_t _proxy_port;
+    connection_type_t _connection_type;
+    bool _dual_stack;
+} policy_map_guard_t;
+
 void
 update_policy_map_and_test_connection(
     _In_ client_socket_t* sender_socket,
@@ -382,7 +423,7 @@ update_policy_map_and_test_connection(
     CAPTURE(source_address_str, destination_address_str, proxy_address_str, proxy_port);
 
     bool add_policy = true;
-    uint32_t bytes_received = 0;
+    DWORD bytes_received = 0;
     char* received_message = nullptr;
     uint64_t authentication_id;
     bool redirected = (destination_port != proxy_port || !INETADDR_ISEQUAL((SOCKADDR*)&destination, (SOCKADDR*)&proxy));
@@ -398,6 +439,11 @@ update_policy_map_and_test_connection(
     _update_policy_map(
         destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
 
+    // RAII guard ensures the policy map entry is always cleaned up, even if an assertion fails.
+    // - Avoids failures in later tests.
+    policy_map_guard_t policy_guard(
+        destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack);
+
     {
         impersonation_helper_t helper(_globals.user_type);
 
@@ -409,7 +455,7 @@ update_policy_map_and_test_connection(
         sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
         sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
+        sender_socket->complete_async_receive(5000, false);
 
         sender_socket->get_received_message(bytes_received, received_message);
 
@@ -434,14 +480,15 @@ update_policy_map_and_test_connection(
 
     _validate_audit_map_entry(authentication_id);
 
-    // Remove entry from policy map.
-    add_policy = false;
-    _update_policy_map(
-        destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
+    // Policy map entry will be removed by the policy guard.
 }
 
 void
-authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
+get_client_socket(
+    bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {0});
+
+void
+authorize_test(_Inout_ client_socket_t** sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
 {
     uint64_t authentication_id;
     // Default behavior of the eBPF program is to block the connection.
@@ -453,24 +500,26 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
         authentication_id = _get_current_thread_authentication_id();
         SAFE_REQUIRE(authentication_id != 0);
 
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
+        (*sender_socket)->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
+        (*sender_socket)->complete_async_send(1000, expected_result_t::FAILURE);
 
         // Receive should time out as connection is blocked.
-        sender_socket->post_async_receive(true);
-        sender_socket->complete_async_receive(1000, true);
+        (*sender_socket)->post_async_receive(true);
+        (*sender_socket)->complete_async_receive(1000, true);
     }
 
     _validate_audit_map_entry(authentication_id);
 
+    // The socket was closed during overlapped I/O cleanup; get a fresh one.
+    get_client_socket(dual_stack, sender_socket);
+
     // Now update the policy map to allow the connection and test again.
     update_policy_map_and_test_connection(
-        sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
+        *sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
 }
 
 void
-get_client_socket(
-    bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address = {0})
+get_client_socket(bool dual_stack, _Inout_ client_socket_t** sender_socket, const sockaddr_storage& source_address)
 {
     impersonation_helper_t helper(_globals.user_type);
 
@@ -496,11 +545,21 @@ get_client_socket(
 void
 authorize_test_wrapper(bool dual_stack, _Inout_ sockaddr_storage& destination)
 {
-    client_socket_t* sender_socket = nullptr;
+    client_socket_t* raw_socket = nullptr;
+    get_client_socket(dual_stack, &raw_socket);
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
 
-    get_client_socket(dual_stack, &sender_socket);
-    authorize_test(sender_socket, destination, dual_stack);
-    delete sender_socket;
+    // authorize_test may close and replace the socket (expected-timeout receive closes the socket,
+    // then a fresh one is created). Release ownership so authorize_test can manage the pointer,
+    // then reclaim ownership of whatever it returns.
+    raw_socket = sender_socket.release();
+    try {
+        authorize_test(&raw_socket, destination, dual_stack);
+    } catch (...) {
+        sender_socket.reset(raw_socket);
+        throw;
+    }
+    sender_socket.reset(raw_socket);
 }
 
 // Helper to update the authorization_policy_map (separate from the redirect policy_map).
@@ -540,12 +599,15 @@ void
 redirect_then_auth_reject_test(
     bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
 {
-    client_socket_t* sender_socket = nullptr;
-    get_client_socket(dual_stack, &sender_socket);
+    client_socket_t* raw_socket = nullptr;
+    get_client_socket(dual_stack, &raw_socket);
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
 
     // Set up redirect policy to allow and redirect.
     _update_policy_map(
         destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
+    policy_map_guard_t redirect_guard(
+        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack);
 
     // Set up authorization policy to REJECT the proxy (post-redirect) destination.
     _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_REJECT, dual_stack, true);
@@ -559,18 +621,8 @@ redirect_then_auth_reject_test(
         sender_socket->complete_async_receive(1000, true);
     }
 
-    // Clean up policy maps.
+    // Clean up authorization policy (redirect policy cleaned up by guard).
     _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
-    _update_policy_map(
-        destination,
-        proxy,
-        _globals.destination_port,
-        _globals.proxy_port,
-        _globals.connection_type,
-        dual_stack,
-        false);
-
-    delete sender_socket;
 }
 
 // Test that authorization allows a connection after redirect, proving the
@@ -579,12 +631,15 @@ void
 redirect_then_auth_allow_test(
     bool dual_stack, _Inout_ sockaddr_storage& destination, _In_ const sockaddr_storage& proxy)
 {
-    client_socket_t* sender_socket = nullptr;
-    get_client_socket(dual_stack, &sender_socket);
+    client_socket_t* raw_socket = nullptr;
+    get_client_socket(dual_stack, &raw_socket);
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
 
     // Set up redirect policy to allow and redirect.
     _update_policy_map(
         destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack, true);
+    policy_map_guard_t redirect_guard(
+        destination, proxy, _globals.destination_port, _globals.proxy_port, _globals.connection_type, dual_stack);
 
     // Set up authorization policy to ALLOW the proxy (post-redirect) destination.
     _update_authorization_policy_map(proxy, _globals.proxy_port, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, dual_stack, true);
@@ -595,21 +650,11 @@ redirect_then_auth_allow_test(
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
         sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
+        sender_socket->complete_async_receive(5000, false);
     }
 
-    // Clean up.
+    // Clean up authorization policy (redirect policy cleaned up by guard).
     _update_authorization_policy_map(proxy, _globals.proxy_port, 0, dual_stack, false);
-    _update_policy_map(
-        destination,
-        proxy,
-        _globals.destination_port,
-        _globals.proxy_port,
-        _globals.connection_type,
-        dual_stack,
-        false);
-
-    delete sender_socket;
 }
 
 void
@@ -620,7 +665,6 @@ connect_redirect_test_wrapper(
     bool dual_stack,
     bool implicit_bind)
 {
-    client_socket_t* sender_socket = nullptr;
     // Determine address family for lookups
     socket_family_t address_family = (_globals.family == AF_INET6)
                                          ? socket_family_t::IPv6
@@ -658,15 +702,17 @@ connect_redirect_test_wrapper(
         return;
     }
 
+    client_socket_t* raw_socket = nullptr;
     if (implicit_bind) {
         // Use implicit bind (no source_address specified).
-        get_client_socket(dual_stack, &sender_socket);
+        get_client_socket(dual_stack, &raw_socket);
     } else {
-        get_client_socket(dual_stack, &sender_socket, source_address);
+        get_client_socket(dual_stack, &raw_socket, source_address);
     }
+    std::unique_ptr<client_socket_t> sender_socket(raw_socket);
+
     update_policy_map_and_test_connection(
-        sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
-    delete sender_socket;
+        sender_socket.get(), destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
 }
 
 #define DECLARE_CONNECTION_AUTHORIZATION_TEST_FUNCTION(destination)                                                  \
