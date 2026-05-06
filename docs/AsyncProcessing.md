@@ -15,6 +15,7 @@
 - [Edge case and failure handling](#edge-case-and-failure-handling)
 - [Internal pend state tracking](#internal-pend-state-tracking)
 - [Multiple attached programs and PEND](#multiple-attached-programs-and-pend)
+- [Identity-aware programs (token / subject context)](#identity-aware-programs-token--subject-context)
 - [WFP implementation requirements](#wfp-implementation-requirements)
 - [Per-layer async design](#per-layer-async-design)
   - [AUTH_CONNECT / AUTH_RECV_ACCEPT](#auth_connect--auth_recv_accept)
@@ -1575,6 +1576,308 @@ is found ahead of them in the chain.
 > event identifying the skipped program(s) and the PEND-er. This is
 > the runtime backstop for diagnosing cases where attach-time detection
 > was not in place.
+
+## Identity-aware programs (token / subject context)
+
+Some hook consumers (e.g. AV-class network policy) need richer
+identity information than WFP exposes directly in the `classifyFn`
+metadata -- specifically a `PACCESS_TOKEN` (the dereferenced
+access-token object) and/or a fully captured `SECURITY_SUBJECT_CONTEXT`
+suitable for `SeAccessCheck`. Both of these are obtainable from
+WFP-supplied fields, but only at `PASSIVE_LEVEL`.
+
+This section describes how programs that need this richer identity
+data declare that need, how the extension defers them to `PASSIVE`
+when invoked from a `DISPATCH`-level `classifyFn`, and how the program
+is then re-invoked on a worker thread with the identity helpers now
+succeeding.
+
+> **Tracking issues:**
+> - #5231 -- parent issue (ALE identity / `SeAccessCheck` support).
+> - #5235 -- `bpf_get_access_token` helper (`PACCESS_TOKEN`).
+> - #5236 -- `bpf_get_subject_context` helper (`PSECURITY_SUBJECT_CONTEXT`).
+>
+> Implementation tracks against the requirements documented in those
+> issues.
+
+### Why DISPATCH classifyFn cannot resolve identity
+
+WFP exposes the originator's identity at all four ALE layers via
+three fields:
+
+| Metadata field | Type | What it is | DISPATCH-safe? |
+|----------------|------|------------|----------------|
+| `FWPS_METADATA_FIELD_TOKEN` | `UINT64` (HANDLE) | Kernel handle (`OBJ_KERNEL_HANDLE`) to the originator's access-token object, opened by ALE itself with `TOKEN_ALL_ACCESS`. The handle is cached in ALE's per-token cache and lives as long as the cached entry. | Capturing the value is safe. Resolving it via `ObReferenceObjectByHandle` to obtain a `PACCESS_TOKEN` is **not** -- `ObReferenceObjectByHandle` is `PASSIVE_LEVEL` only. |
+| `FWPS_METADATA_FIELD_PROCESS_ID` | `UINT64` | Originator's process ID. | Capturing the value is safe. `PsLookupProcessByProcessId` (needed to obtain a `PEPROCESS` for `SeCaptureSubjectContextEx`) is `PASSIVE_LEVEL` only. |
+| `FWPS_INCOMING_VALUE_ALE_USER_ID` | serialized `TOKEN_ACCESS_INFORMATION` blob | A point-in-time snapshot of token attributes (SIDs, groups, privileges, integrity, AppContainer, capabilities, AuthenticationId). | **Yes** -- the blob is non-paged and can be consumed at any IRQL. `SeAccessCheckFromState` accepts it directly. |
+
+For programs that only need attribute-level checks (SIDs, groups,
+integrity, AppContainer state), `FWPS_INCOMING_VALUE_ALE_USER_ID` is
+sufficient and no PASSIVE deferral is required. Programs that need
+the full `PACCESS_TOKEN` (e.g., for token-info classes not exposed in
+`TOKEN_ACCESS_INFORMATION`) or a captured `SECURITY_SUBJECT_CONTEXT`
+must run at `PASSIVE`.
+
+The two `DISPATCH`-level ALE layers (`AUTH_CONNECT_V4/V6`,
+`AUTH_RECV_ACCEPT_V4/V6`) are the only places where this matters. The
+two `PASSIVE`-level ALE layers (`AUTH_LISTEN_V4/V6`,
+`RESOURCE_ASSIGNMENT_V4/V6`) can resolve identity inline.
+`DATAGRAM_DATA` and `STREAM` already run their actual policy logic on
+a worker thread at `PASSIVE` (via ABSORB + reinject) and can resolve
+identity inline on that worker; identity is associated to the flow at
+the matching `AUTH_CONNECT` / `AUTH_RECV_ACCEPT` and propagated via
+flow context (`FwpsFlowAssociateContext`).
+
+### Design overview
+
+The end-to-end shape is:
+
+1. **Extension exposes identity helpers** (extension-specific, not
+   generic eBPF helpers). These return the requested identity object
+   (`PACCESS_TOKEN`, `PSECURITY_SUBJECT_CONTEXT`) or `NULL` if the
+   current invocation is at `DISPATCH` and the value has not been
+   pre-resolved.
+2. **Program calls a helper.** If the helper returns `NULL`, the
+   program returns a new verdict
+   `BPF_SOCK_ADDR_VERDICT_DEFER_TO_PASSIVE` (or per-hook equivalent).
+3. **Extension PENDs the WFP operation** using the existing
+   pend infrastructure (see [PEND flow](#pend-flow)), captures the
+   minimum state needed to resolve identity at `PASSIVE`
+   (token HANDLE, processId, copy of relevant `inFixedValues` /
+   `inMetaValues`).
+4. **Extension queues a threaded DPC pinned to the classifyFn CPU.**
+   The DPC fires after `classifyFn` has unwound, then escalates to
+   `PASSIVE` via the threaded-DPC worker. Same mechanism as the
+   COMPLETE flow ([COMPLETE flow](#complete-flow)).
+5. **Worker re-invokes the program** using the saved program context,
+   identical to the [CONTINUE flow](#continue-flow). The program does
+   not see a special "this is a re-invocation" bit -- it just runs.
+6. **Helpers now succeed.** On the re-invocation, the per-invocation
+   state has the resolved `PACCESS_TOKEN` / `PSECURITY_SUBJECT_CONTEXT`
+   pre-populated, and the helpers return the cached pointers.
+7. **Program runs to completion** at `PASSIVE`, returns a normal
+   verdict (PERMIT, BLOCK, or PEND for orchestrator interaction).
+8. **Extension drives the standard COMPLETE path** with the program's
+   final verdict.
+
+The PEND step in (3) is structurally identical to a program-initiated
+PEND -- the same map machinery, classify-fence, threaded-DPC pattern,
+and `FwpsCompleteOperation` race protection apply (see
+[PEND flow](#pend-flow)). The only difference is that the
+extension issues the PEND on the program's behalf, rather than the
+program calling `bpf_pend_operation()` explicitly.
+
+### Extension-specific helpers for identity
+
+These helpers are part of the netebpfext-defined helper set for ALE
+hooks (sock_addr et al.), not part of the generic eBPF helper namespace.
+They live in the same extension-helper table as `bpf_pend_operation()`
+and resolve their target via `ebpf_get_current_program_context()`.
+
+```c
+//
+// bpf_get_access_token
+//
+// Returns a PACCESS_TOKEN for the originator, or NULL if not available.
+//
+// Returns NULL if:
+//  - The current invocation is at DISPATCH_LEVEL and the extension has
+//    not yet pre-resolved the access token (typical first call from
+//    AUTH_CONNECT / AUTH_RECV_ACCEPT classifyFn).
+//  - The originator process has exited and PsLookupProcessByProcessId
+//    failed.
+//  - The token HANDLE in metadata was NULL (not all classifies have a
+//    token; e.g., system-initiated traffic).
+//
+// On success, the returned pointer is valid for the duration of the
+// program invocation only. The extension owns the underlying object
+// reference and releases it on COMPLETE.
+//
+PACCESS_TOKEN bpf_get_access_token(void);
+
+//
+// bpf_get_subject_context
+//
+// Returns a PSECURITY_SUBJECT_CONTEXT for the originator, or NULL if
+// not available.
+//
+// The captured subject context has Thread = NULL (no impersonation
+// thread is available from WFP fields). The primary token reflects
+// the originator process's primary token at the time of capture.
+//
+// Same NULL-return conditions and lifetime semantics as
+// bpf_get_access_token().
+//
+PSECURITY_SUBJECT_CONTEXT bpf_get_subject_context(void);
+```
+
+> **Verifier requirements.** Both helpers must be registered with
+> `EBPF_RETURN_TYPE_PTR_TO_OBJECT_OR_NULL` so the verifier requires
+> the program to NULL-check the return value before dereferencing.
+> The helper IDs are extension-specific and live in the
+> sock_addr / ALE helper namespace.
+
+A program that uses these helpers is statically detectable by the
+verifier (the helper IDs appear in the program's bytecode). At
+attach time the loader stamps the `MAY_DEFER_TO_PASSIVE` bit on the
+attach-params struct (alongside the existing `MAY_PEND` bit -- see
+[Detection of competing PEND-capable programs](#detection-of-competing-pend-capable-programs)).
+The extension uses this bit to decide whether to allocate per-classify
+identity-resolution state up front.
+
+### New verdict: defer to PASSIVE
+
+A new program return value signals "I need to run at PASSIVE":
+
+```c
+// In sock_addr (ALE_AUTH_CONNECT / ALE_AUTH_RECV_ACCEPT) verdict enum:
+#define BPF_SOCK_ADDR_VERDICT_DEFER_TO_PASSIVE  4   // existing values 0..3
+```
+
+The verdict is meaningful only when returned from a `DISPATCH`-level
+classifyFn invocation. If the program returns
+`DEFER_TO_PASSIVE` from a layer that is already `PASSIVE`
+(`AUTH_LISTEN`, `RESOURCE_ASSIGNMENT`, or any worker re-invocation),
+the extension treats it as a programming error: log and fail-closed
+with `BLOCK`.
+
+If the program returns `DEFER_TO_PASSIVE` again *after* a successful
+re-invocation at `PASSIVE` (i.e., the same flow defers twice), the
+extension also fails closed with `BLOCK` to prevent infinite-loop
+attacks. A flag on the saved program context tracks "this is a
+re-invocation" for this guard only -- the program itself does not see
+the flag.
+
+### Extension-side caching and re-invocation
+
+When the extension observes `BPF_SOCK_ADDR_VERDICT_DEFER_TO_PASSIVE`
+from a `DISPATCH` classifyFn, it performs the following inside the
+classify wrapper, before `classifyFn` returns:
+
+1. **Capture identity prerequisites.** Copy `metadata->token` (HANDLE)
+   and `metadata->processId` into the per-classify state. The HANDLE
+   is captured by value -- no `ObReferenceObjectByHandle` yet
+   (PASSIVE-only), but ALE's cached token entry keeps it valid across
+   the PEND.
+2. **Save program context** (same as CONTINUE flow -- the full
+   `net_ebpf_sock_addr_t` wrapper, see
+   [Saved state for continuation](#saved-state-for-continuation)).
+3. **Allocate a pend map entry** internally (extension-driven, no
+   `bpf_pend_operation()` call). The entry is marked
+   `pend_reason = DEFER_TO_PASSIVE` so subsequent diagnostics can
+   distinguish it from an orchestrator-driven pend.
+4. **Call `FwpsPendOperation` / `FwpsAcquireClassifyHandle`+`FwpsPendClassify`** per the per-layer rules.
+5. **Queue a threaded DPC** pinned to `KeGetCurrentProcessorNumberEx`
+   (the classifyFn CPU). The DPC's callback runs the resolution logic
+   below.
+6. Return `FWP_ACTION_BLOCK | FWP_CONDITION_FLAG_ABSORB` to WFP and
+   exit `classifyFn`.
+
+The threaded DPC runs at `PASSIVE` after the classifyFn CPU has
+unwound:
+
+7. **Resolve the access token:**
+   ```c
+   ObReferenceObjectByHandle(
+       (HANDLE)saved_token,
+       TOKEN_QUERY,
+       *SeTokenObjectType,
+       KernelMode,
+       (PVOID*)&accessToken,
+       NULL);
+   ```
+   On failure, mark the per-classify identity state as "unavailable"
+   and proceed -- helpers will return `NULL` again, the program will
+   either fail closed in its own logic or not call the helpers. A
+   failure here means the original process is fully gone (the cached
+   token entry that owned the HANDLE has been released).
+8. **Resolve the originator process and detect PID reuse:**
+   ```c
+   PsLookupProcessByProcessId((HANDLE)(ULONG_PTR)saved_pid, &process);
+   currentPrimary = PsReferencePrimaryToken(process);
+   match = (currentPrimary == accessToken);  // pointer compare
+   PsDereferencePrimaryToken(currentPrimary);
+   if (!match) {
+       // PID has been reused by a different process. Treat the
+       // originator as "gone" -- helpers return NULL.
+       ObDereferenceObject(process);
+       ObDereferenceObject(accessToken);
+       return;  // identity unavailable
+   }
+   ```
+   The token-pointer equality check is the source of truth for
+   "same originator". `PACCESS_TOKEN` is a unique kernel object
+   pointer; primary tokens are not shared across processes in normal
+   operation. See Edge cases below for the detection rationale.
+9. **Capture the subject context:**
+   ```c
+   SeCaptureSubjectContextEx(NULL, process, &subjectContext);
+   ```
+10. **Re-invoke the program** via the saved program context (CONTINUE
+    re-invocation path, see [CONTINUE flow](#continue-flow)). The
+    per-invocation state has the resolved identity pointers; helpers
+    return them on demand.
+11. **Drive COMPLETE** with the program's final verdict. Same path as
+    a normal orchestrator-driven COMPLETE
+    ([COMPLETE flow](#complete-flow)).
+
+> **Why threaded DPC and not a generic work item.** The threaded DPC
+> pinned to the classifyFn CPU is the same primitive that closes the
+> `FwpsCompleteOperation` race in the standard COMPLETE flow. Using
+> it here gives the same guarantee: the resolution work cannot begin
+> until `classifyFn` has fully unwound on the originating CPU. A
+> generic work item (`IoQueueWorkItem`) does not have CPU pinning and
+> could race with the still-running classifyFn on a different CPU.
+
+### Lifecycle and cleanup
+
+| Resource | Acquired | Released |
+|----------|----------|----------|
+| Token HANDLE (captured value) | Inside classifyFn (copy from `metadata->token`) | Implicit -- the HANDLE is owned by ALE's cached token entry; nothing for the extension to release |
+| `PACCESS_TOKEN` reference | Threaded DPC, via `ObReferenceObjectByHandle` | COMPLETE path, via `ObDereferenceObject` |
+| `PEPROCESS` reference | Threaded DPC, via `PsLookupProcessByProcessId` | COMPLETE path, via `ObDereferenceObject` |
+| `SECURITY_SUBJECT_CONTEXT` | Threaded DPC, via `SeCaptureSubjectContextEx` | COMPLETE path, via `SeReleaseSubjectContext` |
+| Pend map entry | classifyFn (extension-driven insert) | COMPLETE path (extension-driven delete) |
+| Saved program context | classifyFn (deep-copy of wrapper) | COMPLETE path (free) |
+
+If the program returns `PEND` after the `PASSIVE` re-invocation
+(orchestrator-driven async, e.g., user prompt), the resources stay
+referenced for the duration of the orchestrator round-trip. They are
+released only when the final COMPLETE drives `FwpsCompleteOperation`.
+If the orchestrator returns `CONTINUE` and the program is re-invoked
+again, the existing references continue to be valid -- no second
+resolution is performed.
+
+### Per-layer applicability
+
+| Layer | classifyFn IRQL | Identity helpers behavior |
+|-------|------------------|---------------------------|
+| `AUTH_CONNECT_V4/V6` | DISPATCH | First call returns `NULL`. Program returns `DEFER_TO_PASSIVE`. Extension PENDs, resolves at PASSIVE, re-invokes. |
+| `AUTH_RECV_ACCEPT_V4/V6` | DISPATCH | Same as `AUTH_CONNECT`. |
+| `AUTH_LISTEN_V4/V6` | PASSIVE | Helpers resolve inline on first call. No PEND for identity. |
+| `RESOURCE_ASSIGNMENT_V4/V6` | PASSIVE | Same as `AUTH_LISTEN`. |
+| `DATAGRAM_DATA_V4/V6` | DISPATCH (classify), PASSIVE (worker) | Identity is associated at the matching `AUTH_CONNECT` / `AUTH_RECV_ACCEPT` and propagated via `FwpsFlowAssociateContext`. The DATAGRAM_DATA program runs on a worker thread at PASSIVE (via ABSORB + reinject); helpers can resolve identity inline if needed, using flow-context-stashed handles. No additional PEND for identity is required. |
+| `STREAM_V4/V6` | DISPATCH (TBD) | Same model as DATAGRAM_DATA -- identity associated at flow setup, propagated via flow context. Detailed design pending. |
+
+> **Implication for `DATAGRAM_DATA` and `STREAM`.** Because these
+> layers already pay the cost of a worker thread for the actual
+> policy decision, identity helpers cost nothing extra. The
+> `DEFER_TO_PASSIVE` verdict is meaningless on these layers -- the
+> program is already running at PASSIVE on the worker.
+
+### Edge cases
+
+- **`PETHREAD` is not available from WFP fields.** `SeCaptureSubjectContextEx` is called with `Thread = NULL`. The captured context has the process's primary token but no thread-impersonation overlay. This matches the semantics WFP itself uses for ALE access checks. Programs that require thread-impersonation context cannot be supported by this design -- they must use a different mechanism (e.g., a user-mode policy daemon that calls `OpenThreadToken` in the originating process's thread context).
+- **Originator process exited before the worker runs.** `PsLookupProcessByProcessId` returns `STATUS_NOT_FOUND` (or similar). `bpf_get_subject_context` returns `NULL`. The program either fail-closes (the security-conservative choice for an AV-class consumer) or proceeds with attribute-only data from `FWPS_INCOMING_VALUE_ALE_USER_ID`.
+- **PID reuse: original process exited and a different process now holds the same PID.** This is the dangerous variant of "originator gone" because `PsLookupProcessByProcessId` succeeds with the *wrong* `PEPROCESS`. Detection is performed inside the helper resolution path: after `ObReferenceObjectByHandle` resolves the saved HANDLE to the *original* `PACCESS_TOKEN`, the resolution code calls `PsReferencePrimaryToken(process)` on the looked-up process and pointer-compares against the original token. A mismatch indicates PID reuse (or the rare case of a process re-impersonating its primary token, which is also an identity-context change). Both `process` and `originalToken` are released and the helpers return `NULL` -- same fail-closed semantics as "originator gone". Why this works:
+  - `PACCESS_TOKEN` is a unique kernel object pointer; ALE's token cache keeps the original token alive (refcounted) as long as any flow holds it. The same token object is never re-used for a different process.
+  - If the original process is fully gone *and* its cached token has been released by ALE, the saved HANDLE is closed and `ObReferenceObjectByHandle` cleanly fails -- also caught as "originator gone" before the PID lookup runs.
+  - No additional state needs to be captured at classify time beyond the HANDLE and PID we already capture.
+- **Token HANDLE is `NULL`.** Not all classifies have a token (e.g., raw system-initiated traffic without a primary token, kernel-only flows). Helpers return `NULL`; same fail-closed semantics. The PID-reuse check is skipped (no original token to compare against).
+- **Program returns `DEFER_TO_PASSIVE` from a PASSIVE layer.** Programming error. Extension logs and returns `BLOCK`. No re-invocation, no PEND.
+- **Program returns `DEFER_TO_PASSIVE` twice on the same flow.** Indicates either a buggy helper implementation (returned `NULL` even at PASSIVE) or a buggy program. Extension fails closed with `BLOCK` on the second occurrence to prevent infinite-loop attacks. The "this is a re-invocation" bit on the saved program context is the only piece of state needed for this guard.
+- **Re-invocation racing with consumer disconnect.** If the consumer drops its registration between PEND and re-invocation, the program may have nothing to do on the re-invocation. Existing CONTINUE-time consumer-gone handling applies; see [Failure flows](#failure-flows).
+- **Multiple programs in the chain, one needs identity.** PEND-as-deferral is treated as a PEND for chain-aggregation purposes (see [Multiple attached programs and PEND](#multiple-attached-programs-and-pend)) -- subsequent programs are not invoked. The aggregate verdict from prior programs is saved in the pend entry and combined with the deferring program's final verdict on COMPLETE. Only one program in the chain may use `DEFER_TO_PASSIVE` (same restriction as PEND).
 
 ## Per-layer async design
 
