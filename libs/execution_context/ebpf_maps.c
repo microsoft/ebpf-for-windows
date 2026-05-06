@@ -4754,8 +4754,7 @@ ebpf_custom_map_create(
         }
     }
 
-    bool pre_free_notification_supported =
-        (custom_map->provider_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE) != 0;
+    bool pre_free_notification_supported = custom_map->provider_dispatch->preprocess_map_update_element != NULL;
 
     // Create hash map.
     result = _ebpf_custom_map_create_hash_map(
