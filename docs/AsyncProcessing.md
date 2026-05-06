@@ -80,14 +80,14 @@ netebpfext itself.
 
 The design must support pend/complete at the following WFP layers:
 
-| Layer | WFP layer IDs | Async mechanism |
-|-------|---------------|-----------------|
-| Connect (outbound) | `FWPM_LAYER_ALE_AUTH_CONNECT_V4/V6` | `FwpsPendOperation` / `FwpsCompleteOperation` |
-| Accept (inbound) | `FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4/V6` | `FwpsPendOperation` / `FwpsCompleteOperation` |
-| Listen | `FWPM_LAYER_ALE_AUTH_LISTEN_V4/V6` | `FwpsPendOperation` / `FwpsCompleteOperation` |
-| Bind | `FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6` | `FwpsPendClassify` / `FwpsCompleteClassify` |
-| Datagram | `FWPM_LAYER_DATAGRAM_DATA_V4/V6` | ABSORB + reinject (no pend API) |
-| Stream | `FWPM_LAYER_STREAM_V4/V6` | DEFER (inbound) / OOB clone+reinject (outbound) |
+| Layer | WFP layer IDs | `classifyFn` IRQL | Async mechanism |
+|-------|---------------|-------------------|-----------------|
+| Connect (outbound) | `FWPM_LAYER_ALE_AUTH_CONNECT_V4/V6` | DISPATCH | `FwpsPendOperation` / `FwpsCompleteOperation` |
+| Accept (inbound) | `FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4/V6` | DISPATCH | `FwpsPendOperation` / `FwpsCompleteOperation` |
+| Listen | `FWPM_LAYER_ALE_AUTH_LISTEN_V4/V6` | PASSIVE | `FwpsPendOperation` / `FwpsCompleteOperation` |
+| Bind | `FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6` | PASSIVE | `FwpsPendClassify` / `FwpsCompleteClassify` |
+| Datagram | `FWPM_LAYER_DATAGRAM_DATA_V4/V6` | DISPATCH | ABSORB + reinject (no pend API) |
+| Stream | `FWPM_LAYER_STREAM_V4/V6` | DISPATCH | DEFER (inbound) / OOB clone+reinject (outbound) |
 
 Each layer requires different WFP async APIs and completion semantics.
 See [Per-layer async design](#per-layer-async-design) for details.
@@ -192,7 +192,7 @@ The pend map operates under the following concurrency contract:
 |---|---|---|
 | `preprocess_map_update_element` callback | `PASSIVE_LEVEL` | User-mode caller (orchestrator) only, because `updates_original_value=true` blocks BPF programs from CRUD. Runs under per-bucket spinlock; safe place to atomically validate + write the action field. |
 | `postprocess_map_delete_element` callback | `PASSIVE_LEVEL` | Same reason as above. Runs after the entry has been removed from the lookup table and the per-bucket lock has been released, but before the value memory is freed. The just-removed value is delivered by pointer; the callback must extract everything it needs (verdict, pointer to extension-owned tracking state) synchronously and queue the threaded DPC. |
-| `bpf_pend_operation()` helper / extension-synthesized COMPLETE path | Up to `DISPATCH_LEVEL` (depends on the WFP layer's `classifyFn` IRQL -- ALE/auth layers run at PASSIVE; STREAM, DATAGRAM_DATA, transport-layer classifyFns may run at DISPATCH) | Drives the new ebpfcore kernel-mode CRUD APIs to insert / update / delete entries. All primitives on this path (per-bucket spinlock, NonPagedPool allocation, `KeInsertQueueDpc`-equivalent for the threaded DPC) are DISPATCH-safe. |
+| `bpf_pend_operation()` helper / extension-synthesized COMPLETE path | Up to `DISPATCH_LEVEL` (depends on the WFP layer's `classifyFn` IRQL -- `AUTH_LISTEN` and `RESOURCE_ASSIGNMENT` run at PASSIVE; `AUTH_CONNECT`, `AUTH_RECV_ACCEPT`, `DATAGRAM_DATA`, and `STREAM` run at DISPATCH -- see [Supported WFP layers](#supported-wfp-layers)) | Drives the new ebpfcore kernel-mode CRUD APIs to insert / update / delete entries. All primitives on this path (per-bucket spinlock, NonPagedPool allocation, `KeInsertQueueDpc`-equivalent for the threaded DPC) are DISPATCH-safe. |
 | Threaded DPC (calls the WFP completion API, frees extension tracking state) | `PASSIVE_LEVEL` (threaded DPCs run on a real-time-priority worker thread, not in DPC dispatch context) | Matches the WFP completion API's required IRQL. |
 | CONTINUE work-item handler (re-invokes program, validates entry state first) | `PASSIVE_LEVEL` | Work items always run at PASSIVE on a worker thread. |
 
@@ -1361,25 +1361,39 @@ populated. No `VERDICT_RECEIVED` lifecycle state is needed.
 > **Scope of the proof at PASSIVE-level `classifyFn` layers:** The
 > race documented in the DDK sample is reproducible at DISPATCH
 > on inject-style layers; it has not been demonstrated at
-> PASSIVE-level `classifyFn` layers (TCP `ALE_AUTH_*`,
-> CONNECT_REDIRECT, etc.). The IRQL-ordering proof for the
-> threaded-DPC mitigation also does not transfer to PASSIVE -- a
-> threaded-DPC routine runs in a priority-31 worker thread that
-> can preempt the lower-priority `classifyFn` thread, so the
-> ordering guarantee that the proof relies on no longer holds.
-> In short, at PASSIVE layers neither the problem nor the
-> mitigation have been proven, because the WFP semantics that
-> drive the DDK race (refcounting on the auth context, reauth
-> scheduling, thread-keyed verdict storage) differ per layer.
-> When adopting a new PASSIVE-level layer, the design assumption
-> is to start from the same threaded-DPC default and analyze the
-> layer for whether (a) a race of this shape is actually
-> reachable, and (b) the threaded DPC is sufficient -- and to
-> swap in a different completion mechanism (system work item,
-> additional WFP reference held across pend->complete, etc.)
-> only if a layer-specific analysis or test surface a real issue.
+> PASSIVE-level `classifyFn` layers (in this design, the only
+> such layer is `ALE_AUTH_LISTEN` -- `RESOURCE_ASSIGNMENT` is
+> also PASSIVE but uses `FwpsPendClassify` rather than
+> `FwpsPendOperation` and is out of scope for this discussion).
+> The IRQL-ordering proof for the threaded-DPC mitigation also
+> does not transfer to PASSIVE -- a threaded-DPC routine runs in
+> a priority-31 worker thread that can preempt the lower-priority
+> `classifyFn` thread, so the ordering guarantee that the proof
+> relies on no longer holds. In short, at PASSIVE layers neither
+> the problem nor the mitigation have been proven, because the
+> WFP semantics that drive the DDK race (refcounting on the auth
+> context, reauth scheduling, thread-keyed verdict storage)
+> differ per layer. When adopting a new PASSIVE-level layer, the
+> design assumption is to start from the same threaded-DPC
+> default and analyze the layer for whether (a) a race of this
+> shape is actually reachable, and (b) the threaded DPC is
+> sufficient -- and to swap in a different completion mechanism
+> (system work item, additional WFP reference held across
+> pend->complete, etc.) only if a layer-specific analysis or
+> test surface a real issue.
 
 #### Best-effort fence at PASSIVE-level `classifyFn`
+
+This sub-design applies specifically to **`ALE_AUTH_LISTEN`** --
+the only WFP layer in this design where `classifyFn` runs at
+`PASSIVE_LEVEL` *and* uses `FwpsPendOperation` /
+`FwpsCompleteOperation`. (`RESOURCE_ASSIGNMENT` is also PASSIVE
+but uses `FwpsPendClassify` / `FwpsCompleteClassify`, which have
+different semantics, and is out of scope here. `AUTH_CONNECT`,
+`AUTH_RECV_ACCEPT`, `DATAGRAM_DATA`, and `STREAM` all run at
+DISPATCH and are closed by the threaded-DPC mechanism above.)
+The same fence pattern would apply to any future PASSIVE-level
+`FwpsPendOperation` layer.
 
 When `classifyFn` runs at `PASSIVE_LEVEL`, the IRQL barrier that
 makes the DISPATCH-level threaded-DPC mechanism correct is not
@@ -1455,20 +1469,25 @@ for the duration of the original `classifyFn`. If
 held, the refcount drops `2 -> 1` instead of `2 -> 0`, and the
 completion action does not fire until `classifyFn` returns.
 
-This race is closed for DISPATCH-level `classifyFn` paths by
-**always running `FwpsCompleteOperation()` from a threaded DPC
-targeted at the recorded `classifyfn_cpu`**. When `classifyFn` runs
-at `DISPATCH_LEVEL`, a threaded DPC queued on the same CPU cannot
-be picked off the per-CPU DPC queue until IRQL on that CPU drops
-below DISPATCH -- which only happens after `classifyFn` has
-returned to WFP and WFP's classify-side cleanup has released its
-reference. By the time the DPC runs, the refcount is exactly 1;
-`FwpsCompleteOperation()` drops it to 0 and the completion action
-fires inline on the DPC thread.
+This race is closed for DISPATCH-level `classifyFn` paths --
+which in this design covers **`AUTH_CONNECT`**, **`AUTH_RECV_ACCEPT`**,
+**`DATAGRAM_DATA`**, and **`STREAM`** (see
+[Supported WFP layers](#supported-wfp-layers) for the per-layer IRQL
+summary) -- by **always running `FwpsCompleteOperation()` from a
+threaded DPC targeted at the recorded `classifyfn_cpu`**. When
+`classifyFn` runs at `DISPATCH_LEVEL`, a threaded DPC queued on the
+same CPU cannot be picked off the per-CPU DPC queue until IRQL on
+that CPU drops below DISPATCH -- which only happens after
+`classifyFn` has returned to WFP and WFP's classify-side cleanup has
+released its reference. By the time the DPC runs, the refcount is
+exactly 1; `FwpsCompleteOperation()` drops it to 0 and the
+completion action fires inline on the DPC thread.
 
-See the "Scope of the proof at PASSIVE-level `classifyFn` layers"
-callout above for the validation requirement that applies when
-adopting a new PASSIVE-level layer.
+The residual concern applies only to **`AUTH_LISTEN`** (the sole
+PASSIVE-level `FwpsPendOperation` layer in this design). See the
+"Scope of the proof at PASSIVE-level `classifyFn` layers" callout
+above and the [best-effort fence](#best-effort-fence-at-passive-level-classifyfn)
+sub-design for the mitigation that applies to that layer.
 
 > **Implementation validation.** The IRQL-ordering property the
 > mitigation depends on -- a threaded DPC queued at a CPU cannot
@@ -1580,26 +1599,22 @@ implementation.
 > [`FwpsCompleteOperation`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/fwpsk/nf-fwpsk-fwpscompleteoperation0)
 > should be consulted alongside the sample during implementation.
 
-> **PASSIVE-level `classifyFn` -- residual race on COMPLETE.**
-> WFP delivers `ALE_AUTH_CONNECT` and `ALE_AUTH_RECV_ACCEPT` at
-> `PASSIVE_LEVEL` for the synchronous initial classify on the
-> calling user-mode thread (the typical case for TCP outbound
-> `connect()` and inbound accept). The threaded-DPC ordering
-> guarantee that closes
+> **DISPATCH-level `classifyFn`.** WFP delivers `ALE_AUTH_CONNECT`
+> and `ALE_AUTH_RECV_ACCEPT` at `DISPATCH_LEVEL` -- the WFP shim
+> raises IRQL to `DISPATCH_LEVEL` before invoking `classifyFn` and
+> lowers it on the way out. The cross-thread completion race
+> documented in
 > [Race B](#race-b-in-classifyfn-fwpscompleteoperation-drops-auth-context-refcount-2---1)
-> at DISPATCH does **not** apply at PASSIVE -- the threaded-DPC
-> worker thread can preempt the `classifyFn` thread.
->
-> The implementation must therefore use the
-> [best-effort signal-at-end fence](#best-effort-fence-at-passive-level-classifyfn)
-> on these layers: the classify wrapper signals a per-entry
-> `KEVENT` as its last statement before returning to WFP, and the
-> deferred completion path waits on that event before invoking
-> `FwpsCompleteOperation()`. This narrows but does not close the
-> race; correctness depends on WFP-internal guarantees that
-> cross-thread `FwpsCompleteOperation()` on a successfully-pended
-> op is safe during WFP's post-classify cleanup. Confirmation
-> from the WFP team is an open dependency for this design.
+> is therefore closed for these layers by the DISPATCH fence: the
+> threaded-DPC worker thread cannot preempt the `classifyFn`
+> thread until that CPU lowers IRQL by returning to WFP, so
+> `FwpsCompleteOperation()` queued from the threaded DPC on the
+> recorded `classifyfn_cpu` is guaranteed to run after WFP's
+> classify-side cleanup. **No best-effort signal-at-end fence is
+> required for `AUTH_CONNECT` or `AUTH_RECV_ACCEPT`.** The
+> PASSIVE-fence sub-design applies only to `ALE_AUTH_LISTEN` (see
+> the [Best-effort fence](#best-effort-fence-at-passive-level-classifyfn)
+> section).
 
 > **Per-protocol packet availability at ALE layers** (per the
 > [WFP layer requirements and restrictions](https://learn.microsoft.com/en-us/windows-hardware/drivers/network/wfp-layer-requirements-and-restrictions)):
@@ -2048,8 +2063,8 @@ The following changes to ebpfcore are required to support this design:
    PEND, the wrapper drives the synthesized COMPLETE path against
    that specific entry.
 5. **PASSIVE-level `classifyFn` fence** -- for layers WFP delivers
-   `classifyFn` at `PASSIVE_LEVEL` (e.g., TCP `ALE_AUTH_CONNECT` /
-   `ALE_AUTH_RECV_ACCEPT` initial classify), implement the per-entry
+   `classifyFn` at `PASSIVE_LEVEL` (in this design, `ALE_AUTH_LISTEN`),
+   implement the per-entry
    `KEVENT` signal-at-end fence on the classify wrapper and the
    matching wait in the deferred completion path. See
    [Best-effort fence at PASSIVE-level classifyFn](#best-effort-fence-at-passive-level-classifyfn).
