@@ -1127,6 +1127,127 @@ COMPLETE path against that specific entry. Lifetime matches the
 classifyFn call frame -- no per-CPU or per-thread tracking is needed,
 and the program is not required to return or stash the id anywhere.
 
+### 4. Orchestrator-controlled pend pause (e.g., modern standby)
+
+There are conditions under which the async orchestrator needs to
+temporarily disallow new pends and force-drain already-pended
+operations. The canonical example is Windows modern standby:
+when the system enters a low-power state in which the orchestrator
+is fully suspended, the orchestrator cannot issue COMPLETE for
+already-pended operations, and NDIS / WFP can wait indefinitely for
+the pended operations to be drained -- the canonical symptom is
+bugcheck `0x9F` (`DRIVER_POWER_STATE_FAILURE`). Other conditions
+that may need the same mechanism include in-place servicing and
+planned maintenance windows.
+
+For pend/complete-capable extensions, two mitigation patterns are
+available:
+
+**a) Pend control map.**
+A second extension-owned custom map type
+(`BPF_MAP_TYPE_NET_EBPF_EXT_PEND_CONTROL`, size 1, value =
+`{state, reserved}`) is written by the orchestrator to indicate
+"pends disabled" / "pends enabled". The state field is
+zero-initialized at map creation to `PEND_STATE_DISABLED` so the
+default is fail-closed: pends stay refused until the orchestrator
+explicitly writes `PEND_STATE_ENABLED` to affirm readiness (after
+filter registration, program attach, and any other init steps are
+complete). The extension hooks `preprocess_map_update_element` for
+that map type and:
+- On the `ENABLED -> DISABLED` transition, sets an internal flag
+  that causes `bpf_pend_operation()` to return failure to the
+  program (no new pends), and queues a threaded DPC that walks the
+  pend map and forces every entry to BLOCK via the existing
+  synthesized-COMPLETE drain primitive.
+- On the `DISABLED -> ENABLED` transition, clears the internal
+  flag.
+
+This pattern reuses the same custom-map provider infrastructure
+already used for the pend map (provider, update callback, drain
+DPC). It gives both halves of what is needed: refusing new pends
+*and* actively draining existing entries -- the latter is
+load-bearing for 9F immunity, since the orchestrator itself may not
+be in a position to issue COMPLETE once suspended.
+
+**Binding: singleton per extension instance.** The pend control map
+is implicitly bound to the netebpfext extension instance, not to
+any specific pend map. At most one
+`BPF_MAP_TYPE_NET_EBPF_EXT_PEND_CONTROL` map exists per loaded
+extension. The custom map provider rejects any attempt to create a
+second instance: subsequent `bpf_map_create` calls for this map type
+fail with `EBUSY` (or the netebpfext-equivalent error). The PEND
+helper consults "the" extension-scoped flag without parameterization
+on which pend map is in scope; on the `ENABLED -> DISABLED`
+transition, the drain DPC walks the (single) pend map that the
+extension instance manages. If a future scenario requires multiple
+pend-capable orchestrators with independent pend-pause lifecycles to
+coexist within a single extension, the design will grow to an
+explicit control-map-to-pend-map binding; for v1 the singleton
+model is sufficient and assumed throughout.
+
+**Helper failure when pends are disabled.** When the control map is
+present and its state is `PEND_STATE_DISABLED`,
+`bpf_pend_operation()` reports a failure return to the program with
+a distinct error code (e.g., `NET_EBPF_EXT_PEND_ERROR_DISABLED`) so
+the program can distinguish a pend-disabled refusal from other
+helper failures, emit appropriate telemetry, and apply its
+fail-safe verdict (typically BLOCK). The helper does not silently
+coerce the verdict or substitute a value for the program; it
+surfaces the condition explicitly so the program is in control of
+the resulting classify outcome.
+
+**Optional: opting out by not creating the control map.** Creating
+the pend control map is opt-in. An orchestrator that does not need
+pend-pause protection (test harnesses, kernel-mode-only clients,
+deployments where the relevant conditions are out of scope) simply
+omits the control map entirely. With no control map present,
+`bpf_pend_operation()` skips the flag check and proceeds normally
+-- it never fails a PEND on pend-disabled grounds when the control
+map is absent -- and the drain DPC is never armed. Stale entries
+fall back to the mechanisms in
+[Edge case 1](#1-stale-pended-operations-complete-never-arrives).
+The presence of the control map (detected by the custom map
+provider's instance count) is the single switch that enables the
+flag check + drain DPC behavior; absence is the default-off state.
+
+**b) Best-effort shared-array-map polling (fallback).**
+If the additional custom map type is judged too expensive in the
+short term, the orchestrator can write a flag to a plain
+`BPF_MAP_TYPE_ARRAY` (size 1) and the eBPF program can read it at
+the start of every classify, returning a non-PEND verdict
+(typically BLOCK) when the flag is set. Drain of already-pended
+entries is then orchestrator-driven from user mode: enumerate the
+pend map, write BLOCK to each entry's action field, then
+`bpf_map_delete_elem` to trigger the existing
+`postprocess_map_delete_element` synthesized-COMPLETE path.
+
+The tradeoffs of (b) versus (a) are:
+
+- **Non-zero race window for new pends.** The eBPF program reads
+  the array map; the orchestrator writes it. There is no
+  cross-context fence, so between the orchestrator writing the flag
+  and the program observing it, an arbitrary number of new
+  classifies can complete pends.
+- **No kernel-side fail-safe drain.** Drain is orchestrator-driven.
+  If the orchestrator is suspended without its suspend callback
+  firing to completion (forced suspend, hang, OOM kill), the
+  pend map is not drained and the 9F remains reachable.
+- **No atomic flag application.** The flag write and read are
+  ordered only by general memory consistency.
+
+Pattern (a) actually closes the 9F surface: the helper refuses new
+pends synchronously and the kernel-side drain DPC runs regardless
+of orchestrator state. Pattern (b) is significantly lower-cost (no
+new custom map type, no extension-side flag/drain plumbing) but
+leaves the underlying problem unresolved -- the race window is
+non-zero and drain depends on the orchestrator's suspend callback
+running to completion. In practice (b) may shrink the exposure
+enough that the issue is hard to hit, but cannot guarantee its
+absence. It is up to each orchestrator to weigh engineering cost
+against residual risk. Pattern (a) can be added incrementally on
+top of (b) later if measurement shows the residual rate is
+unacceptable; the two are not mutually exclusive design directions.
+
 ## Internal pend state tracking
 
 The edge cases above require netebpfext to track per-entry WFP
@@ -1842,6 +1963,12 @@ The following changes to ebpfcore are required to support this design:
      interprets it as "operation absorbed and held until the
      orchestrator issues a COMPLETE." The corresponding WFP outcome
      is layer-specific (see [Per-layer async design](#per-layer-async-design)).
+   - *(Optional, pattern (a) only)* Add
+     `BPF_MAP_TYPE_NET_EBPF_EXT_PEND_CONTROL` to `ebpf_map_type_t`
+     for the pend control map mechanism described in
+     [Edge case 4](#4-orchestrator-controlled-pend-pause-eg-modern-standby).
+     If the orchestrator chooses pattern (b) (best-effort shared
+     array map), this enum value is not required.
 2. **Custom map operation callbacks** *(extends existing user-mode and BPF-program-driven CRUD with new kernel-mode CRUD entry points)*
    - **User-mode and BPF-program-driven callbacks (existing
      dispatch-table machinery, no new wiring):** The custom map
