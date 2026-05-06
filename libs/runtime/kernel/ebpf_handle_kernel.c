@@ -115,7 +115,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) ebpf_result_t ebpf_reference_base_object_by_h
     FILE_OBJECT* file_object = NULL;
     ebpf_base_object_t* local_object;
 
-    status = ObReferenceObjectByHandle((HANDLE)handle, 0, NULL, UserMode, &file_object, NULL);
+    status = ObReferenceObjectByHandle((HANDLE)handle, 0, *IoFileObjectType, UserMode, &file_object, NULL);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ObReferenceObjectByHandle, status);
         return_value = EBPF_INVALID_OBJECT;
