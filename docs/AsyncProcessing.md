@@ -185,11 +185,6 @@ so the threaded DPC can complete the WFP operation and free the
 tracking state after the bpf value has already been freed by
 ebpfcore.
 
-This provides a data communication mechanism between netebpfext (which
-implements pend/complete semantics via the layer-specific WFP async APIs)
-and the async orchestrator (which reacts to the pend
-and issues a verdict once finished).
-
 > **Note:** This design requires several ebpfcore changes: a new
 > custom map type enum, **kernel-mode CRUD APIs** for custom map
 > operations (user-mode and BPF-program-driven CRUD via the existing
@@ -484,13 +479,6 @@ return BPF_SOCK_ADDR_VERDICT_PEND;  // New verdict added by this proposal -- see
        extension returns the appropriate WFP action to absorb the
        operation (e.g., `FWP_ACTION_BLOCK | FWPS_CLASSIFY_OUT_FLAG_ABSORB`).
 
-> **Race protection: COMPLETE before pend API.**
-> Because `FwpsPendOperation()` runs synchronously inside the
-> `pend()` helper -- *before* the helper returns the opaque key to
-> the program -- the orchestrator can only learn the key after WFP
-> has accepted the pend. The "COMPLETE arrives before pend API was
-> called" race is therefore structurally impossible.
-
 ```mermaid
 sequenceDiagram
     participant tcpip as tcpip.sys
@@ -777,15 +765,6 @@ struct {
      returns PEND. The entry remains in the pend map. netebpfext
      detects the re-invocation context and does **not** call the WFP
      pend API again.
-
-> **Note:** On CONTINUE re-invocation, the program must **not** call
-> `bpf_pend_operation()` again -- the existing pend map
-> entry is still valid. netebpfext also must not call the WFP pend
-> API again, since the WFP operation is already pended
-> (`FwpsPendOperation` cannot be called during reauthorization, and
-> the operation is still pended from the original call). The
-> re-invocation context (no live `classifyFn`) is what tells
-> netebpfext to skip the WFP pend API.
 
 #### Continuation map cleanup
 
@@ -1598,12 +1577,6 @@ access-token object) and/or a fully captured `SECURITY_SUBJECT_CONTEXT`
 suitable for `SeAccessCheck`. Both of these are obtainable from
 WFP-supplied fields, but only at `PASSIVE_LEVEL`.
 
-This section describes how programs that need this richer identity
-data declare that need, how the extension defers them to `PASSIVE`
-when invoked from a `DISPATCH`-level `classifyFn`, and how the program
-is then re-invoked on a worker thread with the identity helpers now
-succeeding.
-
 > **Tracking issue:** #5235 -- `bpf_get_identity` helper
 > (`PACCESS_TOKEN` + `PSECURITY_SUBJECT_CONTEXT`, `DEFER_TO_PASSIVE`
 > verdict, two-phase resolution).
@@ -1947,6 +1920,8 @@ release routine runs over the extension state.
 
 <a id="no-leak-invariants"></a>
 ### No-leak invariants (pend-entry path)
+
+Every reference acquired on the identity-resolution path has exactly
 one matching release on every code path. The acquisition / release
 pairing is structured so that no failure path can leak.
 
@@ -2264,7 +2239,6 @@ These are bounded design decisions, not open architectural questions:
 
 ## Per-layer async design
 
-The pend/complete mechanism uses different WFP async APIs at each layer.
 The core map infrastructure, CONTINUE flow, and edge-case handling are
 shared; this section covers the layer-specific differences.
 
@@ -2571,8 +2545,7 @@ needed for that flow.
 
 ## Async orchestrator integration guide
 
-This section describes what an async orchestrator needs to implement to use the
-pend/complete feature. The pend/complete mechanism in netebpfext is
+The pend/complete mechanism in netebpfext is
 **orchestrator-agnostic** -- it provides the WFP lifecycle management, map
 infrastructure, and extension helpers. The async orchestrator is responsible for:
 1. Delivering pend notifications to the decision-maker
@@ -2612,15 +2585,10 @@ value to decide whether to proceed with PEND or fall back).
 
 The COMPLETE path is driven by the orchestrator via standard eBPF map
 APIs -- see [COMPLETE flow](#complete-flow) and
-[Edge case and failure handling](#edge-case-and-failure-handling) for
-details. Stale-entry cleanup is layered: the orchestrator is expected
-to drive the primary, faster-tripping cleanup paths (timer, disconnect
-handling, program-unload drain, restart recovery), and netebpfext
-provides a slower kernel-side watchdog as the correctness backstop
-(see [Edge case 1, layer (e)](#1-stale-pended-operations-complete-never-arrives)).
-The orchestrator should still ensure no pend map entries are left
-behind on any exit path; the extension watchdog is the safety net,
-not the primary cleanup path.
+[Edge case and failure handling](#edge-case-and-failure-handling).
+Stale-entry cleanup responsibilities (orchestrator-driven primary
+paths + netebpfext watchdog backstop) are detailed in
+[Edge case 1](#1-stale-pended-operations-complete-never-arrives).
 
 ### Minimal integration checklist
 
