@@ -135,14 +135,20 @@ Two distinct paths invoke the extension's callbacks:
    callbacks. (Lookups go through `postprocess_map_find_element`.)
    `bpf_map_update_elem` covers both insert and replace semantics.
    These callbacks run **synchronously** on the calling thread.
-   Serialization across concurrent callers on the same key is
-   provided by the hash table's **per-bucket spinlock**, not a per-map
-   lock: `preprocess_map_update_element` fires while the bucket lock
-   is held (so it can validate and reject invalid action transitions
-   atomically), and `postprocess_map_delete_element` fires after the
-   entry has been removed from the lookup table and after the bucket
-   lock is released, but *before* the value memory is freed -- the
-   just-removed value is passed to the callback by pointer.
+   The hash table's **per-bucket spinlock** is acquired around the
+   actual lookup/insert/replace/delete operation on that bucket --
+   this guarantees **per-value atomicity** (readers never observe a
+   torn value) and **single-winner-delete** (exactly one caller wins
+   a concurrent delete on the same key, so exactly one
+   `postprocess_map_delete_element` fires per entry). The
+   `preprocess_map_update_element` callback runs **outside** the
+   per-bucket lock (before the lock is acquired), so it cannot be
+   used to atomically validate-and-mutate against concurrent
+   modifications to the same key. `postprocess_map_delete_element`
+   fires after the entry has been removed from the lookup table and
+   after the bucket lock is released, but *before* the value memory
+   is freed -- the just-removed value is passed to the callback by
+   pointer.
    This path uses **existing** custom map provider machinery.
 2. **Extension-initiated kernel-mode CRUD from the `pend()` helper
    and from the threaded DPC.** Insertion of a new pend entry, the
@@ -174,8 +180,22 @@ practical consequences are that (a) all dispatch-table callbacks
 are invoked at `PASSIVE_LEVEL` (no DISPATCH callers), and (b) the
 program's only interaction with the map is through `pend()` plus
 extension-internal kernel-mode CRUD. Per-entry state transitions
-are owned by the extension and validated atomically inside
-`preprocess_map_update_element` under the bucket lock. The
+are owned by the extension. Because `preprocess_map_update_element`
+runs outside the per-bucket lock, the state machine cannot rely on
+validate-then-mutate atomicity inside that callback; instead the
+design relies on **single-logical-writer-per-entry** -- for any
+given pend entry, there is at most one writer in flight at a time.
+The kernel-side writers (initial PENDING insert, post-pend tracking
+update, threaded DPC delete, watchdog/drain delete) and the
+user-mode writer (orchestrator COMPLETE/CONTINUE) do not write
+concurrently against the same entry under normal operation. The
+only legitimate overlap window is **kernel-side force-drain racing
+the orchestrator's COMPLETE**; both possible orderings are
+semantically correct because the kernel-side force-drain's intended
+verdict is BLOCK (the conservative outcome) -- whichever writer
+wins the single-winner-delete is acceptable. Atomicity at the hash
+level is provided by the per-bucket lock (no torn values; no two
+`postprocess_map_delete_element` callbacks for the same entry). The
 extension's per-pend tracking state (recorded `classifyFn` CPU,
 WFP completion context, layer-specific reinject parameters) lives
 in NonPagedPool memory the extension allocates at `pend()` time
@@ -198,23 +218,26 @@ The pend map operates under the following concurrency contract:
 
 | Site | IRQL | Notes |
 |---|---|---|
-| `preprocess_map_update_element` callback | `PASSIVE_LEVEL` | User-mode caller (orchestrator) only, because `updates_original_value=true` blocks BPF programs from CRUD. Runs under per-bucket spinlock; safe place to atomically validate + write the action field. |
-| `postprocess_map_delete_element` callback | `PASSIVE_LEVEL` | Same reason as above. Runs after the entry has been removed from the lookup table and the per-bucket lock has been released, but before the value memory is freed. The just-removed value is delivered by pointer; the callback must extract everything it needs (verdict, pointer to extension-owned tracking state) synchronously and queue the threaded DPC. |
+| `preprocess_map_update_element` callback | `PASSIVE_LEVEL` | User-mode caller (orchestrator) only, because `updates_original_value=true` blocks BPF programs from CRUD. Runs **outside** the per-bucket lock (before the lock is acquired), so it cannot atomically validate-and-mutate against concurrent same-key modifications -- the design relies on single-logical-writer-per-entry instead (see prose above). The actual hash insert/replace happens under the bucket lock and is per-value atomic. |
+| `postprocess_map_delete_element` callback | `PASSIVE_LEVEL` | Same reason as above. Runs after the entry has been removed from the lookup table and the per-bucket lock has been released, but before the value memory is freed. The bucket lock guarantees single-winner-delete: exactly one caller wins a concurrent delete on the same key, so exactly one postprocess callback fires per entry. The just-removed value is delivered by pointer; the callback must extract everything it needs (verdict, pointer to extension-owned tracking state) synchronously and queue the threaded DPC. |
 | `bpf_pend_operation()` helper / extension-synthesized COMPLETE path | Up to `DISPATCH_LEVEL` (depends on the WFP layer's `classifyFn` IRQL -- `AUTH_LISTEN` and `RESOURCE_ASSIGNMENT` run at PASSIVE; `AUTH_CONNECT`, `AUTH_RECV_ACCEPT`, `DATAGRAM_DATA`, and `STREAM` run at DISPATCH -- see [Supported WFP layers](#supported-wfp-layers)) | Drives the new ebpfcore kernel-mode CRUD APIs to insert / update / delete entries. All primitives on this path (per-bucket spinlock, NonPagedPool allocation, `KeInsertQueueDpc`-equivalent for the threaded DPC) are DISPATCH-safe. |
 | Threaded DPC (calls the WFP completion API, frees extension tracking state) | `PASSIVE_LEVEL` (threaded DPCs run on a real-time-priority worker thread, not in DPC dispatch context) | Matches the WFP completion API's required IRQL. |
 | CONTINUE work-item handler (re-invokes program, validates entry state first) | `PASSIVE_LEVEL` | Work items always run at PASSIVE on a worker thread. |
 
-Same-key serialization is provided by the per-bucket spinlock --
-two concurrent operations on the same `pend_key` cannot both pass
-through `preprocess_map_update_element` and `delete_elem`'s atomic
-remove at the same time, so action-field state-machine transitions
-are atomic. The extension does not maintain a separate per-map
-lock; instead, it relies on (1) per-bucket lock-protected
-validation of the action transition inside
-`preprocess_map_update_element`, and (2) the per-bucket lock-
-protected single-winner property of `delete_elem` (exactly one
-caller wins the delete, exactly one `postprocess_map_delete_element`
-fires per entry, exactly one threaded DPC is queued).
+The per-bucket spinlock provides **per-value atomicity** (readers
+never observe a torn value mid-write) and the
+**single-winner-delete** invariant (concurrent deletes against the
+same key serialize through the bucket lock; exactly one wins,
+exactly one `postprocess_map_delete_element` fires, exactly one
+threaded DPC is queued). It does **not** provide
+validate-then-mutate atomicity inside
+`preprocess_map_update_element`, which runs outside the lock.
+Same-key write ordering instead depends on the
+single-logical-writer-per-entry design rule documented above; the
+only legitimate concurrent-write overlap (kernel-side force-drain
+vs user-mode COMPLETE) is safe because both orderings yield the
+same conservative outcome. The extension does not maintain a
+separate per-map lock.
 
 ### Extension helper functions
 
@@ -286,6 +309,15 @@ a payload that may have been produced against a different version.
 > consumer continues to receive v1-shaped keys and values --
 > identical to what it would receive from a v1 extension.
 
+This safety property is bidirectional: an older extension paired
+with a newer consumer is also safe -- the older extension only
+emits/consumes its own known fields, and the newer consumer treats
+anything beyond the older `header.size` as defaults. In either
+direction nothing breaks; new functionality simply does not engage.
+It is the deployment's responsibility to keep the two components
+updated in lockstep when actual new functionality needs to be
+exercised.
+
 ```c
 // Map key -- opaque to callers. "Opaque" here means that the eBPF
 // program and the user-mode async orchestrator treat the key as a
@@ -296,19 +328,17 @@ a payload that may have been produced against a different version.
 //
 // Layout note: the map key is hashed by raw bytes, so any compiler-inserted
 // padding between fields would participate in the hash. To make layout
-// deterministic across compilers/toolchains we (a) include an explicit
-// `reserved` field where padding would otherwise sit and (b) require a
-// compile-time size assertion so any future field addition that perturbs
-// layout is a build break, not a silent hash-collision bug. Callers must
-// also zero-initialize the struct (e.g. `= {}`) before populating fields,
-// which the C standard guarantees zeroes the explicit reserved bytes too.
+// deterministic across compilers/toolchains the struct is declared with
+// `#pragma pack(push, 1)` -- this eliminates inter-field padding entirely so
+// future field additions or reorderings cannot silently introduce
+// layout-dependent hash collisions. Callers should still zero-initialize
+// the struct (e.g. `= {}`) before populating fields.
+#pragma pack(push, 1)
 typedef struct _net_ebpf_ext_pend_key {
     ebpf_extension_header_t header;     // Version/size header for forward compatibility (4 bytes)
-    uint32_t reserved;                  // Explicit padding -- must be zero (set by zero-init)
     uint64_t pend_id;                   // Monotonic counter generated by the extension
 } net_ebpf_ext_pend_key_t;
-C_ASSERT(sizeof(net_ebpf_ext_pend_key_t) ==
-         sizeof(ebpf_extension_header_t) + sizeof(uint32_t) + sizeof(uint64_t));
+#pragma pack(pop)
 ```
 
 #### Map value
@@ -391,12 +421,14 @@ struct {
     __type(value, my_pend_map_value_t);
     __uint(max_entries, 1024);  // Illustrative value only. Absolute cap is UINT32_MAX
                                 // (max_entries is a uint32_t in the map definition).
-                                // Hash-backed maps allocate entries on demand -- only
-                                // the map header is allocated up front -- so a generous
-                                // value imposes no upfront memory cost. The final value
-                                // (and whether it should be tunable) is to be determined
-                                // during implementation based on the worst-case concurrent
-                                // pend count for the orchestrator's workload.
+                                // For hash-backed maps, the bucket array is allocated
+                                // up front (sized from `max_entries`), while individual
+                                // entries are allocated on demand. `max_entries` should
+                                // be sized to the expected concurrent pend count for the
+                                // orchestrator's workload -- not to UINT32_MAX -- to keep
+                                // the bucket array cost reasonable. The final value (and
+                                // whether it should be tunable) is to be determined
+                                // during implementation.
 } pend_map SEC(".maps");
 
 // ... in program logic:
@@ -698,11 +730,13 @@ struct {
     __type(value, my_continuation_state_t);
     __uint(max_entries, 1024);          // Illustrative value only. Absolute cap is
                                         // UINT32_MAX (max_entries is a uint32_t).
-                                        // Hash-backed map allocates entries on demand.
-                                        // Final value to be determined during
-                                        // implementation; should comfortably exceed the
-                                        // worst-case concurrent pend count so LRU does
-                                        // not evict in-flight entries under normal load.
+                                        // For hash-backed maps, the bucket array is
+                                        // allocated up front (sized from `max_entries`)
+                                        // while entries are allocated on demand. Final
+                                        // value to be determined during implementation;
+                                        // should comfortably exceed the worst-case
+                                        // concurrent pend count so LRU does not evict
+                                        // in-flight entries under normal load.
                                         // See "Continuation map cleanup" below for the
                                         // LRU edge case.
 } continuation_map SEC(".maps");
@@ -718,10 +752,10 @@ struct {
    (re-invocation cannot happen inline because the eBPF program may
    perform map operations on the pend map -- including the
    verdict-store `bpf_map_update_elem` + `bpf_map_delete_elem` pair
-   that drives synthesized COMPLETE -- and those would deadlock
-   trying to re-acquire the same per-bucket lock that
-   `preprocess_map_update_element` is currently holding for this
-   key). The pend map entry remains -- no delete, no completion.
+   that drives synthesized COMPLETE -- and re-entering the map CRUD
+   path inline from inside the action-handling thread would risk
+   re-entrancy against the in-flight write that just delivered the
+   CONTINUE action). The pend map entry remains -- no delete, no completion.
    The action is reset to `PENDING`.
 3. The work item fires on a worker thread (PASSIVE_LEVEL). Before
    re-invoking the program, the work item **re-validates** that the
@@ -2548,9 +2582,10 @@ The following changes to ebpfcore are required to support this design:
      These APIs do not exist today and must be added.
      They must route through the same dispatch-table callbacks as
      the user-mode and BPF-helper paths (so all state transitions
-     remain observable by the provider) and must integrate with the
-     same per-bucket lock so concurrent operations on the same key
-     are serialized identically regardless of caller. Required for:
+     remain observable by the provider) and must use the same
+     per-bucket lock for the actual lookup/insert/replace/delete
+     (preserving per-value atomicity and single-winner-delete)
+     regardless of caller. Required for:
      inserting entries with full pend context populated (in the
      `pend()` helper handler, after a successful WFP pend API call),
      reading entries (in COMPLETE and CONTINUE processing), and
