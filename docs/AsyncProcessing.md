@@ -1536,6 +1536,15 @@ Programs after the PEND program never run for that operation. This is
 consistent with the existing early-exit model -- the PEND program
 effectively claims the final decision for the operation.
 
+> **`DEFER_TO_PASSIVE` follows the identical pattern.** A program
+> returning `DEFER_TO_PASSIVE` (from `bpf_get_identity()` use) is
+> chain-terminating in the same way as `PEND`: programs N+1..M are
+> not invoked, the aggregate from programs 1..N-1 is saved, and only
+> the deferring program is re-invoked at PASSIVE. Its final verdict
+> is combined with the saved aggregate using the standard
+> max-priority logic. See
+> [Identity-aware programs](#identity-aware-programs-token--subject-context).
+
 ### Detection of competing PEND-capable programs
 
 Because netebpfext appends new clients to the tail of the program chain
@@ -1650,40 +1659,6 @@ and `FwpsCompleteOperation` race protection apply (see
 extension issues the PEND on the program's behalf, rather than the
 program calling `bpf_pend_operation()` explicitly.
 
-```mermaid
-sequenceDiagram
-    participant tcpip as tcpip.sys
-    participant ebpfext as netebpfext.sys
-    participant bpfprog as eBPF Program
-
-    Note over ebpfext: classifyFn entered at DISPATCH_LEVEL
-    tcpip->>ebpfext: classifyFn (DISPATCH)
-    ebpfext->>bpfprog: Invoke program (DISPATCH)
-    bpfprog->>ebpfext: bpf_get_identity(&info)
-    ebpfext->>bpfprog: rc = -EAGAIN<br/>(not yet resolved)
-    bpfprog->>ebpfext: DEFER_TO_PASSIVE
-
-    ebpfext->>ebpfext: Capture saved_token,<br/>saved_pid; allocate pend<br/>entry (DEFER_TO_PASSIVE)
-    ebpfext->>tcpip: FwpsPendOperation /<br/>FwpsPendClassify
-    ebpfext->>ebpfext: Queue threaded DPC<br/>pinned to current CPU
-    ebpfext->>tcpip: Return ABSORB
-
-    Note over ebpfext: classifyFn unwinds; threaded<br/>DPC fires at PASSIVE on same CPU
-    ebpfext->>ebpfext: ObReferenceObjectByHandle<br/>(saved_token)<br/>PsLookupProcessByProcessId<br/>(saved_pid)<br/>Token-pointer compare<br/>(detect PID reuse)<br/>SeCaptureSubjectContextEx<br/>(set resolution_errno = 0)
-
-    ebpfext->>bpfprog: Re-invoke program<br/>(PASSIVE, via CONTINUE)
-    bpfprog->>ebpfext: bpf_get_identity(&info)
-    ebpfext->>bpfprog: rc = 0<br/>info.access_token,<br/>info.subject_context valid
-    bpfprog->>ebpfext: PERMIT / BLOCK
-    ebpfext->>tcpip: FwpsCompleteOperation
-```
-
-The diagram shows only the happy-path identity-resolution flow.
-Failure paths (`-ENOENT` from the helper after the re-invocation,
-anti-loop guard on a second `DEFER_TO_PASSIVE`) follow
-the same shape but skip the relevant resolution steps -- see
-[Edge cases](#edge-cases) for details.
-
 ### Extension-specific helper for identity
 
 Defined in the netebpfext ALE (sock_addr et al.) helper namespace,
@@ -1716,24 +1691,15 @@ typedef struct _bpf_identity_info {
 int bpf_get_identity(_Out_ bpf_identity_info_t *info, uint32_t size);
 ```
 
-Status comes via the int return (canonical BPF channel -- mirrors
-`bpf_perf_event_read_value`); the struct holds only data, with a
-`size` parameter for forward-compat. Pointers are returned as
-`uint64_t` rather than typed pointers, matching
-`bpf_get_current_task()`'s u64 convention -- the verifier has no
-`PTR_TO_ACCESS_TOKEN` type. The subject context is captured with
-`Thread = NULL` (no impersonation thread is available from WFP
-fields -- matches WFP's own ALE access-check semantics).
-
-Whether a program uses this helper is statically detectable from the
-bytecode. Because returning `DEFER_TO_PASSIVE` has the same
-chain-aggregation semantics as `bpf_pend_operation()` (the deferring
-program acts as a PEND from the chain's perspective; only one
-PEND-capable program is permitted in the chain), use of
-`bpf_get_identity` causes the loader to stamp the existing
-`MAY_PEND` bit on the attach-params struct -- no separate
-identity-specific bit is needed. See
-[Detection of competing PEND-capable programs](#detection-of-competing-pend-capable-programs).
+Status comes via the int return; the struct holds only data, with a
+`size` parameter for forward-compat. The subject context is captured
+with `Thread = NULL` -- WFP does not surface a `PETHREAD` for the
+originator, so the captured context has the process's primary token
+but no thread-impersonation overlay (matches WFP's own ALE
+access-check semantics). Programs needing thread-impersonation
+context cannot use this design and must use a different mechanism
+(e.g., a user-mode policy daemon calling `OpenThreadToken` in the
+originator's thread context).
 
 ### New verdict: defer to PASSIVE
 
@@ -1748,6 +1714,39 @@ from a re-invocation, the extension fails closed with `BLOCK`
 (programming error / anti-loop guard). A re-invocation flag on the
 saved program context drives the latter; the program itself never
 sees it.
+
+Returning `DEFER_TO_PASSIVE` has the same chain-aggregation
+semantics as `bpf_pend_operation()`: the deferring program acts as a
+PEND from the chain's perspective, and only one PEND-capable program
+is permitted in the chain. The user-mode loader for a program that
+uses `bpf_get_identity()` therefore sets the existing `MAY_PEND`
+attach flag at `bpf_link_create` time -- same mechanism as for
+`bpf_pend_operation()`, no identity-specific bit is needed. See
+[Detection of competing PEND-capable programs](#detection-of-competing-pend-capable-programs).
+
+netebpfext treats `DEFER_TO_PASSIVE` as a chain-terminating verdict,
+identical to `PEND`: programs after the deferring program in the
+chain are not invoked, the aggregate verdict from prior programs is
+saved in the pend entry, and on PASSIVE re-invocation only the
+deferring program runs (its final verdict is then combined with the
+saved aggregate using the standard max-priority logic). See
+[Multiple attached programs and PEND](#multiple-attached-programs-and-pend).
+
+> **Anti-loop guards.** The `-EAGAIN` / `DEFER_TO_PASSIVE` round-trip
+> exists only to lift identity resolution from `DISPATCH` to
+> `PASSIVE`. Two paired guards prevent a runaway loop:
+>
+> 1. **Helper:** `bpf_get_identity()` MUST NOT return `-EAGAIN` when
+>    invoked at `PASSIVE` (re-invoked program, or direct invocation
+>    from a `PASSIVE` layer such as `AUTH_LISTEN` /
+>    `RESOURCE_ASSIGNMENT`). At `PASSIVE` the helper resolves
+>    inline and returns `0` or `-ENOENT`.
+> 2. **Verdict:** If the program returns `DEFER_TO_PASSIVE` while
+>    already at `PASSIVE` (programming error, or a second defer on a
+>    re-invocation), the extension MUST NOT re-invoke the program.
+>    The extension fails closed with `BLOCK` and drives the standard
+>    COMPLETE path. A re-invocation flag on the saved program context
+>    drives the latter check; the program itself never sees it.
 
 ### Extension-side caching and re-invocation
 
@@ -1975,11 +1974,23 @@ Per-acquisition argument:
 <a id="race-windows-and-mitigations"></a>
 ### Race windows and mitigations
 
-The two-phase (DISPATCH classify -> PASSIVE DPC -> PASSIVE re-invoke)
-flow opens a window between when the WFP-supplied HANDLE / PID are
-captured and when we resolve them into refcounted kernel objects.
-The following enumerates each race window in that gap and how it is
-handled.
+**Setup.** When a program returns `DEFER_TO_PASSIVE`, netebpfext does
+not have the resolved kernel objects yet -- it only has two cheap,
+weakly-typed identifiers WFP gave it at classify time: a HANDLE
+(token handle) and a PID. The actual `PACCESS_TOKEN` and subject
+context are resolved later, on a worker thread (the threaded DPC
+running at `PASSIVE`).
+
+**Risk.** Between "classifyFn captured HANDLE+PID" and "DPC resolves
+them," the originator's state can change: the process can exit, the
+PID can be reused by a different process, the token HANDLE can be
+closed, or the HANDLE slot can be reused for a different object.
+Naively trusting the captured HANDLE+PID could surface the *wrong*
+identity to the program -- a security bug. The table below
+enumerates each race window in that gap and how it is handled; in
+every case the program either gets the correct identity or a clean
+`-ENOENT` "identity unavailable" signal -- never stale or wrong
+identity.
 
 | # | Window | Concrete failure | Mitigation |
 |---|--------|------------------|------------|
@@ -2007,6 +2018,50 @@ R6: a `PACCESS_TOKEN` is a unique kernel-object pointer and primary
 tokens are not shared across processes in normal operation, so
 equality is a sufficient identity check.
 
+**DEFER_TO_PASSIVE flow sequence diagram**
+
+```mermaid
+sequenceDiagram
+    participant tcpip as tcpip.sys
+    participant ebpfext as netebpfext.sys
+    participant bpfprog as eBPF Program
+
+    Note over ebpfext: classifyFn entered at DISPATCH_LEVEL
+    tcpip->>ebpfext: classifyFn (DISPATCH)
+    ebpfext->>bpfprog: Invoke program (DISPATCH)
+    bpfprog->>ebpfext: bpf_get_identity(&info)
+    ebpfext->>bpfprog: rc = -EAGAIN<br/>(not yet resolved)
+
+    Note over bpfprog: Program checks: does the<br/>current decision actually<br/>require identity?
+    Note over bpfprog: If NO -> process inline with<br/>available fields, return<br/>PERMIT/BLOCK without defer.
+    Note over bpfprog: If YES -> defer:
+
+    bpfprog->>ebpfext: DEFER_TO_PASSIVE
+
+    ebpfext->>ebpfext: Capture saved_token,<br/>saved_pid; allocate pend<br/>entry (DEFER_TO_PASSIVE)
+    ebpfext->>tcpip: FwpsPendOperation /<br/>FwpsPendClassify
+    ebpfext->>ebpfext: Queue threaded DPC<br/>pinned to current CPU
+    ebpfext->>tcpip: Return ABSORB
+
+    Note over ebpfext: classifyFn unwinds; threaded<br/>DPC fires at PASSIVE on same CPU
+    ebpfext->>ebpfext: ObReferenceObjectByHandle<br/>(saved_token)<br/>PsLookupProcessByProcessId<br/>(saved_pid)<br/>Token-pointer compare<br/>(detect PID reuse)<br/>SeCaptureSubjectContextEx<br/>(set resolution_errno = 0)
+
+    ebpfext->>bpfprog: Re-invoke program<br/>(PASSIVE, via CONTINUE)
+    bpfprog->>ebpfext: bpf_get_identity(&info)
+    ebpfext->>bpfprog: rc = 0<br/>info.access_token,<br/>info.subject_context valid
+    bpfprog->>ebpfext: PERMIT / BLOCK
+    ebpfext->>tcpip: FwpsCompleteOperation
+```
+
+The diagram shows the defer path. The non-defer fast path (helper
+returns `-EAGAIN` but the program's current decision does not
+require identity) skips everything from `DEFER_TO_PASSIVE` onward
+and returns `PERMIT` / `BLOCK` directly to `tcpip` from the initial
+DISPATCH invocation. Failure paths (`-ENOENT` from the helper after
+re-invocation, anti-loop guard on a second `DEFER_TO_PASSIVE`)
+follow the defer path's shape but skip the relevant resolution
+steps.
+
 <a id="per-layer-applicability"></a>
 ### Per-layer applicability
 
@@ -2016,8 +2071,8 @@ equality is a sufficient identity check.
 | `AUTH_RECV_ACCEPT_V4/V6` | DISPATCH | Same as `AUTH_CONNECT`. |
 | `AUTH_LISTEN_V4/V6` | PASSIVE | Helpers resolve inline. No PEND for identity. |
 | `RESOURCE_ASSIGNMENT_V4/V6` | PASSIVE | Same as `AUTH_LISTEN`. |
-| `DATAGRAM_DATA_V4/V6` | DISPATCH (classify), PASSIVE (worker) | Worker re-invocation already runs at PASSIVE; identity is propagated from the matching `AUTH_*` via flow context. See [DATAGRAM_DATA / STREAM identity propagation](#datagram_data--stream-identity-propagation) for the full design (per-flow blob, AUTH_* DPC publish, `flowDeleteFn` release, race analysis). |
-| `STREAM_V4/V6` | DISPATCH (TBD) | Same model as `DATAGRAM_DATA`. Detailed design pending. |
+| `DATAGRAM_DATA_V4/V6` | DISPATCH (classify), PASSIVE (worker) | Worker re-invocation already runs at PASSIVE; identity must be **propagated from the matching `AUTH_*` layer** via flow context (re-resolution at the data-path is impossible -- the WFP `TOKEN` HANDLE / `PROCESS_ID` metadata fields are populated only at ALE `AUTH_*`). See [DATAGRAM_DATA / STREAM identity propagation](#datagram_data--stream-identity-propagation) for the deferred design note. |
+| `STREAM_V4/V6` | DISPATCH | Same model as `DATAGRAM_DATA`. Detailed design pending. |
 
 `DEFER_TO_PASSIVE` is meaningless on `DATAGRAM_DATA` / `STREAM` --
 the program already runs at PASSIVE on the worker.
@@ -2025,217 +2080,53 @@ the program already runs at PASSIVE on the worker.
 <a id="datagram_data--stream-identity-propagation"></a>
 #### DATAGRAM_DATA / STREAM identity propagation
 
-The per-layer table above relies on identity being **propagated from
-the matching `AUTH_*` layer** to the `DATAGRAM_DATA` / `STREAM`
-worker via WFP flow context, rather than re-resolved per packet /
-per stream chunk. Re-resolution is impossible anyway -- the WFP
-metadata fields (`TOKEN` HANDLE, `PROCESS_ID`) are populated only at
-the ALE `AUTH_*` layers, not at the data-path layers.
+> **Status:** deferred. The `DATAGRAM_DATA` and `STREAM` layers are
+> not yet implemented in netebpfext; the detailed propagation design
+> is deferred until those layers are added.
 
-The propagation design extends the AUTH_* DPC and adds a flow-delete
-callback. The AUTH_*-layer design above remains self-contained --
-nothing in it depends on this propagation; this section adds the
-plumbing required when an identity-aware program is also attached
-to `DATAGRAM_DATA` or `STREAM` for the same flow.
+**Constraint.** The WFP `TOKEN` HANDLE / `PROCESS_ID` metadata
+fields are populated only at the ALE `AUTH_*` layers, not at
+`DATAGRAM_DATA` / `STREAM`. Identity therefore cannot be re-resolved
+per packet / per stream chunk; it must be **captured at the matching
+`AUTH_*` layer and propagated** to the data-path worker via WFP flow
+context.
 
-**Model.** Independent refcounts. The AUTH_* PEND entry holds its
-own refs (released on the AUTH_* COMPLETE / teardown -- see
-[No-leak invariants](#no-leak-invariants)). The per-flow blob holds
-a **second, independent** set of refs (released by the flow-delete
-callback). Acquiring two refs separately -- rather than "transferring
-ownership" -- means the two lifecycles are decoupled and either can
-fail / tear down without affecting the other.
+**Required mechanism (to be specified when DATAGRAM_DATA / STREAM
+land).** netebpfext must expose a way to:
 
-**Per-flow blob shape:**
+1. **SET** a per-flow context at the `AUTH_*` layer (carrying the
+   resolved `PACCESS_TOKEN` + subject context, plus any other
+   per-flow state a future feature needs), associated with the WFP
+   flow handle via `FwpsFlowAssociateContext0` (or equivalent), with
+   a registered `flowDeleteFn` that releases the captured refs when
+   WFP tears down the flow.
+2. **GET** the per-flow context at the `DATAGRAM_DATA` / `STREAM`
+   worker (e.g., from `bpf_get_identity()`'s PASSIVE path) via
+   `FwpsGetFlowContext0` (or equivalent), surfacing `0` + populated
+   identity when a context exists or `-ENOENT` when no AUTH_* phase
+   captured one.
 
-```c
-typedef struct _flow_identity {
-    PACCESS_TOKEN              flow_access_token;          // ObReferenceObject'd
-    SECURITY_SUBJECT_CONTEXT   flow_subject_context;       // SeCaptureSubjectContextEx'd
-    BOOLEAN                    flow_subject_context_captured;  // gates SeReleaseSubjectContext
-} FLOW_IDENTITY;
-```
+The contract for the helper / consumer surface should follow the
+same shape as the AUTH_*-layer design above: refs are owned by
+netebpfext, lifetime is the flow's lifetime (released by
+`flowDeleteFn`), and `bpf_get_identity()` returns either valid
+identity or `-ENOENT`.
 
-The blob is the per-flow attachment point for any extension context
-that needs to outlive a single classifyFn / worker invocation and
-follow the flow through its lifetime. Identity is the first
-consumer; if a future feature needs additional per-flow state, it is
-added to this same blob (renamed accordingly, e.g., `FLOW_CONTEXT`)
-rather than spinning up a parallel `FwpsFlowAssociateContext0` slot.
-The single blob amortizes the allocation, the publish/release
-plumbing, the `flowDeleteFn` registration, and the race analysis
-below across all per-flow context.
+> **Implementation note (refcounts).** The flow-context blob must
+> hold its **own, independent** refs on the `PACCESS_TOKEN` /
+> subject context -- a second `ObReferenceObject` and a second
+> `SeCaptureSubjectContextEx` taken in the AUTH_* DPC alongside the
+> ones acquired for the pend entry, **not** a transfer of ownership
+> from the pend entry. This decouples the two lifecycles: the
+> AUTH_* pend entry releases its refs on COMPLETE / teardown
+> (potentially long before the flow ends), while the flow blob's
+> refs live until `flowDeleteFn` fires. Either side can fail or
+> tear down without affecting the other.
 
-##### AUTH_* DPC additions (extend step 9)
-
-Where the existing step 9 captures `captured_subject_context` for
-the pend entry, the extended flow does the following while the
-`PEPROCESS` is still referenced:
-
-1. Capture subject context for the pend entry (existing step 9).
-2. **`ObReferenceObject(resolved_access_token)`** -- adds a second
-   independent refcount to the same TOKEN object, intended for the
-   flow blob.
-3. **`SeCaptureSubjectContextEx(NULL, process, &flow_subject_context)`**
-   -- a second independent capture of the subject context (its
-   own internal token refs).
-4. Release the `PEPROCESS` (existing step 9).
-5. Allocate the `FLOW_IDENTITY` blob, populate it, and stash the
-   pointer in the pend-entry extension state for now (we cannot call
-   `FwpsFlowAssociateContext0` from a DPC -- it must be called from
-   a classifyFn).
-
-`SeCaptureSubjectContextEx` failure on either capture is handled
-the same way: release any refs already acquired (including the
-extra `ObReferenceObject` if step 2 succeeded but step 3 failed),
-set `resolution_errno = -ENOENT`, fall through to re-invoke. The
-flow blob is not allocated and propagation is skipped for this
-flow -- DATAGRAM_DATA workers will see `-ENOENT` and decide their
-own fallback.
-
-##### AUTH_* re-invocation: publish to flow context
-
-After the AUTH_* program returns its final verdict (PERMIT) and
-**before** driving COMPLETE, the classify wrapper calls:
-
-```c
-FWPS_FLOW_CONTEXT0 ctx = { .context = (UINT64)(ULONG_PTR)flow_identity };
-nts = FwpsFlowAssociateContext0(metadata->flowHandle,
-                                layerId, calloutId, (UINT64)ctx);
-if (!NT_SUCCESS(nts)) {
-    // Flow already torn down, duplicate context, etc. Release the
-    // flow-blob refs (see flow_identity_release below) and proceed
-    // without propagation. The pend-entry refs remain valid.
-    flow_identity_release(flow_identity);
-    flow_identity = NULL;
-}
-```
-
-Successful association transfers ownership of the blob (and the refs
-it owns) from the pend entry to WFP's flow-context table.The pend-entry release
-routine then sees `flow_identity == NULL` and skips the
-flow-blob-specific release path. The pend entry's own refs
-(`resolved_access_token`, `captured_subject_context`) are released
-on COMPLETE as before -- they are independent.
-
-Propagation is skipped on BLOCK verdicts (no flow will be
-established) and on `-ENOENT` paths (no identity to propagate).
-
-##### DATAGRAM_DATA / STREAM worker: read flow context
-
-At the worker (PASSIVE), `bpf_get_identity()` resolves identity by
-looking up the per-flow blob:
-
-```c
-nts = FwpsGetFlowContext0(metadata->flowHandle, calloutId, &raw);
-if (!NT_SUCCESS(nts) || raw == 0) {
-    return -ENOENT;
-}
-FLOW_IDENTITY *fi = (FLOW_IDENTITY *)(ULONG_PTR)raw;
-info->access_token    = (uint64_t)(ULONG_PTR)fi->flow_access_token;
-info->subject_context = (uint64_t)(ULONG_PTR)&fi->flow_subject_context;
-return 0;
-```
-
-`-EAGAIN` / DEFER_TO_PASSIVE is meaningless on the data-path worker
-(it already runs at PASSIVE) -- the helper either returns `0` with
-the flow-stashed identity or `-ENOENT`. No PEND for identity.
-
-Reads are non-mutating: no refcount bump per read, no need for
-locking, multiple worker invocations on the same flow share the
-blob safely.
-
-##### Flow-delete callback: release flow-blob refs
-
-The extension registers a `flowDeleteFn` for any callout that may
-attach a `FLOW_IDENTITY` blob. WFP fires this at PASSIVE after all
-in-flight classifies / workers for the flow have unwound:
-
-```c
-void flow_delete_fn(UINT16 layerId, UINT32 calloutId,
-                    UINT64 flowContext)
-{
-    FLOW_IDENTITY *fi = (FLOW_IDENTITY *)(ULONG_PTR)flowContext;
-    flow_identity_release(fi);
-}
-
-void flow_identity_release(FLOW_IDENTITY *fi)
-{
-    if (fi == NULL) return;
-    if (fi->flow_subject_context_captured) {
-        SeReleaseSubjectContext(&fi->flow_subject_context);
-    }
-    if (fi->flow_access_token != NULL) {
-        ObDereferenceObject(fi->flow_access_token);
-    }
-    ExFreePoolWithTag(fi, FLOW_IDENTITY_TAG);
-}
-```
-
-Same null-safe / `subject_context_captured`-gated pattern as the
-pend-entry release routine.
-
-##### No-leak invariants (flow-context path)
-
-Mirrors the pend-entry no-leak argument:
-
-- The flow-blob refs are acquired only in the AUTH_* DPC, only when
-  the corresponding pend-entry capture also succeeds (so the same
-  `PEPROCESS` is in scope).
-- Failure between the two captures (e.g., the second
-  `SeCaptureSubjectContextEx` fails) releases anything already
-  acquired inline before falling through to re-invoke.
-- After successful DPC capture, the blob is owned by the pend
-  entry until either (a) `FwpsFlowAssociateContext0` succeeds
-  (ownership transfers to WFP's flow context table; flow-delete
-  callback releases) or (b) the AUTH_* PEND is torn down before
-  publication (pend-entry release routine releases the blob via
-  `flow_identity_release`).
-- `FwpsFlowAssociateContext0` failure releases the blob inline; no
-  leak.
-- After successful publication, exactly one of `flowDeleteFn` or
-  the WFP-driven flow context cleanup releases the blob. WFP
-  guarantees `flowDeleteFn` is called for every successfully
-  associated context, including on adapter / driver unload.
-
-##### Race windows (flow-context path)
-
-| # | Window | Mitigation |
-|---|--------|------------|
-| F1 | Flow tears down between AUTH_* DPC and AUTH_* re-invocation publish | `FwpsFlowAssociateContext0` returns failure; blob released inline. DATAGRAM_DATA worker won't fire for a torn-down flow. |
-| F2 | DATAGRAM_DATA worker queued before publish, runs after | Worker reads `FwpsGetFlowContext0` -- returns NULL until publish -> `-ENOENT`. After publish, subsequent workers see the blob. (Per-flow first-packet ordering is the consumer's policy concern, not a leak.) |
-| F3 | `flowDeleteFn` racing with worker | WFP guarantees `flowDeleteFn` is called only after all in-flight callouts on that flow have unwound. No concurrency. |
-| F4 | AUTH_* pend entry torn down (extension shutdown / watchdog) before publish | Pend-entry release routine sees `flow_identity != NULL`, calls `flow_identity_release`. No leak, no publish. |
-| F5 | Driver unload while flows have associated contexts | WFP fires `flowDeleteFn` for every associated context during callout deregistration. Standard WFP teardown. |
-| F6 | Same flow re-classified at AUTH_* (rare; same 5-tuple after flow tear-down + new flow) | New flow handle, new association. Old flow's blob already released by its own `flowDeleteFn`. |
-
-##### Open implementation questions
-
-These are bounded design decisions, not open architectural questions:
-
-- **Always-publish vs. opt-in.** Current design always populates
-  the flow blob when the AUTH_* program is identity-aware, even if
-  no DATAGRAM_DATA / STREAM identity-aware program is attached.
-  Memory cost is bounded per flow. An opt-in attach flag could
-  avoid this cost when only AUTH_* layers care -- worth measuring
-  before adding the complexity.
-- **Verdict-conditional publish.** Current design publishes only on
-  PERMIT (no flow on BLOCK). This matches WFP's flow-establishment
-  semantics; revisit if any layer permits flow context on BLOCK.
-- **Blob pool tag and accounting.** Per-flow allocation; standard
-  pool-tag conventions apply. No special accounting beyond what
-  the pend-map already does.
-
-<a id="edge-cases"></a>
-### Edge cases
-
-- **`PETHREAD` is not available from WFP fields.** `SeCaptureSubjectContextEx` is called with `Thread = NULL`. The captured context has the process's primary token but no thread-impersonation overlay. Matches WFP's own ALE access-check semantics. Programs needing thread-impersonation context cannot use this design -- they must use a different mechanism (e.g., a user-mode policy daemon calling `OpenThreadToken` in the originator's thread context).
-- **Originator process exited before the worker runs.** `PsLookupProcessByProcessId` fails; `bpf_get_identity()` returns `-ENOENT`. Program either fail-closes or proceeds with `FWPS_INCOMING_VALUE_ALE_USER_ID`.
-- **PID reuse.** Detected by step 8's token-pointer compare; surfaced as `bpf_get_identity()` returning `-ENOENT` with the same fail-closed semantics. No extra capture state needed beyond the HANDLE and PID we already record. (`-ENOENT` collapses "gone" and "reused" into a single "identity unavailable" signal -- if a future consumer needs forensic distinction between the two, it can come from extension-side telemetry rather than the helper return value.)
-- **Token HANDLE / PID is absent from metadata.** Some classifies have no token (system-initiated traffic, kernel-only flows). The helper detects this at DISPATCH via `FWPS_IS_METADATA_FIELD_PRESENT` and returns `-ENOENT` immediately -- no DEFER, no PEND, no PASSIVE round-trip. Program decides its own fallback (typically: fail-closed BLOCK, or proceed with `FWPS_INCOMING_VALUE_ALE_USER_ID` only).
-- **`DEFER_TO_PASSIVE` from a PASSIVE layer or twice on the same flow.** Programming-error / anti-loop guards. Extension fails closed with `BLOCK`. The single re-invocation flag on the saved program context covers both cases.
-- **Re-invocation racing with consumer disconnect.** Existing CONTINUE-time consumer-gone handling applies; see [Failure flows](#failure-flows).
-- **Multiple programs in the chain, one needs identity.** `DEFER_TO_PASSIVE` aggregates as a PEND for chain purposes (see [Multiple attached programs and PEND](#multiple-attached-programs-and-pend)). Only one program in the chain may use `DEFER_TO_PASSIVE`, same restriction as `PEND`.
+Detailed shape (blob layout, exact publish point, race-window
+analysis paralleling R1-R10, no-leak invariants paralleling the
+AUTH_* path) is to be designed alongside the DATAGRAM_DATA /
+STREAM layer work.
 
 ## Per-layer async design
 
@@ -2738,41 +2629,77 @@ The following changes to ebpfcore are required to support this design:
    (flags = 0) or the new payload. ebpfcore plumbing is unchanged.
    See
    [Detection of competing PEND-capable programs](#detection-of-competing-pend-capable-programs).
-9. **STREAM layer design and implementation** (prerequisite for STREAM
-   pend/complete). Must support data accumulation with WFP-level
-   withholding and per-flow lifecycle. See
-   [STREAM layer prerequisite note](#stream-layer).
+9. **DATAGRAM_DATA / STREAM layer support (consolidated).** Neither
+   layer is implemented in netebpfext today. When this work is
+   picked up, the following requirements (accumulated throughout
+   this doc) all land together:
+   - **DATAGRAM_DATA pend/complete:** ABSORB + reinject pattern per
+     packet (multiple in-flight packets per flow, keyed by distinct
+     pend IDs); clone NBL via `FwpsAllocateCloneNetBufferList`;
+     record direction + (for outbound) `endpointHandle` /
+     `compartmentId` / `remoteScopeId` in pend context for
+     `FwpsInjectTransportSendAsync` /
+     `FwpsInjectTransportReceiveAsync`; do **not** call
+     `FwpsPendOperation` / `FwpsPendClassify`; free NBL in inject
+     completion callback (or inline on synchronous inject failure --
+     guard against double-free); self-injection detection via
+     `FwpsQueryPacketInjectionState` at top of classifyFn. See
+     [DATAGRAM_DATA layer](#datagram_data-layer).
+   - **STREAM pend/complete:** depends on a separate STREAM layer
+     design that must support data accumulation with WFP-level
+     withholding (inbound DEFER, outbound OOB clone+absorb) and
+     per-flow lifecycle. See
+     [STREAM layer prerequisite](#stream-layer).
+   - **Identity propagation from `AUTH_*`:** per-flow context blob
+     with independent refs on `PACCESS_TOKEN` / subject context
+     (second `ObReferenceObject` + second `SeCaptureSubjectContextEx`
+     in the AUTH_* DPC, **not** transferred from the pend entry);
+     AUTH_* re-invocation publishes via `FwpsFlowAssociateContext0`;
+     `flowDeleteFn` releases on flow teardown.
+     `bpf_get_identity()` at the data-path worker reads via
+     `FwpsGetFlowContext0`. Detailed shape (blob layout, exact
+     publish point, race-window analysis paralleling AUTH_*'s R1-R10,
+     no-leak invariants) to be designed alongside the layer work.
+     See [DATAGRAM_DATA / STREAM identity propagation](#datagram_data--stream-identity-propagation).
+   - **Program adaptations:** for any program using
+     `bpf_get_identity()` on these layers, per-packet pend keys for
+     DATAGRAM_DATA; STREAM adaptations depend on the STREAM layer
+     design.
 10. **Identity-aware programs (`bpf_get_identity` + `DEFER_TO_PASSIVE`).**
     Tracked at #5235. See
     [Identity-aware programs](#identity-aware-programs-token--subject-context)
-    for the full design. Sub-items:
+    for the full design. Sub-items (AUTH_* layers; PASSIVE-only
+    layers `AUTH_LISTEN` / `RESOURCE_ASSIGNMENT` need no
+    `DEFER_TO_PASSIVE` plumbing -- the helper resolves inline):
     - Extension-specific helper `bpf_get_identity()` filling
-      `bpf_identity_info_t` (sock_addr / ALE namespace).
+      `bpf_identity_info_t` (sock_addr / ALE namespace); DISPATCH
+      returns `-EAGAIN` / `-ENOENT` per metadata-presence check;
+      PASSIVE resolves inline from cached extension state.
     - Classify-wrapper handling for the `DEFER_TO_PASSIVE` verdict
       (capture `saved_token` / `saved_pid`, allocate the pend-map
       entry with `pend_reason = DEFER_TO_PASSIVE`, PEND, queue the
       threaded DPC pinned to the classifyFn CPU).
     - Threaded-DPC resolution
       (`ObReferenceObjectByHandle` + `PsLookupProcessByProcessId` +
-      token-pointer compare + `SeCaptureSubjectContextEx`) and
-      program re-invocation via the existing CONTINUE re-invocation
-      path; post-re-invocation verdict handling (PERMIT/BLOCK ->
-      COMPLETE; PEND -> hand off to orchestrator; DEFER_TO_PASSIVE
-      again -> anti-loop BLOCK).
+      token-pointer compare + `SeCaptureSubjectContextEx` with
+      `Thread = NULL`) and program re-invocation via the existing
+      CONTINUE re-invocation path; post-re-invocation verdict
+      handling (PERMIT/BLOCK -> COMPLETE; PEND -> hand off to
+      orchestrator; second `DEFER_TO_PASSIVE` -> anti-loop BLOCK).
     - Anti-loop guards (re-invocation flag on the saved program
       context; reject `DEFER_TO_PASSIVE` from already-PASSIVE layers).
     - Lifecycle / cleanup of `resolved_access_token` and
       `captured_subject_context` on COMPLETE and on any non-COMPLETE
       pend-map teardown (null-safe; `subject_context_captured` flag
       gates `SeReleaseSubjectContext`).
-    - `MAY_PEND` plumbing: ensure helper-use stamps the existing
-      `MAY_PEND` bit (no new attach-flag value -- `DEFER_TO_PASSIVE`
-      aggregates as PEND for chain purposes).
-    - DATAGRAM_DATA / STREAM identity propagation: per-flow blob
-      published via `FwpsFlowAssociateContext0` after AUTH_*
-      re-invocation, read via `FwpsGetFlowContext0` from the
-      data-path worker, released via `flowDeleteFn`. See
-      [DATAGRAM_DATA / STREAM identity propagation](#datagram_data--stream-identity-propagation).
+    - `MAY_PEND` plumbing: the user-mode loader for a program that
+      uses `bpf_get_identity()` sets the existing `MAY_PEND` attach
+      flag at `bpf_link_create` time -- same mechanism as for
+      `bpf_pend_operation()`, no new attach-flag value
+      (`DEFER_TO_PASSIVE` aggregates as PEND for chain purposes).
+    - **Deferred:** `DATAGRAM_DATA` / `STREAM` identity propagation
+      (per-flow context blob, AUTH_* DPC publish, `flowDeleteFn`
+      release) -- consolidated under item 9.
 
 ## Appendix: Internal state struct
 
