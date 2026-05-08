@@ -163,7 +163,7 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         env:
-          PROCDUMP_EXPECTED_HASH: '863E7F078B35327CEDC5A1101C60E26C2A9E7F76388D0D0FFE44018B381784B4'
+          PROCDUMP_EXPECTED_HASH: '28588D9CFD3354A3A71204A570B9B60129761962F505B3CFE26DAA9A5175C14A'
         run: |
           curl.exe -L -o ${{github.workspace}}\Procdump.zip https://download.sysinternals.com/files/Procdump.zip
           $actualHash = (Get-FileHash -Path ${{github.workspace}}\Procdump.zip -Algorithm SHA256).Hash
