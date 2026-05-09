@@ -4513,7 +4513,7 @@ typedef struct _ebpf_map_async_query_context
 {
     _ebpf_map_async_query_context()
         : async_ioctl_failed(false), async_ioctl_completion(nullptr), buffer(nullptr), reply({}), cpu_id(0),
-          subscription(nullptr), lost_count_total(0)
+          subscription(nullptr), lost_count_total(0), consumer_advance_posted(false)
     {
     }
 
@@ -4534,6 +4534,9 @@ typedef struct _ebpf_map_async_query_context
     size_t lost_count_total;
     async_ioctl_completion_t* async_ioctl_completion;
     bool async_ioctl_failed;
+    // Set to true when we have posted a final consumer-advance IOCTL after unsubscribe to ensure
+    // the kernel's consumer offset is updated before the subscription is torn down.
+    bool consumer_advance_posted;
     ebpf_operation_map_async_query_reply_t reply;
     ebpf_map_subscription_t* subscription;
 
@@ -4687,6 +4690,43 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
         std::scoped_lock lock{subscription->lock};
 
         if (subscription->unsubscribed) {
+            // If this was a successful (non-canceled) completion and we haven't yet advanced the
+            // kernel's consumer offset, do so now by posting one final IOCTL with the updated
+            // consumer value, then immediately cancel it.  The kernel calls ebpf_map_return_buffer
+            // on IOCTL receipt (before waiting for new data), so this advances the kernel's consumer
+            // even though the IOCTL will complete with EBPF_CANCELED.  Without this, a new
+            // subscriber on the same map would replay already-delivered records.
+            if (!async_query_context->consumer_advance_posted && result == EBPF_SUCCESS) {
+                async_query_context->consumer_advance_posted = true;
+
+                ebpf_result_t advance_result =
+                    register_wait_async_ioctl_operation(async_query_context->async_ioctl_completion);
+                if (advance_result == EBPF_SUCCESS) {
+                    ebpf_operation_map_async_query_request_t advance_request{
+                        sizeof(advance_request),
+                        ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
+                        subscription->map_handle,
+                        cpu_id,
+                        consumer};
+                    memset(&async_query_context->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
+                    advance_result = win32_error_code_to_ebpf_result(invoke_ioctl(
+                        advance_request,
+                        async_query_context->reply,
+                        get_async_ioctl_operation_overlapped(async_query_context->async_ioctl_completion)));
+                    if (advance_result == EBPF_PENDING || advance_result == EBPF_SUCCESS) {
+                        // Immediately cancel: we only need the kernel to process the consumer_offset
+                        // in the request (via ebpf_map_return_buffer); we don't want to wait for data.
+                        cancel_async_ioctl(
+                            get_async_ioctl_operation_overlapped(async_query_context->async_ioctl_completion));
+                        // The next callback (EBPF_CANCELED) will erase the context via the else
+                        // branch of consumer_advance_posted below.
+                        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+                    }
+                }
+                // Failed to post the advance IOCTL - fall through to erase immediately.
+                async_query_context->consumer_advance_posted = false;
+            }
+
             result = EBPF_CANCELED;
 
             // If the user has unsubscribed, remove the async query context.
@@ -5310,7 +5350,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 // The kernel uses its internally-stored addresses for unmapping, so no user-space
 // addresses need to be provided.
 static _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index)
+ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) 
     NO_EXCEPT_TRY
 {
     ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
