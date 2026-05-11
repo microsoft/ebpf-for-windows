@@ -100,11 +100,15 @@ struct connection_test_params
     // Expected bind error for server socket (0 = expect success).
     std::optional<int> expected_server_bind_error{};
 
+    // Expected listen error for server socket (0 = expect success).
+    std::optional<int> expected_listen_error{};
+
     // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
     std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
     std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
+    std::optional<uint32_t> listen_verdict{};  ///< Listen verdict for listen enforcement (sock_addr).
     std::optional<bind_policy> bind_policy{};  ///< Bind policy to apply for this test.
     std::optional<bind_action_t>
         bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
@@ -300,10 +304,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
     }
 
-    // Get policy maps (sock_addr or bind).
+    // Get policy maps (sock_addr, bind, or sockops).
     bpf_map* ingress_map = nullptr;
     bpf_map* egress_map = nullptr;
     bpf_map* bind_policy_map = nullptr;
+    bpf_map* connection_map = nullptr;
+    bpf_map* listen_map = nullptr;
 
     for (const auto& mod : loaded_modules) {
         if (!ingress_map) {
@@ -314,6 +320,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
         if (!bind_policy_map) {
             bind_policy_map = bpf_object__find_map_by_name(mod.object.get(), "bind_policy_map");
+        }
+        if (!connection_map) {
+            connection_map = bpf_object__find_map_by_name(mod.object.get(), "connection_map");
+        }
+        if (!listen_map) {
+            listen_map = bpf_object__find_map_by_name(mod.object.get(), "listen_connection_policy_map");
         }
     }
 
@@ -335,6 +347,14 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     if (egress_map) {
         SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &sock_addr_reject_verdict, EBPF_ANY) == 0);
     }
+
+    // Determine server socket family. For listen enforcement tests, the server socket must use the
+    // test's address family so that listen() triggers the correct WFP layer (V4 or V6). For all
+    // other tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
+    // accept connections from both V4 and V6 clients.
+    bool is_listen_test = std::any_of(
+        test_case.tests.begin(), test_case.tests.end(), [](const auto& t) { return t.listen_verdict.has_value(); });
+    socket_family_t server_family = is_listen_test ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
     // Attach all programs before executing tests.
     for (auto& mod : loaded_modules) {
@@ -388,10 +408,22 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 static_cast<uint8_t>(test_case.protocol),
                 *test.bind_verdict);
         }
+        if (test.listen_verdict) {
+            SAFE_REQUIRE(listen_map != nullptr);
+            // Setup tuple for listen operation — key uses local address/port.
+            // Server socket binds to INADDR_ANY by default, so local_ip stays zero
+            // to match what WFP reports for listen on unspecified address.
+            connection_tuple_t listen_tuple = {0};
+            listen_tuple.local_port = htons(SOCKET_TEST_PORT);
+            listen_tuple.protocol = tuple.protocol;
+            SAFE_REQUIRE(
+                bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) == 0);
+        }
 
         // Create sockets on init or after reset.
         if (!server) {
             int server_bind_error = test.expected_server_bind_error.value_or(0);
+            int server_listen_error = test.expected_listen_error.value_or(0);
 
             if (test_case.protocol == IPPROTO_TCP) {
                 server = std::make_unique<stream_server_socket_t>(
@@ -399,7 +431,9 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     IPPROTO_TCP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
                     sockaddr_storage{},
-                    server_bind_error);
+                    server_bind_error,
+                    server_listen_error,
+                    server_family);
             } else if (test_case.protocol == IPPROTO_UDP) {
                 server = std::make_unique<datagram_server_socket_t>(
                     static_cast<uint16_t>(SOCK_DGRAM),
@@ -409,8 +443,8 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     server_bind_error);
             }
 
-            // If bind was expected to fail, skip connection testing.
-            if (server_bind_error != 0) {
+            // If bind or listen was expected to fail, skip connection testing.
+            if (server_bind_error != 0 || server_listen_error != 0) {
                 server.reset();
                 client.reset();
                 continue;
