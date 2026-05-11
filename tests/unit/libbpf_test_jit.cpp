@@ -10,11 +10,11 @@
 #include "catch_wrapper.hpp"
 #include "ebpf_execution_type.h"
 #include "ebpf_platform.h"
-#include "spec/vm_isa.hpp"
 #include "helpers.h"
 #include "libbpf_test_jit.h"
 #include "platform.h"
 #include "program_helper.h"
+#include "spec/vm_isa.hpp"
 #include "test_helper.hpp"
 
 #include <fstream>
@@ -459,6 +459,9 @@ _test_bpf_object_load_with_o()
     REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "listen_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
 
     // Trying to attach the program should fail since it's not loaded yet.
@@ -483,6 +486,9 @@ _test_bpf_object_load_with_o()
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "listen_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -530,7 +536,7 @@ _test_bpf_object_load_with_o_from_memory()
 
     REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_CGROUP_SOCK_ADDR) == 0);
 
-      struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
     REQUIRE(strcmp(bpf_map__name(map), "socket_cookie_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
@@ -539,6 +545,9 @@ _test_bpf_object_load_with_o_from_memory()
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "listen_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -565,6 +574,9 @@ _test_bpf_object_load_with_o_from_memory()
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(strcmp(bpf_map__name(map), "ingress_connection_policy_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "listen_connection_policy_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
