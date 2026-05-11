@@ -973,11 +973,17 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     // Load program with pinpath and compaetment=1.
     std::string output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"cgroup_sock_addr.o", L"cgroup/connect4", L"mypinpath", L"compartment=1");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 6\n") == 0);
+    // Parse the program ID from the output (format: "Loaded with ID <N>\n").
+    // The ID depends on the number of maps/programs in the .o file, so we don't hardcode it.
+    unsigned int program_id = 0;
+    REQUIRE(sscanf_s(output.c_str(), "Loaded with ID %u\n", &program_id) == 1);
+    REQUIRE(program_id > 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
+    std::string id_str = std::to_string(program_id);
+    std::wstring id_wstr(id_str.begin(), id_str.end());
+    output = _run_netsh_command(handle_ebpf_delete_program, id_wstr.c_str(), nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 6 from BPF:\\mypinpath\n");
+    REQUIRE(output == "Unpinned " + id_str + " from BPF:\\mypinpath\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect compartment id.
