@@ -53,19 +53,29 @@ This function requires the 'nuget' command to be available in the PATH.
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to retrieve package information"
         }
-        $packageLine = $package | Where-Object { $_ -match $packageName }
-        if (-not $packageLine) {
+        $packageLines = $package | Where-Object { $_ -match "^$packageName\s+" }
+        if (-not $packageLines) {
             throw "Package '$packageName' not found"
         }
-        if ($packageLine -is [array]) {
-            Write-Warning "Multiple versions found. Using the first one."
-            $packageLine = $packageLine[0]
+        # Extract versions and sort to find the latest
+        $versions = @()
+        if ($packageLines -is [array]) {
+            $versions = $packageLines | ForEach-Object { ($_ -replace "$packageName\s+", "").Trim() }
+        } else {
+            $versions = @(($packageLines -replace "$packageName\s+", "").Trim())
         }
-        $packageVersion = $packageLine -replace "$packageName\s+", ""
-        if (-not ($packageVersion -match '^\d+\.\d+\.\d+\.\d+$')) {
-            throw "Invalid version format: $packageVersion"
+        # Filter valid versions and sort by System.Version to get the latest
+        $latestVersion = $versions |
+            Where-Object { $_ -match '^\d+\.\d+\.\d+\.\d+$' } |
+            Sort-Object { [System.Version]$_ } -Descending |
+            Select-Object -First 1
+        if (-not $latestVersion) {
+            throw "No valid version found for package '$packageName'"
         }
-        return $packageVersion
+        if ($versions.Count -gt 1) {
+            Write-Warning "Multiple versions found. Using the latest: $latestVersion"
+        }
+        return $latestVersion
     }
     catch {
         throw "Failed to get package version: $_"
