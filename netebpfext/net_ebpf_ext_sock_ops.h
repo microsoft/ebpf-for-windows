@@ -7,6 +7,7 @@
 
 // Callout GUIDs
 
+// clang-format off
 // f53b4577-bc47-11ec-9a30-18602489beee
 DEFINE_GUID(
     EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
@@ -36,6 +37,7 @@ DEFINE_GUID(
     0x89,
     0xbe,
     0xee);
+// clang-format on
 
 /**
  * @brief WFP classifyFn callback for EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4/6_CALLOUT.

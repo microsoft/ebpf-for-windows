@@ -199,7 +199,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         net_ebpf_extension_sock_ops_flow_established_classify,
         net_ebpf_ext_filter_change_notify,
         net_ebpf_extension_sock_ops_flow_delete,
-        L"ALE Flow Established Callout v4",
+        L"ALE Flow Established Callout v6",
         L"ALE Flow Established callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
     }};
