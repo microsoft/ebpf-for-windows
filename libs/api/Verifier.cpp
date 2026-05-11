@@ -24,6 +24,9 @@
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 
+// Internal prevail header for stream-based read_elf (used for in-memory ELF data).
+#include "io/elf_reader.hpp"
+
 #include <ElfWrapper.h>
 #include <filesystem>
 #include <fstream>
@@ -679,7 +682,7 @@ ebpf_api_elf_enumerate_programs(
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
                 }
-                _ebpf_add_stat(info, "Instructions", (int)raw_program.prog.size());
+                _ebpf_add_stat(info, "Instructions", static_cast<int>(raw_program.prog.size()));
             }
 
             info->section_name = cxplat_duplicate_string(raw_program.section_name.c_str());
