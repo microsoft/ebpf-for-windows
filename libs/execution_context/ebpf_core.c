@@ -2557,12 +2557,7 @@ _ebpf_core_protocol_ring_buffer_map_unmap_buffer(
     result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
     if (result != EBPF_SUCCESS)
         return result;
-    result = ebpf_ring_buffer_map_unmap_user(
-        map,
-        request->index,
-        (const void*)request->consumer,
-        (const void*)request->producer,
-        (const void*)request->data);
+    result = ebpf_ring_buffer_map_unmap_user(map, request->index);
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     return result;
 }

@@ -608,9 +608,6 @@ typedef struct _ebpf_operation_ring_buffer_map_unmap_buffer_request
     struct _ebpf_operation_header header;
     ebpf_handle_t map_handle;
     uint64_t index;
-    uint64_t consumer;
-    uint64_t producer;
-    uint64_t data;
 } ebpf_operation_ring_buffer_map_unmap_buffer_request_t;
 
 typedef struct _ebpf_operation_epoch_synchronize_request

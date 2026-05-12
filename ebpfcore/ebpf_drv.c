@@ -495,6 +495,15 @@ _ebpf_driver_io_device_control(
                         goto Done;
                     }
                     user_reply = output_buffer;
+
+                    // Zero any output buffer bytes beyond the input data to prevent
+                    // leaking uninitialized kernel pool memory to user-mode.
+                    if (actual_output_length > actual_input_length) {
+                        memset(
+                            (uint8_t*)output_buffer + actual_input_length,
+                            0,
+                            actual_output_length - actual_input_length);
+                    }
                 }
 
                 if (async) {
