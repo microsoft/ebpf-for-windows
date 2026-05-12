@@ -145,10 +145,7 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         env:
-<<<<<<< HEAD
           # Hash of the latest ProcDump release from https://download.sysinternals.com/files/Procdump.zip
-=======
->>>>>>> 856ea744b82e4c6a933da8f515f243f8ebbdc69e
           PROCDUMP_EXPECTED_HASH: '28588D9CFD3354A3A71204A570B9B60129761962F505B3CFE26DAA9A5175C14A'
         run: |
           $procDumpZipPath = "${{github.workspace}}\Procdump.zip"
