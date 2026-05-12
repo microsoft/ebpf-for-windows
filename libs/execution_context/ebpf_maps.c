@@ -529,12 +529,7 @@ typedef struct _ebpf_map_metadata_table_properties
         _Outptr_ void** producer,
         _Outptr_result_buffer_(*data_size) uint8_t** data,
         _Out_ size_t* data_size);
-    ebpf_result_t (*unmap_ring_buffer)(
-        _In_ const ebpf_core_map_t* map,
-        uint64_t index,
-        _In_ const void* consumer,
-        _In_ const void* producer,
-        _In_ const void* data);
+    ebpf_result_t (*unmap_ring_buffer)(_In_ const ebpf_core_map_t* map, uint64_t index);
     ebpf_result_t (*set_wait_handle)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _In_ ebpf_handle_t handle, uint64_t flags);
     int zero_length_key : 1;
@@ -2684,16 +2679,11 @@ _map_user_ring_buffer_map(
 }
 
 static ebpf_result_t
-_unmap_user_ring_buffer_map(
-    _In_ const ebpf_core_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+_unmap_user_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     UNREFERENCED_PARAMETER(index);
     ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
-    return ebpf_ring_buffer_unmap_user(ring_buffer, consumer, producer, data);
+    return ebpf_ring_buffer_unmap_user(ring_buffer);
 }
 
 static ebpf_result_t
@@ -2770,12 +2760,7 @@ _map_user_perf_event_array_map(
 }
 
 static ebpf_result_t
-_unmap_user_perf_event_array_map(
-    _In_ const ebpf_core_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+_unmap_user_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
@@ -2784,7 +2769,7 @@ _unmap_user_perf_event_array_map(
         return EBPF_INVALID_ARGUMENT;
     }
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-    return ebpf_ring_buffer_unmap_user(ring->ring, consumer, producer, data);
+    return ebpf_ring_buffer_unmap_user(ring->ring);
 }
 
 static ebpf_result_t
@@ -2993,18 +2978,13 @@ ebpf_ring_buffer_map_map_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_user(
-    _In_ const ebpf_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index)
 {
     if ((map->properties == NULL) || (map->properties->unmap_ring_buffer == NULL)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index, consumer, producer, data);
+    return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index);
 }
 
 _Must_inspect_result_ ebpf_result_t

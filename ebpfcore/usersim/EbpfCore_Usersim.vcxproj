@@ -89,6 +89,15 @@
   <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <!-- Redirect direct references to IoFileObjectType/ExEventObjectType to the
+       __imp_ versions from the usersim DATA import library. The consuming code
+       (WDK headers) declares these without __declspec(dllimport), so the linker
+       needs ALTERNATENAME to resolve them against the DATA-exported symbols. -->
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalOptions>/ALTERNATENAME:ExEventObjectType=__imp_ExEventObjectType /ALTERNATENAME:IoFileObjectType=__imp_IoFileObjectType %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(WDKContentRoot)\Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\shim;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>

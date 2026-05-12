@@ -218,18 +218,12 @@ ebpf_ring_buffer_map_user(
  * @brief Unmap the memory of a ring buffer.
  *
  * @param[in] ring_buffer Ring buffer to unmap.
- * @param[in] consumer Address of the consumer mapping.
- * @param[in] producer Address of the producer mapping.
- * @param[in] data Address of the data mapping.
+ * @param[in] ring_buffer Ring buffer to unmap.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT Unable to unmap the buffer.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_unmap_user(
-    _In_ const ebpf_ring_buffer_t* ring_buffer,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data);
+ebpf_ring_buffer_unmap_user(_In_ const ebpf_ring_buffer_t* ring_buffer);
 
 /**
  * @brief Get the next record in the ring buffer's data buffer, skipping any discarded records.
