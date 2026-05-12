@@ -625,10 +625,9 @@ ebpf_ring_buffer_map_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_unmap_user(
-    _In_ const ebpf_ring_buffer_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+ebpf_ring_buffer_unmap_user(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ebpf_ring_unmap_user(ring->ring_descriptor, consumer, producer, data);
+    return ebpf_ring_unmap_user(ring->ring_descriptor);
 }
 
 _Must_inspect_result_ _Ret_maybenull_ const ebpf_ring_buffer_record_t*

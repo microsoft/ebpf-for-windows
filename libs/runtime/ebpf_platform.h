@@ -171,15 +171,11 @@ extern "C"
      * @brief Unmap the memory of a ring buffer.
      *
      * @param[in] ring Ring buffer to unmap.
-     * @param[in] consumer Address of the consumer mapping.
-     * @param[in] producer Address of the producer mapping.
-     * @param[in] data Address of the data mapping.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Unable to unmap the buffer.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_unmap_user(
-        _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data);
+    ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring);
 
     /**
      * @brief Allocate and copy a UTF-8 string.

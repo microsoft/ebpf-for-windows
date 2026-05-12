@@ -101,7 +101,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 
     size_t total_mapped_size = header_length + length * 2;
 
-    ebpf_ring_descriptor_t* descriptor = (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    ebpf_ring_descriptor_t* descriptor =
+        (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (!descriptor) {
         goto Exit;
     }
@@ -244,14 +245,10 @@ ebpf_ring_map_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_unmap_user(
-    _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(ring);
-    UNREFERENCED_PARAMETER(consumer);
-    UNREFERENCED_PARAMETER(producer);
-    UNREFERENCED_PARAMETER(data);
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
