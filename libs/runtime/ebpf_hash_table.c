@@ -502,6 +502,40 @@ Done:
 }
 
 /**
+ * @brief Validate that deleting an entry from a bucket will not encounter arithmetic overflow.
+ *
+ * This must happen before a PRE_FREE notification so the remaining delete path cannot fail while the bucket lock is
+ * held.
+ *
+ * @param[in] hash_table The hash table.
+ * @param[in] old_bucket The immutable old bucket to validate.
+ * @retval EBPF_SUCCESS The delete path is valid.
+ * @retval EBPF_ARITHMETIC_OVERFLOW Arithmetic overflow occurred while computing bucket entry offsets.
+ */
+static ebpf_result_t
+_ebpf_hash_table_bucket_delete_validate(
+    _In_ const ebpf_hash_table_t* hash_table, _In_ const ebpf_hash_bucket_header_t* old_bucket)
+{
+    ebpf_hash_bucket_entry_t* last_entry =
+        _ebpf_hash_table_bucket_entry(hash_table->key_size, old_bucket, old_bucket->count - 1);
+    if (last_entry == NULL) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+
+    if (old_bucket->count == 1) {
+        return EBPF_SUCCESS;
+    }
+
+    ebpf_hash_bucket_header_t* backup_bucket = last_entry->backup_bucket;
+    ebpf_assert(backup_bucket != NULL);
+    ebpf_assert(backup_bucket->count == old_bucket->count - 1);
+
+    return (_ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, old_bucket->count - 2) == NULL)
+               ? EBPF_ARITHMETIC_OVERFLOW
+               : EBPF_SUCCESS;
+}
+
+/**
  * @brief Build a replacement bucket with the given entry removed.
  * Caller must free the old bucket.
  * Memory from the last entry's backup_bucket is used to build the new bucket.
@@ -578,7 +612,7 @@ _ebpf_hash_table_bucket_delete(
     *new_bucket = backup_bucket;
 
 Done:
-    if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+    if (result == EBPF_SUCCESS && hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
         ebpf_interlocked_decrement_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
     }
 
@@ -766,6 +800,10 @@ _ebpf_hash_table_replace_bucket(
         if (index == old_bucket_count) {
             result = EBPF_KEY_NOT_FOUND;
         } else {
+            result = _ebpf_hash_table_bucket_delete_validate(hash_table, old_bucket);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
             if (hash_table->notification_callback &&
                 (hash_table->notification_flags & EBPF_HASH_TABLE_NOTIFICATION_TYPE_PRE_FREE)) {
                 result = hash_table->notification_callback(
@@ -780,8 +818,8 @@ _ebpf_hash_table_replace_bucket(
                     break;
                 }
             }
-            // No failure path after successful delete notification.
             result = _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
+            ebpf_assert(result == EBPF_SUCCESS);
         }
         break;
     default:
