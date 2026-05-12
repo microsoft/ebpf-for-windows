@@ -246,9 +246,9 @@ ebpf_validate_helper_function_prototype_array(
 }
 
 static bool
-_ebpf_validate_context_descriptor(_In_ const ebpf_context_descriptor_t* context_descriptor)
+_ebpf_validate_context_descriptor(_In_ const ebpf_ctx_descriptor_t* context_descriptor)
 {
-    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_context_descriptor_t)));
+    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_ctx_descriptor_t)));
 }
 
 static bool
@@ -381,7 +381,7 @@ _duplicate_program_descriptor(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
-    ebpf_context_descriptor_t* context_descriptor_copy = NULL;
+    ebpf_ctx_descriptor_t* context_descriptor_copy = NULL;
 
     program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -405,13 +405,13 @@ _duplicate_program_descriptor(
     }
 
     context_descriptor_copy =
-        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_context_descriptor_t));
+    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_ctx_descriptor_t));
     program_type_descriptor_copy->context_descriptor = context_descriptor_copy;
     context_descriptor_copy = NULL;
 
