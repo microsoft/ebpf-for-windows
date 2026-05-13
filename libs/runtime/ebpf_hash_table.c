@@ -527,7 +527,7 @@ _ebpf_hash_table_bucket_delete_validate(
     }
 
     ebpf_hash_bucket_header_t* backup_bucket = last_entry->backup_bucket;
-    ebpf_assert(backup_bucket != NULL);
+    ebpf_assert_assume(backup_bucket != NULL);
     ebpf_assert(backup_bucket->count == old_bucket->count - 1);
 
     return (_ebpf_hash_table_bucket_entry(hash_table->key_size, backup_bucket, old_bucket->count - 2) == NULL)
