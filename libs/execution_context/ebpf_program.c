@@ -155,7 +155,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
  */
 void
 ebpf_program_set_header_context_descriptor(
-    _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context)
+    _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context)
 {
     // slot [1] contains the context_descriptor for the program.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
@@ -175,10 +175,10 @@ ebpf_program_set_header_context_descriptor(
  */
 void
 ebpf_program_get_header_context_descriptor(
-    _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor)
+    _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor)
 {
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
-    *context_descriptor = (ebpf_context_descriptor_t*)header->context_header[1];
+    *context_descriptor = (ebpf_ctx_descriptor_t*)header->context_header[1];
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
@@ -1550,7 +1550,7 @@ ebpf_program_invoke(
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
     // Set context descriptor pointer in context header.
-    const ebpf_context_descriptor_t* context_descriptor =
+    const ebpf_ctx_descriptor_t* context_descriptor =
         program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
 
@@ -2451,7 +2451,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(&execution_context_state, program_context);
     // Set context descriptor pointer in context header.
-    const ebpf_context_descriptor_t* context_descriptor =
+    const ebpf_ctx_descriptor_t* context_descriptor =
         context->program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
 
@@ -2705,7 +2705,7 @@ void
 ebpf_program_get_context_data(
     _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end)
 {
-    ebpf_context_descriptor_t* context_descriptor;
+    ebpf_ctx_descriptor_t* context_descriptor;
     ebpf_program_get_header_context_descriptor(program_context, &context_descriptor);
     if (context_descriptor->data < 0 || context_descriptor->end < 0) {
         *data_start = NULL;

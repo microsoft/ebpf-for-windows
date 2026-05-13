@@ -20,7 +20,7 @@ static ebpf_result_t
 _analyze(prevail::RawProgram& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
     // First try optimized for the success case.
-    prevail::ebpf_verifier_options_t options = ebpf_get_default_verifier_options();
+    prevail::VerifierOptions options = ebpf_get_default_verifier_options();
 
     std::vector<std::vector<std::string>> notes;
     std::variant<prevail::InstructionSeq, std::string> prog_or_error = prevail::unmarshal(raw_prog, notes, options);

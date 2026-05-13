@@ -49,18 +49,21 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 
 using namespace std;
 
+#include "ir/call_resolver.hpp"
+
 // Provide collect_stats locally — it was removed from the verifier public API in a69e70a
 // (commit "Human-friendly CLI output for bin/prevail"), but we still need it for the
 // verbose program-info stats reported by ebpf_api_elf_enumerate_programs.
 static std::string
-_instype(const prevail::Instruction& ins)
+_instype(const prevail::Instruction& ins, const prevail::ProgramInfo& info)
 {
     if (const auto pcall = std::get_if<prevail::Call>(&ins)) {
-        if (pcall->is_map_lookup) {
+        auto resolved = prevail::resolve(*pcall, info);
+        if (resolved.contract.is_map_lookup) {
             return "call_1";
         }
-        if (pcall->pairs.empty()) {
-            if (std::ranges::all_of(pcall->singles, [](const prevail::ArgSingle arg) {
+        if (resolved.contract.pairs.empty()) {
+            if (std::ranges::all_of(resolved.contract.singles, [](const prevail::ArgSingle arg) {
                     return arg.kind == prevail::ArgSingle::Kind::ANYTHING;
                 })) {
                 return "call_nomem";
@@ -135,14 +138,15 @@ collect_stats(const prevail::Program& prog)
             }
         }
         if (const auto pins = std::get_if<prevail::Call>(&cmd)) {
-            if (pins->reallocate_packet) {
+            auto resolved = prevail::resolve(*pins, prog.info());
+            if (resolved.contract.reallocate_packet) {
                 res["reallocate"] = 1;
             }
         }
         if (const auto pins = std::get_if<prevail::Bin>(&cmd)) {
             res[pins->is64 ? "arith64" : "arith32"]++;
         }
-        res[_instype(cmd)]++;
+        res[_instype(cmd, prog.info())]++;
         if (prog.cfg().in_degree(label) > 1) {
             res["joins"]++;
         }
@@ -396,7 +400,7 @@ _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _In_opt_z_ const char* section_name,
-    _In_ const prevail::ebpf_verifier_options_t& verifier_options,
+    _In_ const prevail::VerifierOptions& verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
@@ -643,7 +647,7 @@ ebpf_api_elf_enumerate_programs(
     _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
+    prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
 
@@ -733,7 +737,7 @@ ebpf_api_elf_disassemble_program(
     _Outptr_result_maybenull_z_ const char** disassembly,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
+    prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
@@ -767,7 +771,7 @@ ebpf_api_elf_disassemble_program(
             return 1;
         }
         auto& program = std::get<prevail::InstructionSeq>(programOrError);
-        print(program, output, {}, true);
+        print(program, output, {}, true, &raw_program.info);
         *disassembly = allocate_string(output.str());
         if (!*disassembly) {
             return 1;
@@ -802,7 +806,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
 
     try {
         const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options(verbosity);
+        prevail::VerifierOptions verifier_options = ebpf_get_default_verifier_options(verbosity);
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
