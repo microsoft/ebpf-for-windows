@@ -15,6 +15,10 @@ struct _ebpf_ring_descriptor
     MDL* user_mdl_producer;
     MDL* memory;
     void* base_address;
+    // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
+    PEPROCESS user_process;
+    void* user_consumer_address;
+    void* user_producer_address;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -162,6 +166,14 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
+    // Release process reference if still held (user never called unmap).
+    // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
+#pragma warning(suppress : 6001)
+    if (ring->user_process != NULL) {
+        ObDereferenceObject(ring->user_process);
+        ring->user_process = NULL;
+    }
+
     IoFreeMdl(ring->user_mdl_consumer);
     IoFreeMdl(ring->user_mdl_producer);
 
@@ -190,6 +202,11 @@ ebpf_ring_map_user(
     *producer = NULL;
     *data = NULL;
 
+    // Check if already mapped.
+    if (ring->user_consumer_address != NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     __try {
         *consumer =
             MmMapLockedPagesSpecifyCache(ring->user_mdl_consumer, UserMode, MmCached, NULL, FALSE, NormalPagePriority);
@@ -212,18 +229,38 @@ ebpf_ring_map_user(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    // Capture process reference and addresses for secure unmapping.
+    ring->user_process = PsGetCurrentProcess();
+    ObReferenceObject(ring->user_process);
+    ring->user_consumer_address = *consumer;
+    ring->user_producer_address = *producer;
+
     *data = (uint8_t*)*producer + PAGE_SIZE;
     return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_unmap_user(
-    _In_ ebpf_ring_descriptor_t* ring, _In_ const void* consumer, _In_ const void* producer, _In_ const void* data)
+ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    UNREFERENCED_PARAMETER(data);
-    MmUnmapLockedPages((void*)consumer, ring->user_mdl_consumer);
-    MmUnmapLockedPages((void*)producer, ring->user_mdl_producer);
-    // No-op for data, as it's part of the same mapping.
+    // Verify that the ring was mapped to user mode.
+    if (ring->user_consumer_address == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Verify the call is from the same process that mapped the ring.
+    if (PsGetCurrentProcess() != ring->user_process) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Use the stored addresses, not the user-provided ones.
+    MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
+    MmUnmapLockedPages(ring->user_producer_address, ring->user_mdl_producer);
+
+    ObDereferenceObject(ring->user_process);
+    ring->user_process = NULL;
+    ring->user_consumer_address = NULL;
+    ring->user_producer_address = NULL;
+
     return EBPF_SUCCESS;
 }
 

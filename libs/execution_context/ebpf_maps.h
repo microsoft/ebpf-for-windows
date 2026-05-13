@@ -246,19 +246,11 @@ extern "C"
      *
      * @param[in] map Map to unmap.
      * @param[in] index Index of map buffer to unmap from user space.
-     * @param[in] consumer Pointer to the consumer buffer.
-     * @param[in] producer Pointer to the producer buffer.
-     * @param[in] data Pointer to the data buffer.
      * @retval EBPF_SUCCESS Successfully unmapped the buffer.
      * @retval EBPF_INVALID_ARGUMENT The operation is not supported on this map.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_unmap_user(
-        _In_ const ebpf_map_t* map,
-        uint64_t index,
-        _In_ const void* consumer,
-        _In_ const void* producer,
-        _In_ const void* data);
+    ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index);
 
     /**
      * @brief Set the wait handle for a map.
