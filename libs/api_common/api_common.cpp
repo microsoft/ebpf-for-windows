@@ -7,6 +7,7 @@
 #include "ebpf_result.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
+#include "ir/call_resolver.hpp"
 #include "map_descriptors.hpp"
 #include "windows_platform_common.hpp"
 
@@ -246,9 +247,9 @@ ebpf_verify_program(
                 if (label.isjump() || !label.stack_frame_prefix.empty() || !label.special_label.empty()) {
                     continue;
                 }
-                const auto& inst = program.instruction_at(label);
+                const auto& inst = context.program.instruction_at(label);
                 const auto* call = std::get_if<prevail::Call>(&inst);
-                if (!call || !call->is_map_lookup) {
+                if (!call || !prevail::resolve(*call, info).contract.is_map_lookup) {
                     continue;
                 }
 
@@ -259,7 +260,7 @@ ebpf_verify_program(
                     continue; // Ambiguous map — skip annotation.
                 }
 
-                auto map_type = pre.get_map_type(prevail::Reg{1});
+                auto map_type = pre.get_map_type(prevail::Reg{1}, context);
                 if (!map_type.has_value()) {
                     continue; // Ambiguous type — skip annotation.
                 }
