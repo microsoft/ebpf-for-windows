@@ -108,15 +108,15 @@ typedef class _netebpf_ext_helper
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_listen_v4(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_listen(_In_ fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_sock_ops_listen_v4(parameters);
+        return usersim_fwp_cgroup_inet4_listen(parameters);
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_listen_v6(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_listen(_In_ fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_sock_ops_listen_v6(parameters);
+        return usersim_fwp_cgroup_inet6_listen(parameters);
     }
 
   private:

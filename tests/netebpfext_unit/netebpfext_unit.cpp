@@ -1264,28 +1264,28 @@ TEST_CASE("sock_addr_listen_invoke", "[netebpfext]")
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_SOFT;
     client_context->validate_sock_addr_entries = false;
 
-    FWP_ACTION_TYPE result = helper.test_sock_ops_listen_v4(&parameters);
+    FWP_ACTION_TYPE result = helper.test_cgroup_inet4_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_sock_ops_listen_v6(&parameters);
+    result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Test listen operations that should be blocked.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
 
-    result = helper.test_sock_ops_listen_v4(&parameters);
+    result = helper.test_cgroup_inet4_listen(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
-    result = helper.test_sock_ops_listen_v6(&parameters);
+    result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Test listen operations with hard permit.
     client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT_HARD;
 
-    result = helper.test_sock_ops_listen_v4(&parameters);
+    result = helper.test_cgroup_inet4_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
-    result = helper.test_sock_ops_listen_v6(&parameters);
+    result = helper.test_cgroup_inet6_listen(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 }
 
