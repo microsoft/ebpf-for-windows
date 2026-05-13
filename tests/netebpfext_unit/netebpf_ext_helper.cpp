@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_platform.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "netebpf_ext_helper.h"
 
@@ -54,7 +55,7 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     // Do not use REQUIRE() in this constructor or the destructor will never be called
     // to clean up any state allocated before the REQUIRE.
 
-    if (!NT_SUCCESS(net_ebpf_ext_trace_initiate())) {
+    if (!NT_SUCCESS(ebpf_ext_trace_initiate())) {
         return;
     }
     trace_initiated = true;
@@ -124,7 +125,7 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
     }
 
     if (trace_initiated) {
-        net_ebpf_ext_trace_terminate();
+        ebpf_ext_trace_terminate();
     }
 }
 
