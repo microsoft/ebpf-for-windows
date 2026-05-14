@@ -3819,6 +3819,74 @@ TEST_CASE("ebpf_verification_memory_apis", "[ebpf_api]")
     ebpf_free_string(error_message);
 }
 
+// Test failure slicing output with INFORMATIONAL verbosity on a failing program.
+TEST_CASE("ebpf_verification_failure_slice", "[ebpf_api]")
+{
+    const char* report = nullptr;
+    const char* error_message = nullptr;
+    ebpf_api_verifier_stats_t stats = {};
+
+    // printk_unsafe.o fails verification because it passes a pointer to bpf_printk.
+    uint32_t result = ebpf_api_elf_verify_program_from_file(
+        "printk_unsafe.o",
+        "bind",
+        nullptr,
+        nullptr,
+        EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL,
+        &report,
+        &error_message,
+        &stats);
+
+    // Verification should fail.
+    REQUIRE(result != 0);
+    REQUIRE(error_message != nullptr);
+    REQUIRE(std::string(error_message).find("Verification failed") != std::string::npos);
+
+    // Report should contain failure slice diagnostics.
+    REQUIRE(report != nullptr);
+    std::string report_str(report);
+    REQUIRE(report_str.find("Failure Slice") != std::string::npos);
+    REQUIRE(report_str.find("[ERROR]") != std::string::npos);
+    REQUIRE(report_str.find("[LOCATION]") != std::string::npos);
+    REQUIRE(report_str.find("[CAUSAL TRACE]") != std::string::npos);
+    REQUIRE(report_str.find("Invalid type") != std::string::npos);
+
+    // Stats should report errors.
+    REQUIRE(stats.total_warnings > 0);
+
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
+}
+
+// Test INFORMATIONAL verbosity on a passing program produces no failure slices.
+TEST_CASE("ebpf_verification_informational_success", "[ebpf_api]")
+{
+    const char* report = nullptr;
+    const char* error_message = nullptr;
+    ebpf_api_verifier_stats_t stats = {};
+
+    uint32_t result = ebpf_api_elf_verify_program_from_file(
+        "test_sample_ebpf.o",
+        nullptr,
+        nullptr,
+        nullptr,
+        EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL,
+        &report,
+        &error_message,
+        &stats);
+
+    // Verification should succeed.
+    REQUIRE(result == 0);
+    REQUIRE(report != nullptr);
+    REQUIRE(std::string(report).find("Verification succeeded") != std::string::npos);
+
+    // No failure slices in the output.
+    REQUIRE(std::string(report).find("Failure Slice") == std::string::npos);
+
+    ebpf_free_string(report);
+    ebpf_free_string(error_message);
+}
+
 #define OPERATION_SUCCESS 1
 #define OPERATION_FAILURE 0
 

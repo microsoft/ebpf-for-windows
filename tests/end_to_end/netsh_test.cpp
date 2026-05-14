@@ -503,6 +503,38 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
     test_expected_output_line_by_line(expected_output, output);
 }
 
+TEST_CASE("show verification printk_unsafe.o level=informational", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output = _run_netsh_command(
+        handle_ebpf_show_verification, L"printk_unsafe.o", L"section=bind", L"level=informational", &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+
+    // Failure slice output should contain structured diagnostic markers.
+    REQUIRE(output.find("Verification failed") != std::string::npos);
+    REQUIRE(output.find("Failure Slice") != std::string::npos);
+    REQUIRE(output.find("[ERROR]") != std::string::npos);
+    REQUIRE(output.find("[LOCATION]") != std::string::npos);
+    REQUIRE(output.find("[CAUSAL TRACE]") != std::string::npos);
+    REQUIRE(output.find("Invalid type") != std::string::npos);
+}
+
+TEST_CASE("show verification bpf.o level=informational", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output = run_netsh_command_with_args(
+        handle_ebpf_show_verification, &result, 4, L"bpf.o", L"program=func", L"type=bind", L"level=informational");
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(output.find("Verification succeeded") != std::string::npos);
+}
+
 void
 verify_no_programs_exist()
 {
