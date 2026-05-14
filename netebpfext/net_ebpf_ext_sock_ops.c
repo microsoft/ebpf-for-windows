@@ -207,7 +207,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);
-    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+    EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     local_filter_context->compartment_id = compartment_id;
     local_filter_context->base.filter_ids_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
@@ -224,7 +224,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)local_filter_context,
         &local_filter_context->base.filter_ids);
-    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+    EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     *filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_filter_context;
     local_filter_context = NULL;
@@ -234,7 +234,7 @@ Exit:
         CLEAN_UP_FILTER_CONTEXT(&local_filter_context->base);
     }
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -246,9 +246,9 @@ _net_ebpf_extension_sock_ops_validate_client_data(
 
     // SOCK_OPS hook clients must always provide data.
     if (client_data == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "Attach denied. client data not provided.");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -256,9 +256,9 @@ _net_ebpf_extension_sock_ops_validate_client_data(
 
     if (client_data->data_size > 0) {
         if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
                 "Attach denied. Invalid client data.");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -280,7 +280,7 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
     KIRQL irql;
     LIST_ENTRY local_list_head;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (filter_context == NULL) {
         goto Exit;
@@ -321,14 +321,14 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
         // releases reference on the filter_context.
         NTSTATUS status =
             FwpsFlowRemoveContext(flow_parameters->flow_id, flow_parameters->layer_id, flow_parameters->callout_id);
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowRemoveContext", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowRemoveContext", status);
         ASSERT(status == STATUS_SUCCESS);
     }
 
     net_ebpf_extension_wfp_filter_context_cleanup(filter_context);
 
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
@@ -347,14 +347,14 @@ net_ebpf_ext_sock_ops_register_providers()
         .validate_client_data = _net_ebpf_extension_sock_ops_validate_client_data,
     };
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_program_info_provider_register failed.",
             status);
         goto Exit;
@@ -369,9 +369,9 @@ net_ebpf_ext_sock_ops_register_providers()
         NULL,
         &_ebpf_sock_ops_hook_provider_context);
     if (status != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_hook_provider_register failed.",
             status);
         goto Exit;
@@ -381,7 +381,7 @@ Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_sock_ops_unregister_providers();
     }
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -458,9 +458,9 @@ _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
     if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
         sock_ops_context->process_id = incoming_metadata_values->processId;
     } else {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "FWPS_METADATA_FIELD_PROCESS_ID not present",
             hook_id);
 
@@ -505,9 +505,9 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     }
 
     if (filter_context->base.context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_sock_ops_flow_established_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -515,8 +515,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, local_flow_context, "flow_context", result);
     memset(local_flow_context, 0, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t));
 
     // Associate the filter context with the local flow context.
@@ -534,9 +534,9 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     if (client_compartment_id != UNSPECIFIED_COMPARTMENT_ID &&
         client_compartment_id != sock_ops_context->compartment_id) {
         // The client is not interested in this compartment Id.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "The cgroup_sock_ops eBPF program is not interested in this compartmentId",
             sock_ops_context->compartment_id);
         goto Exit;
@@ -555,31 +555,30 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         local_flow_context->parameters.callout_id,
         (uint64_t)(uintptr_t)local_flow_context);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "FwpsFlowAssociateContext", status);
         goto Exit;
     }
 
     program_result = net_ebpf_extension_hook_invoke_programs(sock_ops_context, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program is attached to this hook.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_WARNING,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_sock_ops_flow_established_classify - No attached client.");
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
             "net_ebpf_extension_sock_ops_flow_established_classify - Program invocation failed.",
             program_result);
         goto Exit;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+    EBPF_EXT_LOG_MESSAGE_UINT64(
+        EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
         "New flow created.",
         local_flow_context->parameters.flow_id);
 
@@ -635,9 +634,9 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     filter_context->flow_context_list.count--;
     KeReleaseSpinLock(&filter_context->lock, irql);
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+    EBPF_EXT_LOG_MESSAGE_UINT64(
+        EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
         "Flow deleted.",
         local_flow_context->parameters.flow_id);
 
@@ -674,16 +673,15 @@ _ebpf_sock_ops_context_create(
 
     // This provider doesn't support data.
     if (data_in != NULL || data_size_in != 0) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Data is not supported");
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Data is not supported");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     // This provider requires context.
     if (context_in == NULL || context_size_in < sizeof(bpf_sock_ops_t)) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Context is required");
+        EBPF_EXT_LOG_MESSAGE(EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -708,7 +706,7 @@ Exit:
         ExFreePool(context_header);
     }
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -719,7 +717,7 @@ _ebpf_sock_ops_context_destroy(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     net_ebpf_sock_ops_t* context_header = NULL;
 
     UNREFERENCED_PARAMETER(data_out);
@@ -741,5 +739,5 @@ _ebpf_sock_ops_context_destroy(
 
     ExFreePool(context_header);
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }

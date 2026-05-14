@@ -245,8 +245,8 @@ ebpf_verify_program(
     std::ostream& os,
     _In_ const prevail::InstructionSeq& prog,
     _In_ const prevail::ProgramInfo& info,
-    _In_ const prevail::ebpf_verifier_options_t& options,
+    _In_ const prevail::VerifierOptions& options,
     _Out_ ebpf_api_verifier_stats_t* stats);
 
-prevail::ebpf_verifier_options_t
+prevail::VerifierOptions
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL);

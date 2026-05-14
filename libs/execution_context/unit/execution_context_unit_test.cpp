@@ -24,10 +24,10 @@ extern "C"
     // - Defined in ebpf_program.c, declared here for unit testing.
     void
     ebpf_program_set_header_context_descriptor(
-        _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context);
+        _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context);
     void
     ebpf_program_get_header_context_descriptor(
-        _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+        _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor);
 }
 
 struct scoped_cpu_affinity
@@ -1723,7 +1723,7 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     context.data_end = test_context_data.data() + test_context_data.size();
 
     void* ctx = &context.data;
-    ebpf_context_descriptor_t context_descriptor = {0};
+    ebpf_ctx_descriptor_t context_descriptor = {0};
     context_descriptor.size = sizeof(context);
     context_descriptor.data = 0;
     context_descriptor.end = EBPF_OFFSET_OF(decltype(context), data_end) - EBPF_OFFSET_OF(decltype(context), data);
@@ -1815,11 +1815,11 @@ TEST_CASE("context_descriptor_header", "[platform][perf_event_array]")
     void* ctx = &context.ctx;
 
     // The context descriptor tells the platform where to find the data pointers.
-    ebpf_context_descriptor_t context_descriptor = {
+    ebpf_ctx_descriptor_t context_descriptor = {
         sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
     ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
 
-    const ebpf_context_descriptor_t* test_ctx_descriptor;
+    const ebpf_ctx_descriptor_t* test_ctx_descriptor;
     ebpf_program_get_header_context_descriptor(ctx, &test_ctx_descriptor);
     REQUIRE(test_ctx_descriptor == &context_descriptor);
 
@@ -2565,7 +2565,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _ebpf_core_initializer core;
     core.initialize();
 
-    ebpf_context_descriptor_t _test_context_descriptor = {sizeof(ebpf_context_descriptor_t), -1, -1, -1};
+    ebpf_ctx_descriptor_t _test_context_descriptor = {sizeof(ebpf_ctx_descriptor_t), -1, -1, -1};
 
     const uint32_t _test_prog_type = 1000;
     ebpf_program_type_descriptor_t _test_program_type_descriptor = {
@@ -2680,7 +2680,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _test_context_descriptor.size = 0;
     test_register_provider(&provider_characteristics);
     // Fix up the context descriptor.
-    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
+    _test_context_descriptor.size = sizeof(ebpf_ctx_descriptor_t);
 
     // Remove the helper function prototype from the program info.
     _test_program_info.program_type_specific_helper_prototype = nullptr;

@@ -235,13 +235,13 @@ The various fields of this structure should be set as follows:
 The various fields of this structure should be set as follows:
 * `header`: Version and size.
 * `name`: Friendly name of the program type.
-* `context_descriptor`: Pointer of type `ebpf_context_descriptor_t`.
+* `context_descriptor`: Pointer of type `ebpf_ctx_descriptor_t`.
 * `program_type`: GUID for the program type. This should be the same as the `NpiId` in `NPI_REGISTRATION_INSTANCE` as
 noted above.
 * `bpf_prog_type`: Set to the equivalent bpf program type integer. If there is no equivalent bpf program type, either add a value to the `bpf_prog_type` enum and assign it here or this field should be set to `0 (BPF_PROG_TYPE_UNSPEC)`.
 * `is_privileged`: Set to `FALSE`.
 
-#### `ebpf_context_descriptor_t` Struct
+#### `ebpf_ctx_descriptor_t` Struct
 This structure (as the name signifies) provides a description of the context parameter that a hook passes when
 invoking an eBPF program. The various fields of this struct are as follows.
 * `header`: Version and size.
@@ -265,7 +265,7 @@ typedef struct _sample_program_context
 ```
 The corresponding context descriptor looks like:
 ```c
-const ebpf_context_descriptor_t g_sample_program_context_descriptor = {sizeof(sample_program_context_t),
+const ebpf_ctx_descriptor_t g_sample_program_context_descriptor = {sizeof(sample_program_context_t),
                                                             EBPF_OFFSET_OF(sample_program_context_t, data_start),
                                                             EBPF_OFFSET_OF(sample_program_context_t, data_end),
                                                             -1};
@@ -565,7 +565,7 @@ When an extension invokes this function pointer, then the call flows through the
 invokes the eBPF program.  When invoking an eBPF program, the extension must supply the client binding context it
 obtained from the Hook NPI client as the `client_binding_context` parameter. For the second parameter `context`, it
 must pass the program type specific context data structure. Note that the Program Information NPI provider supplies
-the context descriptor (using the `ebpf_context_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI
+the context descriptor (using the `ebpf_ctx_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI
 client hosted by the execution context. The `result` output parameter holds the return value from the eBPF program
 post execution.
 
