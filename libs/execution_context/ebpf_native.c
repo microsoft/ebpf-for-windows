@@ -31,7 +31,7 @@ static bpf2c_version_t _ebpf_minimum_version = {0, 21, 0};
 static const bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
 
 // Minimum bpf2c version that supports map_data_t v2 (with array_data field).
-static const bpf2c_version_t _ebpf_version_map_data_v2 = {1, 2, 0};
+static const bpf2c_version_t _ebpf_version_map_data_v2 = {1, 3, 0};
 
 #ifndef __CGUID_H__
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
