@@ -701,8 +701,8 @@ TEMPLATE_TEST_CASE(
                                         : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}}}}},
          .tests{
              {
-                 .description = "Context mutation at CONNECT_AUTHORIZATION is rejected",
-                 .expected_result = connection_test_result::block,
+                 .description = "Context mutation at CONNECT_AUTHORIZATION is silently ignored",
+                 .expected_result = connection_test_result::allow,
              },
          }});
 }

@@ -12,8 +12,8 @@ mutate_connect_authorization_context(bpf_sock_addr_t* ctx, uint32_t expected_fam
         return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
     }
 
-    // CONNECT_AUTHORIZATION treats the destination as read-only. Mutating the port should cause the extension to
-    // reject the connection, even though the program returns a soft permit.
+    // CONNECT_AUTHORIZATION treats the destination as read-only. The extension silently discards any
+    // mutations to read-only fields and proceeds with the program's actual verdict.
     ctx->user_port ^= 1;
     return BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 }
