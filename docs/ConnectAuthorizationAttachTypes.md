@@ -10,6 +10,7 @@ eBPF for Windows already supports several attach types for socket address operat
 
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT` - Inspect outbound connections, with the capability to modify the destination address or port (redirection). Invoked at the redirect layer before route selection.
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT` - Inspect inbound connections on receive/accept and allow or reject them.
+- `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND` - Inspect socket `bind()` operations and allow or reject them. See [BindHook.md](BindHook.md).
 
 However, there was a gap in functionality that required the addition of new attach points.
 
