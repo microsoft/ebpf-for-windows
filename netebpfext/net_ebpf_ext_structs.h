@@ -113,10 +113,10 @@ typedef struct _net_ebpf_extension_hook_client
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
     const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
     ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
-    void* provider_data;                 ///< Opaque pointer to hook specific data associated with this client.
-    PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
-    ebpf_ext_hook_rundown_t rundown;     ///< Pointer to rundown object used to synchronize detach operation.
-    ebpf_attach_type_t attach_type;      ///< Attach type of the eBPF program.
+    void* provider_data;             ///< Opaque pointer to hook specific data associated with this client.
+    PIO_WORKITEM detach_work_item;   ///< Pointer to IO work item that is invoked to detach the client.
+    ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
+    ebpf_attach_type_t attach_type;  ///< Attach type of the eBPF program.
 } net_ebpf_extension_hook_client_t;
 
 typedef struct _net_ebpf_extension_hook_provider

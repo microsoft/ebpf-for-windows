@@ -1650,7 +1650,8 @@ static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict)
 {
     // Check if the updated context is same as the original context.
-    // If it has been modified, then the verdict is to stop processing.
+    // If it has been modified, then the verdict is to stop processing
+    // (except at CONNECT_AUTHORIZATION layers, where modifications are silently ignored).
 
     bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
     net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
@@ -1667,21 +1668,27 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     context->redirected = redirected;
     context->address_changed = address_changed;
 
+    // At CONNECT_AUTHORIZATION layers, context fields are read-only. If a program modified
+    // the destination (IP or port), silently discard the changes and restore the original context.
+    // This matches Linux behavior where writes to read-only context fields are ignored.
+    if (redirected &&
+        (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_INFO,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "CONNECT_AUTHORIZATION program modified read-only context — ignoring changes.");
+        *sock_addr_ctx = *original_context;
+        redirected = FALSE;
+        address_changed = FALSE;
+        context->redirected = FALSE;
+        context->address_changed = FALSE;
+    }
+
     if (_get_verdict_priority(program_verdict) > _get_verdict_priority(context->verdict)) {
         context->verdict = program_verdict;
     }
 
     if (redirected || program_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        // At CONNECT_AUTHORIZATION layers, context is read-only. If a program modified
-        // the context (redirected), override the verdict to REJECT and block the connection.
-        if (redirected &&
-            (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
-            EBPF_EXT_LOG_MESSAGE(
-                EBPF_EXT_TRACELOG_LEVEL_WARNING,
-                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "CONNECT_AUTHORIZATION program attempted redirect — overriding verdict to REJECT.");
-            context->verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-        }
         return FALSE;
     }
 

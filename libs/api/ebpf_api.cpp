@@ -5350,8 +5350,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 // The kernel uses its internally-stored addresses for unmapping, so no user-space
 // addresses need to be provided.
 static _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) 
-    NO_EXCEPT_TRY
+ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) NO_EXCEPT_TRY
 {
     ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
         sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
