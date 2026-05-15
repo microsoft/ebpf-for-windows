@@ -115,12 +115,26 @@ struct connection_test_params
 };
 
 /**
+ * @brief Program attach method for the connection test framework.
+ *
+ * Selects which user-mode API is used to attach the program. Both ultimately
+ * invoke the same kernel attach IOCTL, but they pass different attach
+ * parameters and exercise different libbpf-compat translation paths.
+ */
+enum class attach_method_t
+{
+    ebpf_program_attach, ///< Native API with NULL attach parameter (wildcard / no compartment).
+    bpf_prog_attach,     ///< libbpf-compat API with 4-byte attach parameter containing compartment_id=0.
+};
+
+/**
  * @brief Program specification for attaching.
  */
 struct program_spec
 {
-    std::string_view program_name; ///< Name of the program.
-    bpf_attach_type attach_type;   ///< Attach type for the program.
+    std::string_view program_name;                                       ///< Name of the program.
+    bpf_attach_type attach_type;                                         ///< Attach type for the program.
+    attach_method_t attach_method{attach_method_t::ebpf_program_attach}; ///< Which API to use for attachment.
 };
 
 /**
@@ -151,6 +165,12 @@ struct connection_test_case
 
     std::vector<wfp_test_filter_spec> wfp_filters{}; ///< WFP filters to apply before the tests.
     std::vector<connection_test_params> tests{};     ///< Individual test parameters to execute in order.
+
+    /// Server-side bind address. If unset, the framework chooses a family-appropriate wildcard
+    /// (INADDR_ANY for IPv4-only listen tests, dual-stack/unspecified for other cases). When set,
+    /// the server socket binds to this address and the listen-policy map key uses it for
+    /// `local_ip`. The address family must match `address_family`.
+    std::optional<sockaddr_storage> server_bind_address{};
 };
 
 /**
@@ -349,12 +369,15 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     }
 
     // Determine server socket family. For listen enforcement tests, the server socket must use the
-    // test's address family so that listen() triggers the correct WFP layer (V4 or V6). For all
-    // other tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
+    // test's address family so that listen() triggers the correct WFP layer (V4 or V6). When the
+    // caller specifies an explicit server_bind_address, also restrict to the test's family (the
+    // server is binding a specific address and shouldn't accept the other family). For all other
+    // tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
     // accept connections from both V4 and V6 clients.
     bool is_listen_test = std::any_of(
         test_case.tests.begin(), test_case.tests.end(), [](const auto& t) { return t.listen_verdict.has_value(); });
-    socket_family_t server_family = is_listen_test ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
+    bool use_specific_family = is_listen_test || test_case.server_bind_address.has_value();
+    socket_family_t server_family = use_specific_family ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
     // Attach all programs before executing tests.
     for (auto& mod : loaded_modules) {
@@ -365,9 +388,17 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 std::string(loaded_program.spec.program_name),
                 loaded_program.spec.attach_type,
                 bpf_program__fd(loaded_program.program));
-            ebpf_attach_type_t attach_type_guid{};
-            SAFE_REQUIRE(ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+            if (loaded_program.spec.attach_method == attach_method_t::bpf_prog_attach) {
+                // libbpf-compat path: passes a 4-byte attach parameter containing compartment_id=0.
+                int rc = ::bpf_prog_attach(bpf_program__fd(program), 0, loaded_program.spec.attach_type, 0);
+                SAFE_REQUIRE(rc == 0);
+            } else {
+                // Native API path: passes NULL attach parameter (wildcard / unspecified compartment).
+                ebpf_attach_type_t attach_type_guid{};
+                SAFE_REQUIRE(
+                    ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
+                SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+            }
         }
     }
 
@@ -411,9 +442,19 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         if (test.listen_verdict) {
             SAFE_REQUIRE(listen_map != nullptr);
             // Setup tuple for listen operation — key uses local address/port.
-            // Server socket binds to INADDR_ANY by default, so local_ip stays zero
-            // to match what WFP reports for listen on unspecified address.
+            // When server_bind_address is provided, populate local_ip from it; otherwise the
+            // server binds to INADDR_ANY and WFP reports local_ip as zero.
             connection_tuple_t listen_tuple = {0};
+            if (test_case.server_bind_address) {
+                if (test_case.address_family == AF_INET) {
+                    const sockaddr_in* addr4 = reinterpret_cast<const sockaddr_in*>(&(*test_case.server_bind_address));
+                    listen_tuple.local_ip.ipv4 = addr4->sin_addr.s_addr;
+                } else {
+                    const sockaddr_in6* addr6 =
+                        reinterpret_cast<const sockaddr_in6*>(&(*test_case.server_bind_address));
+                    memcpy(listen_tuple.local_ip.ipv6, &addr6->sin6_addr, sizeof(listen_tuple.local_ip.ipv6));
+                }
+            }
             listen_tuple.local_port = htons(SOCKET_TEST_PORT);
             listen_tuple.protocol = tuple.protocol;
             SAFE_REQUIRE(
@@ -425,12 +466,16 @@ execute_connection_test(_In_ const connection_test_case& test_case)
             int server_bind_error = test.expected_server_bind_error.value_or(0);
             int server_listen_error = test.expected_listen_error.value_or(0);
 
+            // Honor explicit server bind address when provided; otherwise pass an empty sockaddr_storage
+            // which the socket helper interprets as wildcard (INADDR_ANY / dual-stack-as-applicable).
+            sockaddr_storage server_local = test_case.server_bind_address.value_or(sockaddr_storage{});
+
             if (test_case.protocol == IPPROTO_TCP) {
                 server = std::make_unique<stream_server_socket_t>(
                     static_cast<uint16_t>(SOCK_STREAM),
                     IPPROTO_TCP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
-                    sockaddr_storage{},
+                    server_local,
                     server_bind_error,
                     server_listen_error,
                     server_family);
@@ -439,7 +484,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     static_cast<uint16_t>(SOCK_DGRAM),
                     IPPROTO_UDP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
-                    sockaddr_storage{},
+                    server_local,
                     server_bind_error);
             }
 
