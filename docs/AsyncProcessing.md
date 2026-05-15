@@ -1,4 +1,4 @@
-# Async Processing at SOCK_ADDR (v2 proposal)
+# Async Processing at SOCK_ADDR
 
 > **Status:** Working proposal. Goal: a minimal pend/complete
 > primitive in netebpfext with no consumer-specific state machine.
@@ -14,6 +14,7 @@
   - [Notification fails after a successful pend](#notification-fails-after-a-successful-pend)
   - [Stale pends (orchestrator never completes)](#stale-pends-orchestrator-never-completes)
   - [Duplicate completes](#duplicate-completes)
+  - [Cross-client complete attempt](#cross-client-complete-attempt)
   - [Modern standby (Connected Standby / Disconnected Standby)](#modern-standby-connected-standby--disconnected-standby)
 - [Async orchestrator integration guide](#async-orchestrator-integration-guide)
   - [Roles](#roles)
@@ -67,23 +68,48 @@ eBPF program can:
 
 ## Design overview
 
-The proposal is split up into two sections:
+The proposal is split into two sections:
 
-1. A `bpf_pend()` helper that lets a program defer making its verdict. This also allows netebpfext to prepare its internal state
-to later handle the completion.
-2. A bpf custom map **complete_map** to allow the orchestrator to deliver a completion action and inform netebpfext how to proceed.
-This proposes the following initial set of action types (see [COMPLETE overview](#complete-overview) for full semantics):
-   - `REJECT` -- final verdict = REJECT.
-   - `PROCEED_SOFT` / `PROCEED_HARD` -- equivalent to a synchronous return of the same verdict from this slot.
-   - `REINVOKE` -- re-invoke the pended program.
+1. A `bpf_pend()` helper that lets a program defer its verdict;
+   this also lets netebpfext prepare its internal state to
+   handle the eventual completion.
+2. A bpf custom map **complete_map** that the orchestrator
+   writes to deliver a completion action and inform netebpfext
+   how to proceed. Initial action types
+   (see [COMPLETE overview](#complete-overview) for full
+   semantics):
+    - `REJECT` -- final verdict = REJECT.
+    - `PROCEED_SOFT` / `PROCEED_HARD` -- equivalent to a
+      synchronous return of the same verdict from this slot.
+    - `REINVOKE` -- re-invoke the pended program.
+
+Two cross-cutting design tenets shape the contract:
+
+- **Program-declared complete map.** The complete map is
+  declared by the eBPF program itself (in its `.maps` section),
+  not created out-of-band by the orchestrator. Each `bpf_pend()`
+  call binds the pend to the specific complete-map instance the
+  program passes as an argument.
+  See [Complete-map binding](#complete-map-binding).
+- **Cross-client validation at complete time.** The pend entry
+  records the bound complete map; the preprocess callback
+  rejects inserts whose map instance does not match. This
+  bounds the blast radius of a leaked pend key to
+  denial-of-correlation -- an unrelated client cannot drive a
+  completion verdict for someone else's pend.
+  See [Cross-client complete attempt](#cross-client-complete-attempt).
 
 ## PEND overview
 
 **`bpf_pend()` helper.** A program decides to pend by calling:
 
 ```
-int bpf_pend(pend_key_t *out_key);
+int bpf_pend(struct bpf_map *complete_map, pend_key_t *out_key);
 ```
+
+`complete_map` is a pointer to the program-defined complete map
+(see [Complete-map binding](#complete-map-binding) below) that the
+orchestrator will later use to drive resumption.
 
 The helper returns 0 on success and writes a freshly-generated
 pend key to `*out_key`. On failure it returns non-zero and
@@ -139,6 +165,46 @@ dangling waiting on a complete that will never come. See
 - **Opaque handle.** The program and orchestrator should treat it
   as a handle: use it to correlate the pend notification with the
   later complete, but do not interpret or rely on its contents.
+
+**Complete-map binding.** Each pend is bound at install time to
+the specific complete-map instance the program passes to
+`bpf_pend()`. The map is **declared by the eBPF program** (not
+created by the orchestrator out-of-band):
+
+```c
+struct {
+    __uint(type, BPF_MAP_TYPE_PEND_COMPLETE);
+    __type(key, pend_key_t);
+    __type(value, complete_entry_t);
+    __uint(max_entries, 1024);
+} pend_complete_map SEC(".maps");
+```
+
+netebpfext resolves the `complete_map` helper argument (an
+`ebpf_map_t*` handed to the helper by the runtime) to its
+per-map extension context -- the same `map_context` pointer
+netebpfext itself allocated in `preprocess_map_create` for that
+map (see [eBpfExtensions.md][ebpfext-map-context]) -- using the
+standard `map_context_offset` mechanism. It stores that
+context pointer in the internal pend entry alongside the rest
+of the per-pend state, where it serves as the identity used
+later to validate complete-map inserts.
+
+When the orchestrator later inserts into a complete map, the
+preprocess callback receives the per-map context for the map
+carrying the insert. It compares (pointer equality) against the
+context stored in the matching pend entry. A mismatch is
+rejected with `EBPF_ACCESS_DENIED` and the pend entry is left
+untouched. This prevents an unrelated eBPF client from driving
+completion for a pend it did not originate, even if it somehow
+learned the opaque pend key.
+
+[ebpfext-map-context]: ./eBpfExtensions.md#29-helper-functions-that-use-custom-maps
+
+The orchestrator obtains its fd to the program-declared complete
+map through standard discovery (looking it up by name on the
+loaded program object, or via a pinned path) -- no new mechanism
+is introduced.
 
 **Proposed `pend_key` structure.** Strawman:
 
@@ -237,6 +303,13 @@ typedef struct _pend_entry {
                                                // in the chain;
                                                // REINVOKE -> re-enter
                                                // this slot.
+    void* complete_map_context;            // Per-map extension context
+                                           // for the complete map the
+                                           // program passed to
+                                           // bpf_pend(). Used as the
+                                           // identity for cross-client
+                                           // validation; see
+                                           // Complete-map binding.
     uint32_t aggregate_verdict;            // chain-aggregated verdict
                                            // accumulated across prior
                                            // chain slots (priority
@@ -244,8 +317,9 @@ typedef struct _pend_entry {
 
     // Bookkeeping
     pend_lifecycle_t lifecycle;
-    uint64_t insertion_time_ns;            // KeQueryInterruptTime() at
-                                           // pend install; watchdog
+    uint64_t insertion_time;               // KeQueryInterruptTime() at
+                                           // pend install (returns
+                                           // 100-ns units). Watchdog
                                            // compares against a
                                            // system-wide TTL constant.
                                            // Doubles as pend-age telemetry.
@@ -256,11 +330,15 @@ typedef struct _pend_entry {
 
 1. **Program decides to pend.** The program is invoked in the
    chain, determines that the operation needs an async decision,
-   and calls `bpf_pend(&out_key)`.
-2. **netebpfext processes the helper.** Generates the pend key,
-   captures the running chain aggregate (from prior slots in the
-   current classify invocation) into `aggregate_verdict`, and
-   inserts the internal pend entry into the table **before**
+   and calls `bpf_pend(&pend_complete_map, &out_key)`.
+2. **netebpfext processes the helper.** Resolves the
+   `complete_map` argument to its per-map extension context (via
+   the standard `map_context_offset` mechanism), generates the
+   pend key, captures the running chain aggregate (from prior
+   slots in the current classify invocation) into
+   `aggregate_verdict`, builds the internal pend entry
+   (recording the resolved map context, the captured hook
+   context, etc.), and inserts it into the table **before**
    issuing the WFP pend API (so any synchronous callback from
    inside the WFP API can find the entry), then synchronously
    issues the layer-appropriate WFP pend API. On success,
@@ -297,15 +375,17 @@ typedef struct _pend_entry {
 
 **The complete map.** Completion is delivered through a new
 custom map type, `BPF_MAP_TYPE_PEND_COMPLETE`, registered by
-netebpfext. The orchestrator (user-mode) creates an instance
-and signals a completion by inserting an entry. The map is
-purely an orchestrator <-> netebpfext channel -- programs neither
-read nor write it. Netebpfext registers a
+netebpfext. The map is **declared by the eBPF program** (see
+[Complete-map binding](#complete-map-binding)); the orchestrator
+obtains an fd to that program-owned map and signals a completion
+by inserting an entry. The map is purely an
+orchestrator <-> netebpfext channel -- programs neither read nor
+write it. Netebpfext registers a
 `preprocess_map_update_element` provider callback on the map
 type, so each `bpf_map_update_elem` synchronously dispatches
 into the extension on the inserting thread.
 
-The proposed map type, action enum, and value struct:
+The complete map type, action enum, and value struct:
 
 ```c
 // New custom map type registered by netebpfext.
@@ -335,15 +415,6 @@ typedef struct _complete_entry {
     // fields required to process the completion
     ebpf_pend_complete_action_t action;
 } complete_entry_t;
-
-// Orchestrator (user-mode) creates the instance.
-fd_t complete_map_fd = bpf_map_create(
-    BPF_MAP_TYPE_PEND_COMPLETE,
-    "pend_complete_map",
-    sizeof(pend_key_t),       // key (defined in PEND overview)
-    sizeof(complete_entry_t), // value
-    max_outstanding_pends,
-    nullptr);
 ```
 
 **COMPLETE flow.** Focuses on what happens to the two map
@@ -351,24 +422,39 @@ entries (internal pend entry, complete map entry) and when WFP
 completion fires.
 
 1. **Orchestrator inserts into the complete map.** The orchestrator
-   calls `bpf_map_update_elem(&complete_map, &key, &value)` with
-   the pend key from the notification and a `complete_entry_t`
+   calls `bpf_map_update_elem(complete_map_fd, &key, &value, flags)`
+   with the pend key from the notification and a `complete_entry_t`
    carrying the chosen action.
 2. **netebpfext's `preprocess_map_update_element` callback runs.**
-   It looks up the matching internal pend entry, copies the
-   action and any needed state onto a work-item context,
-   transitions the entry's lifecycle to `COMPLETION_PENDING` (so
-   a duplicate insert against the same key fails fast), queues
-   a work item to dispatch the action, and returns success so
-   the orchestrator's `bpf_map_update_elem` call succeeds.
-   Re-entry cannot run inline: the program may immediately
-   re-enter map CRUD which would deadlock.
+   It looks up the matching internal pend entry by `key` and
+   validates the insert. There are three rejection cases, each
+   returned synchronously to the orchestrator's
+   `bpf_map_update_elem` call with no side effect:
+    - **No entry for `key`** -- returns `EBPF_KEY_NOT_FOUND`.
+      Either the key is bogus, or the watchdog already
+      force-completed this pend
+      (see [Stale pends](#stale-pends-orchestrator-never-completes)).
+    - **`map_context` mismatch** -- the per-map context the
+      callback received does not equal the one stored in the
+      entry. Returns `EBPF_ACCESS_DENIED`. See
+      [Cross-client complete attempt](#cross-client-complete-attempt).
+    - **Entry already in `COMPLETION_PENDING`** -- a complete
+      for this key is already being dispatched. Returns
+      `EBPF_OBJECT_ALREADY_EXISTS`. See
+      [Duplicate completes](#duplicate-completes).
+
+   On a valid insert, it copies the action and any needed
+   state onto a work-item context, transitions the entry's
+   lifecycle to `COMPLETION_PENDING`, queues a work item to
+   dispatch the action, and returns success. Re-entry cannot
+   run inline: the program may immediately re-enter map CRUD
+   which would deadlock.
 3. **Work item executes** and removes the complete-map entry,
    then dispatches the recorded action. Removing the complete-map
-   entry first frees the slot so a `REINVOKE` (or a subsequent
-   program in the chain that itself pends and gets completed) can
-   land a new entry without a duplicate-key collision. The pend
-   entry is **not** removed here. Per-action behavior:
+   entry first frees the slot so a `REINVOKE` followed by a
+   re-pend (which symmetrically reuses the **same** pend key)
+   can land a new entry without a duplicate-key collision. The
+   pend entry is **not** removed here. Per-action behavior:
     - `REJECT`: terminal -- proceeds to step 4 with a BLOCK
       verdict. No further programs in the chain are invoked.
     - `PROCEED_SOFT` / `PROCEED_HARD`: scans the current chain for
@@ -413,15 +499,14 @@ The orchestrator never sees this pend.
 A pend can sit indefinitely if the orchestrator crashes,
 deadlocks, or just takes too long. netebpfext periodically walks
 the pend table and force-completes any entry whose age
-(`now - insertion_time_ns`) exceeds a configurable maximum,
+(`now - insertion_time`) exceeds a configurable maximum,
 issuing a `REJECT` verdict. The watchdog is a fail-safe and
 should not be shorter than any expected completion latency.
 
 If the orchestrator does eventually issue a complete for a pend
 that has already been force-completed by the timeout, the
 complete-map insert finds no matching pend entry and is
-rejected at the insert handler with an error returned to the
-orchestrator; no side effect.
+rejected with `EBPF_KEY_NOT_FOUND`; no side effect.
 
 ### Duplicate completes
 
@@ -429,19 +514,33 @@ Nothing prevents an orchestrator from inserting the same pend
 key into the complete map twice (retry, duplicate notification).
 The second insert finds the pend entry already in
 `COMPLETION_PENDING` state (or already removed) and is rejected
-at the insert handler with an error returned to the
-orchestrator; WFP completion runs exactly once per pend.
+with `EBPF_OBJECT_ALREADY_EXISTS` (or `EBPF_KEY_NOT_FOUND` if
+already removed); WFP completion runs exactly once per pend.
+
+### Cross-client complete attempt
+
+If an unrelated eBPF client somehow learns a pend key (leaked
+through telemetry, log, replay, etc.) and tries to drive
+completion through *its own* `BPF_MAP_TYPE_PEND_COMPLETE`
+instance, the preprocess callback finds a pend entry for the
+key but the `map_context` it receives does not match the one
+stored in the entry. The insert is rejected with
+`EBPF_ACCESS_DENIED`, the pend entry is left in `PENDED`
+state, and only the original program's bound complete map can
+drive resumption. This bounds the blast radius of a leaked
+pend key to denial-of-correlation: the attacker cannot drive a
+completion verdict for someone else's pend.
 
 ### Modern standby (Connected Standby / Disconnected Standby)
 
 When the system enters modern standby, the user-mode orchestrator
 may be fully suspended. Any operation already pended at that
 moment cannot be COMPLETEd from user mode, and NDIS / WFP can wait
-indefinitely for the drain -- the canonical symptom is bugcheck
-`0x9F` (`DRIVER_POWER_STATE_FAILURE`). The watchdog
+indefinitely for the drain. The watchdog
 ([Stale pends](#stale-pends-orchestrator-never-completes))
 eventually clears the entries, but its timeout is dimensioned for
-slow orchestrators, not for closing a `0x9F` window in real time.
+slow orchestrators, not for closing the standby-transition window
+in real time.
 
 netebpfext closes this gap directly, without depending on the
 orchestrator:
@@ -455,7 +554,7 @@ orchestrator:
    flips it to `DISABLED`; on leaving standby it flips back.
 3. **`bpf_pend()` short-circuit.** When the flag is `DISABLED`,
    `bpf_pend()` returns a distinct error
-   (`PEND_ERROR_POWER_DISABLED`) before calling
+   (`EBPF_PEND_POWER_DISABLED`) before calling
    `FwpsPendOperation()` -- no internal pend entry, no WFP pend.
    The program returns a non-PEND fallback verdict.
 4. **Drain.** On `ENABLED -> DISABLED`, the same callback queues
@@ -473,7 +572,7 @@ This is netebpfext-side machinery, not part of the
 orchestrator-facing contract -- orchestrators see in-flight pends
 get force-completed with `REJECT` (indistinguishable from the
 watchdog) and `bpf_pend()` calls fail with the
-`PEND_ERROR_POWER_DISABLED` error code while the system is in
+`EBPF_PEND_POWER_DISABLED` error code while the system is in
 standby.
 
 ## Async orchestrator integration guide
@@ -485,14 +584,14 @@ everything else.
 
 ### Roles
 
-| Component        | Role                                                                  |
-|------------------|-----------------------------------------------------------------------|
-| eBPF program     | Calls `bpf_pend()`, dispatches notification, returns `PEND` verdict.  |
-| Decision-maker   | Receives notification, decides, picks the action.                     |
-| Complete-map owner | Owns the complete map FD; inserts `{key, action}` to drive resume.  |
+| Component        | Role                                                                           |
+|------------------|--------------------------------------------------------------------------------|
+| eBPF program     | Declares the complete map, calls `bpf_pend()` with it, dispatches notification, returns `PEND` verdict. |
+| Decision-maker   | Receives notification, decides, picks the action.                              |
+| Complete-map writer | Holds an fd to the program-declared complete map; inserts `{key, action}` to drive resume. |
 
 The eBPF program runs in-kernel; the decision-maker and
-complete-map owner can be the same user-mode process, separate
+complete-map writer can be the same user-mode process, separate
 processes, or a kernel driver.
 
 ### Notification mechanism (consumer's choice)
@@ -513,4 +612,4 @@ netebpfext-internal pend table or the complete map.
 ### Cleanup responsibilities
 
 - **Stale pends.** Orchestrator ages out its own tracking and issues `REJECT`; the kernel watchdog is the backstop.
-- **Orchestrator restart.** No kernel-side pend enumeration -- in-flight pends are force-completed by the watchdog unless the orchestrator persists state and re-issues completes.
+- **Orchestrator restart.** No kernel-side pend enumeration is exposed. In-flight pends remain bound to the original complete map's `map_context`; whether a restarted orchestrator can drive them to completion depends entirely on whether it can re-acquire that same map. Pends it cannot reach are force-completed by the watchdog.
