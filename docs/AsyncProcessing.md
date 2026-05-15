@@ -15,7 +15,7 @@
   - [Stale pends (orchestrator never completes)](#stale-pends-orchestrator-never-completes)
   - [Duplicate completes](#duplicate-completes)
   - [Cross-client complete attempt](#cross-client-complete-attempt)
-  - [Modern standby (Connected Standby / Disconnected Standby)](#modern-standby-connected-standby--disconnected-standby)
+  - [Pended operations and OS resource handling](#pended-operations-and-os-resource-handling)
 - [Async orchestrator integration guide](#async-orchestrator-integration-guide)
   - [Roles](#roles)
   - [Notification mechanism (consumer's choice)](#notification-mechanism-consumers-choice)
@@ -531,49 +531,41 @@ drive resumption. This bounds the blast radius of a leaked
 pend key to denial-of-correlation: the attacker cannot drive a
 completion verdict for someone else's pend.
 
-### Modern standby (Connected Standby / Disconnected Standby)
+### Pended operations and OS resource handling
 
-When the system enters modern standby, the user-mode orchestrator
-may be fully suspended. Any operation already pended at that
-moment cannot be COMPLETEd from user mode, and NDIS / WFP can wait
-indefinitely for the drain. The watchdog
-([Stale pends](#stale-pends-orchestrator-never-completes))
-eventually clears the entries, but its timeout is dimensioned for
-slow orchestrators, not for closing the standby-transition window
-in real time.
+A pend may outlive any single classifyFn invocation and must
+remain safe to hold across system events such as modern standby
+(Connected Standby / Disconnected Standby) and S0-low-power
+transitions. The pend itself is cheap (just an entry in the
+internal pend table); what is **not** safe is keeping a reference
+to a transient OS resource -- most notably an `NET_BUFFER_LIST`
+delivered to a classify callout -- pinned for the duration of the
+pend. Holding such resources can stall NDIS / WFP teardown and
+block the OS from completing a power transition.
 
-netebpfext closes this gap directly, without depending on the
-orchestrator:
+The extension is therefore responsible, **at PEND time**, for
+releasing references to any per-callout OS resources that the WFP
+layer would otherwise pin. Concrete per-layer requirements live
+with the layer integration (see the WESP doc's per-layer sections
+for the WFP layers in scope), but the general rule is:
 
-1. **Power-notification registration.** netebpfext registers for
-   system-power transitions (`PoRegisterPowerSettingCallback` and
-   related kernel-mode notifications; exact callback set is an
-   implementation detail). Callback runs at `PASSIVE_LEVEL`.
-2. **Internal pend-disabled flag.** A per-extension interlocked
-   flag (default: `ENABLED`). On entering standby the callback
-   flips it to `DISABLED`; on leaving standby it flips back.
-3. **`bpf_pend()` short-circuit.** When the flag is `DISABLED`,
-   `bpf_pend()` returns a distinct error
-   (`EBPF_PEND_POWER_DISABLED`) before calling
-   `FwpsPendOperation()` -- no internal pend entry, no WFP pend.
-   The program returns a non-PEND fallback verdict.
-4. **Drain.** On `ENABLED -> DISABLED`, the same callback queues
-   a worker that walks the netebpfext-internal pend table and
-   drives the standard synthesized `REJECT` dispatch (the same
-   path the watchdog uses) for every entry. The worker waits for
-   the table to drain to empty before allowing the power callback
-   to return success, so the OS does not advance the standby
-   transition until WFP has been released for every in-flight
-   pend.
-5. **Resume.** On `DISABLED -> ENABLED`, just clear the flag; the
-   table is already empty.
+- Layers that carry no transient resource on the pended callout
+  (e.g., AUTH_CONNECT for TCP, where there is no `layerData`)
+  require nothing extra -- the pend is already safe.
+- Layers that carry a transient resource (e.g., AUTH_RECV_ACCEPT,
+  DATAGRAM_DATA, or AUTH_CONNECT for UDP, all of which deliver an
+  `NET_BUFFER_LIST` via `layerData`) must deep-copy / clone the
+  resource (`FwpsAllocateCloneNetBufferList` for NBLs) and release
+  the reference to the original before returning from
+  `classifyFn`. Any subsequent reinject uses the clone.
 
-This is netebpfext-side machinery, not part of the
-orchestrator-facing contract -- orchestrators see in-flight pends
-get force-completed with `REJECT` (indistinguishable from the
-watchdog) and `bpf_pend()` calls fail with the
-`EBPF_PEND_POWER_DISABLED` error code while the system is in
-standby.
+There is no separate kernel-side drain mechanism for in-flight
+pends across power transitions and no PEND-side power-state error
+code -- correctness is achieved by not pinning the OS resource in
+the first place. The stale-pend watchdog
+([Stale pends](#stale-pends-orchestrator-never-completes)) remains
+the only kernel-side cleanup path; orchestrator-driven completion
+is otherwise unchanged across power transitions.
 
 ## Async orchestrator integration guide
 
