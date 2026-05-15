@@ -216,6 +216,10 @@ enum bpf_prog_type
      *  \ref BPF_CGROUP_INET6_CONNECT
      *  \ref BPF_CGROUP_INET4_RECV_ACCEPT
      *  \ref BPF_CGROUP_INET6_RECV_ACCEPT
+     *  \ref BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+     *  \ref BPF_CGROUP_INET6_CONNECT_AUTHORIZATION
+     *  \ref BPF_CGROUP_INET4_BIND
+     *  \ref BPF_CGROUP_INET6_BIND
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
@@ -365,6 +369,18 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */
     BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+
+    /** @brief Attach type for handling IPv4 socket bind() requests.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_BIND,
+
+    /** @brief Attach type for handling IPv6 socket bind() requests.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_BIND,
 
     __MAX_BPF_ATTACH_TYPE,
 };

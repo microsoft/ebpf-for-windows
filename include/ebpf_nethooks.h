@@ -217,6 +217,8 @@ EBPF_HELPER(int, bpf_sock_addr_get_network_context, (bpf_sock_addr_t * ctx, void
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION
  *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_BIND
+ *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_BIND
  *
  * @param[in] context \ref bpf_sock_addr_t
  * @retval BPF_SOCK_ADDR_VERDICT_REJECT Block the socket operation. Maps to a hard block in WFP.
