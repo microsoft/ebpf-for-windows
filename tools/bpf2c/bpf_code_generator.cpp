@@ -370,19 +370,33 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& program_na
 
     program.generate_labels();
     program.build_function_table();
-    program.encode_instructions(map_definitions, global_variable_sections);
+    // Note: encode_instructions() is deferred to build_global_helper_index()
+    // so that helper function indices can be remapped to a global index first.
 }
 
 std::vector<int32_t>
 bpf_code_generator::get_helper_ids(const bpf_code_generator::unsafe_string& program_name)
 {
+    std::set<int32_t> helper_id_set;
+
+    // Add this program's own helpers.
     bpf_code_generator_program& program = programs[program_name];
-    std::vector<int32_t> helper_ids;
     for (const auto& [name, helper] : program.helper_functions) {
-        helper_ids.push_back(helper.id);
+        helper_id_set.insert(helper.id);
     }
 
-    return helper_ids;
+    // Add helpers from all transitively reachable subprograms.
+    auto reachable = get_reachable_subprograms(program_name);
+    for (const auto& sub_name : reachable) {
+        auto it = programs.find(sub_name);
+        if (it != programs.end()) {
+            for (const auto& [name, helper] : it->second.helper_functions) {
+                helper_id_set.insert(helper.id);
+            }
+        }
+    }
+
+    return std::vector<int32_t>(helper_id_set.begin(), helper_id_set.end());
 }
 
 void
@@ -394,6 +408,13 @@ bpf_code_generator::extract_program(
         reinterpret_cast<const ebpf_inst*>(program_info->raw_data + program_info->raw_data_size)};
 
     bpf_code_generator_program& program = programs[program_info->program_name];
+
+    // A subprogram can be discovered from multiple entry points. Parse each
+    // program exactly once so output_instructions/function tables are not
+    // duplicated.
+    if (!program.output_instructions.empty()) {
+        return;
+    }
 
     uint32_t offset = 0;
     size_t end_index = instructions.size();
@@ -911,6 +932,105 @@ bpf_code_generator::is_subprogram(const bpf_code_generator_program& program) con
     return (programs.size() > 1 && program.elf_section_name == ".text");
 }
 
+std::set<bpf_code_generator::unsafe_string>
+bpf_code_generator::get_reachable_subprograms(const unsafe_string& entry_name) const
+{
+    std::set<unsafe_string> reachable;
+    std::vector<unsafe_string> worklist;
+    worklist.push_back(entry_name);
+    while (!worklist.empty()) {
+        auto current = worklist.back();
+        worklist.pop_back();
+        auto it = programs.find(current);
+        if (it == programs.end()) {
+            continue;
+        }
+        for (const auto& inst : it->second.output_instructions) {
+            if (inst.instruction.opcode == INST_OP_CALL && inst.instruction.src == INST_CALL_LOCAL &&
+                !inst.relocation.empty() && reachable.find(inst.relocation) == reachable.end()) {
+                reachable.insert(inst.relocation);
+                worklist.push_back(inst.relocation);
+            }
+        }
+    }
+    return reachable;
+}
+
+void
+bpf_code_generator::build_global_helper_index()
+{
+    // Check if the module has any subprograms (.text section functions).
+    bool has_subprograms = false;
+    for (const auto& [_, program] : programs) {
+        if (is_subprogram(program)) {
+            has_subprograms = true;
+            break;
+        }
+    }
+
+    if (!has_subprograms) {
+        // No subprograms — encode instructions with original per-program ordering.
+        global_helpers_ordered.clear();
+        for (auto& [prog_name, program] : programs) {
+            if (program.output_instructions.size() > 0) {
+                program.encode_instructions(map_definitions, global_variable_sections);
+            }
+        }
+        return;
+    }
+
+    // Module has subprograms. Build a global helper index so that entry programs
+    // and their reachable subprograms share consistent helper_data[] indices.
+    // Collect all unique helpers across all programs (entry + sub), keyed by helper_id.
+    // Using std::map<int32_t, ...> gives us sorted-by-id order for deterministic output.
+    std::map<int32_t, unsafe_string> all_helpers;
+    for (const auto& [prog_name, program] : programs) {
+        for (const auto& [name, helper] : program.helper_functions) {
+            if (all_helpers.find(helper.id) == all_helpers.end()) {
+                all_helpers[helper.id] = name;
+            }
+        }
+    }
+
+    // Build ordered list: position in vector = global index.
+    global_helpers_ordered.clear();
+    std::map<int32_t, size_t> id_to_global_index;
+    size_t index = 0;
+    for (const auto& [id, name] : all_helpers) {
+        global_helpers_ordered.push_back({name, id});
+        id_to_global_index[id] = index++;
+    }
+
+    // Remap each program's helper_functions to use global indices.
+    for (auto& [prog_name, program] : programs) {
+        for (auto& [name, helper] : program.helper_functions) {
+            helper.index = id_to_global_index[helper.id];
+        }
+    }
+
+    // Now encode instructions for all programs (deferred from generate()).
+    for (auto& [prog_name, program] : programs) {
+        if (program.output_instructions.size() > 0) {
+            program.encode_instructions(map_definitions, global_variable_sections);
+        }
+    }
+
+    // Propagate map references from reachable subprograms to entry programs.
+    for (auto& [prog_name, program] : programs) {
+        if (program.output_instructions.size() == 0 || is_subprogram(program)) {
+            continue;
+        }
+        auto reachable = get_reachable_subprograms(prog_name);
+        for (const auto& sub_name : reachable) {
+            auto it = programs.find(sub_name);
+            if (it != programs.end()) {
+                program.referenced_map_indices.insert(
+                    it->second.referenced_map_indices.begin(), it->second.referenced_map_indices.end());
+            }
+        }
+    }
+}
+
 void
 bpf_code_generator::extract_relocations_and_maps(_In_ const struct _ebpf_api_program_info* program)
 {
@@ -1055,21 +1175,30 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
 
     // Gather helper_functions.
     size_t index = 0;
+    std::map<int32_t, size_t> id_to_index;
     for (auto& output : program_output) {
         if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {
             continue;
         }
-        bpf_code_generator::unsafe_string name;
-        if (!output.relocation.empty()) {
-            name = output.relocation;
+
+        int32_t helper_id = output.instruction.imm;
+        size_t helper_index;
+        auto existing_index = id_to_index.find(helper_id);
+        if (existing_index == id_to_index.end()) {
+            helper_index = index++;
+            id_to_index[helper_id] = helper_index;
         } else {
-            name = "helper_id_";
-            name += std::to_string(output.instruction.imm);
+            helper_index = existing_index->second;
         }
 
-        if (helper_functions.find(name) == helper_functions.end()) {
-            int32_t helper_id = output.instruction.imm;
-            helper_functions[name] = {helper_id, index++};
+        // Always maintain a canonical helper_id_<imm> entry.
+        bpf_code_generator::unsafe_string canonical_name = "helper_id_";
+        canonical_name += std::to_string(helper_id);
+        helper_functions[canonical_name] = {helper_id, helper_index};
+
+        // Also keep the relocation alias (if any) mapped to the same index.
+        if (!output.relocation.empty()) {
+            helper_functions[output.relocation] = {helper_id, helper_index};
         }
     }
 }
@@ -1568,18 +1697,14 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
             } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_STATIC_HELPER) {
                 std::string function_name;
                 int32_t helper_id;
-                if (output.relocation.empty()) {
-                    auto& helper = helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
-                    auto str = std::to_string(helper.index);
-                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
-                    helper_id = helper.id;
-                } else {
-                    auto helper_function = helper_functions.find(output.relocation);
-                    assert(helper_function != helper_functions.end());
-                    auto str = std::to_string(helper_function->second.index);
-                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
-                    helper_id = helper_function->second.id;
+                auto helper_function = helper_functions.find("helper_id_" + std::to_string(output.instruction.imm));
+                if (helper_function == helper_functions.end() && !output.relocation.empty()) {
+                    helper_function = helper_functions.find(output.relocation);
                 }
+                assert(helper_function != helper_functions.end());
+                auto str = std::to_string(helper_function->second.index);
+                function_name = std::vformat(helper_array_prefix, make_format_args(str));
+                helper_id = helper_function->second.id;
 
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
@@ -1623,7 +1748,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + "(" + get_register_name(1) + ", " +
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ", " + get_register_name(10) + ", context);");
+                    get_register_name(5) + ", " + get_register_name(10) + ", context, runtime_context);");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -1654,7 +1779,8 @@ bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_
     // Emit entry point.
     output_stream << prolog_line_info << "static uint64_t\n"
                   << subprogram.program_name.c_identifier()
-                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)"
+                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, "
+                     "const program_runtime_context_t* runtime_context)"
                   << std::endl;
     output_stream << prolog_line_info << "{" << std::endl;
 
@@ -1677,6 +1803,9 @@ bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_
     if (subprogram.helper_functions.size() == 0) {
         // Avoid unused parameter warning.
         output_stream << prolog_line_info << INDENT "(void)context;" << std::endl;
+    }
+    if (subprogram.referenced_map_indices.size() == 0 && subprogram.helper_functions.size() == 0) {
+        output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
     }
     output_stream << std::endl;
 
@@ -1931,6 +2060,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     // Get count of programs not including subprograms.
     size_t program_count = 0;
+    bool subprograms_emitted = false;
     for (auto& [name, program] : programs) {
         if (program.output_instructions.size() == 0) {
             continue;
@@ -1941,6 +2071,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         program_count++;
     }
 
+    // Build a global helper function index across all programs in the module and
+    // encode instructions (deferred from generate() to allow global index assignment).
+    build_global_helper_index();
+
     for (auto& [name, program] : programs) {
         if (program.output_instructions.size() == 0) {
             continue;
@@ -1948,35 +2082,91 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         auto program_name = !program.program_name.empty() ? program.program_name : name;
 
-        // Emit program-specific helper function array.
-        if (program.helper_functions.size() > 0) {
+        // Skip subprograms — their helpers are included in the entry program's helper array.
+        if (is_subprogram(program)) {
+            continue;
+        }
+
+        // Emit the helper function array for this entry program.
+        // When subprograms exist, emit the full global helper array for every entry
+        // program so helper_data[] indices stay dense and consistent with encoded calls.
+        // When no subprograms exist, emit the program's own helpers in original order.
+        if (!global_helpers_ordered.empty()) {
+            // Subprogram mode: use global index ordering so shared subprograms see
+            // consistent helper_data[] indices.  Entries for helpers that this entry
+            // program does NOT transitively use are emitted as sentinels
+            // (helper_id = 0, name = "") so the native loader can skip them during
+            // resolution and hash computation.
             std::string helper_array_name = program_name.c_identifier() + "_helpers";
             output_stream << "static helper_function_entry_t " << helper_array_name << "[] = {" << std::endl;
 
-            // Functions are emitted in the order in which they occur in the byte code.
-            std::vector<std::tuple<bpf_code_generator::unsafe_string, uint32_t>> index_ordered_helpers;
-            index_ordered_helpers.resize(program.helper_functions.size());
-            for (const auto& function : program.helper_functions) {
-                index_ordered_helpers[function.second.index] = std::make_tuple(function.first, function.second.id);
-            }
+            // Build the set of helper IDs this entry program actually needs.
+            auto transitive_ids = get_helper_ids(program_name);
+            std::set<int32_t> transitive_id_set(transitive_ids.begin(), transitive_ids.end());
 
-            for (const auto& [helper_name, id] : index_ordered_helpers) {
+            for (const auto& [helper_name, id] : global_helpers_ordered) {
+                bool used = transitive_id_set.count(id) > 0;
                 output_stream << INDENT "{" << std::endl;
                 output_stream << INDENT " {" << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION << ", "
                               << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
                               << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
                               << " // Version header." << std::endl;
-                output_stream << INDENT " " << id << "," << std::endl;
+                if (used) {
+                    output_stream << INDENT " " << id << "," << std::endl;
+                    output_stream << INDENT " " << helper_name.quoted() << "," << std::endl;
+                } else {
+                    output_stream << INDENT " 0," << std::endl;
+                    output_stream << INDENT " \"\"," << std::endl;
+                }
+                output_stream << INDENT "}," << std::endl;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        } else if (program.helper_functions.size() > 0) {
+            // No subprograms: emit helpers in helper.index order so helper_data[]
+            // layout matches encoded helper call indices.
+            std::string helper_array_name = program_name.c_identifier() + "_helpers";
+            output_stream << "static helper_function_entry_t " << helper_array_name << "[] = {" << std::endl;
+
+            std::map<size_t, std::pair<unsafe_string, int32_t>> helpers_by_index;
+            for (const auto& [helper_name, helper] : program.helper_functions) {
+                auto [it, inserted] = helpers_by_index.insert({helper.index, {helper_name, helper.id}});
+                if (!inserted && it->second.second != helper.id) {
+                    throw bpf_code_generator_exception("helper index maps to multiple helper IDs");
+                }
+                if (!inserted) {
+                    // Prefer canonical helper_id_* names when aliases share the same helper index.
+                    if (helper_name.raw().rfind("helper_id_", 0) == 0) {
+                        it->second.first = helper_name;
+                    }
+                }
+            }
+
+            size_t expected_index = 0;
+            std::vector<std::pair<unsafe_string, int32_t>> ordered_helpers;
+            ordered_helpers.reserve(helpers_by_index.size());
+            for (const auto& [index, helper_pair] : helpers_by_index) {
+                if (index != expected_index) {
+                    throw bpf_code_generator_exception("helper index is not dense");
+                }
+                ordered_helpers.push_back(helper_pair);
+                expected_index++;
+            }
+
+            for (const auto& [helper_name, helper_id] : ordered_helpers) {
+                output_stream << INDENT "{" << std::endl;
+                output_stream << INDENT " {" << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION << ", "
+                              << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
+                              << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
+                              << " // Version header." << std::endl;
+                output_stream << INDENT " " << helper_id << "," << std::endl;
                 output_stream << INDENT " " << helper_name.quoted() << "," << std::endl;
                 output_stream << INDENT "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
             output_stream << std::endl;
-        }
-
-        if (is_subprogram(program)) {
-            continue;
         }
 
         if (programs.size() > program_count) {
@@ -1986,7 +2176,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     output_stream << "static uint64_t" << std::endl;
                     output_stream << subprogram.program_name.c_identifier()
                                   << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, "
-                                     "void* context);"
+                                     "void* context, const program_runtime_context_t* runtime_context);"
                                   << std::endl;
                 }
             }
@@ -2083,7 +2273,17 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                       << std::endl;
         output_stream << prolog_line_info << INDENT "" << program.get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
-        if (program.referenced_map_indices.size() == 0 && program.helper_functions.size() == 0) {
+        size_t entry_helper_count = 0;
+        if (!global_helpers_ordered.empty()) {
+            entry_helper_count = global_helpers_ordered.size();
+        } else {
+            std::set<size_t> helper_indices;
+            for (const auto& [_, helper] : program.helper_functions) {
+                helper_indices.insert(helper.index);
+            }
+            entry_helper_count = helper_indices.size();
+        }
+        if (program.referenced_map_indices.size() == 0 && entry_helper_count == 0) {
             output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
         }
         output_stream << std::endl;
@@ -2096,11 +2296,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
 
-        // Emit subprograms.
-        for (auto& [_, subprogram] : programs) {
-            if (is_subprogram(subprogram)) {
-                emit_subprogram(output_stream, subprogram);
+        // Emit subprograms once. Multiple entry programs can share the same
+        // local-call graph, so re-emitting every subprogram per entry creates
+        // duplicate static function definitions in generated C.
+        if (!subprograms_emitted) {
+            for (auto& [_, subprogram] : programs) {
+                if (is_subprogram(subprogram)) {
+                    emit_subprogram(output_stream, subprogram);
+                }
             }
+            subprograms_emitted = true;
         }
     }
 
@@ -2113,7 +2318,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
             auto program_name = !program.program_name.empty() ? program.program_name : name;
             size_t map_count = program.referenced_map_indices.size();
-            size_t helper_count = program.helper_functions.size();
+            size_t helper_count = 0;
+            if (!global_helpers_ordered.empty()) {
+                helper_count = global_helpers_ordered.size();
+            } else {
+                std::set<size_t> helper_indices;
+                for (const auto& [_, helper] : program.helper_functions) {
+                    helper_indices.insert(helper.index);
+                }
+                helper_count = helper_indices.size();
+            }
             auto map_array_name = map_count ? (program_name.c_identifier() + "_maps") : "NULL";
             auto helper_array_name = helper_count ? (program_name.c_identifier() + "_helpers") : "NULL";
             auto program_type_guid_name = program_name.c_identifier() + "_program_type_guid";
@@ -2132,7 +2346,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << map_array_name << "," << std::endl;
             output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
-            output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
+            output_stream << INDENT INDENT << helper_count << "," << std::endl;
             output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
