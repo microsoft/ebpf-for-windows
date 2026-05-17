@@ -316,7 +316,7 @@ _ebpf_store_update_program_descriptor(
         descriptor_key,
         EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
         (uint8_t*)program_type_descriptor->context_descriptor,
-        sizeof(ebpf_context_descriptor_t));
+        sizeof(ebpf_ctx_descriptor_t));
     if (!IS_SUCCESS(result)) {
         return result;
     }

@@ -18,6 +18,7 @@ extern "C"
 #include "Verifier.h"
 #include "verifier_service.h"
 #include "windows_platform.hpp"
+#include "windows_platform_common.hpp"
 
 #include <format>
 #include <map>
@@ -98,6 +99,7 @@ _build_helper_id_to_address_map(
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
     const std::map<uint32_t, helper_function_address_t>& helper_id_to_address,
+    const prevail::EbpfProgramType& program_type,
     uint32_t& unwind_index)
 {
     // Note:
@@ -130,7 +132,7 @@ _build_helper_id_to_address_map(
         instruction.imm = helper_id_mapping[instruction.imm];
     }
     for (auto& [old_helper_id, new_helper_id] : helper_id_mapping) {
-        if (get_helper_prototype_windows(old_helper_id).return_type !=
+        if (get_helper_prototype_windows(old_helper_id, program_type).return_type !=
             EBPF_RETURN_TYPE_INTEGER_OR_NO_RETURN_IF_SUCCEED) {
             continue;
         }
@@ -348,7 +350,13 @@ ebpf_verify_and_load_program(
         }
 
         uint32_t unwind_index;
-        result = _build_helper_id_to_address_map(instructions, instruction_count, helper_id_to_address, unwind_index);
+        const prevail::EbpfProgramType* ebpf_program_type = get_program_type_windows(*program_type);
+        if (ebpf_program_type == nullptr) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        result = _build_helper_id_to_address_map(
+            instructions, instruction_count, helper_id_to_address, *ebpf_program_type, unwind_index);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }

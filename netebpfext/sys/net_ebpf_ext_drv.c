@@ -49,7 +49,7 @@ _net_ebpf_ext_driver_uninitialize_objects()
 
     net_ebpf_ext_uninitialize_ndis_handles();
 
-    net_ebpf_ext_trace_terminate();
+    ebpf_ext_trace_terminate();
 
     if (_net_ebpf_ext_device != NULL) {
         WdfObjectDelete(_net_ebpf_ext_device);
@@ -83,7 +83,7 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
 
     status = WdfDriverCreate(driver_object, registry_path, WDF_NO_OBJECT_ATTRIBUTES, &driver_configuration, &driver);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDriverCreate", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDriverCreate", status);
         goto Exit;
     }
 
@@ -93,8 +93,7 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     );
     if (!device_initialize) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfControlDeviceInitAllocate", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfControlDeviceInitAllocate", status);
         goto Exit;
     }
 
@@ -107,13 +106,13 @@ _net_ebpf_ext_driver_initialize_objects(_Inout_ DRIVER_OBJECT* driver_object, _I
     RtlInitUnicodeString(&ebpf_device_name, NET_EBPF_EXT_DEVICE_NAME);
     status = WdfDeviceInitAssignName(device_initialize, &ebpf_device_name);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceInitAssignName", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceInitAssignName", status);
         goto Exit;
     }
 
     status = WdfDeviceCreate(&device_initialize, WDF_NO_OBJECT_ATTRIBUTES, &_net_ebpf_ext_device);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceCreate", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_BASE, "WdfDeviceCreate", status);
         // Do not free if any other call after WdfDeviceCreate fails.
         WdfDeviceInitFree(device_initialize);
         device_initialize = NULL;
@@ -146,14 +145,14 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 {
     NTSTATUS status;
 
-    status = net_ebpf_ext_trace_initiate();
+    status = ebpf_ext_trace_initiate();
     if (!NT_SUCCESS(status)) {
         // Fail silently as there is no other mechanism to indicate this failure. Note that in this case, the
-        // NET_EBPF_EXT_LOG_EXIT() call at the end will not log anything either.
+        // EBPF_EXT_LOG_EXIT() call at the end will not log anything either.
         goto Exit;
     }
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     // Request NX Non-Paged Pool when available
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
@@ -166,14 +165,13 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     // Log the version of the driver.
     // This is useful for debugging purposes and to ensure that the version string is present in the binary.
-    NET_EBPF_EXT_LOG_MESSAGE(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, net_ebpf_ext_version);
+    EBPF_EXT_LOG_MESSAGE(EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_BASE, net_ebpf_ext_version);
 
 Exit:
     if (!NT_SUCCESS(status)) {
         _net_ebpf_ext_driver_uninitialize_objects();
     }
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
     return status;
 }

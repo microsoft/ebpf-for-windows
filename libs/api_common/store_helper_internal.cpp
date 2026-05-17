@@ -143,7 +143,7 @@ _ebpf_store_load_program_type_descriptor(
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY program_type_descriptor_key = nullptr;
     wchar_t* program_type_name = nullptr;
-    ebpf_context_descriptor_t* context_descriptor = nullptr;
+    ebpf_ctx_descriptor_t* context_descriptor = nullptr;
     uint32_t is_privileged = false;
     uint32_t bpf_program_type = 0;
     ebpf_program_type_descriptor_t* local_program_type_descriptor = nullptr;
@@ -163,8 +163,8 @@ _ebpf_store_load_program_type_descriptor(
     }
 
     // Allocate the program type descriptor.
-    local_program_type_descriptor =
-        (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    local_program_type_descriptor = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
+        sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (local_program_type_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -197,7 +197,8 @@ _ebpf_store_load_program_type_descriptor(
     }
 
     // Allocate and read context descriptor.
-    context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+    context_descriptor =
+        (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -206,7 +207,7 @@ _ebpf_store_load_program_type_descriptor(
         program_type_descriptor_key,
         EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
         (uint8_t*)context_descriptor,
-        sizeof(ebpf_context_descriptor_t));
+        sizeof(ebpf_ctx_descriptor_t));
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -276,7 +277,8 @@ _ebpf_store_load_program_information(
     }
 
     // Allocate the program information struct.
-    program_information = (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
+    program_information =
+        (ebpf_program_info_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_info_t), EBPF_POOL_TAG_DEFAULT);
     if (program_information == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -352,8 +354,8 @@ _ebpf_store_load_program_information(
             goto Exit;
         }
 
-        ebpf_helper_function_prototype_t* helper_prototype =
-            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+        ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+            helper_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
         if (helper_prototype == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -594,7 +596,8 @@ _load_section_data_information(
             goto Exit;
         }
 
-        section_information = (ebpf_section_definition_t*)ebpf_allocate_with_tag(sizeof(ebpf_section_definition_t), EBPF_POOL_TAG_DEFAULT);
+        section_information = (ebpf_section_definition_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_section_definition_t), EBPF_POOL_TAG_DEFAULT);
         if (section_information == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -800,8 +803,8 @@ ebpf_store_load_global_helper_information(
         goto Exit;
     }
 
-    helper_prototype =
-        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(max_helpers_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
+        max_helpers_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
     if (helper_prototype == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;

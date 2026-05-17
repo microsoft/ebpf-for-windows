@@ -15,7 +15,7 @@
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
-static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
+static const ebpf_ctx_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),
     EBPF_OFFSET_OF(sample_program_context_t, data_start),
     EBPF_OFFSET_OF(sample_program_context_t, data_end),

@@ -69,7 +69,7 @@
     <ClInclude Include="..\net_ebpf_ext_structs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\net_ebpf_ext_tracelog.h">
+    <ClInclude Include="..\..\external\ebpf-extension-common\include\ebpf_ext_tracelog.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\net_ebpf_ext_xdp.h">
