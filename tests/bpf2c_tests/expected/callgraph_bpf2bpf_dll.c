@@ -59,7 +59,7 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static helper_function_entry_t ThemeEntryOne_helpers[] = {
+static helper_function_entry_t entry_program1_helpers[] = {
     {
      {1, 40, 40}, // Version header.
      9,
@@ -82,13 +82,13 @@ ScenarioS3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint
 static uint64_t
 ScenarioS4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 
-static GUID ThemeEntryOne_program_type_guid = {
+static GUID entry_program1_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID ThemeEntryOne_attach_type_guid = {
+static GUID entry_program1_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind")
+#pragma code_seg(push, "bind/1")
 static uint64_t
-ThemeEntryOne(void* context, const program_runtime_context_t* runtime_context)
+entry_program1(void* context, const program_runtime_context_t* runtime_context)
 #line 73 "sample/callgraph_bpf2bpf.c"
 {
 #line 73 "sample/callgraph_bpf2bpf.c"
@@ -294,7 +294,7 @@ ScenarioS4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint
 #line 38 "sample/callgraph_bpf2bpf.c"
     return r0;
 }
-static helper_function_entry_t ThemeEntryTwo_helpers[] = {
+static helper_function_entry_t entry_program2_helpers[] = {
     {
      {1, 40, 40}, // Version header.
      0,
@@ -317,84 +317,84 @@ ScenarioS3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint
 static uint64_t
 ScenarioS4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 
-static GUID ThemeEntryTwo_program_type_guid = {
+static GUID entry_program2_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID ThemeEntryTwo_attach_type_guid = {
+static GUID entry_program2_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-#pragma code_seg(push, "bind")
+#pragma code_seg(push, "bind/2")
 static uint64_t
-ThemeEntryTwo(void* context, const program_runtime_context_t* runtime_context)
-#line 73 "sample/callgraph_bpf2bpf.c"
+entry_program2(void* context, const program_runtime_context_t* runtime_context)
+#line 94 "sample/callgraph_bpf2bpf.c"
 {
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     // Prologue.
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r0 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r1 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r2 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r3 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r4 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r5 = 0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     register uint64_t r10 = 0;
 
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     r1 = (uintptr_t)context;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDXDW pc=0 dst=r1 src=r1 offset=16 imm=0
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     READ_ONCE_64(r1, r1, OFFSET(16));
     // EBPF_OP_STXDW pc=1 dst=r10 src=r1 offset=-8 imm=0
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-8));
     // EBPF_OP_CALL pc=2 dst=r0 src=r0 offset=0 imm=19
-#line 78 "sample/callgraph_bpf2bpf.c"
+#line 98 "sample/callgraph_bpf2bpf.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
     // EBPF_OP_MOV64_REG pc=3 dst=r1 src=r10 offset=0 imm=0
-#line 79 "sample/callgraph_bpf2bpf.c"
+#line 98 "sample/callgraph_bpf2bpf.c"
     r1 = r10;
     // EBPF_OP_ADD64_IMM pc=4 dst=r1 src=r0 offset=0 imm=-8
-#line 79 "sample/callgraph_bpf2bpf.c"
+#line 98 "sample/callgraph_bpf2bpf.c"
     r1 += IMMEDIATE(-8);
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=7
-#line 79 "sample/callgraph_bpf2bpf.c"
+#line 101 "sample/callgraph_bpf2bpf.c"
     r0 = ScenarioS2(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r0 offset=0 imm=0
-#line 81 "sample/callgraph_bpf2bpf.c"
+#line 101 "sample/callgraph_bpf2bpf.c"
     r1 = r0;
     // EBPF_OP_LSH64_IMM pc=7 dst=r1 src=r0 offset=0 imm=32
-#line 81 "sample/callgraph_bpf2bpf.c"
+#line 101 "sample/callgraph_bpf2bpf.c"
     r1 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_RSH64_IMM pc=8 dst=r1 src=r0 offset=0 imm=32
-#line 81 "sample/callgraph_bpf2bpf.c"
+#line 101 "sample/callgraph_bpf2bpf.c"
     r1 >>= (IMMEDIATE(32) & 63);
     // EBPF_OP_MOV64_IMM pc=9 dst=r0 src=r0 offset=0 imm=1
-#line 82 "sample/callgraph_bpf2bpf.c"
+#line 101 "sample/callgraph_bpf2bpf.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_JNE_IMM pc=10 dst=r1 src=r0 offset=1 imm=2
-#line 82 "sample/callgraph_bpf2bpf.c"
+#line 103 "sample/callgraph_bpf2bpf.c"
     if (r1 != IMMEDIATE(2)) {
-#line 82 "sample/callgraph_bpf2bpf.c"
+#line 103 "sample/callgraph_bpf2bpf.c"
         goto label_1;
-#line 82 "sample/callgraph_bpf2bpf.c"
+#line 103 "sample/callgraph_bpf2bpf.c"
     }
     // EBPF_OP_MOV64_IMM pc=11 dst=r0 src=r0 offset=0 imm=0
-#line 81 "sample/callgraph_bpf2bpf.c"
+#line 103 "sample/callgraph_bpf2bpf.c"
     r0 = IMMEDIATE(0);
 label_1:
     // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
-#line 81 "sample/callgraph_bpf2bpf.c"
+#line 107 "sample/callgraph_bpf2bpf.c"
     return r0;
-#line 73 "sample/callgraph_bpf2bpf.c"
+#line 94 "sample/callgraph_bpf2bpf.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -404,32 +404,32 @@ static program_entry_t _programs[] = {
     {
         0,
         {1, 144, 144}, // Version header.
-        ThemeEntryOne,
-        "bind",
-        "bind",
-        "ThemeEntryOne",
+        entry_program1,
+        "bind/1",
+        "bind/1",
+        "entry_program1",
         NULL,
         0,
-        ThemeEntryOne_helpers,
+        entry_program1_helpers,
         2,
         17,
-        &ThemeEntryOne_program_type_guid,
-        &ThemeEntryOne_attach_type_guid,
+        &entry_program1_program_type_guid,
+        &entry_program1_attach_type_guid,
     },
     {
         0,
         {1, 144, 144}, // Version header.
-        ThemeEntryTwo,
-        "bind",
-        "bind",
-        "ThemeEntryTwo",
+        entry_program2,
+        "bind/2",
+        "bind/2",
+        "entry_program2",
         NULL,
         0,
-        ThemeEntryTwo_helpers,
+        entry_program2_helpers,
         2,
         13,
-        &ThemeEntryTwo_program_type_guid,
-        &ThemeEntryTwo_attach_type_guid,
+        &entry_program2_program_type_guid,
+        &entry_program2_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
