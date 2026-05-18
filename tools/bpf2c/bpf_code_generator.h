@@ -345,6 +345,7 @@ class bpf_code_generator
     {
       public:
         std::vector<output_instruction_t> output_instructions;
+        bool instructions_encoded = false;
         std::set<std::string> referenced_registers;
         struct _ebpf_api_program_info* api_program_info{};
         unsafe_string elf_section_name;

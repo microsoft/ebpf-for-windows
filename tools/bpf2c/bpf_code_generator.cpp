@@ -298,6 +298,13 @@ bpf_code_generator::bpf_code_generator(
         }
     }
     generate(current_program->program_name);
+
+    // Preserve historical behavior for raw-bytecode construction: validate
+    // instructions eagerly so malformed instruction streams throw from ctor.
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
+    std::clog << "bpf2c: eager raw-bytecode validation during constructor" << std::endl;
+#endif
+    build_global_helper_index();
 }
 
 std::vector<bpf_code_generator::unsafe_string>
@@ -1208,6 +1215,14 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
     std::map<unsafe_string, map_info_t>& map_definitions,
     std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
 {
+    if (instructions_encoded) {
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
+        std::clog << "bpf2c: skipping re-encoding for program "
+                  << (!program_name.empty() ? program_name.raw() : elf_section_name.raw()) << std::endl;
+#endif
+        return;
+    }
+
     std::vector<output_instruction_t>& program_output = output_instructions;
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
     auto helper_array_prefix = "runtime_context->helper_data[{}]";
@@ -1769,6 +1784,8 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
             throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
         }
     }
+
+    instructions_encoded = true;
 }
 
 void
