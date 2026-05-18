@@ -545,74 +545,6 @@ _bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT_SOFT);
 }
 
-void
-_bindmonitor_bpf2bpf_maps_test(ebpf_execution_type_t execution_type)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-
-    const char* error_message = nullptr;
-    bpf_object_ptr unique_object;
-    fd_t program_fd;
-    int result;
-
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_maps_um.dll" : "bindmonitor_bpf2bpf_maps.o");
-
-    result =
-        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
-
-    if (error_message) {
-        printf("ebpf_program_load failed with %s\n", error_message);
-        ebpf_free((void*)error_message);
-    }
-    REQUIRE(result == 0);
-
-    fd_t bind_count_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "bind_count_map");
-    REQUIRE(bind_count_map_fd > 0);
-
-    bpf_link_ptr link;
-    uint32_t ifindex = 0;
-    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
-
-    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
-        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
-
-    uint64_t fake_pid = 12345;
-
-    // First bind - should succeed and update map count to 1.
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
-
-    // Verify map was updated by the subprogram.
-    uint64_t count = 0;
-    REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-    REQUIRE(count == 1);
-
-    // Second bind - should succeed and update map count to 2.
-    REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
-    REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-    REQUIRE(count == 2);
-
-    // Bind with a different PID - should create a new entry.
-    uint64_t fake_pid2 = 67890;
-    REQUIRE(emulate_bind(invoke, fake_pid2, "fake_app_3") == BIND_PERMIT_SOFT);
-    REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid2, &count) == 0);
-    REQUIRE(count == 1);
-
-    // Original PID count should still be 2.
-    REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
-    REQUIRE(count == 2);
-
-    hook.detach_and_close_link(&link);
-    bpf_object__close(unique_object.release());
-}
-
 static void
 _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
 {
@@ -631,6 +563,7 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
+    // Test entry_program1: calls S1 and S4 (helper call graph scenario).
     {
         program_load_attach_helper_t program_helper;
         program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program1", execution_type, nullptr, 0, hook);
@@ -639,12 +572,71 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
         REQUIRE(emulate_bind(invoke, 1001, "callgraph_e1") == BIND_REDIRECT);
     }
 
+    // Test entry_program2: calls S2 (which calls S3) (helper call chain scenario).
     {
         program_load_attach_helper_t program_helper;
         program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program2", execution_type, nullptr, 0, hook);
 
         // entry_program2 calls S2 (which calls S3). Expected result is BIND_PERMIT_SOFT.
         REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
+    }
+
+    // Test entry_program3: calls update_map subprogram (map operations scenario).
+    {
+        const char* error_message = nullptr;
+        bpf_object_ptr unique_object;
+        fd_t program_fd;
+        int result;
+
+        result = ebpf_program_load(
+            file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
+
+        // Find entry_program3 by name.
+        struct bpf_program* prog = bpf_object__find_program_by_name(unique_object.get(), "entry_program3");
+        REQUIRE(prog != nullptr);
+        program_fd = bpf_program__fd(prog);
+        REQUIRE(program_fd > 0);
+
+        fd_t bind_count_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "bind_count_map");
+        REQUIRE(bind_count_map_fd > 0);
+
+        bpf_link_ptr link;
+        uint32_t ifindex = 0;
+        REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+        uint64_t fake_pid = 12345;
+
+        // First bind - should succeed and update map count to 1.
+        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_1") == BIND_PERMIT_SOFT);
+
+        // Verify map was updated by the subprogram.
+        uint64_t count = 0;
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Second bind - should succeed and update map count to 2.
+        REQUIRE(emulate_bind(invoke, fake_pid, "fake_app_2") == BIND_PERMIT_SOFT);
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        // Bind with a different PID - should create a new entry.
+        uint64_t fake_pid2 = 67890;
+        REQUIRE(emulate_bind(invoke, fake_pid2, "fake_app_3") == BIND_PERMIT_SOFT);
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid2, &count) == 0);
+        REQUIRE(count == 1);
+
+        // Original PID count should still be 2.
+        REQUIRE(bpf_map_lookup_elem(bind_count_map_fd, &fake_pid, &count) == 0);
+        REQUIRE(count == 2);
+
+        hook.detach_and_close_link(&link);
+        bpf_object__close(unique_object.release());
     }
 }
 
@@ -1108,7 +1100,6 @@ DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
-DECLARE_NATIVE_TEST("bindmonitor-bpf2bpf-maps", "[end_to_end]", _bindmonitor_bpf2bpf_maps_test);
 DECLARE_NATIVE_TEST("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
