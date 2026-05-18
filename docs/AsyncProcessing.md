@@ -11,7 +11,7 @@
 - [PEND overview](#pend-overview)
 - [COMPLETE overview](#complete-overview)
 - [Program safety](#program-safety)
-  - [Systemwide pend quota](#systemwide-pend-quota)
+  - [Systemwide pend memory quota](#systemwide-pend-memory-quota)
   - [Stale-pend watchdog](#stale-pend-watchdog)
 - [Edge cases](#edge-cases)
   - [Notification fails after a successful pend](#notification-fails-after-a-successful-pend)
@@ -485,14 +485,17 @@ A pended operation consumes kernel resources until it is completed.
 Two backstops bound the impact pend consumers can have on the system
 if they pend without bound or fail to drive completions:
 
-### Systemwide pend quota
+### Systemwide pend memory quota
 
-netebpfext enforces a maximum number of simultaneously outstanding
-pend entries across the entire system. When a `bpf_pend()` call
-would push the global pend count over the limit, the helper
-returns `-ENOMEM` without creating any internal pend state or
-invoking any WFP pend APIs. The program MUST handle this error
-appropriately.
+netebpfext enforces a maximum amount of memory that may be held by
+simultaneously outstanding pend entries across the entire system.
+The per-entry cost is layer- and operation-dependent (for example,
+inbound packet pends include cloned NBL payload whose size varies
+per operation), so the quota is expressed in bytes rather than as
+a fixed entry count. When a `bpf_pend()` call would push the
+global outstanding pend memory over the limit, the helper returns
+`-ENOMEM` without creating any internal pend state or invoking any
+WFP pend APIs. The program MUST handle this error appropriately.
 
 ### Stale-pend watchdog
 
