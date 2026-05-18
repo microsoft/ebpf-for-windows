@@ -10,8 +10,8 @@
 // - Four subprograms: S1, S2, S3, S4.
 // - S1, S3, S4 each invoke a different helper; S2 invokes no helpers.
 // - S1 -> S2 -> S3 call chain.
-// - EntryOne invokes S1 and S4.
-// - EntryTwo invokes S2.
+// - entry_program1 invokes S1 and S4.
+// - entry_program2 invokes S2.
 
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
@@ -66,15 +66,15 @@ ScenarioS4(uint64_t* pid)
     return BIND_PERMIT_SOFT;
 }
 
-SEC("bind")
+SEC("bind/1")
 bind_action_t
-ThemeEntryOne(bind_md_t* ctx)
+entry_program1(bind_md_t* ctx)
 {
     uint64_t pid = ctx->process_id;
     bind_action_t from_s1;
     bind_action_t from_s4;
 
-    // EntryOne directly calls two helpers.
+    // entry_program1 directly calls two helpers.
     (void)bpf_get_current_pid_tgid();
     (void)bpf_ktime_get_ns();
 
@@ -87,14 +87,14 @@ ThemeEntryOne(bind_md_t* ctx)
     return BIND_DENY;
 }
 
-SEC("bind")
+SEC("bind/2")
 bind_action_t
-ThemeEntryTwo(bind_md_t* ctx)
+entry_program2(bind_md_t* ctx)
 {
     uint64_t pid = ctx->process_id;
     bind_action_t from_s2;
 
-    // EntryTwo directly calls one helper.
+    // entry_program2 directly calls one helper.
     (void)bpf_get_current_pid_tgid();
     // (void)bpf_ktime_get_ns();
 

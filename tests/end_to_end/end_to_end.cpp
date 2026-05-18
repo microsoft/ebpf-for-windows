@@ -633,17 +633,17 @@ _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
 
     {
         program_load_attach_helper_t program_helper;
-        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "ThemeEntryOne", execution_type, nullptr, 0, hook);
+        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program1", execution_type, nullptr, 0, hook);
 
-        // ThemeEntryOne calls S1 and S4. Expected result is BIND_REDIRECT.
+        // entry_program1 calls S1 and S4. Expected result is BIND_REDIRECT.
         REQUIRE(emulate_bind(invoke, 1001, "callgraph_e1") == BIND_REDIRECT);
     }
 
     {
         program_load_attach_helper_t program_helper;
-        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "ThemeEntryTwo", execution_type, nullptr, 0, hook);
+        program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "entry_program2", execution_type, nullptr, 0, hook);
 
-        // ThemeEntryTwo calls S2 (which calls S3). Expected result is BIND_PERMIT_SOFT.
+        // entry_program2 calls S2 (which calls S3). Expected result is BIND_PERMIT_SOFT.
         REQUIRE(emulate_bind(invoke, 2002, "callgraph_e2") == BIND_PERMIT_SOFT);
     }
 }
