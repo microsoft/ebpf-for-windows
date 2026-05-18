@@ -10,12 +10,13 @@
 - [Design overview](#design-overview)
 - [PEND overview](#pend-overview)
 - [COMPLETE overview](#complete-overview)
+- [Program safety](#program-safety)
+  - [Systemwide pend quota](#systemwide-pend-quota)
+  - [Stale-pend watchdog](#stale-pend-watchdog)
 - [Edge cases](#edge-cases)
   - [Notification fails after a successful pend](#notification-fails-after-a-successful-pend)
-  - [Stale pends (orchestrator never completes)](#stale-pends-orchestrator-never-completes)
   - [Duplicate completes](#duplicate-completes)
   - [Cross-client complete attempt](#cross-client-complete-attempt)
-  - [Pended operations and OS resource handling](#pended-operations-and-os-resource-handling)
 - [Async orchestrator integration guide](#async-orchestrator-integration-guide)
   - [Roles](#roles)
   - [Notification mechanism (consumer's choice)](#notification-mechanism-consumers-choice)
@@ -256,7 +257,7 @@ typedef struct _wfp_completion_state {
             UINT8 remote_address[16];
         } recv_accept;
 
-        // future arms (BIND / DATAGRAM / STREAM / ...)
+        // future arms (for other WFP layer state)
     } u;
 } wfp_completion_state_t;
 
@@ -433,7 +434,7 @@ completion fires.
     - **No entry for `key`** -- returns `EBPF_KEY_NOT_FOUND`.
       Either the key is bogus, or the watchdog already
       force-completed this pend
-      (see [Stale pends](#stale-pends-orchestrator-never-completes)).
+      (see [Stale-pend watchdog](#stale-pend-watchdog)).
     - **`map_context` mismatch** -- the per-map context the
       callback received does not equal the one stored in the
       entry. Returns `EBPF_ACCESS_DENIED`. See
@@ -478,6 +479,40 @@ completion fires.
    reference on `originating_program`, and removes the internal
    pend entry. Per-pend completion occurs exactly-once.
 
+## Program safety
+
+A pended operation consumes kernel resources until it is completed.
+Two backstops bound the impact pend consumers can have on the system
+if they pend without bound or fail to drive completions:
+
+### Systemwide pend quota
+
+netebpfext enforces a maximum number of simultaneously outstanding
+pend entries across the entire system. When a `bpf_pend()` call
+would push the global pend count over the limit, the helper
+returns `-ENOMEM` without creating any internal pend state or
+invoking any WFP pend APIs. The program MUST handle this error
+appropriately.
+
+### Stale-pend watchdog
+
+netebpfext periodically walks the internal pend table and force-
+completes any entry whose age (`now - insertion_time`) exceeds a
+maximum timeout, issuing a `REJECT` verdict on the program's
+behalf. This bounds the lifetime of any individual pend regardless
+of orchestrator bahaviour.
+
+If the orchestrator does eventually issue a complete for a pend
+that has already been force-completed by the watchdog, the
+complete-map insert finds no matching pend entry and is rejected
+with `EBPF_KEY_NOT_FOUND` (see
+[COMPLETE overview](#complete-overview)).
+
+Together these two mechanisms ensure that neither misbehaving
+programs (pend without bound) nor misbehaving orchestrators
+(never drive completion) can indefinitely consume kernel
+resources.
+
 ## Edge cases
 
 The pend/complete mechanism has a few notable edge cases that
@@ -493,20 +528,6 @@ entry attached to this classify and synthesizes the same
 dispatch the COMPLETE flow would run for `REJECT`: drives the
 layer-specific WFP completion and removes the internal pend entry.
 The orchestrator never sees this pend.
-
-### Stale pends (orchestrator never completes)
-
-A pend can sit indefinitely if the orchestrator crashes,
-deadlocks, or just takes too long. netebpfext periodically walks
-the pend table and force-completes any entry whose age
-(`now - insertion_time`) exceeds a configurable maximum,
-issuing a `REJECT` verdict. The watchdog is a fail-safe and
-should not be shorter than any expected completion latency.
-
-If the orchestrator does eventually issue a complete for a pend
-that has already been force-completed by the timeout, the
-complete-map insert finds no matching pend entry and is
-rejected with `EBPF_KEY_NOT_FOUND`; no side effect.
 
 ### Duplicate completes
 
@@ -530,42 +551,6 @@ state, and only the original program's bound complete map can
 drive resumption. This bounds the blast radius of a leaked
 pend key to denial-of-correlation: the attacker cannot drive a
 completion verdict for someone else's pend.
-
-### Pended operations and OS resource handling
-
-A pend may outlive any single classifyFn invocation and must
-remain safe to hold across system events such as modern standby
-(Connected Standby / Disconnected Standby) and S0-low-power
-transitions. The pend itself is cheap (just an entry in the
-internal pend table); what is **not** safe is keeping a reference
-to a transient OS resource -- most notably an `NET_BUFFER_LIST`
-delivered to a classify callout -- pinned for the duration of the
-pend. Holding such resources can stall NDIS / WFP teardown and
-block the OS from completing a power transition.
-
-The extension is therefore responsible, **at PEND time**, for
-releasing references to any per-callout OS resources that the WFP
-layer would otherwise pin. Concrete per-layer requirements live
-with the layer integration (see the WESP doc's per-layer sections
-for the WFP layers in scope), but the general rule is:
-
-- Layers that carry no transient resource on the pended callout
-  (e.g., AUTH_CONNECT for TCP, where there is no `layerData`)
-  require nothing extra -- the pend is already safe.
-- Layers that carry a transient resource (e.g., AUTH_RECV_ACCEPT,
-  DATAGRAM_DATA, or AUTH_CONNECT for UDP, all of which deliver an
-  `NET_BUFFER_LIST` via `layerData`) must deep-copy / clone the
-  resource (`FwpsAllocateCloneNetBufferList` for NBLs) and release
-  the reference to the original before returning from
-  `classifyFn`. Any subsequent reinject uses the clone.
-
-There is no separate kernel-side drain mechanism for in-flight
-pends across power transitions and no PEND-side power-state error
-code -- correctness is achieved by not pinning the OS resource in
-the first place. The stale-pend watchdog
-([Stale pends](#stale-pends-orchestrator-never-completes)) remains
-the only kernel-side cleanup path; orchestrator-driven completion
-is otherwise unchanged across power transitions.
 
 ## Async orchestrator integration guide
 
@@ -600,8 +585,3 @@ verdict). Common choices:
 Per-pend application data (rule context, connection metadata)
 lives in consumer-owned regular BPF maps -- not in the
 netebpfext-internal pend table or the complete map.
-
-### Cleanup responsibilities
-
-- **Stale pends.** Orchestrator ages out its own tracking and issues `REJECT`; the kernel watchdog is the backstop.
-- **Orchestrator restart.** No kernel-side pend enumeration is exposed. In-flight pends remain bound to the original complete map's `map_context`; whether a restarted orchestrator can drive them to completion depends entirely on whether it can re-acquire that same map. Pends it cannot reach are force-completed by the watchdog.
