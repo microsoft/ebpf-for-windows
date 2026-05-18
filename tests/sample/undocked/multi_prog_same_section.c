@@ -9,16 +9,14 @@
 
 SEC("bind")
 bind_action_t
-ShortBindEntryOne(bind_md_t* ctx)
+prog1(bind_md_t* ctx)
 {
-    (void)ctx;
     return BIND_PERMIT_SOFT;
 }
 
 SEC("bind")
 bind_action_t
-ShortBindEntryTwo(bind_md_t* ctx)
+prog2(bind_md_t* ctx)
 {
-    (void)ctx;
     return BIND_REDIRECT;
 }
