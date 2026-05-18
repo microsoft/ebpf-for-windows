@@ -1085,9 +1085,9 @@ net_ebpf_ext_remove_client_context(
         }
     }
     if (!found) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "net_ebpf_ext_remove_client_context: Client context not found");
         ASSERT(FALSE);
         goto Exit;
