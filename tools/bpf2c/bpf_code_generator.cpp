@@ -301,9 +301,6 @@ bpf_code_generator::bpf_code_generator(
 
     // Preserve historical behavior for raw-bytecode construction: validate
     // instructions eagerly so malformed instruction streams throw from ctor.
-#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-    std::clog << "bpf2c: eager raw-bytecode validation during constructor" << std::endl;
-#endif
     build_global_helper_index();
 }
 
@@ -1216,10 +1213,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
     std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
 {
     if (instructions_encoded) {
-#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-        std::clog << "bpf2c: skipping re-encoding for program "
-                  << (!program_name.empty() ? program_name.raw() : elf_section_name.raw()) << std::endl;
-#endif
+        // Instructions have already been encoded for this program, so skip re-encoding.
         return;
     }
 
