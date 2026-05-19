@@ -2183,11 +2183,14 @@ ebpf_program_get_info(
         }
 
         __try {
+            // Probe must be done before acquiring the lock (requires IRQL < DISPATCH_LEVEL).
             ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
 
+            ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
             for (uint32_t i = 0; i < program->count_of_maps; i++) {
                 if (i == max_nr_map_ids) {
                     // No more space left.
+                    ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
                     EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
                 } else {
                     ebpf_map_t* map = program->maps[i];
@@ -2195,6 +2198,7 @@ ebpf_program_get_info(
                     WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
                 }
             }
+            ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2228,7 +2232,11 @@ ebpf_program_get_info(
     if (program_name_length < sizeof(output_info->name)) {
         memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
     }
-    output_info->nr_map_ids = program->count_of_maps;
+    {
+        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
+        output_info->nr_map_ids = program->count_of_maps;
+        ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
+    }
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
     output_info->type_uuid = ebpf_program_type_uuid(program);
