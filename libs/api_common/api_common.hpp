@@ -37,6 +37,17 @@ typedef prevail::EbpfInst ebpf_inst;
 // in the order the maps appear in the maps sections.
 const int ORIGINAL_FD_OFFSET = 1;
 
+_Must_inspect_result_ inline ebpf_result_t
+ebpf_safe_size_t_to_uint16(size_t value, _Out_ uint16_t* result) noexcept
+{
+    if (value > static_cast<size_t>(UINT16_MAX)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+
+    *result = static_cast<uint16_t>(value);
+    return EBPF_SUCCESS;
+}
+
 inline fd_t
 map_idx_to_original_fd(uint32_t idx)
 {
@@ -99,8 +110,8 @@ typedef struct _map_cache
 const char*
 allocate_string(const std::string& string, uint32_t* length = nullptr) noexcept;
 
-std::vector<uint8_t>
-convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions);
+ebpf_result_t
+convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions, std::vector<uint8_t>& byte_code);
 
 int
 get_file_size(const char* filename, size_t* byte_code_size) noexcept;

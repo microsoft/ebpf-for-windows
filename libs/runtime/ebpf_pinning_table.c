@@ -268,9 +268,15 @@ ebpf_pinning_table_enumerate_entries(
         goto Exit;
     }
 
+    size_t pinning_entries_length = 0;
+    result = ebpf_safe_size_t_multiply(sizeof(ebpf_pinning_entry_t), entries_array_length, &pinning_entries_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
     // Allocate the output array for storing the pinning entries.
-    local_pinning_entries = (ebpf_pinning_entry_t*)ebpf_allocate_with_tag(
-        sizeof(ebpf_pinning_entry_t) * entries_array_length, EBPF_POOL_TAG_DEFAULT);
+    local_pinning_entries =
+        (ebpf_pinning_entry_t*)ebpf_allocate_with_tag(pinning_entries_length, EBPF_POOL_TAG_DEFAULT);
     if (local_pinning_entries == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
