@@ -128,14 +128,14 @@ pend key to `*out_key`. On failure it returns non-zero and
 > dispatched normally.
 
 > **Implicit program context.** The helper signature deliberately
-> omits an explicit `ctx` parameter. netebpfext recovers the
-> calling program's context via an ebpfcore-provided implicit
-> accessor (e.g., `ebpf_get_current_program_context()`, set in a
-> per-CPU slot before program invocation and cleared on return).
-> This accessor must exist as an ebpfcore-side platform
-> capability; the same mechanism is reusable by other extension
-> helpers that need program context without polluting the
-> BPF-visible signature.
+> omits an explicit `ctx` parameter. netebpfext declares
+> `bpf_pend` using the existing `implicit_context` extension
+> feature (see [eBpfExtensions.md](eBpfExtensions.md), section
+> *Note about `implicit_context`*): the program context is
+> delivered as a hidden 6th argument set by the verifier/JIT glue,
+> with dummy placeholders for the unused 2nd-5th arguments. No new
+> platform plumbing is required, and the BPF-visible signature
+> stays clean.
 
 The pend key written to `*out_key` is the program's handle to the
 pended classify. The program's only obligation is to forward this
