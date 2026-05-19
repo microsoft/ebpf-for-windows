@@ -355,7 +355,11 @@ _ebpf_program_general_program_information_attach_provider(
 
     program->general_helper_program_data = program_data;
 
-    program->global_helper_function_count = program_data->global_helper_function_addresses->helper_function_count;
+    if (program_data->global_helper_function_addresses != NULL) {
+        program->global_helper_function_count = program_data->global_helper_function_addresses->helper_function_count;
+    } else {
+        program->global_helper_function_count = 0;
+    }
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
