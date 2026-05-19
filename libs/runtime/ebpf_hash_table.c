@@ -818,6 +818,7 @@ _ebpf_hash_table_replace_bucket(
                     break;
                 }
             }
+            // No failure path after successful delete notification.
             result = _ebpf_hash_table_bucket_delete(hash_table, old_bucket, index, &new_bucket);
             ebpf_assert(result == EBPF_SUCCESS);
         }
