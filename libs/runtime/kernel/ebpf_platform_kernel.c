@@ -363,7 +363,7 @@ ebpf_access_check(
             0,
             NULL,
             (ebpf_security_generic_mapping_t*)generic_mapping,
-            KernelMode,
+            UserMode,
             &granted_access,
             &status)) {
         result = EBPF_ACCESS_DENIED;

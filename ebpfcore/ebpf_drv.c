@@ -80,7 +80,7 @@ static _Check_return_ NTSTATUS
 _ebpf_driver_build_privileged_security_descriptor()
 {
     PACL dacl = NULL;
-    PSID sid = NULL;
+    PSID ebpfsvc_sid = NULL;
     NTSTATUS status = STATUS_SUCCESS;
     SECURITY_DESCRIPTOR security_descriptor;
     PSECURITY_DESCRIPTOR self_relative_security_descriptor = NULL;
@@ -89,23 +89,48 @@ _ebpf_driver_build_privileged_security_descriptor()
     const ULONG subauthority_count = EBPF_COUNT_OF(sid_subauthorities);
     ULONG security_descriptor_size = 0;
 
-    sid = (PSID)ebpf_allocate_with_tag(
-        RtlLengthRequiredSid(subauthority_count), 'fpBE'); // Use a tag to help with debugging memory leaks.
-    if (sid == NULL) {
+    // Well-known SIDs for Administrators (BA) and SYSTEM (SY).
+    SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
+    struct {                                                       // Stack-allocated SIDs for BA and SY.
+        SID sid;
+        ULONG sub_authority;
+    } admin_sid_buf = {0}, system_sid_buf = {0};
+    PSID admin_sid = (PSID)&admin_sid_buf;
+    PSID system_sid = (PSID)&system_sid_buf;
+
+    // Build S-1-5-32-544 (BUILTIN\Administrators).
+    status = RtlInitializeSid(admin_sid, &nt_authority, 2);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        goto Exit;
+    }
+    *RtlSubAuthoritySid(admin_sid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(admin_sid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+    // Build S-1-5-18 (SYSTEM).
+    status = RtlInitializeSid(system_sid, &nt_authority, 1);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        goto Exit;
+    }
+    *RtlSubAuthoritySid(system_sid, 0) = SECURITY_LOCAL_SYSTEM_RID;
+
+    // Build the ebpfsvc service SID.
+    ebpfsvc_sid = (PSID)ebpf_allocate_with_tag(RtlLengthRequiredSid(subauthority_count), 'fpBE');
+    if (ebpfsvc_sid == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
         goto Exit;
     }
 
-    // Initialize the SID for the ebpfsvc service.
-    status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&service_authority, (UCHAR)subauthority_count);
+    status = RtlInitializeSid(ebpfsvc_sid, (SID_IDENTIFIER_AUTHORITY*)&service_authority, (UCHAR)subauthority_count);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
 
     for (ULONG i = 0; i < subauthority_count; i++) {
-        *RtlSubAuthoritySid(sid, i) = sid_subauthorities[i];
+        *RtlSubAuthoritySid(ebpfsvc_sid, i) = sid_subauthorities[i];
     }
 
     status = RtlCreateSecurityDescriptor(&security_descriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -114,44 +139,77 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    // Allocate and initialize a DACL with one ACE.
+    // Set the owner to Administrators.
+    status = RtlSetOwnerSecurityDescriptor(&security_descriptor, admin_sid, FALSE);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlSetOwnerSecurityDescriptor, status);
+        goto Exit;
+    }
+
+    // Set the group to SYSTEM.
+    status = RtlSetGroupSecurityDescriptor(&security_descriptor, system_sid, FALSE);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlSetGroupSecurityDescriptor, status);
+        goto Exit;
+    }
+
+    // Allocate DACL with three ACEs: ebpfsvc, Administrators, SYSTEM.
     size_t acl_size = 0;
-    size_t sid_length = RtlLengthSid(sid);
-    size_t ace_size = 0;
+    size_t total_sid_length = 0;
     ebpf_result_t safe_result = EBPF_SUCCESS;
     ULONG aclSize = 0;
-    safe_result = ebpf_safe_size_t_add(sizeof(ACL), sizeof(ACCESS_ALLOWED_ACE), &ace_size);
+    safe_result = ebpf_safe_size_t_add((size_t)RtlLengthSid(ebpfsvc_sid), (size_t)RtlLengthSid(admin_sid), &total_sid_length);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_add(ace_size, sid_length, &acl_size);
+    safe_result = ebpf_safe_size_t_add(total_sid_length, (size_t)RtlLengthSid(system_sid), &total_sid_length);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_subtract(acl_size, sizeof(ULONG), &acl_size);
+    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)3 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
+    if (safe_result != EBPF_SUCCESS) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    safe_result = ebpf_safe_size_t_add(acl_size, total_sid_length, &acl_size);
+    if (safe_result != EBPF_SUCCESS) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)3 * sizeof(ULONG), &acl_size);
     if (safe_result != EBPF_SUCCESS || acl_size > MAXULONG) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
     aclSize = (ULONG)acl_size;
-    dacl = (PACL)ebpf_allocate_with_tag(aclSize, 'fpBE'); // Use a tag to help with debugging memory leaks.
+    dacl = (PACL)ebpf_allocate_with_tag(aclSize, 'fpBE');
     if (dacl == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
         goto Exit;
     }
 
-    // Create the DACL with one ACE that allows GENERIC_ALL access to the ebpfsvc service SID.
     status = RtlCreateAcl(dacl, aclSize, ACL_REVISION);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlCreateAcl, status);
         goto Exit;
     }
 
-    // Add an ACE to the DACL that grants GENERIC_ALL access to the ebpfsvc service SID.
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, sid);
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, ebpfsvc_sid);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
+        goto Exit;
+    }
+
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, admin_sid);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
+        goto Exit;
+    }
+
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, system_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
@@ -165,14 +223,12 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     // Convert security descriptor to self-relative format.
-    // First, we need to determine the size of the self-relative security descriptor.
     status = RtlAbsoluteToSelfRelativeSD(&security_descriptor, NULL, &security_descriptor_size);
     if (status != STATUS_BUFFER_TOO_SMALL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
         goto Exit;
     }
 
-    // Allocate memory for the self-relative security descriptor.
     self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
     if (self_relative_security_descriptor == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -180,7 +236,6 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    // Convert the absolute security descriptor to self-relative format.
     status =
         RtlAbsoluteToSelfRelativeSD(&security_descriptor, self_relative_security_descriptor, &security_descriptor_size);
     if (!NT_SUCCESS(status)) {
@@ -188,13 +243,12 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    // Set the global security descriptor to the self-relative format.
     ebpf_execution_context_privileged_security_descriptor = self_relative_security_descriptor;
     self_relative_security_descriptor = NULL;
 
 Exit:
-    if (sid) {
-        ebpf_free(sid);
+    if (ebpfsvc_sid) {
+        ebpf_free(ebpfsvc_sid);
     }
 
     if (dacl) {
@@ -405,7 +459,7 @@ _ebpf_driver_is_caller_privileged()
         0,                // Previously granted access
         NULL,             // No privileges
         &generic_mapping, // Generic mapping
-        KernelMode,       // Access mode
+        UserMode,         // Access mode
         &granted_access,  // Granted access
         &status);
     SeReleaseSubjectContext(&subject_context);
