@@ -2098,6 +2098,36 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     // Cleanup will be done in the scope_exit block above.
 }
 
+TEST_CASE("ring_buffer_clear_wait_handle", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    // Create a wait event and set it on CPU 0.
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // F-007: Clear the wait handle using ebpf_handle_invalid. This must succeed
+    // and release the old event reference (not return early with a leak).
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0) == EBPF_SUCCESS);
+
+    // Set a new handle after clearing — verifies the clear left the ring in a clean state.
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // Clean up.
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0) == EBPF_SUCCESS);
+}
+
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
