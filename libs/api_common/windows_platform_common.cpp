@@ -537,7 +537,11 @@ _update_global_helpers_for_program_information(
             result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
-        total_helper_size = total_helper_count * sizeof(ebpf_helper_function_prototype_t);
+        result =
+            ebpf_safe_size_t_multiply(total_helper_count, sizeof(ebpf_helper_function_prototype_t), &total_helper_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
         new_helpers =
             (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(total_helper_size, EBPF_POOL_TAG_DEFAULT);
         if (new_helpers == nullptr) {
@@ -564,10 +568,22 @@ _update_global_helpers_for_program_information(
 #pragma warning(pop)
 
         if (program_info->count_of_program_type_specific_helpers > 0) {
-            memcpy(
-                new_helpers + global_helper_count,
-                program_info->program_type_specific_helper_prototype,
-                (program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t)));
+            size_t destination_helper_count = 0;
+            result = ebpf_safe_size_t_subtract(total_helper_count, global_helper_count, &destination_helper_count);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+            if (program_info->count_of_program_type_specific_helpers > destination_helper_count) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+            ebpf_helper_function_prototype_t* source_helpers =
+                (ebpf_helper_function_prototype_t*)program_info->program_type_specific_helper_prototype;
+            for (size_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+#pragma warning(suppress : 6385) // Source helper array length matches count_of_program_type_specific_helpers.
+                new_helpers[global_helper_count + i] = source_helpers[i];
+            }
             ebpf_free((void*)program_info->program_type_specific_helper_prototype);
         }
 

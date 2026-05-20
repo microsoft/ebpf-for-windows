@@ -45,6 +45,12 @@ ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend)
     return InterlockedIncrement((volatile long*)addend);
 }
 
+uint32_t
+ebpf_interlocked_increment_uint32(_Inout_ volatile uint32_t* addend)
+{
+    return (uint32_t)InterlockedIncrement((volatile long*)addend);
+}
+
 int32_t
 ebpf_interlocked_decrement_int32(_Inout_ volatile int32_t* addend)
 {

@@ -563,7 +563,11 @@ _ebpf_core_protocol_create_map(
 
     if (request->header.length > EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data)) {
         map_name.value = (uint8_t*)request->data;
-        map_name.length = ((uint8_t*)request) + request->header.length - ((uint8_t*)request->data);
+        retval = ebpf_safe_size_t_subtract(
+            request->header.length, EBPF_OFFSET_OF(ebpf_operation_create_map_request_t, data), &map_name.length);
+        if (retval != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(retval);
+        }
     }
 
     retval = ebpf_core_create_map(&map_name, &request->ebpf_map_definition, request->inner_map_handle, &reply->handle);
@@ -663,7 +667,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     if (count_of_map_handles) {
-        map_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_map_handles, EBPF_POOL_TAG_CORE);
+        size_t map_handles_length = 0;
+        result = ebpf_safe_size_t_multiply(sizeof(ebpf_handle_t), count_of_map_handles, &map_handles_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        map_handles = ebpf_allocate_with_tag(map_handles_length, EBPF_POOL_TAG_CORE);
         if (map_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -671,7 +680,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     if (count_of_program_handles) {
-        program_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_program_handles, EBPF_POOL_TAG_CORE);
+        size_t program_handles_length = 0;
+        result = ebpf_safe_size_t_multiply(sizeof(ebpf_handle_t), count_of_program_handles, &program_handles_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        program_handles = ebpf_allocate_with_tag(program_handles_length, EBPF_POOL_TAG_CORE);
         if (program_handles == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -812,7 +826,11 @@ _ebpf_core_protocol_map_update_element_batch(
         goto Done;
     }
 
-    key_and_value_length = (size_t)map_definition->key_size + (size_t)map_definition->value_size;
+    retval = ebpf_safe_size_t_add(
+        (size_t)map_definition->key_size, (size_t)map_definition->value_size, &key_and_value_length);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
 
     if (key_and_value_length == 0) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -1248,8 +1266,14 @@ _ebpf_core_protocol_query_program_info(
         goto Done;
     }
 
+    uint32_t section_name_offset = 0;
     reply->file_name_offset = EBPF_OFFSET_OF(struct _ebpf_operation_query_program_info_reply, data);
-    reply->section_name_offset = reply->file_name_offset + (uint16_t)file_name.length;
+    retval = ebpf_safe_uint32_t_add(reply->file_name_offset, (uint32_t)file_name.length, &section_name_offset);
+    if ((retval != EBPF_SUCCESS) || (section_name_offset > UINT16_MAX)) {
+        retval = EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
+    reply->section_name_offset = (uint16_t)section_name_offset;
 
     memcpy(reply->data, file_name.value, file_name.length);
     memcpy(reply->data + file_name.length, section_name.value, section_name.length);
@@ -1603,8 +1627,15 @@ _ebpf_core_protocol_get_program_info(
         program_info, reply->data, serialization_buffer_size, &reply->size, &required_length);
 
     if (retval != EBPF_SUCCESS) {
-        reply->header.length =
-            (uint16_t)(required_length + EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data));
+        ebpf_result_t length_result;
+        size_t required_reply_length = 0;
+        length_result = ebpf_safe_size_t_add(
+            required_length, EBPF_OFFSET_OF(ebpf_operation_get_program_info_reply_t, data), &required_reply_length);
+        if ((length_result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            reply->header.length = UINT16_MAX;
+        } else {
+            reply->header.length = (uint16_t)required_reply_length;
+        }
         goto Done;
     }
 
@@ -1627,11 +1658,16 @@ _ebpf_core_protocol_convert_pinning_entries_to_map_info_array(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_map_info_internal_t* local_map_info = NULL;
     uint16_t index;
-    size_t allocation_size = sizeof(ebpf_map_info_internal_t) * entry_count;
+    size_t allocation_size = 0;
 
     ebpf_assert(map_info);
     ebpf_assert(entry_count);
     ebpf_assert(pinning_entries);
+
+    result = ebpf_safe_size_t_multiply(sizeof(ebpf_map_info_internal_t), entry_count, &allocation_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     local_map_info = (ebpf_map_info_internal_t*)ebpf_allocate_with_tag(allocation_size, EBPF_POOL_TAG_CORE);
     if (local_map_info == NULL) {
@@ -1685,8 +1721,17 @@ _ebpf_core_protocol_serialize_map_info_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
-        map_info_reply->header.length = (uint16_t)(required_serialization_length +
-                                                   EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
+        ebpf_result_t length_result;
+        size_t required_reply_length = 0;
+        length_result = ebpf_safe_size_t_add(
+            required_serialization_length,
+            EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data),
+            &required_reply_length);
+        if ((length_result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            map_info_reply->header.length = UINT16_MAX;
+        } else {
+            map_info_reply->header.length = (uint16_t)required_reply_length;
+        }
     } else {
         map_info_reply->map_count = map_count;
     }
@@ -1877,8 +1922,15 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
-        reply->header.length =
-            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
+        size_t required_reply_length = 0;
+        result = ebpf_safe_size_t_add(
+            next_path.length,
+            EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path),
+            &required_reply_length);
+        if ((result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            EBPF_RETURN_RESULT(EBPF_ARITHMETIC_OVERFLOW);
+        }
+        reply->header.length = (uint16_t)required_reply_length;
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -1916,8 +1968,15 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
-        reply->header.length =
-            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+        size_t required_reply_length = 0;
+        result = ebpf_safe_size_t_add(
+            next_path.length,
+            EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path),
+            &required_reply_length);
+        if ((result != EBPF_SUCCESS) || (required_reply_length > UINT16_MAX)) {
+            EBPF_RETURN_RESULT(EBPF_ARITHMETIC_OVERFLOW);
+        }
+        reply->header.length = (uint16_t)required_reply_length;
         reply->type = object_type;
     }
     EBPF_RETURN_RESULT(result);
@@ -2356,7 +2415,7 @@ _ebpf_core_is_current_admin(_In_ const void* ctx)
 static long
 _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, int arg_count, ...)
 {
-    if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
+    if ((fmt_size < 2) || (fmt_size > MAX_PRINTK_STRING_SIZE - 1)) {
         // Disallow large fmt_size values.
         return -1;
     }
@@ -2367,7 +2426,12 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
     }
 
     // Make a copy of the original format string.
-    char* output = (char*)ebpf_allocate_with_tag(fmt_size + 1, EBPF_POOL_TAG_CORE);
+    size_t output_length = 0;
+    if (ebpf_safe_size_t_add(fmt_size, 1, &output_length) != EBPF_SUCCESS) {
+        return -1;
+    }
+
+    char* output = (char*)ebpf_allocate_with_tag(output_length, EBPF_POOL_TAG_CORE);
     if (output == NULL) {
         return -1;
     }
@@ -2390,12 +2454,13 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
      */
     long bytes_written = -1;
     const char* p;
+    const char* output_end = output + strlen(output);
     int specifier_count = 0;
     for (p = output; *p; p++) {
         if (*p != '%') {
             continue;
         }
-        if (p[1] == 0) {
+        if ((p + 1) >= output_end) {
             break;
         }
         if (p[1] == '%') {
@@ -2412,9 +2477,10 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (p[1] != 'l' || p[2] == 0) {
+        if (((p + 2) >= output_end) || (p[1] != 'l')) {
             break;
         }
+#pragma warning(suppress : 6385) // p[2] is guarded by the explicit output_end bounds check above.
         if (strchr(PRINTK_SPECIFIER_CHARS, p[2])) {
             // We found a legal two character specifier.
             p += 2;
@@ -2422,7 +2488,7 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
             continue;
         }
 
-        if (p[2] != 'l' || p[3] == 0) {
+        if (((p + 3) >= output_end) || (p[2] != 'l')) {
             break;
         }
         if (strchr(PRINTK_SPECIFIER_CHARS, p[3])) {

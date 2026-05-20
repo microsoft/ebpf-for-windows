@@ -24,7 +24,12 @@ wchar_t*
 ebpf_get_wstring_from_string(_In_ const char* text)
 {
     int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
-    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(length * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
+    size_t wide_length = 0;
+    if (length <= 0 || ebpf_safe_size_t_multiply((size_t)length, sizeof(wchar_t), &wide_length) != EBPF_SUCCESS) {
+        return nullptr;
+    }
+
+    wchar_t* wide = (wchar_t*)ebpf_allocate_with_tag(wide_length, EBPF_POOL_TAG_DEFAULT);
     if (wide == nullptr) {
         return nullptr;
     }
@@ -63,7 +68,14 @@ ebpf_write_registry_value_string(ebpf_store_key_t key, _In_z_ const wchar_t* val
     ebpf_assert(value_name);
     ebpf_assert(value);
 
-    auto length = (wcslen(value) + 1) * sizeof(wchar_t);
+    size_t character_count = 0;
+    size_t length = 0;
+    if ((ebpf_safe_size_t_add(wcslen(value), 1, &character_count) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(character_count, sizeof(wchar_t), &length) != EBPF_SUCCESS) ||
+        (length > ULONG_MAX)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+
     return _EBPF_RESULT(RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (unsigned long)length));
 }
 
@@ -217,11 +229,19 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_convert_string_to_guid(_In_z_ const wchar_t* string, _Out_ GUID* guid)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    size_t string_length = wcslen(string);
+    size_t truncated_length = 0;
+    size_t copy_length = 0;
 
     // The UUID string read from registry also contains the opening and closing braces.
     // Remove those before converting to UUID.
     wchar_t truncated_string[GUID_STRING_LENGTH + 1] = {0};
-    memcpy(truncated_string, string + 1, (wcslen(string) - 2) * sizeof(wchar_t));
+    if ((string_length < 2) || (ebpf_safe_size_t_subtract(string_length, 2, &truncated_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(truncated_length, sizeof(wchar_t), &copy_length) != EBPF_SUCCESS) ||
+        (copy_length >= sizeof(truncated_string))) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    memcpy(truncated_string, string + 1, copy_length);
 
     // Convert program type string to GUID
     auto rpc_status = UuidFromString((RPC_WSTR)truncated_string, guid);
