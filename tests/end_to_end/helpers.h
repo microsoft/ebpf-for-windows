@@ -609,6 +609,16 @@ typedef class _test_xdp_helper
     {
         return xdp_md_helper_t::from_ctx(ctx)->adjust_head(delta);
     }
+
+    static intptr_t
+    redirect_map(_In_ void* map, uint32_t key, uint64_t flags)
+    {
+        UNREFERENCED_PARAMETER(map);
+        UNREFERENCED_PARAMETER(key);
+        UNREFERENCED_PARAMETER(flags);
+        // Return XDP_REDIRECT (4) to indicate success.
+        return 4;
+    }
 } test_xdp_helper_t;
 
 // These are test xdp context creation functions.
@@ -1045,6 +1055,21 @@ static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table 
     EBPF_COUNT_OF(_mock_xdp_helper_functions),
     (uint64_t*)_mock_xdp_helper_functions};
 
+// XDP global helper function prototype descriptors.
+static const ebpf_helper_function_prototype_t _xdp_test_global_helper_function_prototype[] = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_redirect_map,
+     "bpf_redirect_map",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING}}};
+
+static const void* _mock_xdp_global_helper_functions[] = {(void*)&test_xdp_helper_t::redirect_map};
+
+static ebpf_helper_function_addresses_t _mock_xdp_global_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_mock_xdp_global_helper_functions),
+    (uint64_t*)_mock_xdp_global_helper_functions};
+
 static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
     EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
     "xdp",
@@ -1057,14 +1082,14 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype,
-    0,
-    NULL};
+    EBPF_COUNT_OF(_xdp_test_global_helper_function_prototype),
+    _xdp_test_global_helper_function_prototype};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
     EBPF_PROGRAM_DATA_HEADER,
     &_mock_xdp_program_info,
     &_mock_xdp_helper_function_address_table,
-    nullptr,
+    &_mock_xdp_global_helper_function_address_table,
     _xdp_context_create,
     _xdp_context_destroy,
     0,
