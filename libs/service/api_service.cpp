@@ -62,12 +62,28 @@ _resolve_helper_functions(
         helper_id_to_address[instruction.imm] = {0};
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_address.size());
+    size_t helper_id_array_length = 0;
+    size_t request_buffer_length = 0;
+    size_t reply_address_array_length = 0;
+    size_t reply_buffer_length = 0;
+    if ((ebpf_safe_size_t_multiply(helper_id_to_address.size(), sizeof(uint32_t), &helper_id_array_length) !=
+         EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_helper_request_t, helper_id),
+             helper_id_array_length,
+             &request_buffer_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(
+             helper_id_to_address.size(), sizeof(helper_function_address_t), &reply_address_array_length) !=
+         EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_helper_reply_t, address),
+             reply_address_array_length,
+             &reply_buffer_length) != EBPF_SUCCESS)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
 
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_helper_reply_t, address) +
-        sizeof(helper_function_address_t) * helper_id_to_address.size());
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
 
     auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
@@ -196,11 +212,24 @@ _resolve_maps_in_byte_code(
         return EBPF_SUCCESS;
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        offsetof(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(uint64_t) * map_fds.size());
+    size_t map_handle_array_length = 0;
+    size_t request_buffer_length = 0;
+    size_t reply_address_array_length = 0;
+    size_t reply_buffer_length = 0;
+    if ((ebpf_safe_size_t_multiply(map_fds.size(), sizeof(uint64_t), &map_handle_array_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_map_request_t, map_handle),
+             map_handle_array_length,
+             &request_buffer_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_multiply(map_fds.size(), sizeof(uint64_t), &reply_address_array_length) != EBPF_SUCCESS) ||
+        (ebpf_safe_size_t_add(
+             offsetof(ebpf_operation_resolve_map_reply_t, address), reply_address_array_length, &reply_buffer_length) !=
+         EBPF_SUCCESS)) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
 
-    ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_map_reply_t, address) + sizeof(uint64_t) * map_fds.size());
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
 
     auto request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_map_reply_t*>(reply_buffer.data());

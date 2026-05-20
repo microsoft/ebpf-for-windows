@@ -1429,8 +1429,14 @@ _ebpf_native_initialize_global_variables(
     }
 
     // Initialize global variables data.
+    size_t global_variable_section_data_length = 0;
+    result = ebpf_safe_size_t_multiply(
+        global_variable_count, sizeof(global_variable_section_data_t), &global_variable_section_data_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     program->runtime_context.global_variable_section_data = (global_variable_section_data_t*)ebpf_allocate_with_tag(
-        global_variable_count * sizeof(global_variable_section_data_t), EBPF_POOL_TAG_NATIVE);
+        global_variable_section_data_length, EBPF_POOL_TAG_NATIVE);
     if (program->runtime_context.global_variable_section_data == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -1492,8 +1498,12 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
-    instance->maps =
-        (ebpf_native_map_t*)ebpf_allocate_with_tag(map_count * sizeof(ebpf_native_map_t), EBPF_POOL_TAG_NATIVE);
+    size_t native_map_array_length = 0;
+    result = ebpf_safe_size_t_multiply(map_count, sizeof(ebpf_native_map_t), &native_map_array_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    instance->maps = (ebpf_native_map_t*)ebpf_allocate_with_tag(native_map_array_length, EBPF_POOL_TAG_NATIVE);
     if (instance->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
@@ -1602,13 +1612,23 @@ _ebpf_native_resolve_maps_for_program(
         }
     }
 
-    map_handles = ebpf_allocate_with_tag(map_count * sizeof(ebpf_handle_t), EBPF_POOL_TAG_NATIVE);
+    size_t map_handles_length = 0;
+    result = ebpf_safe_size_t_multiply(map_count, sizeof(ebpf_handle_t), &map_handles_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    map_handles = ebpf_allocate_with_tag(map_handles_length, EBPF_POOL_TAG_NATIVE);
     if (map_handles == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    map_addresses = ebpf_allocate_with_tag(map_count * sizeof(uintptr_t), EBPF_POOL_TAG_NATIVE);
+    size_t map_addresses_length = 0;
+    result = ebpf_safe_size_t_multiply(map_count, sizeof(uintptr_t), &map_addresses_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    map_addresses = ebpf_allocate_with_tag(map_addresses_length, EBPF_POOL_TAG_NATIVE);
     if (map_addresses == NULL) {
         result = EBPF_NO_MEMORY;
         goto Done;
@@ -1651,10 +1671,17 @@ _ebpf_native_resolve_helpers_for_program(
     uint16_t actual_helper_count = 0;
 
     if (helper_count > 0) {
+        size_t helper_ids_length = 0;
+        size_t index_map_length = 0;
+        result = ebpf_safe_size_t_multiply(helper_count, sizeof(uint32_t), &helper_ids_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         // Allocate arrays sized to the full helper_count. Only non-sentinel entries
         // (helper_id != 0) are populated; sentinel entries are left as holes in
         // helper_data[] so subprogram helper_data[] indices remain correct.
-        helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
+        helper_ids = ebpf_allocate_with_tag(helper_ids_length, EBPF_POOL_TAG_NATIVE);
         if (helper_ids == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -1662,7 +1689,11 @@ _ebpf_native_resolve_helpers_for_program(
 
         // index_map[actual_index] = global_index — used to map resolved addresses
         // back to the correct position in helper_data[].
-        index_map = ebpf_allocate_with_tag(helper_count * sizeof(uint16_t), EBPF_POOL_TAG_NATIVE);
+        result = ebpf_safe_size_t_multiply(helper_count, sizeof(uint16_t), &index_map_length);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+        index_map = ebpf_allocate_with_tag(index_map_length, EBPF_POOL_TAG_NATIVE);
         if (index_map == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -1692,8 +1723,13 @@ _ebpf_native_resolve_helpers_for_program(
         }
 
         if (actual_helper_count > 0) {
-            helper_addresses =
-                ebpf_allocate_with_tag(actual_helper_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_NATIVE);
+            size_t helper_addresses_length = 0;
+            result =
+                ebpf_safe_size_t_multiply(actual_helper_count, sizeof(helper_function_address_t), &helper_addresses_length);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+            helper_addresses = ebpf_allocate_with_tag(helper_addresses_length, EBPF_POOL_TAG_NATIVE);
             if (helper_addresses == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1766,8 +1802,14 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
         // versioned sub-struct.
         if (native_program->program_entry.helper_count > 0) {
             const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
-            native_program->program_entry.helpers = (helper_function_entry_t*)ebpf_allocate_with_tag(
-                native_program->program_entry.helper_count * sizeof(helper_function_entry_t), EBPF_POOL_TAG_NATIVE);
+            size_t helper_info_length = 0;
+            result = ebpf_safe_size_t_multiply(
+                native_program->program_entry.helper_count, sizeof(helper_function_entry_t), &helper_info_length);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+            native_program->program_entry.helpers =
+                (helper_function_entry_t*)ebpf_allocate_with_tag(helper_info_length, EBPF_POOL_TAG_NATIVE);
             if (native_program->program_entry.helpers == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1807,8 +1849,12 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
-    instance->programs = (ebpf_native_program_t**)ebpf_allocate_with_tag(
-        program_count * sizeof(ebpf_native_program_t*), EBPF_POOL_TAG_NATIVE);
+    size_t native_programs_length = 0;
+    result = ebpf_safe_size_t_multiply(program_count, sizeof(ebpf_native_program_t*), &native_programs_length);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    instance->programs = (ebpf_native_program_t**)ebpf_allocate_with_tag(native_programs_length, EBPF_POOL_TAG_NATIVE);
     if (instance->programs == NULL) {
         return EBPF_NO_MEMORY;
     }

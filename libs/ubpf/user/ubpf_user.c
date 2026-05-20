@@ -17,11 +17,20 @@
 #pragma warning(disable : 4267)
 
 #include <endian.h>
-
 #include <stdlib.h>
 
+static void*
+_ebpf_ubpf_calloc(size_t count, size_t size)
+{
+    size_t allocation_length = 0;
+    if (cxplat_safe_size_t_multiply(count, size, &allocation_length) != CXPLAT_STATUS_SUCCESS) {
+        return NULL;
+    }
+    return ebpf_allocate_with_tag(allocation_length, EBPF_POOL_TAG_DEFAULT);
+}
+
 #define malloc(X) ebpf_allocate_with_tag((X), EBPF_POOL_TAG_DEFAULT)
-#define calloc(X, Y) ebpf_allocate_with_tag(((X) * (Y)), EBPF_POOL_TAG_DEFAULT)
+#define calloc(X, Y) _ebpf_ubpf_calloc((X), (Y))
 #define free(X) ebpf_free(X)
 
 #pragma warning(push)

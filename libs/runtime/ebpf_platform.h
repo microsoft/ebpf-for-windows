@@ -374,6 +374,16 @@ extern "C"
     ebpf_interlocked_increment_int32(_Inout_ volatile int32_t* addend);
 
     /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    uint32_t
+    ebpf_interlocked_increment_uint32(_Inout_ volatile uint32_t* addend);
+
+    /**
      * @brief Atomically decrease the value of addend by 1 and return the new
      *  value.
      *
