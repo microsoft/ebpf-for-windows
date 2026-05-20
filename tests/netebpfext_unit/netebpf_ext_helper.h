@@ -52,6 +52,25 @@ typedef class _netebpf_ext_helper
     test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
 
     FWP_ACTION_TYPE
+    test_bind_ipv6(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv6(parameters); }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_bind(_In_ fwp_classify_parameters_t* parameters)
+    {
+        // The CGROUP_SOCK_ADDR bind hook fires at the same WFP layer as the legacy bind hook
+        // (FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4). usersim's test_callout uses the filter's bound
+        // calloutKey to dispatch to the correct callout, so this routes to whichever bind hook
+        // currently has an attached client (legacy or CGROUP_SOCK_ADDR).
+        return usersim_fwp_bind_ipv4(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_bind(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_bind_ipv6(parameters);
+    }
+
+    FWP_ACTION_TYPE
     test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
     {
         return usersim_fwp_cgroup_inet4_recv_accept(parameters);
