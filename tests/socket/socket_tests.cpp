@@ -112,6 +112,8 @@ struct connection_test_params
     std::optional<bind_policy> bind_policy{};  ///< Bind policy to apply for this test.
     std::optional<bind_action_t>
         bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
+    std::optional<ebpf_sock_addr_verdict_t> sock_addr_bind_verdict{}; ///< Verdict for the sock_addr-aligned bind hook
+                                                                      ///< (uses test port, test protocol).
 };
 
 /**
@@ -210,6 +212,41 @@ _update_bind_policy_map_entry(
 
     value.action = action;
     value.flags = 0;
+
+    if (add) {
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+    } else {
+        bpf_map_delete_elem(map_fd, &key);
+    }
+}
+
+/**
+ * @brief Update or delete an entry in the sock_addr-aligned bind verdict map for testing.
+ *
+ * Companion to `_update_bind_policy_map_entry` for the cgroup_sock_addr_bind sample program.
+ * Drives the new `cgroup/bind4` / `cgroup/bind6` hooks by writing a sock_addr verdict
+ * (REJECT / PROCEED_SOFT / PROCEED_HARD) into the bind_verdict_map keyed by
+ * (port, protocol).
+ *
+ * @param[in] map_fd File descriptor of the bind_verdict_map.
+ * @param[in] port Port number (network byte order).
+ * @param[in] protocol IP protocol (e.g., IPPROTO_TCP).
+ * @param[in] verdict Sock_addr verdict to return from the program.
+ * @param[in] add True to add/update entry, false to delete entry.
+ */
+void
+_update_sock_addr_bind_verdict_map_entry(
+    fd_t map_fd, uint16_t port, uint8_t protocol, ebpf_sock_addr_verdict_t verdict, bool add = true)
+{
+#pragma pack(push, 1)
+    struct
+    {
+        uint16_t port;
+        uint8_t protocol;
+        uint8_t pad;
+    } key = {port, protocol, 0};
+#pragma pack(pop)
+    uint32_t value = static_cast<uint32_t>(verdict);
 
     if (add) {
         SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
@@ -330,6 +367,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     bpf_map* bind_policy_map = nullptr;
     bpf_map* connection_map = nullptr;
     bpf_map* listen_map = nullptr;
+    bpf_map* bind_verdict_map = nullptr;
 
     for (const auto& mod : loaded_modules) {
         if (!ingress_map) {
@@ -346,6 +384,9 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
         if (!listen_map) {
             listen_map = bpf_object__find_map_by_name(mod.object.get(), "listen_connection_policy_map");
+        }
+        if (!bind_verdict_map) {
+            bind_verdict_map = bpf_object__find_map_by_name(mod.object.get(), "bind_verdict_map");
         }
     }
 
@@ -459,6 +500,14 @@ execute_connection_test(_In_ const connection_test_case& test_case)
             listen_tuple.protocol = tuple.protocol;
             SAFE_REQUIRE(
                 bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) == 0);
+        }
+        if (test.sock_addr_bind_verdict) {
+            SAFE_REQUIRE(bind_verdict_map != nullptr);
+            _update_sock_addr_bind_verdict_map_entry(
+                bpf_map__fd(bind_verdict_map),
+                htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
+                static_cast<uint8_t>(test_case.protocol),
+                *test.sock_addr_bind_verdict);
         }
 
         // Create sockets on init or after reset.
@@ -845,6 +894,82 @@ TEMPLATE_TEST_CASE("bind_policy_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION
                 .description = "Hard permit overrides WFP filter",
                 .expected_result = connection_test_result::allow,
                 .bind_verdict = BIND_PERMIT_HARD,
+            },
+        },
+    });
+}
+
+// Sock_addr-aligned bind hook (cgroup/bind4 / cgroup/bind6) basic functionality tests.
+// Covers each valid sock_addr verdict (REJECT, PROCEED_SOFT, PROCEED_HARD).
+TEMPLATE_TEST_CASE("sock_addr_bind_basic", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_basic",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{
+            .object_file = "cgroup_sock_addr_bind",
+            .programs{
+                {(family == AF_INET) ? "authorize_bind4" : "authorize_bind6",
+                 (family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND},
+            },
+        }}},
+        .tests{
+            {
+                .description = "Bind denied with REJECT verdict",
+                .expected_server_bind_error = WSAEACCES,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+            },
+            {
+                .description = "Bind allowed with PROCEED_SOFT verdict",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+            },
+            {
+                .description = "Bind allowed with PROCEED_HARD verdict",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+            },
+        },
+    });
+}
+
+// Sock_addr-aligned bind hook hard permit with WFP filter: a PROCEED_HARD verdict
+// must override a WFP filter blocking bind at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6.
+TEMPLATE_TEST_CASE("sock_addr_bind_hard_permit_wfp", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_hard_permit_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{{{
+            .object_file = "cgroup_sock_addr_bind",
+            .programs{
+                {(family == AF_INET) ? "authorize_bind4" : "authorize_bind6",
+                 (family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND},
+            },
+        }}},
+        .wfp_filters{
+            {
+                .layer =
+                    (family == AF_INET) ? FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 : FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+                .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+            },
+        },
+        .tests{
+            {
+                .description = "Soft permit blocked by WFP filter",
+                .expected_server_bind_error = WSAEACCES,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+            },
+            {
+                .description = "Hard permit overrides WFP filter",
+                .expected_result = connection_test_result::allow,
+                .sock_addr_bind_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
             },
         },
     });
