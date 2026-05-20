@@ -549,7 +549,8 @@ test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_socket_cookie.dll" : "test_sample_invalid_socket_cookie.o");
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_socket_cookie.dll"
+                                                 : "test_sample_invalid_socket_cookie.o");
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
@@ -569,4 +570,45 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
 #endif
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
+}
+
+// Negative test for bpf_redirect_map. This test verifies that loading a program that uses
+// a helper function that is not implemented for that program type. Program load should
+// fail for such a program.
+void
+test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_redirect_map.dll"
+                                                 : "test_sample_invalid_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -22);
+}
+
+TEST_CASE("invalid_bpf_redirect_map", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_invalid_bpf_redirect_map(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_invalid_bpf_redirect_map(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_invalid_bpf_redirect_map(EBPF_EXECUTION_NATIVE);
 }
