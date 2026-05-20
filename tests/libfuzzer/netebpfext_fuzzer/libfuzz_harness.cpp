@@ -149,6 +149,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         (void)helper.test_cgroup_inet6_connect(&parameters);
         (void)helper.test_cgroup_inet4_connect_authorization(&parameters);
         (void)helper.test_cgroup_inet6_connect_authorization(&parameters);
+        (void)helper.test_cgroup_inet4_bind(&parameters);
+        (void)helper.test_cgroup_inet6_bind(&parameters);
         break;
     case BPF_PROG_TYPE_SOCK_OPS:
         (void)helper.test_sock_ops_v4(&parameters, nullptr);
