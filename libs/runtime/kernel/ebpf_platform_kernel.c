@@ -16,6 +16,9 @@ struct _ebpf_ring_descriptor
     MDL* memory;
     void* base_address;
     // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
+    // F-003: user_mapping_state serializes map/unmap transitions via InterlockedCompareExchange.
+    // 0 = unmapped, 1 = fully mapped (fields valid), 2 = mapping in progress.
+    volatile LONG user_mapping_state;
     PEPROCESS user_process;
     void* user_consumer_address;
     void* user_producer_address;
@@ -194,12 +197,30 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    // Release process reference if still held (user never called unmap).
+    // F-002: If user-mode mapping is fully established (state == 1), unmap before
+    // freeing MDLs. State 2 (mapping in progress) should not be seen here because
+    // the map IOCTL holds a reference, preventing concurrent free.
+    // F-003: Use InterlockedExchange to claim the state atomically.
     // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
 #pragma warning(suppress : 6001)
-    if (ring->user_process != NULL) {
+    if (InterlockedExchange(&ring->user_mapping_state, 0) == 1) {
+        if (PsGetCurrentProcess() == ring->user_process) {
+            // Same process context: safe to unmap directly.
+            MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
+            MmUnmapLockedPages(ring->user_producer_address, ring->user_mdl_producer);
+        } else {
+            // Cross-process context (typical during process teardown on a worker thread).
+            // KeStackAttachProcess is unsafe for a dying process. The OS will clean up
+            // user-mode VA mappings during process address space teardown.
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_WARNING,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "Ring buffer freed with outstanding user mapping; relying on OS process teardown for VA cleanup");
+        }
         ObDereferenceObject(ring->user_process);
         ring->user_process = NULL;
+        ring->user_consumer_address = NULL;
+        ring->user_producer_address = NULL;
     }
 
     IoFreeMdl(ring->user_mdl_consumer);
@@ -230,8 +251,9 @@ ebpf_ring_map_user(
     *producer = NULL;
     *data = NULL;
 
-    // Check if already mapped.
-    if (ring->user_consumer_address != NULL) {
+    // F-003: Atomically transition from unmapped (0) to mapping-in-progress (2)
+    // to prevent concurrent map calls from racing.
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 2, 0) != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -242,6 +264,7 @@ ebpf_ring_map_user(
         *consumer = NULL;
     }
     if (!*consumer) {
+        InterlockedExchange(&ring->user_mapping_state, 0);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -254,6 +277,7 @@ ebpf_ring_map_user(
     if (!*producer) {
         MmUnmapLockedPages(*consumer, ring->user_mdl_consumer);
         *consumer = NULL;
+        InterlockedExchange(&ring->user_mapping_state, 0);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -263,6 +287,9 @@ ebpf_ring_map_user(
     ring->user_consumer_address = *consumer;
     ring->user_producer_address = *producer;
 
+    // All fields are now valid — transition to fully mapped (1).
+    InterlockedExchange(&ring->user_mapping_state, 1);
+
     *data = (uint8_t*)*producer + PAGE_SIZE;
     return EBPF_SUCCESS;
 }
@@ -270,13 +297,16 @@ ebpf_ring_map_user(
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    // Verify that the ring was mapped to user mode.
-    if (ring->user_consumer_address == NULL) {
+    // F-003: Atomically transition from mapped (1) to unmapped (0) to prevent
+    // concurrent unmap calls from racing.
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 0, 1) != 1) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     // Verify the call is from the same process that mapped the ring.
     if (PsGetCurrentProcess() != ring->user_process) {
+        // Wrong process — restore state and reject.
+        InterlockedExchange(&ring->user_mapping_state, 1);
         return EBPF_INVALID_ARGUMENT;
     }
 
