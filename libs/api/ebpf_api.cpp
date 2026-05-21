@@ -2948,15 +2948,20 @@ ebpf_free_programs(_In_opt_ _Post_invalid_ ebpf_api_program_info_t* infos) noexc
 
 typedef struct _ebpf_pe_context
 {
+    struct native_program_metadata_t
+    {
+        std::string elf_section_name;
+        std::string program_name;
+        GUID program_type;
+        GUID attach_type;
+    };
+
     ebpf_result_t result;
     ebpf_object_t* object;
     const char* pin_root_path;
     uintptr_t image_base;
     ebpf_api_program_info_t* infos;
-    std::map<std::string, std::string> section_names;
-    std::map<std::string, std::string> program_names;
-    std::map<std::string, GUID> section_program_types;
-    std::map<std::string, GUID> section_attach_types;
+    std::map<std::string, std::vector<native_program_metadata_t>> programs_by_pe_section;
     uintptr_t rdata_base;
     size_t rdata_size;
     const bounded_buffer* rdata_buffer;
@@ -3128,25 +3133,29 @@ _ebpf_pe_get_section_names(
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->pe_section_name, section_header, buffer);
             const char* elf_section_name =
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->section_name, section_header, buffer);
-            pe_context->section_names[pe_section_name] = elf_section_name;
 
             const char* program_name =
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->program_name, section_header, buffer);
-            pe_context->program_names[pe_section_name] = program_name;
 
             uintptr_t program_type_guid_address = (uintptr_t)program->program_type;
             ebpf_assert(
                 program_type_guid_address >= pe_context->data_base &&
                 program_type_guid_address < pe_context->data_base + pe_context->data_size);
             uintptr_t offset = program_type_guid_address - pe_context->data_base;
-            pe_context->section_program_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+            GUID program_type = *(GUID*)(pe_context->data_buffer->buf + offset);
 
             uintptr_t attach_type_guid_address = (uintptr_t)program->expected_attach_type;
             ebpf_assert(
                 attach_type_guid_address >= pe_context->data_base &&
                 attach_type_guid_address < pe_context->data_base + pe_context->data_size);
             offset = attach_type_guid_address - pe_context->data_base;
-            pe_context->section_attach_types[pe_section_name] = *(GUID*)(pe_context->data_buffer->buf + offset);
+            GUID attach_type = *(GUID*)(pe_context->data_buffer->buf + offset);
+
+            pe_context->programs_by_pe_section[pe_section_name].push_back(
+                {.elf_section_name = elf_section_name,
+                 .program_name = program_name,
+                 .program_type = program_type,
+                 .attach_type = attach_type});
         }
     }
 
@@ -3175,68 +3184,67 @@ _ebpf_pe_add_section(
     }
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
 
-    // Get ELF section name.
-    if (!pe_context->section_names.contains(pe_section_name)) {
+    if (!pe_context->programs_by_pe_section.contains(pe_section_name)) {
         // Not an eBPF program section.
         EBPF_LOG_EXIT();
         return 0;
     }
 
-    std::string elf_section_name = pe_context->section_names[pe_section_name];
-    std::string program_name = pe_context->program_names[pe_section_name];
+    const auto& section_programs = pe_context->programs_by_pe_section[pe_section_name];
 
-    ebpf_api_program_info_t* info =
-        (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
-    if (info == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
+    for (const auto& metadata : section_programs) {
+        std::string elf_section_name = metadata.elf_section_name;
+        std::string program_name = metadata.program_name;
 
-    memset(info, 0, sizeof(*info));
-    info->section_name = cxplat_duplicate_string(elf_section_name.c_str());
-    if (info->section_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
+        ebpf_api_program_info_t* info =
+            (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
+        if (info == nullptr) {
+            pe_context->result = EBPF_NO_MEMORY;
+            return_value = 1;
+            goto Exit;
+        }
 
-    info->program_name = cxplat_duplicate_string(program_name.c_str());
-    if (info->program_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
+        memset(info, 0, sizeof(*info));
+        info->section_name = cxplat_duplicate_string(elf_section_name.c_str());
+        if (info->section_name == nullptr) {
+            _ebpf_free_api_program_info(info);
+            pe_context->result = EBPF_NO_MEMORY;
+            return_value = 1;
+            goto Exit;
+        }
 
-    info->program_type = pe_context->section_program_types[pe_section_name];
-    info->expected_attach_type = pe_context->section_attach_types[pe_section_name];
+        info->program_name = cxplat_duplicate_string(program_name.c_str());
+        if (info->program_name == nullptr) {
+            _ebpf_free_api_program_info(info);
+            pe_context->result = EBPF_NO_MEMORY;
+            return_value = 1;
+            goto Exit;
+        }
 
-    info->raw_data_size = section_header.Misc.VirtualSize;
-    info->raw_data = (char*)ebpf_allocate_with_tag(section_header.Misc.VirtualSize, EBPF_POOL_TAG_DEFAULT);
-    if (info->raw_data == nullptr || info->section_name == nullptr) {
-        pe_context->result = EBPF_NO_MEMORY;
-        return_value = 1;
-        goto Exit;
-    }
-    memcpy(info->raw_data, buffer->buf, section_header.Misc.VirtualSize);
+        info->program_type = metadata.program_type;
+        info->expected_attach_type = metadata.attach_type;
 
-    {
+        info->raw_data_size = section_header.Misc.VirtualSize;
+        info->raw_data = (char*)ebpf_allocate_with_tag(section_header.Misc.VirtualSize, EBPF_POOL_TAG_DEFAULT);
+        if (info->raw_data == nullptr) {
+            _ebpf_free_api_program_info(info);
+            pe_context->result = EBPF_NO_MEMORY;
+            return_value = 1;
+            goto Exit;
+        }
+        memcpy(info->raw_data, buffer->buf, section_header.Misc.VirtualSize);
+
         // Append to existing list.
         ebpf_api_program_info_t** pnext = &pe_context->infos;
         while (*pnext) {
             pnext = &(*pnext)->next;
         }
         *pnext = info;
-        info = nullptr;
     }
 
     return_value = 0;
 
 Exit:
-    if (info) {
-        _ebpf_free_api_program_info(info);
-    }
-
     EBPF_LOG_EXIT();
     return return_value;
 }
