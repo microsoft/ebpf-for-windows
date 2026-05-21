@@ -443,8 +443,13 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    size_t helper_array_length = 0;
+    result = ebpf_safe_size_t_multiply(count, sizeof(ebpf_helper_function_prototype_t), &helper_array_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    local_helper_prototype_array =
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_array_length, EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;

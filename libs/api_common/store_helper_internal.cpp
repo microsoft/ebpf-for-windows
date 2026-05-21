@@ -354,8 +354,15 @@ _ebpf_store_load_program_information(
             goto Exit;
         }
 
-        ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-            helper_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+        size_t helper_prototype_length = 0;
+        ebpf_helper_function_prototype_t* helper_prototype = nullptr;
+        if (ebpf_safe_size_t_multiply(
+                helper_count, sizeof(ebpf_helper_function_prototype_t), &helper_prototype_length) != EBPF_SUCCESS) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        helper_prototype =
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_prototype_length, EBPF_POOL_TAG_DEFAULT);
         if (helper_prototype == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -363,16 +370,25 @@ _ebpf_store_load_program_information(
         program_information->program_type_specific_helper_prototype = helper_prototype;
 
         // Add space for null terminator.
-        max_helper_name_size += 1;
+        if (cxplat_safe_uint32_t_add(max_helper_name_size, 1, &max_helper_name_size) != CXPLAT_STATUS_SUCCESS) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
 
-        helper_name = (wchar_t*)ebpf_allocate_with_tag(max_helper_name_size * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
+        size_t helper_name_length = 0;
+        if (ebpf_safe_size_t_multiply(max_helper_name_size, sizeof(wchar_t), &helper_name_length) != EBPF_SUCCESS) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+
+        helper_name = (wchar_t*)ebpf_allocate_with_tag(helper_name_length, EBPF_POOL_TAG_DEFAULT);
         if (helper_name == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
 
         for (uint32_t index = 0; index < max_helpers_count; index++) {
-            memset(helper_name, 0, (max_helper_name_size) * sizeof(wchar_t));
+            memset(helper_name, 0, helper_name_length);
             key_size = (max_helper_name_size - 1) * sizeof(wchar_t);
             status = RegEnumKeyEx(
                 helper_key, index, helper_name, (unsigned long*)&key_size, nullptr, nullptr, nullptr, nullptr);
@@ -487,7 +503,12 @@ ebpf_store_load_program_data(
 
         if (program_info_array.size() > 0) {
             // Copy the vector data to a new array.
-            auto size = program_info_array.size() * sizeof(ebpf_program_info_t*);
+            size_t size = 0;
+            if (ebpf_safe_size_t_multiply(program_info_array.size(), sizeof(ebpf_program_info_t*), &size) !=
+                EBPF_SUCCESS) {
+                result = EBPF_ARITHMETIC_OVERFLOW;
+                goto Exit;
+            }
             *program_info = (ebpf_program_info_t**)ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
             if (*program_info == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -693,7 +714,12 @@ ebpf_store_load_section_information(
 
         if (section_info_array.size() > 0) {
             // Copy the vector data to a new array.
-            auto size = section_info_array.size() * sizeof(ebpf_section_definition_t*);
+            size_t size = 0;
+            if (ebpf_safe_size_t_multiply(section_info_array.size(), sizeof(ebpf_section_definition_t*), &size) !=
+                EBPF_SUCCESS) {
+                result = EBPF_ARITHMETIC_OVERFLOW;
+                goto Exit;
+            }
             *section_info = (ebpf_section_definition_t**)ebpf_allocate_with_tag(size, EBPF_POOL_TAG_DEFAULT);
             if (*section_info == nullptr) {
                 result = EBPF_NO_MEMORY;
@@ -742,6 +768,8 @@ ebpf_store_load_global_helper_information(
     ebpf_helper_function_prototype_t* helper_prototype = nullptr;
     uint32_t index = 0;
     ebpf_store_key_t store_key = nullptr;
+    size_t helper_name_length = 0;
+    size_t helper_prototype_length = 0;
 
     EBPF_LOG_ENTRY();
 
@@ -795,24 +823,38 @@ ebpf_store_load_global_helper_information(
     }
 
     // Add space for null terminator.
-    max_helper_name_size += 1;
+    if (cxplat_safe_uint32_t_add(max_helper_name_size, 1, &max_helper_name_size) != CXPLAT_STATUS_SUCCESS) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
 
-    helper_name = (wchar_t*)ebpf_allocate_with_tag(max_helper_name_size * sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
+    if (ebpf_safe_size_t_multiply(max_helper_name_size, sizeof(wchar_t), &helper_name_length) != EBPF_SUCCESS) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+
+    helper_name = (wchar_t*)ebpf_allocate_with_tag(helper_name_length, EBPF_POOL_TAG_DEFAULT);
     if (helper_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-        max_helpers_count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    if (ebpf_safe_size_t_multiply(
+            max_helpers_count, sizeof(ebpf_helper_function_prototype_t), &helper_prototype_length) != EBPF_SUCCESS) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+
+    helper_prototype =
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_prototype_length, EBPF_POOL_TAG_DEFAULT);
     if (helper_prototype == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    memset(helper_prototype, 0, max_helpers_count * sizeof(ebpf_helper_function_prototype_t));
+    memset(helper_prototype, 0, helper_prototype_length);
 
     for (index = 0; index < max_helpers_count; index++) {
-        memset(helper_name, 0, max_helper_name_size * sizeof(wchar_t));
+        memset(helper_name, 0, helper_name_length);
         key_size = max_helper_name_size;
         status = RegEnumKeyEx(global_helpers_key, index, helper_name, &key_size, nullptr, nullptr, nullptr, nullptr);
         if (status != ERROR_SUCCESS) {
