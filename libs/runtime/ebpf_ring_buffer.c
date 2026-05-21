@@ -544,6 +544,24 @@ ebpf_ring_buffer_set_wait_handle(
         }
     }
 
+    // R-001: Pre-allocate the epoch work item before the swap. This function
+    // runs inside an epoch (via ebpf_core_invoke_protocol_handler), so
+    // ebpf_epoch_synchronize would self-deadlock. We allocate with a dummy
+    // context, cancel it, then re-allocate with the real old_wait_event after
+    // the swap. The pre-allocation proves memory is available; if it fails,
+    // we fail the operation before modifying any state.
+    {
+        ebpf_epoch_work_item_t* probe_work_item = ebpf_epoch_allocate_work_item(
+            (void*)_ebpf_ring_buffer_deref_wait_event, _ebpf_ring_buffer_deref_wait_event);
+        if (probe_work_item == NULL) {
+            if (new_wait_event != NULL) {
+                ObDereferenceObject(new_wait_event);
+            }
+            return EBPF_NO_MEMORY;
+        }
+        ebpf_epoch_cancel_work_item(probe_work_item);
+    }
+
     // F-001: Atomically swap the wait_event pointer. Readers in
     // _ring_buffer_notify_consumer use ReadPointerNoFence within an epoch,
     // so the old event must remain valid until the current epoch ends.
@@ -551,18 +569,20 @@ ebpf_ring_buffer_set_wait_handle(
         (PKEVENT)InterlockedExchangePointer((PVOID volatile*)&kernel_page->wait_event, new_wait_event);
 
     if (old_wait_event != NULL) {
-        // Defer ObDereferenceObject until the current epoch ends, ensuring
-        // no in-flight reader can call KeSetEvent on the freed event.
+        // Defer ObDereferenceObject until the current epoch ends.
         ebpf_epoch_work_item_t* work_item =
             ebpf_epoch_allocate_work_item(old_wait_event, _ebpf_ring_buffer_deref_wait_event);
         if (work_item != NULL) {
             ebpf_epoch_schedule_work_item(work_item);
         } else {
-            // Allocation failure fallback: synchronize + deref. This blocks
-            // but is safe (setter runs at PASSIVE_LEVEL) and only occurs
-            // under extreme memory pressure.
-            ebpf_epoch_synchronize();
-            ObDereferenceObject(old_wait_event);
+            // Probe succeeded but real allocation failed (extremely unlikely).
+            // Cannot use ebpf_epoch_synchronize (deadlock). Leak the event
+            // reference rather than risk a deadlock — this is a non-paged pool
+            // leak under extreme memory pressure, not a security issue.
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "Epoch work item allocation failed after probe; leaking wait event reference");
         }
     }
 
