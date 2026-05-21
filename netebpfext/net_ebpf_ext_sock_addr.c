@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, and BIND).
+    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, BIND, and LISTEN).
     // Fields use SDK-defined "unspecified" values when not available for the current attach type.
     uint32_t interface_type;          ///< Interface type. 0 if not available.
     uint32_t tunnel_type;             ///< Tunnel type. TUNNEL_TYPE_NONE if not a tunnel or not available.
@@ -366,7 +366,7 @@ _ebpf_sock_addr_get_network_context(
 
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
 
-    // This helper is supported at CONNECT_AUTHORIZATION, RECV_ACCEPT, and bind layers.
+    // This helper is supported at CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN layers.
     // Note: bind hooks (EBPF_HOOK_ALE_RESOURCE_ALLOC_V4/V6) populate interface_type and
     // tunnel_type from FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_*_INTERFACE_TYPE/TUNNEL_TYPE,
     // but next_hop_interface_luid and sub_interface_index are not available at the bind
@@ -376,7 +376,9 @@ _ebpf_sock_addr_get_network_context(
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V4 &&
-        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V6) {
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V6 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_LISTEN_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_LISTEN_V6) {
         return -1;
     }
 
@@ -1657,8 +1659,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_LISTEN_V4_ALE_USER_ID,
      FWPS_FIELD_ALE_AUTH_LISTEN_V4_FLAGS,
-     0,  // No interface type for listen.
-     0,  // No tunnel type for listen.
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_TUNNEL_TYPE,
      0,  // No next-hop interface for listen.
      0}, // No sub-interface index for listen.
 
@@ -1673,8 +1675,8 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_AUTH_LISTEN_V6_ALE_USER_ID,
      FWPS_FIELD_ALE_AUTH_LISTEN_V6_FLAGS,
-     0,   // No interface type for listen.
-     0,   // No tunnel type for listen.
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_TUNNEL_TYPE,
      0,   // No next-hop interface for listen.
      0}}; // No sub-interface index for listen.
 
@@ -1941,6 +1943,14 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
 
     // Store the FLAGS field.
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
+
+    // Copy network layer properties available at the listen layer.
+    sock_addr_ctx->interface_type =
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
+    sock_addr_ctx->tunnel_type =
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
+    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED; // Not available at listen layer.
+    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;    // Not available at listen layer.
 }
 
 static void
