@@ -198,12 +198,15 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     }
 
     // F-002: If user-mode mapping is fully established (state == 1), unmap before
-    // freeing MDLs. State 2 (mapping in progress) should not be seen here because
-    // the map IOCTL holds a reference, preventing concurrent free.
+    // freeing MDLs. State 2 (mapping in progress) or 3 (unmapping in progress)
+    // should not be seen here because the map/unmap IOCTL holds a reference,
+    // preventing concurrent free.
     // F-003: Use InterlockedExchange to claim the state atomically.
     // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
 #pragma warning(suppress : 6001)
-    if (InterlockedExchange(&ring->user_mapping_state, 0) == 1) {
+    long old_state = InterlockedExchange(&ring->user_mapping_state, 0);
+    ebpf_assert(old_state != 2 && old_state != 3);
+    if (old_state == 1) {
         if (PsGetCurrentProcess() == ring->user_process) {
             // Same process context: safe to unmap directly.
             MmUnmapLockedPages(ring->user_consumer_address, ring->user_mdl_consumer);
@@ -297,15 +300,17 @@ ebpf_ring_map_user(
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    // F-003: Atomically transition from mapped (1) to unmapped (0) to prevent
-    // concurrent unmap calls from racing.
-    if (InterlockedCompareExchange(&ring->user_mapping_state, 0, 1) != 1) {
+    // F-003: Atomically transition from mapped (1) to unmapping-in-progress (3).
+    // State 3 prevents new map operations (CAS 0→2) from starting while we clean up,
+    // avoiding a race where a new map + unmap cycle could NULL out user_process while
+    // we're still using it.
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 3, 1) != 1) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     // Verify the call is from the same process that mapped the ring.
     if (PsGetCurrentProcess() != ring->user_process) {
-        // Wrong process — restore state and reject.
+        // Wrong process — restore to mapped state and reject.
         InterlockedExchange(&ring->user_mapping_state, 1);
         return EBPF_INVALID_ARGUMENT;
     }
@@ -319,6 +324,8 @@ ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
     ring->user_consumer_address = NULL;
     ring->user_producer_address = NULL;
 
+    // Transition to fully unmapped (0), allowing new map operations.
+    InterlockedExchange(&ring->user_mapping_state, 0);
     return EBPF_SUCCESS;
 }
 
