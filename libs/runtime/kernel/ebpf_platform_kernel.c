@@ -17,7 +17,7 @@ struct _ebpf_ring_descriptor
     void* base_address;
     // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
     // F-003: user_mapping_state serializes map/unmap transitions via InterlockedCompareExchange.
-    // 0 = unmapped, 1 = fully mapped (fields valid), 2 = mapping in progress.
+    // 0 = unmapped, 1 = fully mapped (fields valid), 2 = mapping in progress, 3 = unmapping in progress.
     volatile LONG user_mapping_state;
     PEPROCESS user_process;
     void* user_consumer_address;

@@ -107,7 +107,6 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         return nullptr;
     }
 
-
     ebpf_ring_descriptor_t* descriptor =
         (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (!descriptor) {
@@ -225,8 +224,11 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    // Reset mapping state (mirrors kernel F-003 fix).
-    InterlockedExchange(&ring->user_mapping_state, 0);
+    // R-004: Set state to a value that blocks new map operations.
+    // Don't reset to 0 before freeing — that would allow a concurrent
+    // ebpf_ring_map_user to succeed and return pointers into views being freed.
+    // Use state 2 ("in-progress") which map's CAS(0→1) will reject.
+    InterlockedExchange(&ring->user_mapping_state, 2);
 
     UnmapViewOfFile(ring->primary_view);
     UnmapViewOfFile(ring->secondary_view);
