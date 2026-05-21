@@ -233,7 +233,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 1032;
+    const int code_size = 1048;
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size = 1592;
 #elif defined(_M_ARM64) && defined(NDEBUG)
