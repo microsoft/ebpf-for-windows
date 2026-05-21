@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
+    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, and BIND).
     // Fields use SDK-defined "unspecified" values when not available for the current attach type.
     uint32_t interface_type;          ///< Interface type. 0 if not available.
     uint32_t tunnel_type;             ///< Tunnel type. TUNNEL_TYPE_NONE if not a tunnel or not available.
@@ -1695,8 +1695,8 @@ const wfp_ale_layer_fields_t wfp_bind_fields[] = {
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_USER_ID,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_FLAGS,
-     0,  // INTERFACE_TYPE not exposed at ALE_RESOURCE_ASSIGNMENT layer.
-     0,  // TUNNEL_TYPE not exposed at ALE_RESOURCE_ASSIGNMENT layer.
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_TUNNEL_TYPE,
      0,  // No next-hop interface at this layer.
      0}, // No sub-interface index at this layer.
     // EBPF_HOOK_ALE_RESOURCE_ALLOC_V6.
@@ -1710,8 +1710,8 @@ const wfp_ale_layer_fields_t wfp_bind_fields[] = {
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_ALE_USER_ID,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_FLAGS,
-     0,
-     0,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_TUNNEL_TYPE,
      0,
      0}};
 
@@ -1774,12 +1774,13 @@ _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
 
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 
-    // INTERFACE_TYPE / TUNNEL_TYPE / next-hop / sub-interface are not exposed at
-    // ALE_RESOURCE_ASSIGNMENT, so report unspecified defaults.
-    sock_addr_ctx->interface_type = 0;
-    sock_addr_ctx->tunnel_type = TUNNEL_TYPE_NONE;
-    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
-    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
+    // Copy interface_type and tunnel_type from WFP fields.
+    sock_addr_ctx->interface_type =
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
+    sock_addr_ctx->tunnel_type =
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
+    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED; // Not available at bind layer.
+    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;    // Not available at bind layer.
 }
 
 static void

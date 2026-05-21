@@ -220,7 +220,7 @@ control-flow helpers:
 | `bpf_get_current_logon_id` | Returns the logon session ID |
 | `bpf_is_current_admin` | Returns whether the caller has Administrator privileges |
 | `bpf_get_socket_cookie` | Returns a socket cookie |
-| `bpf_sock_addr_get_network_context` | Returns interface metadata; fields not available at the bind layer (`interface_type`, `tunnel_type`, `next_hop_interface_luid`, `sub_interface_index`) are returned as their unspecified defaults |
+| `bpf_sock_addr_get_network_context` | Returns interface metadata; `interface_type` and `tunnel_type` are available; `next_hop_interface_luid` and `sub_interface_index` are not available at the bind layer and are returned as their unspecified defaults |
 | `bpf_sock_addr_set_redirect_context` | **Not supported** at the bind layer — returns `-1` |
 
 ## Example eBPF Program

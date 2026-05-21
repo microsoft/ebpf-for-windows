@@ -177,7 +177,7 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
 
 /**
  * @brief Network context information for the connection.
- * Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.
+ * Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types.
  */
 typedef struct _bpf_sock_addr_network_context
 {
@@ -191,7 +191,7 @@ typedef struct _bpf_sock_addr_network_context
 #define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
 
 /**
- * @brief Get the network context for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).
+ * @brief Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  * @param[out] context_ptr Pointer to bpf_sock_addr_network_context_t struct to be filled.
