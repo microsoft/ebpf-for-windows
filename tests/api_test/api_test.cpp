@@ -667,6 +667,48 @@ TEST_CASE("ring_buffer_mmap_consumer", "[ring_buffer]")
     _close(map_fd);
 }
 
+TEST_CASE("ring_buffer_wait_handle_churn", "[ring_buffer][stress]")
+{
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_churn", 0, 0, 64 * 1024, nullptr);
+    REQUIRE(map_fd > 0);
+
+    std::atomic<bool> stop{false};
+    constexpr int duration_ms = 2000;
+
+    // F-001: Producer thread writes records while handle-toggle thread
+    // rapidly sets and clears the wait handle. Exercises the epoch-deferred
+    // ObDereferenceObject path and ReadPointerNoFence in the notify path.
+    auto producer_thread = [&]() {
+        std::string data = "stress_record";
+        while (!stop) {
+            (void)ebpf_ring_buffer_map_write(map_fd, data.c_str(), data.length());
+        }
+    };
+
+    auto handle_toggle_thread = [&]() {
+        while (!stop) {
+            HANDLE event = CreateEvent(nullptr, false, false, nullptr);
+            if (event != nullptr) {
+                (void)ebpf_map_set_wait_handle(map_fd, 0, (ebpf_handle_t)event);
+                std::this_thread::yield();
+                (void)ebpf_map_set_wait_handle(map_fd, 0, ebpf_handle_invalid);
+                CloseHandle(event);
+            }
+        }
+    };
+
+    std::thread t1(producer_thread);
+    std::thread t2(handle_toggle_thread);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(duration_ms));
+    stop = true;
+
+    t1.join();
+    t2.join();
+
+    _close(map_fd);
+}
+
 void
 _test_nested_maps(bpf_map_type type)
 {
