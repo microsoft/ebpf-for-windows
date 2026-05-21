@@ -339,10 +339,7 @@ _ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
     ebpf_ring_buffer_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
     ebpf_ring_buffer_kernel_page_t* kernel_page = _ring_buffer_kernel_page(buffer);
 
-    // F-001: Read the wait_event pointer exactly once. BPF programs execute within
-    // an epoch (ebpf_epoch_enter provides the memory barrier), and the setter defers
-    // ObDereferenceObject of the old event via epoch work item, so the event object
-    // remains valid for all in-flight readers within the current epoch.
+    // Read wait_event once; it remains valid for the current epoch.
     PKEVENT wait_event = (PKEVENT)ReadPointerNoFence((void* const volatile*)&kernel_page->wait_event);
 
     if (wait_event != NULL && !(flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP)) {
@@ -532,9 +529,7 @@ ebpf_ring_buffer_set_wait_handle(
     ebpf_ring_buffer_kernel_page_t* kernel_page = ring_buffer->kernel_page;
     PKEVENT new_wait_event = NULL;
 
-    // F-007: Treat ebpf_handle_invalid as "clear current wait event" instead of
-    // passing it to ObReferenceObjectByHandle (which would fail and return early,
-    // leaking the old event reference).
+    // Treat ebpf_handle_invalid as clearing the current wait event.
     if (wait_handle != ebpf_handle_invalid) {
         NTSTATUS status = ObReferenceObjectByHandle(
             (HANDLE)wait_handle, EVENT_MODIFY_STATE, *ExEventObjectType, UserMode, (PVOID*)&new_wait_event, NULL);
@@ -544,12 +539,7 @@ ebpf_ring_buffer_set_wait_handle(
         }
     }
 
-    // R-001: Pre-allocate the epoch work item before the swap. This function
-    // runs inside an epoch (via ebpf_core_invoke_protocol_handler), so
-    // ebpf_epoch_synchronize would self-deadlock. We allocate with a dummy
-    // context, cancel it, then re-allocate with the real old_wait_event after
-    // the swap. The pre-allocation proves memory is available; if it fails,
-    // we fail the operation before modifying any state.
+    // Pre-allocate the epoch work item before the swap; this path cannot synchronize in-epoch.
     {
         ebpf_epoch_work_item_t* probe_work_item = ebpf_epoch_allocate_work_item(
             (void*)_ebpf_ring_buffer_deref_wait_event, _ebpf_ring_buffer_deref_wait_event);
@@ -562,9 +552,7 @@ ebpf_ring_buffer_set_wait_handle(
         ebpf_epoch_cancel_work_item(probe_work_item);
     }
 
-    // F-001: Atomically swap the wait_event pointer. Readers in
-    // _ring_buffer_notify_consumer use ReadPointerNoFence within an epoch,
-    // so the old event must remain valid until the current epoch ends.
+    // Atomically swap wait_event; the old event stays valid for the current epoch.
     PKEVENT old_wait_event =
         (PKEVENT)InterlockedExchangePointer((PVOID volatile*)&kernel_page->wait_event, new_wait_event);
 

@@ -2118,8 +2118,7 @@ TEST_CASE("ring_buffer_clear_wait_handle", "[execution_context][perf_event_array
     _wait_event event;
     REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
 
-    // F-007: Clear the wait handle using ebpf_handle_invalid. This must succeed
-    // and release the old event reference (not return early with a leak).
+    // Clear the wait handle and release the old event reference.
     REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0) == EBPF_SUCCESS);
 
     // Set a new handle after clearing — verifies the clear left the ring in a clean state.
@@ -2146,7 +2145,7 @@ TEST_CASE("ring_buffer_wait_handle_churn", "[execution_context][ring_buffer][str
     std::atomic<bool> stop{false};
     constexpr int duration_ms = 1000;
 
-    // F-001: Producer writes records while another thread rapidly toggles the wait handle.
+    // Producer writes records while another thread toggles the wait handle.
     auto producer_thread = [&]() {
         uint64_t value = 42;
         while (!stop) {

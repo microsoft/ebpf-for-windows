@@ -675,9 +675,7 @@ TEST_CASE("ring_buffer_wait_handle_churn", "[ring_buffer][stress]")
     std::atomic<bool> stop{false};
     constexpr int duration_ms = 2000;
 
-    // F-001: Producer thread writes records while handle-toggle thread
-    // rapidly sets and clears the wait handle. Exercises the epoch-deferred
-    // ObDereferenceObject path and ReadPointerNoFence in the notify path.
+    // Producer writes records while another thread toggles the wait handle.
     auto producer_thread = [&]() {
         std::string data = "stress_record";
         while (!stop) {
