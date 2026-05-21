@@ -30,7 +30,7 @@ SEC("xdp")
 int
 test_redirect_map(xdp_md_t* ctx)
 {
-    UNREFERENCED_PARAMETER(ctx);
+    (void)ctx;
 
     // Redirect to entry 0 in the map.
     return bpf_redirect_map(&redirect_map, 0, 0);
