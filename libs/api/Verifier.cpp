@@ -591,8 +591,15 @@ load_byte_code(
         }
     } catch (std::runtime_error& err) {
         auto message = err.what();
-        auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(ebpf_allocate_with_tag(message_length + 1, EBPF_POOL_TAG_DEFAULT));
+        size_t message_length = 0;
+        size_t error_length = 0;
+        if ((ebpf_safe_size_t_add(strlen(message), 1, &message_length) != EBPF_SUCCESS) ||
+            (ebpf_safe_size_t_add(message_length, 1, &error_length) != EBPF_SUCCESS)) {
+            *error_message = nullptr;
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        char* error = reinterpret_cast<char*>(ebpf_allocate_with_tag(error_length, EBPF_POOL_TAG_DEFAULT));
         if (error) {
             strcpy_s(error, message_length, message);
         }
@@ -706,7 +713,11 @@ ebpf_api_elf_enumerate_programs(
             }
 
             info->offset_in_section = raw_program.insn_off;
-            std::vector<uint8_t> raw_data = convert_ebpf_program_to_bytes(raw_program.prog);
+            std::vector<uint8_t> raw_data;
+            result = convert_ebpf_program_to_bytes(raw_program.prog, raw_data);
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error("instruction byte count overflow");
+            }
             info->raw_data_size = raw_data.size();
             info->raw_data = (char*)ebpf_allocate_with_tag(info->raw_data_size, EBPF_POOL_TAG_DEFAULT);
             if (info->raw_data == nullptr) {

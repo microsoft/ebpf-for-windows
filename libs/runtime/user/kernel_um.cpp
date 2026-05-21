@@ -510,7 +510,12 @@ RtlULongAdd(
     _Out_ _Deref_out_range_(==, augend + addend) unsigned long* result)
 {
     // Skip Fault Injection.
-    *result = augend + addend;
+    uint32_t local_result = 0;
+    if (cxplat_safe_uint32_t_add((uint32_t)augend, (uint32_t)addend, &local_result) != CXPLAT_STATUS_SUCCESS) {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    *result = local_result;
     return STATUS_SUCCESS;
 }
 

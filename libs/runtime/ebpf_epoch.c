@@ -428,9 +428,12 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
+    size_t allocation_size = 0;
 
-    size += sizeof(ebpf_epoch_allocation_header_t);
-    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_with_tag(size, tag);
+    if (ebpf_safe_size_t_add(size, sizeof(ebpf_epoch_allocation_header_t), &allocation_size) != EBPF_SUCCESS) {
+        return NULL;
+    }
+    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_with_tag(allocation_size, tag);
     if (header) {
         header++;
     }
@@ -449,9 +452,12 @@ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_cache_aligned_with_tag(si
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
+    size_t allocation_size = 0;
 
-    size += EBPF_CACHE_LINE_SIZE;
-    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_cache_aligned_with_tag(size, tag);
+    if (ebpf_safe_size_t_add(size, EBPF_CACHE_LINE_SIZE, &allocation_size) != EBPF_SUCCESS) {
+        return NULL;
+    }
+    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_cache_aligned_with_tag(allocation_size, tag);
     if (header) {
         header = (ebpf_epoch_allocation_header_t*)((uint8_t*)header + EBPF_CACHE_LINE_SIZE);
     }
@@ -990,7 +996,7 @@ _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
         return;
     }
 
-    if (message->message_type > EBPF_COUNT_OF(_ebpf_epoch_messenger_workers) || message->message_type < 0) {
+    if (message->message_type >= EBPF_COUNT_OF(_ebpf_epoch_messenger_workers) || message->message_type < 0) {
         ebpf_assert(!"Invalid message type");
         return;
     }

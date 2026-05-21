@@ -10,6 +10,7 @@
 #include "map_descriptors.hpp"
 #include "windows_platform_common.hpp"
 
+#include <stdexcept>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -21,7 +22,13 @@ const char*
 allocate_string(const std::string& string, uint32_t* length) noexcept
 {
     char* new_string;
-    size_t string_length = string.size() + 1;
+    size_t string_length = 0;
+    if (ebpf_safe_size_t_add(string.size(), 1, &string_length) != EBPF_SUCCESS) {
+        return nullptr;
+    }
+    if ((length != nullptr) && (string_length > UINT32_MAX)) {
+        return nullptr;
+    }
     new_string = (char*)ebpf_allocate_with_tag(string_length, EBPF_POOL_TAG_DEFAULT);
     if (new_string != nullptr) {
         strcpy_s(new_string, string_length, string.c_str());
@@ -32,12 +39,19 @@ allocate_string(const std::string& string, uint32_t* length) noexcept
     return new_string;
 }
 
-std::vector<uint8_t>
-convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions)
+ebpf_result_t
+convert_ebpf_program_to_bytes(const std::vector<ebpf_inst>& instructions, std::vector<uint8_t>& byte_code)
 {
-    return {
+    size_t byte_count = 0;
+    ebpf_result_t result = ebpf_safe_size_t_multiply(instructions.size(), sizeof(ebpf_inst), &byte_count);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    byte_code = {
         reinterpret_cast<const uint8_t*>(instructions.data()),
-        reinterpret_cast<const uint8_t*>(instructions.data()) + instructions.size() * sizeof(ebpf_inst)};
+        reinterpret_cast<const uint8_t*>(instructions.data()) + byte_count};
+    return EBPF_SUCCESS;
 }
 
 int
@@ -63,6 +77,10 @@ ebpf_object_get_info(
     _Out_opt_ ebpf_object_type_t* type) noexcept
 {
     EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    size_t request_buffer_length = 0;
+    size_t reply_buffer_length = 0;
+    size_t returned_info_size = 0;
 
     if (info != nullptr && (info_size == nullptr || *info_size == 0)) {
         return EBPF_INVALID_ARGUMENT;
@@ -77,27 +95,47 @@ ebpf_object_get_info(
         request_info_size = *info_size;
     }
 
-    ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_object_info_request_t, info) + request_info_size);
-    ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + request_info_size);
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_request_t, info), request_info_size, &request_buffer_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info), request_info_size, &reply_buffer_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    ebpf_protocol_buffer_t reply_buffer(reply_buffer_length);
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
 
-    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    result = ebpf_safe_size_t_to_uint16(request_buffer.size(), &request->header.length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
     if (info != nullptr) {
         memcpy(request->info, info, *info_size);
     }
 
-    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
         if (type != nullptr) {
             *type = reply->type;
         }
         if (info != nullptr) {
-            *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
+            result = ebpf_safe_size_t_subtract(
+                static_cast<size_t>(reply->header.length),
+                EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info),
+                &returned_info_size);
+            if (result != EBPF_SUCCESS) {
+                EBPF_RETURN_RESULT(result);
+            }
+            *info_size = static_cast<uint32_t>(returned_info_size);
             memcpy(info, reply->info, *info_size);
         }
     }
