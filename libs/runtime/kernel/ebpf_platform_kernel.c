@@ -15,9 +15,8 @@ struct _ebpf_ring_descriptor
     MDL* user_mdl_producer;
     MDL* memory;
     void* base_address;
-    // User-mode mapping state: captures the process and addresses returned from MmMapLockedPagesSpecifyCache.
-    // F-003: user_mapping_state serializes map/unmap transitions via InterlockedCompareExchange.
-    // 0 = unmapped, 1 = fully mapped (fields valid), 2 = mapping in progress, 3 = unmapping in progress.
+    // User-mode mapping state for serialized map and unmap transitions.
+    // 0 = unmapped, 1 = fully mapped, 2 = mapping in progress, 3 = unmapping in progress.
     volatile LONG user_mapping_state;
     PEPROCESS user_process;
     void* user_consumer_address;
@@ -197,11 +196,8 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    // F-002: If user-mode mapping is fully established (state == 1), unmap before
-    // freeing MDLs. State 2 (mapping in progress) or 3 (unmapping in progress)
-    // should not be seen here because the map/unmap IOCTL holds a reference,
-    // preventing concurrent free.
-    // F-003: Use InterlockedExchange to claim the state atomically.
+    // Unmap a fully established user mapping before freeing the MDLs.
+    // Use InterlockedExchange to claim the state atomically.
     // False positive: ring is allocated via ebpf_allocate_with_tag/cxplat_allocate and is zero-initialized.
 #pragma warning(suppress : 6001)
     long old_state = InterlockedExchange(&ring->user_mapping_state, 0);
@@ -254,8 +250,7 @@ ebpf_ring_map_user(
     *producer = NULL;
     *data = NULL;
 
-    // F-003: Atomically transition from unmapped (0) to mapping-in-progress (2)
-    // to prevent concurrent map calls from racing.
+    // Atomically transition from unmapped (0) to mapping-in-progress (2).
     if (InterlockedCompareExchange(&ring->user_mapping_state, 2, 0) != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -300,10 +295,7 @@ ebpf_ring_map_user(
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
-    // F-003: Atomically transition from mapped (1) to unmapping-in-progress (3).
-    // State 3 prevents new map operations (CAS 0→2) from starting while we clean up,
-    // avoiding a race where a new map + unmap cycle could NULL out user_process while
-    // we're still using it.
+    // Atomically transition from mapped (1) to unmapping-in-progress (3).
     if (InterlockedCompareExchange(&ring->user_mapping_state, 3, 1) != 1) {
         return EBPF_INVALID_ARGUMENT;
     }

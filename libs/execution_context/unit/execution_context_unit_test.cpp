@@ -1292,7 +1292,7 @@ TEST_CASE("ring_buffer_double_map_rejected", "[execution_context][ring_buffer]")
         ebpf_ring_buffer_map_map_user(
             map.get(), 0, (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
 
-    // F-003: Second map on the same ring rejected (already mapped).
+    // Second map on the same ring is rejected.
     volatile size_t* consumer2 = nullptr;
     volatile size_t* producer2 = nullptr;
     uint8_t* data2 = nullptr;
@@ -1780,8 +1780,7 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     perf_event_array_test_async_context_t completion;
     completion.cpu_id = cpu_id;
     completion.buffer_size = buffer_size;
-    // Reuse the buffer and consumer_offset from the initial ebpf_map_query_buffer call above.
-    // Calling it again would fail because the ring is already mapped (F-003 CAS check).
+    // Reuse the initial query buffer; querying again would fail because the ring is already mapped.
     completion.buffer = buffer;
     completion.consumer_offset = consumer_offset;
     REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);

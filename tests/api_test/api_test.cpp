@@ -681,7 +681,7 @@ TEST_CASE("ring_buffer_double_map_rejected", "[ring_buffer]")
     REQUIRE(ebpf_ring_buffer_map_map_buffer(map_fd, &consumer, &producer, &data, &data_size) == EBPF_SUCCESS);
     REQUIRE(consumer != nullptr);
 
-    // F-003: Second map on same ring rejected.
+    // Second map on the same ring is rejected.
     void* consumer2 = nullptr;
     const void* producer2 = nullptr;
     const uint8_t* data2 = nullptr;
@@ -697,10 +697,7 @@ TEST_CASE("ring_buffer_double_map_rejected", "[ring_buffer]")
     _close(map_fd);
 }
 
-// F-002: The pre-close callback (_ebpf_ring_map_zero_user_reference) unmaps
-// outstanding user mappings when the last user reference drops to zero.
-// This prevents the BSOD that previously occurred when the epoch worker
-// freed backing memory with user-mode VAs still mapped.
+// Closing the last user reference unmaps outstanding user mappings in process context.
 TEST_CASE("ring_buffer_destroy_with_outstanding_mapping", "[ring_buffer]")
 {
     fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, "test_destroymap", 0, 0, 64 * 1024, nullptr);
@@ -727,7 +724,7 @@ TEST_CASE("ring_buffer_concurrent_map_unmap", "[ring_buffer][stress]")
     std::atomic<int> map_success_count{0};
     std::atomic<bool> stop{false};
 
-    // F-003: Two threads race map and unmap on the same ring.
+    // Two threads race map and unmap on the same ring.
     auto map_unmap_thread = [&]() {
         for (int i = 0; i < iterations && !stop; i++) {
             void* consumer = nullptr;

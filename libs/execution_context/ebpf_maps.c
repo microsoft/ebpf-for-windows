@@ -590,12 +590,7 @@ _ebpf_map_object_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
     }
 }
 
-// F-002: Called when the last user reference to a ring buffer or perf event array map
-// drops to zero (e.g., user closes the map handle). This runs synchronously in the
-// user's process context, so MmUnmapLockedPages is safe to call here.
-// Without this, the destroy path runs on an epoch worker thread (different process
-// context) and cannot safely unmap user-mode pages, leading to a BSOD when the
-// backing memory is freed with outstanding user-mode VA mappings.
+// Unmap user mappings when the last user reference drops to zero in process context.
 static void
 _ebpf_ring_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
 {

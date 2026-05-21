@@ -52,7 +52,7 @@ struct _ebpf_ring_descriptor
 {
     void* primary_view;
     void* secondary_view;
-    volatile LONG user_mapping_state; // 0 = unmapped, 1 = mapped. Mirrors kernel CAS logic (F-003).
+    volatile LONG user_mapping_state; // 0 = unmapped, 1 = mapped. Mirrors kernel mapping state.
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -224,10 +224,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    // R-004: Set state to a value that blocks new map operations.
-    // Don't reset to 0 before freeing — that would allow a concurrent
-    // ebpf_ring_map_user to succeed and return pointers into views being freed.
-    // Use state 2 ("in-progress") which map's CAS(0→1) will reject.
+    // Block new map operations before freeing the views.
     InterlockedExchange(&ring->user_mapping_state, 2);
 
     UnmapViewOfFile(ring->primary_view);
@@ -251,7 +248,7 @@ ebpf_ring_map_user(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    // F-003: Reject double-map (mirrors kernel CAS logic).
+    // Reject double-map.
     if (InterlockedCompareExchange(&ring->user_mapping_state, 1, 0) != 0) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
@@ -267,7 +264,7 @@ ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
 
-    // F-003: Reject unmap if not mapped (mirrors kernel CAS logic).
+    // Reject unmap when the ring is not mapped.
     if (InterlockedCompareExchange(&ring->user_mapping_state, 0, 1) != 1) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
