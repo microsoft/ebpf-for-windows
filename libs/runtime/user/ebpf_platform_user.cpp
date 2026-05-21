@@ -52,6 +52,7 @@ struct _ebpf_ring_descriptor
 {
     void* primary_view;
     void* secondary_view;
+    volatile LONG user_mapping_state; // 0 = unmapped, 1 = mapped. Mirrors kernel CAS logic (F-003).
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -224,6 +225,9 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
+    // Reset mapping state (mirrors kernel F-003 fix).
+    InterlockedExchange(&ring->user_mapping_state, 0);
+
     UnmapViewOfFile(ring->primary_view);
     UnmapViewOfFile(ring->secondary_view);
     ebpf_free(ring);
@@ -244,6 +248,12 @@ ebpf_ring_map_user(
     if (!ring || !consumer || !producer || !data) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
+
+    // F-003: Reject double-map (mirrors kernel CAS logic).
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 1, 0) != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     *consumer = (uint8_t*)ring->primary_view + PAGE_SIZE;
     *producer = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE;
     *data = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE + PAGE_SIZE;
@@ -254,7 +264,12 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(ring);
+
+    // F-003: Reject unmap if not mapped (mirrors kernel CAS logic).
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 0, 1) != 1) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
