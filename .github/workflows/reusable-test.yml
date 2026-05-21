@@ -384,7 +384,7 @@ jobs:
         with:
           files: ebpf_for_windows.xml
           fail_ci_if_error: true
-          functionalities: fix
+          token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: ${{github.workspace}}
 
       - name: Wait on failure 1
@@ -399,7 +399,7 @@ jobs:
         with:
           files: ebpf_for_windows.xml
           fail_ci_if_error: true
-          functionalities: fix
+          token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: ${{github.workspace}}
 
       - name: Wait on failure 2
@@ -414,7 +414,7 @@ jobs:
         with:
           files: ebpf_for_windows.xml
           fail_ci_if_error: true
-          functionalities: fix
+          token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: ${{github.workspace}}
 
       - name: Wait on failure 3
@@ -429,7 +429,7 @@ jobs:
         with:
           files: ebpf_for_windows.xml
           fail_ci_if_error: true
-          functionalities: fix
+          token: ${{ secrets.CODECOV_TOKEN }}
           root_dir: ${{github.workspace}}
 
       - name: Fail if code coverage upload fails
