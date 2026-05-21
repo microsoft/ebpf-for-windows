@@ -574,7 +574,8 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 
 // Negative test for bpf_redirect_map. This test verifies that loading a program that uses
 // a helper function that is not implemented for that program type. Program load should
-// fail for such a program.
+// fail for such a program. Only interpreted/JIT execution is covered here since native
+// image generation rejects the unsupported helper before a native image can be produced.
 void
 test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
 {
@@ -589,9 +590,7 @@ test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
     program_info_provider_t sample_program_info;
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-    const char* file_name =
-        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_invalid_redirect_map.dll"
-                                                 : "test_sample_invalid_redirect_map.o");
+    const char* file_name = "test_sample_invalid_redirect_map.o";
     result =
         ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
 
@@ -610,5 +609,4 @@ TEST_CASE("invalid_bpf_redirect_map", "[end_to_end]")
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     test_invalid_bpf_redirect_map(EBPF_EXECUTION_INTERPRET);
 #endif
-    test_invalid_bpf_redirect_map(EBPF_EXECUTION_NATIVE);
 }
