@@ -1926,6 +1926,9 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
         sock_addr_ctx->access_information =
             (TOKEN_ACCESS_INFORMATION*)(incoming_values[fields->user_id_field].value.byteBlob->data);
     } else {
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "USER_ID not present", hook_id);
+
         sock_addr_ctx->access_information = NULL;
     }
 
