@@ -204,11 +204,11 @@ conditional_authorization_v4(void* context, const program_runtime_context_t* run
 #line 66 "sample/cgroup_sock_addr_helpers.c"
     r0 = (int64_t)r0 >> (uint32_t)(IMMEDIATE(32) & 63);
     // EBPF_OP_JSGT_REG pc=14 dst=r6 src=r0 offset=25 imm=0
-#line 66 "sample/cgroup_sock_addr_helpers.c"
+#line 63 "sample/cgroup_sock_addr_helpers.c"
     if ((int64_t)r6 > (int64_t)r0) {
-#line 66 "sample/cgroup_sock_addr_helpers.c"
+#line 63 "sample/cgroup_sock_addr_helpers.c"
         goto label_2;
-#line 66 "sample/cgroup_sock_addr_helpers.c"
+#line 63 "sample/cgroup_sock_addr_helpers.c"
     }
     // EBPF_OP_LDXW pc=15 dst=r1 src=r10 offset=-28 imm=0
 #line 67 "sample/cgroup_sock_addr_helpers.c"
@@ -237,13 +237,13 @@ conditional_authorization_v4(void* context, const program_runtime_context_t* run
 #line 67 "sample/cgroup_sock_addr_helpers.c"
     r1 = IMMEDIATE(100);
     // EBPF_OP_STXW pc=21 dst=r10 src=r1 offset=-36 imm=0
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-36));
     // EBPF_OP_STXDW pc=22 dst=r10 src=r6 offset=-48 imm=0
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     WRITE_ONCE_64(r10, (uint64_t)r6, OFFSET(-48));
     // EBPF_OP_MOV64_REG pc=23 dst=r2 src=r10 offset=0 imm=0
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=24 dst=r2 src=r0 offset=0 imm=-36
 #line 74 "sample/cgroup_sock_addr_helpers.c"
@@ -272,7 +272,7 @@ conditional_authorization_v4(void* context, const program_runtime_context_t* run
     WRITE_ONCE_64(r10, (uint64_t)r1, OFFSET(-48));
 label_1:
     // EBPF_OP_MOV64_REG pc=32 dst=r2 src=r10 offset=0 imm=0
-#line 78 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=33 dst=r2 src=r0 offset=0 imm=-36
 #line 79 "sample/cgroup_sock_addr_helpers.c"
@@ -297,7 +297,7 @@ label_2:
 #line 81 "sample/cgroup_sock_addr_helpers.c"
     r0 = r6;
     // EBPF_OP_EXIT pc=41 dst=r0 src=r0 offset=0 imm=0
-#line 81 "sample/cgroup_sock_addr_helpers.c"
+#line 83 "sample/cgroup_sock_addr_helpers.c"
     return r0;
 #line 53 "sample/cgroup_sock_addr_helpers.c"
 }
@@ -421,13 +421,13 @@ test_bind_helpers_v4(void* context, const program_runtime_context_t* runtime_con
 #line 219 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=18 dst=r2 src=r0 offset=0 imm=-4
-#line 219 "sample/cgroup_sock_addr_helpers.c"
+#line 224 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=19 dst=r3 src=r10 offset=0 imm=0
-#line 219 "sample/cgroup_sock_addr_helpers.c"
+#line 224 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=20 dst=r3 src=r0 offset=0 imm=-40
-#line 219 "sample/cgroup_sock_addr_helpers.c"
+#line 224 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=21 dst=r1 src=r1 offset=0 imm=1
 #line 224 "sample/cgroup_sock_addr_helpers.c"
@@ -456,7 +456,7 @@ test_bind_helpers_v4(void* context, const program_runtime_context_t* runtime_con
 #line 227 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=30 dst=r2 src=r0 offset=0 imm=-44
-#line 227 "sample/cgroup_sock_addr_helpers.c"
+#line 224 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=2
 #line 228 "sample/cgroup_sock_addr_helpers.c"
@@ -485,13 +485,13 @@ label_1:
 #line 230 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=39 dst=r2 src=r0 offset=0 imm=-44
-#line 230 "sample/cgroup_sock_addr_helpers.c"
+#line 232 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_MOV64_REG pc=40 dst=r3 src=r10 offset=0 imm=0
-#line 230 "sample/cgroup_sock_addr_helpers.c"
+#line 232 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=41 dst=r3 src=r0 offset=0 imm=-56
-#line 230 "sample/cgroup_sock_addr_helpers.c"
+#line 232 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-56);
     // EBPF_OP_LDDW pc=42 dst=r1 src=r1 offset=0 imm=2
 #line 232 "sample/cgroup_sock_addr_helpers.c"
@@ -637,13 +637,13 @@ test_bind_helpers_v6(void* context, const program_runtime_context_t* runtime_con
 #line 251 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=-4
-#line 251 "sample/cgroup_sock_addr_helpers.c"
+#line 256 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=21 dst=r3 src=r10 offset=0 imm=0
-#line 251 "sample/cgroup_sock_addr_helpers.c"
+#line 256 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=22 dst=r3 src=r0 offset=0 imm=-40
-#line 251 "sample/cgroup_sock_addr_helpers.c"
+#line 256 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=23 dst=r1 src=r1 offset=0 imm=1
 #line 256 "sample/cgroup_sock_addr_helpers.c"
@@ -672,7 +672,7 @@ test_bind_helpers_v6(void* context, const program_runtime_context_t* runtime_con
 #line 259 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=32 dst=r2 src=r0 offset=0 imm=-44
-#line 259 "sample/cgroup_sock_addr_helpers.c"
+#line 256 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_LDDW pc=33 dst=r1 src=r1 offset=0 imm=2
 #line 260 "sample/cgroup_sock_addr_helpers.c"
@@ -701,13 +701,13 @@ label_1:
 #line 262 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=41 dst=r2 src=r0 offset=0 imm=-44
-#line 262 "sample/cgroup_sock_addr_helpers.c"
+#line 264 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_MOV64_REG pc=42 dst=r3 src=r10 offset=0 imm=0
-#line 262 "sample/cgroup_sock_addr_helpers.c"
+#line 264 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=43 dst=r3 src=r0 offset=0 imm=-56
-#line 262 "sample/cgroup_sock_addr_helpers.c"
+#line 264 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-56);
     // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
 #line 264 "sample/cgroup_sock_addr_helpers.c"
@@ -835,7 +835,7 @@ test_recv_accept_helpers_v4(void* context, const program_runtime_context_t* runt
 #line 185 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=14 dst=r2 src=r0 offset=0 imm=-40
-#line 185 "sample/cgroup_sock_addr_helpers.c"
+#line 183 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-40);
     // EBPF_OP_MOV64_IMM pc=15 dst=r3 src=r0 offset=0 imm=32
 #line 186 "sample/cgroup_sock_addr_helpers.c"
@@ -860,13 +860,13 @@ test_recv_accept_helpers_v4(void* context, const program_runtime_context_t* runt
 #line 186 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=21 dst=r2 src=r0 offset=0 imm=-4
-#line 186 "sample/cgroup_sock_addr_helpers.c"
+#line 191 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=22 dst=r3 src=r10 offset=0 imm=0
-#line 186 "sample/cgroup_sock_addr_helpers.c"
+#line 191 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=23 dst=r3 src=r0 offset=0 imm=-40
-#line 186 "sample/cgroup_sock_addr_helpers.c"
+#line 191 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=24 dst=r1 src=r1 offset=0 imm=1
 #line 191 "sample/cgroup_sock_addr_helpers.c"
@@ -895,7 +895,7 @@ test_recv_accept_helpers_v4(void* context, const program_runtime_context_t* runt
 #line 194 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=33 dst=r2 src=r0 offset=0 imm=-44
-#line 194 "sample/cgroup_sock_addr_helpers.c"
+#line 191 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_LDDW pc=34 dst=r1 src=r1 offset=0 imm=2
 #line 195 "sample/cgroup_sock_addr_helpers.c"
@@ -924,13 +924,13 @@ label_1:
 #line 197 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=42 dst=r2 src=r0 offset=0 imm=-44
-#line 197 "sample/cgroup_sock_addr_helpers.c"
+#line 199 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_MOV64_REG pc=43 dst=r3 src=r10 offset=0 imm=0
-#line 197 "sample/cgroup_sock_addr_helpers.c"
+#line 199 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=44 dst=r3 src=r0 offset=0 imm=-56
-#line 197 "sample/cgroup_sock_addr_helpers.c"
+#line 199 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-56);
     // EBPF_OP_LDDW pc=45 dst=r1 src=r1 offset=0 imm=2
 #line 199 "sample/cgroup_sock_addr_helpers.c"
@@ -1058,7 +1058,7 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
 #line 66 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=14 dst=r2 src=r0 offset=0 imm=-40
-#line 66 "sample/cgroup_sock_addr_helpers.c"
+#line 63 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-40);
     // EBPF_OP_MOV64_IMM pc=15 dst=r3 src=r0 offset=0 imm=32
 #line 67 "sample/cgroup_sock_addr_helpers.c"
@@ -1083,13 +1083,13 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
 #line 67 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=21 dst=r2 src=r0 offset=0 imm=-4
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=22 dst=r3 src=r10 offset=0 imm=0
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=23 dst=r3 src=r0 offset=0 imm=-40
-#line 67 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=24 dst=r1 src=r1 offset=0 imm=1
 #line 74 "sample/cgroup_sock_addr_helpers.c"
@@ -1115,7 +1115,7 @@ test_sock_addr_helpers_v4(void* context, const program_runtime_context_t* runtim
 #line 78 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=32 dst=r2 src=r0 offset=0 imm=-44
-#line 78 "sample/cgroup_sock_addr_helpers.c"
+#line 74 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_LDDW pc=33 dst=r1 src=r1 offset=0 imm=2
 #line 79 "sample/cgroup_sock_addr_helpers.c"
@@ -1144,13 +1144,13 @@ label_1:
 #line 81 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=41 dst=r2 src=r0 offset=0 imm=-44
-#line 81 "sample/cgroup_sock_addr_helpers.c"
+#line 83 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_MOV64_REG pc=42 dst=r3 src=r10 offset=0 imm=0
-#line 81 "sample/cgroup_sock_addr_helpers.c"
+#line 83 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=43 dst=r3 src=r0 offset=0 imm=-56
-#line 81 "sample/cgroup_sock_addr_helpers.c"
+#line 83 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-56);
     // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
 #line 83 "sample/cgroup_sock_addr_helpers.c"
@@ -1284,7 +1284,7 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
 #line 107 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=16 dst=r2 src=r0 offset=0 imm=-40
-#line 107 "sample/cgroup_sock_addr_helpers.c"
+#line 104 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-40);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=32
 #line 108 "sample/cgroup_sock_addr_helpers.c"
@@ -1309,13 +1309,13 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
 #line 108 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=23 dst=r2 src=r0 offset=0 imm=-4
-#line 108 "sample/cgroup_sock_addr_helpers.c"
+#line 114 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_MOV64_REG pc=24 dst=r3 src=r10 offset=0 imm=0
-#line 108 "sample/cgroup_sock_addr_helpers.c"
+#line 114 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=25 dst=r3 src=r0 offset=0 imm=-40
-#line 108 "sample/cgroup_sock_addr_helpers.c"
+#line 114 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=1
 #line 114 "sample/cgroup_sock_addr_helpers.c"
@@ -1344,7 +1344,7 @@ test_sock_addr_helpers_v6(void* context, const program_runtime_context_t* runtim
 #line 118 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=35 dst=r2 src=r0 offset=0 imm=-44
-#line 118 "sample/cgroup_sock_addr_helpers.c"
+#line 114 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_LDDW pc=36 dst=r1 src=r1 offset=0 imm=2
 #line 119 "sample/cgroup_sock_addr_helpers.c"
@@ -1373,13 +1373,13 @@ label_1:
 #line 121 "sample/cgroup_sock_addr_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=44 dst=r2 src=r0 offset=0 imm=-44
-#line 121 "sample/cgroup_sock_addr_helpers.c"
+#line 123 "sample/cgroup_sock_addr_helpers.c"
     r2 += IMMEDIATE(-44);
     // EBPF_OP_MOV64_REG pc=45 dst=r3 src=r10 offset=0 imm=0
-#line 121 "sample/cgroup_sock_addr_helpers.c"
+#line 123 "sample/cgroup_sock_addr_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=46 dst=r3 src=r0 offset=0 imm=-56
-#line 121 "sample/cgroup_sock_addr_helpers.c"
+#line 123 "sample/cgroup_sock_addr_helpers.c"
     r3 += IMMEDIATE(-56);
     // EBPF_OP_LDDW pc=47 dst=r1 src=r1 offset=0 imm=2
 #line 123 "sample/cgroup_sock_addr_helpers.c"
