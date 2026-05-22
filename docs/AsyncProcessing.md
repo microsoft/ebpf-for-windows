@@ -71,7 +71,7 @@ eBPF program can:
 
 The proposal is split into two sections:
 
-1. A `bpf_pend()` helper that lets a program defer its verdict;
+1. A `bpf_sock_addr_pend()` helper that lets a program defer its verdict;
    this also lets netebpfext prepare its internal state to
    handle the eventual completion.
 2. A bpf custom map **complete_map** that the orchestrator
@@ -88,7 +88,7 @@ Two cross-cutting design tenets shape the contract:
 
 - **Program-declared complete map.** The complete map is
   declared by the eBPF program itself (in its `.maps` section),
-  not created out-of-band by the orchestrator. Each `bpf_pend()`
+  not created out-of-band by the orchestrator. Each `bpf_sock_addr_pend()`
   call binds the pend to the specific complete-map instance the
   program passes as an argument.
   See [Complete-map binding](#complete-map-binding).
@@ -102,15 +102,19 @@ Two cross-cutting design tenets shape the contract:
 
 ## PEND overview
 
-**`bpf_pend()` helper.** A program decides to pend by calling:
+**`bpf_sock_addr_pend()` helper.** A program decides to pend by calling:
 
 ```
-int bpf_pend(struct bpf_map *complete_map, pend_key_t *out_key);
+int bpf_sock_addr_pend(struct bpf_map *complete_map, pend_key_t *out_key, uint32_t flags);
 ```
 
 `complete_map` is a pointer to the program-defined complete map
 (see [Complete-map binding](#complete-map-binding) below) that the
 orchestrator will later use to drive resumption.
+
+`flags` is reserved for future use and MUST be 0. The helper
+rejects non-zero values with a non-zero error return so that
+future flags can be introduced without an ABI break.
 
 The helper returns 0 on success and writes a freshly-generated
 pend key to `*out_key`. On failure it returns non-zero and
@@ -118,18 +122,18 @@ pend key to `*out_key`. On failure it returns non-zero and
 
 > **REINVOKE re-entry.** When the originating program is
 > re-invoked via a `REINVOKE` completion and chooses to pend
-> again, it calls `bpf_pend()` symmetrically. The helper detects
+> again, it calls `bpf_sock_addr_pend()` symmetrically. The helper detects
 > (via the internal pend table) that the existing pend entry is
 > still alive, reuses it, returns the **original** pend key to
 > `*out_key`, and skips a second `FwpsPendOperation()` call.
 > The entry's lifecycle transitions back to `PENDED`. If the
 > re-invoked program returns a terminal verdict instead, no
-> `bpf_pend()` call is needed and the existing entry is
+> `bpf_sock_addr_pend()` call is needed and the existing entry is
 > dispatched normally.
 
 > **Implicit program context.** The helper signature deliberately
 > omits an explicit `ctx` parameter. netebpfext declares
-> `bpf_pend` using the existing `implicit_context` extension
+> `bpf_sock_addr_pend` using the existing `implicit_context` extension
 > feature (see [eBpfExtensions.md](eBpfExtensions.md), section
 > *Note about `implicit_context`*): the program context is
 > delivered as a hidden 6th argument set by the verifier/JIT glue,
@@ -143,13 +147,13 @@ key to its orchestrator over whatever notification channel the
 consumer chose (BTF-resolved function, ringbuf, etc.) so the
 orchestrator can later complete the pend.
 
-**New `PEND` verdict.** After a successful `bpf_pend()`, the
+**New `PEND` verdict.** After a successful `bpf_sock_addr_pend()`, the
 program must return a new verdict (e.g.,
 `BPF_SOCK_ADDR_VERDICT_PEND`) added to the existing
 `ebpf_sock_addr_verdict_t`. This is the program's signal to
 netebpfext to freeze the chain at this slot and wait for the
 complete map insert. If the program returns any other verdict
-after a successful `bpf_pend()`, netebpfext treats it as the
+after a successful `bpf_sock_addr_pend()`, netebpfext treats it as the
 program signaling that its notification failed: the pend is
 aborted (rolled back / fail-safe completed) rather than left
 dangling waiting on a complete that will never come. See
@@ -169,12 +173,12 @@ dangling waiting on a complete that will never come. See
 
 **Complete-map binding.** Each pend is bound at install time to
 the specific complete-map instance the program passes to
-`bpf_pend()`. The map is **declared by the eBPF program** (not
+`bpf_sock_addr_pend()`. The map is **declared by the eBPF program** (not
 created by the orchestrator out-of-band):
 
 ```c
 struct {
-    __uint(type, BPF_MAP_TYPE_PEND_COMPLETE);
+    __uint(type, BPF_MAP_TYPE_SOCK_ADDR_PEND_COMPLETE);
     __type(key, pend_key_t);
     __type(value, complete_entry_t);
     __uint(max_entries, 1024);
@@ -218,7 +222,7 @@ typedef struct _pend_key {
 } pend_key_t;
 ```
 
-**Internal pend state.** When `bpf_pend()` runs, netebpfext records
+**Internal pend state.** When `bpf_sock_addr_pend()` runs, netebpfext records
 an entry in a kernel-only hash table keyed by the pend key. The following
 is the proposed structure of the state:
 
@@ -275,7 +279,7 @@ typedef enum _pend_lifecycle {
                                            // `REINVOKE` dispatch resets
                                            // this back to `PENDED` before
                                            // re-entering the program, so a
-                                           // symmetric `bpf_pend()` call
+                                           // symmetric `bpf_sock_addr_pend()` call
                                            // can reuse the existing entry.
 } pend_lifecycle_t;
 
@@ -307,7 +311,7 @@ typedef struct _pend_entry {
     void* complete_map_context;            // Per-map extension context
                                            // for the complete map the
                                            // program passed to
-                                           // bpf_pend(). Used as the
+                                           // bpf_sock_addr_pend(). Used as the
                                            // identity for cross-client
                                            // validation; see
                                            // Complete-map binding.
@@ -324,6 +328,15 @@ typedef struct _pend_entry {
                                            // compares against a
                                            // system-wide TTL constant.
                                            // Doubles as pend-age telemetry.
+    uint32_t reinvoke_count;               // Number of REINVOKE-driven
+                                           // re-entries serviced for
+                                           // this pend so far. Bumped
+                                           // each time the REINVOKE
+                                           // dispatch re-enters the
+                                           // originating program.
+                                           // Used to enforce the
+                                           // REINVOKE cap (see Program
+                                           // safety).
 } pend_entry_t;
 ```
 
@@ -331,7 +344,7 @@ typedef struct _pend_entry {
 
 1. **Program decides to pend.** The program is invoked in the
    chain, determines that the operation needs an async decision,
-   and calls `bpf_pend(&pend_complete_map, &out_key)`.
+   and calls `bpf_sock_addr_pend(&pend_complete_map, &out_key, 0)`.
 2. **netebpfext processes the helper.** Resolves the
    `complete_map` argument to its per-map extension context (via
    the standard `map_context_offset` mechanism), generates the
@@ -358,7 +371,7 @@ typedef struct _pend_entry {
    The program then falls through to a normal synchronous
    verdict.
 3. **Program notifies the orchestrator.** After a successful
-   `bpf_pend()`, the program sends its notification (BTF-resolved
+   `bpf_sock_addr_pend()`, the program sends its notification (BTF-resolved
    function, ringbuf, etc.) so the orchestrator can later complete
    the pend.
 4. **Program returns the `PEND` verdict.** netebpfext stops
@@ -375,7 +388,7 @@ typedef struct _pend_entry {
 ## COMPLETE overview
 
 **The complete map.** Completion is delivered through a new
-custom map type, `BPF_MAP_TYPE_PEND_COMPLETE`, registered by
+custom map type, `BPF_MAP_TYPE_SOCK_ADDR_PEND_COMPLETE`, registered by
 netebpfext. The map is **declared by the eBPF program** (see
 [Complete-map binding](#complete-map-binding)); the orchestrator
 obtains an fd to that program-owned map and signals a completion
@@ -390,7 +403,7 @@ The complete map type, action enum, and value struct:
 
 ```c
 // New custom map type registered by netebpfext.
-#define BPF_MAP_TYPE_PEND_COMPLETE  /* next free id */
+#define BPF_MAP_TYPE_SOCK_ADDR_PEND_COMPLETE  /* next free id */
 
 // Orchestrator-supplied action carried in each complete-map entry.
 // Mirrors ebpf_sock_addr_verdict_t (the sync chain-of-programs return
@@ -468,8 +481,8 @@ completion fires.
     - `REINVOKE`: re-enters `originating_program`. Before re-entry
       the work item resets `lifecycle` from
       `COMPLETION_PENDING` back to `PENDED` so a symmetric
-      `bpf_pend()` call from the re-invoked program (see
-      [`bpf_pend()` REINVOKE re-entry](#pend-overview)) reuses the
+      `bpf_sock_addr_pend()` call from the re-invoked program (see
+      [`bpf_sock_addr_pend()` REINVOKE re-entry](#pend-overview)) reuses the
       existing pend (no second `FwpsPendOperation`). Either
       re-entry yields a terminal verdict (proceeds to step 4) or
       the program pends again (returns to the PEND flow).
@@ -482,8 +495,9 @@ completion fires.
 ## Program safety
 
 A pended operation consumes kernel resources until it is completed.
-Two backstops bound the impact pend consumers can have on the system
-if they pend without bound or fail to drive completions:
+Three backstops bound the impact pend consumers can have on the system
+if they pend without bound, fail to drive completions, or ping-pong
+indefinitely between PEND and REINVOKE:
 
 ### Systemwide pend memory quota
 
@@ -492,7 +506,7 @@ simultaneously outstanding pend entries across the entire system.
 The per-entry cost is layer- and operation-dependent (for example,
 inbound packet pends include cloned NBL payload whose size varies
 per operation), so the quota is expressed in bytes rather than as
-a fixed entry count. When a `bpf_pend()` call would push the
+a fixed entry count. When a `bpf_sock_addr_pend()` call would push the
 global outstanding pend memory over the limit, the helper returns
 `-ENOMEM` without creating any internal pend state or invoking any
 WFP pend APIs. The program MUST handle this error appropriately.
@@ -511,19 +525,46 @@ complete-map insert finds no matching pend entry and is rejected
 with `EBPF_KEY_NOT_FOUND` (see
 [COMPLETE overview](#complete-overview)).
 
-Together these two mechanisms ensure that neither misbehaving
+### REINVOKE iteration cap
+
+A program that is re-invoked via `REINVOKE` is allowed to call
+`bpf_sock_addr_pend()` again, which reuses the existing pend entry
+(see [PEND overview](#pend-overview)). Without a bound, a
+misbehaving program / orchestrator pair could ping-pong indefinitely
+between PEND and REINVOKE on the same operation, holding kernel
+resources and starving the underlying connection.
+
+netebpfext bounds this by tracking `reinvoke_count` on the pend
+entry: every REINVOKE dispatch bumps the counter before re-entering
+the program. When `bpf_sock_addr_pend()` is called on a re-invoked
+entry whose `reinvoke_count` has reached the system-wide cap, the
+helper returns a non-zero error code without re-issuing the WFP
+pend API. The program is expected to handle this error and return
+a synchronous (non-PEND) verdict; if it nonetheless attempts to
+return `BPF_SOCK_ADDR_VERDICT_PEND` after the helper failed,
+classify-exit cleanup synthesizes a `REJECT` (same handling as the
+[notification-fails edge case](#notification-fails-after-a-successful-pend)).
+
+The cap value is a netebpfext internal constant chosen to allow
+realistic async chains while well below any DoS-relevant depth.
+
+Together these three mechanisms ensure that neither misbehaving
 programs (pend without bound) nor misbehaving orchestrators
-(never drive completion) can indefinitely consume kernel
-resources.
+(never drive completion, or drive REINVOKE indefinitely) can
+indefinitely consume kernel resources.
 
 ## Edge cases
 
 The pend/complete mechanism has a few notable edge cases that
-need explicit handling.
+need explicit handling. In all cases below, the listed error code
+is returned by netebpfext from its `preprocess_map_update_element`
+callback and propagated synchronously by the eBPF runtime to the
+orchestrator's `bpf_map_update_elem` call (no entry is inserted
+into the complete map for any of these rejections).
 
 ### Notification fails after a successful pend
 
-`bpf_pend()` succeeded (WFP operation is pended, internal pend
+`bpf_sock_addr_pend()` succeeded (WFP operation is pended, internal pend
 entry exists) but the program's notification call to its orchestrator
 returned failure. The program MUST return a non-PEND verdict to surface the
 failure. netebpfext's classify wrapper detects the dangling pend
@@ -541,11 +582,41 @@ The second insert finds the pend entry already in
 with `EBPF_OBJECT_ALREADY_EXISTS` (or `EBPF_KEY_NOT_FOUND` if
 already removed); WFP completion runs exactly once per pend.
 
+### Orchestrator completes before program returns from classifyFn
+
+The orchestrator can race the program: receive the notification,
+call `bpf_map_update_elem` on the complete map, and have the
+preprocess callback run all before the program returns its `PEND`
+verdict from classifyFn. This is benign by design:
+
+- `bpf_sock_addr_pend()` issues the WFP pend API synchronously
+  before returning, so WFP already knows the operation is pended
+  by the time the program calls into the notification helper.
+- The preprocess callback acquires the per-entry lock to validate
+  and transition `PENDED -> COMPLETION_PENDING`, then queues the
+  dispatch work item; no inline re-entry into the program is
+  possible.
+- The dispatch work item runs on a separate thread at `PASSIVE`.
+  For `REJECT` / `PROCEED_*` it calls the WFP completion API
+  per the WFP contract; WFP's own serialization handles the case
+  where completion is called while classifyFn is still on the
+  stack of another thread.
+- For `REINVOKE` the work item resets `lifecycle` back to `PENDED`
+  under the entry lock and re-enters the program. The original
+  classify thread's return is independent of this re-entry; both
+  invocations operate against the same pend entry through the
+  entry lock, so neither sees inconsistent state.
+
+The original classify thread always returns its `PEND` verdict
+normally; netebpfext's classify wrapper returns the
+layer-appropriate "absorbed" action to WFP. Nothing on that path
+depends on the pend entry's current lifecycle.
+
 ### Cross-client complete attempt
 
 If an unrelated eBPF client somehow learns a pend key (leaked
 through telemetry, log, replay, etc.) and tries to drive
-completion through *its own* `BPF_MAP_TYPE_PEND_COMPLETE`
+completion through *its own* `BPF_MAP_TYPE_SOCK_ADDR_PEND_COMPLETE`
 instance, the preprocess callback finds a pend entry for the
 key but the `map_context` it receives does not match the one
 stored in the entry. The insert is rejected with
@@ -566,7 +637,7 @@ everything else.
 
 | Component        | Role                                                                           |
 |------------------|--------------------------------------------------------------------------------|
-| eBPF program     | Declares the complete map, calls `bpf_pend()` with it, dispatches notification, returns `PEND` verdict. |
+| eBPF program     | Declares the complete map, calls `bpf_sock_addr_pend()` with it, dispatches notification, returns `PEND` verdict. |
 | Decision-maker   | Receives notification, decides, picks the action.                              |
 | Complete-map writer | Holds an fd to the program-declared complete map; inserts `{key, action}` to drive resume. |
 
