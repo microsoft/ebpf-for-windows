@@ -98,6 +98,38 @@ DEFINE_GUID(
 DEFINE_GUID(
     EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER, 0x98849e13, 0xb07d, 0x11ec, 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee);
 
+// clang-format off
+// 98849e14-b07d-11ec-9a30-18602489beee
+DEFINE_GUID(
+    EBPF_HOOK_ALE_AUTH_LISTEN_V4_CALLOUT,
+    0x98849e14,
+    0xb07d,
+    0x11ec,
+    0x9a,
+    0x30,
+    0x18,
+    0x60,
+    0x24,
+    0x89,
+    0xbe,
+    0xee);
+
+// 98849e15-b07d-11ec-9a30-18602489beee
+DEFINE_GUID(
+    EBPF_HOOK_ALE_AUTH_LISTEN_V6_CALLOUT,
+    0x98849e15,
+    0xb07d,
+    0x11ec,
+    0x9a,
+    0x30,
+    0x18,
+    0x60,
+    0x24,
+    0x89,
+    0xbe,
+    0xee);
+// clang-format on
+
 /**
  * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4/6_CALLOUT.
  */
@@ -129,6 +161,19 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
  */
 void
 net_ebpf_extension_sock_addr_redirect_connection_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output);
+
+/**
+ * @brief WFP classifyFn callback for EBPF_HOOK_ALE_AUTH_LISTEN_V4/6_CALLOUT.
+ */
+void
+net_ebpf_extension_sock_addr_authorize_listen_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
     _Inout_opt_ void* layer_data,

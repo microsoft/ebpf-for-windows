@@ -100,11 +100,15 @@ struct connection_test_params
     // Expected bind error for server socket (0 = expect success).
     std::optional<int> expected_server_bind_error{};
 
+    // Expected listen error for server socket (0 = expect success).
+    std::optional<int> expected_listen_error{};
+
     // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
     std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
     std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
+    std::optional<uint32_t> listen_verdict{};  ///< Listen verdict for listen enforcement (sock_addr).
     std::optional<bind_policy> bind_policy{};  ///< Bind policy to apply for this test.
     std::optional<bind_action_t>
         bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
@@ -300,10 +304,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
     }
 
-    // Get policy maps (sock_addr or bind).
+    // Get policy maps (sock_addr, bind, or sockops).
     bpf_map* ingress_map = nullptr;
     bpf_map* egress_map = nullptr;
     bpf_map* bind_policy_map = nullptr;
+    bpf_map* connection_map = nullptr;
+    bpf_map* listen_map = nullptr;
 
     for (const auto& mod : loaded_modules) {
         if (!ingress_map) {
@@ -314,6 +320,12 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
         if (!bind_policy_map) {
             bind_policy_map = bpf_object__find_map_by_name(mod.object.get(), "bind_policy_map");
+        }
+        if (!connection_map) {
+            connection_map = bpf_object__find_map_by_name(mod.object.get(), "connection_map");
+        }
+        if (!listen_map) {
+            listen_map = bpf_object__find_map_by_name(mod.object.get(), "listen_connection_policy_map");
         }
     }
 
@@ -335,6 +347,14 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     if (egress_map) {
         SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &sock_addr_reject_verdict, EBPF_ANY) == 0);
     }
+
+    // Determine server socket family. For listen enforcement tests, the server socket must use the
+    // test's address family so that listen() triggers the correct WFP layer (V4 or V6). For all
+    // other tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
+    // accept connections from both V4 and V6 clients.
+    bool is_listen_test = std::any_of(
+        test_case.tests.begin(), test_case.tests.end(), [](const auto& t) { return t.listen_verdict.has_value(); });
+    socket_family_t server_family = is_listen_test ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
     // Attach all programs before executing tests.
     for (auto& mod : loaded_modules) {
@@ -388,10 +408,22 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 static_cast<uint8_t>(test_case.protocol),
                 *test.bind_verdict);
         }
+        if (test.listen_verdict) {
+            SAFE_REQUIRE(listen_map != nullptr);
+            // Setup tuple for listen operation — key uses local address/port.
+            // Server socket binds to INADDR_ANY by default, so local_ip stays zero
+            // to match what WFP reports for listen on unspecified address.
+            connection_tuple_t listen_tuple = {0};
+            listen_tuple.local_port = htons(SOCKET_TEST_PORT);
+            listen_tuple.protocol = tuple.protocol;
+            SAFE_REQUIRE(
+                bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) == 0);
+        }
 
         // Create sockets on init or after reset.
         if (!server) {
             int server_bind_error = test.expected_server_bind_error.value_or(0);
+            int server_listen_error = test.expected_listen_error.value_or(0);
 
             if (test_case.protocol == IPPROTO_TCP) {
                 server = std::make_unique<stream_server_socket_t>(
@@ -399,7 +431,9 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     IPPROTO_TCP,
                     static_cast<uint16_t>(SOCKET_TEST_PORT),
                     sockaddr_storage{},
-                    server_bind_error);
+                    server_bind_error,
+                    server_listen_error,
+                    server_family);
             } else if (test_case.protocol == IPPROTO_UDP) {
                 server = std::make_unique<datagram_server_socket_t>(
                     static_cast<uint16_t>(SOCK_DGRAM),
@@ -409,8 +443,8 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     server_bind_error);
             }
 
-            // If bind was expected to fail, skip connection testing.
-            if (server_bind_error != 0) {
+            // If bind or listen was expected to fail, skip connection testing.
+            if (server_bind_error != 0 || server_listen_error != 0) {
                 server.reset();
                 client.reset();
                 continue;
@@ -955,6 +989,251 @@ TEST_CASE(
     }
 
     printf("Conditional policy validation test completed successfully\n");
+}
+
+void
+listen_enforcement_test(ADDRESS_FAMILY address_family, uint16_t listen_port)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    const char* program_name = (address_family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+    bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, program_name);
+    SAFE_REQUIRE(_program != nullptr);
+
+    bpf_map* listen_map = bpf_object__find_map_by_name(object, "listen_connection_policy_map");
+    SAFE_REQUIRE(listen_map != nullptr);
+
+    // Attach the listen program.
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, attach_type, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Create a tuple for the listen operation that will be blocked.
+    connection_tuple_t tuple{};
+    if (address_family == AF_INET) {
+        tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    } else {
+        memcpy(tuple.local_ip.ipv6, &in6addr_loopback, sizeof(tuple.local_ip.ipv6));
+    }
+    tuple.local_port = htons(listen_port);
+    tuple.protocol = IPPROTO_TCP;
+
+    // Set the verdict to block the listen operation.
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(listen_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    // Create a listening socket.
+    SOCKET listen_socket = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
+    SAFE_REQUIRE(listen_socket != INVALID_SOCKET);
+
+    // Bind to the specified port.
+    sockaddr_storage bind_address{};
+    int addr_size = 0;
+    if (address_family == AF_INET) {
+        sockaddr_in* addr_v4 = reinterpret_cast<sockaddr_in*>(&bind_address);
+        addr_v4->sin_family = AF_INET;
+        addr_v4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr_v4->sin_port = htons(listen_port);
+        addr_size = sizeof(sockaddr_in);
+    } else {
+        sockaddr_in6* addr_v6 = reinterpret_cast<sockaddr_in6*>(&bind_address);
+        addr_v6->sin6_family = AF_INET6;
+        addr_v6->sin6_addr = in6addr_loopback;
+        addr_v6->sin6_port = htons(listen_port);
+        addr_size = sizeof(sockaddr_in6);
+    }
+
+    int bind_result = bind(listen_socket, reinterpret_cast<sockaddr*>(&bind_address), addr_size);
+    SAFE_REQUIRE(bind_result == 0);
+
+    // Try to listen — should be blocked by the eBPF program.
+    int listen_result = listen(listen_socket, 5);
+    SAFE_REQUIRE(listen_result != 0);
+    SAFE_REQUIRE(WSAGetLastError() != 0);
+
+    closesocket(listen_socket);
+
+    // Now test with a permitted listen operation on a different port.
+    uint16_t permitted_port = listen_port + 1;
+    connection_tuple_t permitted_tuple{};
+    if (address_family == AF_INET) {
+        permitted_tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+    } else {
+        memcpy(permitted_tuple.local_ip.ipv6, &in6addr_loopback, sizeof(permitted_tuple.local_ip.ipv6));
+    }
+    permitted_tuple.local_port = htons(permitted_port);
+    permitted_tuple.protocol = IPPROTO_TCP;
+
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(listen_map), &permitted_tuple, &verdict, EBPF_ANY) == 0);
+
+    SOCKET permitted_socket = socket(address_family, SOCK_STREAM, IPPROTO_TCP);
+    SAFE_REQUIRE(permitted_socket != INVALID_SOCKET);
+
+    if (address_family == AF_INET) {
+        reinterpret_cast<sockaddr_in*>(&bind_address)->sin_port = htons(permitted_port);
+    } else {
+        reinterpret_cast<sockaddr_in6*>(&bind_address)->sin6_port = htons(permitted_port);
+    }
+    bind_result = bind(permitted_socket, reinterpret_cast<sockaddr*>(&bind_address), addr_size);
+    SAFE_REQUIRE(bind_result == 0);
+
+    listen_result = listen(permitted_socket, 5);
+    SAFE_REQUIRE(listen_result == 0);
+
+    closesocket(permitted_socket);
+}
+
+TEMPLATE_TEST_CASE("listen_enforcement_test", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    listen_enforcement_test(family, SOCKET_TEST_PORT + 150);
+}
+
+// Test listen hook enforcement using ebpf_program_attach (wildcard / no compartment).
+// This exercises a different code path than listen_enforcement_test which uses
+// bpf_prog_attach with compartment_id=0.
+TEMPLATE_TEST_CASE("listen_hook_enforcement", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    const char* program_name = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+    bpf_attach_type_t bpf_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+
+    bpf_program* _program = bpf_object__find_program_by_name(object, program_name);
+    SAFE_REQUIRE(_program != nullptr);
+
+    bpf_map* listen_map = bpf_object__find_map_by_name(object, "listen_connection_policy_map");
+    SAFE_REQUIRE(listen_map != nullptr);
+
+    // Attach via ebpf_program_attach with no context (wildcard compartment).
+    ebpf_attach_type_t attach_type_guid{};
+    SAFE_REQUIRE(ebpf_get_ebpf_attach_type(bpf_type, &attach_type_guid) == EBPF_SUCCESS);
+    SAFE_REQUIRE(ebpf_program_attach(_program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
+
+    // Helper lambda to set up a listen tuple for the map key.
+    auto make_listen_tuple = [](uint16_t port) {
+        connection_tuple_t tuple{};
+        if constexpr (family == AF_INET) {
+            tuple.local_ip.ipv4 = htonl(INADDR_LOOPBACK);
+        } else {
+            memcpy(tuple.local_ip.ipv6, &in6addr_loopback, sizeof(tuple.local_ip.ipv6));
+        }
+        tuple.local_port = htons(port);
+        tuple.protocol = IPPROTO_TCP;
+        return tuple;
+    };
+
+    // Helper lambda to create and bind a socket.
+    auto bind_listen_socket = [](uint16_t port) -> SOCKET {
+        SOCKET s = socket(family, SOCK_STREAM, IPPROTO_TCP);
+        SAFE_REQUIRE(s != INVALID_SOCKET);
+
+        sockaddr_storage bind_address{};
+        int addr_size = 0;
+        if constexpr (family == AF_INET) {
+            sockaddr_in* addr_v4 = reinterpret_cast<sockaddr_in*>(&bind_address);
+            addr_v4->sin_family = AF_INET;
+            addr_v4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            addr_v4->sin_port = htons(port);
+            addr_size = sizeof(sockaddr_in);
+        } else {
+            sockaddr_in6* addr_v6 = reinterpret_cast<sockaddr_in6*>(&bind_address);
+            addr_v6->sin6_family = AF_INET6;
+            addr_v6->sin6_addr = in6addr_loopback;
+            addr_v6->sin6_port = htons(port);
+            addr_size = sizeof(sockaddr_in6);
+        }
+
+        int bind_result = bind(s, reinterpret_cast<sockaddr*>(&bind_address), addr_size);
+        SAFE_REQUIRE(bind_result == 0);
+        return s;
+    };
+
+    uint16_t listen_port = SOCKET_TEST_PORT + 210;
+
+    // Test 1: listen should be blocked by the eBPF program.
+    connection_tuple_t tuple = make_listen_tuple(listen_port);
+    uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(listen_map), &tuple, &verdict, EBPF_ANY) == 0);
+
+    SOCKET listen_socket = bind_listen_socket(listen_port);
+
+    int listen_result = listen(listen_socket, 5);
+    SAFE_REQUIRE(listen_result != 0);
+    SAFE_REQUIRE(WSAGetLastError() != 0);
+
+    closesocket(listen_socket);
+
+    // Test 2: listen should be allowed by the eBPF program.
+    uint16_t permitted_port = listen_port + 1;
+    connection_tuple_t permitted_tuple = make_listen_tuple(permitted_port);
+    verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(listen_map), &permitted_tuple, &verdict, EBPF_ANY) == 0);
+
+    SOCKET permitted_socket = bind_listen_socket(permitted_port);
+
+    listen_result = listen(permitted_socket, 5);
+    SAFE_REQUIRE(listen_result == 0);
+
+    closesocket(permitted_socket);
+}
+
+// Test listen hook enforcement via the execute_connection_test framework.
+// This exercises the wildcard (no compartment) WFP filter path using the framework's
+// dual-stack-aware server socket creation.
+TEMPLATE_TEST_CASE("listen_hook_enforcement_framework", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    execute_connection_test({
+        .name = "listen_hook_enforcement_framework",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program, .attach_type = listen_type},
+                        },
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "listen operation should be blocked by eBPF program",
+                    .expected_listen_error = WSAEACCES,
+                    .expected_result = connection_test_result::block,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+                },
+                {
+                    .description = "listen operation should be allowed by eBPF program",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+            },
+    });
 }
 
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
