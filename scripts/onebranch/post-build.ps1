@@ -57,7 +57,23 @@ $BinariesToCopy = @(
     "connect_redirect_tests.exe",
     "connect_redirect_tests.pdb",
     "tcp_udp_listener.exe",
-    "tcp_udp_listener.pdb"
+    "tcp_udp_listener.pdb",
+    # VC debug runtime DLLs (present only for NativeOnlyDebug builds; copied
+    # by tools\onebranch\onebranch.vcxproj PostBuildEvent for that config).
+    # install_ebpf.psm1 copies these into System32 on the test VM so that
+    # debug-built binaries (e.g. export_program_info.exe, which runs as an
+    # MSI custom action) can load. Missing files are warned-and-skipped
+    # below, so listing them is safe for Release configs.
+    "concrt140d.dll",
+    "msvcp140d.dll",
+    "msvcp140d_atomic_wait.dll",
+    "msvcp140d_codecvt_ids.dll",
+    "msvcp140_1d.dll",
+    "msvcp140_2d.dll",
+    "vccorlib140d.dll",
+    "vcruntime140d.dll",
+    "vcruntime140_1d.dll",
+    "ucrtbased.dll"
 )
 
 function CopyPackages {

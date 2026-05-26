@@ -215,14 +215,23 @@ function Install-eBPFComponents
     # Copy the VC debug runtime DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
     Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")
-    # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
-    $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
+    # Test if the VC debug runtime DLLs are present in the working directory
+    # (indicating a debug build). Some artifact layouts place them in a 'bin'
+    # subdirectory (e.g. the official_main pipeline), so check there as well.
+    $VCDebugRuntimeSourceDir = $WorkingDirectory
+    if (-not ($VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) })) {
+        $binDir = Join-Path $WorkingDirectory "bin"
+        if ($VCDebugRuntime | Where-Object { Test-Path (Join-Path $binDir $_) }) {
+            $VCDebugRuntimeSourceDir = $binDir
+        }
+    }
+    $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $VCDebugRuntimeSourceDir $_) }
     if (-not $VCDebugRuntime) {
         Write-Log("VC debug runtime DLLs not found in the working directory (i.e., release build). Skipping this step.") -ForegroundColor Yellow
     } else {
         $system32Path = Join-Path $env:SystemRoot "System32"
         $VCDebugRuntime | ForEach-Object {
-            $sourcePath = Join-Path $WorkingDirectory $_
+            $sourcePath = Join-Path $VCDebugRuntimeSourceDir $_
             $destinationPath = Join-Path $system32Path $_
             Write-Log("Copying '$sourcePath' to '$destinationPath'...")
             Copy-Item -Path $sourcePath -Destination $destinationPath -Force
@@ -254,6 +263,8 @@ function Install-eBPFComponents
                 "$pwd\{0}" -f $_.Value.Name
             } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
                 "$pwd\drivers\{0}" -f $_.Value.Name
+            } elseif (Test-Path -Path ("$pwd\bin\{0}" -f $_.Value.Name)) {
+                "$pwd\bin\{0}" -f $_.Value.Name
             } else {
                 throw ("Driver file not found for $($_.Key).")
             }
@@ -303,6 +314,8 @@ function Install-eBPFComponents
                         "$pwd\{0}" -f $_.Value.Name
                     } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
                         "$pwd\drivers\{0}" -f $_.Value.Name
+                    } elseif (Test-Path -Path ("$pwd\bin\{0}" -f $_.Value.Name)) {
+                        "$pwd\bin\{0}" -f $_.Value.Name
                     } else {
                         throw ("Driver file not found for $($_.Key).")
                     }

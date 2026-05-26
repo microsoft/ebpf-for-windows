@@ -45,7 +45,12 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug</Command>
+      <Command Condition="'$(Platform)'=='x64'">xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug
+xcopy /D /Y "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC143.DebugCRT\*" "$(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug"
+xcopy /D /Y "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug"</Command>
+      <Command Condition="'$(Platform)'=='ARM64'">xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug
+xcopy /D /Y "$(VC_DebugCppRuntimeFilesPath_ARM64)\Microsoft.VC143.DebugCRT\*" "$(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug"
+xcopy /D /Y "$(UniversalDebugCRT_ExecutablePath_ARM64)\ucrtbased.dll" "$(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease' And '$(BuildOneBranch)'=='True'">
