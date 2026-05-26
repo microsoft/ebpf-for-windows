@@ -1702,18 +1702,19 @@ const wfp_ale_layer_fields_t wfp_bind_fields[] = {
     // EBPF_HOOK_ALE_RESOURCE_ALLOC_V6.
     {FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_ADDRESS,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_PORT,
-     0,
-     0,
+     0, // No remote address for bind.
+     0, // No remote port for bind.
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_PROTOCOL,
-     0,
+     0, // No direction field at this layer.
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_COMPARTMENT_ID,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_INTERFACE,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_ALE_USER_ID,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_FLAGS,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_INTERFACE_TYPE,
      FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_TUNNEL_TYPE,
-     0,
-     0}};
+     0, // No next-hop interface at this layer.
+     0} // No sub-interface index at this layer.
+};
 
 // Populate a bpf_sock_addr context for a bind classify call.
 // For bind, user_ip/user_port carry the local address being bound to, and
