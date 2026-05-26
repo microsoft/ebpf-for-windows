@@ -26,7 +26,7 @@
 
 ## Purpose
 
-Provide a cross-platform eBPF interface for intercepting socket `bind()` operations on
+Provide a cross-platform eBPF interface for intercepting socket bind operations on
 Windows that mirrors Linux's `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` with `BPF_CGROUP_INET4_BIND`
 / `BPF_CGROUP_INET6_BIND` attach types. This enables eBPF programs written for Linux
 (using `cgroup/bind4` / `cgroup/bind6` ELF section names and the `bpf_sock_addr` context)
@@ -165,7 +165,9 @@ rejects, the bind is blocked.
 
 ### Hook Integration and Flow
 
-1. **Application bind request**: Application calls `bind()` on a socket
+1. **Application bind request**: A socket is bound to a local address/port. This
+   can happen explicitly via `bind()`, or implicitly when an unbound socket is
+   used with `connect()`, `listen()`, `sendto()`, etc.
 2. **WFP interception**: WFP `ALE_RESOURCE_ASSIGNMENT` layer intercepts the operation
 3. **eBPF invocation**: Registered eBPF programs are invoked with the `bpf_sock_addr_t` context
 4. **Program execution**: Each program inspects the context and returns a verdict
@@ -174,7 +176,8 @@ rejects, the bind is blocked.
 ```
 Application
     |
-    | bind()
+    | bind (explicit via bind(), or implicit
+    |       via connect()/listen()/sendto()/...)
     v
 Windows Socket Layer
     |
