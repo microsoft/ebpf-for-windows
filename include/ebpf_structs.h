@@ -197,7 +197,7 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_XDP,
 
-    /** @brief Program type for handling socket bind() requests.
+    /** @brief Program type for handling socket bind operations.
      *
      * **eBPF program prototype:** \ref bind_hook_t
      *
@@ -298,7 +298,7 @@ enum bpf_attach_type
      */
     BPF_XDP,
 
-    /** @brief Attach type for handling socket bind() requests.
+    /** @brief Attach type for handling socket bind operations.
      *
      * **Program type:** \ref BPF_PROG_TYPE_BIND
      */
@@ -370,13 +370,13 @@ enum bpf_attach_type
      */
     BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
 
-    /** @brief Attach type for handling IPv4 socket bind() requests.
+    /** @brief Attach type for handling IPv4 socket bind operations.
      *
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */
     BPF_CGROUP_INET4_BIND,
 
-    /** @brief Attach type for handling IPv6 socket bind() requests.
+    /** @brief Attach type for handling IPv6 socket bind operations.
      *
      * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
      */

@@ -977,7 +977,8 @@ TEMPLATE_TEST_CASE("sock_addr_bind_hard_permit_wfp", "[bind_tests]", ALL_CONNECT
 
 // Bind hook helper functions validation: validates that bpf_sock_addr_get_network_context
 // returns valid interface_type and tunnel_type at the bind (ALE_RESOURCE_ASSIGNMENT) layer.
-TEST_CASE("bind_helper_functions_validation_tcp_v4", "[bind_tests][helper_validation]")
+static void
+bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
 {
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
@@ -987,29 +988,41 @@ TEST_CASE("bind_helper_functions_validation_tcp_v4", "[bind_tests][helper_valida
     SAFE_REQUIRE(object != nullptr);
     SAFE_REQUIRE(bpf_object__load(object) == 0);
 
-    bpf_program* bind_program = bpf_object__find_program_by_name(object, "test_bind_helpers_v4");
+    const char* program_name = (address_family == AF_INET) ? "test_bind_helpers_v4" : "test_bind_helpers_v6";
+    bpf_program* bind_program = bpf_object__find_program_by_name(object, program_name);
     SAFE_REQUIRE(bind_program != nullptr);
 
     bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
     SAFE_REQUIRE(network_context_map != nullptr);
 
-    // Attach at INET4_BIND.
-    int result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, BPF_CGROUP_INET4_BIND, 0);
+    // Attach at the appropriate BIND layer.
+    bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
+    int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type, 0);
     SAFE_REQUIRE(result == 0);
 
     // Trigger bind by creating and binding a TCP socket.
-    SOCKET sock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SOCKET sock = WSASocketW(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
     SAFE_REQUIRE(sock != INVALID_SOCKET);
-    sockaddr_in bind_addr = {};
-    bind_addr.sin_family = AF_INET;
-    bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    bind_addr.sin_port = htons(SOCKET_TEST_PORT);
-    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
-    SAFE_REQUIRE(result == 0);
 
-    // Calculate the connection ID the BPF program used.
-    uint32_t connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+    uint32_t connection_id = 0;
+    if (address_family == AF_INET) {
+        sockaddr_in bind_addr = {};
+        bind_addr.sin_family = AF_INET;
+        bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        bind_addr.sin_port = htons(SOCKET_TEST_PORT);
+        result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+        SAFE_REQUIRE(result == 0);
+        connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+    } else {
+        sockaddr_in6 bind_addr = {};
+        bind_addr.sin6_family = AF_INET6;
+        bind_addr.sin6_addr = in6addr_loopback;
+        bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+        result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+        SAFE_REQUIRE(result == 0);
+        const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+        connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
+    }
 
     // Verify network context was populated.
     bpf_sock_addr_network_context_t net_ctx = {0};
@@ -1040,72 +1053,19 @@ TEST_CASE("bind_helper_functions_validation_tcp_v4", "[bind_tests][helper_valida
     SAFE_REQUIRE(valid_tunnel_type);
 
     closesocket(sock);
-    printf("Bind helper functions validation test completed successfully for IPv4\n");
+    printf(
+        "Bind helper functions validation test completed successfully for %s\n",
+        (address_family == AF_INET) ? "IPv4" : "IPv6");
+}
+
+TEST_CASE("bind_helper_functions_validation_tcp_v4", "[bind_tests][helper_validation]")
+{
+    bind_helper_functions_validation_test(AF_INET);
 }
 
 TEST_CASE("bind_helper_functions_validation_tcp_v6", "[bind_tests][helper_validation]")
 {
-    native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
-
-    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    bpf_object_ptr object_ptr(object);
-    SAFE_REQUIRE(object != nullptr);
-    SAFE_REQUIRE(bpf_object__load(object) == 0);
-
-    bpf_program* bind_program = bpf_object__find_program_by_name(object, "test_bind_helpers_v6");
-    SAFE_REQUIRE(bind_program != nullptr);
-
-    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
-    SAFE_REQUIRE(network_context_map != nullptr);
-
-    // Attach at INET6_BIND.
-    int result =
-        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, BPF_CGROUP_INET6_BIND, 0);
-    SAFE_REQUIRE(result == 0);
-
-    // Trigger bind by creating and binding a TCP socket.
-    SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
-    SAFE_REQUIRE(sock != INVALID_SOCKET);
-    sockaddr_in6 bind_addr = {};
-    bind_addr.sin6_family = AF_INET6;
-    bind_addr.sin6_addr = in6addr_loopback;
-    bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
-    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
-    SAFE_REQUIRE(result == 0);
-
-    // Calculate the connection ID the BPF program used.
-    const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
-    uint32_t connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
-
-    // Verify network context was populated.
-    bpf_sock_addr_network_context_t net_ctx = {0};
-    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
-    SAFE_REQUIRE(result == 0);
-
-    printf(
-        "Bind network context - Version: %u, Interface: %u, Tunnel: %u\n",
-        net_ctx.version,
-        net_ctx.interface_type,
-        net_ctx.tunnel_type);
-
-    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
-
-    bool valid_interface_type =
-        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
-         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
-         net_ctx.interface_type == IF_TYPE_TUNNEL);
-    SAFE_REQUIRE(valid_interface_type);
-
-    bool valid_tunnel_type =
-        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
-         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
-         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
-         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
-    SAFE_REQUIRE(valid_tunnel_type);
-
-    closesocket(sock);
-    printf("Bind helper functions validation test completed successfully for IPv6\n");
+    bind_helper_functions_validation_test(AF_INET6);
 }
 
 void

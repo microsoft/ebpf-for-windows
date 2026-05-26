@@ -37,6 +37,7 @@ struct
 } network_context_map SEC(".maps");
 
 // Map to store connection count for testing.
+// Counter key scheme: 1=connect_v4, 2=connect_v6, 3=recv_accept_v4, 4=bind_v4, 5=bind_v6.
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -101,6 +102,7 @@ test_sock_addr_helpers_v6(bpf_sock_addr_t* ctx)
     }
 
     // Generate a unique connection ID for IPv6 (simplified hash).
+    // XOR first and last dwords of IPv6 address for a simple connection ID hash.
     uint32_t connection_id = (ctx->user_ip6[0] ^ ctx->user_ip6[3]) ^ (ctx->user_port << 16);
 
     // Retrieve network context using the struct-based helper.
@@ -245,6 +247,7 @@ test_bind_helpers_v6(bpf_sock_addr_t* ctx)
 {
     int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
 
+    // XOR first and last dwords of IPv6 address for a simple connection ID hash.
     uint32_t connection_id = (ctx->user_ip6[0] ^ ctx->user_ip6[3]) ^ (ctx->user_port << 16);
 
     bpf_sock_addr_network_context_t net_ctx = {};

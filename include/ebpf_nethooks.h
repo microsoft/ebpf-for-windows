@@ -75,7 +75,7 @@ typedef enum _bind_action
 } bind_action_t;
 
 /**
- * @brief Handle IPv4 and IPv6 socket bind() requests.
+ * @brief Handle IPv4 and IPv6 socket bind operations.
  *
  * This function type defines the signature for eBPF programs that handle socket bind operations.
  * The program is called before the bind operation completes and can inspect the socket metadata
