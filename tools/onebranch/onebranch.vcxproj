@@ -106,4 +106,38 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+
+  <!--
+    Copy test-support files (scripts, ETW recording profile, GUID/JSON config
+    files, etc.) from the source tree into the OneBranch artifact directory.
+
+    The ProjectReferences above only contribute compiled binary outputs to
+    $(OutDir). The driver test jobs running in the downstream test pipeline
+    additionally need the .ps1/.psm1 helpers under scripts\ (setup, cleanup,
+    run_driver_tests, tracing) and ebpfforwindows.wprp (used by wpr.exe to
+    start ETW tracing during tests). The legacy 'native_only_test' build stage
+    relied on scripts\setup_build\setup_build.vcxproj to gather these via
+    <CopyFileToFolders>, but that project is not a dependency of this target
+    (and has no ARM64 configuration), so /t:tools\onebranch skipped it.
+
+    Mirror the file list maintained by setup_build.vcxproj so the official
+    build artifact contains everything the driver tests expect.
+  -->
+  <Target Name="CopyTestSupportFiles" AfterTargets="Build" Condition="'$(BuildOneBranch)'=='True'">
+    <ItemGroup>
+      <_TestSupportFiles Include="$(SolutionDir)scripts\*.ps1" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\*.psm1" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\*.wprp" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\*.guid" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\test_execution.json" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\run_tests.bat" />
+      <_TestSupportFiles Include="$(SolutionDir)scripts\ebpf_tracing.cmd" />
+      <_TestSupportFiles Include="$(SolutionDir)external\usersim\scripts\Test-FaultInjection.ps1"
+                         Condition="Exists('$(SolutionDir)external\usersim\scripts\Test-FaultInjection.ps1')" />
+    </ItemGroup>
+    <Message Importance="high" Text="onebranch: copying %(_TestSupportFiles.Identity) -&gt; $(SolutionDir)build\bin\$(Platform)_$(Configuration)" />
+    <Copy SourceFiles="@(_TestSupportFiles)"
+          DestinationFolder="$(SolutionDir)build\bin\$(Platform)_$(Configuration)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
