@@ -1426,6 +1426,296 @@ TEST_CASE(
     printf("Conditional policy validation test completed successfully\n");
 }
 
+// Listen hook helper functions validation: validates that bpf_sock_addr_get_network_context
+// returns valid interface_type and tunnel_type at the listen (ALE_AUTH_LISTEN) layer.
+TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper_validation]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_program* listen_program = bpf_object__find_program_by_name(object, "test_listen_helpers_v4");
+    SAFE_REQUIRE(listen_program != nullptr);
+
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+
+    // Attach at INET4_LISTEN.
+    int result =
+        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Trigger listen by creating, binding, and calling listen() on a TCP socket.
+    SOCKET sock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    sockaddr_in bind_addr = {};
+    bind_addr.sin_family = AF_INET;
+    bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    bind_addr.sin_port = htons(SOCKET_TEST_PORT);
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
+    result = listen(sock, SOMAXCONN);
+    SAFE_REQUIRE(result == 0);
+
+    // Calculate the connection ID the BPF program used.
+    uint32_t connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
+
+    // Verify network context was populated.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+
+    printf(
+        "Listen network context - Version: %u, Interface: %u, Tunnel: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type);
+
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    closesocket(sock);
+    printf("Listen helper functions validation test completed successfully for IPv4\n");
+}
+
+TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper_validation]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_program* listen_program = bpf_object__find_program_by_name(object, "test_listen_helpers_v6");
+    SAFE_REQUIRE(listen_program != nullptr);
+
+    bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
+    SAFE_REQUIRE(network_context_map != nullptr);
+
+    // Attach at INET6_LISTEN.
+    int result =
+        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET6_LISTEN, 0);
+    SAFE_REQUIRE(result == 0);
+
+    // Trigger listen.
+    SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    sockaddr_in6 bind_addr = {};
+    bind_addr.sin6_family = AF_INET6;
+    bind_addr.sin6_addr = in6addr_loopback;
+    bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
+    result = listen(sock, SOMAXCONN);
+    SAFE_REQUIRE(result == 0);
+
+    // Calculate the connection ID.
+    const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
+    uint32_t connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
+
+    // Verify network context was populated.
+    bpf_sock_addr_network_context_t net_ctx = {0};
+    result = bpf_map_lookup_elem(bpf_map__fd(network_context_map), &connection_id, &net_ctx);
+    SAFE_REQUIRE(result == 0);
+
+    printf(
+        "Listen network context - Version: %u, Interface: %u, Tunnel: %u\n",
+        net_ctx.version,
+        net_ctx.interface_type,
+        net_ctx.tunnel_type);
+
+    SAFE_REQUIRE(net_ctx.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+
+    bool valid_interface_type =
+        (net_ctx.interface_type == 0 || net_ctx.interface_type == IF_TYPE_ETHERNET_CSMACD ||
+         net_ctx.interface_type == IF_TYPE_SOFTWARE_LOOPBACK || net_ctx.interface_type == IF_TYPE_IEEE80211 ||
+         net_ctx.interface_type == IF_TYPE_TUNNEL);
+    SAFE_REQUIRE(valid_interface_type);
+
+    bool valid_tunnel_type =
+        (net_ctx.tunnel_type == TUNNEL_TYPE_NONE || net_ctx.tunnel_type == TUNNEL_TYPE_OTHER ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_DIRECT || net_ctx.tunnel_type == TUNNEL_TYPE_6TO4 ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
+         net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
+    SAFE_REQUIRE(valid_tunnel_type);
+
+    closesocket(sock);
+    printf("Listen helper functions validation test completed successfully for IPv6\n");
+}
+
+// Test listen hook enforcement using bpf_prog_attach (libbpf-compat path).
+// This exercises a different attach API than the native ebpf_program_attach path:
+// bpf_prog_attach passes a 4-byte attach parameter containing compartment_id=0, while
+// ebpf_program_attach with NULL parameter passes no attach parameter at all. The two
+// paths produce different filter contexts on the kernel side.
+//
+// Also binds the server socket to INADDR_LOOPBACK explicitly (rather than INADDR_ANY)
+// to exercise the non-zero local-address branch of _copy_wfp_listen_fields.
+TEMPLATE_TEST_CASE("listen_enforcement_libbpf", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    // Build a loopback bind address for the server side.
+    sockaddr_storage loopback_address{};
+    if constexpr (family == AF_INET) {
+        sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(&loopback_address);
+        addr4->sin_family = AF_INET;
+        addr4->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        addr4->sin_port = htons(SOCKET_TEST_PORT);
+    } else {
+        sockaddr_in6* addr6 = reinterpret_cast<sockaddr_in6*>(&loopback_address);
+        addr6->sin6_family = AF_INET6;
+        addr6->sin6_addr = in6addr_loopback;
+        addr6->sin6_port = htons(SOCKET_TEST_PORT);
+    }
+
+    execute_connection_test({
+        .name = "listen_enforcement_libbpf",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program,
+                             .attach_type = listen_type,
+                             .attach_method = attach_method_t::bpf_prog_attach},
+                        },
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "listen via bpf_prog_attach should be blocked by eBPF program",
+                    .expected_listen_error = WSAEACCES,
+                    .expected_result = connection_test_result::block,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+                },
+                {
+                    .description = "listen via bpf_prog_attach should be allowed by eBPF program",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+            },
+        .server_bind_address = loopback_address,
+    });
+}
+// Test listen hook enforcement via the execute_connection_test framework.
+// This exercises the wildcard (no compartment) WFP filter path using the framework's
+// dual-stack-aware server socket creation.
+TEMPLATE_TEST_CASE("listen_hook_enforcement_framework", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    execute_connection_test({
+        .name = "listen_hook_enforcement_framework",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program, .attach_type = listen_type},
+                        },
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "listen operation should be blocked by eBPF program",
+                    .expected_listen_error = WSAEACCES,
+                    .expected_result = connection_test_result::block,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_REJECT,
+                },
+                {
+                    .description = "listen operation should be allowed by eBPF program",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+            },
+    });
+}
+
+// Test that BPF_SOCK_ADDR_VERDICT_PROCEED_HARD on listen overrides a same-layer
+// terminating WFP block filter. Mirrors the connect/recv_accept hard-permit
+// pattern: install a block filter at the LISTEN layer for the test port; soft
+// permit gets blocked by the filter, hard permit clears FWPS_RIGHT_ACTION_WRITE
+// and bypasses it.
+TEMPLATE_TEST_CASE("connection_test_listen_hard_permit", "[sock_addr_tests]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+
+    constexpr auto listen_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN;
+    const char* listen_program = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6";
+
+    execute_connection_test({
+        .name = "connection_test_listen_hard_permit",
+        .address_family = family,
+        .protocol = protocol,
+        .modules =
+            {
+                {
+                    .object_file = "cgroup_sock_addr",
+                    .programs =
+                        {
+                            {.program_name = listen_program, .attach_type = listen_type},
+                        },
+                },
+            },
+        .wfp_filters =
+            {
+                {
+                    .layer = (family == AF_INET) ? FWPM_LAYER_ALE_AUTH_LISTEN_V4 : FWPM_LAYER_ALE_AUTH_LISTEN_V6,
+                    .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+                },
+            },
+        .tests =
+            {
+                {
+                    .description = "Soft permit blocked by WFP",
+                    .expected_listen_error = WSAEACCES,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT,
+                },
+                {
+                    .description = "Hard permit overrides WFP block",
+                    .expected_result = connection_test_result::allow,
+                    .listen_verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_HARD,
+                },
+            },
+    });
+}
+
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};

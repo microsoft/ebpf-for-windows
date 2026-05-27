@@ -276,6 +276,39 @@ exit:
 }
 
 /**
+ * @brief Test program for LISTEN IPv4 that demonstrates bpf_sock_addr_get_network_context
+ * works at the listen attach point.
+ */
+SEC("cgroup/listen4")
+int
+test_listen_helpers_v4(bpf_sock_addr_t* ctx)
+{
+    int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    // Generate a key from local listen address and port.
+    uint32_t connection_id = ctx->user_ip4 ^ (ctx->user_port << 16);
+
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
+
+    bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
+
+    uint32_t counter_key = 6; // Different key for listen4.
+    uint64_t count2 = 1;
+    uint64_t* existing_count2 = bpf_map_lookup_elem(&connection_count_map, &counter_key);
+    if (existing_count2) {
+        count2 = *existing_count2 + 1;
+    }
+    bpf_map_update_elem(&connection_count_map, &counter_key, &count2, BPF_ANY);
+
+exit:
+    return retval;
+}
+
+/**
  * @brief Test program for BIND IPv6 that exercises bpf_sock_addr_get_network_context and
  * the additional helpers supported at the bind attach point
  * (bpf_get_current_pid_tgid, bpf_get_current_logon_id, bpf_is_current_admin,
@@ -310,6 +343,38 @@ test_bind_helpers_v6(bpf_sock_addr_t* ctx)
     bpf_map_update_elem(&bind_helper_results_map, &results_key, &results, BPF_ANY);
 
     uint32_t counter_key = 5; // Different key for bind6.
+    uint64_t count3 = 1;
+    uint64_t* existing_count3 = bpf_map_lookup_elem(&connection_count_map, &counter_key);
+    if (existing_count3) {
+        count3 = *existing_count3 + 1;
+    }
+    bpf_map_update_elem(&connection_count_map, &counter_key, &count3, BPF_ANY);
+
+exit:
+    return retval;
+}
+
+/**
+ * @brief Test program for LISTEN IPv6 that demonstrates bpf_sock_addr_get_network_context
+ * works at the listen attach point.
+ */
+SEC("cgroup/listen6")
+int
+test_listen_helpers_v6(bpf_sock_addr_t* ctx)
+{
+    int retval = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    uint32_t connection_id = (ctx->user_ip6[0] ^ ctx->user_ip6[3]) ^ (ctx->user_port << 16);
+
+    bpf_sock_addr_network_context_t net_ctx = {};
+    if (bpf_sock_addr_get_network_context(ctx, &net_ctx, sizeof(net_ctx)) < 0) {
+        retval = BPF_SOCK_ADDR_VERDICT_REJECT;
+        goto exit;
+    }
+
+    bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
+
+    uint32_t counter_key = 7; // Different key for listen6.
     uint64_t count3 = 1;
     uint64_t* existing_count3 = bpf_map_lookup_elem(&connection_count_map, &counter_key);
     if (existing_count3) {
