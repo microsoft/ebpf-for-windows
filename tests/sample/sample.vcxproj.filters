@@ -96,6 +96,9 @@
     <CustomBuild Include="cgroup_sock_addr2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="cgroup_connect_authorization_readonly.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="printk_legacy.c">
       <Filter>Source Files</Filter>
     </CustomBuild>

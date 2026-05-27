@@ -31,6 +31,7 @@ ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_tabl
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     ebpf_trampoline_table_t* local_trampoline_table = NULL;
+    size_t trampoline_table_length = 0;
 
     local_trampoline_table = ebpf_allocate_with_tag(sizeof(ebpf_trampoline_table_t), EBPF_POOL_TAG_DEFAULT);
     if (!local_trampoline_table) {
@@ -39,7 +40,11 @@ ebpf_allocate_trampoline_table(size_t entry_count, _Outptr_ ebpf_trampoline_tabl
     }
 
     local_trampoline_table->entry_count = entry_count;
-    local_trampoline_table->memory_descriptor = ebpf_map_memory(entry_count * sizeof(ebpf_trampoline_entry_t));
+    return_value = ebpf_safe_size_t_multiply(entry_count, sizeof(ebpf_trampoline_entry_t), &trampoline_table_length);
+    if (return_value != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    local_trampoline_table->memory_descriptor = ebpf_map_memory(trampoline_table_length);
     if (!local_trampoline_table->memory_descriptor) {
         return_value = EBPF_NO_MEMORY;
         goto Exit;

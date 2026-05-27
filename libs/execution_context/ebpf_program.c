@@ -155,7 +155,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
  */
 void
 ebpf_program_set_header_context_descriptor(
-    _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context)
+    _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context)
 {
     // slot [1] contains the context_descriptor for the program.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
@@ -175,10 +175,10 @@ ebpf_program_set_header_context_descriptor(
  */
 void
 ebpf_program_get_header_context_descriptor(
-    _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor)
+    _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor)
 {
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
-    *context_descriptor = (ebpf_context_descriptor_t*)header->context_header[1];
+    *context_descriptor = (ebpf_ctx_descriptor_t*)header->context_header[1];
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
@@ -961,17 +961,29 @@ ebpf_program_associate_additional_map(ebpf_program_t* program, ebpf_map_t* map)
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
 
-    uint32_t map_count = program->count_of_maps + 1;
+    uint32_t map_count = 0;
     ebpf_map_t** program_maps;
+    size_t old_map_size = 0;
+    size_t new_map_size = 0;
+    result = ebpf_safe_size_t_add(program->count_of_maps, 1, &new_map_size);
+    if (result != EBPF_SUCCESS || new_map_size > UINT32_MAX) {
+        ebpf_lock_unlock(&program->lock, state);
+        EBPF_RETURN_RESULT(result != EBPF_SUCCESS ? result : EBPF_ARITHMETIC_OVERFLOW);
+    }
+    map_count = (uint32_t)new_map_size;
+    result = ebpf_safe_size_t_multiply(program->count_of_maps, sizeof(ebpf_map_t*), &old_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    result = ebpf_safe_size_t_multiply(map_count, sizeof(ebpf_map_t*), &new_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
     if (program->maps) {
         program_maps = ebpf_reallocate(
-            program->maps,
-            CXPLAT_POOL_FLAG_NON_PAGED,
-            program->count_of_maps * sizeof(ebpf_map_t*),
-            map_count * sizeof(ebpf_map_t*),
-            EBPF_POOL_TAG_PROGRAM);
+            program->maps, CXPLAT_POOL_FLAG_NON_PAGED, old_map_size, new_map_size, EBPF_POOL_TAG_PROGRAM);
     } else {
-        program_maps = ebpf_allocate_with_tag(map_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
+        program_maps = ebpf_allocate_with_tag(new_map_size, EBPF_POOL_TAG_PROGRAM);
     }
     if (program_maps == NULL) {
         result = EBPF_NO_MEMORY;
@@ -993,20 +1005,27 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t maps_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t** program_maps = NULL;
     EBPF_LOG_ENTRY();
 
     size_t index;
-    ebpf_map_t** program_maps = ebpf_allocate_with_tag(maps_count * sizeof(ebpf_map_t*), EBPF_POOL_TAG_PROGRAM);
+    size_t program_maps_length = 0;
+    result = ebpf_safe_size_t_multiply(maps_count, sizeof(ebpf_map_t*), &program_maps_length);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+    program_maps = ebpf_allocate_with_tag(program_maps_length, EBPF_POOL_TAG_PROGRAM);
     if (!program_maps) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    memcpy(program_maps, maps, sizeof(ebpf_map_t*) * maps_count);
+    memcpy(program_maps, maps, program_maps_length);
 
     // Before we acquire any references, make sure
     // all maps can be associated.
     for (index = 0; index < maps_count; index++) {
+#pragma warning(suppress : 6385) // program_maps was allocated and populated for maps_count entries above.
         ebpf_map_t* map = program_maps[index];
         result = ebpf_map_associate_program(map, program);
         if (result != EBPF_SUCCESS) {
@@ -1024,11 +1043,12 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     }
     // Now go through again and acquire references.
     program->maps = program_maps;
-    program_maps = NULL;
     program->count_of_maps = maps_count;
     for (index = 0; index < maps_count; index++) {
-        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program->maps[index]);
+#pragma warning(suppress : 6385) // program_maps was allocated and populated for maps_count entries above.
+        EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program_maps[index]);
     }
+    program_maps = NULL;
     ebpf_lock_unlock(&program->lock, state);
 
 Done:
@@ -1109,8 +1129,13 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_he
         // We _can_ have instances of ebpf programs that do not need to call any helper functions.
         // Such programs are valid and the 'program->helper_function_count' member for such programs will be 0 (Zero).
         if (program->helper_function_count) {
-            helper_function_addresses = ebpf_allocate_with_tag(
-                program->helper_function_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_PROGRAM);
+            size_t helper_function_addresses_length = 0;
+            result = ebpf_safe_size_t_multiply(
+                program->helper_function_count, sizeof(helper_function_address_t), &helper_function_addresses_length);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
+            }
+            helper_function_addresses = ebpf_allocate_with_tag(helper_function_addresses_length, EBPF_POOL_TAG_PROGRAM);
             if (helper_function_addresses == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1244,8 +1269,13 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
         total_helper_function_addresses->helper_function_count = (uint32_t)total_helper_count;
+        size_t helper_function_address_length = 0;
+        return_value = ebpf_safe_size_t_multiply(sizeof(uint64_t), total_helper_count, &helper_function_address_length);
+        if (return_value != EBPF_SUCCESS) {
+            goto Exit;
+        }
         total_helper_function_addresses->helper_function_address =
-            (uint64_t*)ebpf_allocate_with_tag(sizeof(uint64_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+            (uint64_t*)ebpf_allocate_with_tag(helper_function_address_length, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_addresses->helper_function_address == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1260,8 +1290,12 @@ _ebpf_program_update_jit_helpers(
         }
 
         __analysis_assume(total_helper_count > 0);
-        total_helper_function_ids =
-            (uint32_t*)ebpf_allocate_with_tag(sizeof(uint32_t) * total_helper_count, EBPF_POOL_TAG_DEFAULT);
+        size_t helper_function_id_length = 0;
+        return_value = ebpf_safe_size_t_multiply(sizeof(uint32_t), total_helper_count, &helper_function_id_length);
+        if (return_value != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        total_helper_function_ids = (uint32_t*)ebpf_allocate_with_tag(helper_function_id_length, EBPF_POOL_TAG_DEFAULT);
         if (total_helper_function_ids == NULL) {
             return_value = EBPF_NO_MEMORY;
             goto Exit;
@@ -1394,11 +1428,13 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
         goto Done;
     }
 
-    if (ubpf_load(
-            program->code_or_vm.vm,
-            instructions,
-            (uint32_t)(instruction_count * sizeof(ebpf_instruction_t)),
-            &error_message) != 0) {
+    size_t instruction_bytes = 0;
+    return_value = ebpf_safe_size_t_multiply(instruction_count, sizeof(ebpf_instruction_t), &instruction_bytes);
+    if (return_value != EBPF_SUCCESS || instruction_bytes > UINT32_MAX) {
+        return_value = return_value != EBPF_SUCCESS ? return_value : EBPF_ARITHMETIC_OVERFLOW;
+        goto Done;
+    }
+    if (ubpf_load(program->code_or_vm.vm, instructions, (uint32_t)instruction_bytes, &error_message) != 0) {
         EBPF_LOG_MESSAGE_STRING(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_load failed", error_message);
         ebpf_free(error_message);
@@ -1550,7 +1586,7 @@ ebpf_program_invoke(
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
     // Set context descriptor pointer in context header.
-    const ebpf_context_descriptor_t* context_descriptor =
+    const ebpf_ctx_descriptor_t* context_descriptor =
         program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
 
@@ -1801,8 +1837,12 @@ ebpf_program_set_helper_function_ids(
     }
 
     program->helper_function_count = helper_function_count;
-    program->helper_function_ids =
-        ebpf_allocate_with_tag(sizeof(uint32_t) * helper_function_count, EBPF_POOL_TAG_PROGRAM);
+    size_t helper_function_id_length = 0;
+    result = ebpf_safe_size_t_multiply(sizeof(uint32_t), helper_function_count, &helper_function_id_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    program->helper_function_ids = ebpf_allocate_with_tag(helper_function_id_length, EBPF_POOL_TAG_PROGRAM);
     if (program->helper_function_ids == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1978,8 +2018,14 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     if (total_count_of_helpers > 0) {
         // Allocate buffer and make a shallow copy of the combined global and program-type specific helper function
         // prototypes.
-        ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-            total_count_of_helpers * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_PROGRAM);
+        size_t helper_prototype_length = 0;
+        result = ebpf_safe_size_t_multiply(
+            total_count_of_helpers, sizeof(ebpf_helper_function_prototype_t), &helper_prototype_length);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        ebpf_helper_function_prototype_t* helper_prototype =
+            (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_prototype_length, EBPF_POOL_TAG_PROGRAM);
         if (helper_prototype == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -2073,7 +2119,11 @@ ebpf_program_get_info(
     if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0) && (program->count_of_maps > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
-        size_t length = max_nr_map_ids * sizeof(ebpf_id_t);
+        size_t length = 0;
+        result = ebpf_safe_size_t_multiply(max_nr_map_ids, sizeof(ebpf_id_t), &length);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
 
         __try {
             ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
@@ -2228,8 +2278,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
 
     // It is possible that a program does not invoke any helper function.
     if (helper_function_count) {
-        helper_id_to_index = (ebpf_helper_id_to_index_t*)ebpf_allocate_with_tag(
-            helper_function_count * sizeof(ebpf_helper_id_to_index_t), EBPF_POOL_TAG_PROGRAM);
+        size_t helper_id_to_index_length = 0;
+        result = ebpf_safe_size_t_multiply(
+            helper_function_count, sizeof(ebpf_helper_id_to_index_t), &helper_id_to_index_length);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        helper_id_to_index =
+            (ebpf_helper_id_to_index_t*)ebpf_allocate_with_tag(helper_id_to_index_length, EBPF_POOL_TAG_PROGRAM);
         if (helper_id_to_index == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -2451,7 +2507,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(&execution_context_state, program_context);
     // Set context descriptor pointer in context header.
-    const ebpf_context_descriptor_t* context_descriptor =
+    const ebpf_ctx_descriptor_t* context_descriptor =
         context->program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
 
@@ -2705,7 +2761,7 @@ void
 ebpf_program_get_context_data(
     _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end)
 {
-    ebpf_context_descriptor_t* context_descriptor;
+    ebpf_ctx_descriptor_t* context_descriptor;
     ebpf_program_get_header_context_descriptor(program_context, &context_descriptor);
     if (context_descriptor->data < 0 || context_descriptor->end < 0) {
         *data_start = NULL;

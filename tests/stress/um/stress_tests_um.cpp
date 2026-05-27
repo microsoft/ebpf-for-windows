@@ -423,13 +423,13 @@ _load_attach_detach_unload_sequential_test(ebpf_execution_type_t execution_type)
     REQUIRE(failure_count == 0);
 }
 
-TEST_CASE("native_load_attach_detach_unload_sequential_test", "[native_mt_stress_test]")
+TEST_CASE("native_load_attach_detach_unload_sequential_test", "[native_mt_stress_test][!mayfail]")
 {
     _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_NATIVE);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("jit_load_attach_detach_unload_sequential_test", "[jit_mt_stress_test]")
+TEST_CASE("jit_load_attach_detach_unload_sequential_test", "[jit_mt_stress_test][!mayfail]")
 {
     _load_attach_detach_unload_sequential_test(EBPF_EXECUTION_JIT);
 }

@@ -246,9 +246,9 @@ ebpf_validate_helper_function_prototype_array(
 }
 
 static bool
-_ebpf_validate_context_descriptor(_In_ const ebpf_context_descriptor_t* context_descriptor)
+_ebpf_validate_context_descriptor(_In_ const ebpf_ctx_descriptor_t* context_descriptor)
 {
-    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_context_descriptor_t)));
+    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_ctx_descriptor_t)));
 }
 
 static bool
@@ -381,7 +381,7 @@ _duplicate_program_descriptor(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
-    ebpf_context_descriptor_t* context_descriptor_copy = NULL;
+    ebpf_ctx_descriptor_t* context_descriptor_copy = NULL;
 
     program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -405,13 +405,13 @@ _duplicate_program_descriptor(
     }
 
     context_descriptor_copy =
-        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_context_descriptor_t));
+    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_ctx_descriptor_t));
     program_type_descriptor_copy->context_descriptor = context_descriptor_copy;
     context_descriptor_copy = NULL;
 
@@ -443,8 +443,13 @@ _duplicate_helper_function_prototype_array(
     // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
-    local_helper_prototype_array = (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(
-        count * sizeof(ebpf_helper_function_prototype_t), EBPF_POOL_TAG_DEFAULT);
+    size_t helper_array_length = 0;
+    result = ebpf_safe_size_t_multiply(count, sizeof(ebpf_helper_function_prototype_t), &helper_array_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    local_helper_prototype_array =
+        (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(helper_array_length, EBPF_POOL_TAG_DEFAULT);
     if (local_helper_prototype_array == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
