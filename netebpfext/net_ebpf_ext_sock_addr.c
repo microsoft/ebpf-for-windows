@@ -1952,8 +1952,12 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
         (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
     sock_addr_ctx->tunnel_type =
         (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
-    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED; // Not available at listen layer.
-    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;    // Not available at listen layer.
+    // The ALE_AUTH_LISTEN WFP layer has no next-hop concept and does not expose a SUB_INTERFACE_INDEX field
+    // (see learn.microsoft.com FWPS_FIELDS_ALE_AUTH_LISTEN_V4/V6). The local interface LUID is exposed
+    // separately via FWPS_FIELD_ALE_AUTH_LISTEN_V*_IP_LOCAL_INTERFACE and is populated into
+    // sock_addr_ctx->base.interface_luid above (see bpf_sock_addr_t::interface_luid).
+    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
+    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
 }
 
 static void
