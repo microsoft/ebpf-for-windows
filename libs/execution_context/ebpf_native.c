@@ -1724,8 +1724,8 @@ _ebpf_native_resolve_helpers_for_program(
 
         if (actual_helper_count > 0) {
             size_t helper_addresses_length = 0;
-            result =
-                ebpf_safe_size_t_multiply(actual_helper_count, sizeof(helper_function_address_t), &helper_addresses_length);
+            result = ebpf_safe_size_t_multiply(
+                actual_helper_count, sizeof(helper_function_address_t), &helper_addresses_length);
             if (result != EBPF_SUCCESS) {
                 goto Done;
             }
@@ -2443,17 +2443,18 @@ _ebpf_native_helper_address_changed(
         (ebpf_native_helper_address_changed_context_t*)context;
     _Analysis_assume_(context != NULL);
     const ebpf_native_module_t* module = helper_address_changed_context->module;
+    const ebpf_native_program_t* native_program = helper_address_changed_context->native_program;
     bool implicit_context_supported = false;
 
-    uint64_t* helper_function_addresses = NULL;
-    size_t helper_count = helper_address_changed_context->native_program->program_entry.helper_count;
+    size_t total_helper_count = native_program->program_entry.helper_count;
+    const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
 
-    if (helper_count == 0) {
+    if (total_helper_count == 0) {
         return_value = EBPF_SUCCESS;
         goto Done;
     }
 
-    if (helper_count != address_count || addresses == NULL) {
+    if (addresses == NULL) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -2462,24 +2463,53 @@ _ebpf_native_helper_address_changed(
         implicit_context_supported = true;
     }
 
-    for (size_t i = 0; i < helper_count; i++) {
-        if (!implicit_context_supported && addresses[i].implicit_context) {
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "_ebpf_native_helper_address_changed: module does not support implicit context, but extension does.",
-                &module->client_module_id);
+    // Rebuild the same global-index mapping used at initial load time by scanning
+    // the helper entries and skipping sentinels (helper_id == 0). The addresses[]
+    // array corresponds only to non-sentinel helpers, so address_count may be less
+    // than total_helper_count when sentinel entries are present.
+    {
+        size_t helper_entry_size = helper_info[0].header.total_size;
+        size_t address_index = 0;
+
+        for (size_t i = 0; i < total_helper_count; i++) {
+            helper_function_entry_t local_helper_entry = {0};
+            const helper_function_entry_t* entry =
+                (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
+            memcpy(&local_helper_entry, entry, helper_entry_size);
+
+            if (local_helper_entry.helper_id == 0) {
+                // Sentinel entry — skip.
+                continue;
+            }
+
+            if (address_index >= address_count) {
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Done;
+            }
+
+            if (!implicit_context_supported && addresses[address_index].implicit_context) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_helper_address_changed: module does not support implicit context, but extension "
+                    "does.",
+                    &module->client_module_id);
+                return_value = EBPF_INVALID_ARGUMENT;
+                goto Done;
+            }
+
+            *(uint64_t*)&(native_program->runtime_context.helper_data[i].address) = addresses[address_index].address;
+            address_index++;
+        }
+
+        if (address_index != address_count) {
             return_value = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
-        *(uint64_t*)&(helper_address_changed_context->native_program->runtime_context.helper_data[i].address) =
-            addresses[i].address;
     }
 
     return_value = EBPF_SUCCESS;
 Done:
-    ebpf_free(helper_function_addresses);
-
     return return_value;
 }
 
