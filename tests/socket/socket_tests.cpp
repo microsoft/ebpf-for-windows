@@ -1000,29 +1000,27 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(bind_program)), 0, attach_type, 0);
     SAFE_REQUIRE(result == 0);
 
-    // Trigger bind by creating and binding a TCP socket.
-    SOCKET sock = WSASocketW(address_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
+    // Dual-stack AF_INET6 socket; the bound address selects the V4 vs V6 WFP layer.
+    SOCKET sock = WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
     SAFE_REQUIRE(sock != INVALID_SOCKET);
+    DWORD v6only = 0;
+    SAFE_REQUIRE(
+        setsockopt(
+            sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
 
-    uint32_t connection_id = 0;
+    sockaddr_in6 bind_addr = {};
+    uint32_t connection_id;
     if (address_family == AF_INET) {
-        sockaddr_in bind_addr = {};
-        bind_addr.sin_family = AF_INET;
-        bind_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        bind_addr.sin_port = htons(SOCKET_TEST_PORT);
-        result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
-        SAFE_REQUIRE(result == 0);
+        IN6ADDR_SETV4MAPPED(&bind_addr, &in4addr_loopback, scopeid_unspecified, htons(SOCKET_TEST_PORT));
         connection_id = htonl(INADDR_LOOPBACK) ^ (htons(SOCKET_TEST_PORT) << 16);
     } else {
-        sockaddr_in6 bind_addr = {};
-        bind_addr.sin6_family = AF_INET6;
-        bind_addr.sin6_addr = in6addr_loopback;
+        IN6ADDR_SETLOOPBACK(&bind_addr);
         bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
-        result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
-        SAFE_REQUIRE(result == 0);
         const uint32_t* ip6_dwords = reinterpret_cast<const uint32_t*>(&in6addr_loopback);
         connection_id = (ip6_dwords[0] ^ ip6_dwords[3]) ^ (htons(SOCKET_TEST_PORT) << 16);
     }
+    result = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    SAFE_REQUIRE(result == 0);
 
     // Verify network context was populated.
     bpf_sock_addr_network_context_t net_ctx = {0};
