@@ -18,7 +18,7 @@
 // Scenario coverage:
 // - Three entry programs in different sections.
 // - Four subprograms for helper call graphs: S1, S2, S3, S4.
-//   - S1, S3, S4 each invoke a different helper; S2 invokes no helpers.
+//   - S1 and S3 invoke bpf_get_current_pid_tgid; S4 invokes bpf_ktime_get_ns; S2 invokes no helpers.
 //   - S1 -> S2 -> S3 call chain.
 //   - entry_program1 invokes S1 and S4.
 //   - entry_program2 invokes S2.
