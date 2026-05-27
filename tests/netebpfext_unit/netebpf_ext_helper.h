@@ -107,6 +107,18 @@ typedef class _netebpf_ext_helper
         usersim_fwp_sock_ops_v4_remove_flow_context(flow_id);
     }
 
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_listen(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet4_listen(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_listen(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet6_listen(parameters);
+    }
+
   private:
     bool trace_initiated = false;
     bool ndis_handle_initialized = false;
