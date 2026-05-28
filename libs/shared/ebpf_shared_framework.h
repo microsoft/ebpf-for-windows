@@ -99,6 +99,62 @@ __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
 #define ebpf_safe_size_t_multiply(multiplicand, multiplier, result) \
     ebpf_result_from_cxplat_status(cxplat_safe_size_t_multiply(multiplicand, multiplier, result))
 
+#define ebpf_safe_uint8_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint8_t_add(augend, addend, result))
+#define ebpf_safe_uint8_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint8_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_uint8_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint8_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_int8_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int8_t_add(augend, addend, result))
+#define ebpf_safe_int8_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int8_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_int8_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int8_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_uint16_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint16_t_add(augend, addend, result))
+#define ebpf_safe_uint16_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint16_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_uint16_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint16_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_int16_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int16_t_add(augend, addend, result))
+#define ebpf_safe_int16_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int16_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_int16_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int16_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_uint32_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint32_t_add(augend, addend, result))
+#define ebpf_safe_uint32_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint32_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_uint32_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint32_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_int32_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int32_t_add(augend, addend, result))
+#define ebpf_safe_int32_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int32_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_int32_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int32_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_uint64_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint64_t_add(augend, addend, result))
+#define ebpf_safe_uint64_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint64_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_uint64_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_uint64_t_multiply(multiplicand, multiplier, result))
+
+#define ebpf_safe_int64_t_add(augend, addend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int64_t_add(augend, addend, result))
+#define ebpf_safe_int64_t_subtract(minuend, subtrahend, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int64_t_subtract(minuend, subtrahend, result))
+#define ebpf_safe_int64_t_multiply(multiplicand, multiplier, result) \
+    ebpf_result_from_cxplat_status(cxplat_safe_int64_t_multiply(multiplicand, multiplier, result))
+
 ebpf_result_t
 ebpf_result_from_cxplat_status(cxplat_status_t status);
 

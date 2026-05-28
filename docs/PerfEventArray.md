@@ -55,7 +55,7 @@ The perf buffers are implemented using the ring buffer map support in ebpf-for-w
    - Specify current CPU in flags using `BPF_F_INDEX_MASK` or pass `BPF_F_CURRENT_CPU`.
 2. **BPF_F_CTXLEN_MASK support** for any eBPF program types with a data pointer in the context
    - The global helper copies the memory from the program-type specific context data pointer, so no extension-specific helpers are needed.
-   - The extension-provided `ebpf_context_descriptor_t` includes the offset of the data pointer.
+   - The extension-provided `ebpf_ctx_descriptor_t` includes the offset of the data pointer.
    - Passing a non-zero value in `BPF_F_CTXLEN_MASK` returns an operation not supported error for program types without a data pointer in the context.
 
 ### libbpf Support

@@ -529,12 +529,7 @@ typedef struct _ebpf_map_metadata_table_properties
         _Outptr_ void** producer,
         _Outptr_result_buffer_(*data_size) uint8_t** data,
         _Out_ size_t* data_size);
-    ebpf_result_t (*unmap_ring_buffer)(
-        _In_ const ebpf_core_map_t* map,
-        uint64_t index,
-        _In_ const void* consumer,
-        _In_ const void* producer,
-        _In_ const void* data);
+    ebpf_result_t (*unmap_ring_buffer)(_In_ const ebpf_core_map_t* map, uint64_t index);
     ebpf_result_t (*set_wait_handle)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _In_ ebpf_handle_t handle, uint64_t flags);
     int zero_length_key : 1;
@@ -719,7 +714,14 @@ _update_array_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    uint8_t* entry = &map->data[key_value * map->ebpf_map_definition.value_size];
+    size_t entry_offset = 0;
+    ebpf_result_t result =
+        ebpf_safe_size_t_multiply((size_t)key_value, map->ebpf_map_definition.value_size, &entry_offset);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    uint8_t* entry = &map->data[entry_offset];
     if (data) {
         memcpy(entry, data, map->ebpf_map_definition.value_size);
     } else {
@@ -1606,17 +1608,21 @@ _create_lru_hash_map(
 
     size_t lru_entry_size = EBPF_LRU_ENTRY_SIZE(partition_count, map_definition->key_size);
 
-    // Add the key size to the entry size.
-    retval = ebpf_safe_size_t_add(lru_entry_size, map_definition->key_size, &lru_entry_size);
+    // Align the supplemental value to 8 byte boundary.
+    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
+    size_t padded_value_size = 0;
+    size_t value_padding = 0;
+    size_t supplemental_value_size;
+    retval = ebpf_safe_size_t_add(map_definition->value_size, 7, &padded_value_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
-
-    // Align the supplemental value to 8 byte boundary.
-    // Pad value_size to next 8 byte boundary and subtract the value_size to get the padding.
-    size_t supplemental_value_size;
-    retval = ebpf_safe_size_t_add(
-        lru_entry_size, EBPF_PAD_8(map_definition->value_size) - map_definition->value_size, &supplemental_value_size);
+    padded_value_size &= ~((size_t)7);
+    retval = ebpf_safe_size_t_subtract(padded_value_size, map_definition->value_size, &value_padding);
+    if (retval != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    retval = ebpf_safe_size_t_add(lru_entry_size, value_padding, &supplemental_value_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -2165,7 +2171,11 @@ _create_lpm_map(
     ebpf_result_t result = EBPF_SUCCESS;
     // Key is uint32_t prefix length plus space for a max length prefix.
     // - Only the prefix length plus prefix_length bits are actually used in an lpm key.
-    size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8;
+    size_t key_suffix_size = 0;
+    size_t max_prefix_length = 0;
+    size_t prefix_length_bit_count = 0;
+    size_t prefix_bitmap_size = 0;
+    size_t lpm_data_size = 0;
     ebpf_core_lpm_map_t* lpm_map = NULL;
 
     EBPF_LOG_ENTRY();
@@ -2177,8 +2187,36 @@ _create_lpm_map(
         goto Exit;
     }
 
+    if (map_definition->key_size < sizeof(uint32_t)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    result = ebpf_safe_size_t_subtract(map_definition->key_size, sizeof(uint32_t), &key_suffix_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_multiply(key_suffix_size, 8, &max_prefix_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_add(max_prefix_length, 1, &prefix_length_bit_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    prefix_bitmap_size = ebpf_bitmap_size(prefix_length_bit_count);
+    if (prefix_bitmap_size == MAXSIZE_T) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data), prefix_bitmap_size, &lpm_data_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
     result = _create_hash_map_internal(
-        EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length + 1),
+        lpm_data_size,
         map_definition,
         0,
         0,
@@ -2192,7 +2230,10 @@ _create_lpm_map(
     }
     lpm_map->max_prefix = (uint32_t)max_prefix_length;
     // Add one to max_prefix_length to account for max length prefixes in the prefix_length bitmap.
-    ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, max_prefix_length + 1);
+    result = ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, prefix_length_bit_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     *map = &lpm_map->core_map;
 
@@ -2307,8 +2348,16 @@ _create_queue_map(
     if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
-    size_t circular_map_size =
-        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    size_t circular_map_size = 0;
+    result = ebpf_safe_size_t_multiply(map_definition->max_entries, sizeof(uint8_t*), &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    result =
+        ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots), circular_map_size, &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
     result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, 0, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
@@ -2327,8 +2376,16 @@ _create_stack_map(
     if (inner_map_handle != ebpf_handle_invalid || map_definition->key_size != 0) {
         return EBPF_INVALID_ARGUMENT;
     }
-    size_t circular_map_size =
-        EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots) + map_definition->max_entries * sizeof(uint8_t*);
+    size_t circular_map_size = 0;
+    result = ebpf_safe_size_t_multiply(map_definition->max_entries, sizeof(uint8_t*), &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+    result =
+        ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_core_circular_map_t, slots), circular_map_size, &circular_map_size);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
     result = _create_array_map_with_map_struct_size(circular_map_size, map_definition, 0, map);
     if (result == EBPF_SUCCESS) {
         ebpf_core_circular_map_t* circular_map = EBPF_FROM_FIELD(ebpf_core_circular_map_t, core_map, *map);
@@ -2684,16 +2741,11 @@ _map_user_ring_buffer_map(
 }
 
 static ebpf_result_t
-_unmap_user_ring_buffer_map(
-    _In_ const ebpf_core_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+_unmap_user_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     UNREFERENCED_PARAMETER(index);
     ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
-    return ebpf_ring_buffer_unmap_user(ring_buffer, consumer, producer, data);
+    return ebpf_ring_buffer_unmap_user(ring_buffer);
 }
 
 static ebpf_result_t
@@ -2770,12 +2822,7 @@ _map_user_perf_event_array_map(
 }
 
 static ebpf_result_t
-_unmap_user_perf_event_array_map(
-    _In_ const ebpf_core_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+_unmap_user_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
@@ -2784,7 +2831,7 @@ _unmap_user_perf_event_array_map(
         return EBPF_INVALID_ARGUMENT;
     }
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-    return ebpf_ring_buffer_unmap_user(ring->ring, consumer, producer, data);
+    return ebpf_ring_buffer_unmap_user(ring->ring);
 }
 
 static ebpf_result_t
@@ -2993,18 +3040,13 @@ ebpf_ring_buffer_map_map_user(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_user(
-    _In_ const ebpf_map_t* map,
-    uint64_t index,
-    _In_ const void* consumer,
-    _In_ const void* producer,
-    _In_ const void* data)
+ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index)
 {
     if ((map->properties == NULL) || (map->properties->unmap_ring_buffer == NULL)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index, consumer, producer, data);
+    return map->properties->unmap_ring_buffer((const ebpf_core_map_t*)map, index);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -3130,8 +3172,16 @@ _create_perf_event_array_map(
         goto Exit;
     }
 
-    size_t perf_event_array_map_size =
-        EBPF_OFFSET_OF(ebpf_core_perf_event_array_map_t, rings) + cpu_count * sizeof(ebpf_core_perf_ring_t);
+    size_t perf_event_array_map_size = 0;
+    result = ebpf_safe_size_t_multiply(cpu_count, sizeof(ebpf_core_perf_ring_t), &perf_event_array_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_add(
+        EBPF_OFFSET_OF(ebpf_core_perf_event_array_map_t, rings), perf_event_array_map_size, &perf_event_array_map_size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     perf_event_array_map = ebpf_epoch_allocate_with_tag(perf_event_array_map_size, EBPF_POOL_TAG_MAP);
     if (perf_event_array_map == NULL) {
@@ -3272,7 +3322,12 @@ ebpf_perf_event_array_map_output_with_capture(
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
     uint8_t* record_data;
-    result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, length + extra_length);
+    size_t total_length = 0;
+    result = ebpf_safe_size_t_add(length, extra_length, &total_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_ring_buffer_reserve_exclusive(ring->ring, &record_data, total_length);
     if (result != EBPF_SUCCESS) {
         // Non-atomic increment is safe: per-CPU counter updated at DISPATCH_LEVEL.
         ebpf_perf_event_array_producer_page_t* producer_page = ebpf_perf_event_array_get_producer_page(ring->ring);
@@ -3662,7 +3717,19 @@ ebpf_map_create(
     }
 
     if (properties->per_cpu) {
-        local_map_definition.value_size = cpu_count * EBPF_PAD_8(local_map_definition.value_size);
+        size_t padded_value_size = 0;
+        size_t per_cpu_value_size = 0;
+        result = ebpf_safe_size_t_add(local_map_definition.value_size, 7, &padded_value_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        padded_value_size &= ~((size_t)7);
+        result = ebpf_safe_size_t_multiply(cpu_count, padded_value_size, &per_cpu_value_size);
+        if ((result != EBPF_SUCCESS) || (per_cpu_value_size > UINT32_MAX)) {
+            result = EBPF_ARITHMETIC_OVERFLOW;
+            goto Exit;
+        }
+        local_map_definition.value_size = (uint32_t)per_cpu_value_size;
     }
 
     if (map_name->length >= BPF_OBJ_NAME_LEN) {
@@ -4037,7 +4104,9 @@ ebpf_map_get_info(
     ebpf_assert(sizeof(info->name) >= map->name.length);
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
     if (map->name.length < sizeof(info->name)) {
-        memset(info->name + map->name.length, 0, sizeof(info->name) - map->name.length);
+        size_t remaining_name_length = 0;
+        ebpf_assert_success(ebpf_safe_size_t_subtract(sizeof(info->name), map->name.length, &remaining_name_length));
+        memset(info->name + map->name.length, 0, remaining_name_length);
     }
 
     // Copy the local map info to the user supplied buffer, as much as will fit.
@@ -4188,8 +4257,17 @@ ebpf_map_get_next_key_and_value_batch(
 
     // Copy as many key/value pairs as we can fit in the output buffer.
     for (;;) {
+        size_t record_length = 0;
+        size_t value_offset = 0;
+
+        result = ebpf_safe_size_t_add(key_size, value_size, &record_length);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
         // Check if we have enough space to write the next key and value.
-        if ((output_length + key_size + value_size) > maximum_output_length) {
+        result = ebpf_safe_size_t_add(output_length, record_length, &value_offset);
+        if (result != EBPF_SUCCESS || value_offset > maximum_output_length) {
             // Output buffer is full.
             break;
         }
@@ -4203,12 +4281,17 @@ ebpf_map_get_next_key_and_value_batch(
             break;
         }
 
+        result = ebpf_safe_size_t_add(output_length, key_size, &value_offset);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
         if (IS_NESTED_MAP(map->ebpf_map_definition.type)) {
             // Get the ID from the object.
             ebpf_core_object_t* object = (ebpf_core_object_t*)ReadULong64NoFence((volatile const uint64_t*)next_value);
-            *(uint32_t*)(key_and_value + output_length + key_size) = object ? object->id : 0;
+            *(uint32_t*)(key_and_value + value_offset) = object ? object->id : 0;
         } else {
-            memcpy(key_and_value + output_length + key_size, next_value, value_size);
+            memcpy(key_and_value + value_offset, next_value, value_size);
         }
 
         if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
@@ -4224,7 +4307,10 @@ ebpf_map_get_next_key_and_value_batch(
         previous_key = key_and_value + output_length;
 
         // Advance the output buffer pointer.
-        output_length += key_size + value_size;
+        result = ebpf_safe_size_t_add(value_offset, value_size, &output_length);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
     }
 
     if (result == EBPF_NO_MORE_KEYS && output_length != 0) {

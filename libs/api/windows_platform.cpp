@@ -4,6 +4,7 @@
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "ebpf_api.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "map_descriptors.hpp"
 #include "windows_platform.hpp"
@@ -26,15 +27,19 @@ _parse_maps_section_windows(
     size_t map_record_size,
     int map_count,
     const struct prevail::ebpf_platform_t*,
-    prevail::ebpf_verifier_options_t)
+    const prevail::VerifierOptions&)
 {
     UNREFERENCED_PARAMETER(verifier_map_descriptors);
 
     // Add map definitions into the map cache.
     uint32_t previous_map_count = (uint32_t)get_map_descriptor_size();
     for (int i = 0; i < map_count; i++) {
-        size_t section_offset = (i * map_record_size);
-        uint32_t idx = previous_map_count + i;
+        size_t section_offset = 0;
+        uint32_t idx = 0;
+        if ((ebpf_safe_size_t_multiply((size_t)i, map_record_size, &section_offset) != EBPF_SUCCESS) ||
+            (ebpf_safe_uint32_t_add(previous_map_count, (uint32_t)i, &idx) != EBPF_SUCCESS)) {
+            throw std::runtime_error("map section offset overflow");
+        }
 
         // Copy the data from the record into an ebpf_map_definition_in_file_t structure,
         // zero-padding any extra, and being careful not to overflow the buffer.

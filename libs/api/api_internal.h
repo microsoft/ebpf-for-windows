@@ -679,7 +679,11 @@ ebpf_ring_buffer_map_map_buffer_with_index(
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer_with_index(
-    fd_t map_fd, uint64_t index, _In_ void* consumer, _In_ const void* producer, _In_ const void* data) noexcept;
+    fd_t map_fd,
+    uint64_t index,
+    _In_opt_ void* consumer,
+    _In_opt_ const void* producer,
+    _In_opt_ const void* data) noexcept;
 
 /**
  * @brief Get list of programs and stats in an ELF eBPF file.

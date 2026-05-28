@@ -8,9 +8,10 @@
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
-#include "ebpf_store_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 #include "xdp_hooks.h"
+
 #include <iostream>
 #include <stdexcept>
 
@@ -28,7 +29,7 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
      {HELPER_FUNCTION_REALLOCATE_PACKET}}};
 
 // XDP program context descriptor
-static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
+static const ebpf_ctx_descriptor_t _ebpf_xdp_test_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
@@ -70,18 +71,18 @@ class xdp_program_info_guard
         }
     }
 
-    ~xdp_program_info_guard()
-    {
-        unregister_xdp_program_information();
-    }
+    ~xdp_program_info_guard() { unregister_xdp_program_information(); }
 
     // Delete copy constructor and assignment operator
     xdp_program_info_guard(const xdp_program_info_guard&) = delete;
-    xdp_program_info_guard& operator=(const xdp_program_info_guard&) = delete;
+    xdp_program_info_guard&
+    operator=(const xdp_program_info_guard&) = delete;
 
   private:
-    static uint32_t register_xdp_program_information();
-    static void unregister_xdp_program_information();
+    static uint32_t
+    register_xdp_program_information();
+    static void
+    unregister_xdp_program_information();
     static bool g_xdp_registered;
 };
 

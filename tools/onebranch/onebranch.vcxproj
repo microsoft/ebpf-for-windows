@@ -82,6 +82,26 @@
     <ProjectReference Include="..\..\undocked\tools\export_program_info_sample\export_program_info_sample.vcxproj">
       <Project>{21c137ec-9ae3-4c8c-8e74-8bfcc999d856}</Project>
     </ProjectReference>
+    <!-- Driver test binaries. These are invoked from scripts\run_driver_tests.psm1 on
+         the driver-test VMs, so they need to ship in the official build artifact. -->
+    <ProjectReference Include="..\..\tests\bpftool_tests\bpftool_tests.vcxproj">
+      <Project>{8b5b061b-3170-4d1b-8c5b-e86b890c14b8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\sample\ext\app\sample_ext_app.vcxproj">
+      <Project>{6D365515-DE92-4CEB-AB3D-5608719A8886}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\performance\performance.vcxproj">
+      <Project>{724eb55a-ccfc-4662-92e3-b664cda365e7}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\stress\restart_test_controller\ebpf_restart_test_controller.vcxproj">
+      <Project>{E3F9A8B4-5678-4ABC-9DEF-123456789ABC}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\stress\restart_test_helper\ebpf_restart_test_helper.vcxproj">
+      <Project>{25725C06-3335-4CBA-AB16-6FE5E51BE842}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
+      <Project>{4F082524-9496-44FA-8CBA-4BC0BDC62568}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
