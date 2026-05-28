@@ -263,18 +263,20 @@ typedef class _server_socket : public _base_socket
     /**
      * @brief Construct a server socket.
      *
-     * @param[in] _sock_type Socket type (SOCK_STREAM, SOCK_DGRAM).
-     * @param[in] _protocol Protocol (IPPROTO_TCP, IPPROTO_UDP).
+     * @param[in] sock_type Socket type (SOCK_STREAM, SOCK_DGRAM).
+     * @param[in] protocol Protocol (IPPROTO_TCP, IPPROTO_UDP).
      * @param[in] port Port to bind to.
      * @param[in] local_address Local address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] family Socket family (IPv4, IPv6, or Dual). Default is Dual.
      */
     _server_socket(
-        int _sock_type,
-        int _protocol,
+        int sock_type,
+        int protocol,
         uint16_t port,
         _In_ const sockaddr_storage& local_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        socket_family_t family = Dual);
     ~_server_socket() noexcept;
 
     /**
@@ -409,18 +411,22 @@ typedef class _stream_server_socket : public _server_socket
     /**
      * @brief Construct a stream server socket.
      *
-     * @param[in] _sock_type Socket type (SOCK_STREAM).
-     * @param[in] _protocol Protocol (IPPROTO_TCP).
+     * @param[in] sock_type Socket type (SOCK_STREAM).
+     * @param[in] protocol Protocol (IPPROTO_TCP).
      * @param[in] port Port to bind to.
      * @param[in] local_address Local address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] expected_listen_error Expected listen error code (0 = expect success).
+     * @param[in] family Socket family (IPv4, IPv6, or Dual). Default is Dual.
      */
     _stream_server_socket(
-        int _sock_type,
-        int _protocol,
+        int sock_type,
+        int protocol,
         uint16_t port,
         _In_ const sockaddr_storage& local_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        int expected_listen_error = 0,
+        socket_family_t family = Dual);
     ~_stream_server_socket();
     void
     post_async_receive();

@@ -2634,6 +2634,11 @@ ebpf_program_execute_test_run(
         goto Exit;
     }
 
+    if (options->repeat_count == 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {

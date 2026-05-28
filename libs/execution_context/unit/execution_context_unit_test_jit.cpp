@@ -437,6 +437,86 @@ test_program_context()
 
 // Only run the test if JIT is enabled.
 TEST_CASE("program", "[execution_context]") { test_program_context(); }
+
+TEST_CASE("program_test_run_repeat_count_zero", "[execution_context][negative]")
+{
+    _test_helper_end_to_end end_to_end;
+    end_to_end.initialize();
+
+    program_info_provider_t program_info_provider;
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
+    const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, program_name, section_name};
+    program_ptr program;
+    {
+        ebpf_program_t* local_program = nullptr;
+        REQUIRE(ebpf_program_create(&program_parameters, &local_program) == EBPF_SUCCESS);
+        program.reset(local_program);
+    }
+
+    ebpf_trampoline_table_ptr table;
+    ebpf_result_t (*test_function)();
+    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
+    ebpf_result_t (*function_pointer1)() = provider_function1;
+    uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
+    const void* helper_functions[] = {(void*)function_pointer1};
+    ebpf_helper_function_addresses_t helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
+
+    {
+        ebpf_trampoline_table_t* local_table = nullptr;
+        REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
+        table.reset(local_table);
+    }
+    REQUIRE(
+        ebpf_update_trampoline_table(
+            table.get(), EBPF_COUNT_OF(test_function_ids), test_function_ids, &helper_function_addresses) ==
+        EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_get_trampoline_function(
+            table.get(), EBPF_MAX_GENERAL_HELPER_FUNCTION + 1, reinterpret_cast<void**>(&test_function)) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(
+        ebpf_program_load_code(
+            program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
+        EBPF_SUCCESS);
+
+    ebpf_program_test_run_options_t options = {0};
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
+    options.repeat_count = 0;
+    options.context_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    options.context_size_in = sizeof(in_ctx);
+    options.context_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    options.context_size_out = sizeof(out_ctx);
+
+    ebpf_async_wrapper_t async_context;
+    uint64_t unused_completion_context = 0;
+
+    // repeat_count == 0 should be rejected with EBPF_INVALID_ARGUMENT.
+    REQUIRE(
+        ebpf_program_execute_test_run(
+            program.get(),
+            &options,
+            &async_context,
+            &unused_completion_context,
+            [](_In_ ebpf_result_t result,
+               _In_ const ebpf_program_t* program,
+               _In_ const ebpf_program_test_run_options_t* options,
+               _Inout_ void* completion_context,
+               _Inout_ void* async_context) {
+                ebpf_assert(program != nullptr);
+                ebpf_assert(options != nullptr);
+                ebpf_assert(completion_context != nullptr);
+                ebpf_assert(async_context != nullptr);
+                ebpf_async_complete(async_context, options->data_size_out, result);
+            }) == EBPF_INVALID_ARGUMENT);
+
+    ebpf_free_trampoline_table(table.release());
+}
 #endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
