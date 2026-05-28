@@ -53,16 +53,17 @@ This function requires the 'nuget' command to be available in the PATH.
         if ($LASTEXITCODE -ne 0) {
             throw "Failed to retrieve package information"
         }
-        $packageLines = $package | Where-Object { $_ -match "^$packageName\s+" }
+        $escapedName = [regex]::Escape($packageName)
+        $packageLines = $package | Where-Object { $_ -match "^$escapedName\s+" }
         if (-not $packageLines) {
             throw "Package '$packageName' not found"
         }
         # Extract versions and sort to find the latest
         $versions = @()
         if ($packageLines -is [array]) {
-            $versions = $packageLines | ForEach-Object { ($_ -replace "$packageName\s+", "").Trim() }
+            $versions = $packageLines | ForEach-Object { ($_ -replace "$escapedName\s+", "").Trim() }
         } else {
-            $versions = @(($packageLines -replace "$packageName\s+", "").Trim())
+            $versions = @(($packageLines -replace "$escapedName\s+", "").Trim())
         }
         # Filter valid versions and sort by System.Version to get the latest
         $latestVersion = $versions |
