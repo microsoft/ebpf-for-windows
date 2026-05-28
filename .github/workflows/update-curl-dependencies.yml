@@ -128,9 +128,12 @@ jobs:
           sed -i "s|$CURRENT|$LATEST|g" .github/workflows/reusable-test.yml
           sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .github/workflows/reusable-test.yml
           sed -i "s|$OLD_HASH|$NEW_HASH|g" .github/workflows/reusable-test.yml
+          sed -i "s|$CURRENT|$LATEST|g" .azure/reusable-test.yml
+          sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .azure/reusable-test.yml
+          sed -i "s|$OLD_HASH|$NEW_HASH|g" .azure/reusable-test.yml
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/reusable-test.yml
+          git add .github/workflows/reusable-test.yml .azure/reusable-test.yml
           git commit -m "Update OpenCppCoverage to $LATEST"
           git push -f origin "$BRANCH"
           gh pr create --title "Update OpenCppCoverage to $LATEST" \
