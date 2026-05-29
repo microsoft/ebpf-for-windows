@@ -298,8 +298,8 @@ typedef struct _pend_entry {
     // lifetime of the pend entry so the filter -- and its
     // client_contexts[] array -- cannot be torn down while a
     // PROCEED_* might still need to walk it to re-acquire rundown
-    // on the remaining chain members. Released alongside the
-    // pending client's rundown ref at terminal-verdict cleanup.
+    // on chain members after the pending one. Released alongside
+    // the pending client's rundown ref at terminal-verdict cleanup.
     net_ebpf_extension_wfp_filter_context_t* filter_context;
 
     // (5) Currently-outstanding pender. Refreshed in place when a
@@ -416,7 +416,7 @@ block detach on any of them. Instead:
   - The pending client's rundown reference is **transferred** from
     the classify-time array into `current_pender.client_context`.
   - When netebpfext processes the `PEND` verdict from the bpf program,
-    It releases rundown on every **other** client in the
+    it releases rundown on every **other** client in the
     snapshot (the normal end-of-classify release) but skips the
     pending client.
   - A reference is taken on the filter context via
@@ -451,7 +451,8 @@ block detach on any of them. Instead:
 - **When processing the `REINVOKE` verdict (work item):**
   - The pending client's rundown reference is already held by
     the entry, so no further lifetime management is needed. The
-    rundown reference remains held until the `COMPLETE` is issued.
+    rundown reference remains held until terminal-verdict
+    cleanup.
 - **Processing a terminal verdict:**
   - Release rundown on **all** clients with held refs -- the
     pending client (`current_pender.client_context`) plus any
