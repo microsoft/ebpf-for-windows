@@ -140,8 +140,9 @@ The helper returns 0 on success and non-zero on failure.
 > still alive, reuses it, returns the **original** pend key to
 > `*key`, and skips a second `FwpsPendOperation()` call.
 > The helper transitions the entry's lifecycle back to `PENDED`
-> as part of the reuse. If the re-invoked program returns a
-> terminal verdict instead, no `bpf_sock_addr_pend()` call is
+> and refreshes `insertion_time` so the stale-pend watchdog
+> measures the new pend cycle. If the re-invoked program returns
+> a terminal verdict instead, no `bpf_sock_addr_pend()` call is
 > needed and the existing entry is processed normally.
 
 > **Implicit program context.** The helper signature deliberately
@@ -256,7 +257,9 @@ typedef struct _pender_info {
 
     // KeQueryInterruptTime() at this pender's install (100-ns
     // units). Watchdog compares against a system-wide TTL constant.
-    // Doubles as pend-age telemetry.
+    // Reset on each re-pend (REINVOKE -> bpf_sock_addr_pend() reuse),
+    // so the TTL applies per pend cycle rather than to the total
+    // lifetime of the entry. Doubles as pend-age telemetry.
     uint64_t insertion_time;
 
     // Number of REINVOKE-driven re-entries serviced for this
@@ -620,7 +623,10 @@ WFP pend APIs. The program MUST handle this error appropriately.
 netebpfext periodically walks the internal pend table and force-
 completes any entry whose age (`now - insertion_time`) exceeds a
 maximum timeout, issuing a `REJECT` verdict on the program's
-behalf. This bounds the lifetime of any individual pend regardless
+behalf. `insertion_time` is reset on each re-pend cycle (see
+[PEND overview](#pend-overview)), so the TTL applies per pend
+cycle rather than to the total lifetime of the entry. This bounds
+the lifetime of any individual pend cycle regardless
 of orchestrator behaviour.
 
 If the orchestrator does eventually issue a complete for a pend
