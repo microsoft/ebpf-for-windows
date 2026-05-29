@@ -1919,7 +1919,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
     sock_addr_ctx->base.user_port = local_port;
     sock_addr_ctx->base.protocol = IPPROTO_TCP; // Listen is TCP only.
     sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
-    sock_addr_ctx->base.interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
+    // If WFP does not provide the LUID (uint64 pointer is NULL), default to 0 (NET_IFLUID_UNSPECIFIED).
+    sock_addr_ctx->base.interface_luid = (incoming_values[fields->interface_luid_field].value.uint64 != NULL)
+                                             ? *incoming_values[fields->interface_luid_field].value.uint64
+                                             : 0;
 
     // USER_ID may not be available for all listen layer implementations.
     if (incoming_values[fields->user_id_field].value.byteBlob != NULL) {
