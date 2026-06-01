@@ -345,6 +345,7 @@ class bpf_code_generator
     {
       public:
         std::vector<output_instruction_t> output_instructions;
+        bool instructions_encoded = false;
         std::set<std::string> referenced_registers;
         struct _ebpf_api_program_info* api_program_info{};
         unsafe_string elf_section_name;
@@ -512,6 +513,24 @@ class bpf_code_generator
     void
     visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name);
 
+    /**
+     * @brief Build a global helper function index across all programs in the module.
+     * This assigns consistent indices to helper functions so that subprograms can
+     * correctly reference helpers through the entry program's runtime context.
+     * Also encodes instructions for all programs (deferred from generate()).
+     */
+    void
+    build_global_helper_index();
+
+    /**
+     * @brief Get the set of subprograms transitively reachable from a given program.
+     *
+     * @param[in] entry_name Name of the program to start from.
+     * @return Set of subprogram names reachable via local calls.
+     */
+    std::set<unsafe_string>
+    get_reachable_subprograms(const unsafe_string& entry_name) const;
+
     int pe_section_name_counter{};
     std::map<unsafe_string, bpf_code_generator_program> programs;
     ELFIO::elfio reader;
@@ -522,4 +541,8 @@ class bpf_code_generator
     std::optional<std::vector<uint8_t>> elf_file_hash;
     std::map<unsafe_string, std::vector<unsafe_string>> map_initial_values;
     std::map<unsafe_string, global_variable_section_t> global_variable_sections;
+
+    // Global helper index: ordered list of (name, id) where position = global index.
+    // Built by build_global_helper_index() before instruction encoding.
+    std::vector<std::pair<unsafe_string, int32_t>> global_helpers_ordered;
 };
