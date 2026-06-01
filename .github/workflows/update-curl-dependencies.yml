@@ -1,0 +1,141 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+#
+# Checks for updates to dependencies downloaded via curl in CI workflows.
+# Currently monitors: ProcDump (Sysinternals), OpenCppCoverage.
+
+name: Update curl-downloaded dependencies
+
+on:
+  # Allow this workflow to be manually triggered.
+  workflow_dispatch:
+  # Run this once a week on saturday at 9pm UTC.
+  schedule:
+    - cron: '0 21 * * 6'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-procdump:
+    name: Check ProcDump for updates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Check for ProcDump update
+        id: check
+        run: |
+          set -euo pipefail
+          # Download current ProcDump and compute hash.
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --connect-timeout 30 --max-time 300 -o /tmp/Procdump.zip https://download.sysinternals.com/files/Procdump.zip
+          test -s /tmp/Procdump.zip || { echo "ERROR: ProcDump download is empty"; exit 1; }
+          NEW_HASH=$(sha256sum /tmp/Procdump.zip | awk '{print toupper($1)}')
+          rm /tmp/Procdump.zip
+
+          # Extract current hash from workflow files.
+          OLD_HASH=$(grep -oP "PROCDUMP_EXPECTED_HASH: '\K[A-F0-9]+" \
+            .github/workflows/reusable-test.yml | head -1)
+
+          echo "old_hash=$OLD_HASH" >> "$GITHUB_OUTPUT"
+          echo "new_hash=$NEW_HASH" >> "$GITHUB_OUTPUT"
+          if [ "$OLD_HASH" != "$NEW_HASH" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update hash and open PR
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OLD_HASH: ${{ steps.check.outputs.old_hash }}
+          NEW_HASH: ${{ steps.check.outputs.new_hash }}
+        run: |
+          set -euo pipefail
+          BRANCH="auto/update-procdump-hash"
+          git switch -C "$BRANCH"
+          sed -i "s/$OLD_HASH/$NEW_HASH/g" .github/workflows/reusable-test.yml
+          sed -i "s/$OLD_HASH/$NEW_HASH/g" .azure/reusable-test.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/reusable-test.yml .azure/reusable-test.yml
+          git commit -m "Update ProcDump expected hash to $NEW_HASH"
+          git push -f origin "$BRANCH"
+          gh pr create --title "Update ProcDump hash" \
+            --body "ProcDump zip hash changed from \`$OLD_HASH\` to \`$NEW_HASH\`." \
+            --base main --head "$BRANCH" || true
+
+  check-opencppcoverage:
+    name: Check OpenCppCoverage for updates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+
+      - name: Check for new OpenCppCoverage release
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Get latest release tag from GitHub API.
+          LATEST=$(gh api repos/OpenCppCoverage/OpenCppCoverage/releases/latest \
+            --jq '.tag_name')
+          # Current version pinned in workflow.
+          CURRENT=$(grep -oP 'releases/download/\K[^/]+' \
+            .github/workflows/reusable-test.yml | head -1)
+
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+
+          if [ "$CURRENT" = "$LATEST" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+          # Download new installer and compute hash.
+          LATEST_VERSION="${LATEST#release-}"
+          NEW_URL="https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/${LATEST}/OpenCppCoverageSetup-x64-${LATEST_VERSION}.exe"
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --connect-timeout 30 --max-time 300 -o /tmp/setup.exe "$NEW_URL"
+          test -s /tmp/setup.exe || { echo "ERROR: OpenCppCoverage download is empty"; exit 1; }
+          NEW_HASH=$(sha256sum /tmp/setup.exe | awk '{print toupper($1)}')
+          rm /tmp/setup.exe
+
+          OLD_HASH=$(grep -oP "OPENCPPCOVERAGE_EXPECTED_HASH: '\K[A-F0-9]+" \
+            .github/workflows/reusable-test.yml | head -1)
+
+          echo "new_hash=$NEW_HASH" >> "$GITHUB_OUTPUT"
+          echo "old_hash=$OLD_HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Update version/hash and open PR
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LATEST: ${{ steps.check.outputs.latest }}
+          CURRENT: ${{ steps.check.outputs.current }}
+          OLD_HASH: ${{ steps.check.outputs.old_hash }}
+          NEW_HASH: ${{ steps.check.outputs.new_hash }}
+        run: |
+          set -euo pipefail
+          CURRENT_VERSION="${CURRENT#release-}"
+          LATEST_VERSION="${LATEST#release-}"
+
+          BRANCH="auto/update-opencppcoverage"
+          git switch -C "$BRANCH"
+          sed -i "s|$CURRENT|$LATEST|g" .github/workflows/reusable-test.yml
+          sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .github/workflows/reusable-test.yml
+          sed -i "s|$OLD_HASH|$NEW_HASH|g" .github/workflows/reusable-test.yml
+          sed -i "s|$CURRENT|$LATEST|g" .azure/reusable-test.yml
+          sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .azure/reusable-test.yml
+          sed -i "s|$OLD_HASH|$NEW_HASH|g" .azure/reusable-test.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/reusable-test.yml .azure/reusable-test.yml
+          git commit -m "Update OpenCppCoverage to $LATEST"
+          git push -f origin "$BRANCH"
+          gh pr create --title "Update OpenCppCoverage to $LATEST" \
+            --body "Updates from \`$CURRENT\` to \`$LATEST\`. New hash: \`$NEW_HASH\`." \
+            --base main --head "$BRANCH" || true
