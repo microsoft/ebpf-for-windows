@@ -568,7 +568,7 @@ EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
  *
  * @returns XDP_REDIRECT on success, or XDP_ABORTED on failure.
  */
-EBPF_HELPER(intptr_t, bpf_redirect_map, (void* map, uint32_t key, uint64_t flags));
+EBPF_HELPER(intptr_t, bpf_redirect_map, (void* map, uint64_t key, uint64_t flags));
 #ifndef __doxygen
 #define bpf_redirect_map ((bpf_redirect_map_t)BPF_FUNC_redirect_map)
 #endif

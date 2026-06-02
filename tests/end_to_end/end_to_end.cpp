@@ -4750,3 +4750,85 @@ TEST_CASE("test_redirect_map_load", "[end_to_end]")
 #endif
     test_redirect_map_load(EBPF_EXECUTION_NATIVE);
 }
+
+// Positive test for bpf_redirect_map in the sample extension. This test verifies that loading
+// a sample program that uses bpf_redirect_map succeeds, because the sample extension provides
+// an implementation of the global virtual bpf_redirect_map helper.
+void
+test_sample_redirect_map_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_redirect_map_um.dll" : "test_sample_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+TEST_CASE("test_sample_redirect_map_load", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_sample_redirect_map_load(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_sample_redirect_map_load(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_sample_redirect_map_load(EBPF_EXECUTION_NATIVE);
+}
+
+// Negative test for bpf_redirect_map. This test verifies that loading a program that uses
+// the global virtual bpf_redirect_map helper fails for a program type that does not implement
+// it. The bind program type does not provide an implementation, so program load should fail.
+// Only interpreted/JIT execution is covered here since native image generation rejects the
+// unsupported helper before a native image can be produced.
+void
+test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name = "test_invalid_redirect_map.o";
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -22);
+}
+
+TEST_CASE("invalid_bpf_redirect_map", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_invalid_bpf_redirect_map(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_invalid_bpf_redirect_map(EBPF_EXECUTION_INTERPRET);
+#endif
+}

@@ -23,13 +23,23 @@
 #include "sample_ext_helpers.h"
 #include "sample_test_common.h"
 
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __type(value, uint32_t);
+    __uint(max_entries, 64);
+} redirect_map SEC(".maps");
+
 SEC("sample_ext")
 int
-test_sample_invalid_redirect_map(sample_program_context_t* context)
+test_sample_redirect_map(sample_program_context_t* context)
 {
-    // Try to call the bpf_redirect_map helper function.
-    // This should fail because the sample extension does not implement bpf_redirect_map.
-    intptr_t result = bpf_redirect_map(context, 0, 0);
+    (void)context;
+
+    // Call the bpf_redirect_map helper function. This should succeed because the
+    // sample extension implements the global virtual bpf_redirect_map helper.
+    intptr_t result = bpf_redirect_map(&redirect_map, 0, 0);
 
     bpf_printk("redirect_map result: %d\n", (int)result);
 
