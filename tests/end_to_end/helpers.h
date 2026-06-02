@@ -126,6 +126,16 @@ typedef class _test_global_helper
         // Return an arbitrary non-zero value for pid and tgid.
         return 9999;
     }
+
+    static intptr_t
+    _sample_redirect_map(_In_ void* map, uint64_t key, uint64_t flags)
+    {
+        UNREFERENCED_PARAMETER(map);
+        UNREFERENCED_PARAMETER(key);
+        UNREFERENCED_PARAMETER(flags);
+        // Return XDP_REDIRECT (4) to indicate success.
+        return 4;
+    }
 } test_global_helper_t;
 
 class _test_sample_map_provider;
@@ -611,7 +621,7 @@ typedef class _test_xdp_helper
     }
 
     static intptr_t
-    redirect_map(_In_ void* map, uint32_t key, uint64_t flags)
+    redirect_map(_In_ void* map, uint64_t key, uint64_t flags)
     {
         UNREFERENCED_PARAMETER(map);
         UNREFERENCED_PARAMETER(key);
@@ -1496,7 +1506,8 @@ static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address
     EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
     (uint64_t*)_sample_ebpf_ext_helper_functions};
 
-static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
+static const void* _test_global_helper_functions[] = {
+    test_global_helper_t::_sample_get_pid_tgid, test_global_helper_t::_sample_redirect_map};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
