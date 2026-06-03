@@ -545,6 +545,40 @@ _bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
     REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT_SOFT);
 }
 
+// Test noinline subprogram call inside a loop — 10 increments, map should contain 10.
+static void
+_bpf2bpf_loop_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bpf2bpf_loop_um.dll" : "bpf2bpf_loop.o");
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "caller_with_loop", execution_type, nullptr, 0, hook);
+
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+
+    // The program returns the counter value (should be 10).
+    REQUIRE(hook_result == 10);
+
+    // Verify the map also contains 10 — proves the loop body ran 10 times.
+    fd_t map_fd = bpf_object__find_map_fd_by_name(program_helper.get_object(), "bpf2bpf_loop_map");
+    REQUIRE(map_fd > 0);
+    uint32_t key = 0;
+    uint32_t value = 0;
+    REQUIRE(bpf_map_lookup_elem(map_fd, &key, &value) == 0);
+    REQUIRE(value == 10);
+}
+
 static void
 _callgraph_bpf2bpf_test(ebpf_execution_type_t execution_type)
 {
@@ -1100,7 +1134,8 @@ DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
-DECLARE_NATIVE_TEST("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
+DECLARE_ALL_TEST_CASES("bpf2bpf-loop", "[end_to_end]", _bpf2bpf_loop_test);
+DECLARE_ALL_TEST_CASES("callgraph-bpf2bpf", "[end_to_end]", _callgraph_bpf2bpf_test);
 
 // Regression test: Verify that reloading a helper provider (triggering the
 // helper-address-change callback) works correctly for native programs that
