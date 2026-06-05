@@ -1268,6 +1268,49 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
 }
 
+TEST_CASE("ring_buffer_double_map_rejected", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    volatile size_t* consumer = nullptr;
+    volatile size_t* producer = nullptr;
+    uint8_t* data = nullptr;
+    size_t data_size = 0;
+
+    // First map succeeds.
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer, (void**)&producer, (const uint8_t**)&data, &data_size) == EBPF_SUCCESS);
+
+    // Second map on the same ring is rejected.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_INVALID_ARGUMENT);
+
+    // Unmap, then remap succeeds.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+}
+
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
 {
     _ebpf_core_initializer core;
@@ -1737,9 +1780,10 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     perf_event_array_test_async_context_t completion;
     completion.cpu_id = cpu_id;
     completion.buffer_size = buffer_size;
-    REQUIRE(ebpf_map_query_buffer(map.get(), cpu_id, &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
+    // Reuse the initial query buffer; querying again would fail because the ring is already mapped.
+    completion.buffer = buffer;
+    completion.consumer_offset = consumer_offset;
     REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
-    REQUIRE(completion.consumer_offset == 0);
     // Initialize consumer offset in async result used to track current position.
     completion.async_query_result.consumer = completion.consumer_offset;
 

@@ -52,6 +52,7 @@ struct _ebpf_ring_descriptor
 {
     void* primary_view;
     void* secondary_view;
+    volatile LONG user_mapping_state; // 0 = unmapped, 1 = mapped. Mirrors kernel mapping state.
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -105,7 +106,6 @@ ebpf_allocate_ring_buffer_memory(size_t length)
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length exceeds maximum", length);
         return nullptr;
     }
-
 
     ebpf_ring_descriptor_t* descriptor =
         (ebpf_ring_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ring_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -224,6 +224,9 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
+    // Block new map operations before freeing the views.
+    InterlockedExchange(&ring->user_mapping_state, 2);
+
     UnmapViewOfFile(ring->primary_view);
     UnmapViewOfFile(ring->secondary_view);
     ebpf_free(ring);
@@ -244,6 +247,12 @@ ebpf_ring_map_user(
     if (!ring || !consumer || !producer || !data) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
+
+    // Reject double-map.
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 1, 0) != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     *consumer = (uint8_t*)ring->primary_view + PAGE_SIZE;
     *producer = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE;
     *data = (uint8_t*)ring->primary_view + PAGE_SIZE + PAGE_SIZE + PAGE_SIZE;
@@ -254,7 +263,12 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_unmap_user(_In_ ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(ring);
+
+    // Reject unmap when the ring is not mapped.
+    if (InterlockedCompareExchange(&ring->user_mapping_state, 0, 1) != 1) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
