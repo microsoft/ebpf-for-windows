@@ -38,6 +38,11 @@ Programs attached to these hooks can:
 - Allow or deny the bind operation
 - Retrieve process and user information via helper functions
 
+> **Note:** Unlike Linux's `cgroup/bind4` / `cgroup/bind6` hooks, the Windows bind hook
+> does **not** support modifying the local bind address or port from the BPF program —
+> writes to `user_ip*` / `user_port` are silently ignored. See [Divergences](#divergences)
+> for the full list.
+
 This addresses [issue #333](https://github.com/microsoft/ebpf-for-windows/issues/333) and
 the multi-attach requirement from [issue #5180](https://github.com/microsoft/ebpf-for-windows/issues/5180).
 
@@ -220,9 +225,9 @@ control-flow helpers:
 | Helper | Behavior at bind |
 |---|---|
 | `bpf_get_current_pid_tgid` | Returns the bind caller's PID/TID |
-| `bpf_get_current_logon_id` | Returns the logon session ID |
-| `bpf_is_current_admin` | Returns whether the caller has Administrator privileges |
-| `bpf_get_socket_cookie` | Returns a socket cookie |
+| `bpf_get_current_logon_id` | Returns the logon session ID; returns `0` when the bind has no associated user token (e.g. some system binds) |
+| `bpf_is_current_admin` | Returns `1` if the caller has Administrator privileges, `0` otherwise (also `0` when no user token is available, e.g. some system binds) |
+| `bpf_get_socket_cookie` | Returns `0` at the bind layer — the WFP transport endpoint is not yet allocated at `ALE_RESOURCE_ASSIGNMENT`, so no cookie is available |
 | `bpf_sock_addr_get_network_context` | Returns interface metadata; `interface_type` and `tunnel_type` are available; `next_hop_interface_luid` and `sub_interface_index` are not available at the bind layer and are returned as their unspecified defaults |
 | `bpf_sock_addr_set_redirect_context` | **Not supported** at the bind layer — returns `-1` |
 

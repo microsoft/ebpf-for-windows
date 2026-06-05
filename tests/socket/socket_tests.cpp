@@ -255,6 +255,24 @@ _update_sock_addr_bind_verdict_map_entry(
     }
 }
 
+// Raw-value variant of _update_sock_addr_bind_verdict_map_entry for tests that need to
+// inject an out-of-range value (e.g. a verdict bit pattern that is not a valid
+// ebpf_sock_addr_verdict_t enumerator) to exercise contract corner cases such as the
+// "any unknown return value is treated as REJECT" rule.
+void
+_update_sock_addr_bind_verdict_map_entry_raw(fd_t map_fd, uint16_t port, uint8_t protocol, uint32_t raw_value)
+{
+#pragma pack(push, 1)
+    struct
+    {
+        uint16_t port;
+        uint8_t protocol;
+        uint8_t pad;
+    } key = {port, protocol, 0};
+#pragma pack(pop)
+    SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &raw_value, 0) == 0);
+}
+
 /**
  * @brief Execute a connection attempt and validate the result.
  *
@@ -812,6 +830,35 @@ TEMPLATE_TEST_CASE("connection_test_connect_authorization", "[sock_addr_tests]",
          }});
 }
 
+// Regression test for the documented ABI contract in include/ebpf_nethooks.h: any return
+// value from a cgroup_sock_addr program that is not one of {REJECT, PROCEED_SOFT,
+// PROCEED_HARD} must be treated as REJECT. The shared sock_addr process_verdict callback
+// (used by CONNECT, CONNECT_AUTHORIZATION, and RECV_ACCEPT chains) normalizes unknown
+// verdicts to REJECT before priority comparison. Without normalization, the chain would
+// keep the cached redirect-layer verdict and the connection would incorrectly succeed.
+TEMPLATE_TEST_CASE(
+    "connection_test_connect_authorization_unknown_verdict", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test(
+        {.name = "connection_test_connect_authorization_unknown_verdict",
+         .address_family = family,
+         .protocol = protocol,
+         .modules{
+             {{.object_file = "cgroup_sock_addr",
+               .programs{
+                   {{(family == AF_INET) ? "connect_authorization4" : "connect_authorization6",
+                     (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                         : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}}}}}},
+         .tests{
+             {
+                 .description = "Unknown verdict 0xAAAAAAAA from connect_authorization must be treated as REJECT",
+                 .egress_verdict = 0xAAAAAAAAu,
+             },
+         }});
+}
+
 TEMPLATE_TEST_CASE(
     "connection_test_connect_authorization_readonly_context", "[sock_addr_tests]", ALL_CONNECTION_TEST_PARAMS)
 {
@@ -975,8 +1022,74 @@ TEMPLATE_TEST_CASE("sock_addr_bind_hard_permit_wfp", "[bind_tests]", ALL_CONNECT
     });
 }
 
+// Regression test for the documented ABI contract in include/ebpf_nethooks.h: any return
+// value from a cgroup_sock_addr program that is not one of {REJECT, PROCEED_SOFT,
+// PROCEED_HARD} must be treated as REJECT. The bind hook's process_verdict callback
+// normalizes unknown verdicts to REJECT before the priority comparison.
+//
+// Writes a deliberately invalid value (0xAAAAAAAA) into bind_verdict_map via the raw
+// helper, attaches a bind program, and verifies the bind is denied.
+static void
+sock_addr_bind_unknown_verdict_test(ADDRESS_FAMILY address_family, IPPROTO protocol)
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_bind", _is_main_thread);
+    bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+    SAFE_REQUIRE(object != nullptr);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_map* verdict_map = bpf_object__find_map_by_name(object, "bind_verdict_map");
+    SAFE_REQUIRE(verdict_map != nullptr);
+
+    bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
+    const char* program_name = (address_family == AF_INET) ? "authorize_bind4" : "authorize_bind6";
+    bpf_program* program = bpf_object__find_program_by_name(object, program_name);
+    SAFE_REQUIRE(program != nullptr);
+    SAFE_REQUIRE(bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(program)), 0, attach_type, 0) == 0);
+
+    // Inject a bit pattern that is not a valid ebpf_sock_addr_verdict_t enumerator. The kernel
+    // bind hook must treat this as REJECT (per the documented contract) and block the bind.
+    _update_sock_addr_bind_verdict_map_entry_raw(
+        bpf_map__fd(verdict_map),
+        htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
+        static_cast<uint8_t>(protocol),
+        0xAAAAAAAAu);
+
+    int sock_type = (protocol == IPPROTO_TCP) ? SOCK_STREAM : SOCK_DGRAM;
+    SOCKET sock = WSASocketW(AF_INET6, sock_type, protocol, nullptr, 0, 0);
+    SAFE_REQUIRE(sock != INVALID_SOCKET);
+    DWORD v6only = 0;
+    SAFE_REQUIRE(
+        setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
+
+    sockaddr_in6 bind_addr = {};
+    if (address_family == AF_INET) {
+        IN6ADDR_SETV4MAPPED(&bind_addr, &in4addr_loopback, scopeid_unspecified, htons(SOCKET_TEST_PORT));
+    } else {
+        IN6ADDR_SETLOOPBACK(&bind_addr);
+        bind_addr.sin6_port = htons(SOCKET_TEST_PORT);
+    }
+
+    int rc = bind(sock, reinterpret_cast<sockaddr*>(&bind_addr), sizeof(bind_addr));
+    int err = (rc == 0) ? 0 : WSAGetLastError();
+    closesocket(sock);
+    SAFE_REQUIRE(rc != 0);
+    SAFE_REQUIRE(err == WSAEACCES);
+}
+
+TEMPLATE_TEST_CASE("sock_addr_bind_unknown_verdict", "[bind_tests]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    sock_addr_bind_unknown_verdict_test(family, protocol);
+}
+
 // Bind hook helper functions validation: validates that bpf_sock_addr_get_network_context
-// returns valid interface_type and tunnel_type at the bind (ALE_RESOURCE_ASSIGNMENT) layer.
+// returns valid interface_type and tunnel_type at the bind (ALE_RESOURCE_ASSIGNMENT) layer,
+// and that the other bind-supported helpers (bpf_get_current_pid_tgid,
+// bpf_get_current_logon_id, bpf_is_current_admin, bpf_get_socket_cookie,
+// bpf_sock_addr_set_redirect_context) are callable and return sensible values.
 static void
 bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
 {
@@ -994,6 +1107,10 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
 
     bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
     SAFE_REQUIRE(network_context_map != nullptr);
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+    bpf_map* bind_helper_results_map = bpf_object__find_map_by_name(object, "bind_helper_results_map");
+    SAFE_REQUIRE(bind_helper_results_map != nullptr);
 
     // Attach at the appropriate BIND layer.
     bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
@@ -1005,8 +1122,7 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(sock != INVALID_SOCKET);
     DWORD v6only = 0;
     SAFE_REQUIRE(
-        setsockopt(
-            sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
+        setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&v6only), sizeof(v6only)) == 0);
 
     sockaddr_in6 bind_addr = {};
     uint32_t connection_id;
@@ -1049,6 +1165,61 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
          net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
          net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
     SAFE_REQUIRE(valid_tunnel_type);
+
+    // next_hop_interface_luid and sub_interface_index are not available at the bind layer
+    // (no route selected yet); the helper returns them as their unspecified defaults (zero).
+    SAFE_REQUIRE(net_ctx.next_hop_interface_luid == 0);
+    SAFE_REQUIRE(net_ctx.sub_interface_index == 0);
+
+    // Verify the per-program connection counter was updated (counter key 4 for bind4, 5 for bind6).
+    uint32_t counter_key = (address_family == AF_INET) ? 4u : 5u;
+    uint64_t counter_value = 0;
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(connection_count_map), &counter_key, &counter_value) == 0);
+    SAFE_REQUIRE(counter_value >= 1);
+
+    // Verify the other bind-supported helpers are callable and return sensible values.
+    // bind_helper_results_map is keyed by family (4 or 6).
+    uint32_t results_key = (address_family == AF_INET) ? 4u : 6u;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(bind_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Bind helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    // bpf_get_current_pid_tgid: upper 32 bits hold the bind caller's process ID. The WFP
+    // ALE_RESOURCE_ASSIGNMENT callout runs synchronously in the binding process's context,
+    // so this matches GetCurrentProcessId().
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+
+    // bpf_get_current_logon_id: non-zero for any real user logon.
+    SAFE_REQUIRE(results.logon_id != 0);
+
+    // bpf_is_current_admin: returns 0 (not admin) or 1 (admin); the exact value depends on the
+    // test runner's elevation, so just verify it isn't a negative error code.
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+
+    // bpf_sock_addr_set_redirect_context is documented as not supported at the bind layer and
+    // returns -1.
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+
+    // bpf_get_socket_cookie returns 0 at the bind layer — the WFP transport endpoint is
+    // not yet allocated at ALE_RESOURCE_ASSIGNMENT.
+    SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
     printf(

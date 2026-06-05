@@ -301,6 +301,9 @@ static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict);
 
+static bool
+_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict);
+
 //
 // sock_addr helper functions.
 //
@@ -334,6 +337,10 @@ _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
 {
     uint64_t logon_id = 0;
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    // access_information may be NULL for some system binds (see _net_ebpf_extension_sock_addr_copy_wfp_bind_fields).
+    if (sock_addr_ctx->access_information == NULL) {
+        return 0;
+    }
     logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 
     return logon_id;
@@ -474,6 +481,11 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     int32_t is_admin = 0;
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    // access_information may be NULL for some system binds (see _net_ebpf_extension_sock_addr_copy_wfp_bind_fields).
+    // SeAccessCheckFromState requires a non-NULL access_information, so treat NULL as "not admin".
+    if (sock_addr_ctx->access_information == NULL) {
+        return is_admin;
+    }
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
@@ -1348,12 +1360,14 @@ net_ebpf_ext_sock_addr_register_providers()
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
     };
 
-    // Bind dispatch table: same lifecycle hooks as recv_accept (no process_verdict needed
-    // since bind does not support address modification and runs allow/deny only).
+    // Bind dispatch table. process_verdict is required for multi-attach so that the
+    // hook provider loop accumulates the most-restrictive verdict across attached
+    // programs and short-circuits on REJECT.
     const net_ebpf_extension_hook_provider_dispatch_table_t bind_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+        .process_verdict = _net_ebpf_extension_sock_addr_bind_process_verdict,
     };
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
@@ -1813,6 +1827,22 @@ _get_verdict_priority(uint32_t verdict)
     }
 }
 
+// Per the documented contract in include/ebpf_nethooks.h, any cgroup_sock_addr
+// program return value that is not one of {REJECT, PROCEED_SOFT, PROCEED_HARD} is
+// treated as REJECT.
+static int
+_normalize_sock_addr_verdict(int program_verdict)
+{
+    switch (program_verdict) {
+    case BPF_SOCK_ADDR_VERDICT_REJECT:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        return program_verdict;
+    default:
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+}
+
 static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict)
 {
@@ -1826,6 +1856,7 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     bpf_sock_addr_t local_context = *sock_addr_ctx;
     bool redirected = FALSE;
     bool address_changed = FALSE;
+    int normalized_verdict = _normalize_sock_addr_verdict(program_verdict);
 
     // original_context must be set by the caller before invoking programs.
     // It points to a caller's stack variable and is only valid during synchronous program invocation.
@@ -1851,15 +1882,35 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
         context->address_changed = FALSE;
     }
 
-    if (_get_verdict_priority(program_verdict) > _get_verdict_priority(context->verdict)) {
-        context->verdict = program_verdict;
+    if (_get_verdict_priority(normalized_verdict) > _get_verdict_priority(context->verdict)) {
+        context->verdict = normalized_verdict;
     }
 
-    if (redirected || program_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+    if (redirected || normalized_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
         return FALSE;
     }
 
     return TRUE;
+}
+
+// Multi-attach verdict accumulator for the sock_addr bind hook. Tracks the
+// most-restrictive verdict across attached programs in net_ebpf_sock_addr_t::verdict
+// using _get_verdict_priority(), and returns FALSE on REJECT so the hook provider
+// loop stops invoking subsequent programs. Address/port writes to the context are
+// ignored at bind (the WFP ALE_RESOURCE_ASSIGNMENT layer does not support address
+// rewrite), so no redirect handling is performed here.
+static bool
+_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict)
+{
+    bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
+    net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
+    int normalized_verdict = _normalize_sock_addr_verdict(program_verdict);
+
+    if (_get_verdict_priority(normalized_verdict) > _get_verdict_priority(context->verdict)) {
+        context->verdict = normalized_verdict;
+    }
+
+    return normalized_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
 }
 
 //
@@ -2012,7 +2063,8 @@ net_ebpf_extension_sock_addr_bind_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t result;
+    uint32_t ignored_result;
+    uint32_t verdict;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
@@ -2049,8 +2101,14 @@ net_ebpf_extension_sock_addr_bind_classify(
         goto Exit;
     }
 
+    // Initialize the accumulated verdict to PROCEED_SOFT so that if no program updates it
+    // (e.g. all clients are filtered out), the bind defaults to permit.
+    // The bind process_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
+    // most-restrictive verdict across multi-attach programs and short-circuits on REJECT.
+    net_ebpf_sock_addr_ctx.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
     program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
+        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &ignored_result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         goto Exit;
@@ -2061,9 +2119,11 @@ net_ebpf_extension_sock_addr_bind_classify(
         goto Exit;
     }
 
-    // Translate eBPF verdict to WFP action. Bind hooks do not support address modification:
-    // any changes the program made to user_ip/user_port are silently ignored.
-    switch (result) {
+    // Use the accumulated verdict from the bind process_verdict callback. Bind hooks do not
+    // support address modification: any changes the program made to user_ip/user_port are
+    // silently ignored.
+    verdict = net_ebpf_sock_addr_ctx.verdict;
+    switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         classify_output->actionType = FWP_ACTION_PERMIT;
         break;
@@ -2082,7 +2142,7 @@ net_ebpf_extension_sock_addr_bind_classify(
         incoming_metadata_values->transportEndpointHandle,
         sock_addr_ctx,
         NULL,
-        result,
+        verdict,
         compartment_id);
 
 Exit:
