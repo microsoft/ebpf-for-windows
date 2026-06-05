@@ -1210,8 +1210,9 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     // bpf_get_current_logon_id: non-zero for any real user logon.
     SAFE_REQUIRE(results.logon_id != 0);
 
-    // bpf_is_current_admin: returns 0 (not admin) or 1 (admin); the exact value depends on the
-    // test runner's elevation, so just verify it isn't a negative error code.
+    // bpf_is_current_admin: returns 1 (admin) or 0 (not admin) for any caller with a user token;
+    // returns -1 if admin status cannot be determined (no user token). The user-mode test process
+    // always has a token, so the value must be 0 or 1 — exact value depends on test runner elevation.
     SAFE_REQUIRE(results.is_admin >= 0);
     SAFE_REQUIRE(results.is_admin <= 1);
 

@@ -482,9 +482,10 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     // access_information may be NULL for some system binds (see _net_ebpf_extension_sock_addr_copy_wfp_bind_fields).
-    // SeAccessCheckFromState requires a non-NULL access_information, so treat NULL as "not admin".
+    // Per the bpf_is_current_admin contract, return a negative value to indicate that admin status could not be
+    // determined (caller has no user token to check).
     if (sock_addr_ctx->access_information == NULL) {
-        return is_admin;
+        return -1;
     }
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
