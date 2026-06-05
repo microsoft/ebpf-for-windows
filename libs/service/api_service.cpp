@@ -145,9 +145,9 @@ _build_helper_id_to_address_map(
         if (instruction.opcode != prevail::INST_OP_CALL) {
             continue;
         }
-        // Skip local function calls (src == INST_CALL_LOCAL) — their imm field
-        // is a relative offset to the callee, not a helper ID.
-        if (instruction.src == 1) {
+        // Skip calls other than static helper calls — their imm field is a relative offset
+        // to the callee, not a helper ID.
+        if (instruction.src != prevail::INST_CALL_STATIC_HELPER) {
             continue;
         }
         instruction.imm = helper_id_mapping[instruction.imm];
