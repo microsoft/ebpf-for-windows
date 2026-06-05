@@ -845,12 +845,14 @@ TEMPLATE_TEST_CASE(
         {.name = "connection_test_connect_authorization_unknown_verdict",
          .address_family = family,
          .protocol = protocol,
-         .modules{
-             {{.object_file = "cgroup_sock_addr",
-               .programs{
-                   {{(family == AF_INET) ? "connect_authorization4" : "connect_authorization6",
-                     (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
-                                         : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION}}}}}},
+         .modules{{{
+             .object_file = "cgroup_sock_addr",
+             .programs{
+                 {(family == AF_INET) ? "connect_authorization4" : "connect_authorization6",
+                  (family == AF_INET) ? BPF_CGROUP_INET4_CONNECT_AUTHORIZATION
+                                      : BPF_CGROUP_INET6_CONNECT_AUTHORIZATION},
+             },
+         }}},
          .tests{
              {
                  .description = "Unknown verdict 0xAAAAAAAA from connect_authorization must be treated as REJECT",
