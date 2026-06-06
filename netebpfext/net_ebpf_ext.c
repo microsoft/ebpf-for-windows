@@ -203,6 +203,29 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         L"ALE Flow Established Callout v4",
         L"ALE Flow Established callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // CGROUP_SOCK_ADDR bind callout v4. Separate callout from the legacy bind hook
+    // so the two can coexist at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 without conflict.
+    {
+        &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_SOCK_ADDR_CALLOUT,
+        &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+        net_ebpf_extension_sock_addr_bind_classify,
+        net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Resource Assignment sock_addr eBPF Callout v4",
+        L"ALE Resource Assignment sock_addr bind callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // CGROUP_SOCK_ADDR bind callout v6.
+    {
+        &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_SOCK_ADDR_CALLOUT,
+        &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+        net_ebpf_extension_sock_addr_bind_classify,
+        net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Resource Assignment sock_addr eBPF Callout v6",
+        L"ALE Resource Assignment sock_addr bind callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
     }};
 
 // WFP globals
