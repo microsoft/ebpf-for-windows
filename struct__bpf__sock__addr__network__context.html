@@ -75,7 +75,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>Network context information for the connection. Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.  
+<p>Network context information for the connection. Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types.  
  <a href="struct__bpf__sock__addr__network__context.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="ebpf__nethooks_8h_source.html">ebpf_nethooks.h</a>&gt;</code></p>
@@ -92,14 +92,14 @@ Data Fields</h2></td></tr>
 <tr class="memdesc:a4e7e2c85886aceda81e59bf0b7e2d195"><td class="mdescLeft">&#160;</td><td class="mdescRight">IANA tunnel type; 0 if not a tunnel, or UINT32_MAX if not available.  <br /></td></tr>
 <tr class="separator:a4e7e2c85886aceda81e59bf0b7e2d195"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abd46727973a9308661700bbe0cebb334" id="r_abd46727973a9308661700bbe0cebb334"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf__sock__addr__network__context.html#abd46727973a9308661700bbe0cebb334">next_hop_interface_luid</a></td></tr>
-<tr class="memdesc:abd46727973a9308661700bbe0cebb334"><td class="mdescLeft">&#160;</td><td class="mdescRight">Next-hop interface LUID, or 0 if not available.  <br /></td></tr>
+<tr class="memdesc:abd46727973a9308661700bbe0cebb334"><td class="mdescLeft">&#160;</td><td class="mdescRight">Next-hop interface LUID, or 0 if not available; unspecified at BIND.  <br /></td></tr>
 <tr class="separator:abd46727973a9308661700bbe0cebb334"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a16275a6acd6ffa3b981fd515960fa6c5" id="r_a16275a6acd6ffa3b981fd515960fa6c5"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf__sock__addr__network__context.html#a16275a6acd6ffa3b981fd515960fa6c5">sub_interface_index</a></td></tr>
-<tr class="memdesc:a16275a6acd6ffa3b981fd515960fa6c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sub-interface index, or 0 if not available.  <br /></td></tr>
+<tr class="memdesc:a16275a6acd6ffa3b981fd515960fa6c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sub-interface index, or 0 if not available; unspecified at BIND.  <br /></td></tr>
 <tr class="separator:a16275a6acd6ffa3b981fd515960fa6c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Network context information for the connection. Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types. </p>
+<div class="textblock"><p>Network context information for the connection. Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
 <a id="a195cd50b732b464d7b114e1091d95ea6" name="a195cd50b732b464d7b114e1091d95ea6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a195cd50b732b464d7b114e1091d95ea6">&#9670;&#160;</a></span>interface_type</h2>
@@ -129,7 +129,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Next-hop interface LUID, or 0 if not available. </p>
+<p>Next-hop interface LUID, or 0 if not available; unspecified at BIND. </p>
 
 </div>
 </div>
@@ -145,7 +145,7 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Sub-interface index, or 0 if not available. </p>
+<p>Sub-interface index, or 0 if not available; unspecified at BIND. </p>
 
 </div>
 </div>

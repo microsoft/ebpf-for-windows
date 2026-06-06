@@ -101,6 +101,10 @@ Macros</h2></td></tr>
 <tr class="separator:a779d15082bb6905b3d2fb7d467886a7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af3b8066eb5e1ba2d6fa4c9aad39272b9" id="r_af3b8066eb5e1ba2d6fa4c9aad39272b9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#af3b8066eb5e1ba2d6fa4c9aad39272b9">EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID</a></td></tr>
 <tr class="separator:af3b8066eb5e1ba2d6fa4c9aad39272b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6469cc15831c1adfac7931d0deefd088" id="r_a6469cc15831c1adfac7931d0deefd088"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a6469cc15831c1adfac7931d0deefd088">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</a></td></tr>
+<tr class="separator:a6469cc15831c1adfac7931d0deefd088"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5cb1921e01d75749ed32f104c08de4b1" id="r_a5cb1921e01d75749ed32f104c08de4b1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a5cb1921e01d75749ed32f104c08de4b1">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</a></td></tr>
+<tr class="separator:a5cb1921e01d75749ed32f104c08de4b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac39e3f10c86fe2dad8832e4e382aa40d" id="r_ac39e3f10c86fe2dad8832e4e382aa40d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#ac39e3f10c86fe2dad8832e4e382aa40d">EBPF_ATTACH_TYPE_SAMPLE_GUID</a></td></tr>
 <tr class="separator:ac39e3f10c86fe2dad8832e4e382aa40d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6044a16ae28d4dbb5e305dc5d83c7e9a" id="r_a6044a16ae28d4dbb5e305dc5d83c7e9a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a6044a16ae28d4dbb5e305dc5d83c7e9a">EBPF_ATTACH_TYPE_XDP_TEST_GUID</a></td></tr>
@@ -126,7 +130,7 @@ Variables</h2></td></tr>
 <tr class="memdesc:a718ad43a2eaff162adfd9119e6618355"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type for handling incoming packets as early as possible.  <br /></td></tr>
 <tr class="separator:a718ad43a2eaff162adfd9119e6618355"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abfe13edb5136e2739c015dc7ede56073" id="r_abfe13edb5136e2739c015dc7ede56073"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#abfe13edb5136e2739c015dc7ede56073">EBPF_ATTACH_TYPE_BIND</a> = <a class="el" href="ebpf__program__attach__type__guids_8h.html#a4b66fe90b04c773296202017e4e39f2d">EBPF_ATTACH_TYPE_BIND_GUID</a></td></tr>
-<tr class="memdesc:abfe13edb5136e2739c015dc7ede56073"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type for handling socket bind() requests.  <br /></td></tr>
+<tr class="memdesc:abfe13edb5136e2739c015dc7ede56073"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type for handling socket bind operations.  <br /></td></tr>
 <tr class="separator:abfe13edb5136e2739c015dc7ede56073"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaa35c1d16dc23ca2f9bc1db993ab039b" id="r_aaa35c1d16dc23ca2f9bc1db993ab039b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a></td></tr>
 <tr class="memdesc:aaa35c1d16dc23ca2f9bc1db993ab039b"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET4_CONNECT hook will be invoked for connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to a unique remote address/port tuple.  <br /></td></tr>
@@ -149,6 +153,12 @@ Variables</h2></td></tr>
 <tr class="memitem:a0509c44a32d8e30cdca7e5de1d3c0ce5" id="r_a0509c44a32d8e30cdca7e5de1d3c0ce5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a0509c44a32d8e30cdca7e5de1d3c0ce5">EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS</a> = <a class="el" href="ebpf__program__attach__type__guids_8h.html#af3b8066eb5e1ba2d6fa4c9aad39272b9">EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID</a></td></tr>
 <tr class="memdesc:a0509c44a32d8e30cdca7e5de1d3c0ce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type for handling socket event notifications.  <br /></td></tr>
 <tr class="separator:a0509c44a32d8e30cdca7e5de1d3c0ce5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac69ffc3ce8defea0b14bc6c91acf052e" id="r_ac69ffc3ce8defea0b14bc6c91acf052e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#ac69ffc3ce8defea0b14bc6c91acf052e">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND</a></td></tr>
+<tr class="memdesc:ac69ffc3ce8defea0b14bc6c91acf052e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET4_BIND hook will be invoked when an IPv4 socket is bound to an address/port.  <br /></td></tr>
+<tr class="separator:ac69ffc3ce8defea0b14bc6c91acf052e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8d4f4f8fca7dd8707f6b4f8fa41676fd" id="r_a8d4f4f8fca7dd8707f6b4f8fa41676fd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a8d4f4f8fca7dd8707f6b4f8fa41676fd">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND</a></td></tr>
+<tr class="memdesc:a8d4f4f8fca7dd8707f6b4f8fa41676fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">The programs attached to the INET6_BIND hook will be invoked when an IPv6 socket is bound to an address/port.  <br /></td></tr>
+<tr class="separator:a8d4f4f8fca7dd8707f6b4f8fa41676fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6f38cc0b725b2533c5f5134a21960d22" id="r_a6f38cc0b725b2533c5f5134a21960d22"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#a6f38cc0b725b2533c5f5134a21960d22">EBPF_ATTACH_TYPE_SAMPLE</a> = <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac39e3f10c86fe2dad8832e4e382aa40d">EBPF_ATTACH_TYPE_SAMPLE_GUID</a></td></tr>
 <tr class="memdesc:a6f38cc0b725b2533c5f5134a21960d22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach type implemented by eBPF Sample Extension driver, used for testing.  <br /></td></tr>
 <tr class="separator:a6f38cc0b725b2533c5f5134a21960d22"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,7 +171,7 @@ Variables</h2></td></tr>
 <tr class="memdesc:a2f642bba5fbe57aa899d778e9f650303"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type for handling incoming packets as early as possible.  <br /></td></tr>
 <tr class="separator:a2f642bba5fbe57aa899d778e9f650303"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab3f482055c69dbcf858e5aac2ab042ec" id="r_ab3f482055c69dbcf858e5aac2ab042ec"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a> = <a class="el" href="ebpf__program__attach__type__guids_8h.html#add59f52637b0fcbeee293b7b15ab8b5b">EBPF_PROGRAM_TYPE_BIND_GUID</a></td></tr>
-<tr class="memdesc:ab3f482055c69dbcf858e5aac2ab042ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type for handling socket bind() requests.  <br /></td></tr>
+<tr class="memdesc:ab3f482055c69dbcf858e5aac2ab042ec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type for handling socket bind operations.  <br /></td></tr>
 <tr class="separator:ab3f482055c69dbcf858e5aac2ab042ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc537e477316cb69c5b989f0d944fb8b" id="r_afc537e477316cb69c5b989f0d944fb8b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a></td></tr>
 <tr class="memdesc:afc537e477316cb69c5b989f0d944fb8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type for handling various socket operations such as connect(), accept() etc.  <br /></td></tr>
@@ -190,6 +200,23 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
 <div class="line">        0xb9707e04, 0x8127, 0x4c72, { 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96 } \</div>
+<div class="line">    }</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a6469cc15831c1adfac7931d0deefd088" name="a6469cc15831c1adfac7931d0deefd088"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6469cc15831c1adfac7931d0deefd088">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
+<div class="line">        0x0d7ce21a, 0x7773, 0x405c, { 0x93, 0xb6, 0xd5, 0xbf, 0xb9, 0x2e, 0x74, 0xbc } \</div>
 <div class="line">    }</div>
 </div><!-- fragment -->
 </div>
@@ -241,6 +268,23 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
 <div class="line">        0xa82e37b3, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \</div>
+<div class="line">    }</div>
+</div><!-- fragment -->
+</div>
+</div>
+<a id="a5cb1921e01d75749ed32f104c08de4b1" name="a5cb1921e01d75749ed32f104c08de4b1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5cb1921e01d75749ed32f104c08de4b1">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Value:</b><div class="fragment"><div class="line">    {                                                                                  \</div>
+<div class="line">        0x81de64c0, 0x2973, 0x468d, { 0x83, 0x82, 0x67, 0x69, 0xf0, 0x33, 0xd7, 0x59 } \</div>
 <div class="line">    }</div>
 </div><!-- fragment -->
 </div>
@@ -462,8 +506,28 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Attach type for handling socket bind() requests. </p>
+<p>Attach type for handling socket bind operations. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a> </p>
+
+</div>
+</div>
+<a id="ac69ffc3ce8defea0b14bc6c91acf052e" name="ac69ffc3ce8defea0b14bc6c91acf052e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac69ffc3ce8defea0b14bc6c91acf052e">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET4_BIND</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> EBPF_ATTACH_TYPE_CGROUP_INET4_BIND</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a6469cc15831c1adfac7931d0deefd088">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</a></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a6469cc15831c1adfac7931d0deefd088"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a6469cc15831c1adfac7931d0deefd088">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:122</div></div>
+</div><!-- fragment -->
+<p>The programs attached to the INET4_BIND hook will be invoked when an IPv4 socket is bound to an address/port. </p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
 
 </div>
 </div>
@@ -523,6 +587,26 @@ Variables</h2></td></tr>
 <div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a73a680b7036027abc0dd1c7d266e7a38"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a73a680b7036027abc0dd1c7d266e7a38">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:86</div></div>
 </div><!-- fragment -->
 <p>The programs attached to the INET4_RECV_ACCEPT hook will get invoked for TCP accept() calls or for the first unicast UDP packet from a unique remote address/port tuple. </p>
+<p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
+
+</div>
+</div>
+<a id="a8d4f4f8fca7dd8707f6b4f8fa41676fd" name="a8d4f4f8fca7dd8707f6b4f8fa41676fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8d4f4f8fca7dd8707f6b4f8fa41676fd">&#9670;&#160;</a></span>EBPF_ATTACH_TYPE_CGROUP_INET6_BIND</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> EBPF_ATTACH_TYPE_CGROUP_INET6_BIND</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#a5cb1921e01d75749ed32f104c08de4b1">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</a></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_a5cb1921e01d75749ed32f104c08de4b1"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#a5cb1921e01d75749ed32f104c08de4b1">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</a></div><div class="ttdeci">#define EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:134</div></div>
+</div><!-- fragment -->
+<p>The programs attached to the INET6_BIND hook will be invoked when an IPv6 socket is bound to an address/port. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a> </p>
 
 </div>
@@ -683,7 +767,7 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Program type for handling socket bind() requests. </p>
+<p>Program type for handling socket bind operations. </p>
 <p>eBPF program prototype: <a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a></p>
 <p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#abfe13edb5136e2739c015dc7ede56073">EBPF_ATTACH_TYPE_BIND</a></p>
 <p>Helpers available: see <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
@@ -703,11 +787,11 @@ Variables</h2></td></tr>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
 <div class="line">        <a class="code hl_define" href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div>
-<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_abc5aa6be2d353c39873d4cf117b31474"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div><div class="ttdeci">#define EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:179</div></div>
+<div class="ttc" id="aebpf__program__attach__type__guids_8h_html_abc5aa6be2d353c39873d4cf117b31474"><div class="ttname"><a href="ebpf__program__attach__type__guids_8h.html#abc5aa6be2d353c39873d4cf117b31474">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</a></div><div class="ttdeci">#define EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID</div><div class="ttdef"><b>Definition</b> ebpf_program_attach_type_guids.h:203</div></div>
 </div><!-- fragment -->
 <p>Program type for handling various socket operations such as connect(), accept() etc. </p>
 <p>eBPF program prototype: <a class="el" href="ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0">sock_addr_hook_t</a></p>
-<p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a7067b91755778f46f88d44c18d01c397">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT</a> </p>
+<p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a7067b91755778f46f88d44c18d01c397">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac69ffc3ce8defea0b14bc6c91acf052e">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a8d4f4f8fca7dd8707f6b4f8fa41676fd">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND</a> </p>
 
 </div>
 </div>

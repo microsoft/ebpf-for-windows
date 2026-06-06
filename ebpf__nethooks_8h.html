@@ -94,7 +94,7 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.  <a href="structbpf__sock__addr.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf__sock__addr__network__context.html">_bpf_sock_addr_network_context</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Network context information for the connection. Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.  <a href="struct__bpf__sock__addr__network__context.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Network context information for the connection. Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types.  <a href="struct__bpf__sock__addr__network__context.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__bpf__sock__ops.html">_bpf_sock_ops</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -118,7 +118,7 @@ Typedefs</h2></td></tr>
 <tr class="memdesc:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Actions that can be returned by a bind hook program.  <br /></td></tr>
 <tr class="separator:ad76a0927c7e31a4b67e34a7d34d278a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2020fd040b86a3b9b29a31303dabc5b" id="r_ab2020fd040b86a3b9b29a31303dabc5b"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#ad76a0927c7e31a4b67e34a7d34d278a2">bind_action_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ad95b98d2e80f69aeb949bbd2f76197c2">bind_md_t</a> *context)</td></tr>
-<tr class="memdesc:ab2020fd040b86a3b9b29a31303dabc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle IPv4 and IPv6 socket bind() requests.  <br /></td></tr>
+<tr class="memdesc:ab2020fd040b86a3b9b29a31303dabc5b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle IPv4 and IPv6 socket bind operations.  <br /></td></tr>
 <tr class="separator:ab2020fd040b86a3b9b29a31303dabc5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d05c64df48bba1476f7e3f500826ac2" id="r_a2d05c64df48bba1476f7e3f500826ac2"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__nethooks_8h.html#aca35b18b041302a7387d62fbacaca164">_ebpf_sock_addr_verdict</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a></td></tr>
 <tr class="separator:a2d05c64df48bba1476f7e3f500826ac2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -126,7 +126,7 @@ Typedefs</h2></td></tr>
 <tr class="memdesc:ab2c7c42768b8ecf6dd6ee52c302a10a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.  <br /></td></tr>
 <tr class="separator:ab2c7c42768b8ecf6dd6ee52c302a10a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeef68886022d053818d22c6e9837305a" id="r_aeef68886022d053818d22c6e9837305a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__bpf__sock__addr__network__context.html">_bpf_sock_addr_network_context</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#aeef68886022d053818d22c6e9837305a">bpf_sock_addr_network_context_t</a></td></tr>
-<tr class="memdesc:aeef68886022d053818d22c6e9837305a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Network context information for the connection. Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types.  <br /></td></tr>
+<tr class="memdesc:aeef68886022d053818d22c6e9837305a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Network context information for the connection. Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types.  <br /></td></tr>
 <tr class="separator:aeef68886022d053818d22c6e9837305a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a255443f32dea7f8cd68ffc2be666dfc0" id="r_a255443f32dea7f8cd68ffc2be666dfc0"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__nethooks_8h.html#a2d05c64df48bba1476f7e3f500826ac2">ebpf_sock_addr_verdict_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0">sock_addr_hook_t</a>(<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *context)</td></tr>
 <tr class="memdesc:a255443f32dea7f8cd68ffc2be666dfc0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Handle socket operation. Currently supports ingress/egress connection initialization.  <br /></td></tr>
@@ -182,7 +182,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:a64775b27bf65ea4c8fa5c8e951b60006"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a context for consumption by a user-mode application (sock_addr specific only). This function is not supported for the recv_accept hooks.  <br /></td></tr>
 <tr class="separator:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab7e3a09596e1d57a131d14a9bdcec855" id="r_ab7e3a09596e1d57a131d14a9bdcec855"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#ab7e3a09596e1d57a131d14a9bdcec855">bpf_sock_addr_get_network_context</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx, void *context_ptr, uint32_t context_size)</td></tr>
-<tr class="memdesc:ab7e3a09596e1d57a131d14a9bdcec855"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the network context for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only).  <br /></td></tr>
+<tr class="memdesc:ab7e3a09596e1d57a131d14a9bdcec855"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND).  <br /></td></tr>
 <tr class="separator:ab7e3a09596e1d57a131d14a9bdcec855"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a35f1de6dd7f689120f6d3897394ea0e6" id="r_a35f1de6dd7f689120f6d3897394ea0e6"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a35f1de6dd7f689120f6d3897394ea0e6">bpf_sock_ops_get_flow_id</a> (<a class="el" href="ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00">bpf_sock_ops_t</a> *ctx)</td></tr>
 <tr class="memdesc:a35f1de6dd7f689120f6d3897394ea0e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the WFP flow ID associated with the current sock_ops context.  <br /></td></tr>
@@ -260,7 +260,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Handle IPv4 and IPv6 socket bind() requests. </p>
+<p>Handle IPv4 and IPv6 socket bind operations. </p>
 <p>This function type defines the signature for eBPF programs that handle socket bind operations. The program is called before the bind operation completes and can inspect the socket metadata to make policy decisions about whether to allow, deny, or redirect the bind request.</p>
 <p>The program can examine details such as the process ID, socket address, protocol, and interface information to implement custom bind policies. For redirect operations, the program can modify the socket_address field in the context to change the bind target.</p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#ab3f482055c69dbcf858e5aac2ab042ec">EBPF_PROGRAM_TYPE_BIND</a></p>
@@ -323,7 +323,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Network context information for the connection. Available for CONNECT_AUTHORIZATION and RECV_ACCEPT attach types. </p>
+<p>Network context information for the connection. Available for CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND attach types. </p>
 
 </div>
 </div>
@@ -399,7 +399,7 @@ Functions</h2></td></tr>
 
 <p>Handle socket operation. Currently supports ingress/egress connection initialization. </p>
 <p>Program type: <a class="el" href="ebpf__program__attach__type__guids_8h.html#afc537e477316cb69c5b989f0d944fb8b">EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR</a></p>
-<p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a7067b91755778f46f88d44c18d01c397">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a83a6495ad2f27b2462eae84e9b52be14">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a554912e7868e324c7f7c3e427aacde02">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION</a></p>
+<p>Attach type(s): <a class="el" href="ebpf__program__attach__type__guids_8h.html#aaa35c1d16dc23ca2f9bc1db993ab039b">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a2de51e8e61c2553ff487d89dda5d6139">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac54908adeb179df4240bf68998663148">EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a7067b91755778f46f88d44c18d01c397">EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a83a6495ad2f27b2462eae84e9b52be14">EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a554912e7868e324c7f7c3e427aacde02">EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#ac69ffc3ce8defea0b14bc6c91acf052e">EBPF_ATTACH_TYPE_CGROUP_INET4_BIND</a> <a class="el" href="ebpf__program__attach__type__guids_8h.html#a8d4f4f8fca7dd8707f6b4f8fa41676fd">EBPF_ATTACH_TYPE_CGROUP_INET6_BIND</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">context</td><td><a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> </td></tr>
@@ -609,7 +609,7 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Get the network context for the connection (CONNECT_AUTHORIZATION and RECV_ACCEPT only). </p>
+<p>Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, and BIND). </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to bpf_sock_addr_t context. </td></tr>

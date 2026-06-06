@@ -288,6 +288,8 @@ Enumerations</h2></td></tr>
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac67ab245a553a0dbc7fdd0ed7952dd88">BPF_CGROUP_INET4_CONNECT_AUTHORIZATION</a>
 , <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30">BPF_CGROUP_INET6_CONNECT_AUTHORIZATION</a>
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaad484b63b3295cf1e47078d51b3cb03b">BPF_CGROUP_INET4_BIND</a>
+, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa4cf410d0f46571664a534064e189986b">BPF_CGROUP_INET6_BIND</a>
 , <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a">__MAX_BPF_ATTACH_TYPE</a>
 <br />
  }</td></tr>
@@ -673,7 +675,7 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e" name="aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e"></a>BPF_XDP&#160;</td><td class="fielddoc"><p>Attach type for handling incoming packets as early as possible. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a1945ca3d46bd1e589c4d0effe14f18d6">BPF_PROG_TYPE_XDP</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4" name="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4"></a>BPF_ATTACH_TYPE_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling socket bind() requests. </p>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4" name="aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4"></a>BPF_ATTACH_TYPE_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling socket bind operations. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2">BPF_PROG_TYPE_BIND</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc" name="aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc"></a>BPF_CGROUP_INET4_CONNECT&#160;</td><td class="fielddoc"><p>Attach type for handling IPv4 TCP connect() or UDP send to a unique remote address/port tuple. </p>
@@ -704,6 +706,12 @@ Enumerations</h2></td></tr>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30" name="aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30"></a>BPF_CGROUP_INET6_CONNECT_AUTHORIZATION&#160;</td><td class="fielddoc"><p>Attach type for handling IPv6 TCP connect() or UDP send authorization (before connection is authorized). </p>
+<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aaad484b63b3295cf1e47078d51b3cb03b" name="aac6b4c09fa267f53c1d213551e0ccd5aaad484b63b3295cf1e47078d51b3cb03b"></a>BPF_CGROUP_INET4_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling IPv4 socket bind operations. </p>
+<p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa4cf410d0f46571664a534064e189986b" name="aac6b4c09fa267f53c1d213551e0ccd5aa4cf410d0f46571664a534064e189986b"></a>BPF_CGROUP_INET6_BIND&#160;</td><td class="fielddoc"><p>Attach type for handling IPv6 socket bind operations. </p>
 <p><b>Program type:</b> <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517">BPF_PROG_TYPE_CGROUP_SOCK_ADDR</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a" name="aac6b4c09fa267f53c1d213551e0ccd5aa7bb29441638f2e3966fa94ebd4aeb82a"></a>__MAX_BPF_ATTACH_TYPE&#160;</td><td class="fielddoc"></td></tr>
@@ -807,14 +815,14 @@ Enumerations</h2></td></tr>
 <p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa11c288aaa5ce8590e2c8a22e5d54446e">BPF_XDP</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2" name="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"><p>Program type for handling socket bind() requests. </p>
+<tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2" name="a0f8242763b15ec665eaa47c6add861a0a2af8d41961c186b1a62fcc54a29446d2"></a>BPF_PROG_TYPE_BIND&#160;</td><td class="fielddoc"><p>Program type for handling socket bind operations. </p>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#ab2020fd040b86a3b9b29a31303dabc5b">bind_hook_t</a></p>
 <p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa864be97a1886953dbdfe608688fb19d4">BPF_ATTACH_TYPE_BIND</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517" name="a0f8242763b15ec665eaa47c6add861a0a372b7fa48277e8bd73784c4193ed8517"></a>BPF_PROG_TYPE_CGROUP_SOCK_ADDR&#160;</td><td class="fielddoc"><p>Program type for handling various socket operations such as connect(), accept() etc. </p>
 <p><b>eBPF program prototype:</b> <a class="el" href="ebpf__nethooks_8h.html#a255443f32dea7f8cd68ffc2be666dfc0">sock_addr_hook_t</a></p>
-<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc">BPF_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8">BPF_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2">BPF_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36">BPF_CGROUP_INET6_RECV_ACCEPT</a></p>
+<p><b>Attach type(s):</b> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae5e0f2387eb5917087c2cbf8bea83bcc">BPF_CGROUP_INET4_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa140bb255d4ce2b545609b4fce5d3a7f8">BPF_CGROUP_INET6_CONNECT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae06c2887f0d67c0b69c5be7916e017d2">BPF_CGROUP_INET4_RECV_ACCEPT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaa9d0918dbc3488965b2074af9c92ca36">BPF_CGROUP_INET6_RECV_ACCEPT</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aac67ab245a553a0dbc7fdd0ed7952dd88">BPF_CGROUP_INET4_CONNECT_AUTHORIZATION</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aae984bb37bc0f14aa6ab85d285982eb30">BPF_CGROUP_INET6_CONNECT_AUTHORIZATION</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aaad484b63b3295cf1e47078d51b3cb03b">BPF_CGROUP_INET4_BIND</a> <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5aa4cf410d0f46571664a534064e189986b">BPF_CGROUP_INET6_BIND</a></p>
 <p><b>Helpers available:</b> all helpers defined in <a class="el" href="bpf__helpers_8h.html">bpf_helpers.h</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420" name="a0f8242763b15ec665eaa47c6add861a0ab7bb9c16241ddbb34e2aba2b71a24420"></a>BPF_PROG_TYPE_SOCK_OPS&#160;</td><td class="fielddoc"><p>Program type for handling various socket event notifications such as connection established etc. </p>
