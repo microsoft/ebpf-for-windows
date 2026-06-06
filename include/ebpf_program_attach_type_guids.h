@@ -25,7 +25,7 @@ extern "C"
     {                                                                                  \
         0xb9707e04, 0x8127, 0x4c72, { 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96 } \
     }
-    /** @brief Attach type for handling socket bind() requests.
+    /** @brief Attach type for handling socket bind operations.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_BIND
      */
@@ -119,6 +119,30 @@ extern "C"
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID                                        \
+    {                                                                                  \
+        0x0d7ce21a, 0x7773, 0x405c, { 0x93, 0xb6, 0xd5, 0xbf, 0xb9, 0x2e, 0x74, 0xbc } \
+    }
+    /** @brief The programs attached to the INET4_BIND hook will be invoked
+     * when an IPv4 socket is bound to an address/port.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_BIND =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_BIND_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID                                        \
+    {                                                                                  \
+        0x81de64c0, 0x2973, 0x468d, { 0x83, 0x82, 0x67, 0x69, 0xf0, 0x33, 0xd7, 0x59 } \
+    }
+    /** @brief The programs attached to the INET6_BIND hook will be invoked
+     * when an IPv6 socket is bound to an address/port.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_BIND =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID;
+
 #define EBPF_ATTACH_TYPE_SAMPLE_GUID                                                   \
     {                                                                                  \
         0xf788ef4b, 0x207d, 0x4dc3, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
@@ -166,7 +190,7 @@ extern "C"
         0x608c517c, 0x6c52, 0x4a26, { 0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf } \
     }
 
-    /** @brief Program type for handling socket bind() requests.
+    /** @brief Program type for handling socket bind operations.
      *
      * eBPF program prototype: \ref bind_hook_t
      *
@@ -190,6 +214,8 @@ extern "C"
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
+     *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_BIND
+     *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_BIND
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR =
         EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID;

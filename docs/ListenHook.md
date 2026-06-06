@@ -63,6 +63,7 @@ while being implemented via the Windows Filtering Platform (WFP) ALE Authorizati
 This design adds new listen attach types to the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, following the same pattern used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT`
+- `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND` (see [BindHook.md](BindHook.md))
 
 Key considerations:
 - Reusing the existing program type and context structure provides consistency and reduces implementation complexity
@@ -79,6 +80,7 @@ The listen hook extends the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program ty
 The listen hook reuses the existing **BPF_PROG_TYPE_CGROUP_SOCK_ADDR** program type, which is already used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT`
+- `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND`
 
 This provides consistency with existing socket address hooks and allows programs to share helper functions and infrastructure.
 
