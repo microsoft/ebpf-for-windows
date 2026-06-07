@@ -368,9 +368,11 @@ bpf_code_generator::set_program_hash_info(
 }
 
 void
-bpf_code_generator::set_map_annotations(_In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
+bpf_code_generator::set_map_annotations(
+    const unsafe_string& program_name, _In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
 {
     _map_annotations.clear();
+    _map_annotations_program_name = program_name;
     if (annotations != nullptr) {
         for (size_t i = 0; i < count; i++) {
             _map_annotations[annotations[i].instruction_offset] = annotations[i];
@@ -974,6 +976,10 @@ bpf_code_generator::get_reachable_subprograms(const unsafe_string& entry_name) c
 void
 bpf_code_generator::build_global_helper_index()
 {
+    // Only apply map annotations to the program they were generated for.
+    // Subprogram local offsets restart at 0 and could collide with main program offsets.
+    static const std::unordered_map<uint32_t, ebpf_verifier_map_info_t> empty_annotations;
+
     // Check if the module has any subprograms (.text section functions).
     bool has_subprograms = false;
     for (const auto& [_, program] : programs) {
@@ -988,7 +994,9 @@ bpf_code_generator::build_global_helper_index()
         global_helpers_ordered.clear();
         for (auto& [prog_name, program] : programs) {
             if (program.output_instructions.size() > 0) {
-                program.encode_instructions(map_definitions, global_variable_sections, _map_annotations);
+                const auto& annotations =
+                    (prog_name == _map_annotations_program_name) ? _map_annotations : empty_annotations;
+                program.encode_instructions(map_definitions, global_variable_sections, annotations);
             }
         }
         return;
@@ -1026,7 +1034,9 @@ bpf_code_generator::build_global_helper_index()
     // Now encode instructions for all programs (deferred from generate()).
     for (auto& [prog_name, program] : programs) {
         if (program.output_instructions.size() > 0) {
-            program.encode_instructions(map_definitions, global_variable_sections, _map_annotations);
+            const auto& annotations =
+                (prog_name == _map_annotations_program_name) ? _map_annotations : empty_annotations;
+            program.encode_instructions(map_definitions, global_variable_sections, annotations);
         }
     }
 

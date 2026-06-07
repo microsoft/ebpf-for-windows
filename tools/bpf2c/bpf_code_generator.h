@@ -304,7 +304,10 @@ class bpf_code_generator
      * @param[in] count Number of annotations.
      */
     void
-    set_map_annotations(_In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count);
+    set_map_annotations(
+        const unsafe_string& program_name,
+        _In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations,
+        size_t count);
 
   private:
     typedef struct _helper_function
@@ -559,5 +562,8 @@ class bpf_code_generator
     std::vector<std::pair<unsafe_string, int32_t>> global_helpers_ordered;
 
     // Map from instruction offset to verifier-provided map annotation.
+    // Annotations are scoped to the program named by _map_annotations_program_name;
+    // subprograms must not use them because their local offsets can collide.
     std::unordered_map<uint32_t, ebpf_verifier_map_info_t> _map_annotations;
+    unsafe_string _map_annotations_program_name;
 };

@@ -353,7 +353,7 @@ main(int argc, char** argv)
             if (result != EBPF_SUCCESS) {
                 throw std::runtime_error(std::string("Failed to get map annotations from verifier"));
             }
-            generator.set_map_annotations(map_annotations, map_annotation_count);
+            generator.set_map_annotations(program->program_name, map_annotations, map_annotation_count);
 
             generator.parse(
                 program,
