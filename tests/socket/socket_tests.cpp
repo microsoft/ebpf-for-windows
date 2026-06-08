@@ -36,6 +36,9 @@
 using namespace std::chrono_literals;
 #include <mstcpip.h>
 
+// This file intentionally exercises deprecated APIs.
+#pragma warning(disable : 4996)
+
 CATCH_REGISTER_LISTENER(_watchdog)
 
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3

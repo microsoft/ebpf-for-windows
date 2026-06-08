@@ -648,6 +648,7 @@ perf_buffer__new(
 {
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_perf_opts(opts);
+#pragma warning(suppress : 4996) // ebpf_perf_buffer__new is deprecated in favor of polling mode APIs.
     return ebpf_perf_buffer__new(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
 }
 
