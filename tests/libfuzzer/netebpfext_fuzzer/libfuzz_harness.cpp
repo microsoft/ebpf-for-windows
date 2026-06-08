@@ -90,7 +90,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
-        &client_context.base);
+        &client_context.base,
+        prog_type);
 
     // Look up the context descriptor for the requested program type.
     std::vector<GUID> guids = helper.program_info_provider_guids();
