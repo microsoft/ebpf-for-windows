@@ -236,7 +236,8 @@ _Ret_maybenull_ ebpf_process_state_t*
 ebpf_allocate_process_state()
 {
     // Skipping fault injection as call to ebpf_allocate_with_tag(, EBPF_POOL_TAG_DEFAULT) covers it.
-    ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate_with_tag(sizeof(ebpf_process_state_t), EBPF_POOL_TAG_DEFAULT);
+    ebpf_process_state_t* state =
+        (ebpf_process_state_t*)ebpf_allocate_with_tag(sizeof(ebpf_process_state_t), EBPF_POOL_TAG_DEFAULT);
     return state;
 }
 
@@ -336,7 +337,13 @@ ebpf_utf8_string_to_unicode(_In_ const cxplat_utf8_string_t* input, _Outptr_ wch
         return EBPF_INVALID_ARGUMENT;
     }
 
-    unicode_string = (wchar_t*)ebpf_allocate_with_tag(unicode_byte_count + sizeof(wchar_t), EBPF_POOL_TAG_DEFAULT);
+    size_t unicode_string_size = 0;
+    retval = ebpf_safe_size_t_add(unicode_byte_count, sizeof(wchar_t), &unicode_string_size);
+    if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    unicode_string = (wchar_t*)ebpf_allocate_with_tag(unicode_string_size, EBPF_POOL_TAG_DEFAULT);
     if (unicode_string == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -464,7 +471,8 @@ ebpf_allocate_timer_work_item(
     _In_ void (*work_item_routine)(_Inout_opt_ void* work_item_context),
     _Inout_opt_ void* work_item_context)
 {
-    *timer_work_item = (ebpf_timer_work_item_t*)ebpf_allocate_with_tag(sizeof(ebpf_timer_work_item_t), EBPF_POOL_TAG_DEFAULT);
+    *timer_work_item =
+        (ebpf_timer_work_item_t*)ebpf_allocate_with_tag(sizeof(ebpf_timer_work_item_t), EBPF_POOL_TAG_DEFAULT);
     if (*timer_work_item == NULL) {
         return EBPF_NO_MEMORY;
     }

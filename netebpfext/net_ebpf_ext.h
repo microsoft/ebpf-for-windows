@@ -7,6 +7,7 @@
  * @brief Header file for structures/prototypes of the driver.
  */
 
+#include "ebpf_ext_tracelog.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_program_types.h"
@@ -16,7 +17,6 @@
 #include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
 #include "net_ebpf_ext_structs.h"
-#include "net_ebpf_ext_tracelog.h"
 #include "netebpfext_platform.h"
 
 #include <guiddef.h>
@@ -296,7 +296,8 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids);
+    _Outptr_result_bytebuffer_maybenull_(filter_count * sizeof(net_ebpf_ext_wfp_filter_id_t))
+        net_ebpf_ext_wfp_filter_id_t** filter_ids);
 
 /**
  * @brief Deletes WFP filters with specified filter IDs.

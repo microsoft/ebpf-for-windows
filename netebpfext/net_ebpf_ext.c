@@ -17,6 +17,7 @@ Environment:
 
 --*/
 
+#include "ebpf_ext_rundown.h"
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
 #include "net_ebpf_ext_sock_addr.h"
@@ -202,6 +203,29 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         L"ALE Flow Established Callout v4",
         L"ALE Flow Established callout for eBPF",
         FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // CGROUP_SOCK_ADDR bind callout v4. Separate callout from the legacy bind hook
+    // so the two can coexist at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 without conflict.
+    {
+        &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_SOCK_ADDR_CALLOUT,
+        &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+        net_ebpf_extension_sock_addr_bind_classify,
+        net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Resource Assignment sock_addr eBPF Callout v4",
+        L"ALE Resource Assignment sock_addr bind callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
+    },
+    // CGROUP_SOCK_ADDR bind callout v6.
+    {
+        &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_SOCK_ADDR_CALLOUT,
+        &FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+        net_ebpf_extension_sock_addr_bind_classify,
+        net_ebpf_ext_filter_change_notify,
+        _net_ebpf_ext_flow_delete,
+        L"ALE Resource Assignment sock_addr eBPF Callout v6",
+        L"ALE Resource Assignment sock_addr bind callout for eBPF",
+        FWP_ACTION_CALLOUT_TERMINATING,
     }};
 
 // WFP globals
@@ -222,8 +246,9 @@ net_ebpf_extension_wfp_filter_context_create(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
     uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
+    size_t client_contexts_length = 0;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     *filter_context = NULL;
 
@@ -235,23 +260,26 @@ net_ebpf_extension_wfp_filter_context_create(
     // Allocate buffer for WFP filter context.
     local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, filter_context_size, NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
 
     memset(local_filter_context, 0, filter_context_size);
 
+    status = RtlSizeTMult(client_context_count_max, sizeof(net_ebpf_extension_hook_client_t*), &client_contexts_length);
+    if (!NT_SUCCESS(status)) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
+
     local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
-        NonPagedPoolNx,
-        client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*),
-        NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        NonPagedPoolNx, client_contexts_length, NET_EBPF_EXTENSION_POOL_TAG);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
         local_filter_context->client_contexts,
         "local_filter_context - client_contexts",
         result);
 
-    memset(
-        local_filter_context->client_contexts, 0, client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*));
+    memset(local_filter_context->client_contexts, 0, client_contexts_length);
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
@@ -271,7 +299,7 @@ net_ebpf_extension_wfp_filter_context_create(
     // Open the WFP engine handle.
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &local_filter_context->wfp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
         result = EBPF_FAILED;
         goto Exit;
     }
@@ -284,7 +312,7 @@ Exit:
         CLEAN_UP_FILTER_CONTEXT(local_filter_context);
     }
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 void
@@ -367,7 +395,7 @@ net_ebpf_extension_delete_wfp_filters(
     uint32_t filter_count,
     _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
 
     ASSERT(wfp_engine_handle != NULL);
@@ -377,25 +405,26 @@ net_ebpf_extension_delete_wfp_filters(
         status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
         filter_ids[index].error_code = status;
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "FwpmFilterDeleteById failed to mark WFP filter for deletion.",
                 status,
                 filter_ids[index].id);
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
         } else {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "FwpmFilterDeleteById successfully marked WFP filter for deletion",
                 index,
                 filter_ids[index].id);
         }
     }
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
+#pragma warning(suppress : 6386) // filter_ids receives a separately allocated buffer sized for filter_count entries.
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
@@ -404,35 +433,45 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids)
+    _Outptr_result_bytebuffer_maybenull_(filter_count * sizeof(net_ebpf_ext_wfp_filter_id_t))
+        net_ebpf_ext_wfp_filter_id_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     bool is_in_transaction = FALSE;
     net_ebpf_ext_wfp_filter_id_t* local_filter_ids = NULL;
+    net_ebpf_ext_wfp_filter_id_t* current_filter_id = NULL;
+    size_t filter_ids_length = 0;
     *filter_ids = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     ASSERT(wfp_engine_handle != NULL);
 
     if (filter_count == 0) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "Filter count is 0");
+        EBPF_EXT_LOG_MESSAGE(EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "Filter count is 0");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
-    local_filter_ids = (net_ebpf_ext_wfp_filter_id_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_ids, "local_filter_ids", result);
+    status = RtlSizeTMult(sizeof(net_ebpf_ext_wfp_filter_id_t), filter_count, &filter_ids_length);
+    if (!NT_SUCCESS(status)) {
+        result = EBPF_ARITHMETIC_OVERFLOW;
+        goto Exit;
+    }
 
-    memset(local_filter_ids, 0, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count));
+    local_filter_ids = (net_ebpf_ext_wfp_filter_id_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, filter_ids_length, NET_EBPF_EXTENSION_POOL_TAG);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_ids, "local_filter_ids", result);
+
+    memset(local_filter_ids, 0, filter_ids_length);
+    current_filter_id = local_filter_ids;
+    __analysis_assume(filter_ids_length >= sizeof(*local_filter_ids) * filter_count);
 
     status = FwpmTransactionBegin(wfp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -463,8 +502,8 @@ net_ebpf_extension_add_wfp_filters(
 
         status = FwpmFilterAdd(wfp_engine_handle, &filter, NULL, &local_filter_id);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "FwpmFilterAdd",
                 status,
                 "Failed to add filter",
@@ -472,21 +511,22 @@ net_ebpf_extension_add_wfp_filters(
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         } else {
-            local_filter_ids[index].id = local_filter_id;
-            local_filter_ids[index].name = (wchar_t*)filter_parameter->name;
-            local_filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_ADDED;
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            current_filter_id->id = local_filter_id;
+            current_filter_id->name = (wchar_t*)filter_parameter->name;
+            current_filter_id->state = NET_EBPF_EXT_WFP_FILTER_ADDED;
+            EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "Added WFP filter: ",
                 index,
                 local_filter_id);
+            current_filter_id++;
         }
     }
 
     status = FwpmTransactionCommit(wfp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -502,13 +542,12 @@ Exit:
         if (is_in_transaction) {
             status = FwpmTransactionAbort(wfp_engine_handle);
             if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", status);
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", status);
             }
         }
     }
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static NTSTATUS
@@ -521,7 +560,7 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     FWPS_CALLOUT callout_register_state = {0};
     FWPM_CALLOUT callout_add_state = {0};
@@ -536,8 +575,8 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 
     status = FwpsCalloutRegister(device_object, &callout_register_state, &callout_state->assigned_callout_id);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "FwpsCalloutRegister",
             status,
             "Failed to register callout",
@@ -556,8 +595,8 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
 
     status = FwpmCalloutAdd(_fwp_engine_handle, &callout_add_state, NULL, NULL);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "FwpmCalloutAdd",
             status,
             "Failed to add callout",
@@ -571,15 +610,15 @@ Exit:
         if (was_callout_registered) {
             status = FwpsCalloutUnregisterById(callout_state->assigned_callout_id);
             if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
             } else {
                 callout_state->assigned_callout_id = 0;
             }
         }
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 NTSTATUS
@@ -590,14 +629,13 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
     NDIS_HANDLE local_net_ebpf_ext_ndis_handle = NULL;
     NDIS_HANDLE local_net_ebpf_ext_nbl_pool_handle = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     local_net_ebpf_ext_ndis_handle =
         NdisAllocateGenericObject((DRIVER_OBJECT*)driver_object, NET_EBPF_EXTENSION_POOL_TAG, 0);
     if (local_net_ebpf_ext_ndis_handle == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateGenericObject", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateGenericObject", status);
         goto Exit;
     }
 
@@ -613,8 +651,7 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
         NdisAllocateNetBufferListPool(local_net_ebpf_ext_ndis_handle, &nbl_pool_parameters);
     if (local_net_ebpf_ext_nbl_pool_handle == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateNetBufferListPool", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NdisAllocateNetBufferListPool", status);
 
         NdisFreeGenericObject((PNDIS_GENERIC_OBJECT)local_net_ebpf_ext_ndis_handle);
         goto Exit;
@@ -624,7 +661,7 @@ net_ebpf_ext_initialize_ndis_handles(_In_ const DRIVER_OBJECT* driver_object)
     _net_ebpf_ext_nbl_pool_handle = local_net_ebpf_ext_nbl_pool_handle;
 
 Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -655,7 +692,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     BOOLEAN is_in_transaction = FALSE;
     size_t index;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (_fwp_engine_handle != NULL) {
         // already registered
@@ -667,11 +704,11 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     KeInitializeEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, NotificationEvent, FALSE);
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
     is_in_transaction = TRUE;
 
     // Create the WFP provider.
@@ -679,7 +716,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     ebpf_wfp_provider.displayData.description = L"Windows Networking eBPF Extension";
     ebpf_wfp_provider.providerKey = EBPF_WFP_PROVIDER;
     status = FwpmProviderAdd(_fwp_engine_handle, &ebpf_wfp_provider, NULL);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderAdd", status);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderAdd", status);
 
     // Add all the sub layers.
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
@@ -693,15 +730,15 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         ebpf_hook_sub_layer.weight = _net_ebpf_ext_sublayers[index].weight;
 
         status = FwpmSubLayerAdd(_fwp_engine_handle, &ebpf_hook_sub_layer, NULL);
-        NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerAdd", status);
+        EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerAdd", status);
     }
 
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
         status = _net_ebpf_ext_register_wfp_callout(&_net_ebpf_ext_wfp_callout_states[index], device_object);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_STRING(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            EBPF_EXT_LOG_MESSAGE_STRING(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "_net_ebpf_ext_register_wfp_callout() failed to register callout",
                 (char*)_net_ebpf_ext_wfp_callout_states[index].name);
             goto Exit;
@@ -709,13 +746,12 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     }
 
     status = FwpmTransactionCommit(_fwp_engine_handle);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
     is_in_transaction = FALSE;
 
     // Create L2 injection handle.
     status = FwpsInjectionHandleCreate(AF_LINK, FWPS_INJECTION_TYPE_L2, &_net_ebpf_ext_l2_injection_handle);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleCreate", status);
+    EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleCreate", status);
 
 Exit:
 
@@ -723,8 +759,8 @@ Exit:
         if (is_in_transaction) {
             NTSTATUS abort_status = FwpmTransactionAbort(_fwp_engine_handle);
             if (!NT_SUCCESS(abort_status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", abort_status);
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", abort_status);
             }
         }
 
@@ -733,7 +769,7 @@ Exit:
         }
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -745,7 +781,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     LARGE_INTEGER timeout = {0};
     timeout.QuadPart = -SECONDSTO100NS(10);
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (_fwp_engine_handle != NULL) {
         // WFP operations may fail if connections are in the middle of being classified and our WFP filters or callouts
@@ -763,8 +799,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 }
 
                 if (i == max_retries) {
-                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+                    EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
                 }
             }
 
@@ -776,8 +812,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 }
 
                 if (i == max_retries) {
-                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+                    EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
                 }
             }
         }
@@ -791,8 +827,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 }
 
                 if (i == max_retries) {
-                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+                    EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
                 }
             }
         }
@@ -805,15 +841,15 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             }
 
             if (i == max_retries) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+                EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
             }
         }
 
         // Close the engine handle.
         status = FwpmEngineClose(_fwp_engine_handle);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
         }
         _fwp_engine_handle = NULL;
     }
@@ -822,8 +858,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     if (_net_ebpf_ext_l2_injection_handle != NULL) {
         status = FwpsInjectionHandleDestroy(_net_ebpf_ext_l2_injection_handle);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleDestroy", status);
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleDestroy", status);
         }
     }
 
@@ -831,9 +867,9 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     // we assume that any remaining notifications will not be issued, and proceed with cleanup.
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "Leaked WFP Filters found. Processing cleanup.");
         _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
 
@@ -864,9 +900,9 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
                 if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
                     leaked_filter_count++;
-                    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                        NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
-                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    EBPF_EXT_LOG_MESSAGE_UINT64(
+                        EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                        EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                         "Releasing reference for leaked WFP filter.",
                         filter_id->id);
                 }
@@ -891,7 +927,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
         // Release the lock as waiting for rundown can take time.
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
+        ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
 
         // Re-acquire the lock.
@@ -900,14 +936,14 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     UNREFERENCED_PARAMETER(filter_key);
 
@@ -919,9 +955,9 @@ net_ebpf_ext_filter_change_notify(
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
                 cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
-                NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                    EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                    EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                     "Received WFP filter delete callback.",
                     index,
                     cur_filter_id->id);
@@ -932,7 +968,7 @@ net_ebpf_ext_filter_change_notify(
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(STATUS_SUCCESS);
+    EBPF_EXT_RETURN_NTSTATUS(STATUS_SUCCESS);
 }
 
 static void
@@ -954,13 +990,13 @@ net_ebpf_ext_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     status = net_ebpf_ext_bind_register_providers();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "net_ebpf_ext_bind_register_providers failed.",
             status);
         goto Exit;
@@ -969,9 +1005,9 @@ net_ebpf_ext_register_providers()
 
     status = net_ebpf_ext_sock_addr_register_providers();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "net_ebpf_ext_bind_register_providers failed.",
             status);
         goto Exit;
@@ -980,9 +1016,9 @@ net_ebpf_ext_register_providers()
 
     status = net_ebpf_ext_sock_ops_register_providers();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "net_ebpf_ext_sock_ops_register_providers failed.",
             status);
         goto Exit;
@@ -993,13 +1029,13 @@ Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_unregister_providers();
     }
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
 net_ebpf_ext_unregister_providers()
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (_net_ebpf_bind_providers_registered) {
         net_ebpf_ext_bind_unregister_providers();
@@ -1014,7 +1050,7 @@ net_ebpf_ext_unregister_providers()
         _net_ebpf_sock_ops_providers_registered = false;
     }
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 ebpf_result_t
@@ -1025,15 +1061,15 @@ net_ebpf_ext_add_client_context(
     ebpf_result_t result = EBPF_SUCCESS;
     KIRQL old_irql;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
 
     // Check if we have reached max capacity.
     if (filter_context->client_context_count == filter_context->client_context_count_max) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "net_ebpf_ext_add_client_context: Exceeded max client count");
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -1050,7 +1086,7 @@ net_ebpf_ext_add_client_context(
 
 Exit:
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 void
@@ -1059,29 +1095,33 @@ net_ebpf_ext_remove_client_context(
     _In_ const struct _net_ebpf_extension_hook_client* hook_client)
 {
     KIRQL old_irql;
-    uint32_t index;
+    uint32_t index = 0;
     bool found = FALSE;
 
     old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
 
     for (index = 0; index < filter_context->client_context_count; index++) {
         if (filter_context->client_contexts[index] == hook_client) {
-            filter_context->client_contexts[index] = NULL;
             filter_context->client_context_count--;
             found = TRUE;
             break;
         }
     }
-    ASSERT(found == TRUE);
-    if (index != filter_context->client_context_count) {
-        memcpy(
-            &filter_context->client_contexts[index],
-            &filter_context->client_contexts[index + 1],
-            (filter_context->client_context_count - index) * sizeof(net_ebpf_extension_hook_client_t*));
-
-        filter_context->client_contexts[filter_context->client_context_count] = NULL;
+    if (!found) {
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_remove_client_context: Client context not found");
+        ASSERT(FALSE);
+        goto Exit;
     }
 
+    for (; index < filter_context->client_context_count; index++) {
+        filter_context->client_contexts[index] = filter_context->client_contexts[index + 1];
+    }
+    filter_context->client_contexts[filter_context->client_context_count] = NULL;
+
+Exit:
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
 

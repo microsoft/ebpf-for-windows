@@ -20,7 +20,7 @@ typedef struct
 typedef struct _test_client_context
 {
     netebpfext_helper_base_client_context_t base;
-    const ebpf_context_descriptor_t* ctx_descriptor;
+    const ebpf_ctx_descriptor_t* ctx_descriptor;
     netebpfext_fuzzer_metadata_t metadata;
 } test_client_context_t;
 
@@ -121,6 +121,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         (void)helper.test_cgroup_inet6_recv_accept(&parameters);
         (void)helper.test_cgroup_inet4_connect(&parameters);
         (void)helper.test_cgroup_inet6_connect(&parameters);
+        (void)helper.test_cgroup_inet4_connect_authorization(&parameters);
+        (void)helper.test_cgroup_inet6_connect_authorization(&parameters);
         break;
     case BPF_PROG_TYPE_SOCK_OPS:
         (void)helper.test_sock_ops_v4(&parameters, nullptr);

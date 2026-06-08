@@ -24,10 +24,10 @@ extern "C"
     // - Defined in ebpf_program.c, declared here for unit testing.
     void
     ebpf_program_set_header_context_descriptor(
-        _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context);
+        _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context);
     void
     ebpf_program_get_header_context_descriptor(
-        _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+        _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor);
 }
 
 struct scoped_cpu_affinity
@@ -1265,9 +1265,7 @@ TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
     REQUIRE(*(uint64_t*)(record->data) == value);
 
     // Unmap the ring buffer.
-    REQUIRE(
-        ebpf_ring_buffer_map_unmap_user(
-            map.get(), 0, (const void*)consumer, (const void*)producer, (const void*)data) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
 }
 
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
@@ -1314,6 +1312,127 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
     REQUIRE(ebpf_map_push_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     REQUIRE(ebpf_map_pop_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
     REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+}
+
+// Test: Perf event array per-CPU ring map-unmap-remap cycle.
+// Validates that after unmapping a per-CPU ring, it can be re-mapped successfully.
+// This is the kernel-side prerequisite for the user-mode fix in ebpf_map_unsubscribe
+// that sends unmap IOCTLs after cancelling async subscriptions.
+TEST_CASE("perf_event_array_map_unmap_remap", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // RAII guard: track whether the ring is mapped and unmap on scope exit.
+    bool ring_mapped = false;
+    auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (ring_mapped) {
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+        }
+    });
+
+    // First map of CPU 0's ring.
+    volatile size_t* consumer1 = nullptr;
+    volatile size_t* producer1 = nullptr;
+    uint8_t* data1 = nullptr;
+    size_t data_size1 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer1 != nullptr);
+    REQUIRE(data1 != nullptr);
+
+    // Unmap CPU 0's ring.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    ring_mapped = false;
+
+    // Re-map CPU 0's ring — must succeed after unmap cleared the guard.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer2 != nullptr);
+    REQUIRE(data2 != nullptr);
+    // unmap_guard handles cleanup on scope exit.
+}
+
+// Test: Ring buffer map-unmap-remap cycle.
+// Validates that after unmapping a ring buffer, it can be re-mapped successfully.
+// Mirrors perf_event_array_map_unmap_remap for BPF_MAP_TYPE_RINGBUF.
+TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // RAII guard: track whether the ring is mapped and unmap on scope exit.
+    bool ring_mapped = false;
+    auto unmap_guard = std::unique_ptr<void, std::function<void(void*)>>(reinterpret_cast<void*>(1), [&](void*) {
+        if (ring_mapped) {
+            (void)ebpf_ring_buffer_map_unmap_user(map.get(), 0);
+        }
+    });
+
+    // First map.
+    volatile size_t* consumer1 = nullptr;
+    volatile size_t* producer1 = nullptr;
+    uint8_t* data1 = nullptr;
+    size_t data_size1 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer1, (void**)&producer1, (const uint8_t**)&data1, &data_size1) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer1 != nullptr);
+    REQUIRE(data1 != nullptr);
+
+    // Unmap.
+    REQUIRE(ebpf_ring_buffer_map_unmap_user(map.get(), 0) == EBPF_SUCCESS);
+    ring_mapped = false;
+
+    // Re-map — must succeed after unmap cleared the guard.
+    volatile size_t* consumer2 = nullptr;
+    volatile size_t* producer2 = nullptr;
+    uint8_t* data2 = nullptr;
+    size_t data_size2 = 0;
+    REQUIRE(
+        ebpf_ring_buffer_map_map_user(
+            map.get(), 0, (void**)&consumer2, (void**)&producer2, (const uint8_t**)&data2, &data_size2) ==
+        EBPF_SUCCESS);
+    ring_mapped = true;
+    REQUIRE(consumer2 != nullptr);
+    REQUIRE(data2 != nullptr);
+    // unmap_guard handles cleanup on scope exit.
 }
 
 struct perf_event_array_test_async_context_t
@@ -1604,7 +1723,7 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     context.data_end = test_context_data.data() + test_context_data.size();
 
     void* ctx = &context.data;
-    ebpf_context_descriptor_t context_descriptor = {0};
+    ebpf_ctx_descriptor_t context_descriptor = {0};
     context_descriptor.size = sizeof(context);
     context_descriptor.data = 0;
     context_descriptor.end = EBPF_OFFSET_OF(decltype(context), data_end) - EBPF_OFFSET_OF(decltype(context), data);
@@ -1696,11 +1815,11 @@ TEST_CASE("context_descriptor_header", "[platform][perf_event_array]")
     void* ctx = &context.ctx;
 
     // The context descriptor tells the platform where to find the data pointers.
-    ebpf_context_descriptor_t context_descriptor = {
+    ebpf_ctx_descriptor_t context_descriptor = {
         sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
     ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
 
-    const ebpf_context_descriptor_t* test_ctx_descriptor;
+    const ebpf_ctx_descriptor_t* test_ctx_descriptor;
     ebpf_program_get_header_context_descriptor(ctx, &test_ctx_descriptor);
     REQUIRE(test_ctx_descriptor == &context_descriptor);
 
@@ -1897,12 +2016,7 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
             for (auto& ring : mapped_rings) {
                 if (ring.mapped) {
                     (void)ebpf_map_set_wait_handle_internal(map.get(), ring.cpu_id, ebpf_handle_invalid, 0);
-                    (void)ebpf_ring_buffer_map_unmap_user(
-                        map.get(),
-                        ring.cpu_id,
-                        (const void*)ring.consumer,
-                        (const void*)ring.producer,
-                        (const void*)ring.data);
+                    (void)ebpf_ring_buffer_map_unmap_user(map.get(), ring.cpu_id);
                     ring.mapped = false;
                 }
             }
@@ -2451,7 +2565,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _ebpf_core_initializer core;
     core.initialize();
 
-    ebpf_context_descriptor_t _test_context_descriptor = {sizeof(ebpf_context_descriptor_t), -1, -1, -1};
+    ebpf_ctx_descriptor_t _test_context_descriptor = {sizeof(ebpf_ctx_descriptor_t), -1, -1, -1};
 
     const uint32_t _test_prog_type = 1000;
     ebpf_program_type_descriptor_t _test_program_type_descriptor = {
@@ -2566,7 +2680,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _test_context_descriptor.size = 0;
     test_register_provider(&provider_characteristics);
     // Fix up the context descriptor.
-    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
+    _test_context_descriptor.size = sizeof(ebpf_ctx_descriptor_t);
 
     // Remove the helper function prototype from the program info.
     _test_program_info.program_type_specific_helper_prototype = nullptr;

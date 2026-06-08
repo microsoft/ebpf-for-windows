@@ -28,6 +28,8 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
+static thread_local ebpf_program_type_t _current_verification_program_guid = {};
+static thread_local bool _current_verification_program_guid_set = false;
 
 extern bool use_ebpf_store;
 
@@ -57,7 +59,7 @@ _ebpf_program_descriptor_free(_Frees_ptr_opt_ prevail::EbpfProgramType* descript
         EBPF_RETURN_VOID();
     }
 
-    ebpf_free((void*)descriptor->context_descriptor);
+    ebpf_free((void*)descriptor->ctx_descriptor);
     ebpf_free((void*)descriptor->platform_specific_data);
 
     delete descriptor;
@@ -156,16 +158,16 @@ _get_program_descriptor_from_info(
             goto Exit;
         }
         type->name = std::string(name);
-        type->context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(
-            sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
-        if (type->context_descriptor == nullptr) {
+        type->ctx_descriptor =
+            (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        if (type->ctx_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
         memcpy(
-            (void*)type->context_descriptor,
+            (void*)type->ctx_descriptor,
             info->program_type_descriptor->context_descriptor,
-            sizeof(ebpf_context_descriptor_t));
+            sizeof(ebpf_ctx_descriptor_t));
         ebpf_program_type_t* program_type =
             (ebpf_program_type_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_type_t), EBPF_POOL_TAG_DEFAULT);
         if (program_type == nullptr) {
@@ -470,13 +472,14 @@ get_map_type_windows(uint32_t platform_specific_type)
     return type;
 }
 
-prevail::EbpfMapDescriptor&
-get_map_descriptor_windows(int original_fd)
+const prevail::EbpfMapDescriptor&
+get_map_descriptor_windows(int original_fd, const std::vector<prevail::EbpfMapDescriptor>& descriptors)
 {
-    // First check if we already have the map descriptor cached.
-    prevail::EbpfMapDescriptor* map = prevail::find_map_descriptor(original_fd);
-    if (map != nullptr) {
-        return *map;
+    // First check if we already have the map descriptor in the provided descriptors.
+    for (const auto& map : descriptors) {
+        if (map.original_fd == original_fd) {
+            return map;
+        }
     }
 
     return get_map_descriptor(original_fd);
@@ -534,7 +537,11 @@ _update_global_helpers_for_program_information(
             result = EBPF_ARITHMETIC_OVERFLOW;
             goto Exit;
         }
-        total_helper_size = total_helper_count * sizeof(ebpf_helper_function_prototype_t);
+        result =
+            ebpf_safe_size_t_multiply(total_helper_count, sizeof(ebpf_helper_function_prototype_t), &total_helper_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
         new_helpers =
             (ebpf_helper_function_prototype_t*)ebpf_allocate_with_tag(total_helper_size, EBPF_POOL_TAG_DEFAULT);
         if (new_helpers == nullptr) {
@@ -561,10 +568,22 @@ _update_global_helpers_for_program_information(
 #pragma warning(pop)
 
         if (program_info->count_of_program_type_specific_helpers > 0) {
-            memcpy(
-                new_helpers + global_helper_count,
-                program_info->program_type_specific_helper_prototype,
-                (program_info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t)));
+            size_t destination_helper_count = 0;
+            result = ebpf_safe_size_t_subtract(total_helper_count, global_helper_count, &destination_helper_count);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+            if (program_info->count_of_program_type_specific_helpers > destination_helper_count) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+            ebpf_helper_function_prototype_t* source_helpers =
+                (ebpf_helper_function_prototype_t*)program_info->program_type_specific_helper_prototype;
+            for (size_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+#pragma warning(suppress : 6385) // Source helper array length matches count_of_program_type_specific_helpers.
+                new_helpers[global_helper_count + i] = source_helpers[i];
+            }
             ebpf_free((void*)program_info->program_type_specific_helper_prototype);
         }
 
@@ -771,23 +790,53 @@ clear_ebpf_provider_data()
 }
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
-    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
+    get_program_type_info(const prevail::EbpfProgramType& program_type, _Outptr_ const ebpf_program_info_t** info)
 {
-    const GUID* program_type =
-        reinterpret_cast<const GUID*>(prevail::thread_local_program_info->type.platform_specific_data);
+    const GUID* guid = reinterpret_cast<const GUID*>(program_type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
 
     _load_ebpf_provider_data();
 
     // Get program information from the TLS cache.
-    auto it = _program_info_cache.find(*program_type);
+    auto it = _program_info_cache.find(*guid);
     if (it == _program_info_cache.end()) {
         result = EBPF_OBJECT_NOT_FOUND;
     } else {
-        *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+        *info = (const ebpf_program_info_t*)_program_info_cache[*guid].get();
     }
 
     return result;
+}
+
+void
+set_verification_program_type(const prevail::EbpfProgramType* type)
+{
+    if (type != nullptr) {
+        _current_verification_program_guid =
+            *reinterpret_cast<const ebpf_program_type_t*>(type->platform_specific_data);
+        _current_verification_program_guid_set = true;
+    } else {
+        _current_verification_program_guid = {};
+        _current_verification_program_guid_set = false;
+    }
+}
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
+{
+    if (!_current_verification_program_guid_set) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    _load_ebpf_provider_data();
+
+    // Get program information from the TLS cache.
+    auto it = _program_info_cache.find(_current_verification_program_guid);
+    if (it == _program_info_cache.end()) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+    *info = (const ebpf_program_info_t*)it->second.get();
+    return EBPF_SUCCESS;
 }
 
 void

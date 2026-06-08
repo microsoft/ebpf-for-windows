@@ -186,19 +186,19 @@ _get_global_variable_sections(
 
 // Forward references for local functions.
 static uint64_t
-BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 static uint64_t
-BindMonitor_Callee7(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
+BindMonitor_Callee7(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
 
 static GUID BindMonitor_Caller_program_type_guid = {
     0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
@@ -264,7 +264,7 @@ BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_conte
     r1 += IMMEDIATE(16);
     // EBPF_OP_CALL pc=9 dst=r0 src=r1 offset=0 imm=35
 #line 53 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee1(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee1(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_LSH64_IMM pc=10 dst=r0 src=r0 offset=0 imm=32
 #line 53 "sample/bindmonitor_bpf2bpf.c"
     r0 <<= (IMMEDIATE(32) & 63);
@@ -397,10 +397,11 @@ label_8:
 #line __LINE__ __FILE__
 
 static uint64_t
-BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -419,16 +420,17 @@ BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee2(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee2(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -447,16 +449,17 @@ BindMonitor_Callee2(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee3(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee3(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -475,16 +478,17 @@ BindMonitor_Callee3(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee4(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee4(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -503,16 +507,17 @@ BindMonitor_Callee4(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee5(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee5(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -531,16 +536,17 @@ BindMonitor_Callee5(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee6(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee6(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -559,13 +565,13 @@ BindMonitor_Callee6(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     READ_ONCE_64(r1, r10, OFFSET(-8));
     // EBPF_OP_CALL pc=5 dst=r0 src=r1 offset=0 imm=1
 #line 77 "sample/bindmonitor_bpf2bpf.c"
-    r0 = BindMonitor_Callee7(r1, r2, r3, r4, r5, r10, context);
+    r0 = BindMonitor_Callee7(r1, r2, r3, r4, r5, r10, context, runtime_context);
     // EBPF_OP_EXIT pc=6 dst=r0 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_bpf2bpf.c"
     return r0;
 }
 static uint64_t
-BindMonitor_Callee7(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)
+BindMonitor_Callee7(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
 {
     register uint64_t r0 = 0;
     (void)r2;
@@ -573,6 +579,7 @@ BindMonitor_Callee7(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t
     (void)r4;
     (void)r5;
     (void)context;
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
 #line 70 "sample/bindmonitor_bpf2bpf.c"
@@ -641,7 +648,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 3;
+    version->minor = 4;
     version->revision = 0;
 }
 

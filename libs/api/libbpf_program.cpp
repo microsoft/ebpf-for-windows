@@ -245,6 +245,8 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     case BPF_CGROUP_INET6_CONNECT_AUTHORIZATION:
     case BPF_CGROUP_INET4_RECV_ACCEPT:
     case BPF_CGROUP_INET6_RECV_ACCEPT:
+    case BPF_CGROUP_INET4_BIND:
+    case BPF_CGROUP_INET6_BIND:
     case BPF_CGROUP_SOCK_OPS:
         supported = TRUE;
         break;

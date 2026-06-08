@@ -25,116 +25,116 @@
 
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                     \
-    trace_level,                                                      \
-    message,                                                          \
-    handle,                                                           \
-    protocol,                                                         \
-    source_ip,                                                        \
-    source_port,                                                      \
-    destination_ip,                                                   \
-    destination_port,                                                 \
-    verdict,                                                          \
-    compartment_id)                                                   \
-    TraceLoggingWrite(                                                \
-        net_ebpf_ext_tracelog_provider,                               \
-        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                      \
-        TraceLoggingLevel(trace_level),                               \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
-        TraceLoggingString((message), "message"),                     \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
-        TraceLoggingUInt64((protocol), "protocol"),                   \
-        TraceLoggingIPv4Address((source_ip), "source_ip"),            \
-        TraceLoggingUInt16((source_port), "source_port"),             \
-        TraceLoggingIPv4Address((destination_ip), "destination_ip"),  \
-        TraceLoggingUInt16((destination_port), "destination_port"),   \
-        TraceLoggingUInt32((verdict), "verdict"),                     \
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                    \
+    trace_level,                                                     \
+    message,                                                         \
+    handle,                                                          \
+    protocol,                                                        \
+    source_ip,                                                       \
+    source_port,                                                     \
+    destination_ip,                                                  \
+    destination_port,                                                \
+    verdict,                                                         \
+    compartment_id)                                                  \
+    TraceLoggingWrite(                                               \
+        ebpf_ext_tracelog_provider,                                  \
+        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                     \
+        TraceLoggingLevel(trace_level),                              \
+        TraceLoggingKeyword(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),    \
+        TraceLoggingString((message), "message"),                    \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),   \
+        TraceLoggingUInt64((protocol), "protocol"),                  \
+        TraceLoggingIPv4Address((source_ip), "source_ip"),           \
+        TraceLoggingUInt16((source_port), "source_port"),            \
+        TraceLoggingIPv4Address((destination_ip), "destination_ip"), \
+        TraceLoggingUInt16((destination_port), "destination_port"),  \
+        TraceLoggingUInt32((verdict), "verdict"),                    \
         TraceLoggingUInt32((compartment_id), "compartment_id"));
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                     \
-    trace_level,                                                      \
-    message,                                                          \
-    handle,                                                           \
-    protocol,                                                         \
-    source_ip,                                                        \
-    source_port,                                                      \
-    destination_ip,                                                   \
-    destination_port,                                                 \
-    verdict,                                                          \
-    compartment_id)                                                   \
-    TraceLoggingWrite(                                                \
-        net_ebpf_ext_tracelog_provider,                               \
-        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                      \
-        TraceLoggingLevel(trace_level),                               \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
-        TraceLoggingString((message), "message"),                     \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
-        TraceLoggingUInt64((protocol), "protocol"),                   \
-        TraceLoggingIPv6Address((source_ip), "source_ip"),            \
-        TraceLoggingUInt16((source_port), "source_port"),             \
-        TraceLoggingIPv6Address((destination_ip), "destination_ip"),  \
-        TraceLoggingUInt16((destination_port), "destination_port"),   \
-        TraceLoggingUInt32((verdict), "verdict"),                     \
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                    \
+    trace_level,                                                     \
+    message,                                                         \
+    handle,                                                          \
+    protocol,                                                        \
+    source_ip,                                                       \
+    source_port,                                                     \
+    destination_ip,                                                  \
+    destination_port,                                                \
+    verdict,                                                         \
+    compartment_id)                                                  \
+    TraceLoggingWrite(                                               \
+        ebpf_ext_tracelog_provider,                                  \
+        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                     \
+        TraceLoggingLevel(trace_level),                              \
+        TraceLoggingKeyword(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),    \
+        TraceLoggingString((message), "message"),                    \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),   \
+        TraceLoggingUInt64((protocol), "protocol"),                  \
+        TraceLoggingIPv6Address((source_ip), "source_ip"),           \
+        TraceLoggingUInt16((source_port), "source_port"),            \
+        TraceLoggingIPv6Address((destination_ip), "destination_ip"), \
+        TraceLoggingUInt16((destination_port), "destination_port"),  \
+        TraceLoggingUInt32((verdict), "verdict"),                    \
         TraceLoggingUInt32((compartment_id), "compartment_id"));
 
 #define NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE "NetEbpfExtSockAddrRedirect"
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV4(            \
-    message,                                                          \
-    handle,                                                           \
-    protocol,                                                         \
-    source_ip,                                                        \
-    source_port,                                                      \
-    destination_ip,                                                   \
-    destination_port,                                                 \
-    redirected_ip,                                                    \
-    redirected_port,                                                  \
-    verdict,                                                          \
-    compartment_id)                                                   \
-    TraceLoggingWrite(                                                \
-        net_ebpf_ext_tracelog_provider,                               \
-        NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                      \
-        TraceLoggingLevel(NET_EBPF_EXT_TRACELOG_LEVEL_INFO),          \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
-        TraceLoggingString((message), "message"),                     \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
-        TraceLoggingUInt64((protocol), "protocol"),                   \
-        TraceLoggingIPv4Address((source_ip), "source_ip"),            \
-        TraceLoggingUInt16((source_port), "source_port"),             \
-        TraceLoggingIPv4Address((destination_ip), "destination_ip"),  \
-        TraceLoggingUInt16((destination_port), "destination_port"),   \
-        TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),    \
-        TraceLoggingUInt16((redirected_port), "redirected_port"),     \
-        TraceLoggingUInt64((verdict), "verdict"),                     \
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV4(           \
+    message,                                                         \
+    handle,                                                          \
+    protocol,                                                        \
+    source_ip,                                                       \
+    source_port,                                                     \
+    destination_ip,                                                  \
+    destination_port,                                                \
+    redirected_ip,                                                   \
+    redirected_port,                                                 \
+    verdict,                                                         \
+    compartment_id)                                                  \
+    TraceLoggingWrite(                                               \
+        ebpf_ext_tracelog_provider,                                  \
+        NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                     \
+        TraceLoggingLevel(EBPF_EXT_TRACELOG_LEVEL_INFO),             \
+        TraceLoggingKeyword(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),    \
+        TraceLoggingString((message), "message"),                    \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),   \
+        TraceLoggingUInt64((protocol), "protocol"),                  \
+        TraceLoggingIPv4Address((source_ip), "source_ip"),           \
+        TraceLoggingUInt16((source_port), "source_port"),            \
+        TraceLoggingIPv4Address((destination_ip), "destination_ip"), \
+        TraceLoggingUInt16((destination_port), "destination_port"),  \
+        TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),   \
+        TraceLoggingUInt16((redirected_port), "redirected_port"),    \
+        TraceLoggingUInt64((verdict), "verdict"),                    \
         TraceLoggingUInt32((compartment_id), "compartment_id"));
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV6(            \
-    message,                                                          \
-    handle,                                                           \
-    protocol,                                                         \
-    source_ip,                                                        \
-    source_port,                                                      \
-    destination_ip,                                                   \
-    destination_port,                                                 \
-    redirected_ip,                                                    \
-    redirected_port,                                                  \
-    verdict,                                                          \
-    compartment_id)                                                   \
-    TraceLoggingWrite(                                                \
-        net_ebpf_ext_tracelog_provider,                               \
-        NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                      \
-        TraceLoggingLevel(NET_EBPF_EXT_TRACELOG_LEVEL_INFO),          \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
-        TraceLoggingString((message), "message"),                     \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
-        TraceLoggingUInt64((protocol), "protocol"),                   \
-        TraceLoggingIPv6Address((source_ip), "source_ip"),            \
-        TraceLoggingUInt16((source_port), "source_port"),             \
-        TraceLoggingIPv6Address((destination_ip), "destination_ip"),  \
-        TraceLoggingUInt16((destination_port), "destination_port"),   \
-        TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),    \
-        TraceLoggingUInt16((redirected_port), "redirected_port"),     \
-        TraceLoggingUInt64((verdict), "verdict"),                     \
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV6(           \
+    message,                                                         \
+    handle,                                                          \
+    protocol,                                                        \
+    source_ip,                                                       \
+    source_port,                                                     \
+    destination_ip,                                                  \
+    destination_port,                                                \
+    redirected_ip,                                                   \
+    redirected_port,                                                 \
+    verdict,                                                         \
+    compartment_id)                                                  \
+    TraceLoggingWrite(                                               \
+        ebpf_ext_tracelog_provider,                                  \
+        NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                     \
+        TraceLoggingLevel(EBPF_EXT_TRACELOG_LEVEL_INFO),             \
+        TraceLoggingKeyword(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),    \
+        TraceLoggingString((message), "message"),                    \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),   \
+        TraceLoggingUInt64((protocol), "protocol"),                  \
+        TraceLoggingIPv6Address((source_ip), "source_ip"),           \
+        TraceLoggingUInt16((source_port), "source_port"),            \
+        TraceLoggingIPv6Address((destination_ip), "destination_ip"), \
+        TraceLoggingUInt16((destination_port), "destination_port"),  \
+        TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),   \
+        TraceLoggingUInt16((redirected_port), "redirected_port"),    \
+        TraceLoggingUInt64((verdict), "verdict"),                    \
         TraceLoggingUInt32((compartment_id), "compartment_id"));
 
 #define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                                                      \
@@ -162,7 +162,7 @@
         } else {                                                                                            \
             if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT || verdict == BPF_SOCK_ADDR_VERDICT_PROCEED_HARD) { \
                 NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                                          \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                                                       \
+                    EBPF_EXT_TRACELOG_LEVEL_INFO,                                                           \
                     message,                                                                                \
                     transport_endpoint_handle,                                                              \
                     original_context->protocol,                                                             \
@@ -174,7 +174,7 @@
                     compartment_id);                                                                        \
             } else {                                                                                        \
                 NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                                          \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                                    \
+                    EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                                        \
                     message,                                                                                \
                     transport_endpoint_handle,                                                              \
                     original_context->protocol,                                                             \
@@ -200,7 +200,7 @@ _net_ebpf_ext_log_sock_addr_classify(
     uint32_t verdict,
     uint32_t compartment_id)
 {
-    if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, 0, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR)) {
+    if (TraceLoggingProviderEnabled(ebpf_ext_tracelog_provider, 0, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR)) {
         if (original_context->family == AF_INET) {
             _net_ebpf_ext_log_sock_addr_classify_v4(
                 message, transport_endpoint_handle, original_context, redirected_context, verdict, compartment_id);
@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (CONNECT_AUTHORIZATION and AUTH_RECV_ACCEPT only).
+    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, and BIND).
     // Fields use SDK-defined "unspecified" values when not available for the current attach type.
     uint32_t interface_type;          ///< Interface type. 0 if not available.
     uint32_t tunnel_type;             ///< Tunnel type. TUNNEL_TYPE_NONE if not a tunnel or not available.
@@ -301,6 +301,9 @@ static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict);
 
+static bool
+_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict);
+
 //
 // sock_addr helper functions.
 //
@@ -334,6 +337,10 @@ _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
 {
     uint64_t logon_id = 0;
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    // access_information may be NULL for some system binds (see _net_ebpf_extension_sock_addr_copy_wfp_bind_fields).
+    if (sock_addr_ctx->access_information == NULL) {
+        return 0;
+    }
     logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 
     return logon_id;
@@ -359,11 +366,17 @@ _ebpf_sock_addr_get_network_context(
 
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
 
-    // This helper is only supported at CONNECT_AUTHORIZATION and RECV_ACCEPT layers.
+    // This helper is supported at CONNECT_AUTHORIZATION, RECV_ACCEPT, and bind layers.
+    // Note: bind hooks (EBPF_HOOK_ALE_RESOURCE_ALLOC_V4/V6) populate interface_type and
+    // tunnel_type from FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_*_INTERFACE_TYPE/TUNNEL_TYPE,
+    // but next_hop_interface_luid and sub_interface_index are not available at the bind
+    // layer and will be returned as their unspecified defaults (0).
     if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_CONNECT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_CONNECT_V6 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4 &&
-        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6) {
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V6) {
         return -1;
     }
 
@@ -397,9 +410,9 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     // This function is only supported at the connect redirect layer.
     if (sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_CONNECT_REDIRECT_V6) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_ebpf_sock_addr_set_redirect_context invoked at incorrect hook.");
         return_value = -1;
         goto Exit;
@@ -408,9 +421,9 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     // Allocate buffer to store redirect context.
     redirect_context = ExAllocatePoolUninitialized(NonPagedPoolNx, data_size, NET_EBPF_EXTENSION_POOL_TAG);
     if (redirect_context == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_ebpf_sock_addr_set_redirect_context failed to allocate memory for the redirect context.");
         return_value = -1;
         goto Exit;
@@ -428,7 +441,7 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
 
 Exit:
     if (return_value == -1) {
-        NET_EBPF_EXT_LOG_FUNCTION_ERROR(return_value);
+        EBPF_EXT_LOG_FUNCTION_ERROR(return_value);
     }
 
     return return_value;
@@ -468,6 +481,12 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     int32_t is_admin = 0;
 
     sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    // access_information may be NULL for some system binds (see _net_ebpf_extension_sock_addr_copy_wfp_bind_fields).
+    // Per the bpf_is_current_admin contract, return a negative value to indicate that admin status could not be
+    // determined (caller has no user token to check).
+    if (sock_addr_ctx->access_information == NULL) {
+        return -1;
+    }
     status = _perform_access_check(
         _net_ebpf_ext_security_descriptor_admin, sock_addr_ctx->access_information, &access_allowed);
 
@@ -492,7 +511,9 @@ const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT,
     &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
-    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION};
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
+    &EBPF_ATTACH_TYPE_CGROUP_INET4_BIND,
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_BIND};
 
 const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
     BPF_CGROUP_INET4_CONNECT,
@@ -500,7 +521,9 @@ const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
     BPF_CGROUP_INET6_CONNECT,
     BPF_CGROUP_INET6_RECV_ACCEPT,
     BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
-    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION};
+    BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+    BPF_CGROUP_INET4_BIND,
+    BPF_CGROUP_INET6_BIND};
 
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
 
@@ -567,6 +590,24 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_recv_accept_filter_para
      L"net eBPF sock_addr hook",
      L"net eBPF sock_addr hook WFP filter"}};
 
+// Filter parameters for the CGROUP_SOCK_ADDR bind hooks. These attach at the
+// ALE_RESOURCE_ASSIGNMENT layer (same as the legacy bind hook) but use distinct callout
+// GUIDs so the legacy bind program type and the new CGROUP_SOCK_ADDR bind attach types
+// can coexist without conflict.
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_bind_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_SOCK_ADDR_CALLOUT,
+     L"net eBPF sock_addr bind hook",
+     L"net eBPF sock_addr bind hook WFP filter"}};
+
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_bind_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_SOCK_ADDR_CALLOUT,
+     L"net eBPF sock_addr bind hook",
+     L"net eBPF sock_addr bind hook WFP filter"}};
+
 const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_addr_wfp_filter_parameters[] = {
     {&EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
      EBPF_COUNT_OF(_cgroup_inet4_connect_filter_parameters),
@@ -586,6 +627,12 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
     {&EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
      EBPF_COUNT_OF(_cgroup_inet6_connect_authorization_filter_parameters),
      &_cgroup_inet6_connect_authorization_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET4_BIND,
+     EBPF_COUNT_OF(_cgroup_inet4_bind_filter_parameters),
+     &_cgroup_inet4_bind_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET6_BIND,
+     EBPF_COUNT_OF(_cgroup_inet6_bind_filter_parameters),
+     &_cgroup_inet6_bind_filter_parameters[0]},
 };
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
@@ -677,18 +724,18 @@ _net_ebpf_extension_sock_addr_validate_client_data(
 
     if (client_data->header.version < EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION) {
         result = EBPF_INVALID_ARGUMENT;
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_XDP,
             "Attach attempt rejected. Invalid client data version.");
         goto Exit;
     }
 
     // SOCK_ADDR hook clients must always provide data.
     if (client_data == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "Attach denied. client data not provided.");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -696,9 +743,9 @@ _net_ebpf_extension_sock_addr_validate_client_data(
 
     if (client_data->data_size > 0) {
         if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "Attach denied. Invalid client data.");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -724,6 +771,14 @@ _net_ebpf_ext_is_cgroup_connect_attach_type(_In_ const ebpf_attach_type_t* attac
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0 ||
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0 ||
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION, sizeof(GUID)) == 0);
+}
+
+static bool
+_net_ebpf_ext_is_cgroup_bind_attach_type(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return (
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_BIND, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_BIND, sizeof(GUID)) == 0);
 }
 
 static bool
@@ -776,7 +831,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);
-    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+    EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     local_filter_context->redirect_handle = NULL;
     local_filter_context->compartment_id = compartment_id;
@@ -794,11 +849,10 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         status = FwpsRedirectHandleCreate(
             &EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &local_filter_context->redirect_handle);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "FwpsRedirectHandleCreate", status);
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "FwpsRedirectHandleCreate", status);
             result = EBPF_FAILED;
         }
-        NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+        EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
     }
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
@@ -811,7 +865,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
         (net_ebpf_extension_wfp_filter_context_t*)local_filter_context,
         &local_filter_context->base.filter_ids);
-    NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
+    EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     *filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_filter_context;
     local_filter_context = NULL;
@@ -819,7 +873,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
 Exit:
     CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(local_filter_context);
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -828,7 +882,7 @@ _net_ebpf_extension_sock_addr_delete_filter_context(
 {
     net_ebpf_extension_sock_addr_wfp_filter_context_t* sock_addr_filter_context = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     if (filter_context == NULL) {
         goto Exit;
@@ -843,7 +897,7 @@ _net_ebpf_extension_sock_addr_delete_filter_context(
     net_ebpf_extension_wfp_filter_context_cleanup(filter_context);
 
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 static NTSTATUS
@@ -860,13 +914,12 @@ _net_ebpf_sock_addr_create_security_descriptor()
 
     admin_security_descriptor = (SECURITY_DESCRIPTOR*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(SECURITY_DESCRIPTOR), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, admin_security_descriptor, "admin_sd", status);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, admin_security_descriptor, "admin_sd", status);
 
     status = RtlCreateSecurityDescriptor(admin_security_descriptor, SECURITY_DESCRIPTOR_REVISION);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateSecurityDescriptor", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlCreateSecurityDescriptor", status);
 
         goto Exit;
     }
@@ -876,28 +929,25 @@ _net_ebpf_sock_addr_create_security_descriptor()
     acl_length += RtlLengthSid(SeExports->SeLocalSystemSid) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
 
     dacl = (ACL*)ExAllocatePoolUninitialized(NonPagedPoolNx, acl_length, NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, dacl, "dacl", status);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, dacl, "dacl", status);
 
     RtlCreateAcl(dacl, acl_length, ACL_REVISION);
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeAliasAdminsSid);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
 
         goto Exit;
     }
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, access_mask, SeExports->SeLocalSystemSid);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlAddAccessAllowedAce", status);
         goto Exit;
     }
 
     status = RtlSetDaclSecurityDescriptor(admin_security_descriptor, TRUE, dacl, FALSE);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlSetDaclSecurityDescriptor", status);
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "RtlSetDaclSecurityDescriptor", status);
         goto Exit;
     }
 
@@ -914,7 +964,7 @@ Exit:
         ExFreePool(admin_security_descriptor);
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static void
@@ -1083,9 +1133,9 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static uin
         BOOLEAN result = RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_contexts.context_table, context);
         ebpf_assert(result);
         _net_ebpf_ext_sock_addr_contexts.context_count--;
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_ext_find_and_remove_connection_context_locked: Delete",
             transport_endpoint_handle);
     } else {
@@ -1154,9 +1204,9 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static voi
         ebpf_assert(result);
         entry = NULL;
         _net_ebpf_ext_sock_addr_contexts.context_count--;
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_ext_purge_connect_contexts: Delete",
             transport_endpoint_handle);
     }
@@ -1184,9 +1234,9 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static voi
         _net_ebpf_ext_sock_addr_contexts.low_memory_context_count--;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+    EBPF_EXT_LOG_MESSAGE_UINT64(
+        EBPF_EXT_TRACELOG_LEVEL_INFO,
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
         "_net_ebpf_ext_purge_connect_contexts",
         _net_ebpf_ext_sock_addr_contexts.context_count);
 }
@@ -1200,7 +1250,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_contexts.lock) static ebp
     net_ebpf_extension_connection_context_t* connection_context = NULL;
 
     if (IsListEmpty(&_net_ebpf_ext_sock_addr_contexts.low_memory_free_context_list)) {
-        NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(EBPF_NO_MEMORY);
+        EBPF_EXT_BAIL_ON_ERROR_RESULT(EBPF_NO_MEMORY);
     }
 
     // Retrieve an entry from the pre-allocated list.
@@ -1248,8 +1298,7 @@ _net_ebpf_ext_insert_connection_context_to_list(
     // Insert into table.
     new_context = (net_ebpf_extension_connection_context_t*)RtlInsertElementGenericTableAvl(
         &_net_ebpf_ext_sock_addr_contexts.context_table, &connection_context, sizeof(connection_context), NULL);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, new_context, "connection", result);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, new_context, "connection", result);
 
     // Successfully inserted into the table. Also insert into the LRU list to ensure
     // entries are not leaked.
@@ -1267,9 +1316,9 @@ _net_ebpf_ext_insert_connection_context_to_list(
         break;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+    EBPF_EXT_LOG_MESSAGE_UINT64(
+        EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
         "_net_ebpf_ext_insert_connection_context_to_list: Insert",
         transport_endpoint_handle);
 
@@ -1284,7 +1333,7 @@ Exit:
     _net_ebpf_ext_purge_connect_contexts(false);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_contexts.lock, old_irql);
 
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 NTSTATUS
@@ -1294,7 +1343,7 @@ net_ebpf_ext_sock_addr_register_providers()
     bool connection_contexts_initialized = false;
     bool is_cgroup_connect_attach_type = false;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_data};
@@ -1312,11 +1361,21 @@ net_ebpf_ext_sock_addr_register_providers()
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
     };
 
+    // Bind dispatch table. process_verdict is required for multi-attach so that the
+    // hook provider loop accumulates the most-restrictive verdict across attached
+    // programs and short-circuits on REJECT.
+    const net_ebpf_extension_hook_provider_dispatch_table_t bind_dispatch_table = {
+        .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
+        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+        .process_verdict = _net_ebpf_extension_sock_addr_bind_process_verdict,
+    };
+
     status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_sock_addr_create_security_descriptor failed.",
             status);
         goto Exit;
@@ -1324,9 +1383,9 @@ net_ebpf_ext_sock_addr_register_providers()
 
     status = _net_ebpf_sock_addr_initialize_connection_contexts();
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_sock_addr_initialize_connection_contexts failed.",
             status);
         goto Exit;
@@ -1336,9 +1395,9 @@ net_ebpf_ext_sock_addr_register_providers()
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_program_info_provider_register failed.",
             status);
         goto Exit;
@@ -1364,23 +1423,35 @@ net_ebpf_ext_sock_addr_register_providers()
 
         is_cgroup_connect_attach_type =
             _net_ebpf_ext_is_cgroup_connect_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
+        bool is_cgroup_bind_attach_type =
+            _net_ebpf_ext_is_cgroup_bind_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
 
-        const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch_table =
-            is_cgroup_connect_attach_type ? &connect_dispatch_table : &recv_accept_dispatch_table;
+        const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch_table;
+        net_ebpf_extension_hook_attach_capability_t attach_capability;
+        if (is_cgroup_bind_attach_type) {
+            dispatch_table = &bind_dispatch_table;
+            // Bind supports multi-attach to satisfy issue #5180.
+            attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
+        } else if (is_cgroup_connect_attach_type) {
+            dispatch_table = &connect_dispatch_table;
+            attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
+        } else {
+            dispatch_table = &recv_accept_dispatch_table;
+            attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
+        }
 
         // Register the provider context and pass the pointer to the WFP filter parameters
         // corresponding to this hook type as custom data.
         status = net_ebpf_extension_hook_provider_register(
             &hook_provider_parameters,
             dispatch_table,
-            is_cgroup_connect_attach_type ? ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD
-                                          : ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
+            attach_capability,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "net_ebpf_extension_hook_provider_register failed.",
                 status);
         }
@@ -1393,7 +1464,7 @@ Exit:
         }
         _net_ebpf_sock_addr_clean_up_security_descriptor();
     }
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 void
@@ -1592,9 +1663,9 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
         sock_addr_ctx->process_id = incoming_metadata_values->processId;
     } else {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "FWPS_METADATA_FIELD_PROCESS_ID not present",
             hook_id);
 
@@ -1621,6 +1692,111 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->sub_interface_index = (fields->sub_interface_index_field != 0)
                                              ? incoming_values[fields->sub_interface_index_field].value.uint32
                                              : NET_IFINDEX_UNSPECIFIED;
+}
+
+// WFP field index map for the ALE_RESOURCE_ASSIGNMENT_V4/V6 layers used by the
+// CGROUP_SOCK_ADDR bind hooks. Indexed by hook_id - EBPF_HOOK_ALE_RESOURCE_ALLOC_V4.
+// Bind has no remote address/port (local-only), and there is no flow direction at this
+// layer. next_hop_interface and sub_interface_index are also unavailable.
+const wfp_ale_layer_fields_t wfp_bind_fields[] = {
+    // EBPF_HOOK_ALE_RESOURCE_ALLOC_V4.
+    {FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT,
+     0, // No remote address for bind.
+     0, // No remote port for bind.
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL,
+     0, // No direction field at this layer.
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_FLAGS,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_TUNNEL_TYPE,
+     0,  // No next-hop interface at this layer.
+     0}, // No sub-interface index at this layer.
+    // EBPF_HOOK_ALE_RESOURCE_ALLOC_V6.
+    {FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_PORT,
+     0, // No remote address for bind.
+     0, // No remote port for bind.
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_PROTOCOL,
+     0, // No direction field at this layer.
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_FLAGS,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V6_TUNNEL_TYPE,
+     0, // No next-hop interface at this layer.
+     0} // No sub-interface index at this layer.
+};
+
+// Populate a bpf_sock_addr context for a bind classify call.
+// For bind, user_ip/user_port carry the local address being bound to, and
+// msg_src_ip/msg_src_port are zeroed (no remote endpoint).
+static void
+_net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ net_ebpf_sock_addr_t* sock_addr_ctx)
+{
+    net_ebpf_extension_hook_id_t hook_id =
+        net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
+
+    ASSERT(hook_id == EBPF_HOOK_ALE_RESOURCE_ALLOC_V4 || hook_id == EBPF_HOOK_ALE_RESOURCE_ALLOC_V6);
+
+    const wfp_ale_layer_fields_t* fields = &wfp_bind_fields[hook_id - EBPF_HOOK_ALE_RESOURCE_ALLOC_V4];
+    FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
+
+    sock_addr_ctx->hook_id = hook_id;
+    sock_addr_ctx->transport_endpoint_handle = 0; // Not assigned yet at the bind layer.
+
+    if (hook_id == EBPF_HOOK_ALE_RESOURCE_ALLOC_V4) {
+        sock_addr_ctx->base.family = AF_INET;
+        // Local address being bound to. ALE_RESOURCE_ASSIGNMENT exposes this in network byte order
+        // already (FWP_BYTE_ARRAY_TYPE for V6, UINT32 host order for V4 based on WFP convention).
+        sock_addr_ctx->base.user_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
+        sock_addr_ctx->base.msg_src_ip4 = 0;
+    } else {
+        sock_addr_ctx->base.family = AF_INET6;
+        // WFP does not populate IP_LOCAL_ADDRESS when binding to the IPv6 wildcard
+        // address (::); the byteArray16 pointer is NULL in that case. Default to zeros.
+        const FWP_BYTE_ARRAY16* local_ipv6 = incoming_values[fields->local_ip_address_field].value.byteArray16;
+        if (local_ipv6 != NULL) {
+            RtlCopyMemory(sock_addr_ctx->base.user_ip6, local_ipv6, sizeof(FWP_BYTE_ARRAY16));
+        } else {
+            RtlZeroMemory(sock_addr_ctx->base.user_ip6, sizeof(sock_addr_ctx->base.user_ip6));
+        }
+        RtlZeroMemory(sock_addr_ctx->base.msg_src_ip6, sizeof(sock_addr_ctx->base.msg_src_ip6));
+    }
+
+    sock_addr_ctx->base.user_port = htons(incoming_values[fields->local_port_field].value.uint16);
+    sock_addr_ctx->base.msg_src_port = 0;
+    sock_addr_ctx->base.protocol = incoming_values[fields->protocol_field].value.uint8;
+    sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_addr_ctx->base.interface_luid = (incoming_values[fields->interface_luid_field].value.uint64 != NULL)
+                                             ? *incoming_values[fields->interface_luid_field].value.uint64
+                                             : 0;
+
+    // USER_ID is available at ALE_RESOURCE_ASSIGNMENT (may be NULL for some system binds).
+    FWP_BYTE_BLOB* user_id_blob = incoming_values[fields->user_id_field].value.byteBlob;
+    sock_addr_ctx->access_information = (user_id_blob != NULL) ? (TOKEN_ACCESS_INFORMATION*)user_id_blob->data : NULL;
+
+    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+        sock_addr_ctx->process_id = incoming_metadata_values->processId;
+    } else {
+        sock_addr_ctx->process_id = 0;
+    }
+
+    sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
+
+    // Copy interface_type and tunnel_type from WFP fields.
+    sock_addr_ctx->interface_type =
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
+    sock_addr_ctx->tunnel_type =
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
+    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED; // Not available at bind layer.
+    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;    // Not available at bind layer.
 }
 
 static void
@@ -1652,11 +1828,28 @@ _get_verdict_priority(uint32_t verdict)
     }
 }
 
+// Per the documented contract in include/ebpf_nethooks.h, any cgroup_sock_addr
+// program return value that is not one of {REJECT, PROCEED_SOFT, PROCEED_HARD} is
+// treated as REJECT.
+static int
+_normalize_sock_addr_verdict(int program_verdict)
+{
+    switch (program_verdict) {
+    case BPF_SOCK_ADDR_VERDICT_REJECT:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        return program_verdict;
+    default:
+        return BPF_SOCK_ADDR_VERDICT_REJECT;
+    }
+}
+
 static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict)
 {
     // Check if the updated context is same as the original context.
-    // If it has been modified, then the verdict is to stop processing.
+    // If it has been modified, then the verdict is to stop processing
+    // (except at CONNECT_AUTHORIZATION layers, where modifications are silently ignored).
 
     bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
     net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
@@ -1664,6 +1857,7 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     bpf_sock_addr_t local_context = *sock_addr_ctx;
     bool redirected = FALSE;
     bool address_changed = FALSE;
+    int normalized_verdict = _normalize_sock_addr_verdict(program_verdict);
 
     // original_context must be set by the caller before invoking programs.
     // It points to a caller's stack variable and is only valid during synchronous program invocation.
@@ -1673,25 +1867,51 @@ _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int
     context->redirected = redirected;
     context->address_changed = address_changed;
 
-    if (_get_verdict_priority(program_verdict) > _get_verdict_priority(context->verdict)) {
-        context->verdict = program_verdict;
+    // At CONNECT_AUTHORIZATION layers, context fields are read-only. If a program modified
+    // the destination (IP or port), silently discard the changes and restore the original context.
+    // This matches Linux behavior where writes to read-only context fields are ignored.
+    if (redirected &&
+        (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_INFO,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "CONNECT_AUTHORIZATION program modified read-only context — ignoring changes.");
+        *sock_addr_ctx = *original_context;
+        redirected = FALSE;
+        address_changed = FALSE;
+        context->redirected = FALSE;
+        context->address_changed = FALSE;
     }
 
-    if (redirected || program_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        // At CONNECT_AUTHORIZATION layers, context is read-only. If a program modified
-        // the context (redirected), override the verdict to REJECT and block the connection.
-        if (redirected &&
-            (context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4 || context->hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V6)) {
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "CONNECT_AUTHORIZATION program attempted redirect — overriding verdict to REJECT.");
-            context->verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-        }
+    if (_get_verdict_priority(normalized_verdict) > _get_verdict_priority(context->verdict)) {
+        context->verdict = normalized_verdict;
+    }
+
+    if (redirected || normalized_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
         return FALSE;
     }
 
     return TRUE;
+}
+
+// Multi-attach verdict accumulator for the sock_addr bind hook. Tracks the
+// most-restrictive verdict across attached programs in net_ebpf_sock_addr_t::verdict
+// using _get_verdict_priority(), and returns FALSE on REJECT so the hook provider
+// loop stops invoking subsequent programs. Address/port writes to the context are
+// ignored at bind (the WFP ALE_RESOURCE_ASSIGNMENT layer does not support address
+// rewrite), so no redirect handling is performed here.
+static bool
+_net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context, int program_verdict)
+{
+    bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
+    net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
+    int normalized_verdict = _normalize_sock_addr_verdict(program_verdict);
+
+    if (_get_verdict_priority(normalized_verdict) > _get_verdict_priority(context->verdict)) {
+        context->verdict = normalized_verdict;
+    }
+
+    return normalized_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
 }
 
 //
@@ -1723,7 +1943,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
@@ -1747,9 +1967,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
     // clients have detached and the filter context is being deleted.
     if (filter_context->base.context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -1767,9 +1987,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx->compartment_id);
 
@@ -1812,7 +2032,122 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         compartment_id);
 
 Exit:
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
+}
+
+/**
+ * @brief WFP classify function for the CGROUP_SOCK_ADDR bind hook.
+ *
+ * Invoked at FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6 when a socket is being bound
+ * to a local address. Populates a bpf_sock_addr_t context (user_ip/user_port carry the
+ * local bind address; msg_src_* are zero) and dispatches to attached eBPF programs
+ * of type BPF_PROG_TYPE_CGROUP_SOCK_ADDR.
+ *
+ * Allow/deny only — bind address modification is not supported in this phase.
+ *
+ * @param[in] incoming_fixed_values Fixed values from the classify request.
+ * @param[in] incoming_metadata_values Metadata values from the classify request.
+ * @param[in,out] layer_data Layer-specific data (unused).
+ * @param[in] classify_context Context information for the classify (unused).
+ * @param[in] filter The filter that triggered this callout.
+ * @param[in] flow_context Flow context (unused).
+ * @param[in,out] classify_output Output structure containing the action to take.
+ */
+void
+net_ebpf_extension_sock_addr_bind_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+{
+    EBPF_EXT_LOG_ENTRY();
+    uint32_t ignored_result;
+    uint32_t verdict;
+    net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
+    bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
+    uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    ebpf_result_t program_result;
+
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+    if (filter_context == NULL) {
+        goto Exit;
+    }
+
+    if (filter_context->base.context_deleting) {
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_bind_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        goto Exit;
+    }
+
+    _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+
+    compartment_id = filter_context->compartment_id;
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
+        // The client is not interested in this compartment Id.
+        goto Exit;
+    }
+
+    // Initialize the accumulated verdict to PROCEED_SOFT so that if no program updates it
+    // (e.g. all clients are filtered out), the bind defaults to permit.
+    // The bind process_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
+    // most-restrictive verdict across multi-attach programs and short-circuits on REJECT.
+    net_ebpf_sock_addr_ctx.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    program_result =
+        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &ignored_result);
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        // No eBPF program is attached to this filter.
+        goto Exit;
+    } else if (program_result != EBPF_SUCCESS) {
+        // Failed to invoke at least one program in the chain — block the bind.
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        goto Exit;
+    }
+
+    // Use the accumulated verdict from the bind process_verdict callback. Bind hooks do not
+    // support address modification: any changes the program made to user_ip/user_port are
+    // silently ignored.
+    verdict = net_ebpf_sock_addr_ctx.verdict;
+    switch (verdict) {
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        break;
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    default:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    }
+
+    _net_ebpf_ext_log_sock_addr_classify(
+        "bind_classify",
+        incoming_metadata_values->transportEndpointHandle,
+        sock_addr_ctx,
+        NULL,
+        verdict,
+        compartment_id);
+
+Exit:
+    EBPF_EXT_LOG_EXIT();
 }
 
 static bool
@@ -1844,7 +2179,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
@@ -1866,9 +2201,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
     // clients have detached and the filter context is being deleted.
     if (filter_context->base.context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -1881,9 +2216,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
             sock_addr_ctx->compartment_id);
 
@@ -1928,9 +2263,9 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         }
     } else {
         // Attach point not invoked due to prior REJECT verdict.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "CONNECT_AUTHORIZATION attach point skipped due to prior REJECT verdict",
             verdict);
     }
@@ -1960,7 +2295,7 @@ Exit:
         verdict,
         compartment_id);
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
     return;
 }
 
@@ -1972,9 +2307,9 @@ _net_ebpf_ext_sock_addr_is_connection_locally_redirected_by_others(
     while (previous_connect_request != NULL) {
         if ((previous_connect_request->modifierFilterId != filter_id) &&
             (previous_connect_request->localRedirectHandle != NULL)) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_MESSAGE_UINT64(
+                EBPF_EXT_TRACELOG_LEVEL_INFO,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "Connection previously locally redirected",
                 previous_connect_request->modifierFilterId);
 
@@ -2004,8 +2339,8 @@ _net_ebpf_ext_process_redirect_verdict(
         status = FwpsAcquireWritableLayerDataPointer(
             classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "FwpsAcquireWritableLayerDataPointer",
                 status,
                 filter->filterId,
@@ -2050,7 +2385,7 @@ Exit:
         FwpsApplyModifiedLayerData(classify_handle, connect_request, 0);
     }
 
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
+    EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 /**
@@ -2087,9 +2422,9 @@ _net_ebpf_extension_sock_addr_should_invoke_ebpf_program(
     if (v4_mapped) {
         if (!filter_context->v4_attach_type) {
             // This filter is for v6 attach type, but address is v4-mapped v6 address.
-            NET_EBPF_EXT_LOG_MESSAGE(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "net_ebpf_extension_sock_addr_redirect_connection_classify: v6 attach type, v4mapped address, "
                 "ignoring");
             process_classify = FALSE;
@@ -2097,16 +2432,16 @@ _net_ebpf_extension_sock_addr_should_invoke_ebpf_program(
         }
     } else if (filter_context->v4_attach_type) {
         // This filter is for v4 attach type, but address is a pure v6 address.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_redirect_connection_classify: v4 attach type, IPv6 address, ignoring");
         process_classify = FALSE;
         goto Exit;
     }
 
 Exit:
-    NET_EBPF_EXT_RETURN_BOOL(process_classify);
+    EBPF_EXT_RETURN_BOOL(process_classify);
 }
 
 void
@@ -2211,7 +2546,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t flow_context,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2237,10 +2572,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
         // A callout with higher weight has revoked the write permission. Bail out.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "No \"write\" right; exiting.");
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         goto Exit;
     }
@@ -2248,9 +2581,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "filter_context is NULL.",
             STATUS_INVALID_PARAMETER);
         goto Exit;
@@ -2259,9 +2592,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
     // clients have detached and the filter context is being deleted.
     if (filter_context->base.context_deleting) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
@@ -2277,9 +2610,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
         reauthorization = TRUE;
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "Reauthorize connection: skip.",
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
@@ -2290,9 +2623,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
         // The client is not interested in this compartment Id.
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "The cgroup_sock_addr eBPF program is not interested in this compartment ID.",
             sock_addr_ctx->compartment_id);
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
@@ -2307,9 +2640,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     redirect_state = FwpsQueryConnectionRedirectState(incoming_metadata_values->redirectRecords, redirect_handle, NULL);
     if (redirect_state == FWPS_CONNECTION_REDIRECTED_BY_SELF ||
         redirect_state == FWPS_CONNECTION_PREVIOUSLY_REDIRECTED_BY_SELF) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "Connection redirected by self, ignoring.",
             filter->filterId,
             (uint64_t)sock_addr_ctx->compartment_id);
@@ -2336,8 +2669,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     status = FwpsAcquireClassifyHandle((void*)classify_context, 0, &classify_handle);
 #pragma warning(pop)
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_NTSTATUS_API_FAILURE_UINT64_UINT64(
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "FwpsAcquireClassifyHandle",
             status,
             filter->filterId,
@@ -2377,9 +2710,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // Since the eBPF program turned in a REJECT verdict, there is no need to process
     // connection redirection, even if the program modified the destination.
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_WARNING,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "cgroup_sock_addr eBPF program returned REJECT verdict.");
         goto Exit;
     }
@@ -2403,7 +2736,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             &sock_addr_ctx_original, sock_addr_ctx, filter, classify_handle, redirect_handle, classify_output);
 
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_FUNCTION_ERROR(status);
+            EBPF_EXT_LOG_FUNCTION_ERROR(status);
 
             // If _net_ebpf_ext_process_redirect_verdict fails, skip caching the verdict
             // to avoid cache bloat if connect-authorization layer is never evaluated for some reason.
@@ -2450,7 +2783,7 @@ Exit:
         ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);
     }
 
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
 
 static ebpf_result_t
@@ -2461,7 +2794,7 @@ _ebpf_sock_addr_context_create(
     size_t context_size_in,
     _Outptr_ void** context)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
 
     ebpf_result_t result;
     net_ebpf_sock_addr_t* ctx = NULL;
@@ -2471,23 +2804,22 @@ _ebpf_sock_addr_context_create(
 
     // This does not use the data_in parameters.
     if (data_size_in != 0 || data_in != NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Data is not supported");
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Data is not supported");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     // This requires context_in parameters.
     if (context_size_in < sizeof(bpf_sock_addr_t) || context_in == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Context is required");
+        EBPF_EXT_LOG_MESSAGE(EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
     ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, ctx, "sock_addr_ctx", result);
+    EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, ctx, "sock_addr_ctx", result);
 
     sock_addr_ctx = &ctx->base;
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
@@ -2501,7 +2833,7 @@ Exit:
     if (ctx) {
         ExFreePool(ctx);
     }
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
@@ -2512,7 +2844,7 @@ _ebpf_sock_addr_context_destroy(
     _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out)
 {
-    NET_EBPF_EXT_LOG_ENTRY();
+    EBPF_EXT_LOG_ENTRY();
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
 
     UNREFERENCED_PARAMETER(data_out);
@@ -2533,5 +2865,5 @@ _ebpf_sock_addr_context_destroy(
     if (sock_addr_ctx) {
         ExFreePool(sock_addr_ctx);
     }
-    NET_EBPF_EXT_LOG_EXIT();
+    EBPF_EXT_LOG_EXIT();
 }
