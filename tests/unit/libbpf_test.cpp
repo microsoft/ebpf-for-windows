@@ -37,6 +37,8 @@ using namespace prevail;
 // "The enum type 'bpf_attach_type' is unscoped.
 // Prefer 'enum class' over 'enum'"
 #pragma warning(disable : 26812)
+// This file intentionally exercises deprecated APIs.
+#pragma warning(disable : 4996)
 
 // Set of all attach_types defined in ebpfcore. This must be updated any time a new bpf_attach_type is added.
 static const std::set<bpf_attach_type> ebpf_core_attach_types = {

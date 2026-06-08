@@ -42,6 +42,9 @@ namespace ebpf {
 #include <ntsecapi.h>
 #include <thread>
 
+// This file intentionally exercises deprecated APIs.
+#pragma warning(disable : 4996)
+
 using namespace Platform;
 
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)

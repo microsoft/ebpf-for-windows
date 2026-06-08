@@ -16,6 +16,9 @@
 #include <map>
 using namespace std::chrono_literals;
 
+// This file intentionally exercises deprecated APIs.
+#pragma warning(disable : 4996)
+
 bool use_ebpf_store = true;
 
 void

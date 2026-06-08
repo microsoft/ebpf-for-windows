@@ -37,6 +37,9 @@
 #include <vector>
 using namespace std::chrono_literals;
 
+// This file intentionally exercises deprecated APIs.
+#pragma warning(disable : 4996)
+
 static int _stress_test_duration = 60; // Default to 60 seconds.
 
 /**
