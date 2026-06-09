@@ -1111,8 +1111,8 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(network_context_map != nullptr);
     bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
     SAFE_REQUIRE(connection_count_map != nullptr);
-    bpf_map* bind_helper_results_map = bpf_object__find_map_by_name(object, "bind_helper_results_map");
-    SAFE_REQUIRE(bind_helper_results_map != nullptr);
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
 
     // Attach at the appropriate BIND layer.
     bpf_attach_type attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_BIND : BPF_CGROUP_INET6_BIND;
@@ -1180,7 +1180,7 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
     SAFE_REQUIRE(counter_value >= 1);
 
     // Verify the other bind-supported helpers are callable and return sensible values.
-    // bind_helper_results_map is keyed by family (4 or 6).
+    // sock_addr_helper_results_map is keyed by family (4 or 6).
     uint32_t results_key = (address_family == AF_INET) ? 4u : 6u;
     struct
     {
@@ -1190,7 +1190,7 @@ bind_helper_functions_validation_test(ADDRESS_FAMILY address_family)
         int32_t set_redirect_context;
         int64_t socket_cookie;
     } results = {0};
-    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(bind_helper_results_map), &results_key, &results) == 0);
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
 
     printf(
         "Bind helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
@@ -1444,6 +1444,9 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
     bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
     SAFE_REQUIRE(network_context_map != nullptr);
 
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
+
     // Attach at INET4_LISTEN.
     int result =
         bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(listen_program)), 0, BPF_CGROUP_INET4_LISTEN, 0);
@@ -1490,6 +1493,52 @@ TEST_CASE("listen_helper_functions_validation_tcp_v4", "[sock_addr_tests][helper
          net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
     SAFE_REQUIRE(valid_tunnel_type);
 
+    // Verify the other sock_addr helpers are callable at the listen layer and return the
+    // expected values. sock_addr_helper_results_map[8] holds the listen4 program's captures.
+    uint32_t results_key = 8;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Listen helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    // bpf_get_current_pid_tgid: upper 32 bits hold the listening process ID. The WFP
+    // ALE_AUTH_LISTEN callout runs synchronously in the listening process's context, so
+    // this matches GetCurrentProcessId().
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+
+    // bpf_get_current_logon_id: non-zero for any real user logon.
+    SAFE_REQUIRE(results.logon_id != 0);
+
+    // bpf_is_current_admin: returns 1 (admin) or 0 (not admin) for any caller with a user
+    // token; returns -1 if admin status cannot be determined (no user token). The user-mode
+    // test process always has a token, so the value must be 0 or 1 — exact value depends on
+    // test runner elevation.
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+
+    // bpf_sock_addr_set_redirect_context is documented as not supported at the listen layer
+    // and returns -1.
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+
+    // bpf_get_socket_cookie returns 0 at the listen layer — the WFP transport_endpoint_handle
+    // is not exposed at ALE_AUTH_LISTEN and is explicitly zeroed by the classify callback.
+    SAFE_REQUIRE(results.socket_cookie == 0);
+
     closesocket(sock);
     printf("Listen helper functions validation test completed successfully for IPv4\n");
 }
@@ -1509,6 +1558,9 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
 
     bpf_map* network_context_map = bpf_object__find_map_by_name(object, "network_context_map");
     SAFE_REQUIRE(network_context_map != nullptr);
+
+    bpf_map* sock_addr_helper_results_map = bpf_object__find_map_by_name(object, "sock_addr_helper_results_map");
+    SAFE_REQUIRE(sock_addr_helper_results_map != nullptr);
 
     // Attach at INET6_LISTEN.
     int result =
@@ -1556,6 +1608,37 @@ TEST_CASE("listen_helper_functions_validation_tcp_v6", "[sock_addr_tests][helper
          net_ctx.tunnel_type == TUNNEL_TYPE_ISATAP || net_ctx.tunnel_type == TUNNEL_TYPE_TEREDO ||
          net_ctx.tunnel_type == TUNNEL_TYPE_IPHTTPS);
     SAFE_REQUIRE(valid_tunnel_type);
+
+    // Verify the other sock_addr helpers at the listen layer. sock_addr_helper_results_map[9]
+    // holds the listen6 program's captures. See listen_helper_functions_validation_tcp_v4
+    // for the assertion rationale.
+    uint32_t results_key = 9;
+    struct
+    {
+        uint64_t pid_tgid;
+        uint64_t logon_id;
+        int32_t is_admin;
+        int32_t set_redirect_context;
+        int64_t socket_cookie;
+    } results = {0};
+    SAFE_REQUIRE(bpf_map_lookup_elem(bpf_map__fd(sock_addr_helper_results_map), &results_key, &results) == 0);
+
+    printf(
+        "Listen helper results - pid_tgid=0x%llx logon_id=0x%llx is_admin=%d "
+        "set_redirect_context=%d socket_cookie=0x%llx\n",
+        static_cast<unsigned long long>(results.pid_tgid),
+        static_cast<unsigned long long>(results.logon_id),
+        results.is_admin,
+        results.set_redirect_context,
+        static_cast<long long>(results.socket_cookie));
+
+    uint32_t pid_from_helper = static_cast<uint32_t>(results.pid_tgid >> 32);
+    SAFE_REQUIRE(pid_from_helper == GetCurrentProcessId());
+    SAFE_REQUIRE(results.logon_id != 0);
+    SAFE_REQUIRE(results.is_admin >= 0);
+    SAFE_REQUIRE(results.is_admin <= 1);
+    SAFE_REQUIRE(results.set_redirect_context == -1);
+    SAFE_REQUIRE(results.socket_cookie == 0);
 
     closesocket(sock);
     printf("Listen helper functions validation test completed successfully for IPv6\n");

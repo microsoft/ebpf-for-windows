@@ -47,25 +47,25 @@ struct
 } connection_count_map SEC(".maps");
 
 // Per-bind helper-return values captured by the bind test programs. Keyed by
-// address family (4 for bind4, 6 for bind6). The test reads this back to verify
-// that each supported helper is callable and returns a plausible value at the
-// bind attach point.
-typedef struct _bind_helper_results
+// address family (4 for bind4, 6 for bind6) and listen attach type (8 for listen4,
+// 9 for listen6). The user-mode test reads this back to verify that each supported
+// helper is callable and returns a plausible value at the bind and listen attach points.
+typedef struct _sock_addr_helper_results
 {
     uint64_t pid_tgid; ///< bpf_get_current_pid_tgid (upper 32 bits = caller PID, lower 32 bits = caller TID).
     uint64_t logon_id; ///< bpf_get_current_logon_id.
     int32_t is_admin;  ///< bpf_is_current_admin (0, 1, or negative on error).
-    int32_t set_redirect_context; ///< bpf_sock_addr_set_redirect_context return value (expected -1 at bind).
+    int32_t set_redirect_context; ///< bpf_sock_addr_set_redirect_context return value (expected -1 at bind/listen).
     int64_t socket_cookie;        ///< bpf_get_socket_cookie.
-} bind_helper_results_t;
+} sock_addr_helper_results_t;
 
 struct
 {
     __uint(type, BPF_MAP_TYPE_HASH);
     __type(key, uint32_t);
-    __type(value, bind_helper_results_t);
+    __type(value, sock_addr_helper_results_t);
     __uint(max_entries, 4);
-} bind_helper_results_map SEC(".maps");
+} sock_addr_helper_results_map SEC(".maps");
 
 /**
  * @brief Test program for CONNECT_AUTHORIZATION IPv4 that demonstrates bpf_sock_addr_get_network_context.
@@ -249,19 +249,19 @@ test_bind_helpers_v4(bpf_sock_addr_t* ctx)
     bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
 
     // Capture results from each additional bind-supported helper. The user-mode
-    // test reads back bind_helper_results_map[4] to validate each value.
+    // test reads back sock_addr_helper_results_map[4] to validate each value.
     // bpf_sock_addr_set_redirect_context is documented as not supported at bind and
     // is expected to return -1; pass a small stack buffer so the helper has something
     // valid to point at.
     uint32_t redirect_data = 0;
-    bind_helper_results_t results = {0};
+    sock_addr_helper_results_t results = {0};
     results.pid_tgid = bpf_get_current_pid_tgid();
     results.logon_id = bpf_get_current_logon_id(ctx);
     results.is_admin = bpf_is_current_admin(ctx);
     results.set_redirect_context = bpf_sock_addr_set_redirect_context(ctx, &redirect_data, sizeof(redirect_data));
     results.socket_cookie = bpf_get_socket_cookie(ctx);
     uint32_t results_key = 4;
-    bpf_map_update_elem(&bind_helper_results_map, &results_key, &results, BPF_ANY);
+    bpf_map_update_elem(&sock_addr_helper_results_map, &results_key, &results, BPF_ANY);
 
     uint32_t counter_key = 4; // Different key for bind4.
     uint64_t count2 = 1;
@@ -276,8 +276,10 @@ exit:
 }
 
 /**
- * @brief Test program for LISTEN IPv4 that demonstrates bpf_sock_addr_get_network_context
- * works at the listen attach point.
+ * @brief Test program for LISTEN IPv4 that exercises bpf_sock_addr_get_network_context and
+ * the additional helpers supported (or explicitly rejected) at the listen attach point
+ * (bpf_get_current_pid_tgid, bpf_get_current_logon_id, bpf_is_current_admin,
+ * bpf_get_socket_cookie, bpf_sock_addr_set_redirect_context).
  */
 SEC("cgroup/listen4")
 int
@@ -295,6 +297,21 @@ test_listen_helpers_v4(bpf_sock_addr_t* ctx)
     }
 
     bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
+
+    // Capture results from each additional sock_addr helper at the listen layer. The user-mode
+    // test reads back sock_addr_helper_results_map[8] to validate each value.
+    // bpf_sock_addr_set_redirect_context is documented as not supported at listen and is
+    // expected to return -1; pass a small stack buffer so the helper has something valid
+    // to point at.
+    uint32_t redirect_data = 0;
+    sock_addr_helper_results_t results = {0};
+    results.pid_tgid = bpf_get_current_pid_tgid();
+    results.logon_id = bpf_get_current_logon_id(ctx);
+    results.is_admin = bpf_is_current_admin(ctx);
+    results.set_redirect_context = bpf_sock_addr_set_redirect_context(ctx, &redirect_data, sizeof(redirect_data));
+    results.socket_cookie = bpf_get_socket_cookie(ctx);
+    uint32_t results_key = 8;
+    bpf_map_update_elem(&sock_addr_helper_results_map, &results_key, &results, BPF_ANY);
 
     uint32_t counter_key = 6; // Different key for listen4.
     uint64_t count2 = 1;
@@ -333,14 +350,14 @@ test_bind_helpers_v6(bpf_sock_addr_t* ctx)
 
     // Capture results from each additional bind-supported helper. See bind4 program for details.
     uint32_t redirect_data = 0;
-    bind_helper_results_t results = {0};
+    sock_addr_helper_results_t results = {0};
     results.pid_tgid = bpf_get_current_pid_tgid();
     results.logon_id = bpf_get_current_logon_id(ctx);
     results.is_admin = bpf_is_current_admin(ctx);
     results.set_redirect_context = bpf_sock_addr_set_redirect_context(ctx, &redirect_data, sizeof(redirect_data));
     results.socket_cookie = bpf_get_socket_cookie(ctx);
     uint32_t results_key = 6;
-    bpf_map_update_elem(&bind_helper_results_map, &results_key, &results, BPF_ANY);
+    bpf_map_update_elem(&sock_addr_helper_results_map, &results_key, &results, BPF_ANY);
 
     uint32_t counter_key = 5; // Different key for bind6.
     uint64_t count3 = 1;
@@ -355,8 +372,9 @@ exit:
 }
 
 /**
- * @brief Test program for LISTEN IPv6 that demonstrates bpf_sock_addr_get_network_context
- * works at the listen attach point.
+ * @brief Test program for LISTEN IPv6 that exercises bpf_sock_addr_get_network_context and
+ * the additional helpers supported (or explicitly rejected) at the listen attach point. See
+ * test_listen_helpers_v4 for details.
  */
 SEC("cgroup/listen6")
 int
@@ -373,6 +391,18 @@ test_listen_helpers_v6(bpf_sock_addr_t* ctx)
     }
 
     bpf_map_update_elem(&network_context_map, &connection_id, &net_ctx, BPF_ANY);
+
+    // Capture results from each additional sock_addr helper at the listen layer. See
+    // test_listen_helpers_v4 for details.
+    uint32_t redirect_data = 0;
+    sock_addr_helper_results_t results = {0};
+    results.pid_tgid = bpf_get_current_pid_tgid();
+    results.logon_id = bpf_get_current_logon_id(ctx);
+    results.is_admin = bpf_is_current_admin(ctx);
+    results.set_redirect_context = bpf_sock_addr_set_redirect_context(ctx, &redirect_data, sizeof(redirect_data));
+    results.socket_cookie = bpf_get_socket_cookie(ctx);
+    uint32_t results_key = 9;
+    bpf_map_update_elem(&sock_addr_helper_results_map, &results_key, &results, BPF_ANY);
 
     uint32_t counter_key = 7; // Different key for listen6.
     uint64_t count3 = 1;
