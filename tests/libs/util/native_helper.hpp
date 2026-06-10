@@ -50,4 +50,5 @@ typedef class _native_module_helper
     std::string _file_name;
     bool _delete_file_on_destruction = false;
     bool _is_main_thread = true;
+    static CRITICAL_SECTION _cleanup_lock;
 } native_module_helper_t;

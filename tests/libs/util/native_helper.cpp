@@ -11,6 +11,16 @@
 #include <io.h>
 #include <rpc.h>
 
+// Static lock for serializing link cleanup across threads
+CRITICAL_SECTION _native_module_helper::_cleanup_lock;
+
+class _cleanup_lock_initializer
+{
+  public:
+    _cleanup_lock_initializer() { InitializeCriticalSection(&_native_module_helper::_cleanup_lock); }
+    ~_cleanup_lock_initializer() { DeleteCriticalSection(&_native_module_helper::_cleanup_lock); }
+} _cleanup_lock_init;
+
 // We cannot use REQUIRE from a constructor.  Anything that can fail should be here in initialize().
 void
 _native_module_helper::initialize(
@@ -26,22 +36,22 @@ _native_module_helper::initialize(
     // Set _is_main_thread before any REQUIRE is invoked.
     _is_main_thread = is_main_thread;
 
-    // Clean up any previous state only on the main thread.
-    // Running this concurrently from worker threads can detach links that were just created by
-    // other threads, causing racy attach failures.
-    if (_is_main_thread) {
-        uint32_t link_id;
-        while (bpf_link_get_next_id(0, &link_id) == 0) {
-            fd_t link_fd = bpf_link_get_fd_by_id(link_id);
-            if (link_fd < 0) {
-                break;
-            }
-            bpf_link_detach(link_fd);
-            if (link_fd >= 0) {
-                _close(link_fd);
-            }
+    // Clean up any previous state with lock held.
+    // Serializing cleanup across threads prevents races where one thread detaches links
+    // that another thread is in the process of creating.
+    EnterCriticalSection(&_cleanup_lock);
+    uint32_t link_id;
+    while (bpf_link_get_next_id(0, &link_id) == 0) {
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd < 0) {
+            break;
+        }
+        bpf_link_detach(link_fd);
+        if (link_fd >= 0) {
+            _close(link_fd);
         }
     }
+    LeaveCriticalSection(&_cleanup_lock);
 
     if (execution_type == ebpf_execution_type_t::EBPF_EXECUTION_ANY) {
         execution_type = system_default;
