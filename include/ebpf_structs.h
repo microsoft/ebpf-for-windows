@@ -382,6 +382,18 @@ enum bpf_attach_type
      */
     BPF_CGROUP_INET6_BIND,
 
+    /** @brief Attach type for handling IPv4 socket listen() operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET4_LISTEN,
+
+    /** @brief Attach type for handling IPv6 socket listen() operations.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_CGROUP_SOCK_ADDR
+     */
+    BPF_CGROUP_INET6_LISTEN,
+
     __MAX_BPF_ATTACH_TYPE,
 };
 
