@@ -27,6 +27,7 @@ typedef struct _netebpfext_helper_base_client_context
     class _netebpf_ext_helper* helper;
     void* provider_binding_context;
     std::set<bpf_attach_type_t> desired_attach_types; // Empty list to allow all.
+    ebpf_program_type_t desired_program_type;         // GUID_NULL (zero) to allow all.
 } netebpfext_helper_base_client_context_t;
 
 typedef class _netebpf_ext_helper
@@ -39,6 +40,7 @@ typedef class _netebpf_ext_helper
         _In_opt_ const void* npi_specific_characteristics,
         _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
         _In_opt_ netebpfext_helper_base_client_context_t* client_context,
+        bpf_prog_type_t desired_prog_type = BPF_PROG_TYPE_UNSPEC,
         bool initialize_platform = true);
     ~_netebpf_ext_helper();
 
@@ -105,6 +107,18 @@ typedef class _netebpf_ext_helper
     test_sock_ops_v4_remove_flow_context(uint64_t flow_id)
     {
         usersim_fwp_sock_ops_v4_remove_flow_context(flow_id);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_listen(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet4_listen(parameters);
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet6_listen(_In_ fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet6_listen(parameters);
     }
 
   private:
