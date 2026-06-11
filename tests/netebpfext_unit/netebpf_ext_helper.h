@@ -51,56 +51,59 @@ typedef class _netebpf_ext_helper
     get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
-    test_bind_ipv4(_In_ fwp_classify_parameters_t* parameters) { return usersim_fwp_bind_ipv4(parameters); }
-
-    FWP_ACTION_TYPE
-    test_cgroup_inet4_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    test_bind_ipv4(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet4_recv_accept(parameters);
+        return usersim_fwp_bind_ipv4(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_recv_accept(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_recv_accept(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet6_recv_accept(parameters);
+        return usersim_fwp_cgroup_inet4_recv_accept(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_recv_accept(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet4_connect(parameters);
+        return usersim_fwp_cgroup_inet6_recv_accept(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_connect(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet6_connect(parameters);
+        return usersim_fwp_cgroup_inet4_connect(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_connect(_In_ const fwp_classify_parameters_t* parameters)
+    {
+        return usersim_fwp_cgroup_inet6_connect(const_cast<fwp_classify_parameters_t*>(parameters));
+    }
+
+    FWP_ACTION_TYPE
+    test_cgroup_inet4_connect_authorization(_In_ const fwp_classify_parameters_t* parameters)
     {
         // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
-        return usersim_fwp_cgroup_inet4_connect(parameters);
+        return usersim_fwp_cgroup_inet4_connect(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_connect_authorization(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_connect_authorization(_In_ const fwp_classify_parameters_t* parameters)
     {
         // CONNECT_AUTHORIZATION uses the same underlying simulation as regular CONNECT.
-        return usersim_fwp_cgroup_inet6_connect(parameters);
+        return usersim_fwp_cgroup_inet6_connect(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v4(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    test_sock_ops_v4(_In_ const fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
     {
-        return usersim_fwp_sock_ops_v4(parameters, flow_id);
+        return usersim_fwp_sock_ops_v4(const_cast<fwp_classify_parameters_t*>(parameters), flow_id);
     }
 
     FWP_ACTION_TYPE
-    test_sock_ops_v6(_In_ fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
+    test_sock_ops_v6(_In_ const fwp_classify_parameters_t* parameters, _Out_opt_ uint64_t* flow_id)
     {
-        return usersim_fwp_sock_ops_v6(parameters, flow_id);
+        return usersim_fwp_sock_ops_v6(const_cast<fwp_classify_parameters_t*>(parameters), flow_id);
     }
 
     void
@@ -110,15 +113,15 @@ typedef class _netebpf_ext_helper
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet4_listen(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet4_listen(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet4_listen(parameters);
+        return usersim_fwp_cgroup_inet4_listen(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
     FWP_ACTION_TYPE
-    test_cgroup_inet6_listen(_In_ fwp_classify_parameters_t* parameters)
+    test_cgroup_inet6_listen(_In_ const fwp_classify_parameters_t* parameters)
     {
-        return usersim_fwp_cgroup_inet6_listen(parameters);
+        return usersim_fwp_cgroup_inet6_listen(const_cast<fwp_classify_parameters_t*>(parameters));
     }
 
   private:
