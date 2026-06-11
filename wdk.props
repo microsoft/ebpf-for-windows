@@ -6,8 +6,18 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <PropertyGroup>
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
-    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <!-- Latest WDK, used for x64. Requires Visual Studio 2026 (v18 build tasks), i.e. the windows-2025
+         runner image. WDKVersion and WindowsTargetPlatformVersion below are managed by scripts/Update-WdkVersion.ps1. -->
     <WDKVersion>10.0.28000.1839</WDKVersion>
+    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
+    <!-- ARM64 stays on the last WDK that ships the v17 (VS2022) build tasks, until the windows-11-arm
+         runner image ships Visual Studio 2026 (actions/runner-images#14059). -->
+    <WDKVersionArm64>10.0.26100.6584</WDKVersionArm64>
+    <WindowsTargetPlatformVersionArm64>10.0.26100.0</WindowsTargetPlatformVersionArm64>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'!='x64'">
+    <WDKVersion>$(WDKVersionArm64)</WDKVersion>
+    <WindowsTargetPlatformVersion>$(WindowsTargetPlatformVersionArm64)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">

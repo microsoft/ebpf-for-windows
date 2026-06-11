@@ -5,7 +5,13 @@
 -->
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <!-- Latest WDK, used for x64 (requires Visual Studio 2026). Managed by scripts/Update-WdkVersion.ps1. -->
     <WDKVersion>10.0.28000.1839</WDKVersion>
+    <!-- ARM64 stays on the last VS2022-compatible WDK until the windows-11-arm image ships VS2026. -->
+    <WDKVersionArm64>10.0.26100.6584</WDKVersionArm64>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'!='x64'">
+    <WDKVersion>$(WDKVersionArm64)</WDKVersion>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -27,7 +33,11 @@
   </ItemGroup>
   <PropertyGroup>
     <HostPlatform>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
-    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.28000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersionArm64>10.0.26100.0</WindowsTargetPlatformVersionArm64>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)'!='x64'">
+    <WindowsTargetPlatformVersion>$(WindowsTargetPlatformVersionArm64)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup>
     <ResolveNuGetPackages>false</ResolveNuGetPackages>

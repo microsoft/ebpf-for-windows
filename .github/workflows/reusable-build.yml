@@ -86,7 +86,7 @@ jobs:
 
     # Make runs-on conditionally based on the architecture input.
     # This is needed to support both x64 and ARM64 builds.
-    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2022' || 'windows-11-arm' }}
+    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2025' || 'windows-11-arm' }}
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ${{inputs.solution_file}}
