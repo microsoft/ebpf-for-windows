@@ -888,6 +888,180 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+static void
+_ebpf_store_free_btf_resolved_function(_Frees_ptr_opt_ ebpf_btf_resolved_function_info_t* function_info)
+{
+    if (function_info == nullptr) {
+        return;
+    }
+
+    ebpf_free((void*)function_info->prototype.name);
+    ebpf_free((void*)function_info->prototype.prototype);
+    ebpf_free(function_info);
+}
+
+void
+ebpf_store_free_btf_resolved_function(_Frees_ptr_opt_ ebpf_btf_resolved_function_info_t* function_info)
+{
+    _ebpf_store_free_btf_resolved_function(function_info);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_store_load_btf_resolved_function(
+    _In_ const GUID* module_guid,
+    _In_z_ const char* function_name,
+    _Outptr_ ebpf_btf_resolved_function_info_t** function_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t store_key = nullptr;
+    HKEY btf_resolved_functions_key = nullptr;
+    HKEY provider_key = nullptr;
+    HKEY function_collection_key = nullptr;
+    HKEY function_key = nullptr;
+    wchar_t guid_string[GUID_STRING_LENGTH + 1] = {};
+    wchar_t* function_name_wide = nullptr;
+    wchar_t* prototype_string = nullptr;
+    ebpf_btf_resolved_function_info_t* local_function_info = nullptr;
+    ebpf_extension_header_t provider_header = {};
+
+    EBPF_LOG_ENTRY();
+
+    *function_info = nullptr;
+    if (module_guid == nullptr || function_name == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    result = _open_ebpf_store_key(&store_key);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_open_registry_key(
+        store_key, EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY, KEY_READ, (ebpf_store_key_t*)&btf_resolved_functions_key);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_convert_guid_to_string(module_guid, guid_string, EBPF_COUNT_OF(guid_string));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result =
+        ebpf_open_registry_key(btf_resolved_functions_key, guid_string, KEY_READ, (ebpf_store_key_t*)&provider_key);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = _load_extension_header(provider_key, &provider_header);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_open_registry_key(
+        provider_key, EBPF_BTF_FUNCTIONS_REGISTRY_KEY, KEY_READ, (ebpf_store_key_t*)&function_collection_key);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    function_name_wide = ebpf_get_wstring_from_string(function_name);
+    if (function_name_wide == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    result =
+        ebpf_open_registry_key(function_collection_key, function_name_wide, KEY_READ, (ebpf_store_key_t*)&function_key);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    local_function_info = reinterpret_cast<ebpf_btf_resolved_function_info_t*>(
+        ebpf_allocate_with_tag(sizeof(ebpf_btf_resolved_function_info_t), EBPF_POOL_TAG_DEFAULT));
+    if (local_function_info == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(local_function_info, 0, sizeof(*local_function_info));
+    local_function_info->module_guid = *module_guid;
+    local_function_info->prototype.header = EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER;
+
+    result = ebpf_read_registry_value_string(function_key, EBPF_BTF_FUNCTION_DATA_PROTOTYPE, &prototype_string);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    if (prototype_string == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    try {
+        local_function_info->prototype.name = cxplat_duplicate_string(function_name);
+        if (local_function_info->prototype.name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        local_function_info->prototype.prototype =
+            cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(prototype_string)).c_str());
+        if (local_function_info->prototype.prototype == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+    } catch (const std::exception&) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+    result = ebpf_read_registry_value_dword(
+        function_key,
+        EBPF_BTF_FUNCTION_DATA_RETURN_TYPE,
+        reinterpret_cast<uint32_t*>(&local_function_info->prototype.return_type));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_read_registry_value_binary(
+        function_key,
+        EBPF_BTF_FUNCTION_DATA_ARGUMENTS,
+        reinterpret_cast<uint8_t*>(local_function_info->prototype.arguments),
+        sizeof(local_function_info->prototype.arguments));
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_read_registry_value_dword(
+        function_key, EBPF_BTF_FUNCTION_DATA_FLAGS, &local_function_info->prototype.flags);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    *function_info = local_function_info;
+    local_function_info = nullptr;
+
+Exit:
+    ebpf_free(prototype_string);
+    ebpf_free_wstring(function_name_wide);
+    _ebpf_store_free_btf_resolved_function(local_function_info);
+    if (function_key) {
+        ebpf_close_registry_key(function_key);
+    }
+    if (function_collection_key) {
+        ebpf_close_registry_key(function_collection_key);
+    }
+    if (provider_key) {
+        ebpf_close_registry_key(provider_key);
+    }
+    if (btf_resolved_functions_key) {
+        ebpf_close_registry_key(btf_resolved_functions_key);
+    }
+    if (store_key) {
+        ebpf_close_registry_key(store_key);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_store_clear(_In_ const ebpf_store_key_t root_key_path)
 {

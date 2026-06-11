@@ -17,10 +17,13 @@
 #pragma warning(disable : 26495) // Always initialize a member variable
 #include "io/elf_reader.hpp"
 #pragma warning(pop)
+#pragma warning(push)
+#pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_type_data.h"
 #undef ebpf_inst
+#pragma warning(pop)
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"
 
@@ -396,6 +399,9 @@ _get_map_names(
     _get_map_names(reader, symbols, map_names);
 }
 
+static void
+_preprocess_btf_resolved_functions(std::istream& stream, _In_z_ const char* stream_name);
+
 _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
@@ -474,6 +480,8 @@ load_byte_code(
         }
 
         std::stringstream elf_stream(std::string(elf_data.begin(), elf_data.end()));
+
+        _preprocess_btf_resolved_functions(elf_stream, object_name.c_str());
 
         raw_programs = read_elf(elf_stream, object_name, section_name_string, "", verifier_options, platform);
 
@@ -665,8 +673,15 @@ ebpf_api_elf_enumerate_programs(
     ebpf_clear_thread_local_storage();
 
     try {
+        std::ifstream file_stream(file, std::ios::binary);
+        if (!file_stream) {
+            throw std::runtime_error(std::string("No such file or directory opening ") + file);
+        }
+
+        _preprocess_btf_resolved_functions(file_stream, file);
+
         auto raw_programs = prevail::read_elf(
-            file, section ? std::string(section) : std::string(), string(), verifier_options, platform);
+            file_stream, file, section ? std::string(section) : std::string(), string(), verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
             info = (ebpf_api_program_info_t*)ebpf_allocate_with_tag(sizeof(*info), EBPF_POOL_TAG_DEFAULT);
             if (info == nullptr) {
@@ -760,7 +775,14 @@ ebpf_api_elf_disassemble_program(
 
     try {
         std::string section(section_name ? section_name : "");
-        auto raw_programs = read_elf(file, section, string(), verifier_options, platform);
+        std::ifstream file_stream(file, std::ios::binary);
+        if (!file_stream) {
+            throw std::runtime_error(std::string("No such file or directory opening ") + file);
+        }
+
+        _preprocess_btf_resolved_functions(file_stream, file);
+
+        auto raw_programs = read_elf(file_stream, file, section, string(), verifier_options, platform);
         auto found_program =
             std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const prevail::RawProgram& program) {
                 return (program_name == nullptr) || (program.function_name == program_name);
@@ -799,6 +821,32 @@ ebpf_api_elf_disassemble_program(
     return 0;
 }
 
+static void
+_preprocess_btf_resolved_functions(std::istream& stream, _In_z_ const char* stream_name)
+{
+    stream.clear();
+    stream.seekg(0, std::ios::beg);
+    if (!stream) {
+        throw std::runtime_error(std::string("Failed to seek stream for BTF preprocessing: ") + stream_name);
+    }
+
+    ELFIO::elfio reader;
+    if (!reader.load(stream)) {
+        throw std::runtime_error(std::string("Failed to load ELF for BTF preprocessing: ") + stream_name);
+    }
+    ELFIO::section* btf_section = reader.sections[".BTF"];
+    if (btf_section != nullptr && btf_section->get_data() != nullptr) {
+        std::optional<libbtf::btf_type_data> btf_data = vector_of<byte>(*btf_section);
+        cache_btf_resolved_functions(btf_data.value());
+    }
+
+    stream.clear();
+    stream.seekg(0, std::ios::beg);
+    if (!stream) {
+        throw std::runtime_error(std::string("Failed to seek stream before verification: ") + stream_name);
+    }
+}
+
 static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
     std::istream& stream,
     _In_z_ const char* stream_name,
@@ -821,6 +869,9 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
+
+        _preprocess_btf_resolved_functions(stream, stream_name);
+
         auto raw_programs = read_elf(
             stream, stream_name, (section_name != nullptr ? section_name : ""), string(), verifier_options, platform);
         std::optional<prevail::RawProgram> found_program;

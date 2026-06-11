@@ -7252,7 +7252,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee0,
         "bind/0",
         "bind/0",
@@ -7261,13 +7261,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee0_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee0_program_type_guid,
         &bind_test_callee0_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee1,
         "bind/1",
         "bind/1",
@@ -7276,13 +7278,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee1_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee1_program_type_guid,
         &bind_test_callee1_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee10,
         "bind/10",
         "bind/10",
@@ -7291,13 +7295,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee10_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee10_program_type_guid,
         &bind_test_callee10_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee11,
         "bind/11",
         "bind/11",
@@ -7306,13 +7312,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee11_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee11_program_type_guid,
         &bind_test_callee11_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee12,
         "bind/12",
         "bind/12",
@@ -7321,13 +7329,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee12_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee12_program_type_guid,
         &bind_test_callee12_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee13,
         "bind/13",
         "bind/13",
@@ -7336,13 +7346,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee13_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee13_program_type_guid,
         &bind_test_callee13_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee14,
         "bind/14",
         "bind/14",
@@ -7351,13 +7363,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee14_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee14_program_type_guid,
         &bind_test_callee14_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee15,
         "bind/15",
         "bind/15",
@@ -7366,13 +7380,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee15_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee15_program_type_guid,
         &bind_test_callee15_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee16,
         "bind/16",
         "bind/16",
@@ -7381,13 +7397,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee16_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee16_program_type_guid,
         &bind_test_callee16_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee17,
         "bind/17",
         "bind/17",
@@ -7396,13 +7414,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee17_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee17_program_type_guid,
         &bind_test_callee17_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee18,
         "bind/18",
         "bind/18",
@@ -7411,13 +7431,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee18_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee18_program_type_guid,
         &bind_test_callee18_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee19,
         "bind/19",
         "bind/19",
@@ -7426,13 +7448,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee19_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee19_program_type_guid,
         &bind_test_callee19_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee2,
         "bind/2",
         "bind/2",
@@ -7441,13 +7465,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee2_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee2_program_type_guid,
         &bind_test_callee2_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee20,
         "bind/20",
         "bind/20",
@@ -7456,13 +7482,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee20_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee20_program_type_guid,
         &bind_test_callee20_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee21,
         "bind/21",
         "bind/21",
@@ -7471,13 +7499,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee21_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee21_program_type_guid,
         &bind_test_callee21_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee22,
         "bind/22",
         "bind/22",
@@ -7486,13 +7516,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee22_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee22_program_type_guid,
         &bind_test_callee22_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee23,
         "bind/23",
         "bind/23",
@@ -7501,13 +7533,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee23_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee23_program_type_guid,
         &bind_test_callee23_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee24,
         "bind/24",
         "bind/24",
@@ -7516,13 +7550,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee24_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee24_program_type_guid,
         &bind_test_callee24_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee25,
         "bind/25",
         "bind/25",
@@ -7531,13 +7567,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee25_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee25_program_type_guid,
         &bind_test_callee25_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee26,
         "bind/26",
         "bind/26",
@@ -7546,13 +7584,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee26_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee26_program_type_guid,
         &bind_test_callee26_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee27,
         "bind/27",
         "bind/27",
@@ -7561,13 +7601,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee27_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee27_program_type_guid,
         &bind_test_callee27_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee28,
         "bind/28",
         "bind/28",
@@ -7576,13 +7618,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee28_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee28_program_type_guid,
         &bind_test_callee28_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee29,
         "bind/29",
         "bind/29",
@@ -7591,13 +7635,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee29_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee29_program_type_guid,
         &bind_test_callee29_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee3,
         "bind/3",
         "bind/3",
@@ -7606,13 +7652,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee3_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee3_program_type_guid,
         &bind_test_callee3_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee30,
         "bind/30",
         "bind/30",
@@ -7621,13 +7669,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee30_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee30_program_type_guid,
         &bind_test_callee30_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee31,
         "bind/31",
         "bind/31",
@@ -7636,13 +7686,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee31_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee31_program_type_guid,
         &bind_test_callee31_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee32,
         "bind/32",
         "bind/32",
@@ -7651,13 +7703,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee32_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee32_program_type_guid,
         &bind_test_callee32_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee33,
         "bind/33",
         "bind/33",
@@ -7666,13 +7720,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee33_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee33_program_type_guid,
         &bind_test_callee33_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee34,
         "bind/34",
         "bind/34",
@@ -7681,13 +7737,15 @@ static program_entry_t _programs[] = {
         0,
         bind_test_callee34_helpers,
         1,
+        NULL,
+        0,
         23,
         &bind_test_callee34_program_type_guid,
         &bind_test_callee34_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee4,
         "bind/4",
         "bind/4",
@@ -7696,13 +7754,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee4_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee4_program_type_guid,
         &bind_test_callee4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee5,
         "bind/5",
         "bind/5",
@@ -7711,13 +7771,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee5_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee5_program_type_guid,
         &bind_test_callee5_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee6,
         "bind/6",
         "bind/6",
@@ -7726,13 +7788,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee6_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee6_program_type_guid,
         &bind_test_callee6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee7,
         "bind/7",
         "bind/7",
@@ -7741,13 +7805,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee7_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee7_program_type_guid,
         &bind_test_callee7_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee8,
         "bind/8",
         "bind/8",
@@ -7756,13 +7822,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee8_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee8_program_type_guid,
         &bind_test_callee8_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_callee9,
         "bind/9",
         "bind/9",
@@ -7771,13 +7839,15 @@ static program_entry_t _programs[] = {
         1,
         bind_test_callee9_helpers,
         3,
+        NULL,
+        0,
         51,
         &bind_test_callee9_program_type_guid,
         &bind_test_callee9_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         bind_test_caller,
         "bind",
         "bind",
@@ -7786,6 +7856,8 @@ static program_entry_t _programs[] = {
         1,
         bind_test_caller_helpers,
         3,
+        NULL,
+        0,
         47,
         &bind_test_caller_program_type_guid,
         &bind_test_caller_attach_type_guid,

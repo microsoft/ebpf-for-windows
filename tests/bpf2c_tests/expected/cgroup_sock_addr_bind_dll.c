@@ -286,7 +286,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_bind4,
         "cgroup~2",
         "cgroup/bind4",
@@ -295,13 +295,15 @@ static program_entry_t _programs[] = {
         1,
         authorize_bind4_helpers,
         1,
+        NULL,
+        0,
         16,
         &authorize_bind4_program_type_guid,
         &authorize_bind4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_bind6,
         "cgroup~1",
         "cgroup/bind6",
@@ -310,6 +312,8 @@ static program_entry_t _programs[] = {
         1,
         authorize_bind6_helpers,
         1,
+        NULL,
+        0,
         16,
         &authorize_bind6_program_type_guid,
         &authorize_bind6_attach_type_guid,

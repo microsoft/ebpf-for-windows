@@ -844,7 +844,7 @@ label_5:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connection_monitor,
         "sockops",
         "sockops",
@@ -853,6 +853,8 @@ static program_entry_t _programs[] = {
         2,
         connection_monitor_helpers,
         3,
+        NULL,
+        0,
         179,
         &connection_monitor_program_type_guid,
         &connection_monitor_attach_type_guid,

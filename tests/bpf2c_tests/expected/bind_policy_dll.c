@@ -545,7 +545,7 @@ label_5:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_bind,
         "bind",
         "bind",
@@ -554,6 +554,8 @@ static program_entry_t _programs[] = {
         1,
         authorize_bind_helpers,
         3,
+        NULL,
+        0,
         149,
         &authorize_bind_program_type_guid,
         &authorize_bind_attach_type_guid,

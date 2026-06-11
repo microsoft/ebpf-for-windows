@@ -449,7 +449,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         test_utility_helpers,
         "sample~1",
         "sample_ext",
@@ -458,6 +458,8 @@ static program_entry_t _programs[] = {
         1,
         test_utility_helpers_helpers,
         8,
+        NULL,
+        0,
         52,
         &test_utility_helpers_program_type_guid,
         &test_utility_helpers_attach_type_guid,

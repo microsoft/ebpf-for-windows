@@ -545,7 +545,7 @@ label_6:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         BindMonitor,
         "bind",
         "bind",
@@ -554,6 +554,8 @@ static program_entry_t _programs[] = {
         3,
         BindMonitor_helpers,
         7,
+        NULL,
+        0,
         103,
         &BindMonitor_program_type_guid,
         &BindMonitor_attach_type_guid,

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include "ebpf_program_types.h"
 #include "ebpf_result.h"
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
@@ -116,6 +117,14 @@ typedef struct _ebpf_attach_provider_data
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
 } ebpf_attach_provider_data_t;
+
+typedef struct _ebpf_btf_resolved_function_provider_data
+{
+    ebpf_extension_header_t header;
+    uint32_t btf_resolved_function_count;
+    const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
+    const uint64_t* btf_resolved_function_addresses;
+} ebpf_btf_resolved_function_provider_data_t;
 
 /***
  * The state of the execution context when the eBPF program was invoked.

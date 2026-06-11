@@ -352,7 +352,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         DropPacket,
         "xdp",
         "xdp",
@@ -361,6 +361,8 @@ static program_entry_t _programs[] = {
         2,
         DropPacket_helpers,
         1,
+        NULL,
+        0,
         47,
         &DropPacket_program_type_guid,
         &DropPacket_attach_type_guid,

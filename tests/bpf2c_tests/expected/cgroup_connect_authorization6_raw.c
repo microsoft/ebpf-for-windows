@@ -219,7 +219,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         count_tcp_connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
@@ -228,6 +228,8 @@ static program_entry_t _programs[] = {
         1,
         count_tcp_connect_authorization6_helpers,
         2,
+        NULL,
+        0,
         32,
         &count_tcp_connect_authorization6_program_type_guid,
         &count_tcp_connect_authorization6_attach_type_guid,
