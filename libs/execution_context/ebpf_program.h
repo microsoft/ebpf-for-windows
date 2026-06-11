@@ -241,6 +241,30 @@ extern "C"
     ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program);
 
     /**
+     * @brief Store the BTF-resolved function metadata used by this program.
+     *
+     * @param[in, out] program Program object to store metadata on.
+     * @param[in] btf_resolved_function_count Count of BTF-resolved functions used by the program.
+     * @param[in] btf_resolved_functions Array of BTF-resolved function metadata.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The metadata has already been populated or is invalid.
+     * @retval EBPF_NO_MEMORY Could not allocate storage for the metadata.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_set_btf_resolved_function_entries(
+        _Inout_ ebpf_program_t* program,
+        size_t btf_resolved_function_count,
+        _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions);
+
+    /**
+     * @brief Clear the BTF-resolved function metadata stored on the program.
+     *
+     * @param[in, out] program Program object to clear metadata from.
+     */
+    void
+    ebpf_program_clear_btf_resolved_function_entries(_Inout_ ebpf_program_t* program);
+
+    /**
      * @brief Get the addresses of helper functions referred to by the program. Assumes
      * ebpf_program_set_helper_function_ids has already been invoked on the program object.
      *

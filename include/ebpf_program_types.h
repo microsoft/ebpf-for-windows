@@ -44,6 +44,18 @@ typedef struct _ebpf_helper_function_prototype
     bool implicit_context;
 } ebpf_helper_function_prototype_t;
 
+// This is the type definition for the eBPF BTF-resolved function prototype
+// when version is EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_CURRENT_VERSION.
+typedef struct _ebpf_btf_resolved_function_prototype
+{
+    ebpf_extension_header_t header;
+    const char* name;
+    const char* prototype;
+    ebpf_return_type_t return_type;
+    ebpf_argument_type_t arguments[5];
+    uint32_t flags;
+} ebpf_btf_resolved_function_prototype_t;
+
 // This is the type definition for the eBPF program information
 // when version is EBPF_PROGRAM_INFORMATION_CURRENT_VERSION.
 typedef struct _ebpf_program_info

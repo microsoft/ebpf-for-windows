@@ -39,6 +39,12 @@ main(int argc, char** argv)
         if (status != ERROR_SUCCESS) {
             std::cout << "Failed export_section_information() - ERROR #" << status << std::endl;
         }
+
+        std::cout << "Exporting BTF-resolved function information for sample extension." << std::endl;
+        status = export_btf_resolved_function_information();
+        if (status != ERROR_SUCCESS) {
+            std::cout << "Failed export_btf_resolved_function_information() - ERROR #" << status << std::endl;
+        }
     } else {
         std::cout << "Clearing eBPF store for sample extension." << std::endl;
         status = clear_ebpf_store();

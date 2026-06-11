@@ -7,6 +7,7 @@
 #include "ebpf_structs.h"
 #include "elfio_wrapper.hpp"
 
+#include <array>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -21,6 +22,15 @@
 class bpf_code_generator
 {
   public:
+    typedef struct _btf_resolved_function_dependency
+    {
+        std::string name;
+        GUID module_guid = {};
+        ebpf_return_type_t return_type = EBPF_RETURN_TYPE_INTEGER;
+        std::array<ebpf_argument_type_t, 5> arguments = {};
+        uint32_t flags = 0;
+    } btf_resolved_function_dependency_t;
+
     /**
      * @brief Class to encapsulate a string read from an ELF file that may be
      * malicious.
@@ -286,6 +296,15 @@ class bpf_code_generator
     get_helper_ids(const unsafe_string& program_name);
 
     /**
+     * @brief Get BTF-resolved function dependencies used by the current program.
+     *
+     * @param[in] program_name Name of program to get BTF dependencies for.
+     * @return Vector of BTF-resolved function dependencies.
+     */
+    std::vector<btf_resolved_function_dependency_t>
+    get_btf_resolved_function_dependencies(const unsafe_string& program_name);
+
+    /**
      * @brief Set the program hash info object
      *
      * @param program_name Name of program to set info on.
@@ -301,6 +320,16 @@ class bpf_code_generator
         int32_t id;
         size_t index;
     } helper_function_t;
+
+    typedef struct _btf_resolved_function
+    {
+        unsafe_string name;
+        GUID module_guid = {};
+        ebpf_return_type_t return_type = EBPF_RETURN_TYPE_INTEGER;
+        std::array<ebpf_argument_type_t, 5> arguments = {};
+        uint32_t flags = 0;
+        size_t index = 0;
+    } btf_resolved_function_t;
 
     typedef struct _map_info
     {
@@ -358,6 +387,7 @@ class bpf_code_generator
         // Indices of the maps used in this program.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
+        std::map<int32_t, btf_resolved_function_t> btf_resolved_functions;
         std::string program_info_hash_type{};
         const ebpf_program_info_t* program_info = nullptr;
 
@@ -545,4 +575,5 @@ class bpf_code_generator
     // Global helper index: ordered list of (name, id) where position = global index.
     // Built by build_global_helper_index() before instruction encoding.
     std::vector<std::pair<unsafe_string, int32_t>> global_helpers_ordered;
+    std::vector<btf_resolved_function_t> global_btf_resolved_functions_ordered;
 };

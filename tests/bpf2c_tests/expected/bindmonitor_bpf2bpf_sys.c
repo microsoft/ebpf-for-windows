@@ -621,11 +621,13 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         BindMonitor_Caller,
         "bind",
         "bind",
         "BindMonitor_Caller",
+        NULL,
+        0,
         NULL,
         0,
         NULL,

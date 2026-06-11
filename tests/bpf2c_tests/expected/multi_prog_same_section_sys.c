@@ -260,11 +260,13 @@ prog2(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         prog1,
         "bind",
         "bind",
         "prog1",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
@@ -275,11 +277,13 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         prog2,
         "bind",
         "bind",
         "prog2",
+        NULL,
+        0,
         NULL,
         0,
         NULL,

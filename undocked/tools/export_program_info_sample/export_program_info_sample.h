@@ -21,6 +21,9 @@ uint32_t
 export_section_information();
 
 uint32_t
+export_btf_resolved_function_information();
+
+uint32_t
 clear_ebpf_store();
 
 void
