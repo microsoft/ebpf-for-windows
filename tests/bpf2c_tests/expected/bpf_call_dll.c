@@ -170,7 +170,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         func,
         "sample~1",
         "sample_ext",
@@ -179,6 +179,8 @@ static program_entry_t _programs[] = {
         1,
         func_helpers,
         1,
+        NULL,
+        0,
         13,
         &func_program_type_guid,
         &func_attach_type_guid,

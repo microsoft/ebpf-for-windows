@@ -122,6 +122,12 @@ extern "C"
     void
     ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_binding_context_t* module);
 
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_native_acquire_btf_references(_In_ const ebpf_native_module_binding_context_t* module);
+
+    void
+    ebpf_native_release_btf_references(_In_ const ebpf_native_module_binding_context_t* module);
+
     /**
      * @brief Add the native module to the authorization list.
      *

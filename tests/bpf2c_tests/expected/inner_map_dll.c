@@ -323,7 +323,7 @@ label_4:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         lookup_update,
         "sample~1",
         "sample_ext",
@@ -332,6 +332,8 @@ static program_entry_t _programs[] = {
         2,
         lookup_update_helpers,
         1,
+        NULL,
+        0,
         38,
         &lookup_update_program_type_guid,
         &lookup_update_attach_type_guid,

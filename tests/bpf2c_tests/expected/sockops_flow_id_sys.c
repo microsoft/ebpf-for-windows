@@ -977,7 +977,7 @@ label_11:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         flow_id_monitor,
         "sockops",
         "sockops",
@@ -986,6 +986,8 @@ static program_entry_t _programs[] = {
         2,
         flow_id_monitor_helpers,
         4,
+        NULL,
+        0,
         211,
         &flow_id_monitor_program_type_guid,
         &flow_id_monitor_attach_type_guid,

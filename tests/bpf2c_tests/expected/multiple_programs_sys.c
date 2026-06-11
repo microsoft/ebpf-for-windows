@@ -332,11 +332,13 @@ program4(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         program1,
         "bind_4",
         "bind_4",
         "program1",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
@@ -347,11 +349,13 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         program2,
         "bind_3",
         "bind_3",
         "program2",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
@@ -362,11 +366,13 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         program3,
         "bind_2",
         "bind_2",
         "program3",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
@@ -377,11 +383,13 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         program4,
         "bind_1",
         "bind_1",
         "program4",
+        NULL,
+        0,
         NULL,
         0,
         NULL,

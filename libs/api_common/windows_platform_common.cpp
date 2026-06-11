@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "..\store_helper\user\ebpf_registry_helper.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "device_helper.hpp"
@@ -10,6 +11,13 @@
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_verifier_wrapper.hpp"
+#include "ir/arg_kind.hpp"
+#pragma warning(push)
+#pragma warning(disable : 26495) // Always initialize a member variable
+#define ebpf_inst ebpf_inst_btf
+#include "..\..\external\ebpf-verifier\external\libbtf\libbtf\btf_type_data.h"
+#undef ebpf_inst
+#pragma warning(pop)
 #include "map_descriptors.hpp"
 #include "platform.hpp"
 #include "store_helper_internal.h"
@@ -17,9 +25,12 @@
 #include "windows_platform.hpp"
 #include "windows_program_type.h"
 
+#include <array>
 #include <cassert>
+#include <limits>
 #include <mutex>
 #include <stdexcept>
+#include <string_view>
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 4096
 
@@ -30,6 +41,21 @@ const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 static thread_local ebpf_program_type_t _current_verification_program_guid = {};
 static thread_local bool _current_verification_program_guid_set = false;
+
+typedef struct _btf_resolved_function_identity
+{
+    GUID module_guid;
+    std::string function_name;
+} btf_resolved_function_identity_t;
+
+struct _ebpf_btf_resolved_function_info_deleter
+{
+    void
+    operator()(_In_ _Post_invalid_ ebpf_btf_resolved_function_info_t* function_info)
+    {
+        ebpf_store_free_btf_resolved_function(function_info);
+    }
+};
 
 extern bool use_ebpf_store;
 
@@ -111,6 +137,13 @@ typedef std::unique_ptr<prevail::EbpfProgramType, EbpfProgramType_deleter> ebpf_
 static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare>
     _program_descriptor_cache;
 
+typedef std::unique_ptr<ebpf_btf_resolved_function_info_t, _ebpf_btf_resolved_function_info_deleter>
+    ebpf_btf_resolved_function_info_ptr_t;
+static thread_local std::map<std::string, int32_t> _btf_resolved_function_name_to_id;
+static thread_local std::map<int32_t, btf_resolved_function_identity_t> _btf_resolved_function_identities;
+static thread_local std::map<int32_t, ebpf_btf_resolved_function_info_ptr_t> _btf_resolved_function_cache;
+static thread_local int32_t _next_btf_resolved_function_id = 1;
+
 // Global cache for the program and section information queried from eBPF store.
 typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
 std::unique_ptr<std::once_flag> _windows_program_information_init_flag = std::make_unique<std::once_flag>();
@@ -120,6 +153,71 @@ static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _win
 
 static void
 _load_ebpf_provider_data();
+
+static void
+_clear_btf_resolved_function_state()
+{
+    _btf_resolved_function_name_to_id.clear();
+    _btf_resolved_function_identities.clear();
+    _btf_resolved_function_cache.clear();
+    _next_btf_resolved_function_id = 1;
+}
+
+static void
+_set_unsupported(_Out_opt_ std::string* why_not, const std::string& reason)
+{
+    if (why_not != nullptr) {
+        *why_not = reason;
+    }
+}
+
+static ebpf_btf_resolved_function_info_t*
+_get_btf_resolved_function_info(int32_t btf_id)
+{
+    auto cache_entry = _btf_resolved_function_cache.find(btf_id);
+    if (cache_entry != _btf_resolved_function_cache.end()) {
+        return cache_entry->second.get();
+    }
+
+    auto identity = _btf_resolved_function_identities.find(btf_id);
+    if (identity == _btf_resolved_function_identities.end()) {
+        return nullptr;
+    }
+
+    ebpf_btf_resolved_function_info_t* function_info = nullptr;
+    if (ebpf_store_load_btf_resolved_function(
+            &identity->second.module_guid, identity->second.function_name.c_str(), &function_info) != EBPF_SUCCESS) {
+        return nullptr;
+    }
+
+    _btf_resolved_function_cache[btf_id] = ebpf_btf_resolved_function_info_ptr_t(function_info);
+    return _btf_resolved_function_cache[btf_id].get();
+}
+
+static GUID
+_parse_module_guid_or_throw(const std::string& tag_string)
+{
+    static constexpr std::string_view module_id_prefix{"module_id:"};
+    GUID module_guid = GUID_NULL;
+    wchar_t* guid_string = nullptr;
+
+    if (tag_string.compare(0, module_id_prefix.size(), module_id_prefix) != 0) {
+        throw std::runtime_error("Unsupported BTF decl_tag format: " + tag_string);
+    }
+
+    guid_string = ebpf_get_wstring_from_string(tag_string.substr(module_id_prefix.size()).c_str());
+    if (guid_string == nullptr) {
+        throw std::runtime_error("Out of memory parsing BTF module GUID");
+    }
+
+    ebpf_result_t result = ebpf_convert_string_to_guid(guid_string, &module_guid);
+    ebpf_free_wstring(guid_string);
+    if (result != EBPF_SUCCESS) {
+        throw std::runtime_error("Invalid BTF module GUID decl_tag: " + tag_string);
+    }
+
+    return module_guid;
+}
 
 void
 set_program_under_verification(ebpf_handle_t program)
@@ -809,6 +907,181 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
 }
 
 void
+cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data)
+{
+    constexpr uint32_t top_level_component_index = std::numeric_limits<uint32_t>::max();
+    std::map<libbtf::btf_type_id, GUID> function_modules;
+    std::set<libbtf::btf_type_id> ksym_function_type_ids;
+
+    _clear_btf_resolved_function_state();
+
+    const auto ksyms_id = btf_data.get_id(".ksyms");
+    if (ksyms_id != 0) {
+        libbtf::btf_kind_data_section ksyms;
+        try {
+            ksyms = btf_data.get_kind_type<libbtf::btf_kind_data_section>(ksyms_id);
+        } catch (const std::exception& e) {
+            throw std::runtime_error(
+                std::string("Unsupported or invalid BTF .ksyms section (id ") + std::to_string(ksyms_id) +
+                "): " + e.what());
+        }
+
+        for (const auto& member : ksyms.members) {
+            if (btf_data.get_kind_index(member.type) == libbtf::BTF_KIND_FUNCTION) {
+                ksym_function_type_ids.insert(member.type);
+            }
+        }
+    }
+
+    for (libbtf::btf_type_id id = 1; id <= btf_data.last_type_id(); id++) {
+        if (btf_data.get_kind_index(id) != libbtf::BTF_KIND_DECL_TAG) {
+            continue;
+        }
+
+        auto decl_tag = btf_data.get_kind_type<libbtf::btf_kind_decl_tag>(id);
+        if (decl_tag.component_index != top_level_component_index) {
+            continue;
+        }
+
+        GUID module_guid = _parse_module_guid_or_throw(decl_tag.name);
+        auto existing = function_modules.find(decl_tag.type);
+        if (existing != function_modules.end()) {
+            if (!IsEqualGUID(existing->second, module_guid)) {
+                throw std::runtime_error(
+                    std::string("Conflicting module_id decl_tag entries for BTF function type ") +
+                    std::to_string(decl_tag.type));
+            }
+            continue;
+        }
+
+        function_modules.emplace(decl_tag.type, module_guid);
+        if (btf_data.get_kind_index(decl_tag.type) == libbtf::BTF_KIND_FUNCTION) {
+            ksym_function_type_ids.insert(decl_tag.type);
+        }
+    }
+
+    for (const auto& type_id : ksym_function_type_ids) {
+        libbtf::btf_kind_function function;
+        try {
+            function = btf_data.get_kind_type<libbtf::btf_kind_function>(type_id);
+        } catch (const std::exception& e) {
+            throw std::runtime_error(
+                std::string("Unsupported or invalid BTF kfunc declaration (type ") + std::to_string(type_id) +
+                "): " + e.what());
+        }
+
+        if (function.name.empty()) {
+            continue;
+        }
+
+        auto module = function_modules.find(type_id);
+        if (module == function_modules.end()) {
+            throw std::runtime_error("Missing module_id decl_tag for BTF-resolved function " + function.name);
+        }
+
+        auto existing_name = _btf_resolved_function_name_to_id.find(function.name);
+        if (existing_name != _btf_resolved_function_name_to_id.end()) {
+            const auto& existing_identity = _btf_resolved_function_identities.at(existing_name->second);
+            if (!IsEqualGUID(existing_identity.module_guid, module->second)) {
+                throw std::runtime_error(
+                    "Ambiguous BTF-resolved function name across multiple module GUIDs: " + function.name);
+            }
+            continue;
+        }
+
+        const int32_t btf_id = _next_btf_resolved_function_id++;
+        _btf_resolved_function_name_to_id.emplace(function.name, btf_id);
+        _btf_resolved_function_identities.emplace(
+            btf_id, btf_resolved_function_identity_t{.module_guid = module->second, .function_name = function.name});
+    }
+}
+
+std::optional<prevail::KsymBtfId>
+resolve_ksym_btf_id_windows(const std::string& name)
+{
+    auto identity = _btf_resolved_function_name_to_id.find(name);
+    if (identity == _btf_resolved_function_name_to_id.end()) {
+        return std::nullopt;
+    }
+
+    return prevail::KsymBtfId{.btf_id = identity->second, .module = 0};
+}
+
+std::optional<prevail::ResolvedCall>
+resolve_kfunc_call_windows(
+    int32_t btf_id, int16_t module, const prevail::EbpfProgramType& program_type, std::string* why_not)
+{
+    UNREFERENCED_PARAMETER(program_type);
+    UNREFERENCED_PARAMETER(module);
+
+    auto function_info = _get_btf_resolved_function_info(btf_id);
+    if (function_info == nullptr) {
+        _set_unsupported(why_not, "kfunc prototype lookup failed for BTF id " + std::to_string(btf_id));
+        return std::nullopt;
+    }
+
+    const auto& prototype = function_info->prototype;
+    const std::string function_name = prototype.name != nullptr ? prototype.name : std::to_string(btf_id);
+
+    if (prototype.flags != 0) {
+        _set_unsupported(why_not, "kfunc has unsupported flags: " + function_name);
+        return std::nullopt;
+    }
+
+    if (prototype.return_type == EBPF_RETURN_TYPE_UNSUPPORTED) {
+        _set_unsupported(why_not, "kfunc prototype is unavailable on this platform: " + function_name);
+        return std::nullopt;
+    }
+
+    const auto return_info = prevail::classify_call_return_type(prototype.return_type);
+    if (!return_info.has_value()) {
+        _set_unsupported(why_not, "kfunc return type is unsupported on this platform: " + function_name);
+        return std::nullopt;
+    }
+
+    prevail::ResolvedCall result;
+    result.call = prevail::Call{.func = btf_id, .kind = prevail::CallKind::kfunc, .module = module};
+    result.name = function_name;
+    result.contract.return_ptr_type = return_info->pointer_type;
+    result.contract.return_nullable = return_info->pointer_nullable;
+    result.contract.is_map_lookup = prototype.return_type == EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
+
+    const std::array<ebpf_argument_type_t, 7> arguments = {
+        {EBPF_ARGUMENT_TYPE_DONTCARE,
+         prototype.arguments[0],
+         prototype.arguments[1],
+         prototype.arguments[2],
+         prototype.arguments[3],
+         prototype.arguments[4],
+         EBPF_ARGUMENT_TYPE_DONTCARE}};
+
+    for (size_t index = 1; index < arguments.size() - 1;) {
+        switch (prevail::process_arg(result.contract, arguments, index)) {
+        case prevail::ArgOutcome::Single:
+            index += 1;
+            break;
+        case prevail::ArgOutcome::Pair:
+            index += 2;
+            break;
+        case prevail::ArgOutcome::Stop:
+            return result;
+        case prevail::ArgOutcome::Unavailable:
+            _set_unsupported(why_not, "kfunc argument type is unsupported on this platform: " + function_name);
+            return std::nullopt;
+        case prevail::ArgOutcome::MismatchedSize:
+            _set_unsupported(
+                why_not,
+                "kfunc pointer argument not followed by EBPF_ARGUMENT_TYPE_CONST_SIZE or "
+                "EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO: " +
+                    function_name);
+            return std::nullopt;
+        }
+    }
+
+    return result;
+}
+
+void
 set_verification_program_type(const prevail::EbpfProgramType* type)
 {
     if (type != nullptr) {
@@ -839,9 +1112,22 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
     return EBPF_SUCCESS;
 }
 
+_Success_(return == EBPF_SUCCESS) ebpf_result_t get_btf_resolved_function_info_from_tls(
+    int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info)
+{
+    auto* info = _get_btf_resolved_function_info(btf_id);
+    if (info == nullptr) {
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    *function_info = info;
+    return EBPF_SUCCESS;
+}
+
 void
 clear_program_info_cache()
 {
     _program_info_cache.clear();
     _program_descriptor_cache.clear();
+    _clear_btf_resolved_function_state();
 }

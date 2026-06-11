@@ -78,6 +78,7 @@ param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", "NativeOnlyDebug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
+    [parameter(Mandatory = $false)] [string] $SourceFile = "",
     [parameter(Mandatory = $false)] [string] $ResourceFile = "",
     [parameter(Mandatory = $false)] [string] $SpdFile = "")
 
@@ -95,10 +96,17 @@ if ((Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue) -eq $null) {
     throw "Unable to locate msbuild.exe. This command needs to run within a 'Developer Command Prompt'"
 }
 
-$fileExists = Test-Path -Path ("$FileName.o")
-if (!$fileExists) {
-    $errorString = "Can't find program file: " + "$FileName.o"
-    throw $errorString
+if ($SourceFile) {
+    if (!(Test-Path -Path $SourceFile)) {
+        throw "Can't find source file: $SourceFile"
+    }
+}
+else {
+    $fileExists = Test-Path -Path ("$FileName.o")
+    if (!$fileExists) {
+        $errorString = "Can't find program file: " + "$FileName.o"
+        throw $errorString
+    }
 }
 
 if ($SpdFile -and -not (Test-Path $SpdFile)) {
@@ -115,8 +123,29 @@ else {
 }
 
 mkdir -Force $TempDir
-Copy-Item -Path "$FileName.o" -Destination "$TempDir\"
+if (!$SourceFile) {
+    Copy-Item -Path "$FileName.o" -Destination "$TempDir\"
+}
 cd $TempDir
+
+if ($SourceFile) {
+    if ($KernelMode) {
+        $KernelModeProject = $KernelModeProject.Replace(
+            '<PreBuildEvent>       <Command>$(BinDir)bpf2c --bpf $(FileName).o --sys $(FileName)_driver.c  $(AdditionalOptions)</Command>     </PreBuildEvent>',
+            '')
+        $KernelModeProject = $KernelModeProject.Replace(
+            '<ClCompile Include="$(FileName)_driver.c" />',
+            '<ClCompile Include="$(SourceFile)" />')
+    }
+    else {
+        $UserModeProject = $UserModeProject.Replace(
+            '<PreBuildEvent>       <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>     </PreBuildEvent>',
+            '')
+        $UserModeProject = $UserModeProject.Replace(
+            '<ClCompile Include="$(FileName)_dll.c" />',
+            '<ClCompile Include="$(SourceFile)" />')
+    }
+}
 
 if ($KernelMode) {
     $ProjectFile = "$FileName.vcxproj"
@@ -140,10 +169,10 @@ if ($VerbosePreference -eq "Continue") {
 # machine. Both kernel-mode and user-mode templates reference SDK packages, so restore for both.
 msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" $ProjectFile
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:SourceFile="$SourceFile" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Build failed for $FileName.o"
+    throw "Build failed for $FileName"
 }
 
 Pop-Location

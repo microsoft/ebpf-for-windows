@@ -1,13 +1,16 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+// Temporary edit for build test
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #define CATCH_CONFIG_MAIN
 
+#include "../../undocked/tests/sample/ext/inc/sample_ext_helpers.h"
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "ebpf_store_helper.h"
 
 #include <filesystem>
 #include <map>
@@ -69,6 +72,23 @@ transform_fix_opcode_comment(const std::string& string)
     }
 }
 
+std::string
+transform_generated_from_comment(const std::string& string)
+{
+    static const std::string prefix = "// This file was generated from ";
+    if (!string.starts_with(prefix)) {
+        return string;
+    }
+
+    auto generated_path = string.substr(prefix.size());
+    auto separator = generated_path.find_last_of("\\/");
+    if (separator == std::string::npos) {
+        return string;
+    }
+
+    return prefix + generated_path.substr(separator + 1);
+}
+
 std::tuple<std::string, std::string, int>
 run_test_main(std::vector<const char*> argv)
 {
@@ -83,6 +103,31 @@ run_test_main(std::vector<const char*> argv)
         return_value == 0 ? capture.get_stdout_contents() : "",
         return_value != 0 ? capture.get_stderr_contents() : "",
         return_value};
+}
+
+static const GUID _btf_test_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER;
+static const ebpf_btf_resolved_function_prototype_t _btf_test_prototypes[] = {
+    {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
+     SAMPLE_EXT_BTF_FUNCTION_NAME,
+     SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_DONTCARE,
+      EBPF_ARGUMENT_TYPE_DONTCARE},
+     0}};
+
+static void
+_register_btf_test_provider()
+{
+    static const ebpf_btf_resolved_function_provider_info_t provider_info = {
+        EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_HEADER,
+        _btf_test_module_guid,
+        static_cast<uint32_t>(_countof(_btf_test_prototypes)),
+        _btf_test_prototypes};
+
+    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_SUCCESS);
 }
 
 enum class _test_mode
@@ -100,10 +145,21 @@ void
 run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optional<std::string>& type)
 {
     std::vector<const char*> argv;
-    auto name = elf_file.substr(0, elf_file.find('.'));
+    auto elf_path = std::filesystem::path(elf_file);
+    if (!std::filesystem::exists(elf_path)) {
+        auto debug_path = std::filesystem::path("x64\\Debug") / elf_path.filename();
+        if (std::filesystem::exists(debug_path)) {
+            elf_path = debug_path;
+        }
+    }
+    auto name = elf_path.stem().string();
+    auto elf_path_string = elf_path.string();
+    if (name == "btf_resolved") {
+        _register_btf_test_provider();
+    }
     argv.push_back("bpf2c.exe");
     argv.push_back("--bpf");
-    argv.push_back(elf_file.c_str());
+    argv.push_back(elf_path_string.c_str());
     if (test_mode == _test_mode::UseHash) {
         argv.push_back("--hash");
         argv.push_back("SHA256");
@@ -136,16 +192,32 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
         switch (test_mode) {
         case _test_mode::FileOutput:
         case _test_mode::Verify: {
+            auto expected_path = std::filesystem::path("expected") / (name + suffix);
+            if (!std::filesystem::exists(expected_path)) {
+                auto repo_expected_path = std::filesystem::path("tests\\bpf2c_tests\\expected") / (name + suffix);
+                if (std::filesystem::exists(repo_expected_path)) {
+                    expected_path = repo_expected_path;
+                }
+            }
             std::vector<std::string> expected_output = read_contents<std::ifstream>(
-                std::string("expected\\") + name + suffix,
-                {transform_line_directives<'\\'>, transform_line_directives<'/'>, transform_fix_opcode_comment});
+                expected_path.string(),
+                {transform_line_directives<'\\'>,
+                 transform_line_directives<'/'>,
+                 transform_fix_opcode_comment,
+                 transform_generated_from_comment});
             std::vector<std::string> actual_output;
             if (test_mode == _test_mode::FileOutput) {
                 actual_output = read_contents<std::ifstream>(
-                    temp_file_path_string, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
+                    temp_file_path_string,
+                    {transform_line_directives<'\\'>,
+                     transform_line_directives<'/'>,
+                     transform_generated_from_comment});
             } else {
                 actual_output = read_contents<std::istringstream>(
-                    out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
+                    out,
+                    {transform_line_directives<'\\'>,
+                     transform_line_directives<'/'>,
+                     transform_generated_from_comment});
             }
 
             // Find the first line that differs.
@@ -208,6 +280,7 @@ DECLARE_TEST("bindmonitor_mt_tailcall", _test_mode::Verify)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::Verify, std::string("bind"))
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::FileOutput, std::string("bind"))
 DECLARE_TEST("bpf_call", _test_mode::Verify)
+DECLARE_TEST("btf_resolved", _test_mode::Verify)
 DECLARE_TEST("callgraph_bpf2bpf", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)

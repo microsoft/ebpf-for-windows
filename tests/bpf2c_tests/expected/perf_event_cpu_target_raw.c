@@ -159,7 +159,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         perf_event_cpu_target,
         "sample~1",
         "sample_ext",
@@ -168,6 +168,8 @@ static program_entry_t _programs[] = {
         1,
         perf_event_cpu_target_helpers,
         1,
+        NULL,
+        0,
         14,
         &perf_event_cpu_target_program_type_guid,
         &perf_event_cpu_target_attach_type_guid,

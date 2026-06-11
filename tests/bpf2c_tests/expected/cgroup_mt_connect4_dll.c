@@ -174,11 +174,13 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         tcp_mt_connect4,
         "cgroup~1",
         "cgroup/connect4",
         "tcp_mt_connect4",
+        NULL,
+        0,
         NULL,
         0,
         NULL,

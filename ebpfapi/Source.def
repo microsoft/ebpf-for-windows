@@ -119,6 +119,7 @@ EXPORTS
     ebpf_get_bpf_program_type
     ebpf_get_ebpf_attach_type
     ebpf_get_ebpf_program_type
+    ebpf_get_btf_resolved_function_info_from_verifier
     ebpf_get_next_pinned_object_path
     ebpf_get_map_annotations_from_verifier
     ebpf_get_program_info_from_verifier
@@ -147,7 +148,9 @@ EXPORTS
     ebpf_ring_buffer_map_unmap_buffer
     ebpf_ring_buffer_map_write
     ebpf_store_delete_program_information
+    ebpf_store_delete_btf_resolved_function_provider_information
     ebpf_store_delete_section_information
+    ebpf_store_update_btf_resolved_function_provider_information
     ebpf_store_update_program_information_array
     ebpf_store_update_section_information
     libbpf_attach_type_by_name

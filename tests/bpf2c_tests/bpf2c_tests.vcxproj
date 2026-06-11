@@ -212,6 +212,12 @@
     <ProjectReference Include="..\..\libs\elf_spec\elf_spec.vcxproj">
       <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\libs\shared\user\shared_user.vcxproj">
+      <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\libs\store_helper\user\ebpf_store_helper_um.vcxproj">
+      <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
     </ProjectReference>

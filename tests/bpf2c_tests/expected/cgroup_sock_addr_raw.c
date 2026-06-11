@@ -1420,7 +1420,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_connect4,
         "cgroup~8",
         "cgroup/connect4",
@@ -1429,13 +1429,15 @@ static program_entry_t _programs[] = {
         2,
         authorize_connect4_helpers,
         3,
+        NULL,
+        0,
         34,
         &authorize_connect4_program_type_guid,
         &authorize_connect4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_connect6,
         "cgroup~7",
         "cgroup/connect6",
@@ -1444,13 +1446,15 @@ static program_entry_t _programs[] = {
         2,
         authorize_connect6_helpers,
         3,
+        NULL,
+        0,
         40,
         &authorize_connect6_program_type_guid,
         &authorize_connect6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_listen4,
         "cgroup~2",
         "cgroup/listen4",
@@ -1459,13 +1463,15 @@ static program_entry_t _programs[] = {
         1,
         authorize_listen4_helpers,
         1,
+        NULL,
+        0,
         24,
         &authorize_listen4_program_type_guid,
         &authorize_listen4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_listen6,
         "cgroup~1",
         "cgroup/listen6",
@@ -1474,13 +1480,15 @@ static program_entry_t _programs[] = {
         1,
         authorize_listen6_helpers,
         1,
+        NULL,
+        0,
         24,
         &authorize_listen6_program_type_guid,
         &authorize_listen6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_recv_accept4,
         "cgroup~6",
         "cgroup/recv_accept4",
@@ -1489,13 +1497,15 @@ static program_entry_t _programs[] = {
         2,
         authorize_recv_accept4_helpers,
         3,
+        NULL,
+        0,
         34,
         &authorize_recv_accept4_program_type_guid,
         &authorize_recv_accept4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         authorize_recv_accept6,
         "cgroup~5",
         "cgroup/recv_accept6",
@@ -1504,13 +1514,15 @@ static program_entry_t _programs[] = {
         2,
         authorize_recv_accept6_helpers,
         3,
+        NULL,
+        0,
         40,
         &authorize_recv_accept6_program_type_guid,
         &authorize_recv_accept6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_authorization4,
         "cgroup~4",
         "cgroup/connect_authorization4",
@@ -1519,13 +1531,15 @@ static program_entry_t _programs[] = {
         2,
         connect_authorization4_helpers,
         3,
+        NULL,
+        0,
         34,
         &connect_authorization4_program_type_guid,
         &connect_authorization4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_authorization6,
         "cgroup~3",
         "cgroup/connect_authorization6",
@@ -1534,6 +1548,8 @@ static program_entry_t _programs[] = {
         2,
         connect_authorization6_helpers,
         3,
+        NULL,
+        0,
         40,
         &connect_authorization6_program_type_guid,
         &connect_authorization6_attach_type_guid,

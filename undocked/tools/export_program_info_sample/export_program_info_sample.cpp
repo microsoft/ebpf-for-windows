@@ -24,6 +24,26 @@ typedef struct _ebpf_program_section_info_with_count
 
 static const ebpf_program_info_t* _program_information_array[] = {&_sample_ebpf_extension_program_info};
 
+static const GUID _sample_btf_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER;
+
+static const ebpf_btf_resolved_function_prototype_t _sample_btf_function_prototypes[] = {
+    {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
+     SAMPLE_EXT_BTF_FUNCTION_NAME,
+     SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_DONTCARE,
+      EBPF_ARGUMENT_TYPE_DONTCARE},
+     0}};
+
+static const ebpf_btf_resolved_function_provider_info_t _sample_btf_provider_info = {
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_HEADER,
+    _sample_btf_module_guid,
+    static_cast<uint32_t>(_countof(_sample_btf_function_prototypes)),
+    _sample_btf_function_prototypes};
+
 ebpf_program_section_info_t _sample_ext_section_info[] = {
     {EBPF_PROGRAM_SECTION_INFORMATION_HEADER,
      L"sample_ext",
@@ -66,6 +86,12 @@ export_section_information()
 }
 
 uint32_t
+export_btf_resolved_function_information()
+{
+    return ebpf_store_update_btf_resolved_function_provider_information(&_sample_btf_provider_info);
+}
+
+uint32_t
 clear_ebpf_store()
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -85,6 +111,12 @@ clear_ebpf_store()
             std::cout << "Failed to delete program information" << std::endl;
             return_result = result;
         }
+    }
+
+    result = ebpf_store_delete_btf_resolved_function_provider_information(&_sample_btf_provider_info);
+    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+        std::cout << "Failed to delete BTF-resolved function provider information" << std::endl;
+        return_result = result;
     }
 
     return return_result;

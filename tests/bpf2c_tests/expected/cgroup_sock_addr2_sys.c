@@ -1361,7 +1361,7 @@ label_3:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_authorization4,
         "cgroup~2",
         "cgroup/connect_authorization4",
@@ -1370,13 +1370,15 @@ static program_entry_t _programs[] = {
         1,
         connect_authorization4_helpers,
         1,
+        NULL,
+        0,
         26,
         &connect_authorization4_program_type_guid,
         &connect_authorization4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
@@ -1385,13 +1387,15 @@ static program_entry_t _programs[] = {
         1,
         connect_authorization6_helpers,
         1,
+        NULL,
+        0,
         31,
         &connect_authorization6_program_type_guid,
         &connect_authorization6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_redirect4,
         "cgroup~4",
         "cgroup/connect4",
@@ -1400,13 +1404,15 @@ static program_entry_t _programs[] = {
         2,
         connect_redirect4_helpers,
         8,
+        NULL,
+        0,
         101,
         &connect_redirect4_program_type_guid,
         &connect_redirect4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         connect_redirect6,
         "cgroup~3",
         "cgroup/connect6",
@@ -1415,6 +1421,8 @@ static program_entry_t _programs[] = {
         2,
         connect_redirect6_helpers,
         8,
+        NULL,
+        0,
         109,
         &connect_redirect6_program_type_guid,
         &connect_redirect6_attach_type_guid,

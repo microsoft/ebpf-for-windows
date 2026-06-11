@@ -745,7 +745,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         entry_program1,
         "bind/1",
         "bind/1",
@@ -754,13 +754,15 @@ static program_entry_t _programs[] = {
         0,
         entry_program1_helpers,
         4,
+        NULL,
+        0,
         17,
         &entry_program1_program_type_guid,
         &entry_program1_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         entry_program2,
         "bind/2",
         "bind/2",
@@ -769,13 +771,15 @@ static program_entry_t _programs[] = {
         0,
         entry_program2_helpers,
         4,
+        NULL,
+        0,
         13,
         &entry_program2_program_type_guid,
         &entry_program2_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         entry_program3,
         "bind/3",
         "bind/3",
@@ -784,6 +788,8 @@ static program_entry_t _programs[] = {
         1,
         entry_program3_helpers,
         4,
+        NULL,
+        0,
         12,
         &entry_program3_program_type_guid,
         &entry_program3_attach_type_guid,

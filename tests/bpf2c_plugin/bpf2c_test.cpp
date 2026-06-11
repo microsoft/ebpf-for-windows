@@ -21,18 +21,20 @@
 extern metadata_table_t metadata_table;
 
 static uint64_t
-_gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
+    UNREFERENCED_PARAMETER(context);
     return ((uint64_t)(a & 0xff) << 32) | ((uint64_t)(b & 0xff) << 24) | ((uint64_t)(c & 0xff) << 16) |
            ((uint64_t)(d & 0xff) << 8) | (e & 0xff);
 }
 
 static uint64_t
-_memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
+    UNREFERENCED_PARAMETER(context);
 
     uint8_t* p = reinterpret_cast<uint8_t*>(a);
     for (uint64_t i = 0; i < b; i++) {
@@ -42,48 +44,67 @@ _memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 }
 
 static uint64_t
-_no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
     UNREFERENCED_PARAMETER(a);
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
+    UNREFERENCED_PARAMETER(context);
 
     return 0;
 }
 
 static uint64_t
-_sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
+    UNREFERENCED_PARAMETER(context);
 
     return static_cast<uint64_t>(std::sqrt(a));
 }
 
 static uint64_t
-_strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
+    UNREFERENCED_PARAMETER(context);
     return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
 }
 
 static uint64_t
-_unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
+_unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
+    UNREFERENCED_PARAMETER(context);
     return a;
 }
 
-static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)>
+static uint64_t
+_my_driver_lookup(
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+{
+    UNREFERENCED_PARAMETER(reserved1);
+    UNREFERENCED_PARAMETER(reserved2);
+    UNREFERENCED_PARAMETER(context);
+
+    if (value != 0 && value_size >= sizeof(uint64_t)) {
+        *reinterpret_cast<uint64_t*>(value) = key;
+    }
+
+    return key + value_size;
+}
+
+static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context)>
     _helper_functions = {
         {0, _gather_bytes},
         {1, _memfrob},
@@ -91,6 +112,10 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
         {3, _sqrti},
         {4, _strcmp_ext},
         {5, _unwind},
+};
+
+static std::map<std::string, helper_function_t> _btf_resolved_functions = {
+    {"my_driver_lookup", _my_driver_lookup},
 };
 
 /**
@@ -147,10 +172,12 @@ main(int argc, char** argv)
     size_t program_entry_count = 0;
     std::vector<program_runtime_context_t> runtime_contexts;
     std::vector<std::vector<helper_function_data_t>> helper_function_array;
+    std::vector<std::vector<btf_resolved_function_data_t>> btf_resolved_function_array;
 
     metadata_table.programs(&program_entries, &program_entry_count);
     runtime_contexts.resize(program_entry_count);
     helper_function_array.resize(program_entry_count);
+    btf_resolved_function_array.resize(program_entry_count);
 
     if (program_entry_count != 1) {
         std::cerr << "Expected 1 program, found " << program_entry_count << std::endl;
@@ -161,10 +188,14 @@ main(int argc, char** argv)
     for (size_t i = 0; i < program_entry_count; i++) {
         helper_function_entry_t* helper_function_entries = program_entries[i].helpers;
         size_t helper_function_entry_count = program_entries[i].helper_count;
+        auto* btf_resolved_function_entries = program_entries[i].btf_resolved_functions;
+        size_t btf_resolved_function_entry_count = program_entries[i].btf_resolved_function_count;
 
         program_runtime_context_t* runtime_context = &runtime_contexts[i];
         helper_function_array[i].resize(helper_function_entry_count);
         runtime_context->helper_data = helper_function_array[i].data();
+        btf_resolved_function_array[i].resize(btf_resolved_function_entry_count);
+        runtime_context->btf_resolved_function_data = btf_resolved_function_array[i].data();
 
         for (size_t j = 0; j < helper_function_entry_count; j++) {
             if (helper_function_entries[j].helper_id == -1) {
@@ -178,6 +209,17 @@ main(int argc, char** argv)
                 runtime_context->helper_data[j].address =
                     reinterpret_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
             }
+        }
+
+        for (size_t j = 0; j < btf_resolved_function_entry_count; j++) {
+            auto function = _btf_resolved_functions.find(btf_resolved_function_entries[j].name);
+            if (function == _btf_resolved_functions.end()) {
+                std::cout << "bpf_test doesn't support BTF-resolved function " << btf_resolved_function_entries[j].name
+                          << std::endl;
+                return -1;
+            }
+
+            runtime_context->btf_resolved_function_data[j].address = function->second;
         }
     }
 

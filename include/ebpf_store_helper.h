@@ -20,6 +20,30 @@ extern "C"
     extern ebpf_store_key_t ebpf_store_hklm_root_key;
     extern const wchar_t* ebpf_store_root_sub_key;
 
+    typedef struct _ebpf_btf_resolved_function_provider_info
+    {
+        ebpf_extension_header_t header;
+        GUID module_guid;
+        uint32_t btf_resolved_function_count;
+        const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
+    } ebpf_btf_resolved_function_provider_info_t;
+
+    typedef struct _ebpf_btf_resolved_function_info
+    {
+        GUID module_guid;
+        ebpf_btf_resolved_function_prototype_t prototype;
+    } ebpf_btf_resolved_function_info_t;
+
+#define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION 1
+#define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_btf_resolved_function_provider_info_t, btf_resolved_function_prototypes)
+#define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_TOTAL_SIZE \
+    sizeof(ebpf_btf_resolved_function_provider_info_t)
+#define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_HEADER             \
+    {EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION,      \
+     EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_SIZE, \
+     EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_TOTAL_SIZE}
+
     /**
      * @brief Update global helper information in the eBPF store.
      *
@@ -55,6 +79,28 @@ extern "C"
     ebpf_result_t
     ebpf_store_update_program_information_array(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
+
+    /**
+     * @brief Update BTF-resolved function provider information in the eBPF store.
+     *
+     * @param[in] provider_info Pointer to the BTF-resolved function provider information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_update_btf_resolved_function_provider_information(
+        _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info);
+
+    /**
+     * @brief Delete BTF-resolved function provider information from the eBPF store.
+     *
+     * @param[in] provider_info Pointer to the BTF-resolved function provider information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_btf_resolved_function_provider_information(
+        _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info);
 
     /**
      * @brief Delete program information from the eBPF store.

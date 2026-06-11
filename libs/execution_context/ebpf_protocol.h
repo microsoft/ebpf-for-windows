@@ -6,6 +6,7 @@
 // This file must only include headers that are safe
 // to include in both user mode and kernel mode.
 #include "ebpf_core_structs.h"
+#include "ebpf_program_types.h"
 
 typedef enum _ebpf_operation_id
 {
@@ -55,6 +56,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
     EBPF_OPERATION_EPOCH_SYNCHRONIZE,
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
+    EBPF_OPERATION_SET_BTF_RESOLVED_FUNCTIONS,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -96,6 +98,24 @@ typedef struct _ebpf_operation_resolve_helper_reply
     struct _ebpf_operation_header header;
     helper_function_address_t address[1];
 } ebpf_operation_resolve_helper_reply_t;
+
+typedef struct _ebpf_serialized_btf_resolved_function
+{
+    GUID module_guid;
+    ebpf_return_type_t return_type;
+    ebpf_argument_type_t arguments[5];
+    uint32_t flags;
+    uint32_t name_length;
+    char name[1];
+} ebpf_serialized_btf_resolved_function_t;
+
+typedef struct _ebpf_operation_set_btf_resolved_functions_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t program_handle;
+    uint32_t count;
+    uint8_t data[1];
+} ebpf_operation_set_btf_resolved_functions_request_t;
 
 typedef struct _ebpf_operation_resolve_map_request
 {

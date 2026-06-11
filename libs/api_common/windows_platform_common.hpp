@@ -4,6 +4,15 @@
 #pragma once
 
 #include "ebpf_structs.h"
+#include "ir/syntax.hpp"
+#include "platform.hpp"
+
+#include <optional>
+#include <string>
+
+namespace libbtf {
+class btf_type_data;
+}
 
 prevail::EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n, const prevail::EbpfProgramType& program_type);
@@ -48,6 +57,19 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
     get_program_type_info(const prevail::EbpfProgramType& program_type, _Outptr_ const ebpf_program_info_t** info);
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t get_btf_resolved_function_info_from_tls(
+    int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info);
+
+void
+cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data);
+
+std::optional<prevail::KsymBtfId>
+resolve_ksym_btf_id_windows(const std::string& name);
+
+std::optional<prevail::ResolvedCall>
+resolve_kfunc_call_windows(
+    int32_t btf_id, int16_t module, const prevail::EbpfProgramType& program_type, std::string* why_not);
 
 void
 set_verification_program_type(const prevail::EbpfProgramType* type);

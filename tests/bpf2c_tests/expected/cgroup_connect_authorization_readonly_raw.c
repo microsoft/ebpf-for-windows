@@ -189,11 +189,13 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         mutate_connect_authorization4,
         "cgroup~2",
         "cgroup/connect_authorization4",
         "mutate_connect_authorization4",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
@@ -204,11 +206,13 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         mutate_connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
         "mutate_connect_authorization6",
+        NULL,
+        0,
         NULL,
         0,
         NULL,
