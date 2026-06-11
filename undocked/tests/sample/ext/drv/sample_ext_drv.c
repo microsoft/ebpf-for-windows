@@ -53,6 +53,8 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _sample_ebpf_ext_driver_unloading_flag = TRUE;
 
+    sample_ebpf_extension_btf_provider_unregister();
+
     sample_ebpf_extension_hook_provider_unregister();
 
     sample_ebpf_extension_program_info_provider_unregister();
@@ -162,6 +164,11 @@ _sample_ebpf_ext_driver_initialize_objects(
         goto Exit;
     }
 
+    status = sample_ebpf_extension_btf_provider_register();
+    if (!NT_SUCCESS(status)) {
+        goto Exit;
+    }
+
     status = sample_ebpf_extension_program_info_provider_register();
     if (!NT_SUCCESS(status)) {
         goto Exit;
@@ -176,6 +183,11 @@ _sample_ebpf_ext_driver_initialize_objects(
 
 Exit:
     if (!NT_SUCCESS(status)) {
+        sample_ebpf_extension_hook_provider_unregister();
+        sample_ebpf_extension_program_info_provider_unregister();
+        sample_ebpf_extension_btf_provider_unregister();
+        sample_ebpf_extension_map_provider_unregister();
+
         if (device_create_flag && device != NULL) {
             //
             // Release the reference on the newly created object, since

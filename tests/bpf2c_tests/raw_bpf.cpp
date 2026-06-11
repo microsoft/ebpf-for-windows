@@ -131,7 +131,7 @@ prepare_ubpf_vm(const std::vector<ebpf_inst> instructions)
     ubpf_toggle_readonly_bytecode(vm, false);
 
     for (auto& [key, value] : helper_functions) {
-        REQUIRE(ubpf_register(vm, key, "unnamed", value) == 0);
+        REQUIRE(ubpf_register(vm, key, "unnamed", reinterpret_cast<external_function_t>(value)) == 0);
     }
     REQUIRE(ubpf_set_unwind_function_index(vm, 5) == 0);
 
@@ -207,7 +207,7 @@ void
 run_bpf_code_generator_test(const std::string& data_file)
 {
     std::string cc = env_or_default("CC", "cl.exe");
-    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo");
+    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo /FS");
 
     auto [prefix, mem, result, instructions] = parse_test_file(data_file);
 
@@ -223,10 +223,19 @@ run_bpf_code_generator_test(const std::string& data_file)
     c_file.flush();
     c_file.close();
 
-    std::string compile_command = cc + std::string(" ") + cxxflags +
-                                  std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string("/Zi ") +
-                                  std::string(prefix) + std::string(".c ") + std::string(" bpf_test.cpp >") +
-                                  std::string(prefix) + std::string(".log 2>&1");
+    std::string generated_object = std::string(prefix) + std::string(".obj");
+    std::string test_object = std::string("bpf_test_") + std::string(prefix) + std::string(".obj");
+    std::string generated_pdb = std::string(prefix) + std::string(".pdb");
+    std::string test_pdb = std::string("bpf_test_") + std::string(prefix) + std::string(".pdb");
+    std::string log_file = std::string(prefix) + std::string(".log");
+    std::string compile_command =
+        cc + std::string(" ") + cxxflags + std::string(" -I.." SEPARATOR ".." SEPARATOR "include /Zi /c /Fo") +
+        generated_object + std::string(" /Fd") + generated_pdb + std::string(" ") + prefix + std::string(".c >") +
+        log_file + std::string(" 2>&1 && ") + cc + std::string(" ") + cxxflags +
+        std::string(" -I.." SEPARATOR ".." SEPARATOR "include /Zi /c /Fo") + test_object + std::string(" /Fd") +
+        test_pdb + std::string(" bpf_test.cpp >>") + log_file + std::string(" 2>&1 && ") + cc + std::string(" ") +
+        cxxflags + std::string(" /Fe") + prefix + std::string(" ") + generated_object + std::string(" ") + test_object +
+        std::string(" >>") + log_file + std::string(" 2>&1");
     REQUIRE(system(compile_command.c_str()) == 0);
     std::string test_command = std::string("." SEPARATOR) + std::string(prefix) + std::string(" ") +
                                std::string(result) + std::string(" \"") + std::string(mem) + std::string("\"");

@@ -149,7 +149,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         divide_by_zero,
         "sample~1",
         "sample_ext",
@@ -158,6 +158,8 @@ static program_entry_t _programs[] = {
         1,
         divide_by_zero_helpers,
         1,
+        NULL,
+        0,
         13,
         &divide_by_zero_program_type_guid,
         &divide_by_zero_attach_type_guid,

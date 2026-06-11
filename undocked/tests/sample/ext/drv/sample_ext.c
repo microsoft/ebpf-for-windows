@@ -78,6 +78,9 @@ _sample_ext_helper_map_get_value(
     _Out_writes_(value_size) uint8_t* value,
     size_t value_size,
     uint64_t dummy_param1);
+static uint64_t
+_sample_ebpf_extension_btf_lookup(
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context);
 
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
@@ -97,6 +100,29 @@ static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+
+static const ebpf_btf_resolved_function_prototype_t _sample_ebpf_extension_btf_function_prototypes[] = {
+    {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
+     SAMPLE_EXT_BTF_FUNCTION_NAME,
+     SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE,
+      EBPF_ARGUMENT_TYPE_DONTCARE,
+      EBPF_ARGUMENT_TYPE_DONTCARE},
+     0}};
+
+static const uint64_t _sample_ebpf_extension_btf_function_addresses[] = {(uint64_t)&_sample_ebpf_extension_btf_lookup};
+
+static const ebpf_btf_resolved_function_provider_data_t _sample_ebpf_extension_btf_provider_data = {
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_HEADER,
+    EBPF_COUNT_OF(_sample_ebpf_extension_btf_function_prototypes),
+    _sample_ebpf_extension_btf_function_prototypes,
+    _sample_ebpf_extension_btf_function_addresses};
+
+NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_btf_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER};
 
 //
 // Sample Map Provider Implementation.
@@ -524,6 +550,92 @@ Exit:
     return status;
 }
 
+typedef struct _sample_ebpf_extension_btf_provider
+{
+    HANDLE nmr_provider_handle;
+} sample_ebpf_extension_btf_provider_t;
+
+static sample_ebpf_extension_btf_provider_t _sample_ebpf_extension_btf_provider_context = {NULL};
+
+static NTSTATUS
+_sample_ebpf_extension_btf_provider_attach_client(
+    _In_ HANDLE nmr_binding_handle,
+    _In_ const void* provider_context,
+    _In_ const NPI_REGISTRATION_INSTANCE* client_registration_instance,
+    _In_ const void* client_binding_context,
+    _In_ const void* client_dispatch,
+    _Outptr_ void** provider_binding_context,
+    _Outptr_result_maybenull_ const void** provider_dispatch)
+{
+    UNREFERENCED_PARAMETER(nmr_binding_handle);
+    UNREFERENCED_PARAMETER(client_registration_instance);
+    UNREFERENCED_PARAMETER(client_binding_context);
+    UNREFERENCED_PARAMETER(client_dispatch);
+
+    if (provider_binding_context == NULL || provider_dispatch == NULL || provider_context == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    *provider_binding_context = (void*)provider_context;
+    *provider_dispatch = NULL;
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS
+_sample_ebpf_extension_btf_provider_detach_client(_In_ const void* provider_binding_context)
+{
+    UNREFERENCED_PARAMETER(provider_binding_context);
+    return STATUS_SUCCESS;
+}
+
+static const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_btf_provider_characteristics = {
+    0,
+    sizeof(NPI_PROVIDER_CHARACTERISTICS),
+    _sample_ebpf_extension_btf_provider_attach_client,
+    _sample_ebpf_extension_btf_provider_detach_client,
+    NULL,
+    {
+        0,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID,
+        &_sample_ebpf_extension_btf_provider_moduleid,
+        0,
+        &_sample_ebpf_extension_btf_provider_data,
+    }};
+
+void
+sample_ebpf_extension_btf_provider_unregister()
+{
+    sample_ebpf_extension_btf_provider_t* provider_context = &_sample_ebpf_extension_btf_provider_context;
+
+    if (provider_context->nmr_provider_handle != NULL) {
+        NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        } else {
+            CXPLAT_RUNTIME_ASSERT(status == STATUS_SUCCESS);
+        }
+
+        provider_context->nmr_provider_handle = NULL;
+    }
+}
+
+NTSTATUS
+sample_ebpf_extension_btf_provider_register()
+{
+    sample_ebpf_extension_btf_provider_t* local_provider_context = &_sample_ebpf_extension_btf_provider_context;
+    NTSTATUS status = NmrRegisterProvider(
+        &_sample_ebpf_extension_btf_provider_characteristics,
+        local_provider_context,
+        &local_provider_context->nmr_provider_handle);
+
+    if (!NT_SUCCESS(status)) {
+        sample_ebpf_extension_btf_provider_unregister();
+    }
+
+    return status;
+}
+
 //
 // Hook Provider.
 //
@@ -919,6 +1031,21 @@ _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* con
 {
     UNREFERENCED_PARAMETER(context);
     return 0;
+}
+
+static uint64_t
+_sample_ebpf_extension_btf_lookup(
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+{
+    UNREFERENCED_PARAMETER(reserved1);
+    UNREFERENCED_PARAMETER(reserved2);
+    UNREFERENCED_PARAMETER(context);
+
+    if (value != 0 && value_size >= sizeof(uint64_t)) {
+        *(uint64_t*)value = key;
+    }
+
+    return key + value_size;
 }
 
 static int64_t

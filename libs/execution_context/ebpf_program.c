@@ -87,6 +87,9 @@ typedef struct _ebpf_program
     size_t helper_function_count;
     uint32_t* helper_function_ids;
     bool helper_ids_set;
+    size_t btf_resolved_function_count;
+    btf_resolved_function_entry_t* btf_resolved_functions;
+    bool btf_resolved_functions_set;
     uint64_t flags;
 
     // Lock protecting the fields below.
@@ -205,9 +208,83 @@ ebpf_program_terminate()
 {
 }
 
+static int __cdecl _ebpf_program_compare_btf_resolved_function_entries(
+    _In_opt_ void* context, _In_ const void* left, _In_ const void* right)
+{
+    UNREFERENCED_PARAMETER(context);
+
+    const btf_resolved_function_entry_t* left_entry = (const btf_resolved_function_entry_t*)left;
+    const btf_resolved_function_entry_t* right_entry = (const btf_resolved_function_entry_t*)right;
+    int result = memcmp(&left_entry->module_guid, &right_entry->module_guid, sizeof(GUID));
+    if (result != 0) {
+        return result;
+    }
+
+    return strcmp(left_entry->name, right_entry->name);
+}
+
+static void
+_ebpf_program_free_btf_resolved_function_names(
+    size_t btf_resolved_function_count,
+    _In_reads_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions)
+{
+    for (size_t index = 0; index < btf_resolved_function_count; index++) {
+#pragma warning(suppress : 6001)
+        ebpf_free((void*)btf_resolved_functions[index].name);
+    }
+}
+
+static void
+_ebpf_program_clear_btf_resolved_function_entries(_Inout_ ebpf_program_t* program)
+{
+    if (program->btf_resolved_functions != NULL) {
+        if (program->btf_resolved_functions_set) {
+            _ebpf_program_free_btf_resolved_function_names(
+                program->btf_resolved_function_count, program->btf_resolved_functions);
+        }
+        ebpf_free(program->btf_resolved_functions);
+        program->btf_resolved_functions = NULL;
+    }
+
+    program->btf_resolved_function_count = 0;
+    program->btf_resolved_functions_set = false;
+}
+
+static ebpf_result_t
+_ebpf_program_update_hash_with_btf_resolved_function(
+    _In_ void* hash_context, _In_ const btf_resolved_function_entry_t* function_entry)
+{
+    ebpf_result_t return_value;
+    return_value = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->module_guid);
+    if (return_value != EBPF_SUCCESS) {
+        return return_value;
+    }
+
+    return_value = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(hash_context, function_entry->name);
+    if (return_value != EBPF_SUCCESS) {
+        return return_value;
+    }
+
+    return_value = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->return_type);
+    if (return_value != EBPF_SUCCESS) {
+        return return_value;
+    }
+
+    for (uint32_t index = 0; index < EBPF_COUNT_OF(function_entry->arguments); index++) {
+        return_value = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->arguments[index]);
+        if (return_value != EBPF_SUCCESS) {
+            return return_value;
+        }
+    }
+
+    return EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->flags);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
+    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions,
+    size_t btf_resolved_function_count,
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,
     _In_ const cxplat_utf8_string_t* hash_algorithm,
@@ -414,6 +491,8 @@ _ebpf_program_type_specific_program_information_attach_provider(
     size_t hash_length = 0;
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
+    btf_resolved_function_entry_t* actual_btf_resolved_functions = NULL;
+    size_t actual_btf_resolved_function_count = 0;
     bool actual_helper_ids_set = false;
 
     void* provider_binding_context;
@@ -479,6 +558,8 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
+    actual_btf_resolved_functions = program->btf_resolved_functions;
+    actual_btf_resolved_function_count = program->btf_resolved_function_count;
     actual_helper_ids_set = program->helper_ids_set;
 
     ebpf_lock_unlock(&program->lock, state);
@@ -491,6 +572,8 @@ _ebpf_program_type_specific_program_information_attach_provider(
         if (_ebpf_program_compute_program_information_hash(
                 actual_helper_function_ids,
                 actual_helper_function_count,
+                actual_btf_resolved_functions,
+                actual_btf_resolved_function_count,
                 general_program_information_data,
                 extension_program_data,
                 &hash_algorithm,
@@ -729,6 +812,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
     ebpf_free_trampoline_table(program->trampoline_table);
 
     ebpf_free(program->helper_function_ids);
+    _ebpf_program_clear_btf_resolved_function_entries(program);
 
     ebpf_free(program);
     EBPF_RETURN_VOID();
@@ -1601,11 +1685,18 @@ ebpf_program_invoke(
             &current_program->parameters.program_name);
 
         if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+            const ebpf_native_module_binding_context_t* native_module_context =
+                current_program->code_or_vm.native.code_context.native_module_context;
             const program_runtime_context_t* runtime_context =
                 current_program->code_or_vm.native.code_context.runtime_context;
             ebpf_program_native_entry_point_t function_pointer;
+            if (ebpf_native_acquire_btf_references(native_module_context) != EBPF_SUCCESS) {
+                *result = 0;
+                return EBPF_EXTENSION_FAILED_TO_LOAD;
+            }
             function_pointer = (ebpf_program_native_entry_point_t)(current_program->code_or_vm.native.code_pointer);
             *result = (function_pointer)(context, runtime_context);
+            ebpf_native_release_btf_references(native_module_context);
         } else if (current_program->parameters.code_type == EBPF_CODE_JIT) {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
             ebpf_program_entry_point_t function_pointer;
@@ -1876,6 +1967,96 @@ ebpf_program_clear_helper_function_ids(_Inout_ ebpf_program_t* program)
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_program_set_btf_resolved_function_entries(
+    _Inout_ ebpf_program_t* program,
+    size_t btf_resolved_function_count,
+    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions)
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = 0;
+    size_t initialized_entry_count = 0;
+
+    state = ebpf_lock_lock(&program->lock);
+
+    if (btf_resolved_function_count == 0) {
+        program->btf_resolved_functions_set = true;
+        goto Exit;
+    }
+
+    if ((btf_resolved_functions == NULL) || (program->btf_resolved_functions != NULL)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    size_t entries_length = 0;
+    result =
+        ebpf_safe_size_t_multiply(sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    program->btf_resolved_functions = ebpf_allocate_with_tag(entries_length, EBPF_POOL_TAG_PROGRAM);
+    if (program->btf_resolved_functions == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(program->btf_resolved_functions, 0, entries_length);
+    program->btf_resolved_function_count = btf_resolved_function_count;
+
+    for (size_t index = 0; index < btf_resolved_function_count; index++) {
+        size_t name_length = strlen(btf_resolved_functions[index].name) + 1;
+        char* duplicated_name = ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
+        if (duplicated_name == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        memcpy(duplicated_name, btf_resolved_functions[index].name, name_length);
+        program->btf_resolved_functions[index] = btf_resolved_functions[index];
+        program->btf_resolved_functions[index].name = duplicated_name;
+        initialized_entry_count++;
+    }
+
+    program->btf_resolved_functions_set = true;
+
+    qsort_s(
+        program->btf_resolved_functions,
+        program->btf_resolved_function_count,
+        sizeof(program->btf_resolved_functions[0]),
+        _ebpf_program_compare_btf_resolved_function_entries,
+        NULL);
+
+Exit:
+    if (result != EBPF_SUCCESS) {
+        if (program->btf_resolved_functions != NULL) {
+            for (size_t index = 0; index < initialized_entry_count; index++) {
+                ebpf_free((void*)program->btf_resolved_functions[index].name);
+            }
+            ebpf_free(program->btf_resolved_functions);
+            program->btf_resolved_functions = NULL;
+        }
+        program->btf_resolved_function_count = 0;
+        program->btf_resolved_functions_set = false;
+    }
+
+    ebpf_lock_unlock(&program->lock, state);
+    EBPF_RETURN_RESULT(result);
+}
+
+void
+ebpf_program_clear_btf_resolved_function_entries(_Inout_ ebpf_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_lock_state_t state = 0;
+
+    state = ebpf_lock_lock(&program->lock);
+    _ebpf_program_clear_btf_resolved_function_entries(program);
+    ebpf_lock_unlock(&program->lock, state);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
@@ -1887,6 +2068,8 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     cxplat_utf8_string_t hash_algorithm = {0};
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
+    btf_resolved_function_entry_t* actual_btf_resolved_functions = NULL;
+    size_t actual_btf_resolved_function_count = 0;
     uint8_t* hash = NULL;
     size_t hash_length = 0;
     ebpf_lock_state_t state = 0;
@@ -1916,6 +2099,8 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     extension_program_data = program->extension_program_data;
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
+    actual_btf_resolved_functions = program->btf_resolved_functions;
+    actual_btf_resolved_function_count = program->btf_resolved_function_count;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -1924,6 +2109,8 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     result = _ebpf_program_compute_program_information_hash(
         actual_helper_function_ids,
         actual_helper_function_count,
+        actual_btf_resolved_functions,
+        actual_btf_resolved_function_count,
         general_program_information_data,
         extension_program_data,
         &hash_algorithm,
@@ -2261,6 +2448,8 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
+    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions,
+    size_t btf_resolved_function_count,
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,
     _In_ const cxplat_utf8_string_t* hash_algorithm,
@@ -2348,6 +2537,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   c. Helper return type.
     //   d. Helper argument types.
     //   e. reallocate_packet flag (if set).
+    // 8. Count of BTF-resolved functions.
+    // 9. For each BTF-resolved function (sorted by module GUID then name).
+    //   a. Module GUID.
+    //   b. Function name.
+    //   c. Return type.
+    //   d. Argument types.
+    //   e. Flags.
 
     // Note:
     // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
@@ -2421,6 +2617,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
             }
         }
     }
+
+    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, btf_resolved_function_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    for (size_t index = 0; index < btf_resolved_function_count; index++) {
+        result =
+            _ebpf_program_update_hash_with_btf_resolved_function(cryptographic_hash, &btf_resolved_functions[index]);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+    }
+
     *hash_length = 0;
     result = ebpf_cryptographic_hash_get_hash_length(cryptographic_hash, hash_length);
     if (result != EBPF_SUCCESS) {

@@ -2970,6 +2970,36 @@ typedef struct _ebpf_pe_context
     const bounded_buffer* data_buffer;
 } ebpf_pe_context_t;
 
+static void
+_ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size) noexcept
+{
+    memset(destination, 0, sizeof(*destination));
+
+    if (source_size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
+        const program_entry_v1_t* source_entry = reinterpret_cast<const program_entry_v1_t*>(source);
+
+        destination->zero = source_entry->zero;
+        destination->header = source_entry->header;
+        destination->function = source_entry->function;
+        destination->pe_section_name = source_entry->pe_section_name;
+        destination->section_name = source_entry->section_name;
+        destination->program_name = source_entry->program_name;
+        destination->referenced_map_indices = source_entry->referenced_map_indices;
+        destination->referenced_map_count = source_entry->referenced_map_count;
+        destination->helpers = source_entry->helpers;
+        destination->helper_count = source_entry->helper_count;
+        destination->bpf_instruction_count = source_entry->bpf_instruction_count;
+        destination->program_type = source_entry->program_type;
+        destination->expected_attach_type = source_entry->expected_attach_type;
+        destination->program_info_hash = source_entry->program_info_hash;
+        destination->program_info_hash_length = source_entry->program_info_hash_length;
+        destination->program_info_hash_type = source_entry->program_info_hash_type;
+    } else {
+        size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
+        memcpy(destination, source, program_copy_size);
+    }
+}
+
 static int // Returns 0 on success, 1 on error.
 _ebpf_pe_get_map_definitions(
     _Inout_ void* context,
@@ -3126,9 +3156,27 @@ _ebpf_pe_get_section_names(
                 (program_offset > 0 && buffer->buf[program_offset - 1] != 0))) {
             program_offset += 16;
         }
-        int program_count = (section_header.Misc.VirtualSize - program_offset) / sizeof(program_entry_t);
-        for (int i = 0; i < program_count; i++) {
-            program_entry_t* program = (program_entry_t*)(buffer->buf + program_offset + i * sizeof(program_entry_t));
+        if (program_offset + offsetof(program_entry_t, header) + sizeof(ebpf_extension_header_t) >
+            section_header.Misc.VirtualSize) {
+            pe_context->result = EBPF_INVALID_ARGUMENT;
+            return 1;
+        }
+
+        const program_entry_t* first_program = reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset);
+        if (!ebpf_validate_object_header_native_program_entry(&first_program->header) ||
+            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
+            pe_context->result = EBPF_INVALID_ARGUMENT;
+            return 1;
+        }
+
+        size_t program_entry_size = first_program->header.total_size;
+        size_t program_count = (section_header.Misc.VirtualSize - program_offset) / program_entry_size;
+        for (size_t i = 0; i < program_count; i++) {
+            program_entry_t local_program = {};
+            const program_entry_t* program = reinterpret_cast<const program_entry_t*>(
+                buffer->buf + program_offset + i * program_entry_size);
+            _ebpf_pe_copy_program_entry(&local_program, program, program_entry_size);
+            program = &local_program;
             const char* pe_section_name =
                 _ebpf_get_section_string(pe_context, (uintptr_t)program->pe_section_name, section_header, buffer);
             const char* elf_section_name =
@@ -4868,6 +4916,19 @@ ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program
     EBPF_LOG_ENTRY();
 
     result = get_program_type_info_from_tls(program_info);
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_btf_resolved_function_info_from_verifier(
+    int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info) NO_EXCEPT_TRY
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    EBPF_LOG_ENTRY();
+
+    result = get_btf_resolved_function_info_from_tls(btf_id, function_info);
 
     EBPF_RETURN_RESULT(result);
 }

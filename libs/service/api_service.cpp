@@ -6,6 +6,7 @@
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 #include "hash.h"
 #include "map_descriptors.hpp"
 #include "platform.h"
@@ -157,6 +158,87 @@ _build_helper_id_to_address_map(
     }
 
     return EBPF_SUCCESS;
+}
+
+static std::string
+_btf_resolved_function_key(const ebpf_btf_resolved_function_info_t& function_info)
+{
+    return std::string(reinterpret_cast<const char*>(&function_info.module_guid), sizeof(function_info.module_guid)) +
+           function_info.prototype.name;
+}
+
+static ebpf_result_t
+_set_btf_resolved_function_entries(
+    ebpf_handle_t program_handle,
+    _In_reads_(instruction_count) const ebpf_inst* instructions,
+    uint32_t instruction_count)
+{
+    std::map<std::string, const ebpf_btf_resolved_function_info_t*> dependencies;
+
+    for (uint32_t index = 0; index < instruction_count; index++) {
+        const ebpf_inst& instruction = instructions[index];
+        if (instruction.opcode != prevail::INST_OP_CALL || instruction.src != prevail::INST_CALL_BTF_HELPER) {
+            continue;
+        }
+
+        const ebpf_btf_resolved_function_info_t* function_info = nullptr;
+        ebpf_result_t result = get_btf_resolved_function_info_from_tls(instruction.imm, &function_info);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
+
+        dependencies.try_emplace(_btf_resolved_function_key(*function_info), function_info);
+    }
+
+    size_t entries_length = 0;
+    for (const auto& [_, dependency] : dependencies) {
+        size_t entry_length =
+            EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name) + strlen(dependency->prototype.name) + 1;
+        if (ebpf_safe_size_t_add(entries_length, entry_length, &entries_length) != EBPF_SUCCESS) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
+    }
+
+    if (dependencies.empty()) {
+        return EBPF_SUCCESS;
+    }
+
+    size_t request_buffer_length = 0;
+    if (ebpf_safe_size_t_add(
+            EBPF_OFFSET_OF(ebpf_operation_set_btf_resolved_functions_request_t, data),
+            entries_length,
+            &request_buffer_length) != EBPF_SUCCESS) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
+
+    ebpf_protocol_buffer_t request_buffer(request_buffer_length);
+    auto request = reinterpret_cast<ebpf_operation_set_btf_resolved_functions_request_t*>(request_buffer.data());
+    request->header.id = EBPF_OPERATION_SET_BTF_RESOLVED_FUNCTIONS;
+    request->header.length = static_cast<uint16_t>(request_buffer.size());
+    request->program_handle = program_handle;
+    request->count = static_cast<uint32_t>(dependencies.size());
+
+    uint8_t* current = request->data;
+    for (const auto& [_, dependency] : dependencies) {
+        size_t entry_length = 0;
+        size_t name_length = strlen(dependency->prototype.name);
+        auto serialized_entry = reinterpret_cast<ebpf_serialized_btf_resolved_function_t*>(current);
+        serialized_entry->module_guid = dependency->module_guid;
+        serialized_entry->return_type = dependency->prototype.return_type;
+        memcpy(serialized_entry->arguments, dependency->prototype.arguments, sizeof(serialized_entry->arguments));
+        serialized_entry->flags = dependency->prototype.flags;
+        serialized_entry->name_length = (uint32_t)name_length;
+        memcpy(serialized_entry->name, dependency->prototype.name, name_length + 1);
+        if (ebpf_safe_size_t_add(
+                EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_length + 1, &entry_length) !=
+            EBPF_SUCCESS) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
+        current += entry_length;
+    }
+
+    uint32_t result = invoke_ioctl(request_buffer);
+    return result == ERROR_SUCCESS ? EBPF_SUCCESS : win32_error_code_to_ebpf_result(result);
 }
 
 static ebpf_result_t
@@ -364,6 +446,11 @@ ebpf_verify_and_load_program(
 
         // Verify the program.
         result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        result = _set_btf_resolved_function_entries(program_handle, instructions, instruction_count);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
