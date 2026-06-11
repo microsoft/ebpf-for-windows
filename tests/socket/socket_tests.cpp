@@ -3284,6 +3284,7 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
         map_fd, address_family, htons(destination_port), htons(destination_port), IPPROTO_UDP, true);
 
     fd_t prog_fd = bpf_program__fd(const_cast<const bpf_program*>(connect_program));
+    bool attached = false;
 
     while (!token.stop_requested()) {
         // Attach and detach the program in a loop.
@@ -3354,6 +3355,7 @@ thread_function_allow_block_connection(
             << " result=" << result << " errno=" << saved_errno;
         throw test_failure(oss.str());
     }
+    attached = true;
 
     // Configure policy map to allow the connection.
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
@@ -3376,27 +3378,45 @@ thread_function_allow_block_connection(
     _update_map_entry_multi_attach(
         map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
 
-    while (!token.stop_requested()) {
-        // Block the connection.
-        _update_map_entry_multi_attach(
-            map_fd, address_family, htons(destination_port), htons(destination_port), protocol, false);
+    try {
+        while (!token.stop_requested()) {
+            // Block the connection.
+            _update_map_entry_multi_attach(
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, false);
 
-        // The connection should be blocked. Due to race, it can sometimes be allowed, so we don't care about the
-        // result.
-        validate_connection_multi_attach(
-            family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
+            // The connection should be blocked. Due to race, it can sometimes be allowed, so we don't care about the
+            // result.
+            validate_connection_multi_attach(
+                family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
 
-        // Allow the connection.
-        _update_map_entry_multi_attach(
-            map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
+            // Allow the connection.
+            _update_map_entry_multi_attach(
+                map_fd, address_family, htons(destination_port), htons(destination_port), protocol, true);
 
-        // The connection should be allowed. Due to race, it can sometimes be blocked, so we don't care about the
-        // result.
-        validate_connection_multi_attach(
-            family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
+            // The connection should be allowed. Due to race, it can sometimes be blocked, so we don't care about the
+            // result.
+            validate_connection_multi_attach(
+                family, address_family, destination_port, destination_port, protocol, RESULT_DONT_CARE);
 
-        count++;
+            count++;
+        }
+    } catch (...) {
+        if (attached) {
+            (void)bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+        }
+        throw;
     }
+
+    result = bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+    if (result != 0) {
+        int saved_errno = errno;
+        std::ostringstream oss;
+        oss << "ALLOW_BLOCK DETACH FAILED: thread=" << std::this_thread::get_id() << " compartment=" << compartment_id
+            << " prog_fd=" << prog_fd << " attach_type=" << static_cast<int>(attach_type) << " protocol=" << protocol
+            << " result=" << result << " errno=" << saved_errno;
+        throw test_failure(oss.str());
+    }
+    attached = false;
 
     std::cout << "Thread (allow_block)" << std::this_thread::get_id() << " executed " << count << " times."
               << std::endl;

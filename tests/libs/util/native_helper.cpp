@@ -29,19 +29,19 @@ _native_module_helper::initialize(
     // Clean up any previous state only on the main thread.
     // Running this concurrently from worker threads can detach links that were just created by
     // other threads, causing racy attach failures.
-    if (_is_main_thread) {
-        uint32_t link_id;
-        while (bpf_link_get_next_id(0, &link_id) == 0) {
-            fd_t link_fd = bpf_link_get_fd_by_id(link_id);
-            if (link_fd < 0) {
-                break;
-            }
-            bpf_link_detach(link_fd);
-            if (link_fd >= 0) {
-                _close(link_fd);
-            }
+    // if (_is_main_thread) {
+    uint32_t link_id;
+    while (bpf_link_get_next_id(0, &link_id) == 0) {
+        fd_t link_fd = bpf_link_get_fd_by_id(link_id);
+        if (link_fd < 0) {
+            break;
+        }
+        bpf_link_detach(link_fd);
+        if (link_fd >= 0) {
+            _close(link_fd);
         }
     }
+    // }
 
     if (execution_type == ebpf_execution_type_t::EBPF_EXECUTION_ANY) {
         execution_type = system_default;
