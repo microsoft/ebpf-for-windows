@@ -26,6 +26,10 @@
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
 
+#ifndef __CGUID_H__
+static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
 // Global flag to disable invoking programs. This is used when fuzzing the IOCTL interface.
 bool ebpf_program_disable_invoke = false;
 
@@ -278,6 +282,14 @@ _ebpf_program_update_hash_with_btf_resolved_function(
     }
 
     return EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->flags);
+}
+
+static bool
+_ebpf_program_is_unused_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* function_entry)
+{
+    return (
+        (function_entry != NULL) && (function_entry->name != NULL) && (function_entry->name[0] == '\0') &&
+        IsEqualGUID(&function_entry->module_guid, &GUID_NULL));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
@@ -2034,6 +2046,7 @@ ebpf_program_set_btf_resolved_function_entries(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
     size_t initialized_entry_count = 0;
+    size_t actual_btf_resolved_function_count = 0;
 
     state = ebpf_lock_lock(&program->lock);
 
@@ -2047,9 +2060,20 @@ ebpf_program_set_btf_resolved_function_entries(
         goto Exit;
     }
 
+    for (size_t index = 0; index < btf_resolved_function_count; index++) {
+        if (!_ebpf_program_is_unused_btf_resolved_function_entry(&btf_resolved_functions[index])) {
+            actual_btf_resolved_function_count++;
+        }
+    }
+
+    if (actual_btf_resolved_function_count == 0) {
+        program->btf_resolved_functions_set = true;
+        goto Exit;
+    }
+
     size_t entries_length = 0;
-    result =
-        ebpf_safe_size_t_multiply(sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
+    result = ebpf_safe_size_t_multiply(
+        sizeof(btf_resolved_function_entry_t), actual_btf_resolved_function_count, &entries_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -2060,9 +2084,14 @@ ebpf_program_set_btf_resolved_function_entries(
         goto Exit;
     }
     memset(program->btf_resolved_functions, 0, entries_length);
-    program->btf_resolved_function_count = btf_resolved_function_count;
+    program->btf_resolved_function_count = actual_btf_resolved_function_count;
 
+    size_t output_index = 0;
     for (size_t index = 0; index < btf_resolved_function_count; index++) {
+        if (_ebpf_program_is_unused_btf_resolved_function_entry(&btf_resolved_functions[index])) {
+            continue;
+        }
+
         size_t name_length = strlen(btf_resolved_functions[index].name) + 1;
         char* duplicated_name = ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
         if (duplicated_name == NULL) {
@@ -2071,9 +2100,10 @@ ebpf_program_set_btf_resolved_function_entries(
         }
 
         memcpy(duplicated_name, btf_resolved_functions[index].name, name_length);
-        program->btf_resolved_functions[index] = btf_resolved_functions[index];
-        program->btf_resolved_functions[index].name = duplicated_name;
+        program->btf_resolved_functions[output_index] = btf_resolved_functions[index];
+        program->btf_resolved_functions[output_index].name = duplicated_name;
         initialized_entry_count++;
+        output_index++;
     }
 
     program->btf_resolved_functions_set = true;
