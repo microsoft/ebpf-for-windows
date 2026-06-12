@@ -558,3 +558,17 @@ EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
 #define bpf_get_current_thread_create_time \
     ((bpf_get_current_thread_create_time_t)BPF_FUNC_get_current_thread_create_time)
 #endif
+
+/**
+ * @brief Redirect the packet to the endpoint referenced by the map and key.
+ *
+ * @param[in] map A pointer to a BPF map of type devmap.
+ * @param[in] key The key of the entry in the map to redirect to.
+ * @param[in] flags Redirect flags.
+ *
+ * @returns XDP_REDIRECT on success, or XDP_ABORTED on failure.
+ */
+EBPF_HELPER(intptr_t, bpf_redirect_map, (void* map, uint64_t key, uint64_t flags));
+#ifndef __doxygen
+#define bpf_redirect_map ((bpf_redirect_map_t)BPF_FUNC_redirect_map)
+#endif

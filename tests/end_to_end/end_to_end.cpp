@@ -794,7 +794,9 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     // Calls to ring buffer APIs on this map (array_map) must fail.
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
-    REQUIRE(ebpf_ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts) == nullptr);
+    REQUIRE(
+        ebpf_ring_buffer__new(
+            map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == -EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
@@ -4881,3 +4883,111 @@ TEST_CASE("custom_maps_concurrent_insert_delete_and_query_preprocess", "[custom_
 {
     _test_custom_maps_concurrent_insert_delete_and_query(false);
 }
+
+// Positive test for bpf_redirect_map. This test verifies that loading a program that uses
+// bpf_redirect_map succeeds when the program type (XDP) provides an implementation.
+void
+test_redirect_map_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_redirect_map_um.dll" : "test_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+TEST_CASE("test_redirect_map_load", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_redirect_map_load(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_redirect_map_load(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_redirect_map_load(EBPF_EXECUTION_NATIVE);
+}
+
+// Positive test for bpf_redirect_map in the sample extension. This test verifies that loading
+// a sample program that uses bpf_redirect_map succeeds, because the sample extension provides
+// an implementation of the global virtual bpf_redirect_map helper.
+void
+test_sample_redirect_map_load(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_redirect_map_um.dll" : "test_sample_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_object__close(unique_object.release());
+}
+
+DECLARE_ALL_TEST_CASES("test_sample_redirect_map_load", "[end_to_end]", test_sample_redirect_map_load);
+
+// Negative test for bpf_redirect_map. This test verifies that loading a program that uses
+// the global virtual bpf_redirect_map helper fails for a program type that does not implement
+// it. The bind program type does not provide an implementation, so program load should fail
+// for all execution types.
+void
+test_invalid_bpf_redirect_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "test_invalid_redirect_map_um.dll" : "test_invalid_redirect_map.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -22);
+}
+
+DECLARE_ALL_TEST_CASES("invalid_bpf_redirect_map", "[end_to_end]", test_invalid_bpf_redirect_map);

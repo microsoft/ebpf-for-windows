@@ -43,6 +43,8 @@ static uint64_t _map_context_offset = 0;
 // Sample Extension helper function addresses table.
 static uint64_t
 _sample_get_pid_tgid();
+static intptr_t
+_sample_redirect_map(_In_ const void* map, uint64_t key, uint64_t flags);
 static int64_t
 _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* context);
 static int64_t
@@ -93,7 +95,7 @@ static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_func
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers),
     (uint64_t*)_sample_ebpf_extension_helpers};
 
-static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
+static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid, (void*)&_sample_redirect_map};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
@@ -910,6 +912,17 @@ static uint64_t
 _sample_get_pid_tgid()
 {
     return SAMPLE_PID_TGID_VALUE;
+}
+
+// Sample implementation of the global virtual bpf_redirect_map helper.
+static intptr_t
+_sample_redirect_map(_In_ const void* map, uint64_t key, uint64_t flags)
+{
+    UNREFERENCED_PARAMETER(map);
+    UNREFERENCED_PARAMETER(key);
+    UNREFERENCED_PARAMETER(flags);
+    // Return XDP_REDIRECT (4) to indicate success.
+    return 4;
 }
 
 // Helper Function Definitions.
