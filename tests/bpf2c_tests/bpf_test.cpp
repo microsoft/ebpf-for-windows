@@ -40,8 +40,10 @@ _btf_resolved_function_key(const GUID& module_guid, const char* name)
     return std::string(reinterpret_cast<const char*>(&module_guid), sizeof(module_guid)) + name;
 }
 
+static const GUID _sample_ext_btf_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER;
+
 static std::map<std::string, helper_function_t> _btf_resolved_functions = {
-    {_btf_resolved_function_key((GUID)SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER, SAMPLE_EXT_BTF_FUNCTION_NAME), _my_driver_lookup},
+    {_btf_resolved_function_key(_sample_ext_btf_module_guid, SAMPLE_EXT_BTF_FUNCTION_NAME), _my_driver_lookup},
 };
 
 int
