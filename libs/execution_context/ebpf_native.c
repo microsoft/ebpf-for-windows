@@ -689,13 +689,20 @@ _ebpf_validate_native_helper_function_entry_array(
 static bool
 _ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_program_entry)
 {
+    program_entry_t normalized_program_entry = {0};
+
+    if ((native_program_entry == NULL) || !ebpf_validate_object_header_native_program_entry(&native_program_entry->header)) {
+        return false;
+    }
+
+    // Normalize older program entry layouts before validating optional fields that were added later.
+    _ebpf_copy_program_entry(&normalized_program_entry, native_program_entry, native_program_entry->header.total_size);
+
     return (
-        (native_program_entry != NULL) &&
-        ebpf_validate_object_header_native_program_entry(&native_program_entry->header) &&
         _ebpf_validate_native_helper_function_entry_array(
-            native_program_entry->helpers, native_program_entry->helper_count) &&
+            normalized_program_entry.helpers, normalized_program_entry.helper_count) &&
         _ebpf_validate_native_btf_resolved_function_entry_array(
-            native_program_entry->btf_resolved_functions, native_program_entry->btf_resolved_function_count));
+            normalized_program_entry.btf_resolved_functions, normalized_program_entry.btf_resolved_function_count));
 }
 
 static bool
