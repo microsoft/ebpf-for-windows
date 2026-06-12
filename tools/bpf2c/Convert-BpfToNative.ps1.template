@@ -33,6 +33,9 @@
 .PARAMETER KernelMode
     Specifies whether to generate a kernel-mode driver. If this parameter is false, a user DLL will be generated.
 
+.PARAMETER SourceFile
+    Specifies a pre-generated C source file to compile instead of invoking bpf2c on <FileName>.o.
+
 .PARAMETER ResourceFile
     Specifies the path to a resource file to embed in the generated driver.
 
