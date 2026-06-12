@@ -61,7 +61,6 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const core = require('@actions/core');
             const report = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, 'utf8'));
             const owner = context.repo.owner;
             const repo = context.repo.repo;
