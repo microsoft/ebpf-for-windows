@@ -247,6 +247,18 @@ ebpf_core_protocol_set_btf_resolved_functions(_In_ const ebpf_operation_set_btf_
 
     if (function_count > 0) {
         size_t entries_length;
+        size_t minimum_entry_length = 0;
+
+        return_value =
+            ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), 1, &minimum_entry_length);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+        if (function_count > data_length / minimum_entry_length) {
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+
         if (function_count > MAXSIZE_T / sizeof(*btf_resolved_functions)) {
             return_value = EBPF_ARITHMETIC_OVERFLOW;
             goto Done;
@@ -266,6 +278,7 @@ ebpf_core_protocol_set_btf_resolved_functions(_In_ const ebpf_operation_set_btf_
     for (size_t index = 0; index < function_count; index++) {
         const ebpf_serialized_btf_resolved_function_t* serialized_entry;
         size_t name_length;
+        size_t name_buffer_length = 0;
         size_t required_entry_length = 0;
 
         if ((size_t)(end - current) < EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name)) {
@@ -276,8 +289,13 @@ ebpf_core_protocol_set_btf_resolved_functions(_In_ const ebpf_operation_set_btf_
         serialized_entry = (const ebpf_serialized_btf_resolved_function_t*)current;
         name_length = serialized_entry->name_length;
 
+        return_value = ebpf_safe_size_t_add(name_length, 1, &name_buffer_length);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         return_value = ebpf_safe_size_t_add(
-            EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_length + 1, &required_entry_length);
+            EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_buffer_length, &required_entry_length);
         if (return_value != EBPF_SUCCESS) {
             goto Done;
         }
