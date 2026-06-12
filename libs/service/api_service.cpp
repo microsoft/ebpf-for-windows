@@ -197,8 +197,17 @@ _set_btf_resolved_function_entries(
 
     size_t entries_length = 0;
     for (const auto& [_, dependency] : dependencies) {
-        size_t entry_length =
-            EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name) + strlen(dependency->prototype.name) + 1;
+        size_t name_length = strlen(dependency->prototype.name);
+        size_t name_buffer_length = 0;
+        size_t entry_length = 0;
+        if (ebpf_safe_size_t_add(name_length, 1, &name_buffer_length) != EBPF_SUCCESS) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
+        if (ebpf_safe_size_t_add(
+                EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_buffer_length, &entry_length) !=
+            EBPF_SUCCESS) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
         if (ebpf_safe_size_t_add(entries_length, entry_length, &entries_length) != EBPF_SUCCESS) {
             return EBPF_ARITHMETIC_OVERFLOW;
         }
@@ -215,6 +224,9 @@ _set_btf_resolved_function_entries(
             &request_buffer_length) != EBPF_SUCCESS) {
         return EBPF_ARITHMETIC_OVERFLOW;
     }
+    if (request_buffer_length > UINT16_MAX || dependencies.size() > UINT32_MAX) {
+        return EBPF_ARITHMETIC_OVERFLOW;
+    }
 
     ebpf_protocol_buffer_t request_buffer(request_buffer_length);
     auto request = reinterpret_cast<ebpf_operation_set_btf_resolved_functions_request_t*>(request_buffer.data());
@@ -227,15 +239,22 @@ _set_btf_resolved_function_entries(
     for (const auto& [_, dependency] : dependencies) {
         size_t entry_length = 0;
         size_t name_length = strlen(dependency->prototype.name);
+        size_t name_buffer_length = 0;
         auto serialized_entry = reinterpret_cast<ebpf_serialized_btf_resolved_function_t*>(current);
         serialized_entry->module_guid = dependency->module_guid;
         serialized_entry->return_type = dependency->prototype.return_type;
         memcpy(serialized_entry->arguments, dependency->prototype.arguments, sizeof(serialized_entry->arguments));
         serialized_entry->flags = dependency->prototype.flags;
+        if (name_length > UINT32_MAX) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
         serialized_entry->name_length = (uint32_t)name_length;
         memcpy(serialized_entry->name, dependency->prototype.name, name_length + 1);
+        if (ebpf_safe_size_t_add(name_length, 1, &name_buffer_length) != EBPF_SUCCESS) {
+            return EBPF_ARITHMETIC_OVERFLOW;
+        }
         if (ebpf_safe_size_t_add(
-                EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_length + 1, &entry_length) !=
+                EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), name_buffer_length, &entry_length) !=
             EBPF_SUCCESS) {
             return EBPF_ARITHMETIC_OVERFLOW;
         }
