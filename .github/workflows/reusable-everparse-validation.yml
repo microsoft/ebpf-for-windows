@@ -1,0 +1,117 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+---
+name: Reusable EverParse Validation Workflow
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      repository:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  everparse_validation:
+    runs-on: windows-2022
+    timeout-minutes: 60
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98
+        with:
+          repository: ${{ inputs.repository }}
+          ref: ${{ inputs.ref }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        with:
+          msbuild-architecture: x64
+
+      - name: Cache nuget packages
+        continue-on-error: true
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306
+        with:
+          path: packages
+          key: ${{ runner.os }}-everparse-validation-${{ hashFiles('**/packages.config') }}
+
+      - name: Validate EverParse generated artifacts
+        id: validate
+        shell: pwsh
+        run: .\scripts\validate_everparse_generation.ps1
+
+      - name: Create or update EverParse divergence issues
+        if: steps.validate.outputs.validation_status == 'diverged'
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
+        env:
+          REPORT_PATH: ${{ steps.validate.outputs.report_path }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, 'utf8'));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const labels = ['bug', 'ci/cd', 'everparse'];
+            for (const unit of report.selected_units.filter((entry) => entry.status === 'diverged')) {
+              const title = `EverParse generated artifacts diverged for ${unit.id}`;
+              const body = [
+                `EverParse validation detected divergence for \`${unit.id}\`.`,
+                '',
+                `- Revision: \`${context.sha}\``,
+                `- Workflow run: ${process.env.RUN_URL}`,
+                `- Trigger paths: ${unit.matched_paths.map((path) => `\`${path}\``).join(', ')}`,
+                `- Changed generated outputs: ${unit.changed_outputs.map((path) => `\`${path}\``).join(', ')}`,
+                '',
+                'The committed generated artifacts do not match authoritative regeneration output.'
+              ].join('\n');
+              try {
+                const issues = await github.paginate(github.rest.issues.listForRepo, {
+                  owner,
+                  repo,
+                  state: 'open',
+                  labels: labels.join(',')
+                });
+                const existing = issues.find((issue) => issue.title === title);
+                if (existing) {
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: existing.number,
+                    body
+                  });
+                } else {
+                  await github.rest.issues.create({
+                    owner,
+                    repo,
+                    title,
+                    body,
+                    labels
+                  });
+                }
+              } catch (error) {
+                core.warning(`Failed to create or update issue for ${unit.id}: ${error.message}`);
+              }
+            }
+
+      - name: Fail on EverParse divergence
+        if: steps.validate.outputs.validation_status == 'diverged'
+        shell: pwsh
+        run: throw "EverParse generated artifacts diverged from committed outputs."
+
+      - name: Fail on EverParse validation infrastructure error
+        if: steps.validate.outputs.validation_status == 'infrastructure_error'
+        shell: pwsh
+        run: throw "EverParse validation could not determine repository consistency."
