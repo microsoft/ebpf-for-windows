@@ -249,8 +249,8 @@ ebpf_core_protocol_set_btf_resolved_functions(_In_ const ebpf_operation_set_btf_
         size_t entries_length;
         size_t minimum_entry_length = 0;
 
-        return_value =
-            ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), 1, &minimum_entry_length);
+        return_value = ebpf_safe_size_t_add(
+            EBPF_OFFSET_OF(ebpf_serialized_btf_resolved_function_t, name), 1, &minimum_entry_length);
         if (return_value != EBPF_SUCCESS) {
             goto Done;
         }
