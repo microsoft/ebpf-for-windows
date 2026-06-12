@@ -28,9 +28,9 @@ extern "C"
 
     /** @brief NPI ID for eBPF BTF-resolved function extension.
      */
-    /* aabbccdd-1234-5678-9abc-def012345678 */
+    /* 8cf35ce4-7cf4-4407-883e-59b4e73dbe4f */
     __declspec(selectany) GUID EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID = {
-        0xaabbccdd, 0x1234, 0x5678, {0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78}};
+        0x8cf35ce4, 0x7cf4, 0x4407, {0x88, 0x3e, 0x59, 0xb4, 0xe7, 0x3d, 0xbe, 0x4f}};
 #ifdef __cplusplus
 }
 #endif

@@ -328,18 +328,16 @@ Drivers that expose BTF-resolved functions register as NMR providers for the BTF
 
 ### 7.1 NPI Definition
 
-The GUID name below is a proposed identifier and is not currently present in `include/ebpf_extension_uuids.h`.
-
 ```c
 // BTF-resolved function NPI ID
 static const GUID EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID = {
-    0xaabbccdd, 0x1234, 0x5678, {0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78}};
+    0x8cf35ce4, 0x7cf4, 0x4407, {0x88, 0x3e, 0x59, 0xb4, 0xe7, 0x3d, 0xbe, 0x4f}};
 ```
 
 ### 7.2 Provider Registration
 
 When registering as an NMR provider:
-- `NpiId`: Set to the proposed `EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID` once this identifier is added
+- `NpiId`: Set to `EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID`
 - `ModuleId`: Set to the driver's module GUID (same as in the header and registry)
 - `NpiSpecificCharacteristics`: Pointer to `ebpf_btf_resolved_function_provider_data_t`
 
