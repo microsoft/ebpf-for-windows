@@ -41,6 +41,7 @@ extern "C"
         const uint8_t* program_info_hash;
         size_t program_info_hash_length;
         cxplat_utf8_string_t program_info_hash_type;
+        size_t bpf2c_context_size;
     } ebpf_program_parameters_t;
 
     typedef struct _ebpf_native_code_context

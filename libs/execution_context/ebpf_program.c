@@ -211,6 +211,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,
     _In_ const cxplat_utf8_string_t* hash_algorithm,
+    bool extensible_context_hash,
     _Outptr_ uint8_t** hash,
     _Out_ size_t* hash_length);
 
@@ -415,6 +416,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
     bool actual_helper_ids_set = false;
+    size_t bpf2c_context_size = 0;
 
     void* provider_binding_context;
     void* provider_dispatch;
@@ -480,6 +482,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
     actual_helper_ids_set = program->helper_ids_set;
+    bpf2c_context_size = program->parameters.bpf2c_context_size;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -494,6 +497,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
                 general_program_information_data,
                 extension_program_data,
                 &hash_algorithm,
+                bpf2c_context_size > 0,
                 &hash,
                 &hash_length) != EBPF_SUCCESS) {
             status = STATUS_NO_MEMORY;
@@ -526,6 +530,23 @@ _ebpf_program_type_specific_program_information_attach_provider(
                 &program->parameters.program_type);
             status = STATUS_INVALID_PARAMETER;
             goto Done;
+        }
+
+        // For programs with extensible context hash, verify the runtime context is at least as large
+        // as the compile-time context. This ensures the program cannot access fields beyond the
+        // runtime context boundary.
+        if (bpf2c_context_size > 0) {
+            int runtime_context_size =
+                extension_program_data->program_info->program_type_descriptor->context_descriptor->size;
+            if ((int)bpf2c_context_size > runtime_context_size) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "Program context size exceeds runtime context size.",
+                    &program->parameters.program_type);
+                status = STATUS_INVALID_PARAMETER;
+                goto Done;
+            }
         }
     }
 
@@ -1887,6 +1908,7 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     cxplat_utf8_string_t hash_algorithm = {0};
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
+    size_t bpf2c_context_size = 0;
     uint8_t* hash = NULL;
     size_t hash_length = 0;
     ebpf_lock_state_t state = 0;
@@ -1916,6 +1938,7 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     extension_program_data = program->extension_program_data;
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
+    bpf2c_context_size = program->parameters.bpf2c_context_size;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -1927,6 +1950,7 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
         general_program_information_data,
         extension_program_data,
         &hash_algorithm,
+        bpf2c_context_size > 0,
         &hash,
         &hash_length);
     if (result != EBPF_SUCCESS) {
@@ -1944,6 +1968,23 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
             (memcmp(program->parameters.program_info_hash, hash, hash_length) != 0)) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
+        }
+
+        // For programs with extensible context hash (bpf2c_context_size > 0), verify the runtime
+        // context is at least as large as the compile-time context. This ensures the program cannot
+        // access fields beyond the runtime context boundary.
+        if (bpf2c_context_size > 0) {
+            int runtime_context_size =
+                extension_program_data->program_info->program_type_descriptor->context_descriptor->size;
+            if ((int)bpf2c_context_size > runtime_context_size) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "Program context size exceeds runtime context size.",
+                    &program->parameters.program_type);
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
         }
     } else {
         // Set the program info hash.
@@ -2264,6 +2305,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,
     _In_ const cxplat_utf8_string_t* hash_algorithm,
+    bool extensible_context_hash,
     _Outptr_ uint8_t** hash,
     _Out_ size_t* hash_length)
 {
@@ -2337,7 +2379,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
 
     // Hash is performed over the following fields:
     // 1. Program type name.
-    // 2. Context descriptor.
+    // 2. Context descriptor (offsets only for extensible context hash, full struct for legacy).
     // 3. Program type.
     // 4. BPF program type.
     // 5. Is_privileged flag.
@@ -2360,10 +2402,32 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         goto Exit;
     }
 
-    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
-        cryptographic_hash, *type_specific_program_info->program_type_descriptor->context_descriptor);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
+    if (extensible_context_hash) {
+        // Extensible context hash: hash only the offset fields (data, end, meta) of the context descriptor,
+        // excluding the size field. This allows extensions to append new fields to the context struct
+        // without breaking previously compiled native programs.
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, type_specific_program_info->program_type_descriptor->context_descriptor->data);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, type_specific_program_info->program_type_descriptor->context_descriptor->end);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, type_specific_program_info->program_type_descriptor->context_descriptor->meta);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+    } else {
+        // Legacy hash: hash the full context descriptor struct including the size field.
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(
+            cryptographic_hash, *type_specific_program_info->program_type_descriptor->context_descriptor);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
     }
 
     result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(

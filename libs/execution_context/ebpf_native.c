@@ -1970,6 +1970,13 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         parameters.program_info_hash_type.value = hash_type_name;
         parameters.program_info_hash_type.length = hash_type_length;
 
+        // Set the compile-time context size if the program entry includes it (version with bpf2c_context_size field).
+        // For old native modules that don't have this field, the value remains 0 (zero-initialized by allocator).
+        if (native_program->program_entry.header.size >=
+            EBPF_SIZE_INCLUDING_FIELD(program_entry_t, bpf2c_context_size)) {
+            parameters.bpf2c_context_size = native_program->program_entry.bpf2c_context_size;
+        }
+
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
         if (result != EBPF_SUCCESS) {
             goto Done;
