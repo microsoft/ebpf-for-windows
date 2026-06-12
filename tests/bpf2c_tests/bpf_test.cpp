@@ -34,8 +34,14 @@ _my_driver_lookup(
     return key + value_size;
 }
 
+static std::string
+_btf_resolved_function_key(const GUID& module_guid, const char* name)
+{
+    return std::string(reinterpret_cast<const char*>(&module_guid), sizeof(module_guid)) + name;
+}
+
 static std::map<std::string, helper_function_t> _btf_resolved_functions = {
-    {SAMPLE_EXT_BTF_FUNCTION_NAME, _my_driver_lookup},
+    {_btf_resolved_function_key((GUID)SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER, SAMPLE_EXT_BTF_FUNCTION_NAME), _my_driver_lookup},
 };
 
 int
@@ -107,7 +113,8 @@ main(int argc, char** argv)
         }
 
         for (size_t j = 0; j < btf_resolved_function_entry_count; j++) {
-            auto function = _btf_resolved_functions.find(btf_resolved_function_entries[j].name);
+            auto function = _btf_resolved_functions.find(_btf_resolved_function_key(
+                btf_resolved_function_entries[j].module_guid, btf_resolved_function_entries[j].name));
             if (function == _btf_resolved_functions.end()) {
                 std::cout << "bpf_test doesn't support BTF-resolved function " << btf_resolved_function_entries[j].name
                           << std::endl;

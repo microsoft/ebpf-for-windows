@@ -596,9 +596,12 @@ sample_ebpf_extension_program_info_provider_unregister()
 {
     sample_ebpf_extension_program_info_provider_t* provider_context =
         &_sample_ebpf_extension_program_info_provider_context;
-    NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-    if (status == STATUS_PENDING) {
-        NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    if (provider_context->nmr_provider_handle != NULL) {
+        NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        }
+        provider_context->nmr_provider_handle = NULL;
     }
 }
 
@@ -877,10 +880,13 @@ sample_ebpf_extension_hook_provider_unregister()
 {
     sample_ebpf_extension_hook_provider_t* provider_context = &_sample_ebpf_extension_hook_provider_context;
 
-    NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
-    if (status == STATUS_PENDING) {
-        // Wait for clients to detach.
-        NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+    if (provider_context->nmr_provider_handle != NULL) {
+        NTSTATUS status = NmrDeregisterProvider(provider_context->nmr_provider_handle);
+        if (status == STATUS_PENDING) {
+            // Wait for clients to detach.
+            NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
+        }
+        provider_context->nmr_provider_handle = NULL;
     }
     ExWaitForRundownProtectionRelease(&provider_context->rundown_reference);
 }
