@@ -1361,7 +1361,7 @@ label_3:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         connect_authorization4,
         "cgroup~2",
         "cgroup/connect_authorization4",
@@ -1376,7 +1376,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
@@ -1391,7 +1391,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         connect_redirect4,
         "cgroup~4",
         "cgroup/connect4",
@@ -1406,7 +1406,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         connect_redirect6,
         "cgroup~3",
         "cgroup/connect6",

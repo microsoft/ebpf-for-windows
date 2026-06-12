@@ -287,7 +287,7 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_sample_invalid_socket_cookie,
         "sample~1",
         "sample_ext",
