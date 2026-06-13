@@ -51,10 +51,6 @@ extern "C"
         uint16_t reply_length);
 
     _Must_inspect_result_ ebpf_result_t
-    ebpf_core_protocol_set_btf_resolved_functions(
-        _In_ const ebpf_operation_set_btf_resolved_functions_request_t* request);
-
-    _Must_inspect_result_ ebpf_result_t
     ebpf_core_protocol_resolve_map(
         _In_ const struct _ebpf_operation_resolve_map_request* request,
         _Inout_ struct _ebpf_operation_resolve_map_reply* reply,
