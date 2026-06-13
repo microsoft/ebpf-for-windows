@@ -450,33 +450,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_core_set_btf_resolved_function_entries(
-    ebpf_handle_t program_handle,
-    size_t btf_resolved_function_count,
-    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_program_t* program = NULL;
-    ebpf_result_t return_value =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(program_handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
 
-    return_value =
-        ebpf_program_set_btf_resolved_function_entries(program, btf_resolved_function_count, btf_resolved_functions);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-Done:
-    if (return_value != EBPF_SUCCESS && program != NULL) {
-        ebpf_program_clear_btf_resolved_function_entries(program);
-    }
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
-    EBPF_RETURN_RESULT(return_value);
-}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
@@ -3015,12 +2989,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    DECLARE_NON_STATIC_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(
-        set_btf_resolved_functions, data, PROTOCOL_JIT_OR_INTERPRET_MODE | PROTOCOL_PRIVILEGED_OPERATION),
-#else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
-#endif
 };
 
 _Must_inspect_result_ ebpf_result_t
