@@ -6,6 +6,7 @@
 #include "device_helper.hpp"
 #include "ebpf_protocol.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_store_helper.h"
 #include "hash.h"
 #include "map_descriptors.hpp"
 #include "platform.h"

@@ -448,6 +448,8 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
+
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
     ebpf_handle_t program_handle,
@@ -2985,6 +2987,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(ring_buffer_map_unmap_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY_ASYNC(epoch_synchronize, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(link_set_legacy_mode, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
 };
 
 _Must_inspect_result_ ebpf_result_t

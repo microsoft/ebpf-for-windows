@@ -14,7 +14,10 @@
 #include "bpf2c.h"
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_version.h"
+#pragma warning(push)
+#pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_parse.h"
@@ -22,6 +25,7 @@
 #include "src/spec/type_descriptors.hpp"
 #include "src/spec/vm_isa.hpp"
 #undef ebpf_inst
+#pragma warning(pop)
 
 #include <windows.h>
 #include <cassert>
@@ -29,6 +33,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 #undef max
 
@@ -88,6 +93,23 @@ static const std::set<std::string> _callee_register_args = {
     "r5",
     "r10",
 };
+
+static bool
+_guid_less(const GUID& left, const GUID& right)
+{
+    return memcmp(&left, &right, sizeof(GUID)) < 0;
+}
+
+static std::string
+_btf_resolved_function_key(const GUID& module_guid, const std::string& name)
+{
+    std::string key(sizeof(GUID), '\0');
+    memcpy(key.data(), &module_guid, sizeof(GUID));
+    key.append(name);
+    return key;
+}
+
+static const GUID _guid_null = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 enum class AluOperations
 {
@@ -401,6 +423,48 @@ bpf_code_generator::get_helper_ids(const bpf_code_generator::unsafe_string& prog
     }
 
     return std::vector<int32_t>(helper_id_set.begin(), helper_id_set.end());
+}
+
+std::vector<bpf_code_generator::btf_resolved_function_dependency_t>
+bpf_code_generator::get_btf_resolved_function_dependencies(const bpf_code_generator::unsafe_string& program_name)
+{
+    std::map<std::string, btf_resolved_function_dependency_t> dependency_map;
+
+    auto append_dependencies = [&dependency_map](const bpf_code_generator_program& program) {
+        for (const auto& [_, function] : program.btf_resolved_functions) {
+            btf_resolved_function_dependency_t dependency{
+                function.name.raw(), function.module_guid, function.return_type, function.arguments, function.flags};
+            dependency_map.try_emplace(_btf_resolved_function_key(function.module_guid, dependency.name), dependency);
+        }
+    };
+
+    append_dependencies(programs[program_name]);
+
+    auto reachable = get_reachable_subprograms(program_name);
+    for (const auto& sub_name : reachable) {
+        auto it = programs.find(sub_name);
+        if (it != programs.end()) {
+            append_dependencies(it->second);
+        }
+    }
+
+    std::vector<btf_resolved_function_dependency_t> dependencies;
+    dependencies.reserve(dependency_map.size());
+    for (const auto& [_, dependency] : dependency_map) {
+        dependencies.push_back(dependency);
+    }
+
+    std::sort(dependencies.begin(), dependencies.end(), [](const auto& left, const auto& right) {
+        if (_guid_less(left.module_guid, right.module_guid)) {
+            return true;
+        }
+        if (_guid_less(right.module_guid, left.module_guid)) {
+            return false;
+        }
+        return left.name < right.name;
+    });
+
+    return dependencies;
 }
 
 void
@@ -975,6 +1039,7 @@ bpf_code_generator::build_global_helper_index()
     if (!has_subprograms) {
         // No subprograms — encode instructions with original per-program ordering.
         global_helpers_ordered.clear();
+        global_btf_resolved_functions_ordered.clear();
         for (auto& [prog_name, program] : programs) {
             if (program.output_instructions.size() > 0) {
                 program.encode_instructions(map_definitions, global_variable_sections);
@@ -1005,10 +1070,50 @@ bpf_code_generator::build_global_helper_index()
         id_to_global_index[id] = index++;
     }
 
+    std::vector<btf_resolved_function_t> all_btf_resolved_functions;
+    std::map<std::string, size_t> btf_key_to_global_index;
+    for (const auto& [program_name, program] : programs) {
+        UNREFERENCED_PARAMETER(program_name);
+        for (const auto& [btf_id, function] : program.btf_resolved_functions) {
+            UNREFERENCED_PARAMETER(btf_id);
+            auto key = _btf_resolved_function_key(function.module_guid, function.name.raw());
+            if (btf_key_to_global_index.find(key) == btf_key_to_global_index.end()) {
+                btf_key_to_global_index[key] = all_btf_resolved_functions.size();
+                all_btf_resolved_functions.push_back(function);
+            }
+        }
+    }
+
+    std::sort(
+        all_btf_resolved_functions.begin(), all_btf_resolved_functions.end(), [](const auto& left, const auto& right) {
+            if (_guid_less(left.module_guid, right.module_guid)) {
+                return true;
+            }
+            if (_guid_less(right.module_guid, left.module_guid)) {
+                return false;
+            }
+            return left.name.raw() < right.name.raw();
+        });
+
+    global_btf_resolved_functions_ordered.clear();
+    global_btf_resolved_functions_ordered.reserve(all_btf_resolved_functions.size());
+    btf_key_to_global_index.clear();
+    for (size_t function_index = 0; function_index < all_btf_resolved_functions.size(); function_index++) {
+        all_btf_resolved_functions[function_index].index = function_index;
+        global_btf_resolved_functions_ordered.push_back(all_btf_resolved_functions[function_index]);
+        btf_key_to_global_index[_btf_resolved_function_key(
+            all_btf_resolved_functions[function_index].module_guid,
+            all_btf_resolved_functions[function_index].name.raw())] = function_index;
+    }
+
     // Remap each program's helper_functions to use global indices.
     for (auto& [prog_name, program] : programs) {
         for (auto& [name, helper] : program.helper_functions) {
             helper.index = id_to_global_index[helper.id];
+        }
+        for (auto& [_, function] : program.btf_resolved_functions) {
+            function.index =
+                btf_key_to_global_index[_btf_resolved_function_key(function.module_guid, function.name.raw())];
         }
     }
 
@@ -1181,29 +1286,71 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
     size_t index = 0;
     std::map<int32_t, size_t> id_to_index;
     for (auto& output : program_output) {
-        if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {
+        if (output.instruction.opcode != INST_OP_CALL) {
             continue;
         }
 
-        int32_t helper_id = output.instruction.imm;
-        size_t helper_index;
-        auto existing_index = id_to_index.find(helper_id);
-        if (existing_index == id_to_index.end()) {
-            helper_index = index++;
-            id_to_index[helper_id] = helper_index;
-        } else {
-            helper_index = existing_index->second;
-        }
+        if (output.instruction.src == INST_CALL_STATIC_HELPER) {
+            int32_t helper_id = output.instruction.imm;
+            size_t helper_index;
+            auto existing_index = id_to_index.find(helper_id);
+            if (existing_index == id_to_index.end()) {
+                helper_index = index++;
+                id_to_index[helper_id] = helper_index;
+            } else {
+                helper_index = existing_index->second;
+            }
 
-        // Always maintain a canonical helper_id_<imm> entry.
-        bpf_code_generator::unsafe_string canonical_name = "helper_id_";
-        canonical_name += std::to_string(helper_id);
-        helper_functions[canonical_name] = {helper_id, helper_index};
+            // Always maintain a canonical helper_id_<imm> entry.
+            bpf_code_generator::unsafe_string canonical_name = "helper_id_";
+            canonical_name += std::to_string(helper_id);
+            helper_functions[canonical_name] = {helper_id, helper_index};
 
-        // Also keep the relocation alias (if any) mapped to the same index.
-        if (!output.relocation.empty()) {
-            helper_functions[output.relocation] = {helper_id, helper_index};
+            // Also keep the relocation alias (if any) mapped to the same index.
+            if (!output.relocation.empty()) {
+                helper_functions[output.relocation] = {helper_id, helper_index};
+            }
+        } else if (output.instruction.src == INST_CALL_BTF_HELPER) {
+            const ebpf_btf_resolved_function_info_t* function_info = nullptr;
+            int32_t btf_id = output.instruction.imm;
+            auto result = ebpf_get_btf_resolved_function_info_from_verifier(btf_id, &function_info);
+            if (result != EBPF_SUCCESS || function_info == nullptr || function_info->prototype.name == nullptr) {
+                throw bpf_code_generator_exception("Failed to get BTF-resolved function information");
+            }
+
+            btf_resolved_function_t function{
+                function_info->prototype.name,
+                function_info->module_guid,
+                function_info->prototype.return_type,
+                {},
+                function_info->prototype.flags,
+                0};
+            std::copy(
+                std::begin(function_info->prototype.arguments),
+                std::end(function_info->prototype.arguments),
+                function.arguments.begin());
+            btf_resolved_functions[btf_id] = function;
         }
+    }
+
+    std::vector<std::pair<int32_t, btf_resolved_function_t*>> ordered_functions;
+    ordered_functions.reserve(btf_resolved_functions.size());
+    for (auto& [btf_id, function] : btf_resolved_functions) {
+        ordered_functions.push_back({btf_id, &function});
+    }
+
+    std::sort(ordered_functions.begin(), ordered_functions.end(), [](const auto& left, const auto& right) {
+        if (_guid_less(left.second->module_guid, right.second->module_guid)) {
+            return true;
+        }
+        if (_guid_less(right.second->module_guid, left.second->module_guid)) {
+            return false;
+        }
+        return left.second->name.raw() < right.second->name.raw();
+    });
+
+    for (size_t function_index = 0; function_index < ordered_functions.size(); function_index++) {
+        ordered_functions[function_index].second->index = function_index;
     }
 }
 
@@ -1220,6 +1367,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
     std::vector<output_instruction_t>& program_output = output_instructions;
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
     auto helper_array_prefix = "runtime_context->helper_data[{}]";
+    auto btf_resolved_function_array_prefix = "runtime_context->btf_resolved_function_data[{}]";
 
     // Encode instructions.
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -1752,6 +1900,17 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                         break;
                     }
                 }
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_BTF_HELPER) {
+                auto function = btf_resolved_functions.find(inst.imm);
+                if (function == btf_resolved_functions.end()) {
+                    throw bpf_code_generator_exception("invalid BTF-resolved function", output.instruction_offset);
+                }
+                auto function_index = std::to_string(function->second.index);
+                auto function_name = std::vformat(btf_resolved_function_array_prefix, make_format_args(function_index));
+                output.lines.push_back(
+                    get_register_name(0) + " = ((helper_function_t)" + function_name + ".address)(" +
+                    get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) + ", " +
+                    get_register_name(4) + ", " + get_register_name(5) + ", context);");
             } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
                 std::string function_name = output.relocation.c_identifier();
                 output.lines.push_back(
@@ -1811,11 +1970,12 @@ bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_
         }
         output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
     }
-    if (subprogram.helper_functions.size() == 0) {
+    if (subprogram.helper_functions.size() == 0 && subprogram.btf_resolved_functions.size() == 0) {
         // Avoid unused parameter warning.
         output_stream << prolog_line_info << INDENT "(void)context;" << std::endl;
     }
-    if (subprogram.referenced_map_indices.size() == 0 && subprogram.helper_functions.size() == 0) {
+    if (subprogram.referenced_map_indices.size() == 0 && subprogram.helper_functions.size() == 0 &&
+        subprogram.btf_resolved_functions.size() == 0) {
         output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
     }
     output_stream << std::endl;
@@ -2180,6 +2340,83 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
+        if (!global_btf_resolved_functions_ordered.empty()) {
+            std::string btf_array_name = program_name.c_identifier() + "_btf_resolved_functions";
+            output_stream << "static btf_resolved_function_entry_t " << btf_array_name << "[] = {" << std::endl;
+
+            auto transitive_dependencies = get_btf_resolved_function_dependencies(program_name);
+            std::set<std::string> transitive_dependency_keys;
+            for (const auto& dependency : transitive_dependencies) {
+                transitive_dependency_keys.insert(_btf_resolved_function_key(dependency.module_guid, dependency.name));
+            }
+
+            for (const auto& function : global_btf_resolved_functions_ordered) {
+                bool used = transitive_dependency_keys.count(
+                                _btf_resolved_function_key(function.module_guid, function.name.raw())) > 0;
+                output_stream << INDENT "{" << std::endl;
+                output_stream << INDENT " 0," << std::endl;
+                output_stream << INDENT " {" << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION << ", "
+                              << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
+                              << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
+                              << " // Version header." << std::endl;
+                if (used) {
+                    output_stream << INDENT " " << function.name.quoted() << "," << std::endl;
+                    output_stream << INDENT " " << format_guid(&function.module_guid, false) << "," << std::endl;
+                    output_stream << INDENT " " << static_cast<int>(function.return_type) << "," << std::endl;
+                    output_stream << INDENT " {" << std::endl;
+                    for (size_t i = 0; i < function.arguments.size(); i++) {
+                        output_stream << INDENT INDENT " " << static_cast<int>(function.arguments[i]) << "," << std::endl;
+                    }
+                    output_stream << INDENT " }," << std::endl;
+                    output_stream << INDENT " " << function.flags << "," << std::endl;
+                } else {
+                    output_stream << INDENT " \"\"," << std::endl;
+                    output_stream << INDENT " " << format_guid(&_guid_null, false) << "," << std::endl;
+                }
+                output_stream << INDENT "}," << std::endl;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        } else if (program.btf_resolved_functions.size() > 0) {
+            std::string btf_array_name = program_name.c_identifier() + "_btf_resolved_functions";
+            output_stream << "static btf_resolved_function_entry_t " << btf_array_name << "[] = {" << std::endl;
+
+            using btf_resolved_function_map_value_t =
+                std::decay_t<decltype(program.btf_resolved_functions.begin()->second)>;
+            std::map<size_t, btf_resolved_function_map_value_t> functions_by_index;
+            for (const auto& [_, function] : program.btf_resolved_functions) {
+                functions_by_index.insert({function.index, function});
+            }
+
+            size_t expected_index = 0;
+            for (const auto& [index, function] : functions_by_index) {
+                if (index != expected_index) {
+                    throw bpf_code_generator_exception("BTF-resolved function index is not dense");
+                }
+                output_stream << INDENT "{" << std::endl;
+                output_stream << INDENT " 0," << std::endl;
+                output_stream << INDENT " {" << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION << ", "
+                              << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
+                              << EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
+                              << " // Version header." << std::endl;
+                output_stream << INDENT " " << function.name.quoted() << "," << std::endl;
+                output_stream << INDENT " " << format_guid(&function.module_guid, false) << "," << std::endl;
+                output_stream << INDENT " " << static_cast<int>(function.return_type) << "," << std::endl;
+                output_stream << INDENT " {" << std::endl;
+                for (size_t i = 0; i < function.arguments.size(); i++) {
+                    output_stream << INDENT INDENT " " << static_cast<int>(function.arguments[i]) << "," << std::endl;
+                }
+                output_stream << INDENT " }," << std::endl;
+                output_stream << INDENT " " << function.flags << "," << std::endl;
+                output_stream << INDENT "}," << std::endl;
+                expected_index++;
+            }
+
+            output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
         if (programs.size() > program_count) {
             output_stream << "// Forward references for local functions." << std::endl;
             for (auto& [_, subprogram] : programs) {
@@ -2285,6 +2522,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << prolog_line_info << INDENT "" << program.get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         size_t entry_helper_count = 0;
+        size_t entry_btf_resolved_function_count = 0;
         if (!global_helpers_ordered.empty()) {
             entry_helper_count = global_helpers_ordered.size();
         } else {
@@ -2294,7 +2532,17 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
             entry_helper_count = helper_indices.size();
         }
-        if (program.referenced_map_indices.size() == 0 && entry_helper_count == 0) {
+        if (!global_btf_resolved_functions_ordered.empty()) {
+            entry_btf_resolved_function_count = global_btf_resolved_functions_ordered.size();
+        } else {
+            std::set<size_t> btf_resolved_function_indices;
+            for (const auto& [_, function] : program.btf_resolved_functions) {
+                btf_resolved_function_indices.insert(function.index);
+            }
+            entry_btf_resolved_function_count = btf_resolved_function_indices.size();
+        }
+        if (program.referenced_map_indices.size() == 0 && entry_helper_count == 0 &&
+            entry_btf_resolved_function_count == 0) {
             output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
         }
         output_stream << std::endl;
@@ -2330,6 +2578,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto program_name = !program.program_name.empty() ? program.program_name : name;
             size_t map_count = program.referenced_map_indices.size();
             size_t helper_count = 0;
+            size_t btf_resolved_function_count = 0;
             if (!global_helpers_ordered.empty()) {
                 helper_count = global_helpers_ordered.size();
             } else {
@@ -2339,8 +2588,19 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 }
                 helper_count = helper_indices.size();
             }
+            if (!global_btf_resolved_functions_ordered.empty()) {
+                btf_resolved_function_count = global_btf_resolved_functions_ordered.size();
+            } else {
+                std::set<size_t> btf_resolved_function_indices;
+                for (const auto& [_, function] : program.btf_resolved_functions) {
+                    btf_resolved_function_indices.insert(function.index);
+                }
+                btf_resolved_function_count = btf_resolved_function_indices.size();
+            }
             auto map_array_name = map_count ? (program_name.c_identifier() + "_maps") : "NULL";
             auto helper_array_name = helper_count ? (program_name.c_identifier() + "_helpers") : "NULL";
+            auto btf_array_name =
+                btf_resolved_function_count ? (program_name.c_identifier() + "_btf_resolved_functions") : "NULL";
             auto program_type_guid_name = program_name.c_identifier() + "_program_type_guid";
             auto attach_type_guid_name = program_name.c_identifier() + "_attach_type_guid";
             auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
@@ -2358,6 +2618,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
             output_stream << INDENT INDENT << helper_count << "," << std::endl;
+            output_stream << INDENT INDENT << btf_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << btf_resolved_function_count << "," << std::endl;
             output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;

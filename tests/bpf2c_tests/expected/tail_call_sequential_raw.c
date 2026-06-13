@@ -6429,7 +6429,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential0,
         "sampl~35",
         "sample_ext0",
@@ -6438,13 +6438,15 @@ static program_entry_t _programs[] = {
         2,
         sequential0_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential0_program_type_guid,
         &sequential0_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential1,
         "sampl~34",
         "sample_ext1",
@@ -6453,13 +6455,15 @@ static program_entry_t _programs[] = {
         2,
         sequential1_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential1_program_type_guid,
         &sequential1_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential10,
         "sampl~25",
         "sample_ext10",
@@ -6468,13 +6472,15 @@ static program_entry_t _programs[] = {
         2,
         sequential10_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential10_program_type_guid,
         &sequential10_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential11,
         "sampl~24",
         "sample_ext11",
@@ -6483,13 +6489,15 @@ static program_entry_t _programs[] = {
         2,
         sequential11_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential11_program_type_guid,
         &sequential11_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential12,
         "sampl~23",
         "sample_ext12",
@@ -6498,13 +6506,15 @@ static program_entry_t _programs[] = {
         2,
         sequential12_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential12_program_type_guid,
         &sequential12_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential13,
         "sampl~22",
         "sample_ext13",
@@ -6513,13 +6523,15 @@ static program_entry_t _programs[] = {
         2,
         sequential13_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential13_program_type_guid,
         &sequential13_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential14,
         "sampl~21",
         "sample_ext14",
@@ -6528,13 +6540,15 @@ static program_entry_t _programs[] = {
         2,
         sequential14_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential14_program_type_guid,
         &sequential14_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential15,
         "sampl~20",
         "sample_ext15",
@@ -6543,13 +6557,15 @@ static program_entry_t _programs[] = {
         2,
         sequential15_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential15_program_type_guid,
         &sequential15_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential16,
         "sampl~19",
         "sample_ext16",
@@ -6558,13 +6574,15 @@ static program_entry_t _programs[] = {
         2,
         sequential16_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential16_program_type_guid,
         &sequential16_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential17,
         "sampl~18",
         "sample_ext17",
@@ -6573,13 +6591,15 @@ static program_entry_t _programs[] = {
         2,
         sequential17_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential17_program_type_guid,
         &sequential17_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential18,
         "sampl~17",
         "sample_ext18",
@@ -6588,13 +6608,15 @@ static program_entry_t _programs[] = {
         2,
         sequential18_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential18_program_type_guid,
         &sequential18_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential19,
         "sampl~16",
         "sample_ext19",
@@ -6603,13 +6625,15 @@ static program_entry_t _programs[] = {
         2,
         sequential19_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential19_program_type_guid,
         &sequential19_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential2,
         "sampl~33",
         "sample_ext2",
@@ -6618,13 +6642,15 @@ static program_entry_t _programs[] = {
         2,
         sequential2_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential2_program_type_guid,
         &sequential2_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential20,
         "sampl~15",
         "sample_ext20",
@@ -6633,13 +6659,15 @@ static program_entry_t _programs[] = {
         2,
         sequential20_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential20_program_type_guid,
         &sequential20_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential21,
         "sampl~14",
         "sample_ext21",
@@ -6648,13 +6676,15 @@ static program_entry_t _programs[] = {
         2,
         sequential21_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential21_program_type_guid,
         &sequential21_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential22,
         "sampl~13",
         "sample_ext22",
@@ -6663,13 +6693,15 @@ static program_entry_t _programs[] = {
         2,
         sequential22_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential22_program_type_guid,
         &sequential22_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential23,
         "sampl~12",
         "sample_ext23",
@@ -6678,13 +6710,15 @@ static program_entry_t _programs[] = {
         2,
         sequential23_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential23_program_type_guid,
         &sequential23_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential24,
         "sampl~11",
         "sample_ext24",
@@ -6693,13 +6727,15 @@ static program_entry_t _programs[] = {
         2,
         sequential24_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential24_program_type_guid,
         &sequential24_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential25,
         "sampl~10",
         "sample_ext25",
@@ -6708,13 +6744,15 @@ static program_entry_t _programs[] = {
         2,
         sequential25_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential25_program_type_guid,
         &sequential25_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential26,
         "sample~9",
         "sample_ext26",
@@ -6723,13 +6761,15 @@ static program_entry_t _programs[] = {
         2,
         sequential26_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential26_program_type_guid,
         &sequential26_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential27,
         "sample~8",
         "sample_ext27",
@@ -6738,13 +6778,15 @@ static program_entry_t _programs[] = {
         2,
         sequential27_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential27_program_type_guid,
         &sequential27_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential28,
         "sample~7",
         "sample_ext28",
@@ -6753,13 +6795,15 @@ static program_entry_t _programs[] = {
         2,
         sequential28_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential28_program_type_guid,
         &sequential28_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential29,
         "sample~6",
         "sample_ext29",
@@ -6768,13 +6812,15 @@ static program_entry_t _programs[] = {
         2,
         sequential29_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential29_program_type_guid,
         &sequential29_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential3,
         "sampl~32",
         "sample_ext3",
@@ -6783,13 +6829,15 @@ static program_entry_t _programs[] = {
         2,
         sequential3_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential3_program_type_guid,
         &sequential3_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential30,
         "sample~5",
         "sample_ext30",
@@ -6798,13 +6846,15 @@ static program_entry_t _programs[] = {
         2,
         sequential30_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential30_program_type_guid,
         &sequential30_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential31,
         "sample~4",
         "sample_ext31",
@@ -6813,13 +6863,15 @@ static program_entry_t _programs[] = {
         2,
         sequential31_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential31_program_type_guid,
         &sequential31_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential32,
         "sample~3",
         "sample_ext32",
@@ -6828,13 +6880,15 @@ static program_entry_t _programs[] = {
         2,
         sequential32_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential32_program_type_guid,
         &sequential32_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential33,
         "sample~2",
         "sample_ext33",
@@ -6843,13 +6897,15 @@ static program_entry_t _programs[] = {
         2,
         sequential33_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential33_program_type_guid,
         &sequential33_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential34,
         "sample~1",
         "sample_ext34",
@@ -6858,13 +6914,15 @@ static program_entry_t _programs[] = {
         2,
         sequential34_helpers,
         3,
+        NULL,
+        0,
         38,
         &sequential34_program_type_guid,
         &sequential34_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential4,
         "sampl~31",
         "sample_ext4",
@@ -6873,13 +6931,15 @@ static program_entry_t _programs[] = {
         2,
         sequential4_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential4_program_type_guid,
         &sequential4_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential5,
         "sampl~30",
         "sample_ext5",
@@ -6888,13 +6948,15 @@ static program_entry_t _programs[] = {
         2,
         sequential5_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential5_program_type_guid,
         &sequential5_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential6,
         "sampl~29",
         "sample_ext6",
@@ -6903,13 +6965,15 @@ static program_entry_t _programs[] = {
         2,
         sequential6_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential6_program_type_guid,
         &sequential6_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential7,
         "sampl~28",
         "sample_ext7",
@@ -6918,13 +6982,15 @@ static program_entry_t _programs[] = {
         2,
         sequential7_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential7_program_type_guid,
         &sequential7_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential8,
         "sampl~27",
         "sample_ext8",
@@ -6933,13 +6999,15 @@ static program_entry_t _programs[] = {
         2,
         sequential8_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential8_program_type_guid,
         &sequential8_attach_type_guid,
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {2, 160, 160}, // Version header.
         sequential9,
         "sampl~26",
         "sample_ext9",
@@ -6948,6 +7016,8 @@ static program_entry_t _programs[] = {
         2,
         sequential9_helpers,
         3,
+        NULL,
+        0,
         37,
         &sequential9_program_type_guid,
         &sequential9_attach_type_guid,
