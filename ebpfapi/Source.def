@@ -120,6 +120,7 @@ EXPORTS
     ebpf_get_ebpf_attach_type
     ebpf_get_ebpf_program_type
     ebpf_get_next_pinned_object_path
+    ebpf_get_map_annotations_from_verifier
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name

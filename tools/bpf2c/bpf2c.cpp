@@ -345,6 +345,16 @@ main(int argc, char** argv)
             if (result != EBPF_SUCCESS) {
                 throw std::runtime_error(std::string("Failed to get program information"));
             }
+
+            // Retrieve map annotations from the verifier's abstract domain analysis.
+            const ebpf_verifier_map_info_t* map_annotations = nullptr;
+            size_t map_annotation_count = 0;
+            result = ebpf_get_map_annotations_from_verifier(&map_annotations, &map_annotation_count);
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error(std::string("Failed to get map annotations from verifier"));
+            }
+            generator.set_map_annotations(map_annotations, map_annotation_count);
+
             generator.parse(
                 program,
                 program_info,
