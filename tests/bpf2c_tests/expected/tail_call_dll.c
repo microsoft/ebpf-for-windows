@@ -249,7 +249,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         callee,
         "sample~1",
         "sample_ext/0",
@@ -264,7 +264,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         caller,
         "sample~2",
         "sample_ext",

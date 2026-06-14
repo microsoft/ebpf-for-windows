@@ -2102,7 +2102,7 @@ label_4:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_delete_element,
         "sample~5",
         "sample_ext",
@@ -2117,7 +2117,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_find_and_delete_element,
         "sample~4",
         "sample_ext",
@@ -2132,7 +2132,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_peek_elem,
         "sample~1",
         "sample_ext",
@@ -2147,7 +2147,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_pop_elem,
         "sample~2",
         "sample_ext",
@@ -2162,7 +2162,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_push_elem,
         "sample~3",
         "sample_ext",
@@ -2177,7 +2177,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_read_helper_increment,
         "sample~9",
         "sample_ext",
@@ -2192,7 +2192,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_read_helper_increment_invalid,
         "sample~7",
         "sample_ext",
@@ -2207,7 +2207,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_read_helper_value,
         "sample~8",
         "sample_ext",
@@ -2222,7 +2222,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_read_increment,
         "sampl~10",
         "sample_ext",
@@ -2237,7 +2237,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_map_update_element,
         "sample~6",
         "sample_ext",

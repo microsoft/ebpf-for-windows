@@ -341,6 +341,12 @@ bpf_code_generator::parse(
     bpf_code_generator_program& current_program = programs[program->program_name];
 
     current_program.program_info = program_info;
+    // Capture context size now since program_info pointer may become dangling
+    // after subsequent verifier calls for other programs in multi-program ELFs.
+    if (program_info != nullptr && program_info->program_type_descriptor != nullptr &&
+        program_info->program_type_descriptor->context_descriptor != nullptr) {
+        current_program.bpf2c_context_size = program_info->program_type_descriptor->context_descriptor->size;
+    }
     current_program.elf_section_name = program->section_name;
     current_program.program_name = program->program_name;
     current_program.offset_in_section = program->offset_in_section;
@@ -2373,6 +2379,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 }
                 output_stream << INDENT INDENT << "\"" << hash_string << "\""
                               << "," << std::endl;
+                // Emit the context size captured at parse time.
+                output_stream << INDENT INDENT << program.bpf2c_context_size << ","
+                              << " // bpf2c_context_size." << std::endl;
             }
             output_stream << INDENT "}," << std::endl;
         }

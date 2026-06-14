@@ -360,6 +360,7 @@ class bpf_code_generator
         std::map<unsafe_string, helper_function_t> helper_functions;
         std::string program_info_hash_type{};
         const ebpf_program_info_t* program_info = nullptr;
+        size_t bpf2c_context_size{0};
 
         /**
          * @brief Assign a label to each jump target.

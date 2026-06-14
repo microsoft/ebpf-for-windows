@@ -88,7 +88,12 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
     // hash must be updated to include the new fields, both here and in _ebpf_program_verify_program_info_hash.
     hash_t::byte_range_t byte_range;
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->name);
-    hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor->context_descriptor);
+    // Hash only the offset fields of the context descriptor (not size) to allow
+    // extensions to append new fields to the context struct without breaking
+    // previously compiled native programs.
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->context_descriptor->data);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->context_descriptor->end);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->context_descriptor->meta);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->program_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->bpf_prog_type);
     hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->is_privileged);

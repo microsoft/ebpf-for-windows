@@ -304,7 +304,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         divide_by_zero,
         "sample~1",
         "sample_ext",
