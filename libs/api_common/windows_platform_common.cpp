@@ -1,13 +1,13 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "ebpf_registry_helper.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_protocol.h"
+#include "ebpf_registry_helper.h"
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_verifier_wrapper.hpp"

@@ -2555,7 +2555,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         ebpf_native_program_t* native_program = native_programs[count];
         const program_entry_t* program = &native_program->program_entry;
         ebpf_program_parameters_t parameters = {0};
-        bool has_program_info_hash = program->header.size >= EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
+        bool has_program_info_hash =
+            program->header.size >= EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
         bool legacy_program_info_hash = has_program_info_hash && (program->header.total_size == program->header.size);
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
