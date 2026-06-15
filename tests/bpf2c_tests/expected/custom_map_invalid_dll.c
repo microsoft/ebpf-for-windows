@@ -176,24 +176,21 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        access_map,
-        "cgroup~1",
-        "cgroup/connect4",
-        "access_map",
-        access_map_maps,
-        1,
-        access_map_helpers,
-        1,
-        13,
-        &access_map_program_type_guid,
-        &access_map_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = access_map,
+        .pe_section_name = "cgroup~1",
+        .section_name = "cgroup/connect4",
+        .program_name = "access_map",
+        .referenced_map_indices = access_map_maps,
+        .referenced_map_count = 1,
+        .helpers = access_map_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 13,
+        .program_type = &access_map_program_type_guid,
+        .expected_attach_type = &access_map_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

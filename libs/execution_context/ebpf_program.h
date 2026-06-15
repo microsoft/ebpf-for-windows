@@ -415,6 +415,11 @@ extern "C"
         _In_reads_opt_(address_count) helper_function_address_t* addresses,
         _In_opt_ void* context);
 
+    typedef ebpf_result_t (*ebpf_btf_resolved_function_addresses_changed_callback_t)(
+        size_t address_count,
+        _In_reads_opt_(address_count) helper_function_t* addresses,
+        _In_opt_ void* context);
+
     /**
      * @brief Register to be notified when the helper function addresses change.
      *
@@ -428,6 +433,23 @@ extern "C"
     ebpf_program_register_for_helper_changes(
         _Inout_ ebpf_program_t* program,
         _In_opt_ ebpf_helper_function_addresses_changed_callback_t callback,
+        _In_opt_ void* context);
+
+    /**
+     * @brief Register to be notified when BTF-resolved function addresses change.
+     *
+     * @param[in,out] program Program to register for BTF-resolved function address changes.
+     * @param[in] callback Function to call when the BTF-resolved function addresses change.
+     * @param[in] context Context to pass to the callback.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD A required provider is not available.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_register_for_btf_resolved_function_changes(
+        _Inout_ ebpf_program_t* program,
+        _In_opt_ ebpf_btf_resolved_function_addresses_changed_callback_t callback,
         _In_opt_ void* context);
 
     /**
@@ -447,6 +469,12 @@ extern "C"
      */
     void
     ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program);
+
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_reference_btf_providers(_Inout_ ebpf_program_t* program);
+
+    void
+    ebpf_program_dereference_btf_providers(_Inout_ ebpf_program_t* program);
 
     /**
      * @brief Get the ebpf_state index assigned to the program module.

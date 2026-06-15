@@ -360,24 +360,21 @@ label_3:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        lru_lookup_program,
-        "sample~1",
-        "sample_ext",
-        "lru_lookup_program",
-        lru_lookup_program_maps,
-        1,
-        lru_lookup_program_helpers,
-        1,
-        27,
-        &lru_lookup_program_program_type_guid,
-        &lru_lookup_program_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = lru_lookup_program,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "lru_lookup_program",
+        .referenced_map_indices = lru_lookup_program_maps,
+        .referenced_map_count = 1,
+        .helpers = lru_lookup_program_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 27,
+        .program_type = &lru_lookup_program_program_type_guid,
+        .expected_attach_type = &lru_lookup_program_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

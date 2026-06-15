@@ -851,24 +851,21 @@ label_11:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        flow_id_monitor,
-        "sockops",
-        "sockops",
-        "flow_id_monitor",
-        flow_id_monitor_maps,
-        2,
-        flow_id_monitor_helpers,
-        4,
-        211,
-        &flow_id_monitor_program_type_guid,
-        &flow_id_monitor_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = flow_id_monitor,
+        .pe_section_name = "sockops",
+        .section_name = "sockops",
+        .program_name = "flow_id_monitor",
+        .referenced_map_indices = flow_id_monitor_maps,
+        .referenced_map_count = 2,
+        .helpers = flow_id_monitor_helpers,
+        .helper_count = 4,
+        .bpf_instruction_count = 211,
+        .program_type = &flow_id_monitor_program_type_guid,
+        .expected_attach_type = &flow_id_monitor_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)
