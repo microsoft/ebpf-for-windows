@@ -130,15 +130,17 @@ get_program_info_type_hash(
     }
 
     size_t btf_resolved_function_count = btf_resolved_functions.size();
-    hash_t::append_byte_range(byte_range, btf_resolved_function_count);
-    for (const auto& dependency : btf_resolved_functions) {
-        hash_t::append_byte_range(byte_range, dependency.module_guid);
-        hash_t::append_byte_range(byte_range, dependency.name);
-        hash_t::append_byte_range(byte_range, dependency.return_type);
-        for (size_t argument = 0; argument < dependency.arguments.size(); argument++) {
-            hash_t::append_byte_range(byte_range, dependency.arguments[argument]);
+    if (btf_resolved_function_count > 0) {
+        hash_t::append_byte_range(byte_range, btf_resolved_function_count);
+        for (const auto& dependency : btf_resolved_functions) {
+            hash_t::append_byte_range(byte_range, dependency.module_guid);
+            hash_t::append_byte_range(byte_range, dependency.name);
+            hash_t::append_byte_range(byte_range, dependency.return_type);
+            for (size_t argument = 0; argument < dependency.arguments.size(); argument++) {
+                hash_t::append_byte_range(byte_range, dependency.arguments[argument]);
+            }
+            hash_t::append_byte_range(byte_range, dependency.flags);
         }
-        hash_t::append_byte_range(byte_range, dependency.flags);
     }
 
     hash_t hash(algorithm);
