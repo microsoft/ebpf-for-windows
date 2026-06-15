@@ -22,8 +22,8 @@
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
 static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
-static const ULONG _ebpfsvc_sid_subauthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
-static const SID_IDENTIFIER_AUTHORITY _ebpfsvc_service_authority = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
+static const ULONG _ebpfsvc_sid_subauthorities[] = {
+    SECURITY_SERVICE_ID_BASE_RID, 3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
 
 // SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
 // S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
@@ -42,6 +42,7 @@ static const SID_IDENTIFIER_AUTHORITY _ebpfsvc_service_authority = {0x00, 0x00, 
 
 // Function codes from 0x800 to 0xFFF are for customer use.
 #define IOCTL_EBPF_CTL_METHOD_BUFFERED CTL_CODE(EBPF_IOCTL_TYPE, 0x900, METHOD_BUFFERED, FILE_ANY_ACCESS)
+#define EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS ((ACCESS_MASK)0x1)
 
 const char ebpf_core_version[] = EBPF_VERSION " " GIT_COMMIT_ID;
 
@@ -110,8 +111,9 @@ _ebpf_driver_initialize_local_system_sid(_Out_ PSID sid)
 static _Must_inspect_result_ NTSTATUS
 _ebpf_driver_initialize_ebpfsvc_sid(_Out_ PSID sid)
 {
-    NTSTATUS status = RtlInitializeSid(
-        sid, (SID_IDENTIFIER_AUTHORITY*)&_ebpfsvc_service_authority, EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities));
+    const SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
+    NTSTATUS status =
+        RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities));
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         return status;
@@ -481,25 +483,25 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, ebpfsvc_sid);
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, ebpfsvc_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
     }
 
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, local_service_sid);
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, local_service_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
     }
 
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, admin_sid);
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, admin_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
     }
 
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, system_sid);
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, system_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
@@ -761,10 +763,10 @@ _ebpf_driver_is_caller_privileged(ebpf_operation_id_t operation_id)
 {
     // Check if the caller has the required privileges.
     SECURITY_SUBJECT_CONTEXT subject_context;
-    const ACCESS_MASK desired_access = GENERIC_ALL;
+    const ACCESS_MASK desired_access = EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS;
     SeCaptureSubjectContext(&subject_context);
     ACCESS_MASK granted_access = 0;
-    GENERIC_MAPPING generic_mapping = {1, 1, 1, 1}; // No generic mapping needed for this check
+    GENERIC_MAPPING generic_mapping = {0, 0, 0, 0};
     NTSTATUS status;
     BOOLEAN result = SeAccessCheck(
         ebpf_execution_context_privileged_security_descriptor,
