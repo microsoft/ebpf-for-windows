@@ -2139,6 +2139,14 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out
+        // without touching classify_output->actionType.
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
+
     classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
@@ -2253,6 +2261,14 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out
+        // without touching classify_output->actionType.
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -2374,6 +2390,14 @@ net_ebpf_extension_sock_addr_bind_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out
+        // without touching classify_output->actionType.
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        goto Exit;
+    }
+
     classify_output->actionType = FWP_ACTION_PERMIT;
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
@@ -2491,11 +2515,22 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     ebpf_result_t program_result;
+    bool rights_revoked = FALSE;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out
+        // without touching classify_output->actionType (the Exit-block switch is
+        // also skipped via rights_revoked).
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        rights_revoked = TRUE;
+        goto Exit;
+    }
 
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
@@ -2578,18 +2613,20 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
 Exit:
     // Set action type based on verdict.
     // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
-    switch (verdict) {
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        break;
-    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
-        classify_output->actionType = FWP_ACTION_PERMIT;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
-    default:
-        classify_output->actionType = FWP_ACTION_BLOCK;
-        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-        break;
+    if (!rights_revoked) {
+        switch (verdict) {
+        case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+            classify_output->actionType = FWP_ACTION_PERMIT;
+            break;
+        case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+            classify_output->actionType = FWP_ACTION_PERMIT;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            break;
+        default:
+            classify_output->actionType = FWP_ACTION_BLOCK;
+            classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            break;
+        }
     }
 
     _net_ebpf_ext_log_sock_addr_classify(
