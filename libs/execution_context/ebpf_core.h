@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "cxplat.h"
 #include "bpf2c.h"
+#include "cxplat.h"
 #include "ebpf_object.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
