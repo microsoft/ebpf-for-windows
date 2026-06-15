@@ -2990,7 +2990,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   c. Helper return type.
     //   d. Helper argument types.
     //   e. reallocate_packet flag (if set).
-    // 8. Count of BTF-resolved functions.
+    // 8. If any BTF-resolved functions are present, append their count.
     // 9. For each BTF-resolved function (sorted by module GUID then name).
     //   a. Module GUID.
     //   b. Function name.
@@ -3071,16 +3071,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
     }
 
-    result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, btf_resolved_function_count);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    for (size_t index = 0; index < btf_resolved_function_count; index++) {
-        result =
-            _ebpf_program_update_hash_with_btf_resolved_function(cryptographic_hash, &btf_resolved_functions[index]);
+    if (btf_resolved_function_count > 0) {
+        result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, btf_resolved_function_count);
         if (result != EBPF_SUCCESS) {
             goto Exit;
+        }
+
+        for (size_t index = 0; index < btf_resolved_function_count; index++) {
+            result =
+                _ebpf_program_update_hash_with_btf_resolved_function(cryptographic_hash, &btf_resolved_functions[index]);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
         }
     }
 
