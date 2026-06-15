@@ -26,9 +26,9 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 // SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
 // S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
 //
-// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + SID for ebpfsvc.
+// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + LocalService + SID for ebpfsvc.
 #define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL \
-    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;BA)(A;;GA;;;SY)"
+    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;LS)(A;;GA;;;BA)(A;;GA;;;SY)"
 
 #ifndef CTL_CODE
 #define CTL_CODE(DeviceType, Function, Method, Access) \
@@ -89,14 +89,24 @@ _ebpf_driver_build_privileged_security_descriptor()
     const ULONG subauthority_count = EBPF_COUNT_OF(sid_subauthorities);
     ULONG security_descriptor_size = 0;
 
-    // Well-known SIDs for Administrators (BA) and SYSTEM (SY).
+    // Well-known SIDs for LocalService (LS), Administrators (BA), and SYSTEM (SY).
     SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
-    struct {                                                       // Stack-allocated SIDs for BA and SY.
+    struct
+    { // Stack-allocated SIDs for LS, BA, and SY.
         SID sid;
         ULONG sub_authority;
-    } admin_sid_buf = {0}, system_sid_buf = {0};
+    } local_service_sid_buf = {0}, admin_sid_buf = {0}, system_sid_buf = {0};
+    PSID local_service_sid = (PSID)&local_service_sid_buf;
     PSID admin_sid = (PSID)&admin_sid_buf;
     PSID system_sid = (PSID)&system_sid_buf;
+
+    // Build S-1-5-19 (LOCAL SERVICE).
+    status = RtlInitializeSid(local_service_sid, &nt_authority, 1);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        goto Exit;
+    }
+    *RtlSubAuthoritySid(local_service_sid, 0) = SECURITY_LOCAL_SERVICE_RID;
 
     // Build S-1-5-32-544 (BUILTIN\Administrators).
     status = RtlInitializeSid(admin_sid, &nt_authority, 2);
@@ -153,12 +163,18 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    // Allocate DACL with three ACEs: ebpfsvc, Administrators, SYSTEM.
+    // Allocate DACL with four ACEs: ebpfsvc, LocalService, Administrators, SYSTEM.
     size_t acl_size = 0;
     size_t total_sid_length = 0;
     ebpf_result_t safe_result = EBPF_SUCCESS;
     ULONG aclSize = 0;
-    safe_result = ebpf_safe_size_t_add((size_t)RtlLengthSid(ebpfsvc_sid), (size_t)RtlLengthSid(admin_sid), &total_sid_length);
+    safe_result = ebpf_safe_size_t_add(
+        (size_t)RtlLengthSid(ebpfsvc_sid), (size_t)RtlLengthSid(local_service_sid), &total_sid_length);
+    if (safe_result != EBPF_SUCCESS) {
+        status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+    safe_result = ebpf_safe_size_t_add(total_sid_length, (size_t)RtlLengthSid(admin_sid), &total_sid_length);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -168,7 +184,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)3 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
+    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)4 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -178,7 +194,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)3 * sizeof(ULONG), &acl_size);
+    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)4 * sizeof(ULONG), &acl_size);
     if (safe_result != EBPF_SUCCESS || acl_size > MAXULONG) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -198,6 +214,12 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, ebpfsvc_sid);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
+        goto Exit;
+    }
+
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, local_service_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
@@ -276,7 +298,7 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
     // This is useful for debugging purposes and to ensure that the version string is present in the binary.
     EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, ebpf_core_version);
 
-    // Allow access to kernel/system, administrators, and ebpfsvc only.
+    // Allow access to kernel/system, administrators, LocalService, and ebpfsvc only.
     DECLARE_CONST_UNICODE_STRING(security_descriptor, EBPF_EXECUTION_CONTEXT_DEVICE_SDDL);
     device_initialize = WdfControlDeviceInitAllocate(driver_handle, &security_descriptor);
     if (!device_initialize) {
