@@ -108,8 +108,8 @@ typedef struct _ebpf_program
 
     _Guarded_by_(lock) ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
     _Guarded_by_(lock) void* helper_function_addresses_changed_context;
-    _Guarded_by_(lock) ebpf_btf_resolved_function_addresses_changed_callback_t
-        btf_resolved_function_addresses_changed_callback;
+    _Guarded_by_(lock)
+        ebpf_btf_resolved_function_addresses_changed_callback_t btf_resolved_function_addresses_changed_callback;
     _Guarded_by_(lock) void* btf_resolved_function_addresses_changed_context;
 } ebpf_program_t;
 
@@ -396,7 +396,8 @@ _ebpf_program_build_btf_provider_bindings(_Inout_ ebpf_program_t* program)
             continue;
         }
 
-        if ((binding_count > 0) && IsEqualGUID(&function_entry->module_guid, &btf_provider_bindings[binding_count - 1].module_guid)) {
+        if ((binding_count > 0) &&
+            IsEqualGUID(&function_entry->module_guid, &btf_provider_bindings[binding_count - 1].module_guid)) {
             continue;
         }
 
@@ -413,8 +414,7 @@ _ebpf_program_build_btf_provider_bindings(_Inout_ ebpf_program_t* program)
     return EBPF_SUCCESS;
 }
 
-_Requires_lock_held_(program->lock) static ebpf_result_t
-_ebpf_program_update_btf_provider_addresses(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_btf_provider_addresses(
     _Inout_ ebpf_program_t* program, _In_opt_ const ebpf_program_btf_provider_binding_t* binding, bool clear_addresses)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -426,8 +426,8 @@ _ebpf_program_update_btf_provider_addresses(
 
     if (program->btf_resolved_function_count > 0) {
         size_t addresses_length = 0;
-        result =
-            ebpf_safe_size_t_multiply(sizeof(helper_function_t), program->btf_resolved_function_count, &addresses_length);
+        result = ebpf_safe_size_t_multiply(
+            sizeof(helper_function_t), program->btf_resolved_function_count, &addresses_length);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -538,7 +538,8 @@ _ebpf_program_register_btf_provider_client(_Inout_ ebpf_program_t* program)
         return EBPF_SUCCESS;
     }
 
-    NTSTATUS status = NmrRegisterClient(&_ebpf_program_btf_client_characteristics, program, &program->btf_nmr_client_handle);
+    NTSTATUS status =
+        NmrRegisterClient(&_ebpf_program_btf_client_characteristics, program, &program->btf_nmr_client_handle);
     return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD;
 }
 
@@ -573,7 +574,8 @@ _ebpf_program_btf_provider_attach_callback(
     void* provider_dispatch = NULL;
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (provider_registration_instance->ModuleId == NULL || provider_registration_instance->ModuleId->Type != MIT_GUID) {
+    if (provider_registration_instance->ModuleId == NULL ||
+        provider_registration_instance->ModuleId->Type != MIT_GUID) {
         return STATUS_INVALID_PARAMETER;
     }
 
@@ -584,7 +586,8 @@ _ebpf_program_btf_provider_attach_callback(
     state = ebpf_lock_lock(&program->lock);
     lock_acquired = true;
 
-    if (!_ebpf_program_find_btf_provider_binding_index(program, &provider_registration_instance->ModuleId->Guid, &binding_index)) {
+    if (!_ebpf_program_find_btf_provider_binding_index(
+            program, &provider_registration_instance->ModuleId->Guid, &binding_index)) {
         status = STATUS_NOINTERFACE;
         goto Done;
     }
@@ -599,8 +602,12 @@ _ebpf_program_btf_provider_attach_callback(
 
 #pragma warning(push)
 #pragma warning(disable : 6387) // NULL is allowed for client dispatch.
-    status =
-        NmrClientAttachProvider(nmr_binding_handle, &program->btf_provider_bindings[binding_index], NULL, &provider_binding_context, &provider_dispatch);
+    status = NmrClientAttachProvider(
+        nmr_binding_handle,
+        &program->btf_provider_bindings[binding_index],
+        NULL,
+        &provider_binding_context,
+        &provider_dispatch);
 #pragma warning(pop)
     if (!NT_SUCCESS(status)) {
         goto Done;
@@ -646,7 +653,8 @@ _ebpf_program_btf_provider_detach_callback(_In_ void* client_binding_context)
     ExWaitForRundownProtectionRelease(&program->btf_provider_bindings[binding->binding_index].rundown_reference);
 
     state = ebpf_lock_lock(&program->lock);
-    (void)_ebpf_program_update_btf_provider_addresses(program, &program->btf_provider_bindings[binding->binding_index], true);
+    (void)_ebpf_program_update_btf_provider_addresses(
+        program, &program->btf_provider_bindings[binding->binding_index], true);
     program->btf_provider_bindings[binding->binding_index].attach_error = EBPF_SUCCESS;
     program->btf_provider_bindings[binding->binding_index].provider_data = NULL;
     program->btf_provider_bindings[binding->binding_index].nmr_binding_handle = NULL;

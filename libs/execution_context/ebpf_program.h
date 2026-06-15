@@ -416,9 +416,7 @@ extern "C"
         _In_opt_ void* context);
 
     typedef ebpf_result_t (*ebpf_btf_resolved_function_addresses_changed_callback_t)(
-        size_t address_count,
-        _In_reads_opt_(address_count) helper_function_t* addresses,
-        _In_opt_ void* context);
+        size_t address_count, _In_reads_opt_(address_count) helper_function_t* addresses, _In_opt_ void* context);
 
     /**
      * @brief Register to be notified when the helper function addresses change.
