@@ -2976,28 +2976,43 @@ _ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void*
     memset(destination, 0, sizeof(*destination));
     const program_entry_t* source_entry = reinterpret_cast<const program_entry_t*>(source);
 
-    if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2 &&
-        source_size >= EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_TOTAL_SIZE) {
-        const program_entry_v2_t* source_v2 = reinterpret_cast<const program_entry_v2_t*>(source);
+    if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION &&
+        source_size >= EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE) {
+        const uint8_t* source_bytes = reinterpret_cast<const uint8_t*>(source);
 
-        destination->zero = source_v2->zero;
-        destination->header = source_v2->header;
-        destination->function = source_v2->function;
-        destination->pe_section_name = source_v2->pe_section_name;
-        destination->section_name = source_v2->section_name;
-        destination->program_name = source_v2->program_name;
-        destination->referenced_map_indices = source_v2->referenced_map_indices;
-        destination->referenced_map_count = source_v2->referenced_map_count;
-        destination->helpers = source_v2->helpers;
-        destination->helper_count = source_v2->helper_count;
-        destination->bpf_instruction_count = source_v2->bpf_instruction_count;
-        destination->program_type = source_v2->program_type;
-        destination->expected_attach_type = source_v2->expected_attach_type;
-        destination->program_info_hash = source_v2->program_info_hash;
-        destination->program_info_hash_length = source_v2->program_info_hash_length;
-        destination->program_info_hash_type = source_v2->program_info_hash_type;
-        destination->btf_resolved_functions = source_v2->btf_resolved_functions;
-        destination->btf_resolved_function_count = source_v2->btf_resolved_function_count;
+        memcpy(destination, source, EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count));
+        memcpy(
+            &destination->btf_resolved_functions,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET,
+            sizeof(destination->btf_resolved_functions));
+        memcpy(
+            &destination->btf_resolved_function_count,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET,
+            sizeof(destination->btf_resolved_function_count));
+        memcpy(
+            &destination->bpf_instruction_count,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET,
+            sizeof(destination->bpf_instruction_count));
+        memcpy(
+            &destination->program_type,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET,
+            sizeof(destination->program_type));
+        memcpy(
+            &destination->expected_attach_type,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET,
+            sizeof(destination->expected_attach_type));
+        memcpy(
+            &destination->program_info_hash,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET,
+            sizeof(destination->program_info_hash));
+        memcpy(
+            &destination->program_info_hash_length,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET,
+            sizeof(destination->program_info_hash_length));
+        memcpy(
+            &destination->program_info_hash_type,
+            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET,
+            sizeof(destination->program_info_hash_type));
     } else {
         size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
         memcpy(destination, source, program_copy_size);

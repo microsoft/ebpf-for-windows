@@ -142,7 +142,7 @@ if ($KernelMode) {
 msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
-    throw "Build failed for $FileName"
+    throw "Build failed for $FileName.o"
 }
 
 Pop-Location

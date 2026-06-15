@@ -211,32 +211,6 @@ extern "C"
     } program_entry_t;
 
     /**
-     * @brief Legacy v2 program entry layout used before BTF-resolved function metadata was moved to the tail.
-     */
-    typedef struct _program_entry_v2
-    {
-        uint64_t zero;
-
-        ebpf_native_module_header_t header;
-        uint64_t (*function)(void*, const program_runtime_context_t*);
-        const char* pe_section_name;
-        const char* section_name;
-        const char* program_name;
-        uint16_t* referenced_map_indices;
-        uint16_t referenced_map_count;
-        helper_function_entry_t* helpers;
-        uint16_t helper_count;
-        btf_resolved_function_entry_t* btf_resolved_functions;
-        uint16_t btf_resolved_function_count;
-        size_t bpf_instruction_count;
-        ebpf_program_type_t* program_type;
-        ebpf_attach_type_t* expected_attach_type;
-        const uint8_t* program_info_hash;
-        size_t program_info_hash_length;
-        const char* program_info_hash_type;
-    } program_entry_v2_t;
-
-    /**
      * @brief Version information for the bpf2c compiler.
      * This structure contains the version information for the bpf2c compiler that generated the module. It can be
      * used to determine if the module is compatible with the current version of the eBPF for Windows runtime.
@@ -367,9 +341,33 @@ extern "C"
      EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 1
-#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2 2
-#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_SIZE EBPF_SIZE_INCLUDING_FIELD(program_entry_v2_t, program_info_hash_type)
-#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_TOTAL_SIZE sizeof(program_entry_v2_t)
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION 2
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET \
+    EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count)
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET                           \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET +                                \
+     sizeof(((program_entry_t*)0)->btf_resolved_functions))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET                                 \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET +                           \
+     sizeof(((program_entry_t*)0)->btf_resolved_function_count))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET                                          \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET +                                 \
+     sizeof(((program_entry_t*)0)->bpf_instruction_count))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET                                  \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET + sizeof(((program_entry_t*)0)->program_type))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET                                     \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET +                                  \
+     sizeof(((program_entry_t*)0)->expected_attach_type))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET                              \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET +                                     \
+     sizeof(((program_entry_t*)0)->program_info_hash))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET                                \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET +                              \
+     sizeof(((program_entry_t*)0)->program_info_hash_length))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE                                                         \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET +                                \
+     sizeof(((program_entry_t*)0)->program_info_hash_type))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(program_entry_t)

@@ -293,24 +293,21 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        test_utility_helpers,
-        "sample~1",
-        "sample_ext",
-        "test_utility_helpers",
-        test_utility_helpers_maps,
-        1,
-        test_utility_helpers_helpers,
-        8,
-        52,
-        &test_utility_helpers_program_type_guid,
-        &test_utility_helpers_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = test_utility_helpers,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "test_utility_helpers",
+        .referenced_map_indices = test_utility_helpers_maps,
+        .referenced_map_count = 1,
+        .helpers = test_utility_helpers_helpers,
+        .helper_count = 8,
+        .bpf_instruction_count = 52,
+        .program_type = &test_utility_helpers_program_type_guid,
+        .expected_attach_type = &test_utility_helpers_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

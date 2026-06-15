@@ -232,24 +232,21 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        GlobalVariableTest,
-        "sample~1",
-        "sample_ext",
-        "GlobalVariableTest",
-        GlobalVariableTest_maps,
-        3,
-        NULL,
-        0,
-        18,
-        &GlobalVariableTest_program_type_guid,
-        &GlobalVariableTest_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = GlobalVariableTest,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "GlobalVariableTest",
+        .referenced_map_indices = GlobalVariableTest_maps,
+        .referenced_map_count = 3,
+        .helpers = NULL,
+        .helper_count = 0,
+        .bpf_instruction_count = 18,
+        .program_type = &GlobalVariableTest_program_type_guid,
+        .expected_attach_type = &GlobalVariableTest_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)
