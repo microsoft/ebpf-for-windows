@@ -345,28 +345,26 @@ extern "C"
 #define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION 2
 #define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET \
     EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count)
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET                           \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET +                                \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET +       \
      sizeof(((program_entry_t*)0)->btf_resolved_functions))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET                                 \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET +                           \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET      \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET + \
      sizeof(((program_entry_t*)0)->btf_resolved_function_count))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET                                          \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET +                                 \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET         \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET + \
      sizeof(((program_entry_t*)0)->bpf_instruction_count))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET                                  \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET \
     (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET + sizeof(((program_entry_t*)0)->program_type))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET                                     \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET +                                  \
-     sizeof(((program_entry_t*)0)->expected_attach_type))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET                              \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET +                                     \
-     sizeof(((program_entry_t*)0)->program_info_hash))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET                                \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET +                              \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET + sizeof(((program_entry_t*)0)->expected_attach_type))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET + sizeof(((program_entry_t*)0)->program_info_hash))
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET  \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET + \
      sizeof(((program_entry_t*)0)->program_info_hash_length))
-#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE                                                         \
-    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET +                                \
+#define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE                         \
+    (EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET + \
      sizeof(((program_entry_t*)0)->program_info_hash_type))
 #define EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \

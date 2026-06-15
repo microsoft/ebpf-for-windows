@@ -2711,7 +2711,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                           << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
                           << " // Version header." << std::endl;
             output_stream << INDENT INDENT ".function = " << program_name.c_identifier() << "," << std::endl;
-            output_stream << INDENT INDENT ".pe_section_name = " << program.pe_section_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT ".pe_section_name = " << program.pe_section_name.quoted() << ","
+                          << std::endl;
             output_stream << INDENT INDENT ".section_name = " << program.elf_section_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT ".program_name = " << program_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT ".referenced_map_indices = " << map_array_name << "," << std::endl;
@@ -2725,8 +2726,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT ".expected_attach_type = &" << attach_type_guid_name << "," << std::endl;
             if (program.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT ".program_info_hash = " << program_info_hash_name << "," << std::endl;
-                output_stream << INDENT INDENT ".program_info_hash_length = " << program.program_info_hash.value().size()
-                              << "," << std::endl;
+                output_stream << INDENT INDENT ".program_info_hash_length = "
+                              << program.program_info_hash.value().size() << "," << std::endl;
                 // Append the hash type.
                 std::string hash_string = program.program_info_hash_type;
                 if (hash_string.empty()) {
