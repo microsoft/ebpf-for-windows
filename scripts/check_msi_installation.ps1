@@ -176,11 +176,22 @@ function Check-eBPF-Installation {
 
     Write-Host "Checking if the eBPF service is running..."
     try {
-        $service = Get-Service -Name $eBpfServiceName
-        if ($service.Status -eq "Running") {
+        $service = $null
+        $serviceRunning = $false
+        for ($retryCount = 0; $retryCount -lt 20; $retryCount++) {
+            $service = Get-Service -Name $eBpfServiceName
+            if ($service.Status -eq "Running") {
+                $serviceRunning = $true
+                break
+            }
+
+            Start-Sleep -Milliseconds 500
+        }
+
+        if ($serviceRunning) {
             Write-Host "The '$eBpfServiceName' service is running."
         } else {
-            Write-Host "The '$eBpfServiceName' service is NOT running."
+            Write-Host "The '$eBpfServiceName' service is NOT running. Current state: $($service.Status)"
             $res = $false
         }
     } catch {
