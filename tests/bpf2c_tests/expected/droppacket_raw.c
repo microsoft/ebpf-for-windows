@@ -321,24 +321,21 @@ label_2:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        DropPacket,
-        "xdp",
-        "xdp",
-        "DropPacket",
-        DropPacket_maps,
-        2,
-        DropPacket_helpers,
-        1,
-        47,
-        &DropPacket_program_type_guid,
-        &DropPacket_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = DropPacket,
+        .pe_section_name = "xdp",
+        .section_name = "xdp",
+        .program_name = "DropPacket",
+        .referenced_map_indices = DropPacket_maps,
+        .referenced_map_count = 2,
+        .helpers = DropPacket_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 47,
+        .program_type = &DropPacket_program_type_guid,
+        .expected_attach_type = &DropPacket_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

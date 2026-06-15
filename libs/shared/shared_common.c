@@ -395,8 +395,8 @@ ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_heade
     switch (native_program_entry_header->version) {
     case EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION:
         return native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE;
-    case EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2:
-        return native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_SIZE;
+    case EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION:
+        return native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE;
     default:
         return false;
     }

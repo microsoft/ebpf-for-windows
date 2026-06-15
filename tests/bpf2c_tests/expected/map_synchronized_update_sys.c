@@ -425,24 +425,21 @@ label_4:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        lookup,
-        "sample~1",
-        "sample_ext",
-        "lookup",
-        lookup_maps,
-        3,
-        lookup_helpers,
-        1,
-        35,
-        &lookup_program_type_guid,
-        &lookup_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = lookup,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "lookup",
+        .referenced_map_indices = lookup_maps,
+        .referenced_map_count = 3,
+        .helpers = lookup_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 35,
+        .program_type = &lookup_program_type_guid,
+        .expected_attach_type = &lookup_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

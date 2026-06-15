@@ -5081,24 +5081,21 @@ label_113:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 160}, // Version header.
-        test_maps,
-        "sample~1",
-        "sample_ext",
-        "test_maps",
-        test_maps_maps,
-        8,
-        test_maps_helpers,
-        11,
-        1766,
-        &test_maps_program_type_guid,
-        &test_maps_attach_type_guid,
-        NULL,
-        0,
-        NULL,
-        NULL,
-        0,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = test_maps,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "test_maps",
+        .referenced_map_indices = test_maps_maps,
+        .referenced_map_count = 8,
+        .helpers = test_maps_helpers,
+        .helper_count = 11,
+        .bpf_instruction_count = 1766,
+        .program_type = &test_maps_program_type_guid,
+        .expected_attach_type = &test_maps_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)
