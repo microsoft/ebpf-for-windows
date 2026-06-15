@@ -2116,7 +2116,8 @@ ebpf_program_get_info(
 
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
-    if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0) && (program->count_of_maps > 0)) {
+    uint32_t map_count = 0;
+    if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0)) {
         // Fill in map ids before we overwrite the info buffer.
         uint32_t max_nr_map_ids = input_info->nr_map_ids;
         size_t length = 0;
@@ -2130,18 +2131,27 @@ ebpf_program_get_info(
             ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
 
             ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
-            for (uint32_t i = 0; i < program->count_of_maps; i++) {
-                if (i == max_nr_map_ids) {
-                    // No more space left.
-                    ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
-                    EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
-                } else {
+            __try {
+                map_count = program->count_of_maps;
+
+                for (uint32_t i = 0; i < map_count; i++) {
+                    if (i == max_nr_map_ids) {
+                        // No more space left.
+                        result = EBPF_INVALID_POINTER;
+                        break;
+                    }
+
                     ebpf_map_t* map = program->maps[i];
                     // Volatile user mode pointer.
                     WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
                 }
+            } __finally {
+                ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
             }
-            ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
+
+            if (result != EBPF_SUCCESS) {
+                EBPF_RETURN_RESULT(result);
+            }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2175,11 +2185,12 @@ ebpf_program_get_info(
     if (program_name_length < sizeof(output_info->name)) {
         memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
     }
-    {
+    if ((input_info->map_ids == 0) || (input_info->nr_map_ids == 0)) {
         ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
-        output_info->nr_map_ids = program->count_of_maps;
+        map_count = program->count_of_maps;
         ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
     }
+    output_info->nr_map_ids = map_count;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
     output_info->type_uuid = ebpf_program_type_uuid(program);
