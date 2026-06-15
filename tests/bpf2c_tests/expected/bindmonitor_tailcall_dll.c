@@ -787,7 +787,7 @@ label_6:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor,
         "bind",
         "bind",
@@ -796,15 +796,18 @@ static program_entry_t _programs[] = {
         2,
         BindMonitor_helpers,
         2,
-        NULL,
-        0,
         16,
         &BindMonitor_program_type_guid,
         &BindMonitor_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor_Callee0,
         "bind/0",
         "bind/0",
@@ -813,15 +816,18 @@ static program_entry_t _programs[] = {
         2,
         BindMonitor_Callee0_helpers,
         2,
-        NULL,
-        0,
         16,
         &BindMonitor_Callee0_program_type_guid,
         &BindMonitor_Callee0_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor_Callee1,
         "bind/1",
         "bind/1",
@@ -830,11 +836,14 @@ static program_entry_t _programs[] = {
         2,
         BindMonitor_Callee1_helpers,
         4,
-        NULL,
-        0,
         86,
         &BindMonitor_Callee1_program_type_guid,
         &BindMonitor_Callee1_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

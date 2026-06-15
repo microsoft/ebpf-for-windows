@@ -298,7 +298,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         DropPacket,
         "xdp",
         "xdp",
@@ -307,11 +307,14 @@ static program_entry_t _programs[] = {
         2,
         DropPacket_helpers,
         1,
-        NULL,
-        0,
         47,
         &DropPacket_program_type_guid,
         &DropPacket_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

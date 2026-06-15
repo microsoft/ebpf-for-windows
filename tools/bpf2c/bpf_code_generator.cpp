@@ -2618,8 +2618,6 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
             output_stream << INDENT INDENT << helper_count << "," << std::endl;
-            output_stream << INDENT INDENT << btf_array_name.c_str() << "," << std::endl;
-            output_stream << INDENT INDENT << btf_resolved_function_count << "," << std::endl;
             output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
@@ -2635,7 +2633,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 }
                 output_stream << INDENT INDENT << "\"" << hash_string << "\""
                               << "," << std::endl;
+            } else {
+                output_stream << INDENT INDENT << "NULL," << std::endl;
+                output_stream << INDENT INDENT << "0," << std::endl;
+                output_stream << INDENT INDENT << "NULL," << std::endl;
             }
+            output_stream << INDENT INDENT << btf_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << btf_resolved_function_count << "," << std::endl;
             output_stream << INDENT "}," << std::endl;
         }
         output_stream << "};" << std::endl;

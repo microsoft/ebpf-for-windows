@@ -172,7 +172,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         func,
         "sample~1",
         "sample_ext",
@@ -181,11 +181,14 @@ static program_entry_t _programs[] = {
         1,
         func_helpers,
         1,
-        NULL,
-        0,
         12,
         &func_program_type_guid,
         &func_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

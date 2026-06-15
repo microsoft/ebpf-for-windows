@@ -296,7 +296,7 @@ function_v6(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         function_v4,
         "cgroup~2",
         "cgroup/connect4",
@@ -305,15 +305,18 @@ static program_entry_t _programs[] = {
         1,
         function_v4_helpers,
         3,
-        NULL,
-        0,
         19,
         &function_v4_program_type_guid,
         &function_v4_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         function_v6,
         "cgroup~1",
         "cgroup/connect6",
@@ -322,11 +325,14 @@ static program_entry_t _programs[] = {
         1,
         function_v6_helpers,
         3,
-        NULL,
-        0,
         19,
         &function_v6_program_type_guid,
         &function_v6_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

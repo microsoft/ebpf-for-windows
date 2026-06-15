@@ -226,7 +226,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         GlobalVariableAndMapTest,
         "sample~1",
         "sample_ext",
@@ -235,11 +235,14 @@ static program_entry_t _programs[] = {
         2,
         GlobalVariableAndMapTest_helpers,
         2,
-        NULL,
-        0,
         18,
         &GlobalVariableAndMapTest_program_type_guid,
         &GlobalVariableAndMapTest_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

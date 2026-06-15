@@ -181,30 +181,6 @@ extern "C"
     } program_runtime_context_t;
 
     /**
-     * @brief Legacy v1 program entry layout used before BTF-resolved function metadata was added.
-     */
-    typedef struct _program_entry_v1
-    {
-        uint64_t zero;
-
-        ebpf_native_module_header_t header;
-        uint64_t (*function)(void*, const program_runtime_context_t*);
-        const char* pe_section_name;
-        const char* section_name;
-        const char* program_name;
-        uint16_t* referenced_map_indices;
-        uint16_t referenced_map_count;
-        helper_function_entry_t* helpers;
-        uint16_t helper_count;
-        size_t bpf_instruction_count;
-        ebpf_program_type_t* program_type;
-        ebpf_attach_type_t* expected_attach_type;
-        const uint8_t* program_info_hash;
-        size_t program_info_hash_length;
-        const char* program_info_hash_type;
-    } program_entry_v1_t;
-
-    /**
      * @brief Program entry.
      * This structure contains the address of the program and additional information about the program.
      */
@@ -224,15 +200,41 @@ extern "C"
         uint16_t referenced_map_count;                         ///< Number of maps referenced by the program.
         helper_function_entry_t* helpers;                      ///< List of helper functions used by the program.
         uint16_t helper_count;                                 ///< Number of helper functions used by the program.
-        btf_resolved_function_entry_t* btf_resolved_functions; ///< List of BTF-resolved functions used by the program.
-        uint16_t btf_resolved_function_count;     ///< Number of BTF-resolved functions used by the program.
         size_t bpf_instruction_count;             ///< Number of BPF instructions in the program.
         ebpf_program_type_t* program_type;        ///< Type of the program.
         ebpf_attach_type_t* expected_attach_type; ///< Expected attach type of the program.
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
         const char* program_info_hash_type;       ///< Type of the program info hash
+        btf_resolved_function_entry_t* btf_resolved_functions; ///< List of BTF-resolved functions used by the program.
+        uint16_t btf_resolved_function_count;                 ///< Number of BTF-resolved functions used by the program.
     } program_entry_t;
+
+    /**
+     * @brief Legacy v2 program entry layout used before BTF-resolved function metadata was moved to the tail.
+     */
+    typedef struct _program_entry_v2
+    {
+        uint64_t zero;
+
+        ebpf_native_module_header_t header;
+        uint64_t (*function)(void*, const program_runtime_context_t*);
+        const char* pe_section_name;
+        const char* section_name;
+        const char* program_name;
+        uint16_t* referenced_map_indices;
+        uint16_t referenced_map_count;
+        helper_function_entry_t* helpers;
+        uint16_t helper_count;
+        btf_resolved_function_entry_t* btf_resolved_functions;
+        uint16_t btf_resolved_function_count;
+        size_t bpf_instruction_count;
+        ebpf_program_type_t* program_type;
+        ebpf_attach_type_t* expected_attach_type;
+        const uint8_t* program_info_hash;
+        size_t program_info_hash_length;
+        const char* program_info_hash_type;
+    } program_entry_v2_t;
 
     /**
      * @brief Version information for the bpf2c compiler.
@@ -364,7 +366,10 @@ extern "C"
      EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 2
+#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2 2
+#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_SIZE EBPF_SIZE_INCLUDING_FIELD(program_entry_v2_t, program_info_hash_type)
+#define EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_TOTAL_SIZE sizeof(program_entry_v2_t)
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(program_entry_t)
@@ -373,9 +378,9 @@ extern "C"
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 2
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 1
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, btf_resolved_function_data)
+    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, global_variable_section_data)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE sizeof(program_runtime_context_t)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_HEADER             \
     {EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION,      \
