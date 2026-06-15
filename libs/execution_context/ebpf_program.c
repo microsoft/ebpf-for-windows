@@ -401,10 +401,16 @@ _ebpf_program_build_btf_provider_bindings(_Inout_ ebpf_program_t* program)
             continue;
         }
 
+        if (binding_count >= program->btf_resolved_function_count) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+
         btf_provider_bindings[binding_count].program = program;
         btf_provider_bindings[binding_count].binding_index = binding_count;
         btf_provider_bindings[binding_count].module_guid = function_entry->module_guid;
         btf_provider_bindings[binding_count].attach_error = EBPF_SUCCESS;
+#pragma warning(suppress : 6385) // binding_count is bounded by the explicit check above.
         ExInitializeRundownProtection(&btf_provider_bindings[binding_count].rundown_reference);
         binding_count++;
     }
@@ -412,6 +418,10 @@ _ebpf_program_build_btf_provider_bindings(_Inout_ ebpf_program_t* program)
     program->btf_provider_bindings = btf_provider_bindings;
     program->btf_provider_binding_count = binding_count;
     return EBPF_SUCCESS;
+
+Done:
+    ebpf_free(btf_provider_bindings);
+    return result;
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_btf_provider_addresses(
@@ -472,8 +482,16 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_bt
             (helper_function_t)current_binding->provider_data->btf_resolved_function_addresses[provider_function_index];
     }
 
-    result = program->btf_resolved_function_addresses_changed_callback(
-        program->btf_resolved_function_count, addresses, program->btf_resolved_function_addresses_changed_context);
+    if (program->btf_resolved_function_count == 0) {
+        result =
+            program->btf_resolved_function_addresses_changed_callback(0, NULL, program->btf_resolved_function_addresses_changed_context);
+    } else {
+#pragma warning(suppress : 6385) // addresses is allocated whenever the non-zero count path is taken above.
+        result = program->btf_resolved_function_addresses_changed_callback(
+            program->btf_resolved_function_count,
+            addresses,
+            program->btf_resolved_function_addresses_changed_context);
+    }
 
 Done:
     ebpf_free(addresses);
@@ -3377,6 +3395,12 @@ ebpf_program_register_for_btf_resolved_function_changes(
 
     program->btf_resolved_function_addresses_changed_callback = callback;
     program->btf_resolved_function_addresses_changed_context = context;
+
+    if (callback == NULL) {
+        ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+        _ebpf_program_deregister_btf_provider_client(program);
+        return EBPF_SUCCESS;
+    }
 
     result = _ebpf_program_build_btf_provider_bindings(program);
     ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
