@@ -1,7 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "..\store_helper\user\ebpf_registry_helper.h"
+#include "ebpf_registry_helper.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "device_helper.hpp"
@@ -15,7 +15,7 @@
 #pragma warning(push)
 #pragma warning(disable : 26495) // Always initialize a member variable
 #define ebpf_inst ebpf_inst_btf
-#include "..\..\external\ebpf-verifier\external\libbtf\libbtf\btf_type_data.h"
+#include "libbtf/btf_type_data.h"
 #undef ebpf_inst
 #pragma warning(pop)
 #include "map_descriptors.hpp"

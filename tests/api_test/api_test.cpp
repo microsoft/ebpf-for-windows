@@ -39,7 +39,6 @@ using namespace std::chrono_literals;
 
 static int _stress_test_duration = 60; // Default to 60 seconds.
 
-
 /**
  * @brief A catch2 listener that uses the stress test duration as the watchdog timeout for ioctl_stress tests.
  */

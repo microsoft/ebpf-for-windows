@@ -2974,26 +2974,30 @@ static void
 _ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size) noexcept
 {
     memset(destination, 0, sizeof(*destination));
+    const program_entry_t* source_entry = reinterpret_cast<const program_entry_t*>(source);
 
-    if (source_size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
-        const program_entry_v1_t* source_entry = reinterpret_cast<const program_entry_v1_t*>(source);
+    if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2 &&
+        source_size >= EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_TOTAL_SIZE) {
+        const program_entry_v2_t* source_v2 = reinterpret_cast<const program_entry_v2_t*>(source);
 
-        destination->zero = source_entry->zero;
-        destination->header = source_entry->header;
-        destination->function = source_entry->function;
-        destination->pe_section_name = source_entry->pe_section_name;
-        destination->section_name = source_entry->section_name;
-        destination->program_name = source_entry->program_name;
-        destination->referenced_map_indices = source_entry->referenced_map_indices;
-        destination->referenced_map_count = source_entry->referenced_map_count;
-        destination->helpers = source_entry->helpers;
-        destination->helper_count = source_entry->helper_count;
-        destination->bpf_instruction_count = source_entry->bpf_instruction_count;
-        destination->program_type = source_entry->program_type;
-        destination->expected_attach_type = source_entry->expected_attach_type;
-        destination->program_info_hash = source_entry->program_info_hash;
-        destination->program_info_hash_length = source_entry->program_info_hash_length;
-        destination->program_info_hash_type = source_entry->program_info_hash_type;
+        destination->zero = source_v2->zero;
+        destination->header = source_v2->header;
+        destination->function = source_v2->function;
+        destination->pe_section_name = source_v2->pe_section_name;
+        destination->section_name = source_v2->section_name;
+        destination->program_name = source_v2->program_name;
+        destination->referenced_map_indices = source_v2->referenced_map_indices;
+        destination->referenced_map_count = source_v2->referenced_map_count;
+        destination->helpers = source_v2->helpers;
+        destination->helper_count = source_v2->helper_count;
+        destination->bpf_instruction_count = source_v2->bpf_instruction_count;
+        destination->program_type = source_v2->program_type;
+        destination->expected_attach_type = source_v2->expected_attach_type;
+        destination->program_info_hash = source_v2->program_info_hash;
+        destination->program_info_hash_length = source_v2->program_info_hash_length;
+        destination->program_info_hash_type = source_v2->program_info_hash_type;
+        destination->btf_resolved_functions = source_v2->btf_resolved_functions;
+        destination->btf_resolved_function_count = source_v2->btf_resolved_function_count;
     } else {
         size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
         memcpy(destination, source, program_copy_size);
@@ -3164,7 +3168,7 @@ _ebpf_pe_get_section_names(
 
         const program_entry_t* first_program = reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset);
         if (!ebpf_validate_object_header_native_program_entry(&first_program->header) ||
-            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
+            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)) {
             pe_context->result = EBPF_INVALID_ARGUMENT;
             return 1;
         }

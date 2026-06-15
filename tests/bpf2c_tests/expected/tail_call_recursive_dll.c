@@ -284,7 +284,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         recurse,
         "sample~1",
         "sample_ext",
@@ -293,11 +293,14 @@ static program_entry_t _programs[] = {
         2,
         recurse_helpers,
         3,
-        NULL,
-        0,
         34,
         &recurse_program_type_guid,
         &recurse_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

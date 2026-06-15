@@ -1,7 +1,6 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-// Temporary edit for build test
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #define CATCH_CONFIG_MAIN
@@ -72,23 +71,6 @@ transform_fix_opcode_comment(const std::string& string)
     }
 }
 
-std::string
-transform_generated_from_comment(const std::string& string)
-{
-    static const std::string prefix = "// This file was generated from ";
-    if (!string.starts_with(prefix)) {
-        return string;
-    }
-
-    auto generated_path = string.substr(prefix.size());
-    auto separator = generated_path.find_last_of("\\/");
-    if (separator == std::string::npos) {
-        return string;
-    }
-
-    return prefix + generated_path.substr(separator + 1);
-}
-
 std::tuple<std::string, std::string, int>
 run_test_main(std::vector<const char*> argv)
 {
@@ -145,21 +127,13 @@ void
 run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optional<std::string>& type)
 {
     std::vector<const char*> argv;
-    auto elf_path = std::filesystem::path(elf_file);
-    if (!std::filesystem::exists(elf_path)) {
-        auto debug_path = std::filesystem::path("x64\\Debug") / elf_path.filename();
-        if (std::filesystem::exists(debug_path)) {
-            elf_path = debug_path;
-        }
-    }
-    auto name = elf_path.stem().string();
-    auto elf_path_string = elf_path.string();
+    auto name = elf_file.substr(0, elf_file.find('.'));
     if (name == "btf_resolved") {
         _register_btf_test_provider();
     }
     argv.push_back("bpf2c.exe");
     argv.push_back("--bpf");
-    argv.push_back(elf_path_string.c_str());
+    argv.push_back(elf_file.c_str());
     if (test_mode == _test_mode::UseHash) {
         argv.push_back("--hash");
         argv.push_back("SHA256");
@@ -192,32 +166,16 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
         switch (test_mode) {
         case _test_mode::FileOutput:
         case _test_mode::Verify: {
-            auto expected_path = std::filesystem::path("expected") / (name + suffix);
-            if (!std::filesystem::exists(expected_path)) {
-                auto repo_expected_path = std::filesystem::path("tests\\bpf2c_tests\\expected") / (name + suffix);
-                if (std::filesystem::exists(repo_expected_path)) {
-                    expected_path = repo_expected_path;
-                }
-            }
             std::vector<std::string> expected_output = read_contents<std::ifstream>(
-                expected_path.string(),
-                {transform_line_directives<'\\'>,
-                 transform_line_directives<'/'>,
-                 transform_fix_opcode_comment,
-                 transform_generated_from_comment});
+                std::string("expected\\") + name + suffix,
+                {transform_line_directives<'\\'>, transform_line_directives<'/'>, transform_fix_opcode_comment});
             std::vector<std::string> actual_output;
             if (test_mode == _test_mode::FileOutput) {
                 actual_output = read_contents<std::ifstream>(
-                    temp_file_path_string,
-                    {transform_line_directives<'\\'>,
-                     transform_line_directives<'/'>,
-                     transform_generated_from_comment});
+                    temp_file_path_string, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
             } else {
                 actual_output = read_contents<std::istringstream>(
-                    out,
-                    {transform_line_directives<'\\'>,
-                     transform_line_directives<'/'>,
-                     transform_generated_from_comment});
+                    out, {transform_line_directives<'\\'>, transform_line_directives<'/'>});
             }
 
             // Find the first line that differs.

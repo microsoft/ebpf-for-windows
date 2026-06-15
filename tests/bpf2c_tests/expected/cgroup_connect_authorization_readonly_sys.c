@@ -344,7 +344,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         mutate_connect_authorization4,
         "cgroup~2",
         "cgroup/connect_authorization4",
@@ -353,15 +353,18 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         10,
         &mutate_connect_authorization4_program_type_guid,
         &mutate_connect_authorization4_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         mutate_connect_authorization6,
         "cgroup~1",
         "cgroup/connect_authorization6",
@@ -370,11 +373,14 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         10,
         &mutate_connect_authorization6_program_type_guid,
         &mutate_connect_authorization6_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

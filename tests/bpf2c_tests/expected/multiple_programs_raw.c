@@ -177,7 +177,7 @@ program4(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         program1,
         "bind_4",
         "bind_4",
@@ -186,15 +186,18 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         2,
         &program1_program_type_guid,
         &program1_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         program2,
         "bind_3",
         "bind_3",
@@ -203,15 +206,18 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         2,
         &program2_program_type_guid,
         &program2_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         program3,
         "bind_2",
         "bind_2",
@@ -220,15 +226,18 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         2,
         &program3_program_type_guid,
         &program3_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         program4,
         "bind_1",
         "bind_1",
@@ -237,11 +246,14 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         2,
         &program4_program_type_guid,
         &program4_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)
