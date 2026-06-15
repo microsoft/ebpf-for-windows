@@ -2464,7 +2464,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     output_stream << INDENT " " << static_cast<int>(function.return_type) << "," << std::endl;
                     output_stream << INDENT " {" << std::endl;
                     for (size_t i = 0; i < function.arguments.size(); i++) {
-                        output_stream << INDENT INDENT " " << static_cast<int>(function.arguments[i]) << "," << std::endl;
+                        output_stream << INDENT INDENT " " << static_cast<int>(function.arguments[i]) << ","
+                                      << std::endl;
                     }
                     output_stream << INDENT " }," << std::endl;
                     output_stream << INDENT " " << function.flags << "," << std::endl;

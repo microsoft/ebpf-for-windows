@@ -106,7 +106,7 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
         {3, _sqrti},
         {4, _strcmp_ext},
         {5, _unwind},
-    };
+};
 
 static std::map<std::string, helper_function_t> _btf_resolved_functions = {
     {"my_driver_lookup", _my_driver_lookup},

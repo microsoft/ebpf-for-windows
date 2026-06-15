@@ -3177,8 +3177,8 @@ _ebpf_pe_get_section_names(
         size_t program_count = (section_header.Misc.VirtualSize - program_offset) / program_entry_size;
         for (size_t i = 0; i < program_count; i++) {
             program_entry_t local_program = {};
-            const program_entry_t* program = reinterpret_cast<const program_entry_t*>(
-                buffer->buf + program_offset + i * program_entry_size);
+            const program_entry_t* program =
+                reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset + i * program_entry_size);
             _ebpf_pe_copy_program_entry(&local_program, program, program_entry_size);
             program = &local_program;
             const char* pe_section_name =
