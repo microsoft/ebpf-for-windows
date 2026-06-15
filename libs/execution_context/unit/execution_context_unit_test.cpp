@@ -28,6 +28,10 @@ extern "C"
     void
     ebpf_program_get_header_context_descriptor(
         _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor);
+
+    bool
+    ebpf_program_is_valid_general_helper_provider_data(
+        _In_ const PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data);
 }
 
 struct scoped_cpu_affinity
@@ -2691,6 +2695,48 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     // Invalidate the helper function prototype by removing the name of the helper function.
     _test_helper_function_prototype[0].name = nullptr;
     test_register_provider(&provider_characteristics);
+}
+
+TEST_CASE("INVALID_GENERAL_HELPER_PROGRAM_DATA", "[execution_context][negative]")
+{
+    ebpf_program_type_descriptor_t general_helper_program_type_descriptor = {
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
+        "global_helper",
+        nullptr,
+        ebpf_general_helper_function_module_id.Guid,
+        0,
+        0};
+
+    ebpf_helper_function_prototype_t general_helper_prototype[] = {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+         1,
+         "general_helper",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
+
+    ebpf_program_info_t general_helper_program_info = {
+        EBPF_PROGRAM_INFORMATION_HEADER,
+        &general_helper_program_type_descriptor,
+        0,
+        nullptr,
+        1,
+        general_helper_prototype};
+
+    ebpf_program_data_t invalid_general_helper_program_data = {
+        EBPF_PROGRAM_DATA_HEADER, &general_helper_program_info, nullptr, nullptr, nullptr, nullptr, 0, {0}};
+
+    REQUIRE(!ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
+
+    const void* general_helper_functions[] = {reinterpret_cast<const void*>(1)};
+    ebpf_helper_function_addresses_t general_helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+        EBPF_COUNT_OF(general_helper_functions),
+        (uint64_t*)general_helper_functions};
+    invalid_general_helper_program_data.global_helper_function_addresses = &general_helper_function_addresses;
+
+    REQUIRE(ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
 }
 
 // TODO: Add more native module loading IOCTL negative tests.
