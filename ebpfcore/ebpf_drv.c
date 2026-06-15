@@ -463,8 +463,7 @@ _ebpf_driver_is_caller_privileged()
         &granted_access,  // Granted access
         &status);
     SeReleaseSubjectContext(&subject_context);
-    return result && NT_SUCCESS(status) &&
-           granted_access == GENERIC_ALL; // Check if granted access matches GENERIC_ALL.
+    return result && NT_SUCCESS(status);
 }
 
 static VOID
