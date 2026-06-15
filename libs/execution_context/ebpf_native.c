@@ -2666,8 +2666,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         bool has_program_info_hash =
             program->header.size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type) ||
             program->header.size >= EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
-        bool legacy_program_info_hash =
-            program->header.size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type);
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
@@ -2705,7 +2703,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
 
-        if (has_program_info_hash && !legacy_program_info_hash) {
+        if (has_program_info_hash) {
             parameters.program_info_hash = native_program->program_entry.program_info_hash;
             parameters.program_info_hash_length = native_program->program_entry.program_info_hash_length;
 
@@ -2719,12 +2717,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
                 parameters.program_info_hash_type.value = hash_type_name;
                 parameters.program_info_hash_type.length = hash_type_length;
             }
-        } else if (legacy_program_info_hash) {
-            // Older native programs embed a program info hash produced by the pre-BTF hash format.
-            // Treat that hash as compatibility metadata and let the current runtime recompute the
-            // current-format hash after helper resolution.
-            parameters.program_info_hash = NULL;
-            parameters.program_info_hash_length = 0;
         }
 
         result = ebpf_program_create_and_initialize(&parameters, &native_program->handle);
