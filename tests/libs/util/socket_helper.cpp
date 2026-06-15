@@ -11,7 +11,50 @@
 
 #include <cstring>
 
+#pragma comment(lib, "iphlpapi.lib")
+
 #define MAXIMUM_IP_BUFFER_SIZE 65
+
+namespace {
+
+// RAII helper that brackets a code region with SetCurrentThreadCompartmentId.
+// A compartment_id of UNSPECIFIED_COMPARTMENT_ID (0) leaves the thread compartment
+// untouched, so callers can pass it unconditionally without changing behavior.
+class compartment_scope
+{
+  public:
+    explicit compartment_scope(uint32_t compartment_id)
+        : _saved_compartment_id(NET_IF_COMPARTMENT_ID_UNSPECIFIED), _changed(false)
+    {
+        if (compartment_id == UNSPECIFIED_COMPARTMENT_ID) {
+            return;
+        }
+        _saved_compartment_id = GetCurrentThreadCompartmentId();
+        if (static_cast<uint32_t>(_saved_compartment_id) == compartment_id) {
+            return;
+        }
+        NETIO_STATUS status = SetCurrentThreadCompartmentId(static_cast<NET_IF_COMPARTMENT_ID>(compartment_id));
+        if (status != NO_ERROR) {
+            FAIL("SetCurrentThreadCompartmentId(" << compartment_id << ") failed with " << status);
+        }
+        _changed = true;
+    }
+    ~compartment_scope()
+    {
+        if (_changed) {
+            (void)SetCurrentThreadCompartmentId(_saved_compartment_id);
+        }
+    }
+    compartment_scope(const compartment_scope&) = delete;
+    compartment_scope&
+    operator=(const compartment_scope&) = delete;
+
+  private:
+    NET_IF_COMPARTMENT_ID _saved_compartment_id;
+    bool _changed;
+};
+
+} // namespace
 
 uint64_t
 get_current_pid_tgid()
@@ -86,12 +129,18 @@ _base_socket::_base_socket(
     uint16_t _port,
     socket_family_t _family,
     _In_ const sockaddr_storage& _source_address,
-    int expected_bind_error)
+    int expected_bind_error,
+    uint32_t compartment_id)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
       local_address_size(sizeof(local_address)), recv_buffer(std::vector<char>(1024)), recv_flags(0),
       _actual_bind_error(0), _bind_succeeded(false)
 {
     int error = 0;
+
+    // Bracket socket creation and bind inside the requested compartment, if any.
+    // A WSASocket call on a compartment-affined thread creates the socket in that
+    // compartment; bind() inherits the socket's compartment.
+    compartment_scope compartment_guard(compartment_id);
 
     ADDRESS_FAMILY address_family = (family == IPv4) ? AF_INET : AF_INET6;
     socket = WSASocket(address_family, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -181,9 +230,10 @@ _client_socket::_client_socket(
     uint16_t _port,
     socket_family_t _family,
     _In_ const sockaddr_storage& _source_address,
-    int expected_bind_error)
-    : _base_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error}, overlapped{},
-      receive_posted(false), send_posted(false)
+    int expected_bind_error,
+    uint32_t compartment_id)
+    : _base_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error, compartment_id},
+      overlapped{}, receive_posted(false), send_posted(false)
 {
 }
 
@@ -320,8 +370,9 @@ _datagram_client_socket::_datagram_client_socket(
     socket_family_t _family,
     bool _connected_udp,
     _In_ const sockaddr_storage& _source_address,
-    int expected_bind_error)
-    : _client_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error},
+    int expected_bind_error,
+    uint32_t compartment_id)
+    : _client_socket{_sock_type, _protocol, _port, _family, _source_address, expected_bind_error, compartment_id},
       connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
@@ -383,8 +434,10 @@ _stream_client_socket::_stream_client_socket(
     uint16_t _port,
     socket_family_t _family,
     _In_ const sockaddr_storage& source_address,
-    int expected_bind_error)
-    : _client_socket{_sock_type, _protocol, _port, _family, source_address, expected_bind_error}, connectex(nullptr)
+    int expected_bind_error,
+    uint32_t compartment_id)
+    : _client_socket{_sock_type, _protocol, _port, _family, source_address, expected_bind_error, compartment_id},
+      connectex(nullptr)
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -505,8 +558,9 @@ _server_socket::_server_socket(
     uint16_t port,
     _In_ const sockaddr_storage& local_address,
     int expected_bind_error,
-    socket_family_t family)
-    : _base_socket{sock_type, protocol, port, family, local_address, expected_bind_error}, overlapped{}
+    socket_family_t family,
+    uint32_t compartment_id)
+    : _base_socket{sock_type, protocol, port, family, local_address, expected_bind_error, compartment_id}, overlapped{}
 {
     overlapped.hEvent = NULL;
     receive_message = nullptr;
@@ -613,9 +667,14 @@ _server_socket::complete_async_receive(bool timeout_expected)
 }
 
 _datagram_server_socket::_datagram_server_socket(
-    int _sock_type, int _protocol, uint16_t _port, _In_ const sockaddr_storage& local_address, int expected_bind_error)
-    : _server_socket{_sock_type, _protocol, _port, local_address, expected_bind_error}, sender_address{},
-      sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}
+    int _sock_type,
+    int _protocol,
+    uint16_t _port,
+    _In_ const sockaddr_storage& local_address,
+    int expected_bind_error,
+    uint32_t compartment_id)
+    : _server_socket{_sock_type, _protocol, _port, local_address, expected_bind_error, Dual, compartment_id},
+      sender_address{}, sender_address_size(sizeof(sender_address)), control_buffer(2048), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -808,9 +867,11 @@ _stream_server_socket::_stream_server_socket(
     _In_ const sockaddr_storage& local_address,
     int expected_bind_error,
     int expected_listen_error,
-    socket_family_t family)
-    : _server_socket{sock_type, protocol, port, local_address, expected_bind_error, family}, acceptex(nullptr),
-      accept_socket(INVALID_SOCKET), message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
+    socket_family_t family,
+    uint32_t compartment_id)
+    : _server_socket{sock_type, protocol, port, local_address, expected_bind_error, family, compartment_id},
+      acceptex(nullptr), accept_socket(INVALID_SOCKET),
+      message_length(recv_buffer.size() - 2 * (sizeof(sockaddr_storage) + 16))
 {
     if ((sock_type != SOCK_STREAM) || (protocol != IPPROTO_TCP)) {
         FAIL("stream_socket only supports these combinations (SOCK_STREAM, IPPROTO_TCP)");
@@ -820,6 +881,11 @@ _stream_server_socket::_stream_server_socket(
     if (expected_bind_error != 0) {
         return;
     }
+
+    // The base ctor's compartment_scope has already destructed by the time we reach
+    // here, so re-enter the requested compartment to keep listen() and the accept
+    // socket affined to the same compartment as bind().
+    compartment_scope compartment_guard(compartment_id);
 
     GUID guid = WSAID_ACCEPTEX;
     uint32_t bytes;
