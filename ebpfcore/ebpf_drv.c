@@ -22,13 +22,16 @@
 // Driver global variables
 static DEVICE_OBJECT* _ebpf_driver_device_object;
 static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
+static const ULONG _ebpfsvc_sid_subauthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
+static const SID_IDENTIFIER_AUTHORITY _ebpfsvc_service_authority = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
 
 // SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
 // S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
 //
 // SDDL_DEVOBJ_SYS_ALL_ADM_ALL + LocalService + SID for ebpfsvc.
-#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL \
-    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;LS)(A;;GA;;;BA)(A;;GA;;;SY)"
+#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL                                                                           \
+    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;LS)(A;;GA;;;BA)(A;;GA;;;" \
+    L"SY)"
 
 #ifndef CTL_CODE
 #define CTL_CODE(DeviceType, Function, Method, Access) \
@@ -61,6 +64,286 @@ _ebpf_driver_io_device_control(
     size_t input_buffer_length,
     unsigned long io_control_code);
 
+static _Must_inspect_result_ NTSTATUS
+_ebpf_driver_initialize_local_service_sid(_Out_ PSID sid)
+{
+    const SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
+    NTSTATUS status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, 1);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        return status;
+    }
+
+    *RtlSubAuthoritySid(sid, 0) = SECURITY_LOCAL_SERVICE_RID;
+    return STATUS_SUCCESS;
+}
+
+static _Must_inspect_result_ NTSTATUS
+_ebpf_driver_initialize_builtin_admin_sid(_Out_ PSID sid)
+{
+    const SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
+    NTSTATUS status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, 2);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        return status;
+    }
+
+    *RtlSubAuthoritySid(sid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(sid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+    return STATUS_SUCCESS;
+}
+
+static _Must_inspect_result_ NTSTATUS
+_ebpf_driver_initialize_local_system_sid(_Out_ PSID sid)
+{
+    const SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
+    NTSTATUS status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, 1);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        return status;
+    }
+
+    *RtlSubAuthoritySid(sid, 0) = SECURITY_LOCAL_SYSTEM_RID;
+    return STATUS_SUCCESS;
+}
+
+static _Must_inspect_result_ NTSTATUS
+_ebpf_driver_initialize_ebpfsvc_sid(_Out_ PSID sid)
+{
+    NTSTATUS status = RtlInitializeSid(
+        sid, (SID_IDENTIFIER_AUTHORITY*)&_ebpfsvc_service_authority, EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities));
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        return status;
+    }
+
+    for (ULONG i = 0; i < EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities); i++) {
+        *RtlSubAuthoritySid(sid, i) = _ebpfsvc_sid_subauthorities[i];
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static void
+_ebpf_driver_find_group_sid_attributes(
+    _In_opt_ TOKEN_GROUPS* groups, _In_ PSID sid, _Out_ BOOLEAN* present, _Out_ ULONG* attributes)
+{
+    *present = FALSE;
+    *attributes = 0;
+
+    if (groups == NULL) {
+        return;
+    }
+
+    for (ULONG i = 0; i < groups->GroupCount; i++) {
+        if (RtlEqualSid(groups->Groups[i].Sid, sid)) {
+            *present = TRUE;
+            *attributes = groups->Groups[i].Attributes;
+            break;
+        }
+    }
+}
+
+static void
+_ebpf_driver_trace_privileged_access_check(
+    _In_ SECURITY_SUBJECT_CONTEXT* subject_context,
+    ebpf_operation_id_t operation_id,
+    ACCESS_MASK desired_access,
+    ACCESS_MASK granted_access,
+    BOOLEAN access_check_result,
+    NTSTATUS access_check_status)
+{
+    PACCESS_TOKEN access_token = NULL;
+    PTOKEN_USER token_user = NULL;
+    PTOKEN_GROUPS token_groups = NULL;
+    PTOKEN_GROUPS token_restricted_sids = NULL;
+    NTSTATUS token_user_status = STATUS_NOT_FOUND;
+    NTSTATUS token_groups_status = STATUS_NOT_FOUND;
+    NTSTATUS token_restricted_sids_status = STATUS_NOT_FOUND;
+    BOOLEAN local_service_present = FALSE;
+    BOOLEAN local_service_restricted_present = FALSE;
+    BOOLEAN ebpfsvc_present = FALSE;
+    BOOLEAN ebpfsvc_restricted_present = FALSE;
+    BOOLEAN access_granted = access_check_result && NT_SUCCESS(access_check_status);
+    ULONG local_service_attributes = 0;
+    ULONG local_service_restricted_attributes = 0;
+    ULONG ebpfsvc_attributes = 0;
+    ULONG ebpfsvc_restricted_attributes = 0;
+    BOOLEAN enabled;
+    struct
+    {
+        SID sid;
+        ULONG sub_authority[1];
+    } local_service_sid = {0};
+    struct
+    {
+        SID sid;
+        ULONG sub_authority[EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities)];
+    } ebpfsvc_sid = {0};
+
+    enabled =
+        access_granted
+            ? TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE)
+            : TraceLoggingProviderEnabled(
+                  ebpf_tracelog_provider,
+                  EBPF_TRACELOG_LEVEL_ERROR,
+                  EBPF_TRACELOG_KEYWORD_CORE | EBPF_TRACELOG_KEYWORD_ERROR);
+    if (!enabled) {
+        return;
+    }
+
+    if (!NT_SUCCESS(_ebpf_driver_initialize_local_service_sid((PSID)&local_service_sid)) ||
+        !NT_SUCCESS(_ebpf_driver_initialize_ebpfsvc_sid((PSID)&ebpfsvc_sid))) {
+        return;
+    }
+
+    access_token = SeQuerySubjectContextToken(subject_context);
+    if (access_token != NULL) {
+        token_user_status = SeQueryInformationToken(access_token, TokenUser, (void**)&token_user);
+        token_groups_status = SeQueryInformationToken(access_token, TokenGroups, (void**)&token_groups);
+        token_restricted_sids_status =
+            SeQueryInformationToken(access_token, TokenRestrictedSids, (void**)&token_restricted_sids);
+    } else {
+        token_user_status = STATUS_NO_TOKEN;
+        token_groups_status = STATUS_NO_TOKEN;
+        token_restricted_sids_status = STATUS_NO_TOKEN;
+    }
+
+    if (NT_SUCCESS(token_groups_status)) {
+        _ebpf_driver_find_group_sid_attributes(
+            token_groups, (PSID)&local_service_sid, &local_service_present, &local_service_attributes);
+        _ebpf_driver_find_group_sid_attributes(token_groups, (PSID)&ebpfsvc_sid, &ebpfsvc_present, &ebpfsvc_attributes);
+    }
+
+    if (NT_SUCCESS(token_restricted_sids_status)) {
+        _ebpf_driver_find_group_sid_attributes(
+            token_restricted_sids,
+            (PSID)&local_service_sid,
+            &local_service_restricted_present,
+            &local_service_restricted_attributes);
+        _ebpf_driver_find_group_sid_attributes(
+            token_restricted_sids, (PSID)&ebpfsvc_sid, &ebpfsvc_restricted_present, &ebpfsvc_restricted_attributes);
+    }
+
+    if (NT_SUCCESS(token_user_status)) {
+        if (access_granted) {
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                "EbpfPrivilegedAccessCheck",
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE),
+                TraceLoggingUInt32((uint32_t)operation_id, "OperationId"),
+                TraceLoggingUInt32((uint32_t)desired_access, "DesiredAccess"),
+                TraceLoggingUInt32((uint32_t)granted_access, "GrantedAccess"),
+                TraceLoggingBool(!!access_check_result, "SeAccessCheckResult"),
+                TraceLoggingNTStatus(access_check_status, "AccessStatus"),
+                TraceLoggingSid(token_user->User.Sid, "UserSid"),
+                TraceLoggingUInt32(token_groups != NULL ? token_groups->GroupCount : 0, "GroupCount"),
+                TraceLoggingNTStatus(token_groups_status, "TokenGroupsStatus"),
+                TraceLoggingBool(!!local_service_present, "LocalServicePresent"),
+                TraceLoggingUInt32(local_service_attributes, "LocalServiceAttributes"),
+                TraceLoggingBool(!!ebpfsvc_present, "EbpfSvcSidPresent"),
+                TraceLoggingUInt32(ebpfsvc_attributes, "EbpfSvcSidAttributes"),
+                TraceLoggingUInt32(
+                    token_restricted_sids != NULL ? token_restricted_sids->GroupCount : 0, "RestrictedSidCount"),
+                TraceLoggingNTStatus(token_restricted_sids_status, "RestrictedSidsStatus"),
+                TraceLoggingBool(!!local_service_restricted_present, "LocalServiceRestrictedPresent"),
+                TraceLoggingUInt32(local_service_restricted_attributes, "LocalServiceRestrictedAttributes"),
+                TraceLoggingBool(!!ebpfsvc_restricted_present, "EbpfSvcSidRestrictedPresent"),
+                TraceLoggingUInt32(ebpfsvc_restricted_attributes, "EbpfSvcSidRestrictedAttributes"));
+        } else {
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                "EbpfPrivilegedAccessCheck",
+                TraceLoggingLevel(WINEVENT_LEVEL_ERROR),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE | EBPF_TRACELOG_KEYWORD_ERROR),
+                TraceLoggingUInt32((uint32_t)operation_id, "OperationId"),
+                TraceLoggingUInt32((uint32_t)desired_access, "DesiredAccess"),
+                TraceLoggingUInt32((uint32_t)granted_access, "GrantedAccess"),
+                TraceLoggingBool(!!access_check_result, "SeAccessCheckResult"),
+                TraceLoggingNTStatus(access_check_status, "AccessStatus"),
+                TraceLoggingSid(token_user->User.Sid, "UserSid"),
+                TraceLoggingUInt32(token_groups != NULL ? token_groups->GroupCount : 0, "GroupCount"),
+                TraceLoggingNTStatus(token_groups_status, "TokenGroupsStatus"),
+                TraceLoggingBool(!!local_service_present, "LocalServicePresent"),
+                TraceLoggingUInt32(local_service_attributes, "LocalServiceAttributes"),
+                TraceLoggingBool(!!ebpfsvc_present, "EbpfSvcSidPresent"),
+                TraceLoggingUInt32(ebpfsvc_attributes, "EbpfSvcSidAttributes"),
+                TraceLoggingUInt32(
+                    token_restricted_sids != NULL ? token_restricted_sids->GroupCount : 0, "RestrictedSidCount"),
+                TraceLoggingNTStatus(token_restricted_sids_status, "RestrictedSidsStatus"),
+                TraceLoggingBool(!!local_service_restricted_present, "LocalServiceRestrictedPresent"),
+                TraceLoggingUInt32(local_service_restricted_attributes, "LocalServiceRestrictedAttributes"),
+                TraceLoggingBool(!!ebpfsvc_restricted_present, "EbpfSvcSidRestrictedPresent"),
+                TraceLoggingUInt32(ebpfsvc_restricted_attributes, "EbpfSvcSidRestrictedAttributes"));
+        }
+    } else {
+        if (access_granted) {
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                "EbpfPrivilegedAccessCheck",
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE),
+                TraceLoggingUInt32((uint32_t)operation_id, "OperationId"),
+                TraceLoggingUInt32((uint32_t)desired_access, "DesiredAccess"),
+                TraceLoggingUInt32((uint32_t)granted_access, "GrantedAccess"),
+                TraceLoggingBool(!!access_check_result, "SeAccessCheckResult"),
+                TraceLoggingNTStatus(access_check_status, "AccessStatus"),
+                TraceLoggingNTStatus(token_user_status, "TokenUserStatus"),
+                TraceLoggingUInt32(token_groups != NULL ? token_groups->GroupCount : 0, "GroupCount"),
+                TraceLoggingNTStatus(token_groups_status, "TokenGroupsStatus"),
+                TraceLoggingBool(!!local_service_present, "LocalServicePresent"),
+                TraceLoggingUInt32(local_service_attributes, "LocalServiceAttributes"),
+                TraceLoggingBool(!!ebpfsvc_present, "EbpfSvcSidPresent"),
+                TraceLoggingUInt32(ebpfsvc_attributes, "EbpfSvcSidAttributes"),
+                TraceLoggingUInt32(
+                    token_restricted_sids != NULL ? token_restricted_sids->GroupCount : 0, "RestrictedSidCount"),
+                TraceLoggingNTStatus(token_restricted_sids_status, "RestrictedSidsStatus"),
+                TraceLoggingBool(!!local_service_restricted_present, "LocalServiceRestrictedPresent"),
+                TraceLoggingUInt32(local_service_restricted_attributes, "LocalServiceRestrictedAttributes"),
+                TraceLoggingBool(!!ebpfsvc_restricted_present, "EbpfSvcSidRestrictedPresent"),
+                TraceLoggingUInt32(ebpfsvc_restricted_attributes, "EbpfSvcSidRestrictedAttributes"));
+        } else {
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                "EbpfPrivilegedAccessCheck",
+                TraceLoggingLevel(WINEVENT_LEVEL_ERROR),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE | EBPF_TRACELOG_KEYWORD_ERROR),
+                TraceLoggingUInt32((uint32_t)operation_id, "OperationId"),
+                TraceLoggingUInt32((uint32_t)desired_access, "DesiredAccess"),
+                TraceLoggingUInt32((uint32_t)granted_access, "GrantedAccess"),
+                TraceLoggingBool(!!access_check_result, "SeAccessCheckResult"),
+                TraceLoggingNTStatus(access_check_status, "AccessStatus"),
+                TraceLoggingNTStatus(token_user_status, "TokenUserStatus"),
+                TraceLoggingUInt32(token_groups != NULL ? token_groups->GroupCount : 0, "GroupCount"),
+                TraceLoggingNTStatus(token_groups_status, "TokenGroupsStatus"),
+                TraceLoggingBool(!!local_service_present, "LocalServicePresent"),
+                TraceLoggingUInt32(local_service_attributes, "LocalServiceAttributes"),
+                TraceLoggingBool(!!ebpfsvc_present, "EbpfSvcSidPresent"),
+                TraceLoggingUInt32(ebpfsvc_attributes, "EbpfSvcSidAttributes"),
+                TraceLoggingUInt32(
+                    token_restricted_sids != NULL ? token_restricted_sids->GroupCount : 0, "RestrictedSidCount"),
+                TraceLoggingNTStatus(token_restricted_sids_status, "RestrictedSidsStatus"),
+                TraceLoggingBool(!!local_service_restricted_present, "LocalServiceRestrictedPresent"),
+                TraceLoggingUInt32(local_service_restricted_attributes, "LocalServiceRestrictedAttributes"),
+                TraceLoggingBool(!!ebpfsvc_restricted_present, "EbpfSvcSidRestrictedPresent"),
+                TraceLoggingUInt32(ebpfsvc_restricted_attributes, "EbpfSvcSidRestrictedAttributes"));
+        }
+    }
+
+    if (token_user != NULL) {
+        ExFreePool(token_user);
+    }
+
+    if (token_groups != NULL) {
+        ExFreePool(token_groups);
+    }
+
+    if (token_restricted_sids != NULL) {
+        ExFreePool(token_restricted_sids);
+    }
+}
+
 static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
     _IRQL_requires_max_(PASSIVE_LEVEL) void _ebpf_driver_unload(_In_ WDFDRIVER driver_object)
 {
@@ -84,13 +367,10 @@ _ebpf_driver_build_privileged_security_descriptor()
     NTSTATUS status = STATUS_SUCCESS;
     SECURITY_DESCRIPTOR security_descriptor;
     PSECURITY_DESCRIPTOR self_relative_security_descriptor = NULL;
-    const ULONG sid_subauthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
-    const SID_IDENTIFIER_AUTHORITY service_authority = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
-    const ULONG subauthority_count = EBPF_COUNT_OF(sid_subauthorities);
+    const ULONG subauthority_count = EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities);
     ULONG security_descriptor_size = 0;
 
     // Well-known SIDs for LocalService (LS), Administrators (BA), and SYSTEM (SY).
-    SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
     struct
     { // Stack-allocated SIDs for LS, BA, and SY.
         SID sid;
@@ -101,29 +381,22 @@ _ebpf_driver_build_privileged_security_descriptor()
     PSID system_sid = (PSID)&system_sid_buf;
 
     // Build S-1-5-19 (LOCAL SERVICE).
-    status = RtlInitializeSid(local_service_sid, &nt_authority, 1);
+    status = _ebpf_driver_initialize_local_service_sid(local_service_sid);
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
-    *RtlSubAuthoritySid(local_service_sid, 0) = SECURITY_LOCAL_SERVICE_RID;
 
     // Build S-1-5-32-544 (BUILTIN\Administrators).
-    status = RtlInitializeSid(admin_sid, &nt_authority, 2);
+    status = _ebpf_driver_initialize_builtin_admin_sid(admin_sid);
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
-    *RtlSubAuthoritySid(admin_sid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
-    *RtlSubAuthoritySid(admin_sid, 1) = DOMAIN_ALIAS_RID_ADMINS;
 
     // Build S-1-5-18 (SYSTEM).
-    status = RtlInitializeSid(system_sid, &nt_authority, 1);
+    status = _ebpf_driver_initialize_local_system_sid(system_sid);
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
-    *RtlSubAuthoritySid(system_sid, 0) = SECURITY_LOCAL_SYSTEM_RID;
 
     // Build the ebpfsvc service SID.
     ebpfsvc_sid = (PSID)ebpf_allocate_with_tag(RtlLengthRequiredSid(subauthority_count), 'fpBE');
@@ -133,14 +406,9 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
-    status = RtlInitializeSid(ebpfsvc_sid, (SID_IDENTIFIER_AUTHORITY*)&service_authority, (UCHAR)subauthority_count);
+    status = _ebpf_driver_initialize_ebpfsvc_sid(ebpfsvc_sid);
     if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
-    }
-
-    for (ULONG i = 0; i < subauthority_count; i++) {
-        *RtlSubAuthoritySid(ebpfsvc_sid, i) = sid_subauthorities[i];
     }
 
     status = RtlCreateSecurityDescriptor(&security_descriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -268,6 +536,22 @@ _ebpf_driver_build_privileged_security_descriptor()
     ebpf_execution_context_privileged_security_descriptor = self_relative_security_descriptor;
     self_relative_security_descriptor = NULL;
 
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE)) {
+        TraceLoggingWrite(
+            ebpf_tracelog_provider,
+            "EbpfPrivilegedSecurityDescriptor",
+            TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE),
+            TraceLoggingUInt32(security_descriptor_size, "SecurityDescriptorLength"),
+            TraceLoggingUInt32(dacl->AceCount, "AceCount"),
+            TraceLoggingSid(ebpfsvc_sid, "EbpfSvcSid"),
+            TraceLoggingSid(local_service_sid, "LocalServiceSid"),
+            TraceLoggingSid(admin_sid, "AdministratorsSid"),
+            TraceLoggingSid(system_sid, "SystemSid"),
+            TraceLoggingBinary(
+                ebpf_execution_context_privileged_security_descriptor, security_descriptor_size, "SecurityDescriptor"));
+    }
+
 Exit:
     if (ebpfsvc_sid) {
         ebpf_free(ebpfsvc_sid);
@@ -297,6 +581,14 @@ _ebpf_driver_initialize_device(WDFDRIVER driver_handle, _Out_ WDFDEVICE* device)
     // Log the version of the driver at startup.
     // This is useful for debugging purposes and to ensure that the version string is present in the binary.
     EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, ebpf_core_version);
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_CORE)) {
+        TraceLoggingWrite(
+            ebpf_tracelog_provider,
+            "EbpfExecutionContextDeviceSecurity",
+            TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_CORE),
+            TraceLoggingWideString(EBPF_EXECUTION_CONTEXT_DEVICE_SDDL, "DeviceSddl"));
+    }
 
     // Allow access to kernel/system, administrators, LocalService, and ebpfsvc only.
     DECLARE_CONST_UNICODE_STRING(security_descriptor, EBPF_EXECUTION_CONTEXT_DEVICE_SDDL);
@@ -465,10 +757,11 @@ _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
 }
 
 static bool
-_ebpf_driver_is_caller_privileged()
+_ebpf_driver_is_caller_privileged(ebpf_operation_id_t operation_id)
 {
     // Check if the caller has the required privileges.
     SECURITY_SUBJECT_CONTEXT subject_context;
+    const ACCESS_MASK desired_access = GENERIC_ALL;
     SeCaptureSubjectContext(&subject_context);
     ACCESS_MASK granted_access = 0;
     GENERIC_MAPPING generic_mapping = {1, 1, 1, 1}; // No generic mapping needed for this check
@@ -477,13 +770,15 @@ _ebpf_driver_is_caller_privileged()
         ebpf_execution_context_privileged_security_descriptor,
         &subject_context,
         FALSE,            // Subject context is not locked
-        GENERIC_ALL,      // Desired access
+        desired_access,   // Desired access
         0,                // Previously granted access
         NULL,             // No privileges
         &generic_mapping, // Generic mapping
         UserMode,         // Access mode
         &granted_access,  // Granted access
         &status);
+    _ebpf_driver_trace_privileged_access_check(
+        &subject_context, operation_id, desired_access, granted_access, result, status);
     SeReleaseSubjectContext(&subject_context);
     return result && NT_SUCCESS(status);
 }
@@ -556,7 +851,7 @@ _ebpf_driver_io_device_control(
                     goto Done;
                 }
 
-                if (privileged && !_ebpf_driver_is_caller_privileged()) {
+                if (privileged && !_ebpf_driver_is_caller_privileged(user_request->id)) {
                     EBPF_LOG_MESSAGE(
                         EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Caller is not privileged");
                     status = STATUS_ACCESS_DENIED;
