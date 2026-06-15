@@ -5,7 +5,7 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include "../../undocked/tests/sample/ext/inc/sample_ext_helpers.h"
+#include "sample_ext_helpers.h"
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
