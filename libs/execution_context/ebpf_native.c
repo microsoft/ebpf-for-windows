@@ -144,8 +144,6 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
     },
 };
 
-
-
 static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
