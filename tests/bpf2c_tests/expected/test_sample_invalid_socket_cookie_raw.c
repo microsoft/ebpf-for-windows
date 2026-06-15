@@ -132,7 +132,7 @@ test_sample_invalid_socket_cookie(void* context, const program_runtime_context_t
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         test_sample_invalid_socket_cookie,
         "sample~1",
         "sample_ext",
@@ -141,11 +141,14 @@ static program_entry_t _programs[] = {
         0,
         test_sample_invalid_socket_cookie_helpers,
         2,
-        NULL,
-        0,
         18,
         &test_sample_invalid_socket_cookie_program_type_guid,
         &test_sample_invalid_socket_cookie_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

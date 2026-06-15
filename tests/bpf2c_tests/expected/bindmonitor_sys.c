@@ -700,7 +700,7 @@ label_6:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         BindMonitor,
         "bind",
         "bind",
@@ -709,11 +709,14 @@ static program_entry_t _programs[] = {
         3,
         BindMonitor_helpers,
         7,
-        NULL,
-        0,
         103,
         &BindMonitor_program_type_guid,
         &BindMonitor_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

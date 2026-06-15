@@ -174,7 +174,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         tcp_mt_connect4,
         "cgroup~1",
         "cgroup/connect4",
@@ -183,11 +183,14 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         18,
         &tcp_mt_connect4_program_type_guid,
         &tcp_mt_connect4_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

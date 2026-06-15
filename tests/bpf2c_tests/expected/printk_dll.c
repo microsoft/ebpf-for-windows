@@ -600,7 +600,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         func,
         "bind",
         "bind",
@@ -609,11 +609,14 @@ static program_entry_t _programs[] = {
         0,
         func_helpers,
         5,
-        NULL,
-        0,
         170,
         &func_program_type_guid,
         &func_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

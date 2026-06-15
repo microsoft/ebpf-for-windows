@@ -5207,7 +5207,7 @@ label_113:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         test_maps,
         "sample~1",
         "sample_ext",
@@ -5216,11 +5216,14 @@ static program_entry_t _programs[] = {
         8,
         test_maps_helpers,
         11,
-        NULL,
-        0,
         1766,
         &test_maps_program_type_guid,
         &test_maps_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

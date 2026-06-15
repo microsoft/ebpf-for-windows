@@ -527,7 +527,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         UtilityTest,
         "bind",
         "bind",
@@ -536,11 +536,14 @@ static program_entry_t _programs[] = {
         0,
         UtilityTest_helpers,
         4,
-        NULL,
-        0,
         111,
         &UtilityTest_program_type_guid,
         &UtilityTest_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

@@ -260,7 +260,7 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         callee0,
         "sample~2",
         "sample_ext/0",
@@ -269,15 +269,18 @@ static program_entry_t _programs[] = {
         1,
         callee0_helpers,
         1,
-        NULL,
-        0,
         6,
         &callee0_program_type_guid,
         &callee0_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         callee1,
         "sample~1",
         "sample_ext/1",
@@ -286,15 +289,18 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        NULL,
-        0,
         2,
         &callee1_program_type_guid,
         &callee1_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
     {
         0,
-        {2, 160, 160}, // Version header.
+        {1, 144, 160}, // Version header.
         caller,
         "sample~3",
         "sample_ext",
@@ -303,11 +309,14 @@ static program_entry_t _programs[] = {
         1,
         caller_helpers,
         1,
-        NULL,
-        0,
         6,
         &caller_program_type_guid,
         &caller_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        0,
     },
 };
 #pragma data_seg(pop)

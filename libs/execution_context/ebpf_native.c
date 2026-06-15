@@ -124,35 +124,6 @@ typedef struct _ebpf_native_module_instance
     size_t global_variable_count;
 } ebpf_native_module_instance_t;
 
-static void
-_ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size)
-{
-    memset(destination, 0, sizeof(*destination));
-
-    if (source_size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
-        const program_entry_v1_t* source_entry = (const program_entry_v1_t*)source;
-
-        destination->zero = source_entry->zero;
-        destination->header = source_entry->header;
-        destination->function = source_entry->function;
-        destination->pe_section_name = source_entry->pe_section_name;
-        destination->section_name = source_entry->section_name;
-        destination->program_name = source_entry->program_name;
-        destination->referenced_map_indices = source_entry->referenced_map_indices;
-        destination->referenced_map_count = source_entry->referenced_map_count;
-        destination->helpers = source_entry->helpers;
-        destination->helper_count = source_entry->helper_count;
-        destination->bpf_instruction_count = source_entry->bpf_instruction_count;
-        destination->program_type = source_entry->program_type;
-        destination->expected_attach_type = source_entry->expected_attach_type;
-        destination->program_info_hash = source_entry->program_info_hash;
-        destination->program_info_hash_length = source_entry->program_info_hash_length;
-        destination->program_info_hash_type = source_entry->program_info_hash_type;
-    } else {
-        memcpy(destination, source, min(source_size, sizeof(*destination)));
-    }
-}
-
 typedef struct _ebpf_native_authorized_module_entry
 {
     uint8_t expected_module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
@@ -643,14 +614,58 @@ _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* 
         (native_helper_function_entry->name != NULL));
 }
 
+static void
+_ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size)
+{
+    const program_entry_t* source_entry = (const program_entry_t*)source;
+
+    memset(destination, 0, sizeof(*destination));
+    if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2 &&
+        source_size >= EBPF_NATIVE_PROGRAM_ENTRY_VERSION_2_TOTAL_SIZE) {
+        const program_entry_v2_t* source_v2 = (const program_entry_v2_t*)source;
+
+        destination->zero = source_v2->zero;
+        destination->header = source_v2->header;
+        destination->function = source_v2->function;
+        destination->pe_section_name = source_v2->pe_section_name;
+        destination->section_name = source_v2->section_name;
+        destination->program_name = source_v2->program_name;
+        destination->referenced_map_indices = source_v2->referenced_map_indices;
+        destination->referenced_map_count = source_v2->referenced_map_count;
+        destination->helpers = source_v2->helpers;
+        destination->helper_count = source_v2->helper_count;
+        destination->bpf_instruction_count = source_v2->bpf_instruction_count;
+        destination->program_type = source_v2->program_type;
+        destination->expected_attach_type = source_v2->expected_attach_type;
+        destination->program_info_hash = source_v2->program_info_hash;
+        destination->program_info_hash_length = source_v2->program_info_hash_length;
+        destination->program_info_hash_type = source_v2->program_info_hash_type;
+        destination->btf_resolved_functions = source_v2->btf_resolved_functions;
+        destination->btf_resolved_function_count = source_v2->btf_resolved_function_count;
+    } else {
+        memcpy(destination, source, min(source_size, sizeof(*destination)));
+    }
+}
+
 static bool
 _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* native_btf_entry)
 {
+    bool valid_header = false;
+
+    if (native_btf_entry == NULL) {
+        return false;
+    }
+
+    valid_header =
+        ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1) &&
+         (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE) &&
+         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE)) ||
+        ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
+         (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
+         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+
     return (
-        (native_btf_entry != NULL) &&
-        (native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
-        (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
-        (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE) &&
+        valid_header &&
         ((_ebpf_native_is_unused_btf_resolved_function_entry(native_btf_entry)) ||
          ((native_btf_entry->name != NULL) && !IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL))));
 }
@@ -713,7 +728,7 @@ _ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_progr
         return false;
     }
 
-    // Normalize older program entry layouts before validating optional fields that were added later.
+    memset(&normalized_program_entry, 0, sizeof(normalized_program_entry));
     _ebpf_copy_program_entry(&normalized_program_entry, native_program_entry, native_program_entry->header.total_size);
 
     return (
@@ -2573,11 +2588,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         ebpf_native_program_t* native_program = native_programs[count];
         const program_entry_t* program = &native_program->program_entry;
         ebpf_program_parameters_t parameters = {0};
-        bool has_program_info_hash =
-            program->header.size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type) ||
-            program->header.size >= EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
-        bool legacy_program_info_hash =
-            program->header.size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type);
+        bool has_program_info_hash = program->header.size >= EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type);
+        bool legacy_program_info_hash = has_program_info_hash && (program->header.total_size == program->header.size);
 
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
