@@ -2978,7 +2978,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   c. Helper return type.
     //   d. Helper argument types.
     //   e. reallocate_packet flag (if set).
-    // 8. Count of BTF-resolved functions.
+    // 8. If any BTF-resolved functions are present, append their count.
     // 9. For each BTF-resolved function (sorted by module GUID then name).
     //   a. Module GUID.
     //   b. Function name.
