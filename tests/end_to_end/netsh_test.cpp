@@ -232,31 +232,21 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-#if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 1032;
-#elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1592;
-#elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size = 1120;
-#elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 5696;
-#else
-#error "Unsupported architecture"
-#endif
-
-    // Expected output is a format string with the code size filled in.
-    const std::string expected_output = "\n"
-                                        "                                                                     Size\n"
-                                        "                       Section                   Program       Type  (bytes)\n"
-                                        "==============================  ========================  =========  =======\n"
-                                        "                         .text                      func       bind  {:7}\n"
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n";
-    bool output_matches = output == std::vformat(expected_output, std::make_format_args(code_size));
+    // Use regex to match output, allowing any code size value.
+    const std::string expected_pattern =
+        "\n"
+        "                                                                     Size\n"
+        "                       Section                   Program       Type  \\(bytes\\)\n"
+        "==============================  ========================  =========  =======\n"
+        "                         \\.text                      func       bind  +\\d+\n"
+        "\n"
+        "                     Key  Value      Max\n"
+        "          Map Type  Size   Size  Entries  Name\n"
+        "==================  ====  =====  =======  ========\n";
+    const std::regex expected_output_regex(expected_pattern);
+    bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
-        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Expected regex:\n" << expected_pattern << "\n";
         std::cerr << "Actual output:\n" << output << "\n";
     }
 
@@ -273,41 +263,24 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-#if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 272;
-    const int old_code_size = 272;
-#elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1057;
-    const int old_code_size = 1198;
-#elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size = 252;
-    const int old_code_size = 316;
-#elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 960;
-    const int old_code_size = 1164;
-#else
-#error "Unsupported architecture"
-#endif
-
-    const std::string expected_output = "\n"
-                                        "                                                                     Size\n"
-                                        "                       Section                   Program       Type  (bytes)\n"
-                                        "==============================  ========================  =========  =======\n"
-                                        "                    sample_ext             lookup_update     sample  {:7}\n"
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n"
-                                        "      hash_of_maps     4      4        1  outer_map\n"
-                                        "             array     4      4        1  port_map\n"
-                                        "             array     4      4        1  inner_map\n";
-
-    bool output_matches =
-        (output == std::vformat(expected_output, std::make_format_args(code_size)) ||
-         output == std::vformat(expected_output, std::make_format_args(old_code_size)));
-
+    // Use regex to match output, allowing any code size value.
+    const std::string expected_pattern =
+        "\n"
+        "                                                                     Size\n"
+        "                       Section                   Program       Type  \\(bytes\\)\n"
+        "==============================  ========================  =========  =======\n"
+        "                    sample_ext             lookup_update     sample  +\\d+\n"
+        "\n"
+        "                     Key  Value      Max\n"
+        "          Map Type  Size   Size  Entries  Name\n"
+        "==================  ====  =====  =======  ========\n"
+        "      hash_of_maps     4      4        1  outer_map\n"
+        "             array     4      4        1  port_map\n"
+        "             array     4      4        1  inner_map\n";
+    const std::regex expected_output_regex(expected_pattern);
+    bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
-        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Expected regex:\n" << expected_pattern << "\n";
         std::cerr << "Actual output:\n" << output << "\n";
     }
 
@@ -325,44 +298,24 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-#if defined(_M_X64) && defined(NDEBUG)
-    const int code_size_old[] = {73, 6, 73};
-    const int code_size_new[] = {63, 6, 61};
-#elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {418, 195, 418};
-#elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size_old[] = {116, 8, 112};
-    const int code_size_new[] = {76, 8, 72};
-#elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size_old[] = {400, 184, 400};
-    const int code_size_new[] = {424, 236, 424};
-#else
-#error "Unsupported architecture"
-#endif
-
-    // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
-    // As a workaround, check for both the expected outputs.
-    const std::string expected_output = "\n"
-                                        "                                                                     Size\n"
-                                        "                       Section                   Program       Type  (bytes)\n"
-                                        "==============================  ========================  =========  =======\n"
-                                        "                  sample_ext/0                   callee0     sample  {:7}\n"
-                                        "                  sample_ext/1                   callee1     sample  {:7}\n"
-                                        "                    sample_ext                    caller     sample  {:7}\n"
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n"
-                                        "        prog_array     4      4       10  map\n";
-    bool output_matches =
-        (output == std::vformat(
-                       expected_output, std::make_format_args(code_size_old[0], code_size_old[1], code_size_old[2])) ||
-         output == std::vformat(
-                       expected_output, std::make_format_args(code_size_new[0], code_size_new[1], code_size_new[2])));
-
+    // Use regex to match output, allowing any code size value.
+    const std::string expected_pattern =
+        "\n"
+        "                                                                     Size\n"
+        "                       Section                   Program       Type  \\(bytes\\)\n"
+        "==============================  ========================  =========  =======\n"
+        "                  sample_ext/0                   callee0     sample  +\\d+\n"
+        "                  sample_ext/1                   callee1     sample  +\\d+\n"
+        "                    sample_ext                    caller     sample  +\\d+\n"
+        "\n"
+        "                     Key  Value      Max\n"
+        "          Map Type  Size   Size  Entries  Name\n"
+        "==================  ====  =====  =======  ========\n"
+        "        prog_array     4      4       10  map\n";
+    const std::regex expected_output_regex(expected_pattern);
+    bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
-        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Expected regex:\n" << expected_pattern << "\n";
         std::cerr << "Actual output:\n" << output << "\n";
     }
 
@@ -380,60 +333,29 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    // Old code size is for MSVC 2022 version 17.13.7
-    // Code size is for MSVC 2022 version 17.14.0 and later.
-
-#if defined(_M_X64) && defined(NDEBUG)
-    const int old_code_size[] = {339, 363, 339, 363, 339, 363};
-    const int code_size[] = {303, 324, 303, 324, 303, 324};
-#elif defined(_M_X64) && !defined(NDEBUG)
-    const int old_code_size[] = {961, 1036, 961, 1036, 961, 1036};
-    const int code_size[] = {1015, 1150, 1015, 1150, 1015, 1150};
-#elif defined(_M_ARM64) && defined(NDEBUG)
-    const int old_code_size[] = {328, 344, 328, 344, 328, 344};
-    const int code_size[] = {272, 296, 272, 296, 272, 296};
-#elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int old_code_size[] = {1132, 1288, 1132, 1288, 1132, 1288};
-    const int code_size[] = {1008, 1164, 1008, 1164, 1008, 1164};
-#else
-#error "Unsupported architecture"
-#endif
-
-    const std::string expected_output = "\n"
-                                        "                                                                     Size\n"
-                                        "                       Section                   Program       Type  (bytes)\n"
-                                        "==============================  ========================  =========  =======\n"
-                                        "               cgroup/connect4        authorize_connect4  sock_addr  {:7}\n"
-                                        "               cgroup/connect6        authorize_connect6  sock_addr  {:7}\n"
-                                        "           cgroup/recv_accept4    authorize_recv_accept4  sock_addr  {:7}\n"
-                                        "           cgroup/recv_accept6    authorize_recv_accept6  sock_addr  {:7}\n"
-                                        " cgroup/connect_authorization4    connect_authorization4  sock_addr  {:7}\n"
-                                        " cgroup/connect_authorization6    connect_authorization6  sock_addr  {:7}\n"
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n"
-                                        "              hash    56      4        1  egress_connection_policy_map\n"
-                                        "              hash    56      4        1  ingress_connection_policy_map\n"
-                                        "              hash    56      8     1000  socket_cookie_map\n";
-
-    bool output_matches =
-        (output == std::vformat(
-                       expected_output,
-                       std::make_format_args(
-                           code_size[0], code_size[1], code_size[2], code_size[3], code_size[4], code_size[5])) ||
-         output == std::vformat(
-                       expected_output,
-                       std::make_format_args(
-                           old_code_size[0],
-                           old_code_size[1],
-                           old_code_size[2],
-                           old_code_size[3],
-                           old_code_size[4],
-                           old_code_size[5])));
-
+    // Use regex to match output, allowing any code size value.
+    const std::string expected_pattern =
+        "\n"
+        "                                                                     Size\n"
+        "                       Section                   Program       Type  \\(bytes\\)\n"
+        "==============================  ========================  =========  =======\n"
+        "               cgroup/connect4        authorize_connect4  sock_addr  +\\d+\n"
+        "               cgroup/connect6        authorize_connect6  sock_addr  +\\d+\n"
+        "           cgroup/recv_accept4    authorize_recv_accept4  sock_addr  +\\d+\n"
+        "           cgroup/recv_accept6    authorize_recv_accept6  sock_addr  +\\d+\n"
+        " cgroup/connect_authorization4    connect_authorization4  sock_addr  +\\d+\n"
+        " cgroup/connect_authorization6    connect_authorization6  sock_addr  +\\d+\n"
+        "\n"
+        "                     Key  Value      Max\n"
+        "          Map Type  Size   Size  Entries  Name\n"
+        "==================  ====  =====  =======  ========\n"
+        "              hash    56      4        1  egress_connection_policy_map\n"
+        "              hash    56      4        1  ingress_connection_policy_map\n"
+        "              hash    56      8     1000  socket_cookie_map\n";
+    const std::regex expected_output_regex(expected_pattern);
+    bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
-        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Expected regex:\n" << expected_pattern << "\n";
         std::cerr << "Actual output:\n" << output << "\n";
     }
 

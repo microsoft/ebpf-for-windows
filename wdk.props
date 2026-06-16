@@ -6,8 +6,18 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <PropertyGroup>
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
-    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
-    <WDKVersion>10.0.26100.6584</WDKVersion>
+    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)' == '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)' == '17.0'">10.0.26100.0</WindowsTargetPlatformVersion>
+    <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.1839;
+         VS 2022 (MSBuild 17) uses 10.0.26100.6584. -->
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
+    <WDKVersion Condition="'$(WDKVersion)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">10.0.26100.6584</WDKVersion>
+    <!-- Provide DDK_INC_PATH for user-mode projects that simulate kernel code (usersim) -->
+    <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>
+    <!-- Default platform toolset for user-mode projects. Kernel-mode projects override this
+         with WindowsKernelModeDriver10.0 in their vcxproj Configuration PropertyGroups. -->
+    <EbpfPlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(VisualStudioVersion)' == '17.0'">v143</EbpfPlatformToolset>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
@@ -19,12 +29,17 @@
     <Message Importance="high" Text="PROCESSOR_ARCHITEW6432 is $(PROCESSOR_ARCHITEW6432)" />
   </Target>
 
+  <!-- SDK NuGet imports -->
   <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
   <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" />
+
+  <!-- WDK NuGet import (sets PlatformToolset to WindowsKernelModeDriver10.0) -->
+  <Import Project="$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
+
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
   </ImportGroup>
+
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

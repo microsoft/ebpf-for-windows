@@ -54,7 +54,13 @@ function Invoke-MSBuild {
 }
 
 # Define the commands to run
-$cmakeCommonArgs = "-G `"Visual Studio 17 2022`" -A $Architecture"
+$vsVersion = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property catalog_productLineVersion
+if ($vsVersion -eq "18") {
+    $cmakeGenerator = "Visual Studio 18 2026"
+} else {
+    $cmakeGenerator = "Visual Studio 17 2022"
+}
+$cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
 $commands = @(
     "git submodule update --init --recursive",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
