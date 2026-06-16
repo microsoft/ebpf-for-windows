@@ -571,10 +571,10 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
         // Roll back the program state that was set before the NmrClientAttachProvider call.
         // Reclaim extension_program_data so it gets freed at Done.
-        extension_program_data = (ebpf_program_data_t*)program->extension_program_data;
+        extension_program_data = program->extension_program_data;
         program->extension_program_data = NULL;
         program->program_type_specific_helper_function_count = 0;
-        program->bpf_prog_type = 0;
+        program->bpf_prog_type = BPF_PROG_TYPE_UNSPEC;
 
         ebpf_lock_unlock(&program->lock, state);
         lock_held = false;
