@@ -423,10 +423,20 @@ _ebpf_driver_build_privileged_security_descriptor()
 
     // Well-known SIDs for LocalService (LS), Administrators (BA), and SYSTEM (SY).
     struct
-    { // Stack-allocated SIDs for LS, BA, and SY.
+    { // Stack-allocated SID for LS.
         SID sid;
-        ULONG sub_authority;
-    } local_service_sid_buf = {0}, admin_sid_buf = {0}, system_sid_buf = {0};
+        ULONG sub_authority[1];
+    } local_service_sid_buf = {0};
+    struct
+    { // Stack-allocated SID for BA.
+        SID sid;
+        ULONG sub_authority[2];
+    } admin_sid_buf = {0};
+    struct
+    { // Stack-allocated SID for SY.
+        SID sid;
+        ULONG sub_authority[1];
+    } system_sid_buf = {0};
     PSID local_service_sid = (PSID)&local_service_sid_buf;
     PSID admin_sid = (PSID)&admin_sid_buf;
     PSID system_sid = (PSID)&system_sid_buf;
@@ -468,6 +478,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
+#if !defined(USERSIM_DLLMAIN)
     // Set the owner to Administrators.
     status = RtlSetOwnerSecurityDescriptor(&security_descriptor, admin_sid, FALSE);
     if (!NT_SUCCESS(status)) {
@@ -481,6 +492,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlSetGroupSecurityDescriptor, status);
         goto Exit;
     }
+#endif
 
     // Allocate DACL with four ACEs: ebpfsvc, LocalService, Administrators, SYSTEM.
     size_t acl_size = 0;
@@ -563,6 +575,29 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
+#if defined(USERSIM_DLLMAIN)
+    //
+    // usersim does not implement the full kernel security descriptor helpers used to materialize a
+    // self-relative descriptor. Build a stable absolute descriptor instead; usersim's access check
+    // currently ignores the descriptor contents and only requires a persistent, non-NULL pointer.
+    //
+    security_descriptor_size = (ULONG)(sizeof(SECURITY_DESCRIPTOR) + aclSize);
+    self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
+    if (self_relative_security_descriptor == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
+        goto Exit;
+    }
+
+    RtlZeroMemory(self_relative_security_descriptor, security_descriptor_size);
+    memcpy(self_relative_security_descriptor, &security_descriptor, sizeof(security_descriptor));
+
+    ((SECURITY_DESCRIPTOR*)self_relative_security_descriptor)->Revision = SECURITY_DESCRIPTOR_REVISION;
+    ((SECURITY_DESCRIPTOR*)self_relative_security_descriptor)->Control = SE_DACL_PRESENT;
+    ((SECURITY_DESCRIPTOR*)self_relative_security_descriptor)->Dacl =
+        (PACL)((uint8_t*)self_relative_security_descriptor + sizeof(SECURITY_DESCRIPTOR));
+    memcpy(((SECURITY_DESCRIPTOR*)self_relative_security_descriptor)->Dacl, dacl, aclSize);
+#else
     // Convert security descriptor to self-relative format.
     status = RtlAbsoluteToSelfRelativeSD(&security_descriptor, NULL, &security_descriptor_size);
     if (status != STATUS_BUFFER_TOO_SMALL) {
@@ -583,6 +618,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
         goto Exit;
     }
+#endif
 
     ebpf_execution_context_privileged_security_descriptor = self_relative_security_descriptor;
     self_relative_security_descriptor = NULL;
