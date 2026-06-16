@@ -64,7 +64,18 @@ jobs:
             const report = JSON.parse(fs.readFileSync(process.env.REPORT_PATH, 'utf8'));
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const labels = ['bug', 'ci/cd', 'everparse'];
+            const requestedLabels = ['bug', 'ci/cd', 'everparse'];
+            const repositoryLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner,
+              repo,
+              per_page: 100
+            });
+            const repositoryLabelNames = new Set(repositoryLabels.map((label) => label.name));
+            const labels = requestedLabels.filter((label) => repositoryLabelNames.has(label));
+            const missingLabels = requestedLabels.filter((label) => !repositoryLabelNames.has(label));
+            if (missingLabels.length > 0) {
+              core.warning(`Skipping missing labels for EverParse divergence issues: ${missingLabels.join(', ')}`);
+            }
             for (const unit of report.selected_units.filter((entry) => entry.status === 'diverged')) {
               const title = `EverParse generated artifacts diverged for ${unit.id}`;
               const body = [
@@ -78,12 +89,15 @@ jobs:
                 'The committed generated artifacts do not match authoritative regeneration output.'
               ].join('\n');
               try {
-                const issues = await github.paginate(github.rest.issues.listForRepo, {
+                const listIssuesParameters = {
                   owner,
                   repo,
-                  state: 'open',
-                  labels: labels.join(',')
-                });
+                  state: 'open'
+                };
+                if (labels.length > 0) {
+                  listIssuesParameters.labels = labels.join(',');
+                }
+                const issues = await github.paginate(github.rest.issues.listForRepo, listIssuesParameters);
                 const existing = issues.find((issue) => issue.title === title);
                 if (existing) {
                   await github.rest.issues.createComment({

@@ -39,7 +39,22 @@ function Invoke-BuildTool
 function Normalize-RepoPath
 {
     param([string] $Path)
-    return ($Path -replace "\\", "/").TrimStart("./")
+    $normalized_path = $Path -replace "\\", "/"
+    while ($normalized_path.StartsWith("./")) {
+        $normalized_path = $normalized_path.Substring(2)
+    }
+    return $normalized_path
+}
+
+function Write-JsonFile
+{
+    param(
+        [string] $Path,
+        [object] $Value,
+        [int] $Depth
+    )
+
+    $Value | ConvertTo-Json -Depth $Depth | Set-Content -Path $Path -Encoding utf8
 }
 
 function Get-AllTriggerPaths
@@ -140,7 +155,7 @@ $report = [ordered]@{
 
 if ($selected_units.Count -eq 0) {
     $report.validation_status = "skipped"
-    $report | ConvertTo-Json -Depth 6 | Set-Content -Path $report_path
+    Write-JsonFile -Path $report_path -Value $report -Depth 6
     Set-ActionOutput -Name "validation_status" -Value "skipped"
     Set-ActionOutput -Name "selected_units" -Value "[]"
     Set-ActionOutput -Name "report_path" -Value $report_path
@@ -229,7 +244,7 @@ try {
         $report.validation_status = "pass"
     }
 
-    $report | ConvertTo-Json -Depth 8 | Set-Content -Path $report_path
+    Write-JsonFile -Path $report_path -Value $report -Depth 8
 
     Set-ActionOutput -Name "validation_status" -Value $report.validation_status
     Set-ActionOutput -Name "selected_units" -Value (($selected_units | ForEach-Object { $_.id } | ConvertTo-Json -Compress))

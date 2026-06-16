@@ -186,7 +186,6 @@ unbounded duplicates.
 ## 12. Open Questions
 
 1. Should validation fail hard on `infrastructure_error`, or should that remain a separate non-divergence signal with its own retry policy?
-2. What exact committed repository path should validation use for `elf_spec` outputs once they are checked in?
 
 ## 13. Revision History
 

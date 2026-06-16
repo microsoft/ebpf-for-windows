@@ -50,11 +50,12 @@ The design treats each EverParse entry point as a separate **generation unit**.
 
 - **Authoritative source**: `libs\ioctl_spec\EbpfProtocol.3d`
 - **Current generated outputs**:
-  - `generated\EbpfProtocol.h`
-  - `generated\EbpfProtocolWrapper.h`
-  - `generated\EverParse.h`
-  - `generated\EbpfProtocol.c`
-  - `generated\EbpfProtocolWrapper.c`
+  - `libs\ioctl_spec\generated\EbpfProtocol.h`
+  - `libs\ioctl_spec\generated\EbpfProtocolWrapper.h`
+  - `libs\ioctl_spec\generated\EverParse.h`
+  - `libs\ioctl_spec\generated\EverParseEndianness.h`
+  - `libs\ioctl_spec\generated\EbpfProtocol.c`
+  - `libs\ioctl_spec\generated\EbpfProtocolWrapper.c`
 - **Primary consumers**:
   - `libs\execution_context\kernel\execution_context_kernel.vcxproj`
   - `libs\execution_context\user\execution_context_user.vcxproj`
@@ -63,11 +64,12 @@ The design treats each EverParse entry point as a separate **generation unit**.
 
 - **Authoritative source**: `libs\elf_spec\Elf.3d`
 - **Current generated outputs**:
-  - `Elf.h`
-  - `ElfWrapper.h`
-  - `EverParse.h`
-  - `Elf.c`
-  - `ElfWrapper.c`
+  - `libs\elf_spec\generated\Elf.h`
+  - `libs\elf_spec\generated\ElfWrapper.h`
+  - `libs\elf_spec\generated\EverParse.h`
+  - `libs\elf_spec\generated\EverParseEndianness.h`
+  - `libs\elf_spec\generated\Elf.c`
+  - `libs\elf_spec\generated\ElfWrapper.c`
 - **Primary consumers**:
   - `libs\api\api.vcxproj`
   - `tools\bpf2c\bpf2c.vcxproj`
@@ -191,7 +193,7 @@ This follows the same pattern already used elsewhere in repository automation.
 
 ### 9.2 `elf_spec`
 
-- Define a repository path for committed generated outputs instead of relying solely on `$(OutDir)`.
+- Use `libs\elf_spec\generated\` as the committed output path instead of relying on `$(OutDir)`.
 - Update the generation unit definition to compare against that committed path.
 
 ### 9.3 Documentation
@@ -238,7 +240,7 @@ For fork-originated pull requests, the design should keep privileged issue-writi
 
 1. Land the requirements, design, and validation specifications.
 2. Define the generation-unit manifest.
-3. Choose the committed repository path for `elf_spec` outputs.
+3. Commit `elf_spec` generated outputs under `libs\elf_spec\generated\`.
 4. Stop ignoring committed `ioctl_spec` outputs.
 5. Add trigger evaluation and authoritative comparison to CI.
 6. Add divergence issue open-or-update behavior.
@@ -250,9 +252,8 @@ For fork-originated pull requests, the design should keep privileged issue-writi
 
 ## 13. Open Questions
 
-1. What exact repository path should hold committed `elf_spec` generated outputs?
-2. Are there additional repository-tracked inputs beyond `.3d`, `packages.config`, and `.vcxproj` that must be included in the regeneration input set?
-3. Should a later phase add automated remediation pull requests, or should issue-only remediation remain the boundary?
+1. Are there additional repository-tracked inputs beyond `.3d`, `packages.config`, and `.vcxproj` that must be included in the regeneration input set?
+2. Should a later phase add automated remediation pull requests, or should issue-only remediation remain the boundary?
 
 ## 14. Revision History
 

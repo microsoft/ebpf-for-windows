@@ -12,7 +12,7 @@ files from `.3d` sources, while preserving `.3d` files as the authoritative inpu
 Today, the repository has two EverParse generation entry points:
 
 - `libs\ioctl_spec\EbpfProtocol.3d`, which generates sources into `libs\ioctl_spec\generated\`
-- `libs\elf_spec\Elf.3d`, which currently generates into `$(OutDir)` during build
+- `libs\elf_spec\Elf.3d`, which generates sources into `libs\elf_spec\generated\`
 
 Both projects invoke `packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd`.
 
@@ -58,11 +58,12 @@ The workflow defined by this specification must prioritize:
 ## 5. Current Repository Context
 
 - `libs\ioctl_spec\ioctl_spec.vcxproj` defines a custom build step for `EbpfProtocol.3d` and emits:
-  `EbpfProtocol.h`, `EbpfProtocolWrapper.h`, `EverParse.h`, `EbpfProtocol.c`, and `EbpfProtocolWrapper.c`
+  `EbpfProtocol.h`, `EbpfProtocolWrapper.h`, `EverParse.h`, `EverParseEndianness.h`, `EbpfProtocol.c`, and
+  `EbpfProtocolWrapper.c`
   into `libs\ioctl_spec\generated\`.
-- `libs\ioctl_spec\.gitignore` currently excludes `generated\`.
 - `libs\elf_spec\elf_spec.vcxproj` defines a custom build step for `Elf.3d` and emits:
-  `Elf.h`, `ElfWrapper.h`, `EverParse.h`, `Elf.c`, and `ElfWrapper.c` into `$(OutDir)`.
+  `Elf.h`, `ElfWrapper.h`, `EverParse.h`, `EverParseEndianness.h`, `Elf.c`, and `ElfWrapper.c`
+  into `libs\elf_spec\generated\`.
 - Both EverParse projects pin package version `2022.6.13` in `packages.config`.
 - Existing GitHub-hosted build jobs run on `windows-2022`, while several driver and regression test jobs use self-hosted 1ES runners.
 
@@ -147,9 +148,8 @@ The workflow defined by this specification must prioritize:
 
 ## 10. Open Questions
 
-1. Which exact repository path should hold committed `elf_spec` generated outputs, given that the current project emits them to `$(OutDir)`?
-2. Which repository-tracked files belong in the complete regeneration input set beyond `.3d`, `packages.config`, and the `.vcxproj` custom-build definitions?
-3. Should a future iteration add automated remediation pull requests, or should issue-only tracking remain the long-term boundary?
+1. Which repository-tracked files belong in the complete regeneration input set beyond `.3d`, `packages.config`, and the `.vcxproj` custom-build definitions?
+2. Should a future iteration add automated remediation pull requests, or should issue-only tracking remain the long-term boundary?
 
 ## 11. Revision History
 
