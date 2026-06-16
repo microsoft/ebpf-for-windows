@@ -215,7 +215,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     _Out_ size_t* hash_length);
 
 static bool
-_ebpf_program_match_provider_data_module_id(_In_ const PNPI_MODULEID npi_module_id, _In_ const GUID* expected_module_id)
+_ebpf_program_match_provider_data_module_id(_In_ PNPI_MODULEID npi_module_id, _In_ const GUID* expected_module_id)
 {
     bool match = false;
     // Verify the NPI module ID is a GUID.
@@ -247,7 +247,7 @@ enum ebpf_program_info_provider_type
 static bool
 _ebpf_program_verify_provider_program_data(
     _In_ enum ebpf_program_info_provider_type provider_type,
-    _In_ const PNPI_MODULEID npi_module_id,
+    _In_ PNPI_MODULEID npi_module_id,
     _In_opt_ const ebpf_program_data_t* program_data)
 {
     bool program_data_valid = false;
@@ -356,7 +356,7 @@ Done:
 
 bool
 ebpf_program_is_valid_general_helper_provider_data(
-    _In_ const PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data)
+    _In_ PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data)
 {
     return _ebpf_program_verify_provider_program_data(
         EBPF_PROGRAM_INFO_PROVIDER_TYPE_GENERAL_HELPER, npi_module_id, program_data);

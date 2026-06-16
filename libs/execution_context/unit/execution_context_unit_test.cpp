@@ -31,7 +31,7 @@ extern "C"
 
     bool
     ebpf_program_is_valid_general_helper_provider_data(
-        _In_ const PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data);
+        _In_ PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data);
 }
 
 struct scoped_cpu_affinity
