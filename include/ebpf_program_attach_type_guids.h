@@ -143,6 +143,28 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_BIND =
         EBPF_ATTACH_TYPE_CGROUP_INET6_BIND_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN_GUID                                      \
+    {                                                                                  \
+        0xe1b0cb3d, 0xd70c, 0x4ee2, { 0xb2, 0x3a, 0x07, 0x42, 0xbe, 0xdb, 0x06, 0xd6 } \
+    }
+    /** @brief Attach type for handling IPv4 socket listen operations.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN_GUID;
+
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN_GUID                                      \
+    {                                                                                  \
+        0x4e72f92e, 0x5ed0, 0x4fe5, { 0xb8, 0x51, 0xb1, 0x24, 0xfe, 0x14, 0x07, 0x4d } \
+    }
+    /** @brief Attach type for handling IPv6 socket listen operations.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN_GUID;
+
 #define EBPF_ATTACH_TYPE_SAMPLE_GUID                                                   \
     {                                                                                  \
         0xf788ef4b, 0x207d, 0x4dc3, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
