@@ -21,6 +21,14 @@
          with WindowsKernelModeDriver10.0 in their vcxproj Configuration PropertyGroups. -->
     <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
     <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfPlatformToolset>
+    <!-- Platform toolset consumed by the ebpf-extension-common submodule. Its Directory.Build.props
+         imports "$(SolutionDir)wdk.props", which resolves to THIS file when the submodule is built as
+         part of the eBPF-for-Windows solution, so the toolset variable its vcxproj files reference
+         ($(EbpfExtPlatformToolset)) must be defined here. Without it the toolset is empty and MSBuild
+         falls back to v100, causing MSB8020. (usersim is self-contained: its projects import their own
+         wdk.props via a relative path, so no equivalent definition is needed here.) -->
+    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfExtPlatformToolset>
+    <EbpfExtPlatformToolset Condition="'$(EbpfExtPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfExtPlatformToolset>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
