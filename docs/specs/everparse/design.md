@@ -171,13 +171,17 @@ If any selected generation unit diverges:
 
 After divergence is confirmed:
 
-1. The workflow opens a new issue or updates an existing open issue for the same underlying condition.
+1. On trusted repository events such as `schedule`, `push`, and `merge_group`, the workflow opens a new
+   issue or updates an existing open issue for the same underlying condition.
 2. The issue includes:
    - Generation unit identifier
    - Diverged files
    - Triggering revision
    - Workflow run reference
    - Toolchain fingerprint or pinned version context
+
+Pull request and ad hoc manual runs still fail validation when divergence is detected, but they do not create
+or update repository issues.
 
 ### 8.3 Deduplication
 

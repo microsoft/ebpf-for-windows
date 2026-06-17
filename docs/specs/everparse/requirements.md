@@ -103,9 +103,10 @@ The workflow defined by this specification must prioritize:
 
 ### 6.5 Divergence Tracking
 
-- **REQ-ISSUE-001**: If CI detects divergence, the workflow **MUST** open a new issue or update an existing issue.
-  - **AC-1**: Divergence causes an issue-management action in addition to validation failure.
+- **REQ-ISSUE-001**: If trusted repository CI detects divergence, the workflow **MUST** open a new issue or update an existing issue.
+  - **AC-1**: Divergence on trusted repository events such as `schedule`, `push`, or `merge_group` causes an issue-management action in addition to validation failure.
   - **AC-2**: Repeated divergence for the same underlying condition updates or deduplicates existing tracking instead of creating unbounded duplicates.
+  - **AC-3**: Untrusted or developer-initiated contexts such as `pull_request` and ad hoc `workflow_dispatch` runs fail validation but do not write issues.
 
 - **REQ-ISSUE-002**: A divergence issue **MUST** identify the affected generated artifact set and the triggering revision.
   - **AC-1**: The issue includes the commit or run identifier that observed divergence.

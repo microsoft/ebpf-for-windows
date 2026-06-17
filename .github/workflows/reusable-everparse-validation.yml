@@ -53,7 +53,7 @@ jobs:
         run: .\scripts\validate_everparse_generation.ps1
 
       - name: Create or update EverParse divergence issues
-        if: steps.validate.outputs.validation_status == 'diverged'
+        if: steps.validate.outputs.validation_status == 'diverged' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'merge_group')
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd
         env:
           REPORT_PATH: ${{ steps.validate.outputs.report_path }}

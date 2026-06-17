@@ -88,7 +88,7 @@ Each selected generation unit must end in exactly one of the following states:
 | Result | Meaning | Required action |
 | --- | --- | --- |
 | `pass` | Regenerated output matches committed output. | Continue. |
-| `diverged` | Regenerated output differs from committed output. | Fail validation and create or update issue. |
+| `diverged` | Regenerated output differs from committed output. | Fail validation. In trusted repository issue-writing contexts, create or update issue. |
 | `infrastructure_error` | Validation could not determine whether output diverged. | Fail or surface separately according to CI policy, but do not create a divergence issue unless mismatch was proven. |
 
 ## 7. Per-Unit Validation Rules
@@ -136,12 +136,15 @@ When validation cannot determine divergence, the job must report:
 
 ### 9.1 Preconditions
 
-Issue automation runs only for confirmed divergence.
+Issue automation runs only for confirmed divergence in trusted repository issue-writing contexts.
 
 ### 9.2 Required Behavior
 
-For each confirmed divergence event, the workflow must open a new issue or update an existing open issue
-for the same underlying condition.
+For each confirmed divergence event observed on trusted repository events such as `schedule`, `push`, or
+`merge_group`, the workflow must open a new issue or update an existing open issue for the same underlying
+condition.
+
+Pull request and ad hoc manual runs must still fail validation on divergence, but they must not write issues.
 
 ### 9.3 Required Issue Fields
 
