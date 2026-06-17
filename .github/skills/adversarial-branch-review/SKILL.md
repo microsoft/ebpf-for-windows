@@ -68,7 +68,7 @@ If either branch name is unclear, stop and ask before continuing.
    ```
 
 4. Restrict the main review set to changed C/C++ sources and headers:
-   `*.c`, `*.h`, `*.cpp`, `*.cxx`, `*.cc`, `*.hpp`, `*.hh`, `*.inl`.
+   `*.c`, `*.h`, `*.cpp`, `*.cxx`, `*.cc`, `*.hpp`, `*.hh`, `.hxx`, `*.inl`.
 5. Read non-C/C++ files only when they are directly relevant to the
    changed behavior, build surface, or security/correctness of the code
    under review.
