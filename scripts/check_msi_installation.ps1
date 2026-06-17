@@ -179,8 +179,8 @@ function Check-eBPF-Installation {
         $service = $null
         $serviceRunning = $false
         for ($retryCount = 0; $retryCount -lt 20; $retryCount++) {
-            $service = Get-Service -Name $eBpfServiceName
-            if ($service.Status -eq "Running") {
+            $service = Get-Service -Name $eBpfServiceName -ErrorAction SilentlyContinue
+            if ($service -and $service.Status -eq "Running") {
                 $serviceRunning = $true
                 break
             }
