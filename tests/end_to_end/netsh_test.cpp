@@ -341,6 +341,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         "==============================  ========================  =========  =======\n"
         "               cgroup/connect4        authorize_connect4  sock_addr  +\\d+\n"
         "               cgroup/connect6        authorize_connect6  sock_addr  +\\d+\n"
+        "                cgroup/listen4         authorize_listen4  sock_addr  +\\d+\n"
+        "                cgroup/listen6         authorize_listen6  sock_addr  +\\d+\n"
         "           cgroup/recv_accept4    authorize_recv_accept4  sock_addr  +\\d+\n"
         "           cgroup/recv_accept6    authorize_recv_accept6  sock_addr  +\\d+\n"
         " cgroup/connect_authorization4    connect_authorization4  sock_addr  +\\d+\n"
@@ -351,8 +353,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         "==================  ====  =====  =======  ========\n"
         "              hash    56      4        1  egress_connection_policy_map\n"
         "              hash    56      4        1  ingress_connection_policy_map\n"
+        "              hash    56      4        1  listen_connection_policy_map\n"
         "              hash    56      8     1000  socket_cookie_map\n";
-    const std::regex expected_output_regex(expected_pattern);
     bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
         std::cerr << "Expected regex:\n" << expected_pattern << "\n";
