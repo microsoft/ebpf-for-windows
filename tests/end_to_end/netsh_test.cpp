@@ -355,6 +355,7 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         "              hash    56      4        1  ingress_connection_policy_map\n"
         "              hash    56      4        1  listen_connection_policy_map\n"
         "              hash    56      8     1000  socket_cookie_map\n";
+    const std::regex expected_output_regex(expected_pattern);
     bool output_matches = std::regex_match(output, expected_output_regex);
     if (!output_matches) {
         std::cerr << "Expected regex:\n" << expected_pattern << "\n";
