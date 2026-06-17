@@ -28,10 +28,9 @@ static const ULONG _ebpfsvc_sid_subauthorities[] = {
 // SID for ebpfsvc (generated using command "sc.exe showsid ebpfsvc"):
 // S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174
 //
-// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + LocalService + SID for ebpfsvc.
-#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL                                                                           \
-    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;LS)(A;;GA;;;BA)(A;;GA;;;" \
-    L"SY)"
+// SDDL_DEVOBJ_SYS_ALL_ADM_ALL + SID for ebpfsvc.
+#define EBPF_EXECUTION_CONTEXT_DEVICE_SDDL \
+    L"D:P(A;;GA;;;S-1-5-80-3453964624-2861012444-1105579853-3193141192-1897355174)(A;;GA;;;BA)(A;;GA;;;SY)"
 
 #ifndef CTL_CODE
 #define CTL_CODE(DeviceType, Function, Method, Access) \
@@ -112,8 +111,8 @@ static _Must_inspect_result_ NTSTATUS
 _ebpf_driver_initialize_ebpfsvc_sid(_Out_ PSID sid)
 {
     const SID_IDENTIFIER_AUTHORITY nt_authority = SECURITY_NT_AUTHORITY;
-    NTSTATUS status =
-        RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities));
+    NTSTATUS status = RtlInitializeSid(
+        sid, (SID_IDENTIFIER_AUTHORITY*)&nt_authority, (UCHAR)EBPF_COUNT_OF(_ebpfsvc_sid_subauthorities));
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         return status;
@@ -494,18 +493,13 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 #endif
 
-    // Allocate DACL with four ACEs: ebpfsvc, LocalService, Administrators, SYSTEM.
+    // Allocate DACL with three ACEs: ebpfsvc, Administrators, SYSTEM.
     size_t acl_size = 0;
     size_t total_sid_length = 0;
     ebpf_result_t safe_result = EBPF_SUCCESS;
     ULONG aclSize = 0;
-    safe_result = ebpf_safe_size_t_add(
-        (size_t)RtlLengthSid(ebpfsvc_sid), (size_t)RtlLengthSid(local_service_sid), &total_sid_length);
-    if (safe_result != EBPF_SUCCESS) {
-        status = STATUS_INTEGER_OVERFLOW;
-        goto Exit;
-    }
-    safe_result = ebpf_safe_size_t_add(total_sid_length, (size_t)RtlLengthSid(admin_sid), &total_sid_length);
+    safe_result =
+        ebpf_safe_size_t_add((size_t)RtlLengthSid(ebpfsvc_sid), (size_t)RtlLengthSid(admin_sid), &total_sid_length);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -515,7 +509,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)4 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
+    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)3 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -525,7 +519,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)4 * sizeof(ULONG), &acl_size);
+    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)3 * sizeof(ULONG), &acl_size);
     if (safe_result != EBPF_SUCCESS || acl_size > MAXULONG) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -545,12 +539,6 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, ebpfsvc_sid);
-    if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
-        goto Exit;
-    }
-
-    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, EBPF_EXECUTION_CONTEXT_PRIVILEGED_ACCESS, local_service_sid);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
