@@ -2173,6 +2173,7 @@ ebpf_program_get_info(
 
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_id_t* map_ids = (ebpf_id_t*)input_info->map_ids;
+    ebpf_id_t* local_map_ids = NULL;
     uint32_t map_count = 0;
     if ((input_info->map_ids != 0) && (input_info->nr_map_ids > 0)) {
         // Fill in map ids before we overwrite the info buffer.
@@ -2180,34 +2181,60 @@ ebpf_program_get_info(
         size_t length = 0;
         result = ebpf_safe_size_t_multiply(max_nr_map_ids, sizeof(ebpf_id_t), &length);
         if (result != EBPF_SUCCESS) {
-            EBPF_RETURN_RESULT(result);
+            goto Done;
+        }
+
+        local_map_ids = ebpf_allocate_with_tag(length, EBPF_POOL_TAG_PROGRAM);
+        if (local_map_ids == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
+
+        // Probe must be done before acquiring the lock (requires IRQL < DISPATCH_LEVEL).
+        __try {
+            ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "User mode map_ids buffer invalid or too small.",
+                (uint64_t)((uintptr_t)map_ids));
+            result = EBPF_INVALID_POINTER;
+            goto Done;
+        }
+
+        // Snapshot the map IDs under the lock, then copy them to user memory after the lock is released.
+        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
+        __try {
+            map_count = program->count_of_maps;
+            if (map_count > max_nr_map_ids) {
+                result = EBPF_INVALID_POINTER;
+            } else {
+                for (uint32_t i = 0; i < map_count; i++) {
+                    ebpf_map_t* map = program->maps[i];
+                    local_map_ids[i] = ebpf_map_get_id(map);
+                }
+            }
+        } __finally {
+            ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
+        }
+
+        if (result != EBPF_SUCCESS) {
+            goto Done;
         }
 
         __try {
-            // Probe must be done before acquiring the lock (requires IRQL < DISPATCH_LEVEL).
-            ebpf_probe_for_write(map_ids, length, sizeof(ebpf_id_t));
-
-            ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
-            __try {
-                map_count = program->count_of_maps;
-
-                for (uint32_t i = 0; i < map_count; i++) {
-                    if (i == max_nr_map_ids) {
-                        // No more space left.
-                        result = EBPF_INVALID_POINTER;
-                        break;
-                    }
-
-                    ebpf_map_t* map = program->maps[i];
-                    // Volatile user mode pointer.
-                    WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
-                }
-            } __finally {
-                ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
+            size_t copied_length = 0;
+            result = ebpf_safe_size_t_multiply(map_count, sizeof(ebpf_id_t), &copied_length);
+            if (result != EBPF_SUCCESS) {
+                goto Done;
             }
 
-            if (result != EBPF_SUCCESS) {
-                EBPF_RETURN_RESULT(result);
+            if (copied_length > 0) {
+                for (uint32_t i = 0; i < map_count; i++) {
+                    // Volatile user mode pointer.
+                    WriteNoFence((volatile long*)&map_ids[i], local_map_ids[i]);
+                }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             EBPF_LOG_MESSAGE_UINT64(
@@ -2215,7 +2242,8 @@ ebpf_program_get_info(
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "User mode map_ids buffer invalid or too small.",
                 (uint64_t)((uintptr_t)map_ids));
-            EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
+            result = EBPF_INVALID_POINTER;
+            goto Done;
         }
     }
 
@@ -2260,6 +2288,8 @@ ebpf_program_get_info(
     memcpy(output_buffer, output_info, out_size);
     *output_buffer_size = out_size;
 
+Done:
+    ebpf_free(local_map_ids);
     EBPF_RETURN_RESULT(result);
 }
 
