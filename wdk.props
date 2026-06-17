@@ -6,8 +6,11 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <PropertyGroup>
     <HostPlatform Condition="'$(HostPlatform)' == ''">$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</HostPlatform>
-    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)' == '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
-    <WindowsTargetPlatformVersion Condition="'$(VisualStudioVersion)' == '17.0'">10.0.26100.0</WindowsTargetPlatformVersion>
+    <!-- Target/toolset/WDK selection. All three use the same '>= 18.0' vs '< 18.0' split so we
+         never end up partially configured (e.g. WDKVersion set but toolset empty) on an
+         unexpected VisualStudioVersion. Each property can be overridden from the command line. -->
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">10.0.26100.0</WindowsTargetPlatformVersion>
     <!-- WDK NuGet package version: VS 2026 (MSBuild 18) requires 10.0.28000.1839;
          VS 2022 (MSBuild 17) uses 10.0.26100.6584. -->
     <WDKVersion Condition="'$(WDKVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.1839</WDKVersion>
@@ -16,8 +19,8 @@
     <DDK_INC_PATH Condition="'$(DDK_INC_PATH)' == ''">$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\c\Include\$(WindowsTargetPlatformVersion)\km</DDK_INC_PATH>
     <!-- Default platform toolset for user-mode projects. Kernel-mode projects override this
          with WindowsKernelModeDriver10.0 in their vcxproj Configuration PropertyGroups. -->
-    <EbpfPlatformToolset Condition="'$(VisualStudioVersion)' == '18.0'">v145</EbpfPlatformToolset>
-    <EbpfPlatformToolset Condition="'$(VisualStudioVersion)' == '17.0'">v143</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfPlatformToolset>
   </PropertyGroup>
   <!-- Log the WDK version -->
   <Target Name="LogWDKVersion" BeforeTargets="PrepareForBuild">
