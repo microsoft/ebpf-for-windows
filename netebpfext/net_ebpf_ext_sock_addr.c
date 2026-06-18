@@ -3082,6 +3082,8 @@ _ebpf_sock_addr_context_create(
     ebpf_result_t result;
     net_ebpf_sock_addr_t* ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx = NULL;
+    bpf_sock_addr_network_context_t network_context = {0};
+    BOOLEAN has_network_context = FALSE;
 
     *context = NULL;
 
@@ -3100,12 +3102,39 @@ _ebpf_sock_addr_context_create(
         goto Exit;
     }
 
+    // Check if we have a test context from BPF_PROG_RUN.
+    if (context_size_in >= sizeof(bpf_sock_addr_test_context_t)) {
+        memcpy(
+            &network_context,
+            context_in + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
+            sizeof(network_context));
+
+        if (network_context.version != BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION) {
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Invalid network context version");
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+        has_network_context = TRUE;
+    }
+
     ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
     EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, ctx, "sock_addr_ctx", result);
 
     sock_addr_ctx = &ctx->base;
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
+
+    if (has_network_context) {
+        ctx->interface_type = network_context.interface_type;
+        ctx->tunnel_type = network_context.tunnel_type;
+        ctx->next_hop_interface_luid = network_context.next_hop_interface_luid;
+        ctx->sub_interface_index = network_context.sub_interface_index;
+
+        // NOTE: Set hook Id to unblock _ebpf_sock_addr_get_network_context(). The hook Id is not used by any other
+        // functions in BPF_PROG_RUN code path. Use value based on the socket address family (best effort).
+        ctx->hook_id = sock_addr_ctx->family == AF_INET ? EBPF_HOOK_ALE_AUTH_CONNECT_V4 : EBPF_HOOK_ALE_AUTH_CONNECT_V6;
+    }
 
     result = EBPF_SUCCESS;
     *context = sock_addr_ctx;
@@ -3129,6 +3158,7 @@ _ebpf_sock_addr_context_destroy(
 {
     EBPF_EXT_LOG_ENTRY();
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
+    bpf_sock_addr_network_context_t network_context = {0};
 
     UNREFERENCED_PARAMETER(data_out);
     *data_size_out = 0;
@@ -3140,7 +3170,24 @@ _ebpf_sock_addr_context_destroy(
 
     if (context_out != NULL && *context_size_out >= sizeof(bpf_sock_addr_t)) {
         memcpy(context_out, context, sizeof(bpf_sock_addr_t));
-        *context_size_out = sizeof(bpf_sock_addr_t);
+
+        // Check if we have a test context from BPF_PROG_RUN.
+        if (*context_size_out >= sizeof(bpf_sock_addr_test_context_t)) {
+            network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+            network_context.interface_type = sock_addr_ctx->interface_type;
+            network_context.tunnel_type = sock_addr_ctx->tunnel_type;
+            network_context.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
+            network_context.sub_interface_index = sock_addr_ctx->sub_interface_index;
+
+            memcpy(
+                context_out + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
+                &network_context,
+                sizeof(network_context));
+
+            *context_size_out = sizeof(bpf_sock_addr_test_context_t);
+        } else {
+            *context_size_out = sizeof(bpf_sock_addr_t);
+        }
     } else {
         *context_size_out = 0;
     }
