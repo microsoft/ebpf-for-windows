@@ -227,7 +227,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     bool redirected : 1;
     bool address_changed : 1;
     bool v4_mapped : 1;
-    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, and BIND).
+    // Additional network layer properties (CONNECT_AUTHORIZATION, AUTH_RECV_ACCEPT, BIND, and LISTEN).
     // Fields use SDK-defined "unspecified" values when not available for the current attach type.
     uint32_t interface_type;          ///< Interface type. 0 if not available.
     uint32_t tunnel_type;             ///< Tunnel type. TUNNEL_TYPE_NONE if not a tunnel or not available.
@@ -366,7 +366,7 @@ _ebpf_sock_addr_get_network_context(
 
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
 
-    // This helper is supported at CONNECT_AUTHORIZATION, RECV_ACCEPT, and bind layers.
+    // This helper is supported at CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN layers.
     // Note: bind hooks (EBPF_HOOK_ALE_RESOURCE_ALLOC_V4/V6) populate interface_type and
     // tunnel_type from FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_*_INTERFACE_TYPE/TUNNEL_TYPE,
     // but next_hop_interface_luid and sub_interface_index are not available at the bind
@@ -376,7 +376,9 @@ _ebpf_sock_addr_get_network_context(
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6 &&
         sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V4 &&
-        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V6) {
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_RESOURCE_ALLOC_V6 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_LISTEN_V4 &&
+        sock_addr_ctx->hook_id != EBPF_HOOK_ALE_AUTH_LISTEN_V6) {
         return -1;
     }
 
@@ -513,7 +515,9 @@ const ebpf_attach_type_t* _net_ebpf_extension_sock_addr_attach_types[] = {
     &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_AUTHORIZATION,
     &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_AUTHORIZATION,
     &EBPF_ATTACH_TYPE_CGROUP_INET4_BIND,
-    &EBPF_ATTACH_TYPE_CGROUP_INET6_BIND};
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_BIND,
+    &EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN,
+    &EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN};
 
 const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
     BPF_CGROUP_INET4_CONNECT,
@@ -523,7 +527,9 @@ const uint32_t _net_ebpf_extension_sock_addr_bpf_attach_types[] = {
     BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
     BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
     BPF_CGROUP_INET4_BIND,
-    BPF_CGROUP_INET6_BIND};
+    BPF_CGROUP_INET6_BIND,
+    BPF_CGROUP_INET4_LISTEN,
+    BPF_CGROUP_INET6_LISTEN};
 
 #define NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_addr_attach_types)
 
@@ -608,6 +614,20 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_bind_filter_parameters[
      L"net eBPF sock_addr bind hook",
      L"net eBPF sock_addr bind hook WFP filter"}};
 
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_listen_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_AUTH_LISTEN_V4,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_LISTEN_V4_CALLOUT,
+     L"net eBPF sock_addr listen hook",
+     L"net eBPF sock_addr listen hook WFP filter"}};
+
+net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameters[] = {
+    {&FWPM_LAYER_ALE_AUTH_LISTEN_V6,
+     NULL, // Default sublayer.
+     &EBPF_HOOK_ALE_AUTH_LISTEN_V6_CALLOUT,
+     L"net eBPF sock_addr listen hook",
+     L"net eBPF sock_addr listen hook WFP filter"}};
+
 const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_addr_wfp_filter_parameters[] = {
     {&EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
      EBPF_COUNT_OF(_cgroup_inet4_connect_filter_parameters),
@@ -633,6 +653,12 @@ const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_
     {&EBPF_ATTACH_TYPE_CGROUP_INET6_BIND,
      EBPF_COUNT_OF(_cgroup_inet6_bind_filter_parameters),
      &_cgroup_inet6_bind_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN,
+     EBPF_COUNT_OF(_cgroup_inet4_listen_filter_parameters),
+     &_cgroup_inet4_listen_filter_parameters[0]},
+    {&EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN,
+     EBPF_COUNT_OF(_cgroup_inet6_listen_filter_parameters),
+     &_cgroup_inet6_listen_filter_parameters[0]},
 };
 
 typedef struct _net_ebpf_extension_sock_addr_wfp_filter_context
@@ -787,6 +813,14 @@ _net_ebpf_ext_needs_redirect_handle(_In_ const ebpf_attach_type_t* attach_type)
     return (
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
         memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0);
+}
+
+static bool
+_net_ebpf_ext_is_cgroup_listen_attach_type(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return (
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_LISTEN, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_LISTEN, sizeof(GUID)) == 0);
 }
 
 //
@@ -1371,6 +1405,12 @@ net_ebpf_ext_sock_addr_register_providers()
         .process_verdict = _net_ebpf_extension_sock_addr_bind_process_verdict,
     };
 
+    const net_ebpf_extension_hook_provider_dispatch_table_t listen_dispatch_table = {
+        .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
+        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+    };
+
     status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
         EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -1426,6 +1466,9 @@ net_ebpf_ext_sock_addr_register_providers()
         bool is_cgroup_bind_attach_type =
             _net_ebpf_ext_is_cgroup_bind_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
 
+        bool is_cgroup_listen_attach_type =
+            _net_ebpf_ext_is_cgroup_listen_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
+
         const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch_table;
         net_ebpf_extension_hook_attach_capability_t attach_capability;
         if (is_cgroup_bind_attach_type) {
@@ -1435,6 +1478,9 @@ net_ebpf_ext_sock_addr_register_providers()
         } else if (is_cgroup_connect_attach_type) {
             dispatch_table = &connect_dispatch_table;
             attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
+        } else if (is_cgroup_listen_attach_type) {
+            dispatch_table = &listen_dispatch_table;
+            attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
         } else {
             dispatch_table = &recv_accept_dispatch_table;
             attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
@@ -1595,7 +1641,44 @@ const wfp_ale_layer_fields_t wfp_connection_fields[] = {
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_TYPE,
      FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_TUNNEL_TYPE,
      0, // No next-hop interface for recv_accept.
-     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX}};
+     FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX},
+
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4 (placeholder — handled by sock_ops module)
+    {0},
+    // EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6 (placeholder — handled by sock_ops module)
+    {0},
+
+    // EBPF_HOOK_ALE_AUTH_LISTEN_V4
+    {FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_PORT,
+     0, // No remote address for listen.
+     0, // No remote port for listen.
+     0, // No protocol field for listen layer.
+     0, // No direction field for listen.
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_FLAGS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V4_TUNNEL_TYPE,
+     0,  // No next-hop interface for listen.
+     0}, // No sub-interface index for listen.
+
+    // EBPF_HOOK_ALE_AUTH_LISTEN_V6
+    {FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_ADDRESS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_PORT,
+     0, // No remote address for listen.
+     0, // No remote port for listen.
+     0, // No protocol field for listen layer.
+     0, // No direction field for listen.
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_COMPARTMENT_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_IP_LOCAL_INTERFACE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_ALE_USER_ID,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_FLAGS,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_INTERFACE_TYPE,
+     FWPS_FIELD_ALE_AUTH_LISTEN_V6_TUNNEL_TYPE,
+     0,   // No next-hop interface for listen.
+     0}}; // No sub-interface index for listen.
 
 static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
@@ -1800,6 +1883,87 @@ _net_ebpf_extension_sock_addr_copy_wfp_bind_fields(
 }
 
 static void
+_net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ net_ebpf_sock_addr_t* sock_addr_ctx)
+{
+    net_ebpf_extension_hook_id_t hook_id =
+        net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
+    const wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
+
+    FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
+
+    sock_addr_ctx->hook_id = hook_id;
+    sock_addr_ctx->transport_endpoint_handle = 0; // No transport endpoint for listen.
+
+    // For listen, both msg_src_* and user_* contain the local listen address (per design doc).
+    if (hook_id == EBPF_HOOK_ALE_AUTH_LISTEN_V4) {
+        sock_addr_ctx->base.family = AF_INET;
+        uint32_t local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
+        sock_addr_ctx->base.msg_src_ip4 = local_ip4;
+        sock_addr_ctx->base.user_ip4 = local_ip4;
+    } else {
+        sock_addr_ctx->base.family = AF_INET6;
+        // WFP may report a NULL byteArray16 for in6addr_any (wildcard) listen addresses.
+        // The caller zero-initializes sock_addr_ctx, so leaving ip6 fields as zeros is correct (in6addr_any).
+        FWP_BYTE_ARRAY16* local_ip6 = incoming_values[fields->local_ip_address_field].value.byteArray16;
+        if (local_ip6 != NULL) {
+            RtlCopyMemory(sock_addr_ctx->base.msg_src_ip6, local_ip6, sizeof(FWP_BYTE_ARRAY16));
+            RtlCopyMemory(sock_addr_ctx->base.user_ip6, local_ip6, sizeof(FWP_BYTE_ARRAY16));
+        }
+    }
+
+    uint16_t local_port = htons(incoming_values[fields->local_port_field].value.uint16);
+    sock_addr_ctx->base.msg_src_port = local_port;
+    sock_addr_ctx->base.user_port = local_port;
+    sock_addr_ctx->base.protocol = IPPROTO_TCP; // Listen is TCP only.
+    sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    // If WFP does not provide the LUID (uint64 pointer is NULL), default to 0 (NET_IFLUID_UNSPECIFIED).
+    sock_addr_ctx->base.interface_luid = (incoming_values[fields->interface_luid_field].value.uint64 != NULL)
+                                             ? *incoming_values[fields->interface_luid_field].value.uint64
+                                             : 0;
+
+    // USER_ID may not be available for all listen layer implementations.
+    if (incoming_values[fields->user_id_field].value.byteBlob != NULL) {
+        sock_addr_ctx->access_information =
+            (TOKEN_ACCESS_INFORMATION*)(incoming_values[fields->user_id_field].value.byteBlob->data);
+    } else {
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "USER_ID not present", hook_id);
+
+        sock_addr_ctx->access_information = NULL;
+    }
+
+    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+        sock_addr_ctx->process_id = incoming_metadata_values->processId;
+    } else {
+        EBPF_EXT_LOG_MESSAGE_UINT64(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "FWPS_METADATA_FIELD_PROCESS_ID not present",
+            hook_id);
+
+        sock_addr_ctx->process_id = 0;
+    }
+
+    // Store the FLAGS field.
+    sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
+
+    // Copy network layer properties available at the listen layer.
+    sock_addr_ctx->interface_type =
+        (fields->interface_type_field != 0) ? incoming_values[fields->interface_type_field].value.uint32 : 0;
+    sock_addr_ctx->tunnel_type =
+        (fields->tunnel_type_field != 0) ? incoming_values[fields->tunnel_type_field].value.uint32 : TUNNEL_TYPE_NONE;
+    // The ALE_AUTH_LISTEN WFP layer has no next-hop concept and does not expose a SUB_INTERFACE_INDEX field
+    // (see learn.microsoft.com FWPS_FIELDS_ALE_AUTH_LISTEN_V4/V6). The local interface LUID is exposed
+    // separately via FWPS_FIELD_ALE_AUTH_LISTEN_V*_IP_LOCAL_INTERFACE and is populated into
+    // sock_addr_ctx->base.interface_luid above (see bpf_sock_addr_t::interface_luid).
+    sock_addr_ctx->next_hop_interface_luid = NET_IFLUID_UNSPECIFIED;
+    sock_addr_ctx->sub_interface_index = NET_IFINDEX_UNSPECIFIED;
+}
+
+static void
 _net_ebpf_ext_sock_addr_redirected(
     _In_ const bpf_sock_addr_t* original_context,
     _In_ const bpf_sock_addr_t* redirected_context,
@@ -1917,6 +2081,121 @@ _net_ebpf_extension_sock_addr_bind_process_verdict(_Inout_ void* program_context
 //
 // WFP callout callback functions.
 //
+
+/**
+ * @brief WFP classify function for listen authorization.
+ *
+ * This function is invoked when a socket enters the listening state.
+ * It calls attached eBPF programs to determine whether to allow or block the listen operation.
+ * Default action is PERMIT (if no program is attached or an error occurs).
+ *
+ * @param[in] incoming_fixed_values Fixed values from the classify request.
+ * @param[in] incoming_metadata_values Metadata values from the classify request.
+ * @param[in,out] layer_data Layer-specific data (unused for listen operations).
+ * @param[in] classify_context Context information for the classify (unused).
+ * @param[in] filter The filter that triggered this callout.
+ * @param[in] flow_context Flow context (unused for listen operations).
+ * @param[in,out] classify_output Output structure containing the action to take.
+ */
+void
+net_ebpf_extension_sock_addr_authorize_listen_classify(
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Inout_opt_ void* layer_data,
+    _In_opt_ const void* classify_context,
+    _In_ const FWPS_FILTER* filter,
+    uint64_t flow_context,
+    _Inout_ FWPS_CLASSIFY_OUT* classify_output)
+{
+    EBPF_EXT_LOG_ENTRY();
+    uint32_t result;
+    net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
+    bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
+    uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
+    ebpf_result_t program_result;
+
+    UNREFERENCED_PARAMETER(incoming_metadata_values);
+    UNREFERENCED_PARAMETER(layer_data);
+    UNREFERENCED_PARAMETER(classify_context);
+    UNREFERENCED_PARAMETER(flow_context);
+
+    classify_output->actionType = FWP_ACTION_PERMIT;
+
+    filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
+    ASSERT(filter_context != NULL);
+    if (filter_context == NULL) {
+        goto Exit;
+    }
+
+    if (filter_context->base.context_deleting) {
+        EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_listen_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        goto Exit;
+    }
+
+    _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+
+    // eBPF programs will not be invoked on reauthorization.
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
+        goto Exit;
+    }
+
+    compartment_id = filter_context->compartment_id;
+    ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
+    if (compartment_id != UNSPECIFIED_COMPARTMENT_ID && compartment_id != sock_addr_ctx->compartment_id) {
+        // The client is not interested in this compartment Id.
+        EBPF_EXT_LOG_MESSAGE_UINT32(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "The cgroup_sock_addr eBPF program is not interested in this compartment ID",
+            sock_addr_ctx->compartment_id);
+
+        goto Exit;
+    }
+
+    program_result =
+        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        // No eBPF program is attached to this filter.
+        goto Exit;
+    } else if (program_result != EBPF_SUCCESS) {
+        // We failed to invoke at least one program in the chain, block the request.
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        goto Exit;
+    }
+
+    // Set action type based on verdict.
+    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
+    switch (result) {
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        break;
+    case BPF_SOCK_ADDR_VERDICT_PROCEED_HARD:
+        classify_output->actionType = FWP_ACTION_PERMIT;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    default:
+        classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+        break;
+    }
+
+    _net_ebpf_ext_log_sock_addr_classify(
+        "listen_classify",
+        0, // No transport endpoint handle for listen.
+        sock_addr_ctx,
+        NULL,
+        result,
+        compartment_id);
+
+Exit:
+    EBPF_EXT_LOG_EXIT();
+}
 
 /**
  * @brief WFP classify function for recv_accept authorization.
