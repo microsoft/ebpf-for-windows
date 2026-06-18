@@ -191,6 +191,17 @@ typedef struct _bpf_sock_addr_network_context
 #define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
 
 /**
+ * @brief Extended test context for for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ * This context can be used for testing eBPF programs that use the CONNECT_AUTHORIZATION and
+ * RECV_ACCEPT attach types and rely on \ref bpf_sock_addr_get_network_context.
+ */
+typedef struct _bpf_sock_addr_test_context
+{
+    bpf_sock_addr_t context;                         ///< Socket address context.
+    bpf_sock_addr_network_context_t network_context; ///< Network context.
+} bpf_sock_addr_test_context_t;
+
+/**
  * @brief Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN).
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
