@@ -34,9 +34,16 @@ Write-Host "Using MSBuild: $msbuildPath"
 $cmakeGenerator = "Visual Studio 17 2022"
 if (Test-Path $vswherePath) {
     $vsMajor = (& $vswherePath -latest -property installationVersion | Select-Object -First 1) -split '\.' | Select-Object -First 1
-    $vsYear = & $vswherePath -latest -property catalog_productLineVersion | Select-Object -First 1
-    if ($vsMajor -and $vsYear) {
-        $cmakeGenerator = "Visual Studio $vsMajor $vsYear"
+    if ($vsMajor) {
+        # Ask CMake which Visual Studio generators it supports and pick the one that
+        # matches the installed VS major version (e.g. "Visual Studio 18 2026").
+        $matchedGenerator = cmake --help |
+            Select-String -Pattern "^\*?\s*(Visual Studio $vsMajor \d{4})\b" |
+            ForEach-Object { $_.Matches[0].Groups[1].Value } |
+            Select-Object -First 1
+        if ($matchedGenerator) {
+            $cmakeGenerator = $matchedGenerator
+        }
     }
 }
 Write-Host "Using CMake generator: $cmakeGenerator"
