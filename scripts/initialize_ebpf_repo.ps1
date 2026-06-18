@@ -29,6 +29,18 @@ if (-not $msbuildPath -or -not (Test-Path $msbuildPath)) {
 }
 Write-Host "Using MSBuild: $msbuildPath"
 
+# Determine the CMake Visual Studio generator from the installed Visual Studio instance,
+# so we don't hardcode a specific VS version (e.g. "Visual Studio 17 2022").
+$cmakeGenerator = "Visual Studio 17 2022"
+if (Test-Path $vswherePath) {
+    $vsMajor = (& $vswherePath -latest -property installationVersion | Select-Object -First 1) -split '\.' | Select-Object -First 1
+    $vsYear = & $vswherePath -latest -property catalog_productLineVersion | Select-Object -First 1
+    if ($vsMajor -and $vsYear) {
+        $cmakeGenerator = "Visual Studio $vsMajor $vsYear"
+    }
+}
+Write-Host "Using CMake generator: $cmakeGenerator"
+
 # Helper to run a command, check exit code, and abort on failure.
 function Invoke-NativeCommand {
     param([string]$Command)
@@ -54,7 +66,7 @@ function Invoke-MSBuild {
 }
 
 # Define the commands to run
-$cmakeCommonArgs = "-G `"Visual Studio 17 2022`" -A $Architecture"
+$cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
 $commands = @(
     "git submodule update --init --recursive",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>",
