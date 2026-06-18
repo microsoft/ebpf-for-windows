@@ -3159,35 +3159,39 @@ _ebpf_sock_addr_context_destroy(
     UNREFERENCED_PARAMETER(data_out);
     *data_size_out = 0;
 
-    if (!context) {
-        return;
+    if (context == NULL) {
+        *context_size_out = 0;
+        goto Exit;
     }
+
     sock_addr_ctx = CONTAINING_RECORD(context, net_ebpf_sock_addr_t, base);
 
-    if (context_out != NULL && *context_size_out >= sizeof(bpf_sock_addr_t)) {
-        memcpy(context_out, context, sizeof(bpf_sock_addr_t));
-
-        // Check if we have a test context from BPF_PROG_RUN.
-        if (*context_size_out >= sizeof(bpf_sock_addr_test_context_t)) {
-            network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
-            network_context.interface_type = sock_addr_ctx->interface_type;
-            network_context.tunnel_type = sock_addr_ctx->tunnel_type;
-            network_context.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
-            network_context.sub_interface_index = sock_addr_ctx->sub_interface_index;
-
-            memcpy(
-                context_out + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
-                &network_context,
-                sizeof(network_context));
-
-            *context_size_out = sizeof(bpf_sock_addr_test_context_t);
-        } else {
-            *context_size_out = sizeof(bpf_sock_addr_t);
-        }
-    } else {
+    if (context_out == NULL || *context_size_out < sizeof(bpf_sock_addr_t)) {
         *context_size_out = 0;
+        goto Exit;
     }
 
+    memcpy(context_out, context, sizeof(bpf_sock_addr_t));
+
+    // Check if we have a test context from BPF_PROG_RUN.
+    if (*context_size_out < sizeof(bpf_sock_addr_test_context_t)) {
+        *context_size_out = sizeof(bpf_sock_addr_t);
+    } else {
+        network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+        network_context.interface_type = sock_addr_ctx->interface_type;
+        network_context.tunnel_type = sock_addr_ctx->tunnel_type;
+        network_context.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
+        network_context.sub_interface_index = sock_addr_ctx->sub_interface_index;
+
+        memcpy(
+            context_out + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
+            &network_context,
+            sizeof(network_context));
+
+        *context_size_out = sizeof(bpf_sock_addr_test_context_t);
+    }
+
+Exit:
     if (sock_addr_ctx) {
         ExFreePool(sock_addr_ctx);
     }
