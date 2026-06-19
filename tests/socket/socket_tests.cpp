@@ -2499,6 +2499,197 @@ TEMPLATE_TEST_CASE("connection_test_listen_hard_permit", "[sock_addr_tests]", tc
     });
 }
 
+// ---------------------------------------------------------------------------
+// Multi-program listen tests (sock_addr-aligned cgroup/listen4 / cgroup/listen6).
+//
+// These mirror the bind multi-attach tests but are TCP-only (listen is a
+// TCP operation). Each test loads multiple independent instances of
+// cgroup_sock_addr, each with its own listen_connection_policy_map.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Create a module_spec for the sock_addr-aligned listen hook.
+ */
+static module_spec
+sock_addr_listen_module(ADDRESS_FAMILY family)
+{
+    return {
+        .object_file = "cgroup_sock_addr",
+        .programs{
+            {.program_name = (family == AF_INET) ? "authorize_listen4" : "authorize_listen6",
+             .attach_type = (family == AF_INET) ? BPF_CGROUP_INET4_LISTEN : BPF_CGROUP_INET6_LISTEN}},
+    };
+}
+
+/**
+ * @brief Create a program_policy_spec that sets a listen verdict for a specific module.
+ */
+static program_policy_spec
+sock_addr_listen_verdict(size_t module_index, uint32_t verdict)
+{
+    return {.target = {.module_index = module_index}, .listen_verdict = verdict};
+}
+
+/**
+ * @brief Return the WFP layer GUID for listen (ALE_AUTH_LISTEN) given address family.
+ */
+static GUID
+sock_addr_listen_wfp_layer(ADDRESS_FAMILY family)
+{
+    return (family == AF_INET) ? FWPM_LAYER_ALE_AUTH_LISTEN_V4 : FWPM_LAYER_ALE_AUTH_LISTEN_V6;
+}
+
+// Two programs both PROCEED_SOFT -> listen allowed.
+TEMPLATE_TEST_CASE("sock_addr_listen_multi_all_soft", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_all_soft",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_listen_module(family), sock_addr_listen_module(family)},
+        .tests{{
+            .description = "Two soft permits allow listen",
+            .expected_result = connection_test_result::allow,
+            .program_policies{
+                sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+            },
+        }},
+    });
+}
+
+// Second program REJECT -> listen denied.
+TEMPLATE_TEST_CASE(
+    "sock_addr_listen_multi_second_rejects", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_second_rejects",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_listen_module(family), sock_addr_listen_module(family)},
+        .tests{{
+            .description = "Second program rejects after first soft permit",
+            .expected_listen_error = WSAEACCES,
+            .program_policies{
+                sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
+            },
+        }},
+    });
+}
+
+// First program REJECT (short-circuit) -> listen denied.
+TEMPLATE_TEST_CASE(
+    "sock_addr_listen_multi_first_rejects", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_first_rejects",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_listen_module(family), sock_addr_listen_module(family)},
+        .tests{{
+            .description = "First program rejects, short-circuits accumulation",
+            .expected_listen_error = WSAEACCES,
+            .program_policies{
+                sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
+                sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+            },
+        }},
+    });
+}
+
+// Multi-program with WFP block: HARD permit overrides WFP -> listen allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_listen_multi_hard_overrides_wfp", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_hard_overrides_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_listen_module(family), sock_addr_listen_module(family)},
+        .wfp_filters{{
+            .layer = sock_addr_listen_wfp_layer(family),
+            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+        }},
+        .tests{{
+            .description = "Hard permit from second program overrides WFP block",
+            .expected_result = connection_test_result::allow,
+            .program_policies{
+                sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+            },
+        }},
+    });
+}
+
+// REJECT + HARD -> REJECT wins (higher priority).
+TEMPLATE_TEST_CASE(
+    "sock_addr_listen_multi_reject_beats_hard", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_reject_beats_hard",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_listen_module(family), sock_addr_listen_module(family)},
+        .tests{{
+            .description = "Reject from first program overrides hard permit from second",
+            .expected_listen_error = WSAEACCES,
+            .program_policies{
+                sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
+                sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+            },
+        }},
+    });
+}
+
+// Detach middle program: 3 programs with middle=REJECT -> denied. Detach middle -> allowed.
+TEMPLATE_TEST_CASE(
+    "sock_addr_listen_multi_detach_middle", "[sock_addr_tests][multi_attach]", tcp_v4_params, tcp_v6_params)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_listen_multi_detach_middle",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{
+            sock_addr_listen_module(family),
+            sock_addr_listen_module(family),
+            sock_addr_listen_module(family),
+        },
+        .tests{
+            {
+                .description = "With middle program rejecting, listen is denied",
+                .expected_listen_error = WSAEACCES,
+                .program_policies{
+                    sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_listen_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
+                    sock_addr_listen_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                },
+            },
+            {
+                .description = "After detaching middle program, listen succeeds",
+                .expected_result = connection_test_result::allow,
+                .before{{.action = attachment_action::do_detach, .target = {.module_index = 1}}},
+                .program_policies{
+                    sock_addr_listen_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_listen_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                },
+            },
+        },
+    });
+}
+
 TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
 {
     bpf_prog_info program_info = {};
