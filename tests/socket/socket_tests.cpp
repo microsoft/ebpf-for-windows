@@ -532,8 +532,14 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     // server is binding a specific address and shouldn't accept the other family). For all other
     // tests (connect, recv_accept, bind), dual-stack is correct because the server needs to
     // accept connections from both V4 and V6 clients.
-    bool is_listen_test = std::any_of(
-        test_case.tests.begin(), test_case.tests.end(), [](const auto& t) { return t.listen_verdict.has_value(); });
+    bool is_listen_test = std::any_of(test_case.tests.begin(), test_case.tests.end(), [](const auto& t) {
+        if (t.listen_verdict.has_value()) {
+            return true;
+        }
+        return std::any_of(t.program_policies.begin(), t.program_policies.end(), [](const auto& p) {
+            return p.listen_verdict.has_value();
+        });
+    });
     bool use_specific_family = is_listen_test || test_case.server_bind_address.has_value();
     socket_family_t server_family = use_specific_family ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
