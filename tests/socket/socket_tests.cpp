@@ -596,7 +596,8 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         // Use bpf_prog_detach2 uniformly — it works for both attach paths.
         // For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
         uint32_t compartment = lp.spec.compartment_id.value_or(0);
-        ::bpf_prog_detach2(bpf_program__fd(lp.program), compartment, lp.spec.attach_type);
+        int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), compartment, lp.spec.attach_type);
+        SAFE_REQUIRE(rc == 0);
         lp.attached = false;
     };
 
@@ -851,7 +852,6 @@ using udp_v6_params =
     std::tuple<std::integral_constant<ADDRESS_FAMILY, AF_INET6>, std::integral_constant<IPPROTO, IPPROTO_UDP>>;
 
 #define ALL_CONNECTION_TEST_PARAMS tcp_v4_params, tcp_v6_params, udp_v4_params, udp_v6_params
-#define TCP_ONLY_PARAMS tcp_v4_params, tcp_v6_params
 
 // ---------------------------------------------------------------------------
 // Hook descriptor helpers for multi-program bind test scenarios.
@@ -1774,6 +1774,208 @@ TEMPLATE_TEST_CASE("sock_addr_bind_multi_three_soft", "[bind_tests][multi_attach
                 sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
             },
         }},
+    });
+}
+
+// HARD first, SOFT second, with WFP block → HARD wins, bind allowed.
+// Validates that HARD is accumulated regardless of program ordering (not just last-wins).
+TEMPLATE_TEST_CASE(
+    "sock_addr_bind_multi_hard_first_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_hard_first_overrides_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
+        .wfp_filters{{
+            .layer = sock_addr_bind_wfp_layer(family),
+            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+        }},
+        .tests{{
+            .description = "Hard permit first, soft second, WFP block → bind allowed",
+            .expected_result = connection_test_result::allow,
+            .program_policies{
+                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+            },
+        }},
+    });
+}
+
+// REJECT + HARD → REJECT wins (higher priority). Validates that HARD cannot override REJECT.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_reject_beats_hard", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_reject_beats_hard",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
+        .tests{{
+            .description = "Reject from first program overrides hard permit from second",
+            .expected_server_bind_error = WSAEACCES,
+            .program_policies{
+                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
+                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+            },
+        }},
+    });
+}
+
+// HARD + REJECT (reversed) → REJECT wins. Tests that REJECT short-circuits even after HARD.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_hard_then_reject", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_hard_then_reject",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{sock_addr_bind_module(family), sock_addr_bind_module(family)},
+        .tests{{
+            .description = "Hard permit then reject → reject wins",
+            .expected_server_bind_error = WSAEACCES,
+            .program_policies{
+                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_REJECT),
+            },
+        }},
+    });
+}
+
+// Third program is decisive: two SOFT then one REJECT → bind denied.
+// Validates that the accumulator processes all N programs, not just the first two.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_third_rejects", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_third_rejects",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+        },
+        .tests{{
+            .description = "Third program rejects after two soft permits",
+            .expected_server_bind_error = WSAEACCES,
+            .program_policies{
+                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_REJECT),
+            },
+        }},
+    });
+}
+
+// Third program provides decisive HARD permit with WFP block → bind allowed.
+// Validates accumulator reaches the third program and HARD overrides WFP.
+TEMPLATE_TEST_CASE(
+    "sock_addr_bind_multi_third_hard_overrides_wfp", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_third_hard_overrides_wfp",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+        },
+        .wfp_filters{{
+            .layer = sock_addr_bind_wfp_layer(family),
+            .local_port = static_cast<uint16_t>(SOCKET_TEST_PORT),
+        }},
+        .tests{{
+            .description = "Third program hard permit overrides WFP block",
+            .expected_result = connection_test_result::allow,
+            .program_policies{
+                sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_HARD),
+            },
+        }},
+    });
+}
+
+// Detach first program: 3 programs with first=REJECT → denied. Detach first → two SOFTs remain → allowed.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_first", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_detach_first",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+        },
+        .tests{
+            {
+                .description = "With first program rejecting, bind is denied",
+                .expected_server_bind_error = WSAEACCES,
+                .program_policies{
+                    sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_REJECT),
+                    sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                },
+            },
+            {
+                .description = "After detaching first program, bind succeeds",
+                .expected_result = connection_test_result::allow,
+                .before{{.action = attachment_action::do_detach, .target = {.module_index = 0}}},
+                .program_policies{
+                    sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                },
+            },
+        },
+    });
+}
+
+// Detach last program: 3 programs with last=REJECT → denied. Detach last → two SOFTs remain → allowed.
+TEMPLATE_TEST_CASE("sock_addr_bind_multi_detach_last", "[bind_tests][multi_attach]", ALL_CONNECTION_TEST_PARAMS)
+{
+    constexpr ADDRESS_FAMILY family = std::tuple_element_t<0, TestType>::value;
+    constexpr IPPROTO protocol = std::tuple_element_t<1, TestType>::value;
+    execute_connection_test({
+        .name = "sock_addr_bind_multi_detach_last",
+        .address_family = family,
+        .protocol = protocol,
+        .modules{
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+            sock_addr_bind_module(family),
+        },
+        .tests{
+            {
+                .description = "With last program rejecting, bind is denied",
+                .expected_server_bind_error = WSAEACCES,
+                .program_policies{
+                    sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_bind_verdict(2, BPF_SOCK_ADDR_VERDICT_REJECT),
+                },
+            },
+            {
+                .description = "After detaching last program, bind succeeds",
+                .expected_result = connection_test_result::allow,
+                .before{{.action = attachment_action::do_detach, .target = {.module_index = 2}}},
+                .program_policies{
+                    sock_addr_bind_verdict(0, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                    sock_addr_bind_verdict(1, BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT),
+                },
+            },
+        },
     });
 }
 
