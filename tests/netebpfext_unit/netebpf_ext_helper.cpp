@@ -104,11 +104,20 @@ _netebpf_ext_helper::_netebpf_ext_helper(
                     break;
                 }
             }
+            // If the requested program type was not found (e.g., program_info registration
+            // failed under fault injection), skip hook client registration to fail closed
+            // rather than silently attaching to all providers.
+            static const ebpf_program_type_t null_program_type = {};
+            if (memcmp(&client_context->desired_program_type, &null_program_type, sizeof(ebpf_program_type_t)) == 0) {
+                client_context = nullptr;
+            }
         }
 
-        hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
-        client_context->helper = this;
-        nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
+        if (client_context != nullptr) {
+            hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
+            client_context->helper = this;
+            nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
+        }
     }
 
     usersim_fwp_set_sublayer_guids(
