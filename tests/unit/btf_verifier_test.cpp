@@ -258,8 +258,7 @@ TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[
     prevail::EbpfProgramType program_type = _create_test_program_type();
     std::string why_not;
 
-    btf_data.append(
-        libbtf::btf_kind_decl_tag{"preserve_access_index", 1, std::numeric_limits<uint32_t>::max()});
+    btf_data.append(libbtf::btf_kind_decl_tag{"preserve_access_index", 1, std::numeric_limits<uint32_t>::max()});
 
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
     clear_program_info_cache();
