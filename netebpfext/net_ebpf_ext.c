@@ -412,6 +412,8 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 
     if (hook_id < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states)) {
         callout_id = _net_ebpf_ext_wfp_callout_states[hook_id].assigned_callout_id;
+    } else {
+        ASSERT(FALSE);
     }
 
     return callout_id;
