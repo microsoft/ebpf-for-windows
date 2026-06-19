@@ -176,6 +176,16 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     auto& helper = *reinterpret_cast<_netebpf_ext_helper*>(client_context);
+
+    // Validate provider registration instance (mirrors
+    // _ebpf_program_type_specific_program_information_attach_provider).
+    if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
+        return STATUS_INVALID_PARAMETER;
+    }
+    if (provider_registration_instance->NpiSpecificCharacteristics == nullptr) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
     auto client_binding_context = std::make_unique<program_info_provider_t>();
     client_binding_context->module_id = *provider_registration_instance->ModuleId;
     client_binding_context->parent = &helper;
@@ -225,17 +235,27 @@ _netebpf_ext_helper::_hook_client_attach_provider(
         .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
 
+    // Validate provider ModuleId type (mirrors _ebpf_link_client_attach_provider).
+    if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    // Validate attach provider data version and contents.
+    if (!ebpf_validate_attach_provider_data(provider_data)) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
     // Reject hook providers whose program type doesn't match the desired type.
     static const ebpf_program_type_t null_program_type = {};
     if (memcmp(&base_client_context->desired_program_type, &null_program_type, sizeof(ebpf_program_type_t)) != 0 &&
         !IsEqualGUID(provider_data->supported_program_type, base_client_context->desired_program_type)) {
-        return STATUS_ACCESS_DENIED;
+        return STATUS_NOINTERFACE;
     }
 
     if (!base_client_context->desired_attach_types.empty() &&
         base_client_context->desired_attach_types.find(provider_data->bpf_attach_type) ==
             base_client_context->desired_attach_types.end()) {
-        return STATUS_ACCESS_DENIED;
+        return STATUS_NOINTERFACE;
     }
 
     return NmrClientAttachProvider(
