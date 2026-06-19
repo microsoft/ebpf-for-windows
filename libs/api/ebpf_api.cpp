@@ -5994,7 +5994,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 //
 
 _Ret_maybenull_ struct ring_buffer*
-ebpf_ring_buffer__new(
+ebpf_ring_buffer_new_internal(
     int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
     EBPF_NO_EXCEPT
 {
@@ -6091,6 +6091,14 @@ Exit:
     EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);
 }
 
+_Ret_maybenull_ struct ring_buffer*
+ebpf_ring_buffer__new(
+    int map_fd, ring_buffer_sample_fn sample_cb, _In_opt_ void* ctx, _In_opt_ const struct ebpf_ring_buffer_opts* opts)
+    EBPF_NO_EXCEPT
+{
+    return ebpf_ring_buffer_new_internal(map_fd, sample_cb, ctx, opts);
+}
+
 ebpf_handle_t
 ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer* rb) EBPF_NO_EXCEPT
 {
@@ -6133,7 +6141,7 @@ _Must_inspect_result_ _Success_(return == EBPF_SUCCESS) ebpf_result_t ebpf_ring_
 }
 
 _Ret_maybenull_ struct perf_buffer*
-ebpf_perf_buffer__new(
+ebpf_perf_buffer_new_internal(
     int map_fd,
     size_t page_cnt,
     perf_buffer_sample_fn sample_cb,
@@ -6275,6 +6283,18 @@ Exit:
         EBPF_LOG_FUNCTION_ERROR(result);
     }
     EBPF_RETURN_POINTER(struct perf_buffer*, local_perf_buffer);
+}
+
+_Ret_maybenull_ struct perf_buffer*
+ebpf_perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    _In_opt_ void* ctx,
+    _In_opt_ const struct ebpf_perf_buffer_opts* opts) EBPF_NO_EXCEPT
+{
+    return ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, opts);
 }
 
 ebpf_handle_t
