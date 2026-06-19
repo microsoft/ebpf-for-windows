@@ -91,6 +91,112 @@ enum class connection_test_result
 };
 
 /**
+ * @brief Program attach method for the connection test framework.
+ *
+ * Selects which user-mode API is used to attach the program. Both ultimately
+ * invoke the same kernel attach IOCTL, but they pass different attach
+ * parameters and exercise different libbpf-compat translation paths.
+ */
+enum class attach_method_t
+{
+    ebpf_program_attach, ///< Native API with NULL attach parameter (wildcard / no compartment).
+    bpf_prog_attach,     ///< libbpf-compat API with 4-byte attach parameter containing compartment_id=0.
+};
+
+/**
+ * @brief Reference to a specific program within a loaded module set.
+ *
+ * Used by multi-program test infrastructure to target policy updates,
+ * attachment steps, and counter expectations at specific programs.
+ */
+struct program_ref
+{
+    size_t module_index{0};  ///< Index in connection_test_case::modules / loaded_modules.
+    size_t program_index{0}; ///< Index in module_spec::programs.
+};
+
+/**
+ * @brief Program specification for attaching.
+ */
+struct program_spec
+{
+    std::string_view program_name;                                       ///< Name of the program.
+    bpf_attach_type attach_type;                                         ///< Attach type for the program.
+    attach_method_t attach_method{attach_method_t::ebpf_program_attach}; ///< Which API to use for attachment.
+
+    /// Optional compartment ID for attachment.
+    /// - For bpf_prog_attach: passed as the second argument (0 = wildcard/unspecified).
+    /// - For ebpf_program_attach: when set, passed as a 4-byte attach parameter buffer;
+    ///   when unset, passes NULL (wildcard).
+    /// Three semantic states: unset (preserve today's default behavior per attach_method),
+    /// 0 (explicit wildcard / UNSPECIFIED_COMPARTMENT_ID), N>0 (specific compartment).
+    std::optional<uint32_t> compartment_id{};
+};
+
+/**
+ * @brief Module specification containing object file and programs to load.
+ */
+struct module_spec
+{
+    std::string_view object_file;         ///< Object file name, e.g., "cgroup_sock_addr", "bind_policy".
+    std::vector<program_spec> programs{}; ///< Programs to load from the object file.
+};
+
+/**
+ * @brief Per-module policy specification for multi-program tests.
+ *
+ * Each entry targets a specific module (by index) and carries the same verdict
+ * fields as the legacy single-program shorthand. The framework applies these
+ * to the target module's own maps, enabling per-program verdict control.
+ */
+struct program_policy_spec
+{
+    program_ref target{};
+
+    std::optional<uint32_t> egress_verdict{};
+    std::optional<uint32_t> ingress_verdict{};
+    std::optional<uint32_t> listen_verdict{};
+    std::optional<bind_policy> bind_policy{};
+    std::optional<bind_action_t> bind_verdict{};
+    std::optional<ebpf_sock_addr_verdict_t> sock_addr_bind_verdict{};
+};
+
+/**
+ * @brief Attachment action for dynamic attach/detach steps.
+ */
+enum class attachment_action
+{
+    do_attach,
+    do_detach,
+};
+
+/**
+ * @brief A single attachment state change applied before a test step.
+ *
+ * Used to express detach-first/middle/last and reattach scenarios.
+ */
+struct attachment_step
+{
+    attachment_action action{};
+    program_ref target{};
+};
+
+/**
+ * @brief Expected invocation counter change for a program.
+ *
+ * The framework snapshots the counter value before the socket operation and
+ * verifies the delta after. Requires an invocation_count_map in the eBPF
+ * sample (not yet present in cgroup_sock_addr_bind — reserved for future use).
+ */
+struct counter_expectation
+{
+    program_ref target{};
+    std::string_view map_name{"invocation_count_map"};
+    uint32_t key{0};
+    uint64_t expected_delta{0};
+};
+
+/**
  * @brief Test parameters for individual connection test.
  */
 struct connection_test_params
@@ -106,6 +212,7 @@ struct connection_test_params
     // Expected outcome.
     connection_test_result expected_result{connection_test_result::block};
 
+    // --- Legacy single-program shorthand (unchanged for existing callers) ---
     std::optional<uint32_t> egress_verdict{};  ///< Egress verdict for connect hook.
     std::optional<uint32_t> ingress_verdict{}; ///< Ingress verdict for recv_accept hook.
     std::optional<uint32_t> listen_verdict{};  ///< Listen verdict for listen enforcement (sock_addr).
@@ -114,38 +221,20 @@ struct connection_test_params
         bind_verdict{}; ///< Simplified bind policy (uses current process, test port, test protocol).
     std::optional<ebpf_sock_addr_verdict_t> sock_addr_bind_verdict{}; ///< Verdict for the sock_addr-aligned bind hook
                                                                       ///< (uses test port, test protocol).
-};
 
-/**
- * @brief Program attach method for the connection test framework.
- *
- * Selects which user-mode API is used to attach the program. Both ultimately
- * invoke the same kernel attach IOCTL, but they pass different attach
- * parameters and exercise different libbpf-compat translation paths.
- */
-enum class attach_method_t
-{
-    ebpf_program_attach, ///< Native API with NULL attach parameter (wildcard / no compartment).
-    bpf_prog_attach,     ///< libbpf-compat API with 4-byte attach parameter containing compartment_id=0.
-};
+    // --- Multi-program controls ---
 
-/**
- * @brief Program specification for attaching.
- */
-struct program_spec
-{
-    std::string_view program_name;                                       ///< Name of the program.
-    bpf_attach_type attach_type;                                         ///< Attach type for the program.
-    attach_method_t attach_method{attach_method_t::ebpf_program_attach}; ///< Which API to use for attachment.
-};
+    /// Attachment state changes to apply before this test step executes.
+    /// Processed in order: detach/attach programs dynamically.
+    std::vector<attachment_step> before{};
 
-/**
- * @brief Module specification containing object file and programs to load.
- */
-struct module_spec
-{
-    std::string_view object_file;         ///< Object file name, e.g., "cgroup_sock_addr", "bind_policy".
-    std::vector<program_spec> programs{}; ///< Programs to load from the object file.
+    /// Per-module policy updates. Each entry targets a specific module's maps.
+    /// When non-empty, legacy shorthand fields above are ignored.
+    std::vector<program_policy_spec> program_policies{};
+
+    /// Expected invocation counter deltas (requires invocation_count_map in sample).
+    /// Reserved for future use — currently asserts empty if specified.
+    std::vector<counter_expectation> counter_expectations{};
 };
 
 /**
@@ -321,8 +410,10 @@ execute_connection_attempt(
  * This function orchestrates a complete connection test scenario including:
  * - Loading eBPF modules and programs from object files
  * - Creating WFP filters if specified
- * - Retrieving policy maps (sock_addr and bind)
- * - Attaching eBPF programs to their respective attach points
+ * - Retrieving policy maps (sock_addr and bind) — both per-module and legacy global
+ * - Attaching eBPF programs to their respective attach points (with optional compartment_id)
+ * - Processing dynamic attach/detach steps per test
+ * - Applying per-module policy updates for multi-program scenarios
  * - Creating and managing client/server socket pairs
  * - Executing individual test steps with configured policies
  * - Validating connection behavior against expected results
@@ -336,18 +427,31 @@ execute_connection_attempt(
 static void
 execute_connection_test(_In_ const connection_test_case& test_case)
 {
+    // Per-module map set for multi-program tests.
+    struct module_maps
+    {
+        bpf_map* ingress_connection_policy_map{};
+        bpf_map* egress_connection_policy_map{};
+        bpf_map* bind_policy_map{};
+        bpf_map* connection_map{};
+        bpf_map* listen_connection_policy_map{};
+        bpf_map* bind_verdict_map{};
+    };
+
     // Load modules (object files + programs).
     struct loaded_program
     {
         bpf_program* program;
         program_spec spec;
         bpf_link* link;
+        bool attached;
     };
     struct loaded_module
     {
         native_module_helper_t helper;
         bpf_object_ptr object;
         std::vector<loaded_program> programs;
+        module_maps maps;
     };
     std::vector<loaded_module> loaded_modules;
 
@@ -363,11 +467,33 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         for (const auto& prog_spec : module.programs) {
             auto* prog = bpf_object__find_program_by_name(obj, prog_spec.program_name.data());
             SAFE_REQUIRE(prog != nullptr);
-            mod.programs.push_back({prog, prog_spec, nullptr});
+            mod.programs.push_back({prog, prog_spec, nullptr, false});
         }
+
+        // Per-module map discovery.
+        mod.maps.ingress_connection_policy_map = bpf_object__find_map_by_name(obj, "ingress_connection_policy_map");
+        mod.maps.egress_connection_policy_map = bpf_object__find_map_by_name(obj, "egress_connection_policy_map");
+        mod.maps.bind_policy_map = bpf_object__find_map_by_name(obj, "bind_policy_map");
+        mod.maps.connection_map = bpf_object__find_map_by_name(obj, "connection_map");
+        mod.maps.listen_connection_policy_map = bpf_object__find_map_by_name(obj, "listen_connection_policy_map");
+        mod.maps.bind_verdict_map = bpf_object__find_map_by_name(obj, "bind_verdict_map");
 
         loaded_modules.push_back(std::move(mod));
     }
+
+    // Bounds-checked program reference resolver.
+    auto resolve_program_ref = [&](const program_ref& ref) -> loaded_program& {
+        SAFE_REQUIRE(ref.module_index < loaded_modules.size());
+        auto& mod = loaded_modules[ref.module_index];
+        SAFE_REQUIRE(ref.program_index < mod.programs.size());
+        return mod.programs[ref.program_index];
+    };
+
+    // Resolve module maps for a program reference.
+    auto resolve_module_maps = [&](const program_ref& ref) -> module_maps& {
+        SAFE_REQUIRE(ref.module_index < loaded_modules.size());
+        return loaded_modules[ref.module_index].maps;
+    };
 
     // Create WFP filters if specified.
     std::unique_ptr<filter_helper> filter;
@@ -379,7 +505,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
     }
 
-    // Get policy maps (sock_addr, bind, or sockops).
+    // Legacy global maps: first-match across all modules (for existing single-program callers).
     bpf_map* ingress_map = nullptr;
     bpf_map* egress_map = nullptr;
     bpf_map* bind_policy_map = nullptr;
@@ -389,22 +515,22 @@ execute_connection_test(_In_ const connection_test_case& test_case)
 
     for (const auto& mod : loaded_modules) {
         if (!ingress_map) {
-            ingress_map = bpf_object__find_map_by_name(mod.object.get(), "ingress_connection_policy_map");
+            ingress_map = mod.maps.ingress_connection_policy_map;
         }
         if (!egress_map) {
-            egress_map = bpf_object__find_map_by_name(mod.object.get(), "egress_connection_policy_map");
+            egress_map = mod.maps.egress_connection_policy_map;
         }
         if (!bind_policy_map) {
-            bind_policy_map = bpf_object__find_map_by_name(mod.object.get(), "bind_policy_map");
+            bind_policy_map = mod.maps.bind_policy_map;
         }
         if (!connection_map) {
-            connection_map = bpf_object__find_map_by_name(mod.object.get(), "connection_map");
+            connection_map = mod.maps.connection_map;
         }
         if (!listen_map) {
-            listen_map = bpf_object__find_map_by_name(mod.object.get(), "listen_connection_policy_map");
+            listen_map = mod.maps.listen_connection_policy_map;
         }
         if (!bind_verdict_map) {
-            bind_verdict_map = bpf_object__find_map_by_name(mod.object.get(), "bind_verdict_map");
+            bind_verdict_map = mod.maps.bind_verdict_map;
         }
     }
 
@@ -438,71 +564,94 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     bool use_specific_family = is_listen_test || test_case.server_bind_address.has_value();
     socket_family_t server_family = use_specific_family ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
-    // Attach all programs before executing tests.
-    for (auto& mod : loaded_modules) {
-        CAPTURE(mod.helper.get_file_name());
-        for (auto& loaded_program : mod.programs) {
-            bpf_program* program = loaded_program.program;
-            CAPTURE(
-                std::string(loaded_program.spec.program_name),
-                loaded_program.spec.attach_type,
-                bpf_program__fd(loaded_program.program));
-            if (loaded_program.spec.attach_method == attach_method_t::bpf_prog_attach) {
-                // libbpf-compat path: passes a 4-byte attach parameter containing compartment_id=0.
-                int rc = ::bpf_prog_attach(bpf_program__fd(program), 0, loaded_program.spec.attach_type, 0);
-                SAFE_REQUIRE(rc == 0);
-            } else {
-                // Native API path: passes NULL attach parameter (wildcard / unspecified compartment).
-                ebpf_attach_type_t attach_type_guid{};
+    // Helper: attach a single program using its spec's attach_method and optional compartment_id.
+    auto attach_program = [](loaded_program& lp) {
+        bpf_program* program = lp.program;
+        if (lp.spec.attach_method == attach_method_t::bpf_prog_attach) {
+            // libbpf-compat path: second argument is compartment_id.
+            uint32_t compartment = lp.spec.compartment_id.value_or(0);
+            int rc = ::bpf_prog_attach(bpf_program__fd(program), compartment, lp.spec.attach_type, 0);
+            SAFE_REQUIRE(rc == 0);
+        } else {
+            // Native API path.
+            ebpf_attach_type_t attach_type_guid{};
+            SAFE_REQUIRE(ebpf_get_ebpf_attach_type(lp.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
+            if (lp.spec.compartment_id.has_value()) {
+                uint32_t compartment = lp.spec.compartment_id.value();
                 SAFE_REQUIRE(
-                    ebpf_get_ebpf_attach_type(loaded_program.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
+                    ebpf_program_attach(program, &attach_type_guid, &compartment, sizeof(compartment), nullptr) ==
+                    EBPF_SUCCESS);
+            } else {
                 SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
             }
         }
+        lp.attached = true;
+    };
+
+    // Helper: detach a single program.
+    auto detach_program = [](loaded_program& lp) {
+        if (!lp.attached) {
+            return;
+        }
+        // Use bpf_prog_detach2 uniformly — it works for both attach paths.
+        // For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
+        uint32_t compartment = lp.spec.compartment_id.value_or(0);
+        ::bpf_prog_detach2(bpf_program__fd(lp.program), compartment, lp.spec.attach_type);
+        lp.attached = false;
+    };
+
+    // Attach all programs before executing tests.
+    for (auto& mod : loaded_modules) {
+        CAPTURE(mod.helper.get_file_name());
+        for (auto& loaded_prog : mod.programs) {
+            CAPTURE(
+                std::string(loaded_prog.spec.program_name),
+                loaded_prog.spec.attach_type,
+                bpf_program__fd(loaded_prog.program));
+            attach_program(loaded_prog);
+        }
     }
 
-    // Execute tests.
-    std::unique_ptr<client_socket_t> client;
-    std::unique_ptr<receiver_socket_t> server;
-    int test_index = 0;
+    // Helper: apply per-module policy for a single program_policy_spec entry.
+    auto apply_program_policy = [&](const program_policy_spec& policy, const connection_tuple_t& conn_tuple) {
+        auto& maps = resolve_module_maps(policy.target);
 
-    for (const auto& test : test_case.tests) {
-        INFO("test " << test_index << ": " << test.description);
-        CAPTURE(test.expected_result);
-
-        // Update policy maps based on test policy.
-        if (test.egress_verdict) {
-            SAFE_REQUIRE(egress_map != nullptr);
-            SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &(*test.egress_verdict), EBPF_ANY) == 0);
-        }
-        if (test.ingress_verdict) {
-            SAFE_REQUIRE(ingress_map != nullptr);
+        if (policy.egress_verdict) {
+            SAFE_REQUIRE(maps.egress_connection_policy_map != nullptr);
             SAFE_REQUIRE(
-                bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &(*test.ingress_verdict), EBPF_ANY) == 0);
+                bpf_map_update_elem(
+                    bpf_map__fd(maps.egress_connection_policy_map), &conn_tuple, &(*policy.egress_verdict), EBPF_ANY) ==
+                0);
         }
-        if (test.bind_policy) {
-            SAFE_REQUIRE(bind_policy_map != nullptr);
-            _update_bind_policy_map_entry(
-                bpf_map__fd(bind_policy_map),
-                test.bind_policy->process_id,
-                test.bind_policy->port,
-                test.bind_policy->protocol,
-                test.bind_policy->action);
+        if (policy.ingress_verdict) {
+            SAFE_REQUIRE(maps.ingress_connection_policy_map != nullptr);
+            SAFE_REQUIRE(
+                bpf_map_update_elem(
+                    bpf_map__fd(maps.ingress_connection_policy_map),
+                    &conn_tuple,
+                    &(*policy.ingress_verdict),
+                    EBPF_ANY) == 0);
         }
-        if (test.bind_verdict) {
-            SAFE_REQUIRE(bind_policy_map != nullptr);
+        if (policy.bind_policy) {
+            SAFE_REQUIRE(maps.bind_policy_map != nullptr);
             _update_bind_policy_map_entry(
-                bpf_map__fd(bind_policy_map),
-                0, // process_id = 0 (wildcard).
+                bpf_map__fd(maps.bind_policy_map),
+                policy.bind_policy->process_id,
+                policy.bind_policy->port,
+                policy.bind_policy->protocol,
+                policy.bind_policy->action);
+        }
+        if (policy.bind_verdict) {
+            SAFE_REQUIRE(maps.bind_policy_map != nullptr);
+            _update_bind_policy_map_entry(
+                bpf_map__fd(maps.bind_policy_map),
+                0,
                 static_cast<uint16_t>(SOCKET_TEST_PORT),
                 static_cast<uint8_t>(test_case.protocol),
-                *test.bind_verdict);
+                *policy.bind_verdict);
         }
-        if (test.listen_verdict) {
-            SAFE_REQUIRE(listen_map != nullptr);
-            // Setup tuple for listen operation — key uses local address/port.
-            // When server_bind_address is provided, populate local_ip from it; otherwise the
-            // server binds to INADDR_ANY and WFP reports local_ip as zero.
+        if (policy.listen_verdict) {
+            SAFE_REQUIRE(maps.listen_connection_policy_map != nullptr);
             connection_tuple_t listen_tuple = {0};
             if (test_case.server_bind_address) {
                 if (test_case.address_family == AF_INET) {
@@ -515,18 +664,110 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                 }
             }
             listen_tuple.local_port = htons(SOCKET_TEST_PORT);
-            listen_tuple.protocol = tuple.protocol;
+            listen_tuple.protocol = conn_tuple.protocol;
             SAFE_REQUIRE(
-                bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) == 0);
+                bpf_map_update_elem(
+                    bpf_map__fd(maps.listen_connection_policy_map),
+                    &listen_tuple,
+                    &(*policy.listen_verdict),
+                    EBPF_ANY) == 0);
         }
-        if (test.sock_addr_bind_verdict) {
-            SAFE_REQUIRE(bind_verdict_map != nullptr);
+        if (policy.sock_addr_bind_verdict) {
+            SAFE_REQUIRE(maps.bind_verdict_map != nullptr);
             _update_sock_addr_bind_verdict_map_entry(
-                bpf_map__fd(bind_verdict_map),
+                bpf_map__fd(maps.bind_verdict_map),
                 htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
                 static_cast<uint8_t>(test_case.protocol),
-                *test.sock_addr_bind_verdict);
+                *policy.sock_addr_bind_verdict);
         }
+    };
+
+    // Execute tests.
+    std::unique_ptr<client_socket_t> client;
+    std::unique_ptr<receiver_socket_t> server;
+    int test_index = 0;
+
+    for (const auto& test : test_case.tests) {
+        INFO("test " << test_index << ": " << test.description);
+        CAPTURE(test.expected_result);
+
+        // Process dynamic attachment steps (detach/attach) before the test step.
+        for (const auto& step : test.before) {
+            auto& lp = resolve_program_ref(step.target);
+            if (step.action == attachment_action::do_detach) {
+                detach_program(lp);
+            } else {
+                attach_program(lp);
+            }
+        }
+
+        // Apply per-module policies if specified; otherwise fall through to legacy shorthand.
+        if (!test.program_policies.empty()) {
+            for (const auto& policy : test.program_policies) {
+                apply_program_policy(policy, tuple);
+            }
+        } else {
+            // Legacy single-program map updates (backwards-compatible path).
+            if (test.egress_verdict) {
+                SAFE_REQUIRE(egress_map != nullptr);
+                SAFE_REQUIRE(
+                    bpf_map_update_elem(bpf_map__fd(egress_map), &tuple, &(*test.egress_verdict), EBPF_ANY) == 0);
+            }
+            if (test.ingress_verdict) {
+                SAFE_REQUIRE(ingress_map != nullptr);
+                SAFE_REQUIRE(
+                    bpf_map_update_elem(bpf_map__fd(ingress_map), &tuple, &(*test.ingress_verdict), EBPF_ANY) == 0);
+            }
+            if (test.bind_policy) {
+                SAFE_REQUIRE(bind_policy_map != nullptr);
+                _update_bind_policy_map_entry(
+                    bpf_map__fd(bind_policy_map),
+                    test.bind_policy->process_id,
+                    test.bind_policy->port,
+                    test.bind_policy->protocol,
+                    test.bind_policy->action);
+            }
+            if (test.bind_verdict) {
+                SAFE_REQUIRE(bind_policy_map != nullptr);
+                _update_bind_policy_map_entry(
+                    bpf_map__fd(bind_policy_map),
+                    0,
+                    static_cast<uint16_t>(SOCKET_TEST_PORT),
+                    static_cast<uint8_t>(test_case.protocol),
+                    *test.bind_verdict);
+            }
+            if (test.listen_verdict) {
+                SAFE_REQUIRE(listen_map != nullptr);
+                connection_tuple_t listen_tuple = {0};
+                if (test_case.server_bind_address) {
+                    if (test_case.address_family == AF_INET) {
+                        const sockaddr_in* addr4 =
+                            reinterpret_cast<const sockaddr_in*>(&(*test_case.server_bind_address));
+                        listen_tuple.local_ip.ipv4 = addr4->sin_addr.s_addr;
+                    } else {
+                        const sockaddr_in6* addr6 =
+                            reinterpret_cast<const sockaddr_in6*>(&(*test_case.server_bind_address));
+                        memcpy(listen_tuple.local_ip.ipv6, &addr6->sin6_addr, sizeof(listen_tuple.local_ip.ipv6));
+                    }
+                }
+                listen_tuple.local_port = htons(SOCKET_TEST_PORT);
+                listen_tuple.protocol = tuple.protocol;
+                SAFE_REQUIRE(
+                    bpf_map_update_elem(bpf_map__fd(listen_map), &listen_tuple, &(*test.listen_verdict), EBPF_ANY) ==
+                    0);
+            }
+            if (test.sock_addr_bind_verdict) {
+                SAFE_REQUIRE(bind_verdict_map != nullptr);
+                _update_sock_addr_bind_verdict_map_entry(
+                    bpf_map__fd(bind_verdict_map),
+                    htons(static_cast<uint16_t>(SOCKET_TEST_PORT)),
+                    static_cast<uint8_t>(test_case.protocol),
+                    *test.sock_addr_bind_verdict);
+            }
+        }
+
+        // Counter expectations: reserved for future use (requires sample changes).
+        SAFE_REQUIRE(test.counter_expectations.empty());
 
         // Create sockets on init or after reset.
         if (!server) {
@@ -559,6 +800,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
             if (server_bind_error != 0 || server_listen_error != 0) {
                 server.reset();
                 client.reset();
+                ++test_index;
                 continue;
             }
             SAFE_REQUIRE(server != nullptr);
@@ -588,6 +830,13 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         server.reset();
 
         ++test_index;
+    }
+
+    // Cleanup: detach all programs that are still attached.
+    for (auto& mod : loaded_modules) {
+        for (auto& lp : mod.programs) {
+            detach_program(lp);
+        }
     }
 }
 
