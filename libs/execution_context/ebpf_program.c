@@ -249,21 +249,6 @@ ebpf_program_terminate()
 {
 }
 
-static int __cdecl _ebpf_program_compare_btf_resolved_function_entries(
-    _In_opt_ void* context, _In_ const void* left, _In_ const void* right)
-{
-    UNREFERENCED_PARAMETER(context);
-
-    const btf_resolved_function_entry_t* left_entry = (const btf_resolved_function_entry_t*)left;
-    const btf_resolved_function_entry_t* right_entry = (const btf_resolved_function_entry_t*)right;
-    int result = memcmp(&left_entry->module_guid, &right_entry->module_guid, sizeof(GUID));
-    if (result != 0) {
-        return result;
-    }
-
-    return strcmp(left_entry->name, right_entry->name);
-}
-
 static void
 _ebpf_program_free_btf_resolved_function_names(
     size_t btf_resolved_function_count,
@@ -2430,7 +2415,7 @@ ebpf_program_set_btf_resolved_function_entries(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
     size_t initialized_entry_count = 0;
-    size_t actual_btf_resolved_function_count = 0;
+    bool has_used_btf_resolved_function = false;
 
     state = ebpf_lock_lock(&program->lock);
 
@@ -2446,18 +2431,19 @@ ebpf_program_set_btf_resolved_function_entries(
 
     for (size_t index = 0; index < btf_resolved_function_count; index++) {
         if (!_ebpf_program_is_unused_btf_resolved_function_entry(&btf_resolved_functions[index])) {
-            actual_btf_resolved_function_count++;
+            has_used_btf_resolved_function = true;
+            break;
         }
     }
 
-    if (actual_btf_resolved_function_count == 0) {
+    if (!has_used_btf_resolved_function) {
         program->btf_resolved_functions_set = true;
         goto Exit;
     }
 
     size_t entries_length = 0;
     result = ebpf_safe_size_t_multiply(
-        sizeof(btf_resolved_function_entry_t), actual_btf_resolved_function_count, &entries_length);
+        sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -2468,14 +2454,10 @@ ebpf_program_set_btf_resolved_function_entries(
         goto Exit;
     }
     memset(program->btf_resolved_functions, 0, entries_length);
-    program->btf_resolved_function_count = actual_btf_resolved_function_count;
+    // Preserve the generated sparse slot layout so native callsites keep their global BTF-function indices.
+    program->btf_resolved_function_count = btf_resolved_function_count;
 
-    size_t output_index = 0;
     for (size_t index = 0; index < btf_resolved_function_count; index++) {
-        if (_ebpf_program_is_unused_btf_resolved_function_entry(&btf_resolved_functions[index])) {
-            continue;
-        }
-
         size_t name_length = strlen(btf_resolved_functions[index].name) + 1;
         char* duplicated_name = ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
         if (duplicated_name == NULL) {
@@ -2484,20 +2466,12 @@ ebpf_program_set_btf_resolved_function_entries(
         }
 
         memcpy(duplicated_name, btf_resolved_functions[index].name, name_length);
-        program->btf_resolved_functions[output_index] = btf_resolved_functions[index];
-        program->btf_resolved_functions[output_index].name = duplicated_name;
+        program->btf_resolved_functions[index] = btf_resolved_functions[index];
+        program->btf_resolved_functions[index].name = duplicated_name;
         initialized_entry_count++;
-        output_index++;
     }
 
     program->btf_resolved_functions_set = true;
-
-    qsort_s(
-        program->btf_resolved_functions,
-        program->btf_resolved_function_count,
-        sizeof(program->btf_resolved_functions[0]),
-        _ebpf_program_compare_btf_resolved_function_entries,
-        NULL);
 
 Exit:
     if (result != EBPF_SUCCESS) {
