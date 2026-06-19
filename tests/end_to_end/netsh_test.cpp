@@ -384,17 +384,17 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     // Code size is for MSVC 2022 version 17.14.0 and later.
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int old_code_size[] = {339, 363, 339, 363, 339, 363};
-    const int code_size[] = {303, 324, 303, 324, 303, 324};
+    const int old_code_size[] = {339, 363, 184, 185, 339, 363, 339, 363};
+    const int code_size[] = {303, 324, 184, 185, 303, 324, 303, 324};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int old_code_size[] = {961, 1036, 961, 1036, 961, 1036};
-    const int code_size[] = {1015, 1150, 1015, 1150, 1015, 1150};
+    const int old_code_size[] = {961, 1036, 644, 643, 961, 1036, 961, 1036};
+    const int code_size[] = {1015, 1150, 644, 643, 1015, 1150, 1015, 1150};
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int old_code_size[] = {328, 344, 328, 344, 328, 344};
-    const int code_size[] = {272, 296, 272, 296, 272, 296};
+    const int old_code_size[] = {328, 344, 140, 144, 328, 344, 328, 344};
+    const int code_size[] = {272, 296, 140, 144, 272, 296, 272, 296};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int old_code_size[] = {1132, 1288, 1132, 1288, 1132, 1288};
-    const int code_size[] = {1008, 1164, 1008, 1164, 1008, 1164};
+    const int old_code_size[] = {1132, 1288, 636, 624, 1132, 1288, 1132, 1288};
+    const int code_size[] = {1008, 1164, 636, 624, 1008, 1164, 1008, 1164};
 #else
 #error "Unsupported architecture"
 #endif
@@ -405,6 +405,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "==============================  ========================  =========  =======\n"
                                         "               cgroup/connect4        authorize_connect4  sock_addr  {:7}\n"
                                         "               cgroup/connect6        authorize_connect6  sock_addr  {:7}\n"
+                                        "                cgroup/listen4         authorize_listen4  sock_addr  {:7}\n"
+                                        "                cgroup/listen6         authorize_listen6  sock_addr  {:7}\n"
                                         "           cgroup/recv_accept4    authorize_recv_accept4  sock_addr  {:7}\n"
                                         "           cgroup/recv_accept6    authorize_recv_accept6  sock_addr  {:7}\n"
                                         " cgroup/connect_authorization4    connect_authorization4  sock_addr  {:7}\n"
@@ -415,13 +417,21 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "==================  ====  =====  =======  ========\n"
                                         "              hash    56      4        1  egress_connection_policy_map\n"
                                         "              hash    56      4        1  ingress_connection_policy_map\n"
+                                        "              hash    56      4        1  listen_connection_policy_map\n"
                                         "              hash    56      8     1000  socket_cookie_map\n";
 
     bool output_matches =
         (output == std::vformat(
                        expected_output,
                        std::make_format_args(
-                           code_size[0], code_size[1], code_size[2], code_size[3], code_size[4], code_size[5])) ||
+                           code_size[0],
+                           code_size[1],
+                           code_size[2],
+                           code_size[3],
+                           code_size[4],
+                           code_size[5],
+                           code_size[6],
+                           code_size[7])) ||
          output == std::vformat(
                        expected_output,
                        std::make_format_args(
@@ -430,7 +440,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                            old_code_size[2],
                            old_code_size[3],
                            old_code_size[4],
-                           old_code_size[5])));
+                           old_code_size[5],
+                           old_code_size[6],
+                           old_code_size[7])));
 
     if (!output_matches) {
         std::cerr << "Expected output:\n" << expected_output << "\n";
