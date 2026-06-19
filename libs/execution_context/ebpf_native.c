@@ -3126,7 +3126,8 @@ _ebpf_native_btf_resolved_function_address_changed(
     ebpf_native_program_t* native_program = helper_address_changed_context->native_program;
     size_t total_function_count = native_program->program_entry.btf_resolved_function_count;
 
-    if (native_program->runtime_context.btf_resolved_function_data == NULL || (address_count > 0 && addresses == NULL)) {
+    if (native_program->runtime_context.btf_resolved_function_data == NULL ||
+        (address_count > 0 && addresses == NULL)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
