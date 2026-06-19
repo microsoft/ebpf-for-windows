@@ -468,14 +468,12 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_bt
     }
 
     if (program->btf_resolved_function_count == 0) {
-        result =
-            program->btf_resolved_function_addresses_changed_callback(0, NULL, program->btf_resolved_function_addresses_changed_context);
+        result = program->btf_resolved_function_addresses_changed_callback(
+            0, NULL, program->btf_resolved_function_addresses_changed_context);
     } else {
 #pragma warning(suppress : 6385) // addresses is allocated whenever the non-zero count path is taken above.
         result = program->btf_resolved_function_addresses_changed_callback(
-            program->btf_resolved_function_count,
-            addresses,
-            program->btf_resolved_function_addresses_changed_context);
+            program->btf_resolved_function_count, addresses, program->btf_resolved_function_addresses_changed_context);
     }
 
 Done:
@@ -2442,8 +2440,8 @@ ebpf_program_set_btf_resolved_function_entries(
     }
 
     size_t entries_length = 0;
-    result = ebpf_safe_size_t_multiply(
-        sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
+    result =
+        ebpf_safe_size_t_multiply(sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -3070,8 +3068,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         for (size_t index = 0; index < btf_resolved_function_count; index++) {
-            result =
-                _ebpf_program_update_hash_with_btf_resolved_function(cryptographic_hash, &btf_resolved_functions[index]);
+            result = _ebpf_program_update_hash_with_btf_resolved_function(
+                cryptographic_hash, &btf_resolved_functions[index]);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
