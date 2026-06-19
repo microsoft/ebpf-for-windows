@@ -249,3 +249,32 @@ TEST_CASE("btf verifier preprocessing rejects ambiguous duplicate .ksyms names",
         Catch::Matchers::ContainsSubstring("Ambiguous BTF-resolved function name across multiple module GUIDs"));
     clear_program_info_cache();
 }
+
+TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[verifier][btf]")
+{
+    const std::string module_tag = _guid_to_decl_tag_string(&_btf_test_module_guid);
+    libbtf::btf_type_data btf_data =
+        _create_btf_resolved_function_btf({{_supported_btf_function.name, module_tag.c_str(), true}});
+    prevail::EbpfProgramType program_type = _create_test_program_type();
+    std::string why_not;
+
+    btf_data.append(
+        libbtf::btf_kind_decl_tag{"preserve_access_index", 1, std::numeric_limits<uint32_t>::max()});
+
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    clear_program_info_cache();
+    _publish_btf_provider(&_btf_test_module_guid, &_supported_btf_function, 1);
+
+    REQUIRE_NOTHROW(cache_btf_resolved_functions(btf_data));
+
+    const auto resolved_symbol = resolve_ksym_btf_id_windows(_supported_btf_function.name);
+    REQUIRE(resolved_symbol.has_value());
+
+    const auto resolved_call =
+        resolve_kfunc_call_windows(resolved_symbol->btf_id, resolved_symbol->module, program_type, &why_not);
+    REQUIRE(resolved_call.has_value());
+    REQUIRE(why_not.empty());
+
+    clear_program_info_cache();
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+}
