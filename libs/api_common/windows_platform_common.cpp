@@ -219,6 +219,13 @@ _parse_module_guid_or_throw(const std::string& tag_string)
     return module_guid;
 }
 
+static bool
+_is_module_guid_decl_tag(const std::string& tag_string)
+{
+    static constexpr std::string_view module_id_prefix{"module_id:"};
+    return tag_string.compare(0, module_id_prefix.size(), module_id_prefix) == 0;
+}
+
 void
 set_program_under_verification(ebpf_handle_t program)
 {
@@ -940,6 +947,10 @@ cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data)
 
         auto decl_tag = btf_data.get_kind_type<libbtf::btf_kind_decl_tag>(id);
         if (decl_tag.component_index != top_level_component_index) {
+            continue;
+        }
+
+        if (!_is_module_guid_decl_tag(decl_tag.name)) {
             continue;
         }
 

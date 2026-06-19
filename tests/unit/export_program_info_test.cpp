@@ -133,6 +133,21 @@ _require_btf_function_metadata(
 }
 
 static void
+_require_btf_function_missing(
+    _In_ ebpf_store_key_t function_collection_key,
+    _In_ const ebpf_btf_resolved_function_prototype_t* function_prototype)
+{
+    ebpf_store_key_t function_key = nullptr;
+    wchar_t* function_name = ebpf_get_wstring_from_string(function_prototype->name);
+    REQUIRE(function_name != nullptr);
+
+    REQUIRE(
+        ebpf_open_registry_key(function_collection_key, function_name, KEY_READ, &function_key) == EBPF_FILE_NOT_FOUND);
+
+    ebpf_free_wstring(function_name);
+}
+
+static void
 _populate_ebpf_store()
 {
     REQUIRE(export_all_program_information() == 0);
@@ -188,6 +203,30 @@ TEST_CASE("delete_btf_resolved_function_provider_information", "[store_helper]")
             ebpf_store_hkcu_root_key, _get_btf_provider_relative_path().c_str(), KEY_READ, &provider_key) ==
         EBPF_FILE_NOT_FOUND);
 
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+}
+
+TEST_CASE("export_btf_resolved_function_provider_information removes stale deleted functions", "[store_helper]")
+{
+    ebpf_store_key_t provider_key = nullptr;
+    ebpf_store_key_t function_collection_key = nullptr;
+    ebpf_btf_resolved_function_provider_info_t updated_provider_info = _btf_test_provider_info;
+
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&_btf_test_provider_info) == EBPF_SUCCESS);
+
+    updated_provider_info.btf_resolved_function_count = 1;
+    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&updated_provider_info) == EBPF_SUCCESS);
+
+    provider_key = _open_registry_key_or_require_success(ebpf_store_hkcu_root_key, _get_btf_provider_relative_path());
+    function_collection_key =
+        _open_registry_key_or_require_success(provider_key, std::wstring(EBPF_BTF_FUNCTIONS_REGISTRY_KEY));
+
+    _require_btf_function_metadata(function_collection_key, &_btf_test_function_prototypes[0]);
+    _require_btf_function_missing(function_collection_key, &_btf_test_function_prototypes[1]);
+
+    ebpf_close_registry_key(function_collection_key);
+    ebpf_close_registry_key(provider_key);
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
 }
 

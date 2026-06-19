@@ -221,6 +221,11 @@ _ebpf_store_update_btf_resolved_function_provider_information(
         goto Exit;
     }
 
+    result = ebpf_delete_registry_tree(provider_info_key, EBPF_BTF_FUNCTIONS_REGISTRY_KEY);
+    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+        goto Exit;
+    }
+
     result = ebpf_create_registry_key(
         provider_info_key, EBPF_BTF_FUNCTIONS_REGISTRY_KEY, REG_CREATE_FLAGS, &function_collection_key);
     if (!IS_SUCCESS(result)) {

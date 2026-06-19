@@ -2351,6 +2351,7 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
                 result = EBPF_NO_MEMORY;
                 goto Done;
             }
+            memset(native_program->program_entry.btf_resolved_functions, 0, btf_info_length);
 
             size_t btf_entry_size = btf_info[0].header.total_size;
             for (uint32_t i = 0; i < native_program->program_entry.btf_resolved_function_count; i++) {
@@ -3123,17 +3124,36 @@ _ebpf_native_btf_resolved_function_address_changed(
         (ebpf_native_helper_address_changed_context_t*)context;
     _Analysis_assume_(context != NULL);
     ebpf_native_program_t* native_program = helper_address_changed_context->native_program;
+    size_t total_function_count = native_program->program_entry.btf_resolved_function_count;
+
+    if (native_program->runtime_context.btf_resolved_function_data == NULL || (address_count > 0 && addresses == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    for (size_t slot_index = 0; slot_index < total_function_count; slot_index++) {
+        native_program->runtime_context.btf_resolved_function_data[slot_index].address = NULL;
+    }
 
     if (address_count == 0) {
         return EBPF_SUCCESS;
     }
 
-    if (addresses == NULL || native_program->runtime_context.btf_resolved_function_data == NULL) {
+    if (address_count != total_function_count) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    for (size_t index = 0; index < address_count; index++) {
-        native_program->runtime_context.btf_resolved_function_data[index].address = addresses[index];
+    for (size_t slot_index = 0; slot_index < total_function_count; slot_index++) {
+        const btf_resolved_function_entry_t* function_entry =
+            &native_program->program_entry.btf_resolved_functions[slot_index];
+
+        if (_ebpf_native_is_unused_btf_resolved_function_entry(function_entry)) {
+            if (addresses[slot_index] != NULL) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+            continue;
+        }
+
+        native_program->runtime_context.btf_resolved_function_data[slot_index].address = addresses[slot_index];
     }
 
     return EBPF_SUCCESS;
