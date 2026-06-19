@@ -1409,6 +1409,7 @@ net_ebpf_ext_sock_addr_register_providers()
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+        .process_verdict = _net_ebpf_extension_sock_addr_authorize_process_verdict,
     };
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
@@ -1480,7 +1481,7 @@ net_ebpf_ext_sock_addr_register_providers()
             attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
         } else if (is_cgroup_listen_attach_type) {
             dispatch_table = &listen_dispatch_table;
-            attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
+            attach_capability = ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD;
         } else {
             dispatch_table = &recv_accept_dispatch_table;
             attach_capability = ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK;
@@ -1894,6 +1895,11 @@ _net_ebpf_extension_sock_addr_copy_wfp_listen_fields(
 {
     net_ebpf_extension_hook_id_t hook_id =
         net_ebpf_extension_get_hook_id_from_wfp_layer_id(incoming_fixed_values->layerId);
+
+    // Listen is registered only on the ALE_AUTH_LISTEN_V4/V6 layers, so hook_id is always in range for
+    // wfp_connection_fields (which shares the EBPF_HOOK_ALE_AUTH_CONNECT_V4 base). Assert the invariant in
+    // debug builds, matching the bind and connect field-copy helpers.
+    ASSERT(hook_id == EBPF_HOOK_ALE_AUTH_LISTEN_V4 || hook_id == EBPF_HOOK_ALE_AUTH_LISTEN_V6);
     const wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
 
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
@@ -2131,7 +2137,8 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     EBPF_EXT_LOG_ENTRY();
-    uint32_t result;
+    uint32_t ignored_result;
+    uint32_t verdict;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
@@ -2189,20 +2196,34 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         goto Exit;
     }
 
+    // Initialize the accumulated verdict to PROCEED_SOFT so that if no program updates it
+    // (e.g. all clients are filtered out), the listen defaults to permit.
+    // The authorize_process_verdict callback updates net_ebpf_sock_addr_ctx.verdict with the
+    // most-restrictive verdict across multi-attach programs and short-circuits on REJECT.
+    net_ebpf_sock_addr_ctx.verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT;
+
+    // Snapshot the context so the shared authorize_process_verdict callback can restore it
+    // between programs. The snapshot is stack-local and only valid for the synchronous
+    // program invocation below.
+    bpf_sock_addr_t sock_addr_ctx_original;
+    memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
+
     program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
+        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &ignored_result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         goto Exit;
     } else if (program_result != EBPF_SUCCESS) {
-        // We failed to invoke at least one program in the chain, block the request.
+        // Failed to invoke at least one program in the chain — block the listen.
         classify_output->actionType = FWP_ACTION_BLOCK;
+        classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
         goto Exit;
     }
 
-    // Set action type based on verdict.
-    // Clear FWPS_RIGHT_ACTION_WRITE for block and hard permit.
-    switch (result) {
+    // Use the accumulated verdict from the authorize_process_verdict callback.
+    verdict = net_ebpf_sock_addr_ctx.verdict;
+    switch (verdict) {
     case BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT:
         classify_output->actionType = FWP_ACTION_PERMIT;
         break;
@@ -2221,7 +2242,7 @@ net_ebpf_extension_sock_addr_authorize_listen_classify(
         0, // No transport endpoint handle for listen.
         sock_addr_ctx,
         NULL,
-        result,
+        verdict,
         compartment_id);
 
 Exit:
