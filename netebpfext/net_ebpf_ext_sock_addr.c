@@ -2522,16 +2522,6 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     UNREFERENCED_PARAMETER(classify_context);
     UNREFERENCED_PARAMETER(flow_context);
 
-    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
-        // A callout with higher weight has revoked the write permission. Bail out
-        // without touching classify_output->actionType (the Exit-block switch is
-        // also skipped via rights_revoked).
-        EBPF_EXT_LOG_MESSAGE(
-            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
-        rights_revoked = TRUE;
-        goto Exit;
-    }
-
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
@@ -2567,8 +2557,20 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     // First, try to find and use existing connection context from redirect layer.
+    // This must happen before the rights check so the cached entry is always cleaned up,
+    // even when a higher-weight callout has revoked our write permission.
     verdict = _net_ebpf_ext_find_and_remove_connection_context(
         incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+
+    if ((classify_output->rights & FWPS_RIGHT_ACTION_WRITE) == 0) {
+        // A callout with higher weight has revoked the write permission. Bail out
+        // without touching classify_output->actionType (the Exit-block switch is
+        // also skipped via rights_revoked). The cache cleanup above has already run.
+        EBPF_EXT_LOG_MESSAGE(
+            EBPF_EXT_TRACELOG_LEVEL_VERBOSE, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "No \"write\" right; exiting.");
+        rights_revoked = TRUE;
+        goto Exit;
+    }
 
     // CONNECT_AUTHORIZATION programs run for all non-REJECT verdicts from the redirect layer.
     // REJECT is already final. PROCEED_HARD and PROCEED_SOFT both allow authorization programs
