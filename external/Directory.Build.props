@@ -4,6 +4,11 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup>
+    <!-- Define EbpfPlatformToolset for user-mode projects that don't import root wdk.props -->
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">v145</EbpfPlatformToolset>
+    <EbpfPlatformToolset Condition="'$(EbpfPlatformToolset)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">v143</EbpfPlatformToolset>
+  </PropertyGroup>
   <!-- Override the rules for projects that are not under control of this project -->
   <PropertyGroup Condition="'$(Analysis)'=='True' AND '$(AnalysisOnExternal)'=='True'">
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
@@ -47,6 +52,12 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <!-- Suppress C4875 (deprecated gsl::suppress syntax) for VS 2026+ -->
+  <ItemDefinitionGroup Condition="'$(VisualStudioVersion)' &gt;= '18.0'">
+    <ClCompile>
+      <AdditionalOptions>/wd4875 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>
