@@ -3,7 +3,10 @@
 #pragma once
 
 #include "ebpf_extension.h"
+#pragma warning(push)
+#pragma warning(disable : 4996) // Suppress deprecation warnings for legacy bind types used in implementation.
 #include "ebpf_nethooks.h"
+#pragma warning(pop)
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
 
