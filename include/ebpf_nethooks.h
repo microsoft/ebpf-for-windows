@@ -11,7 +11,12 @@
 #endif
 
 // BIND hook.
+// @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
 
+/**
+ * @brief Operations reported by the legacy bind hook.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ */
 typedef enum _bind_operation
 {
     BIND_OPERATION_BIND,      ///< Entry to bind.
@@ -19,6 +24,11 @@ typedef enum _bind_operation
     BIND_OPERATION_UNBIND,    ///< Release port.
 } bind_operation_t;
 
+/**
+ * @brief Context structure for the legacy bind hook.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ * Use bpf_sock_addr_t as the context structure for the replacement hook.
+ */
 typedef struct _bind_md
 {
     uint8_t* app_id_start;         ///< Pointer to start of App ID.
@@ -32,6 +42,8 @@ typedef struct _bind_md
 
 /**
  * @brief Actions that can be returned by a bind hook program.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
+ * Use ebpf_sock_addr_verdict_t as the return type for the replacement hook.
  */
 typedef enum _bind_action
 {
@@ -76,6 +88,7 @@ typedef enum _bind_action
 
 /**
  * @brief Handle IPv4 and IPv6 socket bind operations.
+ * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
  *
  * This function type defines the signature for eBPF programs that handle socket bind operations.
  * The program is called before the bind operation completes and can inspect the socket metadata
@@ -95,8 +108,14 @@ typedef enum _bind_action
  * @retval BIND_DENY Deny the bind operation.
  * @retval BIND_REDIRECT Change the bind endpoint.
  */
+#ifdef _MSC_VER
+typedef __declspec(deprecated("Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with "
+                              "BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.")) bind_action_t
+bind_hook_t(bind_md_t* context);
+#else
 typedef bind_action_t
 bind_hook_t(bind_md_t* context);
+#endif
 
 //
 // CGROUP_SOCK_ADDR.
