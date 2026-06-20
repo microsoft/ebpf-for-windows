@@ -42,7 +42,7 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
 }
 
 _netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
-    : _netebpf_ext_helper(nullptr, nullptr, nullptr, BPF_PROG_TYPE_UNSPEC, initialize_platform)
+    : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
 {
 }
 
@@ -50,7 +50,6 @@ _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
     _In_opt_ _ebpf_extension_dispatch_function dispatch_function,
     _In_opt_ netebpfext_helper_base_client_context_t* client_context,
-    bpf_prog_type_t desired_prog_type,
     bool initialize_platform)
 {
     // Do not use REQUIRE() in this constructor or the destructor will never be called
@@ -90,34 +89,9 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
     this->hook_invoke_function = dispatch_function;
     if (dispatch_function != nullptr && client_context != nullptr) {
-        // Auto-derive desired_program_type from the registered program_info providers so the
-        // hook client only attaches to hook providers for the matching program type. This
-        // prevents context type mismatches when different program types share a WFP layer
-        // (e.g., BPF_PROG_TYPE_BIND and BPF_PROG_TYPE_CGROUP_SOCK_ADDR both use
-        // FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4/V6).
-        if (desired_prog_type != BPF_PROG_TYPE_UNSPEC) {
-            for (const auto& [id, provider] : program_info_providers) {
-                if (provider->program_data->program_info->program_type_descriptor->bpf_prog_type ==
-                    (uint32_t)desired_prog_type) {
-                    client_context->desired_program_type =
-                        provider->program_data->program_info->program_type_descriptor->program_type;
-                    break;
-                }
-            }
-            // If the requested program type was not found (e.g., program_info registration
-            // failed under fault injection), skip hook client registration to fail closed
-            // rather than silently attaching to all providers.
-            static const ebpf_program_type_t null_program_type = {};
-            if (memcmp(&client_context->desired_program_type, &null_program_type, sizeof(ebpf_program_type_t)) == 0) {
-                client_context = nullptr;
-            }
-        }
-
-        if (client_context != nullptr) {
-            hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
-            client_context->helper = this;
-            nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
-        }
+        hook_client.ClientRegistrationInstance.NpiSpecificCharacteristics = npi_specific_characteristics;
+        client_context->helper = this;
+        nmr_hook_client_handle = std::make_unique<nmr_client_registration_t>(&hook_client, client_context);
     }
 
     usersim_fwp_set_sublayer_guids(
@@ -185,16 +159,6 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
     auto& helper = *reinterpret_cast<_netebpf_ext_helper*>(client_context);
-
-    // Validate provider registration instance (mirrors
-    // _ebpf_program_type_specific_program_information_attach_provider).
-    if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
-        return STATUS_INVALID_PARAMETER;
-    }
-    if (provider_registration_instance->NpiSpecificCharacteristics == nullptr) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
     auto client_binding_context = std::make_unique<program_info_provider_t>();
     client_binding_context->module_id = *provider_registration_instance->ModuleId;
     client_binding_context->parent = &helper;
@@ -243,28 +207,10 @@ _netebpf_ext_helper::_hook_client_attach_provider(
     const ebpf_extension_dispatch_table_t client_dispatch_table = {
         .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
     auto provider_data = (const ebpf_attach_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-
-    // Validate provider ModuleId type (mirrors _ebpf_link_client_attach_provider).
-    if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    // Validate attach provider data version and contents.
-    if (!ebpf_validate_attach_provider_data(provider_data)) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    // Reject hook providers whose program type doesn't match the desired type.
-    static const ebpf_program_type_t null_program_type = {};
-    if (memcmp(&base_client_context->desired_program_type, &null_program_type, sizeof(ebpf_program_type_t)) != 0 &&
-        !IsEqualGUID(provider_data->supported_program_type, base_client_context->desired_program_type)) {
-        return STATUS_NOINTERFACE;
-    }
-
     if (!base_client_context->desired_attach_types.empty() &&
         base_client_context->desired_attach_types.find(provider_data->bpf_attach_type) ==
             base_client_context->desired_attach_types.end()) {
-        return STATUS_NOINTERFACE;
+        return STATUS_ACCESS_DENIED;
     }
 
     return NmrClientAttachProvider(
