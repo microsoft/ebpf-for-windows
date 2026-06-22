@@ -85,7 +85,7 @@ _unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 
 static uint64_t
 _my_driver_lookup(
-    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, _In_opt_ void* context)
 {
     UNREFERENCED_PARAMETER(reserved1);
     UNREFERENCED_PARAMETER(reserved2);
@@ -119,7 +119,7 @@ static std::map<std::string, helper_function_t> _btf_resolved_functions = {
  * @return Vector of bytes.
  */
 static std::vector<uint8_t>
-_base16_decode(const std::string& input)
+_base16_decode(_In_ const std::string& input)
 {
     std::vector<uint8_t> output;
     std::stringstream ss(input);

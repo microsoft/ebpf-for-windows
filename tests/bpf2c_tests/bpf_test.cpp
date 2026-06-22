@@ -21,7 +21,7 @@ extern "C" metadata_table_t C_NAME;
 
 static uint64_t
 _my_driver_lookup(
-    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, _In_opt_ void* context)
 {
     UNREFERENCED_PARAMETER(reserved1);
     UNREFERENCED_PARAMETER(reserved2);
@@ -35,7 +35,7 @@ _my_driver_lookup(
 }
 
 static std::string
-_btf_resolved_function_key(const GUID& module_guid, const char* name)
+_btf_resolved_function_key(_In_ const GUID& module_guid, _In_z_ const char* name)
 {
     return std::string(reinterpret_cast<const char*>(&module_guid), sizeof(module_guid)) + name;
 }

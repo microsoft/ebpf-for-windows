@@ -1359,6 +1359,8 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
                 std::end(function_info->prototype.arguments),
                 function.arguments.begin());
             btf_resolved_functions[btf_id] = function;
+        } else {
+            // Non-BTF calls are handled elsewhere and do not add BTF-resolved dependencies.
         }
     }
 
