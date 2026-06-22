@@ -224,7 +224,8 @@ _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* 
 }
 
 static void
-_ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size)
+_ebpf_copy_program_entry(
+    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size)
 {
     const program_entry_t* source_entry = (const program_entry_t*)source;
 

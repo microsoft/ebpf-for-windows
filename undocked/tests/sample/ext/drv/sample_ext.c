@@ -80,7 +80,7 @@ _sample_ext_helper_map_get_value(
     uint64_t dummy_param1);
 static uint64_t
 _sample_ebpf_extension_btf_lookup(
-    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context);
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, _In_opt_ void* context);
 
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
@@ -1041,7 +1041,7 @@ _sample_ebpf_extension_helper_function1(_In_ const sample_program_context_t* con
 
 static uint64_t
 _sample_ebpf_extension_btf_lookup(
-    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, _In_opt_ void* context)
 {
     UNREFERENCED_PARAMETER(reserved1);
     UNREFERENCED_PARAMETER(reserved2);
