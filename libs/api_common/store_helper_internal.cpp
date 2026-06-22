@@ -1044,21 +1044,11 @@ Exit:
     ebpf_free(prototype_string);
     ebpf_free_wstring(function_name_wide);
     _ebpf_store_free_btf_resolved_function(local_function_info);
-    if (function_key) {
-        ebpf_close_registry_key(function_key);
-    }
-    if (function_collection_key) {
-        ebpf_close_registry_key(function_collection_key);
-    }
-    if (provider_key) {
-        ebpf_close_registry_key(provider_key);
-    }
-    if (btf_resolved_functions_key) {
-        ebpf_close_registry_key(btf_resolved_functions_key);
-    }
-    if (store_key) {
-        ebpf_close_registry_key(store_key);
-    }
+    ebpf_close_registry_key(function_key);
+    ebpf_close_registry_key(function_collection_key);
+    ebpf_close_registry_key(provider_key);
+    ebpf_close_registry_key(btf_resolved_functions_key);
+    ebpf_close_registry_key(store_key);
     EBPF_RETURN_RESULT(result);
 }
 
