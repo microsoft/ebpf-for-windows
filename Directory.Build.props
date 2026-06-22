@@ -125,8 +125,13 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
-      <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WdkContentRoot)\Include\$(WindowsTargetPlatformVersion)\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\lib\include;$(OutDir)</AdditionalIncludeDirectories>
+      <AdditionalOptions Condition="'$(VisualStudioVersion)' &lt; '18.0'">/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
+      <!-- VS 2026 (MSBuild 18) emits C4875 for the deprecated [[gsl::suppress]] spelling used by
+           dependencies. Suppress it here until the upstream sources are updated. -->
+      <AdditionalOptions Condition="'$(VisualStudioVersion)' &gt;= '18.0'">/ZH:SHA_256 /we4062 /wd4875 %(AdditionalOptions)</AdditionalOptions>
+      <!-- $(DDK_INC_PATH) is defined in wdk.props; projects that include km headers via this list
+           must import wdk.props, otherwise this expands to an empty (dropped) include path. -->
+      <AdditionalIncludeDirectories>$(DDK_INC_PATH);$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\lib\include;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>

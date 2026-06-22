@@ -120,6 +120,19 @@ back the changes.
     # (e.g. WDK 10.0.28000.1839 -> target platform 10.0.28000.0).
     $target_platform_version = $version_number -replace '\.\d+$', '.0'
     try {
+        # Read the contents of the file
+        $vs_file_content = Get-Content $vs_file_path
+
+        # Transition guard: while VS 2022 and VS 2026 are both supported, the WDK version is expressed
+        # with conditional "<WDKVersion Condition=...>...</WDKVersion>" entries (one per toolset) that this
+        # simple replacement cannot safely update. If there is no unconditional "<WDKVersion>" element,
+        # skip and warn instead of silently leaving the version stale. This guard becomes inert once VS 2022
+        # support is removed and the files return to a single unconditional "<WDKVersion>" element.
+        if (-not ($vs_file_content -match "<WDKVersion>[^<]*</WDKVersion>")) {
+            Write-Warning "No unconditional <WDKVersion> element found in $vs_file_path (VS 2022 + VS 2026 transition state); skipping automatic update. Update the WDK version manually until VS 2022 support is removed."
+            return
+        }
+
         # Create backup
         $backup_path = "$vs_file_path.bak"
         Copy-Item $vs_file_path $backup_path -Force
@@ -145,7 +158,7 @@ back the changes.
         Write-Output "Updated WDK version in $vs_file_path to $version_number"
     }
     catch {
-        if (Test-Path $backup_path) {
+        if ($backup_path -and (Test-Path $backup_path)) {
             Copy-Item $backup_path $vs_file_path -Force
             Remove-Item $backup_path
         }
@@ -241,9 +254,26 @@ try {
         $files_updated += $vs_file
     }
 
-    # Generate the new packages.config file
-    Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config" -version_number $wdk_version_number
-    $files_updated += "$PSScriptRoot\..\scripts\setup_build\packages.config"
+    # Generate the new packages.config file.
+    # Transition guard: while VS 2022 and VS 2026 are both supported, packages.config intentionally pins
+    # two WDK versions (one per toolset). The single-version template cannot represent that, so regenerating
+    # it here would silently drop the second toolset's packages and break that build. If the existing file
+    # already pins more than one distinct version, skip regeneration and warn. This guard becomes inert once
+    # VS 2022 support is removed and packages.config returns to a single WDK version.
+    $packages_config_path = "$PSScriptRoot\..\scripts\setup_build\packages.config"
+    $distinct_versions = @()
+    if (Test-Path $packages_config_path) {
+        $distinct_versions = @(Select-String -Path $packages_config_path -Pattern '<package\b[^>]*\bversion="([0-9.]+)"' -AllMatches |
+            ForEach-Object { $_.Matches } |
+            ForEach-Object { $_.Groups[1].Value } |
+            Sort-Object -Unique)
+    }
+    if ($distinct_versions.Count -gt 1) {
+        Write-Warning "packages.config pins multiple WDK versions ($($distinct_versions -join ', ')); skipping auto-regeneration to preserve the VS 2022 + VS 2026 multi-toolset configuration. Update packages.config manually until VS 2022 support is removed."
+    } else {
+        Update-TemplateFile -template_file_path "$PSScriptRoot\..\scripts\setup_build\packages.config.template" -output_file_path $packages_config_path -version_number $wdk_version_number
+        $files_updated += $packages_config_path
+    }
 
     # Print success message
     Write-Output "Updated WDK version in all files"

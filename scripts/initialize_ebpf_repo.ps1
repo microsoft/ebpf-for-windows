@@ -73,6 +73,25 @@ function Invoke-MSBuild {
 }
 
 # Define the commands to run
+# Auto-detect the installed Visual Studio version to pick the matching CMake generator.
+$vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$vsVersion = $null
+if (Test-Path $vsWhere) {
+    $vsVersion = (& $vsWhere -latest -property catalog_productLineVersion 2>$null | Select-Object -First 1)
+    if ($vsVersion) { $vsVersion = $vsVersion.Trim() }
+} else {
+    Write-Warning "vswhere.exe not found at '$vsWhere'; defaulting to the Visual Studio 2022 generator."
+}
+switch ($vsVersion) {
+    "18" { $cmakeGenerator = "Visual Studio 18 2026" }
+    "17" { $cmakeGenerator = "Visual Studio 17 2022" }
+    default {
+        if ($vsVersion) {
+            Write-Warning "Unrecognized Visual Studio version '$vsVersion'; defaulting to the Visual Studio 2022 generator."
+        }
+        $cmakeGenerator = "Visual Studio 17 2022"
+    }
+}
 $cmakeCommonArgs = "-G `"$cmakeGenerator`" -A $Architecture"
 $commands = @(
     "git submodule update --init --recursive",
