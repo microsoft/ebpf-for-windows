@@ -61,19 +61,6 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
 _Success_(return == EBPF_SUCCESS) ebpf_result_t get_btf_resolved_function_info_from_tls(
     int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info);
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t get_btf_resolved_function_info_from_tls(
-    int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info);
-
-void
-cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data);
-
-std::optional<prevail::KsymBtfId>
-resolve_ksym_btf_id_windows(const std::string& name);
-
-std::optional<prevail::ResolvedCall>
-resolve_kfunc_call_windows(
-    int32_t btf_id, int16_t module, const prevail::EbpfProgramType& program_type, std::string* why_not);
-
 void
 cache_btf_resolved_functions(_In_ const libbtf::btf_type_data& btf_data);
 
