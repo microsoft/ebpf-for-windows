@@ -146,6 +146,51 @@ jobs:
         with:
           msbuild-architecture: x64
 
+      # The hosted runner images do not always ship the Spectre-mitigated VC
+      # runtime libraries for the installed MSVC toolset, which causes MSB8040
+      # because the drivers in this solution require Spectre mitigation. Install
+      # the architecture-appropriate component on demand before building.
+      - name: Install Spectre-mitigated libraries
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $arch = '${{env.BUILD_PLATFORM}}'
+          $libArch = if ($arch -eq 'x64') { 'x64' } else { 'arm64' }
+          $component = if ($arch -eq 'x64') {
+            'Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre'
+          } else {
+            'Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre'
+          }
+
+          # Skip the (slow) installer modify if the Spectre libraries for the
+          # active toolset are already present.
+          if ($env:msvc_tools_path) {
+            $spectreDir = Join-Path $env:msvc_tools_path "lib\spectre\$libArch"
+            if (Test-Path $spectreDir) {
+              Write-Host "Spectre-mitigated libraries already present at $spectreDir"
+              exit 0
+            }
+          }
+
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -latest -property installationPath
+          if (-not $installPath) { throw "Could not locate a Visual Studio installation via vswhere." }
+          Write-Host "Visual Studio install path: $installPath"
+
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          Write-Host "Installing component '$component'..."
+          $proc = Start-Process -FilePath $setup -Wait -PassThru -NoNewWindow -ArgumentList @(
+            'modify',
+            '--installPath', "`"$installPath`"",
+            '--add', $component,
+            '--quiet', '--norestart', '--nocache', '--wait'
+          )
+          Write-Host "Installer exit code: $($proc.ExitCode)"
+          # 3010 == success, reboot required (not needed for libraries).
+          if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+            throw "Visual Studio installer failed with exit code $($proc.ExitCode)."
+          }
+
       - name: Cache LLVM 18.1.8 installer
         if: steps.skip_check.outputs.should_skip != 'true'
         id: cache-llvm
