@@ -164,14 +164,14 @@ _clear_btf_resolved_function_state()
 }
 
 static void
-_set_unsupported(_Out_opt_ std::string* why_not, const std::string& reason)
+_set_unsupported(_Out_opt_ std::string* why_not, _In_ const std::string& reason)
 {
     if (why_not != nullptr) {
         *why_not = reason;
     }
 }
 
-static ebpf_btf_resolved_function_info_t*
+_Ret_maybenull_ static ebpf_btf_resolved_function_info_t*
 _get_btf_resolved_function_info(int32_t btf_id)
 {
     auto cache_entry = _btf_resolved_function_cache.find(btf_id);
@@ -195,7 +195,7 @@ _get_btf_resolved_function_info(int32_t btf_id)
 }
 
 static GUID
-_parse_module_guid_or_throw(const std::string& tag_string)
+_parse_module_guid_or_throw(_In_ const std::string& tag_string)
 {
     static constexpr std::string_view module_id_prefix{"module_id:"};
     GUID module_guid = GUID_NULL;
@@ -220,7 +220,7 @@ _parse_module_guid_or_throw(const std::string& tag_string)
 }
 
 static bool
-_is_module_guid_decl_tag(const std::string& tag_string)
+_is_module_guid_decl_tag(_In_ const std::string& tag_string)
 {
     static constexpr std::string_view module_id_prefix{"module_id:"};
     return tag_string.compare(0, module_id_prefix.size(), module_id_prefix) == 0;
@@ -339,7 +339,7 @@ Exit:
 }
 
 _Ret_maybenull_ const prevail::EbpfProgramType*
-get_program_type_windows(const GUID& program_type)
+get_program_type_windows(_In_ const GUID& program_type)
 {
     ebpf_result_t result;
     auto guid_string = guid_to_string(&program_type);
@@ -391,7 +391,7 @@ get_program_type_windows(const GUID& program_type)
 }
 
 static const ebpf_section_definition_t*
-_get_section_definition(const std::string& section)
+_get_section_definition(_In_ const std::string& section)
 {
     int32_t match_index = -1;
     size_t match_length = 0;
@@ -484,7 +484,7 @@ ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexce
 
 _Must_inspect_result_ ebpf_result_t
 get_bpf_program_and_attach_type(
-    const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
+    _In_ const std::string& section, _Out_ bpf_prog_type_t* program_type, _Out_ bpf_attach_type_t* attach_type)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     _load_ebpf_provider_data();
@@ -504,7 +504,7 @@ Exit:
 
 _Must_inspect_result_ ebpf_result_t
 get_program_and_attach_type(
-    const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type)
+    _In_ const std::string& section, _Out_ ebpf_program_type_t* program_type, _Out_ ebpf_attach_type_t* attach_type)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     _load_ebpf_provider_data();
@@ -523,7 +523,7 @@ Exit:
 }
 
 prevail::EbpfProgramType
-get_program_type_windows(const std::string& section, const std::string&)
+get_program_type_windows(_In_ const std::string& section, _In_ const std::string&)
 {
     bool global_program_type_found = true;
     const ebpf_program_type_t* global_program_type = get_global_program_type();
@@ -578,7 +578,7 @@ get_map_type_windows(uint32_t platform_specific_type)
 }
 
 const prevail::EbpfMapDescriptor&
-get_map_descriptor_windows(int original_fd, const std::vector<prevail::EbpfMapDescriptor>& descriptors)
+get_map_descriptor_windows(int original_fd, _In_ const std::vector<prevail::EbpfMapDescriptor>& descriptors)
 {
     // First check if we already have the map descriptor in the provided descriptors.
     for (const auto& map : descriptors) {
@@ -591,7 +591,7 @@ get_map_descriptor_windows(int original_fd, const std::vector<prevail::EbpfMapDe
 }
 
 const ebpf_attach_type_t*
-get_attach_type_windows(const std::string& section)
+get_attach_type_windows(_In_ const std::string& section)
 {
     _load_ebpf_provider_data();
 
@@ -895,7 +895,7 @@ clear_ebpf_provider_data()
 }
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
-    get_program_type_info(const prevail::EbpfProgramType& program_type, _Outptr_ const ebpf_program_info_t** info)
+    get_program_type_info(_In_ const prevail::EbpfProgramType& program_type, _Outptr_ const ebpf_program_info_t** info)
 {
     const GUID* guid = reinterpret_cast<const GUID*>(program_type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
@@ -914,7 +914,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t
 }
 
 void
-cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data)
+cache_btf_resolved_functions(_In_ const libbtf::btf_type_data& btf_data)
 {
     constexpr uint32_t top_level_component_index = std::numeric_limits<uint32_t>::max();
     std::map<libbtf::btf_type_id, GUID> function_modules;
@@ -1008,7 +1008,7 @@ cache_btf_resolved_functions(const libbtf::btf_type_data& btf_data)
 }
 
 std::optional<prevail::KsymBtfId>
-resolve_ksym_btf_id_windows(const std::string& name)
+resolve_ksym_btf_id_windows(_In_ const std::string& name)
 {
     auto identity = _btf_resolved_function_name_to_id.find(name);
     if (identity == _btf_resolved_function_name_to_id.end()) {
@@ -1020,7 +1020,7 @@ resolve_ksym_btf_id_windows(const std::string& name)
 
 std::optional<prevail::ResolvedCall>
 resolve_kfunc_call_windows(
-    int32_t btf_id, int16_t module, const prevail::EbpfProgramType& program_type, std::string* why_not)
+    int32_t btf_id, int16_t module, _In_ const prevail::EbpfProgramType& program_type, _Inout_opt_ std::string* why_not)
 {
     UNREFERENCED_PARAMETER(program_type);
     UNREFERENCED_PARAMETER(module);
@@ -1093,7 +1093,7 @@ resolve_kfunc_call_windows(
 }
 
 void
-set_verification_program_type(const prevail::EbpfProgramType* type)
+set_verification_program_type(_In_opt_ const prevail::EbpfProgramType* type)
 {
     if (type != nullptr) {
         _current_verification_program_guid =
