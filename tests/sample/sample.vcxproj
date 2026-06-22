@@ -53,49 +53,49 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|ARM64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Debug</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Release</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Release</KernelConfiguration>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|ARM64'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <KernelConfiguration>Release</KernelConfiguration>
   </PropertyGroup>
