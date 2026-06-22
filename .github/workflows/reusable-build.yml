@@ -183,7 +183,7 @@ jobs:
             'modify',
             '--installPath', "`"$installPath`"",
             '--add', $component,
-            '--quiet', '--norestart', '--nocache', '--wait'
+            '--quiet', '--norestart', '--nocache'
           )
           Write-Host "Installer exit code: $($proc.ExitCode)"
           # 3010 == success, reboot required (not needed for libraries).
