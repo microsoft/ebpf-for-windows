@@ -655,6 +655,7 @@ _sample_ebpf_extension_btf_provider_attach_client(
         return STATUS_INVALID_PARAMETER;
     }
 
+    // NMR passes the provider context as const void*, but the opaque binding context is returned via void**.
     *provider_binding_context = (void*)provider_context;
     *provider_dispatch = NULL;
     return STATUS_SUCCESS;

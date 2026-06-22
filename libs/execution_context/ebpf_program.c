@@ -2044,9 +2044,7 @@ ebpf_program_reference_providers(_Inout_ ebpf_program_t* program)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_reference_btf_providers(_Inout_ ebpf_program_t* program)
 {
-    size_t acquired_count = 0;
-
-    for (; acquired_count < program->btf_provider_binding_count; acquired_count++) {
+    for (size_t acquired_count = 0; acquired_count < program->btf_provider_binding_count; acquired_count++) {
         ebpf_program_btf_provider_binding_t* binding = &program->btf_provider_bindings[acquired_count];
         if (!binding->attached || binding->attach_error != EBPF_SUCCESS ||
             !ExAcquireRundownProtection(&binding->rundown_reference)) {
