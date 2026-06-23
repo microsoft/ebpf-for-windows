@@ -250,6 +250,7 @@ _does_attach_type_support_attachable_fd(enum bpf_attach_type type)
     case BPF_CGROUP_INET4_LISTEN:
     case BPF_CGROUP_INET6_LISTEN:
     case BPF_CGROUP_SOCK_OPS:
+    case BPF_ATTACH_TYPE_BIND:
         supported = TRUE;
         break;
     default:

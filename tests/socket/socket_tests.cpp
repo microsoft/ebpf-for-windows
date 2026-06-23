@@ -182,21 +182,6 @@ struct attachment_step
 };
 
 /**
- * @brief Expected invocation counter change for a program.
- *
- * The framework snapshots the counter value before the socket operation and
- * verifies the delta after. Requires an invocation_count_map in the eBPF
- * sample (not yet present in cgroup_sock_addr_bind — reserved for future use).
- */
-struct counter_expectation
-{
-    program_ref target{};
-    std::string_view map_name{"invocation_count_map"};
-    uint32_t key{0};
-    uint64_t expected_delta{0};
-};
-
-/**
  * @brief Test parameters for individual connection test.
  */
 struct connection_test_params
@@ -231,10 +216,6 @@ struct connection_test_params
     /// Per-module policy updates. Each entry targets a specific module's maps.
     /// When non-empty, legacy shorthand fields above are ignored.
     std::vector<program_policy_spec> program_policies{};
-
-    /// Expected invocation counter deltas (requires invocation_count_map in sample).
-    /// Reserved for future use — currently asserts empty if specified.
-    std::vector<counter_expectation> counter_expectations{};
 };
 
 /**
@@ -766,9 +747,6 @@ execute_connection_test(_In_ const connection_test_case& test_case)
                     *test.sock_addr_bind_verdict);
             }
         }
-
-        // Counter expectations: reserved for future use (requires sample changes).
-        SAFE_REQUIRE(test.counter_expectations.empty());
 
         // Create sockets on init or after reset.
         if (!server) {
