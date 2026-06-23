@@ -135,9 +135,10 @@ if ($VerbosePreference -eq "Continue") {
     $AdditionalOptions += " --verbose"
 }
 
-if ($KernelMode) {
-    msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" $ProjectFile
-}
+# Restore NuGet packages (Windows SDK / WDK) referenced by the generated project so that
+# $(WindowsSdkDir) is resolved from the package and the SDK does not need to be installed on the
+# machine. Both kernel-mode and user-mode templates reference SDK packages, so restore for both.
+msbuild /t:restore /p:Configuration="$Configuration" /p:Platform="$Platform" $ProjectFile
 
 msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:SpdFile="$SpdFile" $ProjectFile
 
