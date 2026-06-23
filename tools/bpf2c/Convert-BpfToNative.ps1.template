@@ -123,7 +123,7 @@ if ($KernelMode) {
     Set-Content -Path $ProjectFile -Value $KernelModeProject
 }
 else {
-    $ProjectFile = "$FileName_um.vcxproj"
+    $ProjectFile = "${FileName}_um.vcxproj"
     Set-Content -Path $ProjectFile -Value $UserModeProject
 }
 
