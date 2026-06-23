@@ -123,14 +123,6 @@ struct program_spec
     std::string_view program_name;                                       ///< Name of the program.
     bpf_attach_type attach_type;                                         ///< Attach type for the program.
     attach_method_t attach_method{attach_method_t::ebpf_program_attach}; ///< Which API to use for attachment.
-
-    /// Optional compartment ID for attachment.
-    /// - For bpf_prog_attach: passed as the second argument (0 = wildcard/unspecified).
-    /// - For ebpf_program_attach: when set, passed as a 4-byte attach parameter buffer;
-    ///   when unset, passes NULL (wildcard).
-    /// Three semantic states: unset (preserve today's default behavior per attach_method),
-    /// 0 (explicit wildcard / UNSPECIFIED_COMPARTMENT_ID), N>0 (specific compartment).
-    std::optional<uint32_t> compartment_id{};
 };
 
 /**
@@ -392,7 +384,7 @@ execute_connection_attempt(
  * - Loading eBPF modules and programs from object files
  * - Creating WFP filters if specified
  * - Retrieving policy maps (sock_addr and bind) — both per-module and legacy global
- * - Attaching eBPF programs to their respective attach points (with optional compartment_id)
+ * - Attaching eBPF programs to their respective attach points
  * - Processing dynamic attach/detach steps per test
  * - Applying per-module policy updates for multi-program scenarios
  * - Creating and managing client/server socket pairs
@@ -545,26 +537,18 @@ execute_connection_test(_In_ const connection_test_case& test_case)
     bool use_specific_family = is_listen_test || test_case.server_bind_address.has_value();
     socket_family_t server_family = use_specific_family ? (test_case.address_family == AF_INET ? IPv4 : IPv6) : Dual;
 
-    // Helper: attach a single program using its spec's attach_method and optional compartment_id.
+    // Helper: attach a single program using its spec's attach_method.
     auto attach_program = [](loaded_program& lp) {
         bpf_program* program = lp.program;
         if (lp.spec.attach_method == attach_method_t::bpf_prog_attach) {
-            // libbpf-compat path: second argument is compartment_id.
-            uint32_t compartment = lp.spec.compartment_id.value_or(0);
-            int rc = ::bpf_prog_attach(bpf_program__fd(program), compartment, lp.spec.attach_type, 0);
+            // libbpf-compat path: second argument is compartment_id (0 = wildcard).
+            int rc = ::bpf_prog_attach(bpf_program__fd(program), 0, lp.spec.attach_type, 0);
             SAFE_REQUIRE(rc == 0);
         } else {
-            // Native API path.
+            // Native API path: NULL attach parameter (wildcard / unspecified compartment).
             ebpf_attach_type_t attach_type_guid{};
             SAFE_REQUIRE(ebpf_get_ebpf_attach_type(lp.spec.attach_type, &attach_type_guid) == EBPF_SUCCESS);
-            if (lp.spec.compartment_id.has_value()) {
-                uint32_t compartment = lp.spec.compartment_id.value();
-                SAFE_REQUIRE(
-                    ebpf_program_attach(program, &attach_type_guid, &compartment, sizeof(compartment), nullptr) ==
-                    EBPF_SUCCESS);
-            } else {
-                SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
-            }
+            SAFE_REQUIRE(ebpf_program_attach(program, &attach_type_guid, nullptr, 0, nullptr) == EBPF_SUCCESS);
         }
         lp.attached = true;
     };
@@ -576,8 +560,7 @@ execute_connection_test(_In_ const connection_test_case& test_case)
         }
         // Use bpf_prog_detach2 uniformly — it works for both attach paths.
         // For ebpf_program_attach with NULL (wildcard), compartment 0 matches.
-        uint32_t compartment = lp.spec.compartment_id.value_or(0);
-        int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), compartment, lp.spec.attach_type);
+        int rc = ::bpf_prog_detach2(bpf_program__fd(lp.program), 0, lp.spec.attach_type);
         SAFE_REQUIRE(rc == 0);
         lp.attached = false;
     };
