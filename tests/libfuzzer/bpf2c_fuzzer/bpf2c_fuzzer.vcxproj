@@ -53,7 +53,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\elf_spec\generated;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -64,7 +64,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\elf_spec\generated;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -75,7 +75,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;NO_CATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\elf_spec\generated;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tools\bpf2c;$(SolutionDir)tests\libs\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
