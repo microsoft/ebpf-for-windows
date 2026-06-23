@@ -115,7 +115,13 @@
     <Rule Id="C28279" Action="Error" />
     <Rule Id="C28280" Action="Error" />
     <Rule Id="C28282" Action="Error" />
-    <Rule Id="C28285" Action="Error" />
+    <!-- C28285 is disabled because the Code Analysis engine (VS2026 / SDK 10.0.28000) reports a
+         spurious "syntax error in SAL_range" while parsing compiler-internal intrinsic declarations
+         such as _BitScanForward (SAL_range(0,(sizeof(Mask)*8)-1)). The diagnostic fires in
+         "predefined c++ types (compiler internal)", not in our source, so it is a non-actionable
+         false positive. Re-enable (Action="Error") once the analysis engine parses these annotations.
+      -->
+    <Rule Id="C28285" Action="Warning" />
     <Rule Id="C28286" Action="Error" />
     <Rule Id="C28287" Action="Error" />
     <Rule Id="C28288" Action="Error" />
