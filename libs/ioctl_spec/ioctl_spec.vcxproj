@@ -20,7 +20,7 @@
          $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)EbpfProtocol.3d
          popd
        </Command>
-      <Outputs>$(ProjectDir)generated\EbpfProtocol.h;$(ProjectDir)generated\EbpfProtocolWrapper.h;$(ProjectDir)generated\EverParse.h;$(ProjectDir)generated\EbpfProtocol.c;$(ProjectDir)generated\EbpfProtocolWrapper.c;%(Outputs)</Outputs>
+      <Outputs>$(ProjectDir)generated\EbpfProtocol.h;$(ProjectDir)generated\EbpfProtocolWrapper.h;$(ProjectDir)generated\EverParse.h;$(ProjectDir)generated\EverParseEndianness.h;$(ProjectDir)generated\EbpfProtocol.c;$(ProjectDir)generated\EbpfProtocolWrapper.c;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
