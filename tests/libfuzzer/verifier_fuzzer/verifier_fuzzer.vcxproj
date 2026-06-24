@@ -130,6 +130,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\..\end_to_end\test_helper.cpp" />
+    <ClCompile Include="..\..\libs\util\hook_provider.cpp" />
     <ClCompile Include="..\..\..\libs\shared\hash.cpp" />
     <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>
