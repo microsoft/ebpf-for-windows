@@ -2102,6 +2102,40 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     // Cleanup will be done in the scope_exit block above.
 }
 
+TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    uint32_t ring_count = ebpf_get_cpu_count();
+    REQUIRE(ring_count > 0);
+
+    // Verify out-of-range cpu_id is rejected.
+    uint32_t oob_index = ring_count; // First invalid index.
+    uint8_t* buffer = nullptr;
+    size_t consumer_offset = 0;
+    REQUIRE(ebpf_map_query_buffer(map.get(), oob_index, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+
+    ebpf_map_async_query_result_t async_query_result = {};
+    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, nullptr) == EBPF_INVALID_ARGUMENT);
+
+    REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
+
+    // Also test UINT32_MAX.
+    REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
+}
+
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
     NEGATIVE_TEST_PROLOG();
