@@ -2133,6 +2133,7 @@ TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
 
     // Also test UINT32_MAX.
     REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, nullptr) == EBPF_INVALID_ARGUMENT);
     REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
 }
 
