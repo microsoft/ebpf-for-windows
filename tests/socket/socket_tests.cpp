@@ -3398,6 +3398,16 @@ thread_function_allow_block_connection(
         count++;
     }
 
+    // Detach the program when exiting the thread.
+    result = bpf_prog_detach2(prog_fd, compartment_id, attach_type);
+    if (result != 0) {
+        int saved_errno = errno;
+        std::cerr << "ALLOW_BLOCK DETACH FAILED: thread=" << std::this_thread::get_id()
+                  << " compartment=" << compartment_id << " prog_fd=" << prog_fd
+                  << " attach_type=" << static_cast<int>(attach_type) << " result=" << result
+                  << " errno=" << saved_errno << std::endl;
+    }
+
     std::cout << "Thread (allow_block)" << std::this_thread::get_id() << " executed " << count << " times."
               << std::endl;
 }
