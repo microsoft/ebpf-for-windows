@@ -17,6 +17,7 @@
 #include <iomanip>
 #include <optional>
 #include <set>
+#include <thread>
 
 extern "C"
 {
@@ -2100,6 +2101,79 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     }
 
     // Cleanup will be done in the scope_exit block above.
+}
+
+TEST_CASE("ring_buffer_clear_wait_handle", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    // Create a wait event and set it on CPU 0.
+    _wait_event event;
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // Clear the wait handle and release the old event reference.
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0) == EBPF_SUCCESS);
+
+    // Set a new handle after clearing — verifies the clear left the ring in a clean state.
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0) == EBPF_SUCCESS);
+
+    // Clean up.
+    REQUIRE(ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0) == EBPF_SUCCESS);
+}
+
+TEST_CASE("ring_buffer_wait_handle_churn", "[execution_context][ring_buffer][stress]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    std::atomic<bool> stop{false};
+    constexpr int duration_ms = 1000;
+
+    // Producer writes records while another thread toggles the wait handle.
+    auto producer_thread = [&]() {
+        uint64_t value = 42;
+        while (!stop) {
+            (void)ebpf_ring_buffer_map_output(map.get(), reinterpret_cast<uint8_t*>(&value), sizeof(value));
+        }
+    };
+
+    auto handle_toggle_thread = [&]() {
+        while (!stop) {
+            _wait_event event;
+            (void)ebpf_map_set_wait_handle_internal(map.get(), 0, event.handle(), 0);
+            SwitchToThread();
+            (void)ebpf_map_set_wait_handle_internal(map.get(), 0, ebpf_handle_invalid, 0);
+        }
+    };
+
+    std::thread t1(producer_thread);
+    std::thread t2(handle_toggle_thread);
+
+    Sleep(duration_ms);
+    stop = true;
+
+    t1.join();
+    t2.join();
 }
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
