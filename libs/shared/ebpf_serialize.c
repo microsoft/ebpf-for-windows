@@ -15,7 +15,7 @@ typedef struct _ebpf_serialized_program_type_descriptor
 {
     size_t size;
     ebpf_extension_header_t header;
-    ebpf_ctx_descriptor_t context_descriptor;
+    ebpf_context_descriptor_t context_descriptor;
     GUID program_type;
     uint32_t bpf_prog_type;
     unsigned char is_privileged;
@@ -474,7 +474,7 @@ ebpf_deserialize_program_info(
     ebpf_program_info_t* local_program_info;
     const uint8_t* current;
     size_t buffer_left;
-    ebpf_ctx_descriptor_t* local_context_descriptor;
+    ebpf_context_descriptor_t* local_context_descriptor;
     ebpf_program_type_descriptor_t* local_program_type_descriptor;
     const ebpf_serialized_program_type_descriptor_t* serialized_program_type_descriptor;
     char* local_program_type_descriptor_name;
@@ -518,8 +518,8 @@ ebpf_deserialize_program_info(
 
     // Allocate and deserialize context_descriptor, if present.
     if (serialized_program_type_descriptor->context_descriptor.size != 0) {
-        local_context_descriptor =
-            (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        local_context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(
+            sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
         if (local_context_descriptor == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
