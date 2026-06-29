@@ -3635,9 +3635,9 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     union bpf_attr attr = {};
     attr.info.bpf_fd = map_fd;
     attr.info.info = (uintptr_t)&map_info;
-    attr.info.info_len = offsetof(map_info, key_size);
+    attr.info.info_len = offsetof(sys_bpf_map_info_t, key_size);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.info.info_len == offsetof(map_info, key_size));
+    REQUIRE(attr.info.info_len == offsetof(sys_bpf_map_info_t, key_size));
     REQUIRE(map_info.type == map_create.map_type);
     REQUIRE(map_info.id != 0);
     REQUIRE(map_info.key_size == 0);
@@ -3683,9 +3683,9 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     attr = {};
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;
-    attr.info.info_len = offsetof(program_info, tag);
+    attr.info.info_len = offsetof(sys_bpf_prog_info_t, tag);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.info.info_len == offsetof(program_info, tag));
+    REQUIRE(attr.info.info_len == offsetof(sys_bpf_prog_info_t, tag));
     REQUIRE(program_info.id != 0);
     REQUIRE(program_info.nr_map_ids == 0);
     REQUIRE(strnlen(program_info.name, sizeof(program_info.name)) == 0);

@@ -2598,6 +2598,12 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
     // Local tracking variables for consumer thread.
     std::atomic<bool> terminate_flag{false};
     std::atomic<uint64_t> total_polled_events{0};
+    // Records the first negative perf_buffer__poll() result seen by the consumer thread (0 == no error).
+    // Catch2's REQUIRE must not be called from a worker thread: its assertion/output-redirect machinery is
+    // not thread-safe before v3.9.0 and concurrent use trips an internal "redirect is already active"
+    // assertion (see catchorg/Catch2#2935). So the consumer only records the value and the main thread
+    // asserts it after the thread is joined.
+    std::atomic<int> consumer_poll_result{0};
 
     // Spawn consumer thread to poll perf buffer.
     std::thread consumer_thread([&]() {
@@ -2605,7 +2611,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         while (!terminate_flag.load() && std::chrono::steady_clock::now() < timeout_time) {
             int poll_result = perf_buffer__poll(pb, 100);
             // Poll returns 0 on timeout or event count on data; exact value depends on timing.
-            REQUIRE(poll_result >= 0);
+            // Do not REQUIRE here (worker thread); record the failure and let the main thread assert it.
+            if (poll_result < 0) {
+                consumer_poll_result.store(poll_result);
+                break;
+            }
             total_polled_events.fetch_add(poll_result);
         }
     });
@@ -2715,6 +2725,11 @@ TEST_CASE("perf_buffer_sync_callback_block", "[perf_buffer]")
         REQUIRE(phase_events + phase_lost == phase_written);
         REQUIRE(phase_polled == phase_events);
     }
+
+    // Stop and join the consumer thread, then validate its poll results on the main thread (see the note on
+    // consumer_poll_result above for why the check cannot run inside the consumer thread).
+    thread_cleanup.reset();
+    REQUIRE(consumer_poll_result.load() >= 0);
 }
 
 // Test that BPF_F_INDEX_MASK (explicit CPU index in flags) works for perf_event_output.
