@@ -86,6 +86,32 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         .data_size = sizeof(if_index),
     };
     test_client_context_t client_context = {};
+
+    // Restrict hook client attachment to only the attach types for the selected program type.
+    // This prevents cross-type context mismatches when different program types share a WFP layer
+    // (e.g., BPF_PROG_TYPE_BIND and BPF_PROG_TYPE_CGROUP_SOCK_ADDR both use ALE_RESOURCE_ASSIGNMENT_V4/V6).
+    switch (prog_type) {
+    case BPF_PROG_TYPE_BIND:
+        client_context.base.desired_attach_types = {BPF_ATTACH_TYPE_BIND};
+        break;
+    case BPF_PROG_TYPE_CGROUP_SOCK_ADDR:
+        client_context.base.desired_attach_types = {
+            BPF_CGROUP_INET4_CONNECT,
+            BPF_CGROUP_INET6_CONNECT,
+            BPF_CGROUP_INET4_RECV_ACCEPT,
+            BPF_CGROUP_INET6_RECV_ACCEPT,
+            BPF_CGROUP_INET4_CONNECT_AUTHORIZATION,
+            BPF_CGROUP_INET6_CONNECT_AUTHORIZATION,
+            BPF_CGROUP_INET4_BIND,
+            BPF_CGROUP_INET6_BIND};
+        break;
+    case BPF_PROG_TYPE_SOCK_OPS:
+        client_context.base.desired_attach_types = {BPF_CGROUP_SOCK_OPS};
+        break;
+    default:
+        break;
+    }
+
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
