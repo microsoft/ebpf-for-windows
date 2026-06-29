@@ -1,0 +1,8 @@
+*
+!.gitignore
+!Elf.c
+!Elf.h
+!ElfWrapper.c
+!ElfWrapper.h
+!EverParse.h
+!EverParseEndianness.h
