@@ -29,7 +29,7 @@ jobs:
       BUILD_CONFIGURATION: Release
       BUILD_PLATFORM: x64
 
-    runs-on: windows-2022
+    runs-on: windows-2025
 
     steps:
       # Check out the main repo.
