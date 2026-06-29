@@ -4,13 +4,18 @@
   SPDX-License-Identifier: MIT
 -->
 <packages>
-  <!-- Latest WDK, used for x64 builds (requires Visual Studio 2026 / the windows-2025 runner image).
+  <!-- Latest WDK, used for x64 builds under Visual Studio 2026 (the windows-2025 runner image).
        The $(WDKVersion) placeholder is substituted by scripts/Update-WdkVersion.ps1. -->
   <package id="Microsoft.Windows.SDK.CPP" version="$(WDKVersion)" targetFramework="native" />
   <package id="Microsoft.Windows.SDK.CPP.x64" version="$(WDKVersion)" targetFramework="native" />
   <package id="Microsoft.Windows.WDK.x64" version="$(WDKVersion)" targetFramework="native" />
-  <!-- ARM64/x86 stay on the last VS2022-compatible WDK until the windows-11-arm runner image ships VS2026. -->
+  <!-- Last VS2022-compatible WDK: used for ARM64/x86 builds, and for x64 builds under Visual Studio 2022.
+       The duplicate Microsoft.Windows.SDK.CPP / .x64 / WDK.x64 ids (also pinned above) are intentional:
+       NuGet restore keys on id+version and installs each into its own packages\ folder, and wdk.props
+       imports only the SDK.CPP.$(WDKVersion) set selected by the active Visual Studio version. -->
   <package id="Microsoft.Windows.SDK.CPP" version="10.0.26100.6584" targetFramework="native" />
+  <package id="Microsoft.Windows.SDK.CPP.x64" version="10.0.26100.6584" targetFramework="native" />
+  <package id="Microsoft.Windows.WDK.x64" version="10.0.26100.6584" targetFramework="native" />
   <package id="Microsoft.Windows.SDK.CPP.arm64" version="10.0.26100.6584" targetFramework="native" />
   <package id="Microsoft.Windows.SDK.CPP.x86" version="10.0.26100.6584" targetFramework="native" />
   <package id="Microsoft.Windows.WDK.ARM64" version="10.0.26100.6584" targetFramework="native" />
