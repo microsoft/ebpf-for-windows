@@ -29,7 +29,7 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
      {HELPER_FUNCTION_REALLOCATE_PACKET}}};
 
 // XDP program context descriptor
-static const ebpf_ctx_descriptor_t _ebpf_xdp_test_context_descriptor = {
+static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),

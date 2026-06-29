@@ -26,7 +26,7 @@ typedef struct _ebpf_program_section_info_with_count
 } ebpf_program_section_info_with_count_t;
 
 // XDP Test program information
-static const ebpf_ctx_descriptor_t _ebpf_xdp_test_context_descriptor = {
+static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
