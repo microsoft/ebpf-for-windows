@@ -1,6 +1,5 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "license": ["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
   "extends": [
     "config:recommended",
     "helpers:pinGitHubActionDigests"

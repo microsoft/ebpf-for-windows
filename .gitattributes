@@ -16,3 +16,17 @@
 
 # Mark generated corpus files as binary.
 **/corpus/**        -text
+
+# EverParse generated outputs have mixed line-ending requirements.
+/libs/ioctl_spec/generated/EbpfProtocol.c            text eol=lf
+/libs/ioctl_spec/generated/EbpfProtocol.h            text eol=lf
+/libs/ioctl_spec/generated/EbpfProtocolWrapper.c     text eol=crlf
+/libs/ioctl_spec/generated/EbpfProtocolWrapper.h     text eol=crlf
+/libs/ioctl_spec/generated/EverParse.h               text eol=crlf
+/libs/ioctl_spec/generated/EverParseEndianness.h     text eol=crlf
+/libs/elf_spec/generated/Elf.c                       text eol=lf
+/libs/elf_spec/generated/Elf.h                       text eol=lf
+/libs/elf_spec/generated/ElfWrapper.c                text eol=crlf
+/libs/elf_spec/generated/ElfWrapper.h                text eol=crlf
+/libs/elf_spec/generated/EverParse.h                 text eol=crlf
+/libs/elf_spec/generated/EverParseEndianness.h       text eol=crlf

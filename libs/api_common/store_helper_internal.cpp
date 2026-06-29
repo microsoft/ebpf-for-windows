@@ -143,7 +143,7 @@ _ebpf_store_load_program_type_descriptor(
     ebpf_result_t result = EBPF_SUCCESS;
     HKEY program_type_descriptor_key = nullptr;
     wchar_t* program_type_name = nullptr;
-    ebpf_ctx_descriptor_t* context_descriptor = nullptr;
+    ebpf_context_descriptor_t* context_descriptor = nullptr;
     uint32_t is_privileged = false;
     uint32_t bpf_program_type = 0;
     ebpf_program_type_descriptor_t* local_program_type_descriptor = nullptr;
@@ -198,7 +198,7 @@ _ebpf_store_load_program_type_descriptor(
 
     // Allocate and read context descriptor.
     context_descriptor =
-        (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -207,7 +207,7 @@ _ebpf_store_load_program_type_descriptor(
         program_type_descriptor_key,
         EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
         (uint8_t*)context_descriptor,
-        sizeof(ebpf_ctx_descriptor_t));
+        sizeof(ebpf_context_descriptor_t));
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

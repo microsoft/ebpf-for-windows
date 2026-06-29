@@ -1,0 +1,8 @@
+*
+!.gitignore
+!EbpfProtocol.c
+!EbpfProtocol.h
+!EbpfProtocolWrapper.c
+!EbpfProtocolWrapper.h
+!EverParse.h
+!EverParseEndianness.h
