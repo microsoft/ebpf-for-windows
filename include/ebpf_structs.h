@@ -198,6 +198,8 @@ enum bpf_prog_type
     BPF_PROG_TYPE_XDP,
 
     /** @brief Program type for handling socket bind operations.
+     * @deprecated Use BPF_PROG_TYPE_CGROUP_SOCK_ADDR with BPF_CGROUP_INET4_BIND /
+     * BPF_CGROUP_INET6_BIND instead.
      *
      * **eBPF program prototype:** \ref bind_hook_t
      *
@@ -299,6 +301,7 @@ enum bpf_attach_type
     BPF_XDP,
 
     /** @brief Attach type for handling socket bind operations.
+     * @deprecated Use BPF_CGROUP_INET4_BIND / BPF_CGROUP_INET6_BIND instead.
      *
      * **Program type:** \ref BPF_PROG_TYPE_BIND
      */

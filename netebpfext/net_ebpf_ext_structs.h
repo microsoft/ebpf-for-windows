@@ -128,6 +128,9 @@ typedef struct _net_ebpf_extension_hook_provider
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
+    bool deprecated;         ///< If true, this hook is deprecated and attach emits a warning trace.
+    _Field_z_ const char*
+        deprecation_message; ///< Human-readable deprecation/migration message (NULL if not deprecated).
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
     LIST_ENTRY cleanup_list_entry;      ///< List entry for cleanup.
