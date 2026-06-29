@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   everparse_validation:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 60
 
     steps:
