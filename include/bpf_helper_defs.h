@@ -564,7 +564,7 @@ EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
  *
  * @param[in] map A pointer to a BPF map of type devmap.
  * @param[in] key The key of the entry in the map to redirect to.
- * @param[in] flags Redirect flags.
+ * @param[in] flags Redirect flags.  The supported flags vary by program type.  See the documentation of each program type for details on which redirect flags are supported, if any.
  *
  * @returns XDP_REDIRECT on success, or XDP_ABORTED on failure.
  */
