@@ -36,6 +36,7 @@ jobs:
 
             - [ ] Ensure SPGO data is regenerated and added to the repo using performance test suite.
             - [ ] Follow instructions in [ReleaseProcess.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/ReleaseProcess.md).
+            - [ ] After publishing the release, update the regression tests to point to the release that is now N-1.
             - [ ] Sync the internal `undock` and follow the internal release instructions in `\.internal\docs\ReleaseEbpfRedistProcess.md`.
 
         with:
