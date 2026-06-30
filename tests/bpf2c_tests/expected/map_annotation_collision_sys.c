@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from ambiguous_array_map.o
+// This file was generated from map_annotation_collision.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table ambiguous_array_map##_metadata_table
+#define metadata_table map_annotation_collision##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -173,21 +173,21 @@ static map_entry_t _maps[] = {
     {
      {0, 0},
      {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_ARRAY, // Type of map.
-         4,                  // Size in bytes of a map key.
-         8,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
-         0,                  // Inner map index.
-         LIBBPF_PIN_NONE,    // Pinning type for the map.
-         13,                 // Identifier for a map template.
-         0,                  // The id of the inner map template.
+         BPF_MAP_TYPE_HASH, // Type of map.
+         4,                 // Size in bytes of a map key.
+         8,                 // Size in bytes of a map value.
+         16,                // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         LIBBPF_PIN_NONE,   // Pinning type for the map.
+         13,                // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
-     "map_a"},
+     "hash_map"},
     {
      {0, 0},
      {
@@ -199,13 +199,13 @@ static map_entry_t _maps[] = {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
          8,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
+         10,                 // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_NONE,    // Pinning type for the map.
-         15,                 // Identifier for a map template.
+         19,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "map_b"},
+     "array_map"},
 };
 #pragma data_seg(pop)
 
@@ -225,7 +225,7 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static helper_function_entry_t ambiguous_map_lookup_helpers[] = {
+static helper_function_entry_t map_annotation_collision_helpers[] = {
     {
      {1, 40, 40}, // Version header.
      1,
@@ -233,119 +233,176 @@ static helper_function_entry_t ambiguous_map_lookup_helpers[] = {
     },
 };
 
-static GUID ambiguous_map_lookup_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID ambiguous_map_lookup_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-static uint16_t ambiguous_map_lookup_maps[] = {
+// Forward references for local functions.
+static uint64_t
+lookup_hash_value(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
+
+static GUID map_annotation_collision_program_type_guid = {
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID map_annotation_collision_attach_type_guid = {
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static uint16_t map_annotation_collision_maps[] = {
     0,
     1,
 };
 
-#pragma code_seg(push, "bind")
+#pragma code_seg(push, "sample~1")
 static uint64_t
-ambiguous_map_lookup(void* context, const program_runtime_context_t* runtime_context)
-#line 30 "sample/ambiguous_array_map.c"
+map_annotation_collision(void* context, const program_runtime_context_t* runtime_context)
+#line 59 "sample/undocked/map_annotation_collision.c"
 {
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     // Prologue.
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r0 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r1 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r2 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r3 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r4 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r5 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r6 = 0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r10 = 0;
 
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     r1 = (uintptr_t)context;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
-#line 30 "sample/ambiguous_array_map.c"
-    r6 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
-#line 32 "sample/ambiguous_array_map.c"
-    WRITE_ONCE_32(r10, (uint32_t)r6, OFFSET(-4));
-    // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=16 imm=0
-#line 38 "sample/ambiguous_array_map.c"
-    READ_ONCE_64(r2, r1, OFFSET(16));
-    // EBPF_OP_AND64_IMM pc=3 dst=r2 src=r0 offset=0 imm=1
-#line 38 "sample/ambiguous_array_map.c"
-    r2 &= IMMEDIATE(1);
-    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
-#line 38 "sample/ambiguous_array_map.c"
-    r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_JEQ_IMM pc=6 dst=r2 src=r0 offset=2 imm=0
-#line 38 "sample/ambiguous_array_map.c"
-    if (r2 == IMMEDIATE(0)) {
-#line 38 "sample/ambiguous_array_map.c"
-        goto label_1;
-#line 38 "sample/ambiguous_array_map.c"
-    }
-    // EBPF_OP_LDDW pc=7 dst=r1 src=r1 offset=0 imm=1
-#line 38 "sample/ambiguous_array_map.c"
-    r1 = POINTER(runtime_context->map_data[0].address);
-label_1:
-    // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r10 offset=0 imm=0
-#line 38 "sample/ambiguous_array_map.c"
+    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
+#line 59 "sample/undocked/map_annotation_collision.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
+#line 63 "sample/undocked/map_annotation_collision.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
+#line 63 "sample/undocked/map_annotation_collision.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-4
-#line 38 "sample/ambiguous_array_map.c"
+    // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
+#line 63 "sample/undocked/map_annotation_collision.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/ambiguous_array_map.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-    // EBPF_OP_JEQ_IMM pc=12 dst=r0 src=r0 offset=1 imm=0
-#line 45 "sample/ambiguous_array_map.c"
-    if (r0 == IMMEDIATE(0)) {
-#line 45 "sample/ambiguous_array_map.c"
-        goto label_2;
-#line 45 "sample/ambiguous_array_map.c"
+    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
+#line 65 "sample/undocked/map_annotation_collision.c"
+    r1 = POINTER(runtime_context->map_data[1].address);
+    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
+#line 65 "sample/undocked/map_annotation_collision.c"
+    {
+#line 65 "sample/undocked/map_annotation_collision.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 65 "sample/undocked/map_annotation_collision.c"
+        if (_array_key < 10) {
+#line 65 "sample/undocked/map_annotation_collision.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 8);
+#line 65 "sample/undocked/map_annotation_collision.c"
+        } else {
+#line 65 "sample/undocked/map_annotation_collision.c"
+            r0 = 0;
+#line 65 "sample/undocked/map_annotation_collision.c"
+        }
+#line 65 "sample/undocked/map_annotation_collision.c"
     }
-    // EBPF_OP_LDXDW pc=13 dst=r6 src=r0 offset=0 imm=0
-#line 46 "sample/ambiguous_array_map.c"
-    READ_ONCE_64(r6, r0, OFFSET(0));
-label_2:
-    // EBPF_OP_MOV64_REG pc=14 dst=r0 src=r6 offset=0 imm=0
-#line 49 "sample/ambiguous_array_map.c"
-    r0 = r6;
-    // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
-#line 49 "sample/ambiguous_array_map.c"
+    // EBPF_OP_MOV64_REG pc=7 dst=r6 src=r0 offset=0 imm=0
+#line 65 "sample/undocked/map_annotation_collision.c"
+    r6 = r0;
+    // EBPF_OP_LDDW pc=8 dst=r0 src=r0 offset=0 imm=-1
+#line 65 "sample/undocked/map_annotation_collision.c"
+    r0 = (uint64_t)4294967295;
+    // EBPF_OP_JEQ_IMM pc=10 dst=r6 src=r0 offset=5 imm=0
+#line 66 "sample/undocked/map_annotation_collision.c"
+    if (r6 == IMMEDIATE(0)) {
+#line 66 "sample/undocked/map_annotation_collision.c"
+        goto label_1;
+#line 66 "sample/undocked/map_annotation_collision.c"
+    }
+    // EBPF_OP_LDXW pc=11 dst=r1 src=r10 offset=-4 imm=0
+#line 70 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_32(r1, r10, OFFSET(-4));
+    // EBPF_OP_CALL pc=12 dst=r0 src=r1 offset=0 imm=4
+#line 70 "sample/undocked/map_annotation_collision.c"
+    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    // EBPF_OP_MOV64_REG pc=13 dst=r1 src=r0 offset=0 imm=0
+#line 70 "sample/undocked/map_annotation_collision.c"
+    r1 = r0;
+    // EBPF_OP_LDXDW pc=14 dst=r0 src=r6 offset=0 imm=0
+#line 71 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_64(r0, r6, OFFSET(0));
+    // EBPF_OP_ADD64_REG pc=15 dst=r0 src=r1 offset=0 imm=0
+#line 71 "sample/undocked/map_annotation_collision.c"
+    r0 += r1;
+label_1:
+    // EBPF_OP_EXIT pc=16 dst=r0 src=r0 offset=0 imm=0
+#line 72 "sample/undocked/map_annotation_collision.c"
     return r0;
-#line 30 "sample/ambiguous_array_map.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+static uint64_t
+lookup_hash_value(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
+{
+    register uint64_t r0 = 0;
+
+    // EBPF_OP_STXW pc=0 dst=r10 src=r1 offset=-4 imm=0
+#line 48 "sample/undocked/map_annotation_collision.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=1 dst=r2 src=r10 offset=0 imm=0
+#line 48 "sample/undocked/map_annotation_collision.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=2 dst=r2 src=r0 offset=0 imm=-4
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r2 += IMMEDIATE(-4);
+    // EBPF_OP_LDDW pc=3 dst=r1 src=r1 offset=0 imm=1
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r1 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=1
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r0 offset=0 imm=0
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r1 = r0;
+    // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r0 = IMMEDIATE(0);
+    // EBPF_OP_JEQ_IMM pc=8 dst=r1 src=r0 offset=1 imm=0
+#line 51 "sample/undocked/map_annotation_collision.c"
+    if (r1 == IMMEDIATE(0)) {
+#line 51 "sample/undocked/map_annotation_collision.c"
+        goto label_1;
+#line 51 "sample/undocked/map_annotation_collision.c"
+    }
+    // EBPF_OP_LDXDW pc=9 dst=r0 src=r1 offset=0 imm=0
+#line 54 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_64(r0, r1, OFFSET(0));
+label_1:
+    // EBPF_OP_EXIT pc=10 dst=r0 src=r0 offset=0 imm=0
+#line 55 "sample/undocked/map_annotation_collision.c"
+    return r0;
+}
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
         0,
         {1, 144, 144}, // Version header.
-        ambiguous_map_lookup,
-        "bind",
-        "bind",
-        "ambiguous_map_lookup",
-        ambiguous_map_lookup_maps,
+        map_annotation_collision,
+        "sample~1",
+        "sample_ext",
+        "map_annotation_collision",
+        map_annotation_collision_maps,
         2,
-        ambiguous_map_lookup_helpers,
+        map_annotation_collision_helpers,
         1,
-        16,
-        &ambiguous_map_lookup_program_type_guid,
-        &ambiguous_map_lookup_attach_type_guid,
+        17,
+        &map_annotation_collision_program_type_guid,
+        &map_annotation_collision_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
@@ -372,7 +429,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t ambiguous_array_map_metadata_table = {
+metadata_table_t map_annotation_collision_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,
