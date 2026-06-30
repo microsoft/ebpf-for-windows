@@ -8,6 +8,7 @@
 #include "ebpf_structs.h"
 #include "elfio_wrapper.hpp"
 
+#include <deque>
 #include <fstream>
 #include <map>
 #include <optional>
@@ -561,9 +562,14 @@ class bpf_code_generator
     // Built by build_global_helper_index() before instruction encoding.
     std::vector<std::pair<unsafe_string, int32_t>> global_helpers_ordered;
 
-    // Map from instruction offset to verifier-provided map annotation.
-    // Annotations are scoped to the program named by _map_annotations_program_name;
-    // subprograms must not use them because their local offsets can collide.
-    std::unordered_map<uint32_t, ebpf_verifier_map_info_t> _map_annotations;
-    unsafe_string _map_annotations_program_name;
+    // Per-entry-program map from instruction offset to verifier-provided map annotation.
+    // Keyed by program name so that all entry programs retain their annotations across
+    // the deferred encode_instructions() call in build_global_helper_index().
+    // Subprograms are never present here (bpf2c.cpp skips .text subprograms when calling
+    // set_map_annotations), so their local offsets can never collide with entry annotations.
+    std::map<unsafe_string, std::unordered_map<uint32_t, ebpf_verifier_map_info_t>> _program_map_annotations;
+
+    // Owns copied map names for verifier annotations so ebpf_verifier_map_info_t::map_name
+    // pointers remain valid after verifier TLS data is updated by subsequent program verifies.
+    std::map<unsafe_string, std::deque<std::string>> _program_map_annotation_names;
 };

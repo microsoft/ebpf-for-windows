@@ -89,6 +89,16 @@ static const std::set<std::string> _callee_register_args = {
     "r10",
 };
 
+static bool
+_map_annotation_trace_enabled()
+{
+    static const bool enabled = []() {
+        char value[2] = {0};
+        return GetEnvironmentVariableA("BPF2C_TRACE_MAP_ANNOTATIONS", value, sizeof(value)) > 0;
+    }();
+    return enabled;
+}
+
 enum class AluOperations
 {
     Add,
@@ -371,11 +381,29 @@ void
 bpf_code_generator::set_map_annotations(
     const unsafe_string& program_name, _In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
 {
-    _map_annotations.clear();
-    _map_annotations_program_name = program_name;
+    auto& entry = _program_map_annotations[program_name];
+    auto& map_name_storage = _program_map_annotation_names[program_name];
+    entry.clear();
+    map_name_storage.clear();
+    if (_map_annotation_trace_enabled()) {
+        std::cerr << "[bpf2c][map-ann] program='" << program_name.raw() << "' annotation_count=" << count << std::endl;
+    }
     if (annotations != nullptr) {
         for (size_t i = 0; i < count; i++) {
-            _map_annotations[annotations[i].instruction_offset] = annotations[i];
+            ebpf_verifier_map_info_t annotation_copy = annotations[i];
+            if (annotations[i].map_name != nullptr) {
+                map_name_storage.emplace_back(annotations[i].map_name);
+                annotation_copy.map_name = map_name_storage.back().c_str();
+            }
+            entry[annotations[i].instruction_offset] = annotation_copy;
+            if (_map_annotation_trace_enabled()) {
+                std::cerr << "[bpf2c][map-ann]  pc=" << annotations[i].instruction_offset
+                          << " helper_id=" << annotations[i].helper_id << " map_type=" << annotations[i].map_type
+                          << " is_inner_template=" << (annotations[i].is_inner_map_template ? "true" : "false")
+                          << " map_name='"
+                          << ((annotations[i].map_name != nullptr) ? annotations[i].map_name : "<null>") << "'"
+                          << std::endl;
+            }
         }
     }
 }
@@ -994,8 +1022,9 @@ bpf_code_generator::build_global_helper_index()
         global_helpers_ordered.clear();
         for (auto& [prog_name, program] : programs) {
             if (program.output_instructions.size() > 0) {
+                auto ann_it = _program_map_annotations.find(prog_name);
                 const auto& annotations =
-                    (prog_name == _map_annotations_program_name) ? _map_annotations : empty_annotations;
+                    (ann_it != _program_map_annotations.end()) ? ann_it->second : empty_annotations;
                 program.encode_instructions(map_definitions, global_variable_sections, annotations);
             }
         }
@@ -1034,8 +1063,8 @@ bpf_code_generator::build_global_helper_index()
     // Now encode instructions for all programs (deferred from generate()).
     for (auto& [prog_name, program] : programs) {
         if (program.output_instructions.size() > 0) {
-            const auto& annotations =
-                (prog_name == _map_annotations_program_name) ? _map_annotations : empty_annotations;
+            auto ann_it = _program_map_annotations.find(prog_name);
+            const auto& annotations = (ann_it != _program_map_annotations.end()) ? ann_it->second : empty_annotations;
             program.encode_instructions(map_definitions, global_variable_sections, annotations);
         }
     }
@@ -1773,6 +1802,30 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                             output.lines.push_back(INDENT "}");
                             output.lines.push_back("}");
                             inlined = true;
+                            if (_map_annotation_trace_enabled()) {
+                                std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                          << "' pc=" << output.instruction_offset << " map='" << ann.map_name
+                                          << "' map_index=" << map_it->second.index << " inlined=true" << std::endl;
+                            }
+                        } else if (_map_annotation_trace_enabled()) {
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset << " map='" << ann_it->second.map_name
+                                      << "' inlined=false reason=map_definition_not_found" << std::endl;
+                        }
+                    } else if (_map_annotation_trace_enabled()) {
+                        if (ann_it == map_annotations.end()) {
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset
+                                      << " inlined=false reason=no_annotation_for_callsite" << std::endl;
+                        } else {
+                            const auto& ann = ann_it->second;
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset
+                                      << " inlined=false reason=annotation_not_optimizable"
+                                      << " helper_id=" << ann.helper_id << " map_type=" << ann.map_type
+                                      << " is_inner_template=" << (ann.is_inner_map_template ? "true" : "false")
+                                      << " map_name='" << ((ann.map_name != nullptr) ? ann.map_name : "<null>") << "'"
+                                      << std::endl;
                         }
                     }
                 }

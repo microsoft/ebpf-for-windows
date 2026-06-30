@@ -255,6 +255,10 @@ ebpf_verify_program(
 
                 // Use the verifier's abstract domain to query r1's map identity.
                 const prevail::EbpfDomain& pre = inv_pair.pre;
+                if (pre.is_bottom()) {
+                    continue;
+                }
+
                 int32_t start_fd = 0, end_fd = 0;
                 if (!pre.get_map_fd_range(prevail::Reg{1}, &start_fd, &end_fd) || start_fd != end_fd) {
                     continue; // Ambiguous map — skip annotation.
