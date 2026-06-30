@@ -562,11 +562,14 @@ EBPF_HELPER(int64_t, bpf_get_current_thread_create_time, ());
 /**
  * @brief Redirect the packet to the endpoint referenced by the map and key.
  *
- * @param[in] map A pointer to a BPF map of type devmap.
+ * @param[in] map A pointer to a BPF map. Valid map type varies by the program type. See documentation of each program
+ * type for details on which map types are supported.
  * @param[in] key The key of the entry in the map to redirect to.
- * @param[in] flags Redirect flags.  The supported flags vary by program type.  See the documentation of each program type for details on which redirect flags are supported, if any.
+ * @param[in] flags Redirect flags. The supported flags vary by program type. See the documentation of each program type
+ * for details on which redirect flags are supported, if any.
  *
- * @returns XDP_REDIRECT on success, or XDP_ABORTED on failure.
+ * @returns specific action code depending on the program type on success, or a drop/aborted action code in case of
+ * failure.
  */
 EBPF_HELPER(intptr_t, bpf_redirect_map, (void* map, uint64_t key, uint64_t flags));
 #ifndef __doxygen

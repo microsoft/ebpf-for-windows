@@ -250,6 +250,12 @@ DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTIO
 // Load test_sample_ebpf with providing expected program type.
 DECLARE_LOAD_TEST_CASE("test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
 
+// Load test_sample_redirect_map (uses bpf_redirect_map global virtual helper).
+DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE(
+    "test_sample_redirect_map.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_INTERPRET, INTERPRET_LOAD_RESULT);
+DECLARE_LOAD_TEST_CASE("test_sample_redirect_map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, 0);
+
 // Load bindmonitor (JIT) without providing expected program type.
 DECLARE_LOAD_TEST_CASE("bindmonitor.o", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_JIT, JIT_LOAD_RESULT);
 

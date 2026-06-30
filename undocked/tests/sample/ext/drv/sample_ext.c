@@ -915,14 +915,15 @@ _sample_get_pid_tgid()
 }
 
 // Sample implementation of the global virtual bpf_redirect_map helper.
+// Returns 1 on success, or -1 on failure.
 static intptr_t
 _sample_redirect_map(_In_ const void* map, uint64_t key, uint64_t flags)
 {
     UNREFERENCED_PARAMETER(map);
     UNREFERENCED_PARAMETER(key);
     UNREFERENCED_PARAMETER(flags);
-    // Return XDP_REDIRECT (4) to indicate success.
-    return 4;
+
+    return 1;
 }
 
 // Helper Function Definitions.
