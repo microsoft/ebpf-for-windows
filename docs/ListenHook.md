@@ -63,6 +63,7 @@ while being implemented via the Windows Filtering Platform (WFP) ALE Authorizati
 This design adds new listen attach types to the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program type, following the same pattern used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT`
+- `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND` (see [BindHook.md](BindHook.md))
 
 Key considerations:
 - Reusing the existing program type and context structure provides consistency and reduces implementation complexity
@@ -79,6 +80,7 @@ The listen hook extends the existing `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program ty
 The listen hook reuses the existing **BPF_PROG_TYPE_CGROUP_SOCK_ADDR** program type, which is already used for:
 - `BPF_CGROUP_INET4_CONNECT` / `BPF_CGROUP_INET6_CONNECT`
 - `BPF_CGROUP_INET4_RECV_ACCEPT` / `BPF_CGROUP_INET6_RECV_ACCEPT`
+- `BPF_CGROUP_INET4_BIND` / `BPF_CGROUP_INET6_BIND`
 
 This provides consistency with existing socket address hooks and allows programs to share helper functions and infrastructure.
 
@@ -226,9 +228,12 @@ The following WFP fields from the ALE_AUTH_LISTEN layers are made available to e
 |---------------------|-------------|---------------|
 | FWPM_CONDITION_IP_LOCAL_ADDRESS | Local IP address | msg_src_ip4/msg_src_ip6 and user_ip4/user_ip6 |
 | FWPM_CONDITION_IP_LOCAL_PORT | Local port | msg_src_port and user_port |
-| FWPM_CONDITION_IP_PROTOCOL | IP protocol | protocol |
+| *(not available)* | IP protocol | protocol (hardcoded to `IPPROTO_TCP`) |
 | FWPM_CONDITION_COMPARTMENT_ID | Compartment ID | compartment_id |
 | FWPM_CONDITION_IP_LOCAL_INTERFACE | Interface LUID | interface_luid |
+
+> **Note:** The WFP ALE_AUTH_LISTEN layers do not expose an `IP_PROTOCOL` field.
+> Since listen operations are TCP-only, the `protocol` field is hardcoded to `IPPROTO_TCP`.
 
 Process ID can be obtained via the `bpf_get_current_pid_tgid()` helper function.
 
@@ -242,8 +247,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_listen_filter_parameter
     {&FWPM_LAYER_ALE_AUTH_LISTEN_V4,
      NULL, // Default sublayer
      &EBPF_HOOK_ALE_AUTH_LISTEN_V4_CALLOUT,
-     L"net eBPF listen hook",
-     L"net eBPF listen hook WFP filter"}
+     L"net eBPF sock_addr listen hook",
+     L"net eBPF sock_addr listen hook WFP filter"}
 };
 
 // IPv6 Listen Hook Filter Configuration
@@ -251,8 +256,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_listen_filter_parameter
     {&FWPM_LAYER_ALE_AUTH_LISTEN_V6,
      NULL, // Default sublayer
      &EBPF_HOOK_ALE_AUTH_LISTEN_V6_CALLOUT,
-     L"net eBPF listen hook",
-     L"net eBPF listen hook WFP filter"}
+     L"net eBPF sock_addr listen hook",
+     L"net eBPF sock_addr listen hook WFP filter"}
 };
 ```
 

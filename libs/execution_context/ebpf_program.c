@@ -155,7 +155,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
  */
 void
 ebpf_program_set_header_context_descriptor(
-    _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context)
+    _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context)
 {
     // slot [1] contains the context_descriptor for the program.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
@@ -175,10 +175,10 @@ ebpf_program_set_header_context_descriptor(
  */
 void
 ebpf_program_get_header_context_descriptor(
-    _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor)
+    _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor)
 {
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
-    *context_descriptor = (ebpf_ctx_descriptor_t*)header->context_header[1];
+    *context_descriptor = (ebpf_context_descriptor_t*)header->context_header[1];
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
@@ -215,7 +215,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     _Out_ size_t* hash_length);
 
 static bool
-_ebpf_program_match_provider_data_module_id(_In_ const PNPI_MODULEID npi_module_id, _In_ const GUID* expected_module_id)
+_ebpf_program_match_provider_data_module_id(_In_ PNPI_MODULEID npi_module_id, _In_ const GUID* expected_module_id)
 {
     bool match = false;
     // Verify the NPI module ID is a GUID.
@@ -247,7 +247,7 @@ enum ebpf_program_info_provider_type
 static bool
 _ebpf_program_verify_provider_program_data(
     _In_ enum ebpf_program_info_provider_type provider_type,
-    _In_ const PNPI_MODULEID npi_module_id,
+    _In_ PNPI_MODULEID npi_module_id,
     _In_opt_ const ebpf_program_data_t* program_data)
 {
     bool program_data_valid = false;
@@ -263,7 +263,51 @@ _ebpf_program_verify_provider_program_data(
     }
 
     // Perform validation of the program data.
-    if (!is_general_helper_program_data) {
+    if (is_general_helper_program_data) {
+        const ebpf_program_info_t* program_info = program_data->program_info;
+        uint32_t count_of_global_helpers = 0;
+
+        if (program_info == NULL) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "The general helper program information provider data is missing program info.",
+                &npi_module_id->Guid);
+            goto Done;
+        }
+
+        count_of_global_helpers = program_info->count_of_global_helpers;
+        if (!ebpf_validate_helper_function_prototype_array(
+                program_info->global_helper_prototype, count_of_global_helpers)) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "The general helper program information provider data has invalid helper prototypes.",
+                &npi_module_id->Guid);
+            goto Done;
+        }
+
+        if (count_of_global_helpers > 0) {
+            if (program_data->global_helper_function_addresses == NULL) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "The general helper program information provider data is missing helper addresses.",
+                    &npi_module_id->Guid);
+                goto Done;
+            }
+
+            if ((program_data->global_helper_function_addresses->helper_function_address == NULL) ||
+                (program_data->global_helper_function_addresses->helper_function_count != count_of_global_helpers)) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_PROGRAM,
+                    "The general helper program information provider data has inconsistent helper addresses.",
+                    &npi_module_id->Guid);
+                goto Done;
+            }
+        }
+    } else {
         if (!ebpf_validate_program_data(program_data)) {
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -310,6 +354,14 @@ Done:
     return program_data_valid;
 }
 
+bool
+ebpf_program_is_valid_general_helper_provider_data(
+    _In_ PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data)
+{
+    return _ebpf_program_verify_provider_program_data(
+        EBPF_PROGRAM_INFO_PROVIDER_TYPE_GENERAL_HELPER, npi_module_id, program_data);
+}
+
 static NTSTATUS
 _ebpf_program_general_program_information_attach_provider(
     _In_ HANDLE nmr_binding_handle,
@@ -354,7 +406,6 @@ _ebpf_program_general_program_information_attach_provider(
     }
 
     program->general_helper_program_data = program_data;
-
     program->global_helper_function_count = program_data->global_helper_function_addresses->helper_function_count;
 
     ebpf_lock_unlock(&program->lock, state);
@@ -569,7 +620,13 @@ _ebpf_program_type_specific_program_information_attach_provider(
         state = ebpf_lock_lock(&program->lock);
         lock_held = true;
 
-        program->general_helper_program_data = NULL;
+        // Roll back the program state that was set before the NmrClientAttachProvider call.
+        // Reclaim extension_program_data so it gets freed at Done.
+        extension_program_data = program->extension_program_data;
+        program->extension_program_data = NULL;
+        program->program_type_specific_helper_function_count = 0;
+        program->bpf_prog_type = BPF_PROG_TYPE_UNSPEC;
+
         ebpf_lock_unlock(&program->lock, state);
         lock_held = false;
         goto Done;
@@ -1586,7 +1643,7 @@ ebpf_program_invoke(
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
     // Set context descriptor pointer in context header.
-    const ebpf_ctx_descriptor_t* context_descriptor =
+    const ebpf_context_descriptor_t* context_descriptor =
         program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, context);
 
@@ -2507,7 +2564,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(&execution_context_state, program_context);
     // Set context descriptor pointer in context header.
-    const ebpf_ctx_descriptor_t* context_descriptor =
+    const ebpf_context_descriptor_t* context_descriptor =
         context->program_data->program_info->program_type_descriptor->context_descriptor;
     ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
 
@@ -2766,7 +2823,7 @@ void
 ebpf_program_get_context_data(
     _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end)
 {
-    ebpf_ctx_descriptor_t* context_descriptor;
+    ebpf_context_descriptor_t* context_descriptor;
     ebpf_program_get_header_context_descriptor(program_context, &context_descriptor);
     if (context_descriptor->data < 0 || context_descriptor->end < 0) {
         *data_start = NULL;

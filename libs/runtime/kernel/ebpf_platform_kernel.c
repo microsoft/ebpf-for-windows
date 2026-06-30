@@ -372,6 +372,7 @@ ebpf_access_check(
     }
 
     SeUnlockSubjectContext(&subject_context);
+    SeReleaseSubjectContext(&subject_context);
     return result;
 }
 
@@ -411,6 +412,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     if (access_token == NULL) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "SeQuerySubjectContextToken failed");
 
+        SeReleaseSubjectContext(&context);
         return EBPF_FAILED;
     }
 
@@ -419,11 +421,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, SeQueryAuthenticationIdToken, status);
 
+        SeReleaseSubjectContext(&context);
         return EBPF_FAILED;
     }
 
     *authentication_id = *(uint64_t*)&local_authentication_id;
 
+    SeReleaseSubjectContext(&context);
     return EBPF_SUCCESS;
 }
 
