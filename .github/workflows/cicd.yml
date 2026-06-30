@@ -219,7 +219,7 @@ jobs:
       version: ${{ steps.read_version.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - name: Read BPF conformance version
         id: read_version
         run: echo "version=$(cat .github/bpf-conformance-version.txt)" >> $GITHUB_OUTPUT
