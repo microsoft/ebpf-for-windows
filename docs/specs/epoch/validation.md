@@ -1,7 +1,7 @@
 # Epoch Subsystem Validation
 
 ## 1. Overview
-- [KNOWN] This validation draft is a **target validation plan**: it maps the extracted requirements to both existing tests and planned tests that are not yet implemented in the current scoped codebase. Evidence: user clarification on 2026-06-30; existing test assets in `libs\runtime\unit\platform_unit_test.cpp:634-1244`, `tests\performance\platform.cpp:8-69`.
+- [KNOWN] This validation draft is a **target validation plan**: it maps the extracted requirements to both existing tests and planned tests that are not yet implemented in the current scoped codebase. Evidence: the implemented/planned split in `docs\specs\epoch\validation.md:17-27,79-119`; existing test assets in `libs\runtime\unit\platform_unit_test.cpp:634-1244`, `tests\performance\platform.cpp:8-69`.
 - [KNOWN] The current implemented assets are strongest for deferred-reclamation safety and weaker for lifecycle, cancellation, nested entry/exit, cross-CPU exit, and extension-facing contract enforcement. Evidence: implemented test coverage in `libs\runtime\unit\platform_unit_test.cpp:634-1244` versus API surface in `libs\runtime\ebpf_epoch.h:23-136` and extension contract in `include\ebpf_extension.h:455-489`.
 
 ## 2. Scope of Validation
@@ -126,8 +126,8 @@
 
 ## 7. Pass/Fail Criteria
 - [KNOWN] Unit, regression, and stress tests pass when their `REQUIRE` assertions succeed and no hazard/`thread_error` flags are set. Evidence: `libs\runtime\unit\platform_unit_test.cpp:738-739,965,976,1242-1243`.
-- [KNOWN] Planned test cases remain part of the validation baseline even when they are not yet implemented; their implementation status must be tracked separately from requirement-to-validation traceability. Evidence: user clarification on 2026-06-30.
+- [KNOWN] Planned test cases remain part of the validation baseline even when they are not yet implemented; their implementation status must be tracked separately from requirement-to-validation traceability. Evidence: `docs\specs\epoch\validation.md:17-27,79-119`.
 - [KNOWN] No overall numeric performance acceptance threshold is defined in the scoped performance assets. Evidence: `tests\performance\platform.cpp:8-31`.
 
 ## 8. Revision History
-- [KNOWN] Version 0.1 — 2026-06-30 — Initial validation extraction from runtime unit tests and scoped performance probes.
+- [KNOWN] Version 0.2 — 2026-06-30 — Reissued with repository-backed target-plan rationale and implementation-status traceability.

@@ -17,12 +17,12 @@
 - [KNOWN] **Boundary**: extension map providers consume a narrowed epoch contract through `ebpf_base_map_client_dispatch_table_t`. Evidence: `include\ebpf_extension.h:455-489`.
 
 ## 4. Detailed Design
-- [KNOWN] **Entry/exit path**: `ebpf_epoch_enter` raises IRQL if needed, captures CPU and published epoch, links the state into the current CPU list, then restores IRQL; `ebpf_epoch_exit` removes the state, arms reclamation if needed, and opportunistically flushes the CPU work queue. Evidence: `libs\runtime\ebpf_epoch.c:357-423`.
+- [KNOWN] **Entry/exit path**: `ebpf_epoch_enter` raises IRQL if needed, captures CPU and published epoch, links the state into the current CPU list, then restores IRQL; `ebpf_epoch_exit` removes the state, arms reclamation if needed, and opportunistically flushes the CPU work queue. The extension-facing epoch contract treats these operations as re-entrant when callers use properly paired state objects for nested entry/exit scopes. Evidence: `libs\runtime\ebpf_epoch.c:357-423`, `include\ebpf_extension.h:459-462`.
 - [KNOWN] **Cross-CPU exit path**: if the current CPU differs from the owner CPU, exit sends `EXIT_EPOCH` to the owner CPU and lets the owner perform the actual list removal. Evidence: `libs\runtime\ebpf_epoch.c:383-411,897-916`.
 - [KNOWN] **Retirement path**: epoch-managed frees and scheduled work items pass through `_ebpf_epoch_insert_in_free_list`, which stamps `freed_epoch` as `max(published_epoch, local_epoch)` before queueing to the local CPU free list. Evidence: `libs\runtime\ebpf_epoch.c:468-501,533-537,679-718`.
 - [KNOWN] **Epoch computation path**: a timer DPC on CPU 0 starts a `PROPOSE_RELEASE_EPOCH` cycle, CPU 0 increments the published epoch, each CPU folds its local minimum reader epoch into the proposal, and a commit pass sets `released_epoch = proposed_release_epoch - 1` on every CPU before reclamation. Evidence: `libs\runtime\ebpf_epoch.c:734-759,782-868`, `docs\EpochBasedMemoryManagement.md:106-151`.
 - [KNOWN] **Synchronization path**: `ebpf_epoch_synchronize` inserts a stack-allocated synchronization record into epoch retirement state, forces a propose cycle, and waits until reclamation signals the event. Evidence: `libs\runtime\ebpf_epoch.c:555-575`.
-- [KNOWN] **Work-item path**: allocating a work item acquires rundown protection and creates a preemptible worker wrapper; when reclamation makes the item eligible, the subsystem queues the worker, which invokes the callback and releases rundown protection. Evidence: `libs\runtime\ebpf_epoch.c:504-553,612-615,1056-1067`.
+- [KNOWN] **Work-item path**: allocating a work item acquires rundown protection and creates a preemptible worker wrapper; when reclamation makes the item eligible, the subsystem queues the worker, which invokes the callback and releases rundown protection. Callbacks run outside any epoch by default, so callbacks that need epoch-managed access must explicitly enter and exit an epoch. Evidence: `libs\runtime\ebpf_epoch.c:504-553,612-615,1056-1067`, `docs\EpochBasedMemoryManagement.md:173-178`.
 - [KNOWN] **Shutdown path**: termination first broadcasts rundown-in-progress, cancels the timer, flushes DPCs, drains all free lists with `MAXINT64`, destroys work queues, then waits for outstanding work items. Evidence: `libs\runtime\ebpf_epoch.c:313-350`.
 
 ## 5. Tradeoff Analysis
@@ -41,7 +41,7 @@
 - [KNOWN] Performance tests measure epoch entry/exit and entry/allocate/free/exit paths but do not define thresholds in the scoped sources. Evidence: `tests\performance\platform.cpp:8-31`.
 
 ## 8. Open Questions
-- [KNOWN] **OQ-003**: None identified.
+- [KNOWN] None identified.
 
 ## 9. Revision History
-- [KNOWN] Version 0.1 — 2026-06-30 — Initial design extraction from epoch implementation, docs, and tests.
+- [KNOWN] Version 0.2 — 2026-06-30 — Reissued with explicit nested entry/exit and callback-context design constraints.

@@ -26,11 +26,11 @@
 
 - [KNOWN] **REQ-EPOCH-002**: The subsystem MUST let callers mark an epoch-protected region by entering with caller-supplied `ebpf_epoch_state_t` storage, recording the current CPU and published epoch on entry, removing that state on exit, and supporting properly paired nested entry/exit calls.  
   **Confidence**: High.  
-  **Evidence**: `libs\runtime\ebpf_epoch.h:40-51`, `libs\runtime\ebpf_epoch.c:357-423`, `docs\EpochBasedMemoryManagement.md:61-79`, `include\ebpf_extension.h:459-462`, user clarification on 2026-06-30.  
+  **Evidence**: `libs\runtime\ebpf_epoch.h:40-51`, `libs\runtime\ebpf_epoch.c:357-423`, `docs\EpochBasedMemoryManagement.md:61-79`, `include\ebpf_extension.h:459-462`.  
   **Acceptance criteria**:  
   - [INFERRED] AC-1: Entry records a CPU identifier and epoch value into the supplied state object.  
   - [INFERRED] AC-2: Exit removes the same state from the owning CPU’s participant list before returning.
-  - [KNOWN] AC-3: Nested entry/exit is valid when each entry uses paired state and exits in matching pairs. Evidence: `include\ebpf_extension.h:459-462`, user clarification on 2026-06-30.
+  - [KNOWN] AC-3: Nested entry/exit is valid when each entry uses paired state and exits in matching pairs. Evidence: `include\ebpf_extension.h:459-462`.
 
 - [KNOWN] **REQ-EPOCH-003**: The subsystem MUST defer reclamation of epoch-managed allocations until the release epoch has advanced far enough that active readers cannot still observe the retired object.  
   **Confidence**: High.  
@@ -56,13 +56,13 @@
 
 - [KNOWN] **REQ-EPOCH-006**: The subsystem MUST support deferred work items that can be allocated, either scheduled or canceled, invoked only after the item’s retirement becomes reclaimable, and treated as running outside any epoch unless the callback explicitly enters one.  
   **Confidence**: High.  
-  **Evidence**: `libs\runtime\ebpf_epoch.h:98-126`, `libs\runtime\ebpf_epoch.c:504-553,612-615,1056-1067`, `docs\EpochBasedMemoryManagement.md:154-178`, user clarification on 2026-06-30.  
+  **Evidence**: `libs\runtime\ebpf_epoch.h:98-126`, `libs\runtime\ebpf_epoch.c:504-553,612-615,1056-1067`, `docs\EpochBasedMemoryManagement.md:154-178`.  
   **Acceptance criteria**:  
   - [INFERRED] AC-1: Allocation acquires rundown protection and creates a preemptible work item.  
   - [INFERRED] AC-2: Scheduling retires the work item through the epoch free list.  
   - [INFERRED] AC-3: Cancellation frees the work item without invoking its callback.  
   - [KNOWN] AC-4: Scheduled callbacks do not run while a reader protected by a newer epoch remains active. Evidence: `libs\runtime\unit\platform_unit_test.cpp:824-839,949-977,1125-1244`.
-  - [KNOWN] AC-5: Callbacks that need epoch-managed access enter/exit an epoch explicitly rather than relying on implicit callback protection. Evidence: `docs\EpochBasedMemoryManagement.md:173-178`, user clarification on 2026-06-30.
+  - [KNOWN] AC-5: Callbacks that need epoch-managed access enter/exit an epoch explicitly rather than relying on implicit callback protection. Evidence: `docs\EpochBasedMemoryManagement.md:173-178`.
 
 - [KNOWN] **REQ-EPOCH-007**: The subsystem MUST handle the case where a caller exits an epoch on a different CPU than it entered by forwarding the removal to the owning CPU when the original entry occurred below `DISPATCH_LEVEL`.  
   **Confidence**: High.  
@@ -80,7 +80,7 @@
 
 - [KNOWN] **REQ-EPOCH-009**: The subsystem MUST provide a supported per-CPU diagnostic query that reports whether a CPU’s epoch free list is empty.  
   **Confidence**: High.  
-  **Evidence**: `libs\runtime\ebpf_epoch.h:128-136`, `libs\runtime\ebpf_epoch.c:577-588,949-965`, `libs\runtime\unit\platform_unit_test.cpp:690-740`, user clarification on 2026-06-30.
+  **Evidence**: `libs\runtime\ebpf_epoch.h:128-136`, `libs\runtime\ebpf_epoch.c:577-588,949-965`, `libs\runtime\unit\platform_unit_test.cpp:690-740`.
   **Acceptance criteria**:  
   - [KNOWN] AC-1: The query returns `true` only when the target CPU’s free list is empty. Evidence: `libs\runtime\ebpf_epoch.c:959-965`.  
   - [KNOWN] AC-2: The stale-item test can poll both CPUs until both free lists drain. Evidence: `libs\runtime\unit\platform_unit_test.cpp:732-739`.
@@ -101,4 +101,4 @@
 - [KNOWN] **RISK-004**: The cancellation path for epoch work items is specified and implemented but lacks subsystem-scoped validation in the current test set. Evidence: `libs\runtime\ebpf_epoch.c:540-553`; no matching epoch test in `libs\runtime\unit\platform_unit_test.cpp:634-1244`.
 
 ## 8. Revision History
-- [KNOWN] Version 0.1 — 2026-06-30 — Initial extraction from code, docs, and tests.
+- [KNOWN] Version 0.2 — 2026-06-30 — Reissued with repository-backed requirement evidence and self-contained traceability.
