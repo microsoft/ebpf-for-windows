@@ -16,7 +16,7 @@ _single_instance_hook::_single_instance_hook(
     _provider_characteristics.Length = sizeof(_provider_characteristics);
     _provider_characteristics.ProviderAttachClient = (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback;
     _provider_characteristics.ProviderDetachClient = (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback;
-    _provider_characteristics.ProviderCleanupBindingContext = NULL;
+    _provider_characteristics.ProviderCleanupBindingContext = nullptr;
     _provider_characteristics.ProviderRegistrationInstance.Size = sizeof(NPI_REGISTRATION_INSTANCE);
     _provider_characteristics.ProviderRegistrationInstance.NpiId = &EBPF_HOOK_EXTENSION_IID;
     _provider_characteristics.ProviderRegistrationInstance.ModuleId = &_module_id;

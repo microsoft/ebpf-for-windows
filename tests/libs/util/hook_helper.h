@@ -113,7 +113,12 @@ typedef class _hook_helper
         bpf_link* link = nullptr;
         ebpf_result_t result = ebpf_program_attach_by_fd(program_fd, &_attach_type, params, params_size, &link);
         if (result == EBPF_SUCCESS && link != nullptr) {
-            _entries.push_back({link, program_fd, _copy_params(params, params_size)});
+            try {
+                _entries.push_back({link, program_fd, _copy_params(params, params_size)});
+            } catch (const std::bad_alloc&) {
+                bpf_link__destroy(link);
+                link = nullptr;
+            }
         }
         return link;
     }
@@ -124,8 +129,13 @@ typedef class _hook_helper
         bpf_link* link = nullptr;
         ebpf_result_t result = ebpf_program_attach(program, &_attach_type, params, params_size, &link);
         if (result == EBPF_SUCCESS && link != nullptr) {
-            fd_t fd = bpf_program__fd(program);
-            _entries.push_back({link, fd, _copy_params(params, params_size)});
+            try {
+                fd_t fd = bpf_program__fd(program);
+                _entries.push_back({link, fd, _copy_params(params, params_size)});
+            } catch (const std::bad_alloc&) {
+                bpf_link__destroy(link);
+                link = nullptr;
+            }
         }
         return link;
     }
