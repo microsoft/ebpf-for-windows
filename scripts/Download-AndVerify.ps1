@@ -35,7 +35,16 @@ $ErrorActionPreference = 'Stop'
 $backoff = $InitialBackoffSeconds
 for ($attempt = 1; $attempt -le ($MaxRetries + 1); $attempt++) {
     Write-Host "Download attempt ${attempt}: $Url"
-    curl.exe --location --fail --show-error --connect-timeout 30 --max-time 300 -o $DestinationPath $Url
+
+    # Remove any partial file from a previous failed attempt.
+    if (Test-Path $DestinationPath) {
+        Remove-Item -Path $DestinationPath -Force
+    }
+
+    curl.exe --location --fail --show-error `
+        --connect-timeout 30 --max-time 300 `
+        --retry 3 --retry-delay 5 --retry-all-errors --retry-connrefused `
+        -o $DestinationPath $Url
     if ($LASTEXITCODE -eq 0) {
         break
     }
