@@ -2126,14 +2126,17 @@ TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
     size_t consumer_offset = 0;
     REQUIRE(ebpf_map_query_buffer(map.get(), oob_index, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
 
+    // async_context is required to be non-null, but the out-of-range check rejects the
+    // request before the context is ever used, so a placeholder is sufficient here.
+    int dummy_async_context = 0;
     ebpf_map_async_query_result_t async_query_result = {};
-    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, nullptr) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
 
     REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
 
     // Also test UINT32_MAX.
     REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
-    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, nullptr) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
     REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
 }
 
