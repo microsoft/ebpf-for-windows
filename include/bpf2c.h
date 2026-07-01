@@ -106,14 +106,6 @@ extern "C"
         uint32_t flags;
     } btf_resolved_function_entry_t;
 
-    typedef struct _btf_resolved_function_entry_v1
-    {
-        uint64_t zero_marker;
-        ebpf_native_module_header_t header;
-        const char* name;
-        GUID module_guid;
-    } btf_resolved_function_entry_v1_t;
-
     typedef struct _btf_resolved_function_data
     {
         ebpf_native_module_header_t header;
@@ -304,8 +296,9 @@ extern "C"
 
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1 1
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_v1_t, module_guid)
-#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE sizeof(btf_resolved_function_entry_v1_t)
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, module_guid)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE \
+    EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE
 
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 2
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE \
