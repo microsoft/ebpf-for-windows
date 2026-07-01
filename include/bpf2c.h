@@ -31,8 +31,8 @@ extern "C"
 
 #define UBPF_STACK_SIZE 512
 
-#define IMMEDIATE(X) (int32_t)X
-#define OFFSET(X) (int16_t)X
+#define IMMEDIATE(X) (int32_t) X
+#define OFFSET(X) (int16_t) X
 #define POINTER(X) (uint64_t)(X)
 
 #define READ_ONCE_64(destination, source, offset) \
@@ -180,6 +180,7 @@ extern "C"
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
         const char* program_info_hash_type;       ///< Type of the program info hash
+        size_t bpf2c_context_size;                ///< Size of context struct at bpf2c compile time.
     } program_entry_t;
 
     /**
@@ -290,8 +291,7 @@ extern "C"
      EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 1
-#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(program_entry_t, bpf2c_context_size)
 #define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(program_entry_t)
 #define EBPF_NATIVE_PROGRAM_ENTRY_HEADER             \
     {EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,      \

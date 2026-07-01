@@ -2440,7 +2440,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         conditional_authorization_v4,
         "cgroup~7",
         "cgroup/connect_authorization4",
@@ -2455,7 +2455,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_bind_helpers_v4,
         "cgroup~4",
         "cgroup/bind4",
@@ -2470,7 +2470,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_bind_helpers_v6,
         "cgroup~2",
         "cgroup/bind6",
@@ -2485,7 +2485,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_listen_helpers_v4,
         "cgroup~3",
         "cgroup/listen4",
@@ -2500,7 +2500,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_listen_helpers_v6,
         "cgroup~1",
         "cgroup/listen6",
@@ -2515,7 +2515,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_recv_accept_helpers_v4,
         "cgroup~5",
         "cgroup/recv_accept4",
@@ -2530,7 +2530,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_sock_addr_helpers_v4,
         "cgroup~8",
         "cgroup/connect_authorization4",
@@ -2545,7 +2545,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
-        {1, 144, 144}, // Version header.
+        {1, 152, 152}, // Version header.
         test_sock_addr_helpers_v6,
         "cgroup~6",
         "cgroup/connect_authorization6",
