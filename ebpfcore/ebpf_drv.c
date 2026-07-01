@@ -494,6 +494,7 @@ _ebpf_driver_build_privileged_security_descriptor()
 #endif
 
     // Allocate DACL with three ACEs: ebpfsvc, Administrators, SYSTEM.
+    const size_t privileged_ace_count = 3;
     size_t acl_size = 0;
     size_t total_sid_length = 0;
     ebpf_result_t safe_result = EBPF_SUCCESS;
@@ -509,7 +510,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_add(sizeof(ACL), (size_t)3 * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
+    safe_result = ebpf_safe_size_t_add(sizeof(ACL), privileged_ace_count * sizeof(ACCESS_ALLOWED_ACE), &acl_size);
     if (safe_result != EBPF_SUCCESS) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -519,7 +520,8 @@ _ebpf_driver_build_privileged_security_descriptor()
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
     }
-    safe_result = ebpf_safe_size_t_subtract(acl_size, (size_t)3 * sizeof(ULONG), &acl_size);
+    // ACCESS_ALLOWED_ACE already includes one ULONG for SidStart, so subtract one ULONG per ACE.
+    safe_result = ebpf_safe_size_t_subtract(acl_size, privileged_ace_count * sizeof(ULONG), &acl_size);
     if (safe_result != EBPF_SUCCESS || acl_size > MAXULONG) {
         status = STATUS_INTEGER_OVERFLOW;
         goto Exit;
@@ -587,12 +589,14 @@ _ebpf_driver_build_privileged_security_descriptor()
     memcpy(((SECURITY_DESCRIPTOR*)self_relative_security_descriptor)->Dacl, dacl, aclSize);
 #else
     // Convert security descriptor to self-relative format.
+    // First, query the buffer size required for the self-relative security descriptor.
     status = RtlAbsoluteToSelfRelativeSD(&security_descriptor, NULL, &security_descriptor_size);
     if (status != STATUS_BUFFER_TOO_SMALL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
         goto Exit;
     }
 
+    // Allocate the self-relative security descriptor buffer.
     self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
     if (self_relative_security_descriptor == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
@@ -600,6 +604,7 @@ _ebpf_driver_build_privileged_security_descriptor()
         goto Exit;
     }
 
+    // Materialize the self-relative security descriptor in the allocated buffer.
     status =
         RtlAbsoluteToSelfRelativeSD(&security_descriptor, self_relative_security_descriptor, &security_descriptor_size);
     if (!NT_SUCCESS(status)) {
@@ -608,6 +613,7 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 #endif
 
+    // Publish the self-relative security descriptor for privileged access checks.
     ebpf_execution_context_privileged_security_descriptor = self_relative_security_descriptor;
     self_relative_security_descriptor = NULL;
 
