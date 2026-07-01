@@ -3249,10 +3249,10 @@ TEST_CASE("btf_resolved_native_load_fails_without_runtime_provider", "[end_to_en
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
     _publish_btf_test_provider();
@@ -3261,7 +3261,7 @@ TEST_CASE("btf_resolved_native_load_fails_without_runtime_provider", "[end_to_en
     fd_t program_fd = ebpf_fd_invalid;
     const char* error_message = nullptr;
     int result = ebpf_program_load(
-        "btf_resolved_um.dll", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+        "btf_resolved_um.dll", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
 
     if (error_message != nullptr) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -3277,31 +3277,26 @@ TEST_CASE("btf_resolved_native_runtime_fails_after_provider_detach", "[end_to_en
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
-    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    program_info_provider_t bind_program_info;
-    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
     _publish_btf_test_provider();
 
     program_load_attach_helper_t program_helper;
-    SOCKADDR_IN addr = {AF_INET};
-    addr.sin_port = htons(80);
-    INITIALIZE_BIND_CONTEXT
-    ctx->process_id = 123;
-    ctx->protocol = IPPROTO_TCP;
-    ctx->socket_address_length = sizeof(addr);
-    memcpy(&ctx->socket_address, &addr, ctx->socket_address_length);
+    INITIALIZE_SAMPLE_CONTEXT
+    ctx->uint32_data = 123;
 
     uint32_t hook_result = MAXUINT32;
     {
         btf_function_provider_t btf_provider;
         REQUIRE(btf_provider.initialize(_btf_test_module_guid, &_btf_test_provider_data) == EBPF_SUCCESS);
         program_helper.initialize(
-            "btf_resolved_um.dll", BPF_PROG_TYPE_BIND, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+            "btf_resolved_um.dll", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
         REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
-        REQUIRE(hook_result == ctx->process_id + sizeof(uint64_t));
+        REQUIRE(hook_result == ctx->uint32_data + sizeof(uint64_t));
     }
 
     REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
