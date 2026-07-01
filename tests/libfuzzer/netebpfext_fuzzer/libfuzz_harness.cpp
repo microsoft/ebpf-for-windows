@@ -15,6 +15,7 @@ typedef struct
     uint8_t ctx_offset;
     uint8_t ctx_length;
     uint32_t return_value;
+    uint32_t program_result;
 } netebpfext_fuzzer_metadata_t;
 
 typedef struct _test_client_context
@@ -62,7 +63,7 @@ netebpfext_unit_invoke_program(
     }
 
     *result = client_context->metadata.return_value;
-    return EBPF_SUCCESS;
+    return (ebpf_result_t)client_context->metadata.program_result;
 }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
@@ -115,7 +116,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
-        &client_context.base);
+        &client_context.base,
+        prog_type);
 
     // Look up the context descriptor for the requested program type.
     std::vector<GUID> guids = helper.program_info_provider_guids();
@@ -149,6 +151,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         (void)helper.test_cgroup_inet6_connect(&parameters);
         (void)helper.test_cgroup_inet4_connect_authorization(&parameters);
         (void)helper.test_cgroup_inet6_connect_authorization(&parameters);
+        (void)helper.test_cgroup_inet4_listen(&parameters);
+        (void)helper.test_cgroup_inet6_listen(&parameters);
         break;
     case BPF_PROG_TYPE_SOCK_OPS:
         (void)helper.test_sock_ops_v4(&parameters, nullptr);

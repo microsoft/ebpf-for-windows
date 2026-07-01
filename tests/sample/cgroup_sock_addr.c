@@ -87,7 +87,7 @@ authorize_v6(bpf_sock_addr_t* ctx, void* connection_policy_map)
 }
 
 __inline int
-authorize_listen_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
+authorize_listen_v4(const bpf_sock_addr_t* ctx, void* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict = NULL;
@@ -103,7 +103,7 @@ authorize_listen_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
 }
 
 __inline int
-authorize_listen_v6(bpf_sock_addr_t* ctx, void* connection_policy_map)
+authorize_listen_v6(const bpf_sock_addr_t* ctx, void* connection_policy_map)
 {
     connection_tuple_t tuple_key = {0};
     int* verdict;
