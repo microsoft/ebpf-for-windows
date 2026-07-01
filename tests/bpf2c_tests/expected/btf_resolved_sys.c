@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from .\x64\Debug\btf_resolved.o
+// This file was generated from btf_resolved.o
 
 #define NO_CRT
 #include "bpf2c.h"
