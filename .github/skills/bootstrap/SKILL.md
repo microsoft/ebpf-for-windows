@@ -2632,18 +2632,18 @@ scan the repository rather than asking the user to paste content.
 
 **Project**: eBPF for Windows
 
-**Repository Root**: C:\dev\ebpf-for-windows
+**Repository Root**: the repository root of the current checkout
 
 **Output Files**:
-- Requirements: specs\{{module_name}}\requirements.md
-- Design: specs\{{module_name}}\design.md
-- Validation: specs\{{module_name}}\validation.md
-- Audit: specs\{{module_name}}\audit.md
+- Requirements: docs/specs/{{module_name}}/requirements.md
+- Design: docs/specs/{{module_name}}/design.md
+- Validation: docs/specs/{{module_name}}/validation.md
+- Audit: docs/specs/{{module_name}}/audit.md
 
 **Focus Areas**: The module or subsystem the user names. Default: the specific code paths, APIs, tests, and docs needed to establish a semantic baseline for that subsystem.
 
 **Additional Context**:
-eBPF for Windows is a mixed kernel-mode C and user-mode C++ codebase. Prioritize subsystem-scoped analysis instead of whole-repository sweeps. Key surfaces include user/kernel transitions, IOCTL and service boundaries, NMR-based extension points, verifier/runtime interactions, IRQL constraints, refcount and cleanup symmetry, concurrency, and test coverage in `tests/`, `libs/**/unit`, and related validation assets. Use existing docs in `docs/` and existing semantic baselines under `specs/` when present.
+eBPF for Windows is a mixed kernel-mode C and user-mode C++ codebase. Prioritize subsystem-scoped analysis instead of whole-repository sweeps. Key surfaces include user/kernel transitions, IOCTL and service boundaries, NMR-based extension points, verifier/runtime interactions, IRQL constraints, refcount and cleanup symmetry, concurrency, and test coverage in `tests/`, `libs/**/unit`, and related validation assets. Use existing docs in `docs/` and existing semantic baselines under `docs/specs/` when present.
 
 ---
 
@@ -2946,10 +2946,10 @@ Ask the user to respond with:
 **Goal**: Produce the spec files and commit them.
 
 1. Write the finalized documents to the user-specified file paths:
-   - specs\{{module_name}}\requirements.md
-   - specs\{{module_name}}\design.md
-   - specs\{{module_name}}\validation.md
-   - specs\{{module_name}}\audit.md (audit report from Phase 4)
+   - docs/specs/{{module_name}}/requirements.md
+   - docs/specs/{{module_name}}/design.md
+   - docs/specs/{{module_name}}/validation.md
+   - docs/specs/{{module_name}}/audit.md (audit report from Phase 4)
 2. Stage the files and generate a commit message summarizing:
    - What was extracted and from where
    - Key decisions made during clarification

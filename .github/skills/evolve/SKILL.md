@@ -2928,7 +2928,7 @@ audits and user reviews at each transition.
 The user's requested change for a subsystem that already has specs or needs spec updates alongside code changes.
 
 **Existing Artifacts**:
-Relevant requirements, design, validation, implementation, tests, and related docs for the scoped subsystem. Prefer existing material under `specs/`, `docs/`, and the affected source/test directories.
+Relevant requirements, design, validation, implementation, tests, and related docs for the scoped subsystem. Prefer existing material under `docs/specs/`, `docs/`, and the affected source/test directories.
 
 **Additional Context**:
 eBPF for Windows spans kernel-mode C and user-mode C++. Treat user/kernel boundaries, IOCTLs, verifier/runtime interactions, extension provider contracts, IRQL rules, cleanup symmetry, refcounting, and concurrency as first-class correctness constraints. Reuse the existing subsystem baseline when present and keep patches traceable across specs, code, and tests.

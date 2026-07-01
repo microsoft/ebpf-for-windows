@@ -2832,9 +2832,9 @@ read the repository artifacts.
 **Project**: eBPF for Windows
 
 **Existing Spec Artifacts**:
-- Requirements: specs\{{module_name}}\requirements.md
-- Design: specs\{{module_name}}\design.md
-- Validation: specs\{{module_name}}\validation.md
+- Requirements: docs/specs/{{module_name}}/requirements.md
+- Design: docs/specs/{{module_name}}/design.md
+- Validation: docs/specs/{{module_name}}/validation.md
 
 **Implementation**: The implementation directory or directories for the scoped subsystem.
 
@@ -2843,7 +2843,7 @@ read the repository artifacts.
 **Focus Areas**: The subsystem, API surface, or behavior the user wants audited. Default: full subsystem audit.
 
 **Additional Context**:
-eBPF for Windows has both kernel-mode C and user-mode C++ layers. When auditing drift, correlate specs under `specs/` and docs under `docs/` with the current implementation and tests. Pay special attention to privilege boundaries, verifier/runtime interactions, extension contracts, IRQL-sensitive paths, cleanup/refcount symmetry, concurrency, and negative-path coverage.
+eBPF for Windows has both kernel-mode C and user-mode C++ layers. When auditing drift, correlate specs under `docs/specs/` and docs under `docs/` with the current implementation and tests. Pay special attention to privilege boundaries, verifier/runtime interactions, extension contracts, IRQL-sensitive paths, cleanup/refcount symmetry, concurrency, and negative-path coverage.
 
 ---
 
