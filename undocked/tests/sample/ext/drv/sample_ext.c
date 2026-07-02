@@ -404,6 +404,7 @@ typedef struct _sample_ebpf_extension_hook_provider sample_ebpf_extension_hook_p
  */
 typedef struct _sample_ebpf_extension_hook_client
 {
+    LIST_ENTRY list_entry;
     HANDLE nmr_binding_handle;
     GUID client_module_id;
     const void* client_binding_context;
@@ -412,6 +413,11 @@ typedef struct _sample_ebpf_extension_hook_client
     ebpf_program_batch_begin_invoke_function_t begin_batch_program_invoke;
     ebpf_program_batch_end_invoke_function_t end_batch_program_invoke;
     ebpf_program_batch_invoke_function_t batch_program_invoke;
+    uint8_t* attach_parameter;
+    size_t attach_parameter_size;
+    EX_RUNDOWN_REF rundown_reference;
+    bool detached : 1;
+    bool in_client_list : 1;
 } sample_ebpf_extension_hook_client_t;
 
 /**
@@ -421,10 +427,78 @@ typedef struct _sample_ebpf_extension_hook_client
 typedef struct _sample_ebpf_extension_hook_provider
 {
     HANDLE nmr_provider_handle;
-    sample_ebpf_extension_hook_client_t* attached_client;
+    LIST_ENTRY attached_clients;
+    KSPIN_LOCK lock;
+    EX_RUNDOWN_REF rundown_reference;
 } sample_ebpf_extension_hook_provider_t;
 
 static sample_ebpf_extension_hook_provider_t _sample_ebpf_extension_hook_provider_context = {0};
+
+static bool
+_sample_extension_attach_parameters_equal(
+    _In_reads_bytes_opt_(left_size) const void* left,
+    size_t left_size,
+    _In_reads_bytes_opt_(right_size) const void* right,
+    size_t right_size)
+{
+    if (left_size != right_size) {
+        return false;
+    }
+
+    if (left_size == 0) {
+        return true;
+    }
+
+    if (left == NULL || right == NULL) {
+        return false;
+    }
+
+    return memcmp(left, right, left_size) == 0;
+}
+
+static bool
+_sample_extension_hook_client_matches_attach_parameters(
+    _In_ const sample_ebpf_extension_hook_client_t* hook_client,
+    _In_reads_bytes_opt_(attach_parameter_size) const void* attach_parameter,
+    size_t attach_parameter_size)
+{
+    return _sample_extension_attach_parameters_equal(
+        hook_client->attach_parameter, hook_client->attach_parameter_size, attach_parameter, attach_parameter_size);
+}
+
+static _Must_inspect_result_ sample_ebpf_extension_hook_client_t*
+_sample_extension_hook_provider_get_client(
+    _In_ sample_ebpf_extension_hook_provider_t* provider_context,
+    _In_reads_bytes_opt_(attach_parameter_size) const void* attach_parameter,
+    size_t attach_parameter_size,
+    bool match_first_client)
+{
+    sample_ebpf_extension_hook_client_t* hook_client = NULL;
+    KIRQL old_irql = PASSIVE_LEVEL;
+
+    KeAcquireSpinLock(&provider_context->lock, &old_irql);
+
+    for (LIST_ENTRY* list_entry = provider_context->attached_clients.Flink;
+         list_entry != &provider_context->attached_clients;
+         list_entry = list_entry->Flink) {
+        sample_ebpf_extension_hook_client_t* local_hook_client =
+            CONTAINING_RECORD(list_entry, sample_ebpf_extension_hook_client_t, list_entry);
+        if (local_hook_client->detached) {
+            continue;
+        }
+
+        if (match_first_client || _sample_extension_hook_client_matches_attach_parameters(
+                                      local_hook_client, attach_parameter, attach_parameter_size)) {
+            if (ExAcquireRundownProtection(&local_hook_client->rundown_reference)) {
+                hook_client = local_hook_client;
+            }
+            break;
+        }
+    }
+
+    KeReleaseSpinLock(&provider_context->lock, old_irql);
+    return hook_client;
+}
 
 static NTSTATUS
 _sample_ebpf_extension_program_info_provider_attach_client(
@@ -542,21 +616,24 @@ _sample_ebpf_extension_hook_provider_attach_client(
     sample_ebpf_extension_hook_provider_t* local_provider_context =
         (sample_ebpf_extension_hook_provider_t*)provider_context;
     sample_ebpf_extension_hook_client_t* hook_client = NULL;
-    ebpf_extension_program_dispatch_table_t* client_dispatch_table;
+    const ebpf_extension_data_t* client_data = NULL;
+    ebpf_extension_program_dispatch_table_t* client_dispatch_table = NULL;
+    KIRQL old_irql = PASSIVE_LEVEL;
+    bool provider_rundown_acquired = false;
 
     if ((provider_binding_context == NULL) || (provider_dispatch == NULL) || (local_provider_context == NULL)) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    if (local_provider_context->attached_client != NULL) {
-        // Currently only a single client is allowed to attach.
-        status = STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
     *provider_binding_context = NULL;
     *provider_dispatch = NULL;
+
+    if (!ExAcquireRundownProtection(&local_provider_context->rundown_reference)) {
+        status = STATUS_DEVICE_NOT_READY;
+        goto Exit;
+    }
+    provider_rundown_acquired = true;
 
     hook_client = cxplat_allocate(
         CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_ebpf_extension_hook_client_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
@@ -567,15 +644,11 @@ _sample_ebpf_extension_hook_provider_attach_client(
 
     RtlZeroMemory(hook_client, sizeof(sample_ebpf_extension_hook_client_t));
 
-    if (hook_client == NULL) {
-        status = STATUS_NO_MEMORY;
-        goto Exit;
-    }
-
     hook_client->nmr_binding_handle = nmr_binding_handle;
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
-    hook_client->client_data = client_registration_instance->NpiSpecificCharacteristics;
+    client_data = client_registration_instance->NpiSpecificCharacteristics;
+    hook_client->client_data = client_data;
     client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;
@@ -585,16 +658,57 @@ _sample_ebpf_extension_hook_provider_attach_client(
     hook_client->batch_program_invoke = client_dispatch_table->ebpf_program_batch_invoke_function;
     hook_client->begin_batch_program_invoke = client_dispatch_table->ebpf_program_batch_begin_invoke_function;
     hook_client->end_batch_program_invoke = client_dispatch_table->ebpf_program_batch_end_invoke_function;
+    ExInitializeRundownProtection(&hook_client->rundown_reference);
 
-    local_provider_context->attached_client = hook_client;
+    if (client_data != NULL && client_data->data_size > 0) {
+        if (client_data->data == NULL) {
+            status = STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+
+        hook_client->attach_parameter =
+            cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, client_data->data_size, SAMPLE_EXT_POOL_TAG_DEFAULT);
+        if (hook_client->attach_parameter == NULL) {
+            status = STATUS_NO_MEMORY;
+            goto Exit;
+        }
+
+        memcpy(hook_client->attach_parameter, client_data->data, client_data->data_size);
+        hook_client->attach_parameter_size = client_data->data_size;
+    }
+
+    KeAcquireSpinLock(&local_provider_context->lock, &old_irql);
+    for (LIST_ENTRY* list_entry = local_provider_context->attached_clients.Flink;
+         list_entry != &local_provider_context->attached_clients;
+         list_entry = list_entry->Flink) {
+        sample_ebpf_extension_hook_client_t* existing_client =
+            CONTAINING_RECORD(list_entry, sample_ebpf_extension_hook_client_t, list_entry);
+        if (_sample_extension_hook_client_matches_attach_parameters(
+                existing_client, hook_client->attach_parameter, hook_client->attach_parameter_size)) {
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status)) {
+        InsertTailList(&local_provider_context->attached_clients, &hook_client->list_entry);
+        hook_client->in_client_list = true;
+    }
+    KeReleaseSpinLock(&local_provider_context->lock, old_irql);
 
 Exit:
 
     if (NT_SUCCESS(status)) {
         *provider_binding_context = hook_client;
         hook_client = NULL;
-    } else if (hook_client != NULL) {
-        CXPLAT_FREE(hook_client);
+    } else {
+        if (hook_client != NULL) {
+            CXPLAT_FREE(hook_client->attach_parameter);
+            CXPLAT_FREE(hook_client);
+        }
+        if (provider_rundown_acquired) {
+            ExReleaseRundownProtection(&local_provider_context->rundown_reference);
+        }
     }
 
     return status;
@@ -607,15 +721,28 @@ _sample_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bin
 
     sample_ebpf_extension_hook_client_t* local_client_context =
         (sample_ebpf_extension_hook_client_t*)provider_binding_context;
-    sample_ebpf_extension_hook_provider_t* provider_context = NULL;
+    sample_ebpf_extension_hook_provider_t* provider_context = &_sample_ebpf_extension_hook_provider_context;
+    KIRQL old_irql = PASSIVE_LEVEL;
 
     if (local_client_context == NULL) {
         status = STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    provider_context = &_sample_ebpf_extension_hook_provider_context;
-    provider_context->attached_client = NULL;
+    KeAcquireSpinLock(&provider_context->lock, &old_irql);
+    local_client_context->detached = true;
+    KeReleaseSpinLock(&provider_context->lock, old_irql);
+
+    ExWaitForRundownProtectionRelease(&local_client_context->rundown_reference);
+
+    KeAcquireSpinLock(&provider_context->lock, &old_irql);
+    if (local_client_context->in_client_list) {
+        RemoveEntryList(&local_client_context->list_entry);
+        local_client_context->in_client_list = false;
+    }
+    KeReleaseSpinLock(&provider_context->lock, old_irql);
+
+    ExReleaseRundownProtection(&provider_context->rundown_reference);
 
 Exit:
     return status;
@@ -624,7 +751,11 @@ Exit:
 static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context)
 {
-    CXPLAT_FREE(provider_binding_context);
+    sample_ebpf_extension_hook_client_t* hook_client = (sample_ebpf_extension_hook_client_t*)provider_binding_context;
+    if (hook_client != NULL) {
+        CXPLAT_FREE(hook_client->attach_parameter);
+        CXPLAT_FREE(hook_client);
+    }
 }
 
 void
@@ -637,6 +768,7 @@ sample_ebpf_extension_hook_provider_unregister()
         // Wait for clients to detach.
         NmrWaitForProviderDeregisterComplete(provider_context->nmr_provider_handle);
     }
+    ExWaitForRundownProtectionRelease(&provider_context->rundown_reference);
 }
 
 NTSTATUS
@@ -646,6 +778,9 @@ sample_ebpf_extension_hook_provider_register()
     NTSTATUS status = STATUS_SUCCESS;
 
     local_provider_context = &_sample_ebpf_extension_hook_provider_context;
+    InitializeListHead(&local_provider_context->attached_clients);
+    KeInitializeSpinLock(&local_provider_context->lock);
+    ExInitializeRundownProtection(&local_provider_context->rundown_reference);
 
     status = NmrRegisterProvider(
         &_sample_ebpf_extension_hook_provider_characteristics,
@@ -774,13 +909,19 @@ sample_ebpf_extension_map_provider_register()
 }
 
 _Must_inspect_result_ ebpf_result_t
-sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, _Out_ uint32_t* result)
+sample_ebpf_extension_invoke_program(
+    _In_reads_bytes_opt_(attach_parameter_size) const void* attach_parameter,
+    size_t attach_parameter_size,
+    _Inout_ sample_program_context_t* context,
+    _Out_ uint32_t* result)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
-
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
-
-    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_client_t* hook_client = _sample_extension_hook_provider_get_client(
+        hook_provider_context,
+        attach_parameter,
+        attach_parameter_size,
+        attach_parameter == NULL && attach_parameter_size == 0);
 
     if (hook_client == NULL) {
         return_value = EBPF_FAILED;
@@ -791,6 +932,7 @@ sample_ebpf_extension_invoke_program(_Inout_ sample_program_context_t* context, 
 
     // Run the eBPF program using cached copies of invoke_program and client_binding_context.
     return_value = invoke_program(client_binding_context, context, result);
+    ExReleaseRundownProtection(&hook_client->rundown_reference);
 
 Exit:
     return return_value;
@@ -800,10 +942,11 @@ _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_batch_begin_program(_Inout_ ebpf_execution_context_state_t* state)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+    const bool select_first_client = true;
 
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
-
-    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_client_t* hook_client =
+        _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
         return_value = EBPF_FAILED;
@@ -811,6 +954,7 @@ sample_ebpf_extension_invoke_batch_begin_program(_Inout_ ebpf_execution_context_
     }
     ebpf_program_batch_begin_invoke_function_t batch_begin_function = hook_client->begin_batch_program_invoke;
     return_value = batch_begin_function(sizeof(ebpf_execution_context_state_t), state);
+    ExReleaseRundownProtection(&hook_client->rundown_reference);
 
 Exit:
     return return_value;
@@ -821,10 +965,11 @@ sample_ebpf_extension_invoke_batch_program(
     _Inout_ sample_program_context_t* context, _In_ const ebpf_execution_context_state_t* state, _Out_ uint32_t* result)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+    const bool select_first_client = true;
 
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
-
-    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_client_t* hook_client =
+        _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
         return_value = EBPF_FAILED;
@@ -834,6 +979,7 @@ sample_ebpf_extension_invoke_batch_program(
     const void* client_binding_context = hook_client->client_binding_context;
 
     return_value = batch_invoke_program(client_binding_context, context, result, state);
+    ExReleaseRundownProtection(&hook_client->rundown_reference);
 
 Exit:
     return return_value;
@@ -843,10 +989,11 @@ _Must_inspect_result_ ebpf_result_t
 sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_state_t* state)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+    const bool select_first_client = true;
 
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
-
-    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_client_t* hook_client =
+        _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
         return_value = EBPF_FAILED;
@@ -854,6 +1001,7 @@ sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_st
     }
     ebpf_program_batch_end_invoke_function_t batch_end_function = hook_client->end_batch_program_invoke;
     return_value = batch_end_function(state);
+    ExReleaseRundownProtection(&hook_client->rundown_reference);
 
 Exit:
     return return_value;
@@ -866,6 +1014,7 @@ sample_ebpf_extension_profile_program(
     _Inout_ sample_ebpf_ext_profile_reply_t* reply)
 {
     ebpf_result_t return_value = EBPF_SUCCESS;
+    const bool select_first_client = true;
     LARGE_INTEGER start;
     LARGE_INTEGER end;
     uint32_t result;
@@ -875,8 +1024,8 @@ sample_ebpf_extension_profile_program(
 
     sample_program_context_t* program_context = (sample_program_context_t*)&context_header.context;
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
-
-    sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
+    sample_ebpf_extension_hook_client_t* hook_client =
+        _sample_extension_hook_provider_get_client(hook_provider_context, NULL, 0, select_first_client);
 
     if (hook_client == NULL) {
         return_value = EBPF_FAILED;
@@ -898,6 +1047,7 @@ sample_ebpf_extension_profile_program(
         KeLowerIrql(old_irql);
     }
     KeQueryPerformanceCounter(&end);
+    ExReleaseRundownProtection(&hook_client->rundown_reference);
 
     reply->duration = end.QuadPart - start.QuadPart;
 
