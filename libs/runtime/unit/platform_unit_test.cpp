@@ -301,6 +301,49 @@ typedef class _ebpf_epoch_scope
     bool in_epoch;
 } ebpf_epoch_scope_t;
 
+typedef class _usersim_active_processor_count_scope
+{
+  public:
+    explicit _usersim_active_processor_count_scope(uint32_t active_processor_count)
+        : _status(usersim_set_active_processor_count(active_processor_count))
+    {
+    }
+
+    ~_usersim_active_processor_count_scope() { usersim_reset_active_processor_count(); }
+
+    NTSTATUS
+    status() const { return _status; }
+
+  private:
+    NTSTATUS _status;
+} usersim_active_processor_count_scope_t;
+
+typedef class _ebpf_cpu_affinity_scope
+{
+  public:
+    explicit _ebpf_cpu_affinity_scope(uint32_t cpu_id)
+    {
+        _status = ebpf_set_current_thread_cpu_affinity(cpu_id, &_old_thread_affinity);
+    }
+
+    ~_ebpf_cpu_affinity_scope()
+    {
+        if (_status == EBPF_SUCCESS) {
+            ebpf_restore_current_thread_cpu_affinity(&_old_thread_affinity);
+        }
+    }
+
+    ebpf_result_t
+    status() const
+    {
+        return _status;
+    }
+
+  private:
+    GROUP_AFFINITY _old_thread_affinity = {};
+    ebpf_result_t _status = EBPF_OPERATION_NOT_SUPPORTED;
+} ebpf_cpu_affinity_scope_t;
+
 TEST_CASE("hash_table_test", "[platform]")
 {
     std::vector<uint8_t> key_1(13);
@@ -738,6 +781,162 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
+}
+
+TEST_CASE("epoch_test_startup_active_cpu_subset", "[platform]")
+{
+    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    if (maximum_cpu_count < 2) {
+        return;
+    }
+
+    const uint32_t startup_active_cpu_count = maximum_cpu_count - 1;
+    usersim_active_processor_count_scope_t active_processor_count_scope(startup_active_cpu_count);
+    REQUIRE(NT_SUCCESS(active_processor_count_scope.status()));
+
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    ebpf_cpu_affinity_scope_t cpu0_affinity(0);
+    REQUIRE(cpu0_affinity.status() == EBPF_SUCCESS);
+
+    {
+        ebpf_epoch_scope_t epoch_scope;
+        void* memory = ebpf_epoch_allocate(32);
+        REQUIRE(memory != nullptr);
+        ebpf_epoch_free(memory);
+        epoch_scope.exit();
+    }
+
+    if (startup_active_cpu_count > 1) {
+        ebpf_cpu_affinity_scope_t last_active_cpu_affinity(startup_active_cpu_count - 1);
+        REQUIRE(last_active_cpu_affinity.status() == EBPF_SUCCESS);
+
+        ebpf_epoch_scope_t epoch_scope;
+        void* memory = ebpf_epoch_allocate(32);
+        REQUIRE(memory != nullptr);
+        ebpf_epoch_free(memory);
+        epoch_scope.exit();
+    }
+
+    ebpf_epoch_synchronize();
+    REQUIRE(ebpf_epoch_is_free_list_empty(0));
+    REQUIRE(ebpf_epoch_is_free_list_empty(startup_active_cpu_count - 1));
+}
+
+TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
+{
+    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    if (maximum_cpu_count < 2) {
+        return;
+    }
+
+    const uint32_t startup_active_cpu_count = maximum_cpu_count - 1;
+    const uint32_t hot_add_cpu = startup_active_cpu_count;
+    usersim_active_processor_count_scope_t active_processor_count_scope(startup_active_cpu_count);
+    REQUIRE(NT_SUCCESS(active_processor_count_scope.status()));
+
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    ebpf_cpu_affinity_scope_t cpu0_affinity(0);
+    REQUIRE(cpu0_affinity.status() == EBPF_SUCCESS);
+
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
+
+    {
+        ebpf_epoch_scope_t epoch_scope;
+        void* memory = ebpf_epoch_allocate(32);
+        REQUIRE(memory != nullptr);
+        ebpf_epoch_free(memory);
+        epoch_scope.exit();
+    }
+
+    // The staged ring update must not route consensus to the hot-added CPU until add-complete publishes admission.
+    ebpf_epoch_synchronize();
+
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_complete(hot_add_cpu)));
+
+    {
+        ebpf_cpu_affinity_scope_t hot_add_cpu_affinity(hot_add_cpu);
+        REQUIRE(hot_add_cpu_affinity.status() == EBPF_SUCCESS);
+
+        ebpf_epoch_scope_t epoch_scope;
+        void* memory = ebpf_epoch_allocate(32);
+        REQUIRE(memory != nullptr);
+        ebpf_epoch_free(memory);
+        epoch_scope.exit();
+    }
+
+    ebpf_epoch_synchronize();
+    REQUIRE(ebpf_epoch_is_free_list_empty(0));
+    REQUIRE(ebpf_epoch_is_free_list_empty(hot_add_cpu));
+}
+
+TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform]")
+{
+    if (!_environment_variable_equals("EBPF_EPOCH_FAIL_FAST_CHILD", "true")) {
+        return;
+    }
+
+    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    REQUIRE(maximum_cpu_count >= 2);
+
+    const uint32_t startup_active_cpu_count = maximum_cpu_count - 1;
+    const uint32_t hot_add_cpu = startup_active_cpu_count;
+    usersim_active_processor_count_scope_t active_processor_count_scope(startup_active_cpu_count);
+    REQUIRE(NT_SUCCESS(active_processor_count_scope.status()));
+
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
+
+    ebpf_cpu_affinity_scope_t hot_add_cpu_affinity(hot_add_cpu);
+    REQUIRE(hot_add_cpu_affinity.status() == EBPF_SUCCESS);
+
+    ebpf_epoch_state_t epoch_state = {};
+    ebpf_epoch_enter(&epoch_state);
+    FAIL("ebpf_epoch_enter should fail fast on an unadmitted CPU");
+}
+
+TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform]")
+{
+    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    if (maximum_cpu_count < 2) {
+        return;
+    }
+
+    char module_path[MAX_PATH] = {0};
+    REQUIRE(GetModuleFileNameA(nullptr, module_path, ARRAYSIZE(module_path)) != 0);
+
+    char command_line[MAX_PATH + 128] = {0};
+    REQUIRE(
+        _snprintf_s(
+            command_line,
+            ARRAYSIZE(command_line),
+            _TRUNCATE,
+            "\"%s\" \"epoch_test_unadmitted_cpu_fail_fast_child\" --colour-mode none",
+            module_path) > 0);
+
+    REQUIRE(SetEnvironmentVariableA("EBPF_EPOCH_FAIL_FAST_CHILD", "true"));
+
+    STARTUPINFOA startup_info = {};
+    startup_info.cb = sizeof(startup_info);
+    PROCESS_INFORMATION process_information = {};
+    REQUIRE(CreateProcessA(
+        module_path, command_line, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup_info, &process_information));
+
+    REQUIRE(WaitForSingleObject(process_information.hProcess, 30000) == WAIT_OBJECT_0);
+
+    DWORD exit_code = 0;
+    REQUIRE(GetExitCodeProcess(process_information.hProcess, &exit_code));
+
+    CloseHandle(process_information.hThread);
+    CloseHandle(process_information.hProcess);
+    REQUIRE(SetEnvironmentVariableA("EBPF_EPOCH_FAIL_FAST_CHILD", nullptr));
+
+    REQUIRE((exit_code == 3 || exit_code == STATUS_STACK_BUFFER_OVERRUN));
 }
 
 // This test validates a regression scenario for a potential correctness hazard
@@ -2522,11 +2721,12 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
             return std::abs(a) < std::abs(b);
         });
 
-    auto average_frequency = std::abs(std::accumulate(
-                                 output_values.begin(),
-                                 output_values.end(),
-                                 0.0,
-                                 [](double a, kissfft<double>::cpx_t b) { return a + std::abs(b); })) /
+    auto average_frequency = std::abs(
+                                 std::accumulate(
+                                     output_values.begin(),
+                                     output_values.end(),
+                                     0.0,
+                                     [](double a, kissfft<double>::cpx_t b) { return a + std::abs(b); })) /
                              sequence_length;
 
     auto std_dev_frequency = std::sqrt(
