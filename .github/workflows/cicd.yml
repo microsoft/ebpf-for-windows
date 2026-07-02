@@ -112,7 +112,7 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
+      test_command: .\unit_tests.exe -d yes ~[processes] ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: true
@@ -131,12 +131,28 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
+      test_command: .\unit_tests.exe -d yes ~[processes] ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: true
       gather_dumps: true
       capture_etw: true
+      leak_detection: true
+    secrets: inherit
+
+  # Run the intentional epoch fail-fast coverage in isolation so expected child-process crashes
+  # don't create dumps that fail the broader unit-test jobs.
+  epoch_fail_fast_tests:
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: epoch_fail_fast_tests
+      test_command: .\unit_tests.exe -d yes epoch_test_unadmitted_cpu_fail_fast
+      build_artifact: Build-x64
+      environment: '["windows-2025"]'
+      code_coverage: false
+      gather_dumps: false
       leak_detection: true
     secrets: inherit
 
@@ -149,7 +165,7 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
+      test_command: .\unit_tests.exe -d yes ~[processes] ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64-native-only
       environment: '["windows-2025"]'
       code_coverage: true
@@ -168,7 +184,7 @@ jobs:
       name: unit_tests
       # Don't run appverif on ARM64 until it is fixed.
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes]
+      test_command: .\unit_tests.exe -d yes ~[processes] ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
       code_coverage: false  # No code coverage on ARM64.
@@ -541,7 +557,7 @@ jobs:
       # Exclude ~printk, ~recursive_tail_call, and ~sequential_tail_call tests as they don't work with ASAN due to
       # usersim being linked with static CRT libraries which breaks stdout redirection.
       # Exclude epoch_test_spin_reclamation_stress as it causes ASAN to report false positives.
-      test_command: .\unit_tests.exe -d yes ~[processes] ~printk ~recursive_tail_call ~sequential_tail_call ~epoch_test_spin_reclamation_stress
+      test_command: .\unit_tests.exe -d yes ~[processes] ~printk ~recursive_tail_call ~sequential_tail_call ~epoch_test_spin_reclamation_stress ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64-Sanitize
       environment: '["windows-2025"]'
       code_coverage: false
@@ -555,7 +571,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection
-      test_command: .\unit_tests.exe
+      test_command: .\unit_tests.exe ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: true
@@ -604,7 +620,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: fault_injection_full
-      test_command: .\unit_tests.exe
+      test_command: .\unit_tests.exe ~epoch_test_unadmitted_cpu_fail_fast ~epoch_test_unadmitted_cpu_fail_fast_child
       build_artifact: Build-x64
       environment: '["windows-2025"]'
       code_coverage: false

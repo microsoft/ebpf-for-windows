@@ -55,7 +55,8 @@ _ebpf_epoch_get_published_epoch()
 /**
  * @brief Per-CPU state.
  * Each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
- * This ensures that no locks are required to access the per CPU state.
+ * This ensures that no locks are required to access the per CPU hot-path state.
+ * Entries are prepared at PASSIVE_LEVEL before a CPU is admitted into the active participant set.
  */
 typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
 {
@@ -63,6 +64,9 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     ebpf_list_entry_t free_list;           ///< Per-CPU free list.
     int64_t current_epoch;                 ///< The current epoch for this CPU.
     int64_t released_epoch;                ///< The newest epoch that can be released.
+    uint32_t next_active_cpu;              ///< Next CPU in the active participant ring.
+    uint32_t previous_active_cpu;          ///< Previous CPU in the active participant ring.
+    int admitted : 1;                      ///< Set once this CPU is admitted to the active participant set.
     int timer_armed : 1;                   ///< Set if the flush timer is armed.
     int rundown_in_progress : 1;           ///< Set if rundown is in progress.
     int epoch_computation_in_progress : 1; ///< Set if epoch computation is in progress.
@@ -78,6 +82,13 @@ static _Writable_elements_(_ebpf_epoch_cpu_count) ebpf_epoch_cpu_entry_t* _ebpf_
  * @brief Number of CPUs in the system as determined at initialization time.
  */
 static uint32_t _ebpf_epoch_cpu_count = 0;
+
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+/**
+ * @brief Handle returned by KeRegisterProcessorChangeCallback.
+ */
+static void* _ebpf_epoch_processor_change_callback_handle = NULL;
+#endif
 
 /**
  * @brief Enum of messages sent between CPUs.
@@ -117,6 +128,10 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                      ///< future messages should be ignored.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY,  ///< This message is sent to each CPU to query if its local free
                                                      ///< list is empty.
+    EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU, ///< This message updates the next CPU in the active participant
+                                                        ///< ring for the current CPU.
+    EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU, ///< This message updates the previous CPU in the active
+                                                            ///< participant ring for the current CPU.
 } ebpf_epoch_cpu_message_type_t;
 
 /**
@@ -150,6 +165,14 @@ typedef struct _ebpf_epoch_cpu_message
         {
             bool is_empty; ///< True if the free list is empty.
         } is_free_list_empty;
+        struct
+        {
+            uint32_t next_cpu; ///< Next CPU in the active participant ring.
+        } update_next_active_cpu;
+        struct
+        {
+            uint32_t previous_cpu; ///< Previous CPU in the active participant ring.
+        } update_previous_active_cpu;
     } message;
     KEVENT completion_event; ///< Event to signal when the operation is complete.
 } ebpf_epoch_cpu_message_t;
@@ -223,6 +246,28 @@ cxplat_rundown_reference_t _ebpf_epoch_work_item_rundown_ref;
 static void
 _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t released_epoch);
 
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id);
+
+static void
+_ebpf_epoch_destroy_cpu_entry(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry);
+
+static void
+_ebpf_epoch_fail_fast_if_unadmitted_cpu(uint32_t cpu_id);
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_admit_existing_cpus();
+
+static uint32_t
+_ebpf_epoch_get_next_active_cpu(uint32_t cpu_id);
+
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+_Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_change_callback(
+    _In_ void* callback_context,
+    _In_ PKE_PROCESSOR_CHANGE_NOTIFY_CONTEXT change_context,
+    _Inout_ PNTSTATUS operation_status);
+#endif
+
 _IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_messenger_worker(
     _Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t* message);
 
@@ -242,6 +287,233 @@ static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf
 
 static void
 _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context);
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id)
+{
+    ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+    LARGE_INTEGER interval;
+
+    if (cpu_entry->work_queue != NULL) {
+        return EBPF_SUCCESS;
+    }
+
+    cpu_entry->current_epoch = (int64_t)_ebpf_epoch_get_published_epoch();
+    cpu_entry->released_epoch = cpu_entry->current_epoch - 1;
+    cpu_entry->next_active_cpu = cpu_id;
+    cpu_entry->previous_active_cpu = cpu_id;
+    cpu_entry->admitted = false;
+    cpu_entry->timer_armed = false;
+    cpu_entry->rundown_in_progress = false;
+    cpu_entry->epoch_computation_in_progress = false;
+    ebpf_list_initialize(&cpu_entry->epoch_state_list);
+    ebpf_list_initialize(&cpu_entry->free_list);
+
+    interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME;
+    return ebpf_timed_work_queue_create(
+        &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
+}
+
+static void
+_ebpf_epoch_destroy_cpu_entry(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry)
+{
+    ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
+    cpu_entry->work_queue = NULL;
+    cpu_entry->admitted = false;
+    cpu_entry->next_active_cpu = UINT32_MAX;
+    cpu_entry->previous_active_cpu = UINT32_MAX;
+    cpu_entry->timer_armed = false;
+    cpu_entry->rundown_in_progress = false;
+    cpu_entry->epoch_computation_in_progress = false;
+    cpu_entry->current_epoch = 1;
+    cpu_entry->released_epoch = 0;
+    ebpf_list_initialize(&cpu_entry->epoch_state_list);
+    ebpf_list_initialize(&cpu_entry->free_list);
+}
+
+static void
+_ebpf_epoch_fail_fast_if_unadmitted_cpu(uint32_t cpu_id)
+{
+    EBPF_EPOCH_FAIL_FAST(
+        FAST_FAIL_INVALID_ARG, cpu_id < _ebpf_epoch_cpu_count && _ebpf_epoch_cpu_table[cpu_id].admitted);
+}
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_epoch_admit_existing_cpus()
+{
+    uint32_t first_cpu = UINT32_MAX;
+    uint32_t previous_cpu = UINT32_MAX;
+
+    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+        if (cpu_entry->work_queue == NULL) {
+            continue;
+        }
+
+        if (first_cpu == UINT32_MAX) {
+            first_cpu = cpu_id;
+        }
+
+        if (previous_cpu != UINT32_MAX) {
+            _ebpf_epoch_cpu_table[previous_cpu].next_active_cpu = cpu_id;
+            cpu_entry->previous_active_cpu = previous_cpu;
+        }
+
+        previous_cpu = cpu_id;
+    }
+
+    if (first_cpu == UINT32_MAX || first_cpu != 0) {
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    _ebpf_epoch_cpu_table[first_cpu].previous_active_cpu = previous_cpu;
+    _ebpf_epoch_cpu_table[previous_cpu].next_active_cpu = first_cpu;
+
+    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        if (_ebpf_epoch_cpu_table[cpu_id].work_queue != NULL) {
+            _ebpf_epoch_cpu_table[cpu_id].admitted = true;
+        }
+    }
+
+    return EBPF_SUCCESS;
+}
+
+static uint32_t
+_ebpf_epoch_get_next_active_cpu(uint32_t cpu_id)
+{
+    uint32_t next_cpu = _ebpf_epoch_cpu_table[cpu_id].next_active_cpu;
+
+    for (uint32_t attempt = 0; attempt < _ebpf_epoch_cpu_count; attempt++) {
+        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, next_cpu < _ebpf_epoch_cpu_count);
+        if (_ebpf_epoch_cpu_table[next_cpu].admitted) {
+            return next_cpu;
+        }
+        next_cpu = _ebpf_epoch_cpu_table[next_cpu].next_active_cpu;
+    }
+
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, false);
+    return cpu_id;
+}
+
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+_Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_change_callback(
+    _In_ void* callback_context,
+    _In_ PKE_PROCESSOR_CHANGE_NOTIFY_CONTEXT change_context,
+    _Inout_ PNTSTATUS operation_status)
+{
+    UNREFERENCED_PARAMETER(callback_context);
+
+    if (_ebpf_epoch_cpu_table == NULL || change_context->NtNumber >= _ebpf_epoch_cpu_count) {
+        return;
+    }
+
+    uint32_t cpu_id = change_context->NtNumber;
+    ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+
+    switch (change_context->State) {
+    case KeProcessorAddStartNotify: {
+        ebpf_result_t result = _ebpf_epoch_initialize_cpu_entry(cpu_id);
+        if (result != EBPF_SUCCESS) {
+            *operation_status = STATUS_INSUFFICIENT_RESOURCES;
+            return;
+        }
+
+        // During startup registration with KE_PROCESSOR_CHANGE_ADD_EXISTING, ebpf_epoch_initiate()
+        // links all active CPUs into the participant ring before publishing the subsystem.
+        if (_ebpf_epoch_processor_change_callback_handle == NULL) {
+            return;
+        }
+
+        uint32_t predecessor_cpu = UINT32_MAX;
+        uint32_t first_cpu = UINT32_MAX;
+        uint32_t last_cpu = UINT32_MAX;
+
+        for (uint32_t candidate_cpu = 0; candidate_cpu < _ebpf_epoch_cpu_count; candidate_cpu++) {
+            if (!_ebpf_epoch_cpu_table[candidate_cpu].admitted) {
+                continue;
+            }
+
+            if (first_cpu == UINT32_MAX) {
+                first_cpu = candidate_cpu;
+            }
+
+            last_cpu = candidate_cpu;
+
+            if (candidate_cpu < cpu_id) {
+                predecessor_cpu = candidate_cpu;
+            }
+        }
+
+        if (first_cpu == UINT32_MAX) {
+            *operation_status = STATUS_INVALID_DEVICE_STATE;
+            _ebpf_epoch_destroy_cpu_entry(cpu_entry);
+            return;
+        }
+
+        if (predecessor_cpu == UINT32_MAX) {
+            predecessor_cpu = last_cpu;
+        }
+
+        uint32_t successor_cpu = _ebpf_epoch_get_next_active_cpu(predecessor_cpu);
+        cpu_entry->previous_active_cpu = predecessor_cpu;
+        cpu_entry->next_active_cpu = successor_cpu;
+
+        ebpf_epoch_cpu_message_t update_next_message = {0};
+        update_next_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU;
+        update_next_message.message.update_next_active_cpu.next_cpu = cpu_id;
+        update_next_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+        _ebpf_epoch_send_message_and_wait(&update_next_message, predecessor_cpu);
+
+        ebpf_epoch_cpu_message_t update_previous_message = {0};
+        update_previous_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU;
+        update_previous_message.message.update_previous_active_cpu.previous_cpu = cpu_id;
+        update_previous_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+        _ebpf_epoch_send_message_and_wait(&update_previous_message, successor_cpu);
+
+        return;
+    }
+
+    case KeProcessorAddCompleteNotify:
+        if (cpu_entry->work_queue != NULL) {
+            MemoryBarrier();
+            cpu_entry->admitted = true;
+        }
+        return;
+
+    case KeProcessorAddFailureNotify: {
+        if (cpu_entry->work_queue == NULL) {
+            return;
+        }
+
+        if (_ebpf_epoch_processor_change_callback_handle != NULL &&
+            cpu_entry->previous_active_cpu < _ebpf_epoch_cpu_count &&
+            _ebpf_epoch_cpu_table[cpu_entry->previous_active_cpu].admitted) {
+            ebpf_epoch_cpu_message_t update_next_message = {0};
+            update_next_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU;
+            update_next_message.message.update_next_active_cpu.next_cpu = cpu_entry->next_active_cpu;
+            update_next_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+            _ebpf_epoch_send_message_and_wait(&update_next_message, cpu_entry->previous_active_cpu);
+        }
+
+        if (_ebpf_epoch_processor_change_callback_handle != NULL &&
+            cpu_entry->next_active_cpu < _ebpf_epoch_cpu_count &&
+            _ebpf_epoch_cpu_table[cpu_entry->next_active_cpu].admitted) {
+            ebpf_epoch_cpu_message_t update_previous_message = {0};
+            update_previous_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU;
+            update_previous_message.message.update_previous_active_cpu.previous_cpu = cpu_entry->previous_active_cpu;
+            update_previous_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+            _ebpf_epoch_send_message_and_wait(&update_previous_message, cpu_entry->next_active_cpu);
+        }
+
+        _ebpf_epoch_destroy_cpu_entry(cpu_entry);
+        return;
+    }
+
+    default:
+        return;
+    }
+}
+#endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_epoch_initiate()
@@ -267,40 +539,58 @@ ebpf_epoch_initiate()
 
     ebpf_assert(EBPF_CACHE_ALIGN_POINTER(_ebpf_epoch_cpu_table) == _ebpf_epoch_cpu_table);
 
-    // Initialize the per-CPU state.
+    memset(_ebpf_epoch_cpu_table, 0, sizeof(ebpf_epoch_cpu_entry_t) * _ebpf_epoch_cpu_count);
+
+    // Initialize the backing table. Active CPUs are initialized and admitted via
+    // the processor-change callback registration below.
     for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
         cpu_entry->current_epoch = 1;
+        cpu_entry->next_active_cpu = UINT32_MAX;
+        cpu_entry->previous_active_cpu = UINT32_MAX;
         ebpf_list_initialize(&cpu_entry->epoch_state_list);
         ebpf_list_initialize(&cpu_entry->free_list);
     }
 
     _ebpf_epoch_published_current_epoch = 1;
 
-    // Initialize the message queue.
-    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
-        ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
-        LARGE_INTEGER interval;
-        interval.QuadPart = EBPF_EPOCH_FLUSH_DELAY_IN_NANOSECONDS / EBPF_NS_PER_FILETIME;
-
-        ebpf_result_t result = ebpf_timed_work_queue_create(
-            &cpu_entry->work_queue, cpu_id, &interval, _ebpf_epoch_messenger_worker, cpu_entry);
-        if (result != EBPF_SUCCESS) {
-            return_value = result;
-            goto Error;
-        }
-    }
-
     KeInitializeDpc(&_ebpf_epoch_timer_dpc, _ebpf_epoch_timer_worker, NULL);
     KeSetTargetProcessorDpc(&_ebpf_epoch_timer_dpc, 0);
 
     KeInitializeTimer(&_ebpf_epoch_compute_release_epoch_timer);
 
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+    _ebpf_epoch_processor_change_callback_handle = KeRegisterProcessorChangeCallback(
+        _ebpf_epoch_processor_change_callback, NULL, KE_PROCESSOR_CHANGE_ADD_EXISTING);
+    if (_ebpf_epoch_processor_change_callback_handle == NULL) {
+        return_value = EBPF_OPERATION_NOT_SUPPORTED;
+        goto Error;
+    }
+#else
+    for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
+        return_value = _ebpf_epoch_initialize_cpu_entry(cpu_id);
+        if (return_value != EBPF_SUCCESS) {
+            goto Error;
+        }
+    }
+#endif
+
+    return_value = _ebpf_epoch_admit_existing_cpus();
+    if (return_value != EBPF_SUCCESS) {
+        goto Error;
+    }
+
 Error:
     if (return_value != EBPF_SUCCESS && _ebpf_epoch_cpu_table) {
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+        if (_ebpf_epoch_processor_change_callback_handle != NULL) {
+            KeDeregisterProcessorChangeCallback(_ebpf_epoch_processor_change_callback_handle);
+            _ebpf_epoch_processor_change_callback_handle = NULL;
+        }
+#endif
         for (uint32_t cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
             ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
-            ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
+            _ebpf_epoch_destroy_cpu_entry(cpu_entry);
         }
         cxplat_free(
             _ebpf_epoch_cpu_table, CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED, EBPF_POOL_TAG_EPOCH);
@@ -321,6 +611,13 @@ ebpf_epoch_terminate()
         return;
     }
 
+#if defined(KE_PROCESSOR_CHANGE_ADD_EXISTING)
+    if (_ebpf_epoch_processor_change_callback_handle != NULL) {
+        KeDeregisterProcessorChangeCallback(_ebpf_epoch_processor_change_callback_handle);
+        _ebpf_epoch_processor_change_callback_handle = NULL;
+    }
+#endif
+
     rundown_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_RUNDOWN_IN_PROGRESS;
     rundown_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
     _ebpf_epoch_send_message_and_wait(&rundown_message, 0);
@@ -333,10 +630,14 @@ ebpf_epoch_terminate()
 
     for (cpu_id = 0; cpu_id < _ebpf_epoch_cpu_count; cpu_id++) {
         ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
+        if (!cpu_entry->admitted) {
+            _ebpf_epoch_destroy_cpu_entry(cpu_entry);
+            continue;
+        }
         // Release all memory that is still in the free list.
         _ebpf_epoch_release_free_list(cpu_entry, MAXINT64);
         ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
-        ebpf_timed_work_queue_destroy(cpu_entry->work_queue);
+        _ebpf_epoch_destroy_cpu_entry(cpu_entry);
     }
 
     // Wait for all work items to complete.
@@ -359,6 +660,7 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
 {
     epoch_state->irql_at_enter = ebpf_raise_irql_to_dispatch_if_needed();
     epoch_state->cpu_id = ebpf_get_current_cpu();
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(epoch_state->cpu_id);
 
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[epoch_state->cpu_id];
     epoch_state->epoch = _ebpf_epoch_get_published_epoch();
@@ -381,6 +683,7 @@ ebpf_epoch_exit(_In_ ebpf_epoch_state_t* epoch_state)
     ebpf_assert(old_irql == epoch_state->irql_at_enter);
 
     uint32_t cpu_id = ebpf_get_current_cpu();
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
 
     // Special case: Thread has moved to a different CPU since entering the epoch.
     if (cpu_id != epoch_state->cpu_id) {
@@ -579,6 +882,8 @@ ebpf_epoch_is_free_list_empty(uint32_t cpu_id)
 {
     ebpf_epoch_cpu_message_t message = {0};
 
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
+
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY;
     message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
 
@@ -680,6 +985,7 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
 {
     KIRQL old_irql = ebpf_raise_irql_to_dispatch_if_needed();
     uint32_t cpu_id = ebpf_get_current_cpu();
+    _ebpf_epoch_fail_fast_if_unadmitted_cpu(cpu_id);
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
 
     if (cpu_entry->rundown_in_progress) {
@@ -815,14 +1121,12 @@ _ebpf_epoch_messenger_propose_release_epoch(
     // Set the proposed release epoch to the minimum epoch seen so far.
     message->message.propose_epoch.proposed_release_epoch = minimum_epoch;
 
-    // If this is the last CPU, then send a message to the first CPU to commit the release epoch.
-    if (current_cpu == _ebpf_epoch_cpu_count - 1) {
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+
+    // If the next CPU is CPU 0, then this is the last CPU in the active participant ring.
+    if (next_cpu == 0) {
         message->message.commit_epoch.released_epoch = minimum_epoch;
         message->message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_COMMIT_RELEASE_EPOCH;
-        next_cpu = 0;
-    } else {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
     }
 
     _ebpf_epoch_send_message_async(message, next_cpu);
@@ -854,13 +1158,11 @@ _ebpf_epoch_messenger_commit_release_epoch(
     // Set the released_epoch to the value computed by the EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH message.
     cpu_entry->released_epoch = message->message.commit_epoch.released_epoch - 1;
 
-    // If this is the last CPU, send the message to the first CPU to complete the cycle.
-    if (current_cpu != _ebpf_epoch_cpu_count - 1) {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
-    } else {
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+
+    // If the next CPU is CPU 0, complete the cycle on CPU 0.
+    if (next_cpu == 0) {
         message->message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_EPOCH_COMPLETE;
-        next_cpu = 0;
     }
 
     _ebpf_epoch_send_message_async(message, next_cpu);
@@ -931,15 +1233,11 @@ _ebpf_epoch_messenger_rundown_in_progress(
 {
     uint32_t next_cpu;
     cpu_entry->rundown_in_progress = true;
-    // If this is the last CPU, then stop.
-    if (current_cpu != _ebpf_epoch_cpu_count - 1) {
-        // Send the message to the next CPU.
-        next_cpu = current_cpu + 1;
-    } else {
+    next_cpu = _ebpf_epoch_get_next_active_cpu(current_cpu);
+    // If the next CPU is CPU 0, then stop.
+    if (next_cpu == 0) {
         // Signal the caller that rundown is complete.
         KeSetEvent(&message->completion_event, 0, FALSE);
-        // Set next_cpu to UINT32_MAX to make code analysis happy.
-        next_cpu = UINT32_MAX;
         return;
     }
 
@@ -965,6 +1263,30 @@ _ebpf_epoch_messenger_is_free_list_empty(
 }
 
 /**
+ * @brief Message to update the next active CPU in the participant ring.
+ */
+void
+_ebpf_epoch_messenger_update_next_active_cpu(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
+{
+    UNREFERENCED_PARAMETER(current_cpu);
+    cpu_entry->next_active_cpu = message->message.update_next_active_cpu.next_cpu;
+    KeSetEvent(&message->completion_event, 0, FALSE);
+}
+
+/**
+ * @brief Message to update the previous active CPU in the participant ring.
+ */
+void
+_ebpf_epoch_messenger_update_previous_active_cpu(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
+{
+    UNREFERENCED_PARAMETER(current_cpu);
+    cpu_entry->previous_active_cpu = message->message.update_previous_active_cpu.previous_cpu;
+    KeSetEvent(&message->completion_event, 0, FALSE);
+}
+
+/**
  * @brief Array of worker functions for the ebpf epoch inter-CPU messaging system.
  */
 static ebpf_epoch_messenger_worker_t _ebpf_epoch_messenger_workers[] = {
@@ -973,7 +1295,9 @@ static ebpf_epoch_messenger_worker_t _ebpf_epoch_messenger_workers[] = {
     _ebpf_epoch_messenger_compute_epoch_complete,
     _ebpf_epoch_messenger_exit_epoch,
     _ebpf_epoch_messenger_rundown_in_progress,
-    _ebpf_epoch_messenger_is_free_list_empty};
+    _ebpf_epoch_messenger_is_free_list_empty,
+    _ebpf_epoch_messenger_update_next_active_cpu,
+    _ebpf_epoch_messenger_update_previous_active_cpu};
 
 /**
  * @brief Worker for the ebpf epoch inter-CPU messaging system.
