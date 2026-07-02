@@ -27,7 +27,11 @@ set (redist_bins ${output_dir}/concrt140.dll;
 
 set (output_redist_bins $<$<CONFIG:Debug>:${debug_redist_bins}>$<$<CONFIG:Release>:${redist_bins}>)
 
-set (input_redist_bins $<$<CONFIG:Debug>:$(VC_DebugCppRuntimeFilesPath_x64)/Microsoft.VC143.DebugCRT>$<$<CONFIG:Release>:$(VC_CppRuntimeFilesPath_x64)/Microsoft.VC143.CRT>)
+set (input_redist_root $<$<CONFIG:Debug>:$(VC_DebugCppRuntimeFilesPath_x64)>$<$<CONFIG:Release>:$(VC_CppRuntimeFilesPath_x64)>)
+
+# The CRT redist folder is named after the toolset major version (e.g. Microsoft.VC143.CRT for the
+# v143 toolset, Microsoft.VC145.CRT for v145). Glob it so the copy is version-agnostic across toolsets.
+set (input_redist_glob $<$<CONFIG:Debug>:Microsoft.VC*.DebugCRT>$<$<CONFIG:Release>:Microsoft.VC*.CRT>)
 
 set (ucrtbased_dll $<$<CONFIG:Debug>:${output_dir}/ucrtbased.dll>)
 
@@ -84,7 +88,7 @@ add_custom_command(
     OUTPUT
         "${output_redist_bins}"
     COMMAND
-        ${CMAKE_COMMAND} -E copy_directory \"${input_redist_bins}\" ${output_dir}
+        cmd /c for /d %%d in (\"${input_redist_root}\\${input_redist_glob}\") do ${CMAKE_COMMAND} -E copy_directory \"%%d\" ${output_dir}
 )
 
 add_custom_command(

@@ -28,6 +28,7 @@
     "Microsoft.VisualStudio.Component.Vcpkg",
     "Microsoft.VisualStudio.Workload.NativeDesktop",
     "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
+    "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre",
     "Component.Microsoft.Windows.DriverKit"
   ],
   "extensions": [
