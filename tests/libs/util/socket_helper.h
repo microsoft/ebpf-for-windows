@@ -11,6 +11,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <Mswsock.h>
+#include <iphlpapi.h>
 #include <mstcpip.h>
 #include <netiodef.h>
 #include <vector>
@@ -65,6 +66,9 @@ typedef class _base_socket
      * @param[in] family Socket family (IPv4, IPv6, or Dual).
      * @param[in] source_address Source address to bind to (optional, defaults to wildcard).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] compartment_id If not UNSPECIFIED_COMPARTMENT_ID, create and bind the socket
+     *            inside the given network compartment (via SetCurrentThreadCompartmentId
+     *            save/restore around socket creation and bind).
      */
     _base_socket(
         int _sock_type,
@@ -72,7 +76,8 @@ typedef class _base_socket
         uint16_t port,
         socket_family_t family,
         _In_ const sockaddr_storage& source_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     virtual ~_base_socket();
 
     /**
@@ -143,6 +148,7 @@ typedef class _client_socket : public _base_socket
      * @param[in] family Socket family (IPv4, IPv6, or Dual).
      * @param[in] source_address Source address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] compartment_id Network compartment id (see _base_socket).
      */
     _client_socket(
         int _sock_type,
@@ -150,7 +156,8 @@ typedef class _client_socket : public _base_socket
         uint16_t port,
         socket_family_t family,
         _In_ const sockaddr_storage& source_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     virtual ~_client_socket() noexcept;
     virtual void
     send_message_to_remote_host(
@@ -188,6 +195,7 @@ typedef class _datagram_client_socket : public _client_socket
      * @param[in] connected_udp Whether to use connected UDP mode.
      * @param[in] source_address Source address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] compartment_id Network compartment id (see _base_socket).
      */
     _datagram_client_socket(
         int _sock_type,
@@ -196,7 +204,8 @@ typedef class _datagram_client_socket : public _client_socket
         socket_family_t family = Dual,
         bool connected_udp = false,
         _In_ const sockaddr_storage& source_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -226,6 +235,7 @@ typedef class _stream_client_socket : public _client_socket
      * @param[in] family Socket family (IPv4, IPv6, or Dual).
      * @param[in] source_address Source address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] compartment_id Network compartment id (see _base_socket).
      */
     _stream_client_socket(
         int _sock_type,
@@ -233,7 +243,8 @@ typedef class _stream_client_socket : public _client_socket
         uint16_t port,
         socket_family_t family = Dual,
         _In_ const sockaddr_storage& source_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -269,6 +280,7 @@ typedef class _server_socket : public _base_socket
      * @param[in] local_address Local address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
      * @param[in] family Socket family (IPv4, IPv6, or Dual). Default is Dual.
+     * @param[in] compartment_id Network compartment id (see _base_socket).
      */
     _server_socket(
         int sock_type,
@@ -276,7 +288,8 @@ typedef class _server_socket : public _base_socket
         uint16_t port,
         _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0,
-        socket_family_t family = Dual);
+        socket_family_t family = Dual,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     ~_server_socket() noexcept;
 
     /**
@@ -375,13 +388,15 @@ typedef class _datagram_server_socket : public _server_socket
      * @param[in] port Port to bind to.
      * @param[in] local_address Local address to bind to (optional).
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
+     * @param[in] compartment_id Network compartment id (see _base_socket).
      */
     _datagram_server_socket(
         int _sock_type,
         int _protocol,
         uint16_t port,
         _In_ const sockaddr_storage& local_address = {},
-        int expected_bind_error = 0);
+        int expected_bind_error = 0,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     void
     post_async_receive();
     void
@@ -418,6 +433,8 @@ typedef class _stream_server_socket : public _server_socket
      * @param[in] expected_bind_error Expected bind error code (0 = expect success).
      * @param[in] expected_listen_error Expected listen error code (0 = expect success).
      * @param[in] family Socket family (IPv4, IPv6, or Dual). Default is Dual.
+     * @param[in] compartment_id Network compartment id. If not UNSPECIFIED_COMPARTMENT_ID,
+     *            the listen and accept-socket setup also run inside that compartment.
      */
     _stream_server_socket(
         int sock_type,
@@ -426,7 +443,8 @@ typedef class _stream_server_socket : public _server_socket
         _In_ const sockaddr_storage& local_address = {},
         int expected_bind_error = 0,
         int expected_listen_error = 0,
-        socket_family_t family = Dual);
+        socket_family_t family = Dual,
+        uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID);
     ~_stream_server_socket();
     void
     post_async_receive();
