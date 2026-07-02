@@ -7,9 +7,11 @@
 #include "ebpf_result.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_verifier_wrapper.hpp"
+#include "ir/call_resolver.hpp"
 #include "map_descriptors.hpp"
 #include "windows_platform_common.hpp"
 
+#include <deque>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -17,6 +19,14 @@
 
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
+
+// Per-instruction map annotations from the most recent verification.
+// Strings in _map_annotation_names are owned by this deque; the ebpf_verifier_map_info_t
+// entries in _map_annotations hold c_str() pointers into them.
+// A deque is used (instead of vector) because push_back never invalidates
+// references or pointers to existing elements.
+thread_local static std::deque<std::string> _map_annotation_names;
+thread_local static std::vector<ebpf_verifier_map_info_t> _map_annotations;
 
 const char*
 allocate_string(const std::string& string, uint32_t* length) noexcept
@@ -201,6 +211,8 @@ ebpf_clear_thread_local_storage() noexcept
     set_program_under_verification(ebpf_handle_invalid);
     set_verification_program_type(nullptr);
     clean_up_sync_device_handle();
+    _map_annotations.clear();
+    _map_annotation_names.clear();
 }
 
 // Returned value is true if the program passes verification.
@@ -225,6 +237,73 @@ ebpf_verify_program(
         auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
         prevail::AnalysisContext context{std::move(program), options};
         auto analysis_result = prevail::analyze(context);
+
+        // Extract per-instruction map annotations using the verifier's abstract domain.
+        // For each map helper call, query the pre-state to determine which map r1 holds.
+        _map_annotations.clear();
+        _map_annotation_names.clear();
+        if (!analysis_result.failed) {
+            for (const auto& [label, inv_pair] : analysis_result.invariants) {
+                if (label.isjump() || !label.stack_frame_prefix.empty() || !label.special_label.empty()) {
+                    continue;
+                }
+                const auto& inst = context.program.instruction_at(label);
+                const auto* call = std::get_if<prevail::Call>(&inst);
+                if (!call || !prevail::resolve(*call, info).contract.is_map_lookup) {
+                    continue;
+                }
+
+                // Use the verifier's abstract domain to query r1's map identity.
+                const prevail::EbpfDomain& pre = inv_pair.pre;
+                if (pre.is_bottom()) {
+                    continue;
+                }
+
+                int32_t start_fd = 0, end_fd = 0;
+                if (!pre.get_map_fd_range(prevail::Reg{1}, &start_fd, &end_fd) || start_fd != end_fd) {
+                    continue; // Ambiguous map — skip annotation.
+                }
+
+                auto map_type = pre.get_map_type(prevail::Reg{1}, context);
+                if (!map_type.has_value()) {
+                    continue; // Ambiguous type — skip annotation.
+                }
+
+                // Look up the map descriptor to get name, value_size, max_entries.
+                // Find the descriptor by original_fd.
+                const std::string* map_name = nullptr;
+                uint32_t value_size = 0;
+                uint32_t max_entries = 0;
+                bool is_inner_map_template = false;
+                for (const auto& desc : info.map_descriptors) {
+                    if (desc.original_fd == start_fd) {
+                        if (!desc.name.empty()) {
+                            _map_annotation_names.push_back(desc.name);
+                            map_name = &_map_annotation_names.back();
+                        }
+                        value_size = desc.value_size;
+                        max_entries = desc.max_entries;
+                        is_inner_map_template = desc.is_inner_map_template;
+                        break;
+                    }
+                }
+
+                if (map_name == nullptr) {
+                    continue; // No name — can't match to bpf2c's map_definitions.
+                }
+
+                ebpf_verifier_map_info_t ann = {};
+                ann.instruction_offset = (uint32_t)label.from;
+                ann.helper_id = call->func;
+                ann.map_name = map_name->c_str();
+                ann.map_type = *map_type;
+                ann.value_size = value_size;
+                ann.max_entries = max_entries;
+                ann.is_inner_map_template = is_inner_map_template;
+                _map_annotations.push_back(ann);
+            }
+        }
+
         if (options.verbosity_opts.print_invariants) {
             print_invariants(os, context.program, analysis_result, options.verbosity_opts);
         }
@@ -276,4 +355,13 @@ ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
         verifier_options.verbosity_opts.simplify = false;
     }
     return verifier_options;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_map_annotations_from_verifier(
+    _Outptr_result_buffer_maybenull_(*count) const ebpf_verifier_map_info_t** annotations, _Out_ size_t* count) noexcept
+{
+    *count = _map_annotations.size();
+    *annotations = (*count > 0) ? _map_annotations.data() : nullptr;
+    return EBPF_SUCCESS;
 }

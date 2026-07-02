@@ -115,6 +115,33 @@ extern "C"
         int max_loop_count;
     } ebpf_api_verifier_stats_t;
 
+    /**
+     * @brief Per-instruction map annotation from the verifier.
+     * For map helper calls where the verifier can prove which map is being used,
+     * this carries the map identity and type information.
+     */
+    typedef struct _ebpf_verifier_map_info
+    {
+        uint32_t instruction_offset; ///< BPF program counter of the CALL instruction.
+        int32_t helper_id;           ///< Helper function ID (e.g., BPF_FUNC_map_lookup_elem).
+        const char* map_name;        ///< Map name from ELF (NULL if ambiguous).
+        uint32_t map_type;           ///< Map type (e.g., BPF_MAP_TYPE_ARRAY).
+        uint32_t value_size;         ///< Map value size in bytes.
+        uint32_t max_entries;        ///< Map maximum entries.
+        bool is_inner_map_template;  ///< True if this map is only an inner map template.
+    } ebpf_verifier_map_info_t;
+
+    /**
+     * @brief Get map annotations from the most recent verification.
+     * @param[out] annotations Pointer to the annotation array (owned by TLS, do not free).
+     * @param[out] count Number of annotations.
+     * @retval EBPF_SUCCESS Success.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_map_annotations_from_verifier(
+        _Outptr_result_buffer_maybenull_(*count) const ebpf_verifier_map_info_t** annotations,
+        _Out_ size_t* count) EBPF_NO_EXCEPT;
+
     typedef enum _ebpf_verification_verbosity
     {
         EBPF_VERIFICATION_VERBOSITY_NORMAL = 0,

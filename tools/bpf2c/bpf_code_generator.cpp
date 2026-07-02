@@ -89,6 +89,16 @@ static const std::set<std::string> _callee_register_args = {
     "r10",
 };
 
+static bool
+_map_annotation_trace_enabled()
+{
+    static const bool enabled = []() {
+        char value[2] = {0};
+        return GetEnvironmentVariableA("BPF2C_TRACE_MAP_ANNOTATIONS", value, sizeof(value)) > 0;
+    }();
+    return enabled;
+}
+
 enum class AluOperations
 {
     Add,
@@ -365,6 +375,37 @@ bpf_code_generator::set_program_hash_info(
     bpf_code_generator_program& program = programs[program_name];
 
     program.program_info_hash = program_info_hash;
+}
+
+void
+bpf_code_generator::set_map_annotations(
+    const unsafe_string& program_name, _In_reads_opt_(count) const ebpf_verifier_map_info_t* annotations, size_t count)
+{
+    auto& entry = _program_map_annotations[program_name];
+    auto& map_name_storage = _program_map_annotation_names[program_name];
+    entry.clear();
+    map_name_storage.clear();
+    if (_map_annotation_trace_enabled()) {
+        std::cerr << "[bpf2c][map-ann] program='" << program_name.raw() << "' annotation_count=" << count << std::endl;
+    }
+    if (annotations != nullptr) {
+        for (size_t i = 0; i < count; i++) {
+            ebpf_verifier_map_info_t annotation_copy = annotations[i];
+            if (annotations[i].map_name != nullptr) {
+                map_name_storage.emplace_back(annotations[i].map_name);
+                annotation_copy.map_name = map_name_storage.back().c_str();
+            }
+            entry[annotations[i].instruction_offset] = annotation_copy;
+            if (_map_annotation_trace_enabled()) {
+                std::cerr << "[bpf2c][map-ann]  pc=" << annotations[i].instruction_offset
+                          << " helper_id=" << annotations[i].helper_id << " map_type=" << annotations[i].map_type
+                          << " is_inner_template=" << (annotations[i].is_inner_map_template ? "true" : "false")
+                          << " map_name='"
+                          << ((annotations[i].map_name != nullptr) ? annotations[i].map_name : "<null>") << "'"
+                          << std::endl;
+            }
+        }
+    }
 }
 
 void
@@ -963,6 +1004,10 @@ bpf_code_generator::get_reachable_subprograms(const unsafe_string& entry_name) c
 void
 bpf_code_generator::build_global_helper_index()
 {
+    // Only apply map annotations to the program they were generated for.
+    // Subprogram local offsets restart at 0 and could collide with main program offsets.
+    static const std::unordered_map<uint32_t, ebpf_verifier_map_info_t> empty_annotations;
+
     // Check if the module has any subprograms (.text section functions).
     bool has_subprograms = false;
     for (const auto& [_, program] : programs) {
@@ -977,7 +1022,10 @@ bpf_code_generator::build_global_helper_index()
         global_helpers_ordered.clear();
         for (auto& [prog_name, program] : programs) {
             if (program.output_instructions.size() > 0) {
-                program.encode_instructions(map_definitions, global_variable_sections);
+                auto ann_it = _program_map_annotations.find(prog_name);
+                const auto& annotations =
+                    (ann_it != _program_map_annotations.end()) ? ann_it->second : empty_annotations;
+                program.encode_instructions(map_definitions, global_variable_sections, annotations);
             }
         }
         return;
@@ -1015,7 +1063,9 @@ bpf_code_generator::build_global_helper_index()
     // Now encode instructions for all programs (deferred from generate()).
     for (auto& [prog_name, program] : programs) {
         if (program.output_instructions.size() > 0) {
-            program.encode_instructions(map_definitions, global_variable_sections);
+            auto ann_it = _program_map_annotations.find(prog_name);
+            const auto& annotations = (ann_it != _program_map_annotations.end()) ? ann_it->second : empty_annotations;
+            program.encode_instructions(map_definitions, global_variable_sections, annotations);
         }
     }
 
@@ -1207,10 +1257,18 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
     }
 }
 
+static bool
+is_optimized_array_lookup(const ebpf_verifier_map_info_t& ann)
+{
+    return ann.helper_id == BPF_FUNC_map_lookup_elem && ann.map_name != nullptr && ann.map_type == BPF_MAP_TYPE_ARRAY &&
+           !ann.is_inner_map_template;
+}
+
 void
 bpf_code_generator::bpf_code_generator_program::encode_instructions(
     std::map<unsafe_string, map_info_t>& map_definitions,
-    std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
+    std::map<unsafe_string, global_variable_section_t>& global_variable_sections,
+    const std::unordered_map<uint32_t, ebpf_verifier_map_info_t>& map_annotations)
 {
     if (instructions_encoded) {
         // Instructions have already been encoded for this program, so skip re-encoding.
@@ -1715,10 +1773,69 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 helper_id = helper_function->second.id;
 
-                output.lines.push_back(
-                    get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
-                    get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ", context);");
+                // For BPF_FUNC_map_lookup_elem on BPF_MAP_TYPE_ARRAY maps, emit
+                // an inline array lookup instead of an indirect helper call.
+                // Uses verifier-provided annotations that prove which map r1
+                // holds at this call site (via abstract domain singleton check).
+                bool inlined = false;
+                if (helper_id == BPF_FUNC_map_lookup_elem) {
+                    auto ann_it = map_annotations.find(output.instruction_offset);
+                    if (ann_it != map_annotations.end() && is_optimized_array_lookup(ann_it->second)) {
+                        // Look up the map in bpf2c's own map_definitions by name
+                        // to get the correct runtime map_data index.
+                        auto map_it = map_definitions.find(ann_it->second.map_name);
+                        if (map_it != map_definitions.end()) {
+                            const auto& ann = ann_it->second;
+                            output.lines.push_back("{");
+                            output.lines.push_back(
+                                INDENT "uint32_t _array_key = *(uint32_t*)(uintptr_t)" + get_register_name(2) + ";");
+                            output.lines.push_back(std::format(INDENT "if (_array_key < {}) {{", ann.max_entries));
+                            output.lines.push_back(std::format(
+                                INDENT INDENT "{} = (uint64_t)(uintptr_t)"
+                                              "(runtime_context->map_data[{}].array_data + "
+                                              "(uint64_t)_array_key * {});",
+                                get_register_name(0),
+                                map_it->second.index,
+                                ann.value_size));
+                            output.lines.push_back(INDENT "} else {");
+                            output.lines.push_back(INDENT INDENT + get_register_name(0) + " = 0;");
+                            output.lines.push_back(INDENT "}");
+                            output.lines.push_back("}");
+                            inlined = true;
+                            if (_map_annotation_trace_enabled()) {
+                                std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                          << "' pc=" << output.instruction_offset << " map='" << ann.map_name
+                                          << "' map_index=" << map_it->second.index << " inlined=true" << std::endl;
+                            }
+                        } else if (_map_annotation_trace_enabled()) {
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset << " map='" << ann_it->second.map_name
+                                      << "' inlined=false reason=map_definition_not_found" << std::endl;
+                        }
+                    } else if (_map_annotation_trace_enabled()) {
+                        if (ann_it == map_annotations.end()) {
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset
+                                      << " inlined=false reason=no_annotation_for_callsite" << std::endl;
+                        } else {
+                            const auto& ann = ann_it->second;
+                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
+                                      << "' pc=" << output.instruction_offset
+                                      << " inlined=false reason=annotation_not_optimizable"
+                                      << " helper_id=" << ann.helper_id << " map_type=" << ann.map_type
+                                      << " is_inner_template=" << (ann.is_inner_map_template ? "true" : "false")
+                                      << " map_name='" << ((ann.map_name != nullptr) ? ann.map_name : "<null>") << "'"
+                                      << std::endl;
+                        }
+                    }
+                }
+
+                if (!inlined) {
+                    output.lines.push_back(
+                        get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
+                        get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
+                        get_register_name(5) + ", context);");
+                }
 
                 // BPF_FUNC_tail_call (helper ID 5). Emit a static return-on-success
                 // check only for tail call helpers, instead of a runtime tail_call
@@ -1739,9 +1856,36 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                         !program_output[j].relocation.empty()) {
                         auto future_map = map_definitions.find(program_output[j].relocation);
                         if (future_map != map_definitions.end()) {
-                            output.lines.push_back(std::format(
-                                "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[{}].address);",
-                                future_map->second.index));
+                            // Determine if the next map operation will be an optimized
+                            // array lookup by scanning forward from the LDDW to find
+                            // the associated CALL and checking its annotation.
+                            bool future_is_optimized_array = false;
+                            for (size_t k = j + 1; k < program_output.size(); k++) {
+                                auto& k_inst = program_output[k].instruction;
+                                if (k_inst.opcode == INST_OP_CALL && k_inst.src == INST_CALL_STATIC_HELPER) {
+                                    auto future_ann = map_annotations.find(program_output[k].instruction_offset);
+                                    if (future_ann != map_annotations.end() &&
+                                        is_optimized_array_lookup(future_ann->second)) {
+                                        future_is_optimized_array = true;
+                                    }
+                                    break;
+                                }
+                                if (program_output[k].jump_target || (k_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP ||
+                                    (k_inst.opcode & INST_CLS_MASK) == INST_CLS_JMP32) {
+                                    break;
+                                }
+                            }
+                            if (future_is_optimized_array) {
+                                output.lines.push_back(std::format(
+                                    "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, "
+                                    "runtime_context->map_data[{}].array_data);",
+                                    future_map->second.index));
+                            } else {
+                                output.lines.push_back(std::format(
+                                    "PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, "
+                                    "runtime_context->map_data[{}].address);",
+                                    future_map->second.index));
+                            }
                         }
                         break;
                     }
