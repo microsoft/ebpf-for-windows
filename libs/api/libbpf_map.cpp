@@ -471,7 +471,7 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
 {
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_opts(opts);
-    return ebpf_ring_buffer__new(map_fd, sample_cb, ctx, &ebpf_opts);
+    return ebpf_ring_buffer_new_internal(map_fd, sample_cb, ctx, &ebpf_opts);
 }
 
 void
@@ -648,7 +648,7 @@ perf_buffer__new(
 {
     // Convert Linux opts to Windows opts with default synchronous behavior.
     auto ebpf_opts = _convert_to_ebpf_perf_opts(opts);
-    return ebpf_perf_buffer__new(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
+    return ebpf_perf_buffer_new_internal(map_fd, page_cnt, sample_cb, lost_cb, ctx, &ebpf_opts);
 }
 
 void
