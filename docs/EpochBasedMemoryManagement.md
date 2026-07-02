@@ -19,10 +19,12 @@ In the context of this project's epoch memory management module
 mean a period of indeterminate length.
 
 The epoch module is implemented as a per-CPU design for participant tracking and
-deferred-reclamation queues: each CPU maintains its own epoch state list and free list.
+deferred-reclamation queues. The backing state table is sized for the kernel-reported
+maximum logical processor count, while only admitted active CPUs maintain live epoch
+state lists and free lists.
 
 Epoch *numbering* is driven by a single globally published epoch value that is advanced
-by CPU 0 during an inter-CPU propose/commit cycle. Each CPU also caches this value in a
+by CPU 0 during an inter-CPU propose/commit cycle. Each admitted CPU also caches this value in a
 per-CPU `current_epoch`, which may temporarily lag until it processes the latest message.
 
 At a high level, the epoch module provides:
@@ -35,14 +37,14 @@ At a high level, the epoch module provides:
 
 ### Per-CPU state
 
-Each CPU maintains:
+Each admitted CPU maintains:
 
 - A list of active epoch participants on that CPU (the epoch state list).
 - A per-CPU free list containing allocations/work-items waiting to be reclaimed.
 - A per-CPU `current_epoch` value (a cache of the globally published epoch).
 - A per-CPU `released_epoch` value (the newest epoch that is safe to reclaim).
 
-In addition to the per-CPU state, there is a globally published epoch value used as the
+In addition to the per-admitted-CPU state, there is a globally published epoch value used as the
 source of truth for:
 
 - `ebpf_epoch_enter()` stamping the `epoch_state->epoch` value.
@@ -68,8 +70,9 @@ Callers bracket epoch-protected access with:
 On enter, the epoch module:
 
 - Temporarily raises IRQL to DISPATCH_LEVEL (if needed).
+- Verifies that the current logical CPU has completed epoch admission.
 - Captures the current CPU id and the globally published epoch into the provided `epoch_state`.
-- Inserts `epoch_state` into that CPU's epoch state list.
+- Inserts `epoch_state` into that CPU's admitted epoch state list.
 
 On exit, the module removes `epoch_state` from the list and may arm a timer to
 trigger an epoch computation if there is pending reclamation work.
@@ -83,7 +86,7 @@ work queue) to the CPU where the enter occurred so the correct per-CPU list is u
 The epoch module uses a per-CPU *timed work queue* to drive its inter-CPU messaging and to
 process certain epoch operations on the correct target CPU.
 
-Each CPU has its own queue. Work items on that queue are processed:
+Each admitted CPU has its own queue. Work items on that queue are processed:
 
 - Opportunistically, when `ebpf_epoch_exit()` flushes the current CPU's queue before returning.
 - As a backstop, when the queue's timer expires (batching multiple messages).
@@ -149,15 +152,15 @@ The propose/commit message sequence is then forwarded CPU-by-CPU using the same 
 ### Propose phase
 
 During the propose phase, the system determines the **safe release epoch** by passing a
-`PROPOSE_RELEASE_EPOCH` message sequentially across all CPUs, starting with CPU 0. The message
+`PROPOSE_RELEASE_EPOCH` message sequentially across the admitted active CPU set, starting with CPU 0. The message
 carries the proposed release-epoch value.
 
 - CPU 0 atomically increments the globally published current epoch, updates its local current epoch
     cache, and initializes the message's proposed release epoch to that new value.
-- Each subsequent CPU updates its local current epoch cache to the value carried in the message.
-- Every CPU, including CPU 0, computes the minimum epoch from its local epoch-state list. If this
+- Each subsequent admitted CPU updates its local current epoch cache to the value carried in the message.
+- Every admitted CPU, including CPU 0, computes the minimum epoch from its local epoch-state list. If this
     minimum is lower than the message's proposed epoch, the message is updated with that lower value.
-- The CPU then forwards the (potentially updated) message to the next CPU.
+- The CPU then forwards the (potentially updated) message to the next admitted CPU.
 
 After the final CPU processes the message, it converts it into a `COMMIT_RELEASE_EPOCH` message
 containing the final proposed release epoch and sends it back to CPU 0. This begins the commit
@@ -165,7 +168,7 @@ phase of the cycle.
 
 ### Commit phase
 
-On commit, each CPU:
+On commit, each admitted CPU:
 
 1. Clears the local `timer_armed` flag.
 2. Computes `released_epoch = proposed_release_epoch - 1`.
@@ -201,6 +204,24 @@ If a work item callback needs to access epoch-managed data structures
 epoch-based allocator), the callback must explicitly call `ebpf_epoch_enter()`
 and `ebpf_epoch_exit()` to ensure proper epoch protection and avoid
 use-after-free issues.
+
+## CPU admission and hot-add
+
+The epoch module distinguishes between:
+
+- The maximum logical CPU count, which sizes the backing epoch table.
+- The admitted active CPU set, which participates in epoch entry/exit, retirement, and consensus.
+
+CPUs that are inactive at startup remain backed by preallocated but inactive table entries.
+When a CPU becomes active later, the epoch module must complete a CPU-admission sequence before
+that CPU can participate in current-CPU epoch operations. The intended design is to use
+processor-change notification to initialize the CPU's local queue/state and stage the active
+participant-ring update during add-start notification, then publish admission during add-complete
+notification once Windows reports that the processor has started.
+
+As a safety backstop, if a current-CPU epoch API is reached on a CPU that has not completed
+admission, the implementation must fail fast rather than touching inactive state or blocking
+in `ebpf_epoch_enter()`.
 
 ## Future investigations
 The implementation currently performs epoch computations via inter-CPU messaging and
