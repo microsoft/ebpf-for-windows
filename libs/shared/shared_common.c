@@ -13,11 +13,13 @@ enum _extension_object_type
     EBPF_ATTACH_PROVIDER_DATA = 0,
     EBPF_PROGRAM_TYPE_DESCRIPTOR,
     EBPF_HELPER_FUNCTION_PROTOTYPE,
+    EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE,
     EBPF_PROGRAM_INFO,
     EBPF_HELPER_FUNCTION_ADDRESSES,
     EBPF_PROGRAM_DATA,
     EBPF_PROGRAM_SECTION,
     EBPF_MAP_PROVIDER_DATA,
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA,
     EBPF_MAP_CLIENT_DATA,
     EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE,
     EBPF_BASE_MAP_PROVIDER_PROPERTIES,
@@ -42,11 +44,13 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,
+    EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_CURRENT_VERSION,
     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION,
     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,
     EBPF_PROGRAM_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
     EBPF_MAP_PROVIDER_DATA_CURRENT_VERSION,
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_CURRENT_VERSION,
     EBPF_MAP_CLIENT_DATA_CURRENT_VERSION,
     EBPF_BASE_MAP_PROVIDER_DISPATCH_TABLE_CURRENT_VERSION,
     EBPF_BASE_MAP_PROVIDER_PROPERTIES_CURRENT_VERSION,
@@ -78,6 +82,10 @@ size_t _ebpf_helper_function_prototype_supported_size[] = {
     EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0,
     EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1,
     EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_2};
+
+#define EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_btf_resolved_function_prototype_t, flags)
+size_t _ebpf_btf_resolved_function_prototype_supported_size[] = {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_SIZE_0};
 
 #define EBPF_PROGRAM_INFO_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};
@@ -126,6 +134,10 @@ size_t _ebpf_native_global_variable_section_data_supported_size[] = {EBPF_NATIVE
 #define EBPF_MAP_PROVIDER_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_provider_data_t, base_provider_table)
 size_t _ebpf_map_provider_data_supported_size[] = {EBPF_MAP_PROVIDER_DATA_SIZE_0};
 
+#define EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_btf_resolved_function_provider_data_t, btf_resolved_function_addresses)
+size_t _ebpf_btf_resolved_function_provider_data_supported_size[] = {EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_SIZE_0};
+
 #define EBPF_MAP_CLIENT_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_map_client_data_t, base_client_table)
 size_t _ebpf_map_client_data_supported_size[] = {EBPF_MAP_CLIENT_DATA_SIZE_0};
 
@@ -153,11 +165,15 @@ struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_suppo
     {_ebpf_attach_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_attach_provider_data_supported_size)},
     {_ebpf_program_type_descriptor_supported_size, EBPF_COUNT_OF(_ebpf_program_type_descriptor_supported_size)},
     {_ebpf_helper_function_prototype_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_prototype_supported_size)},
+    {_ebpf_btf_resolved_function_prototype_supported_size,
+     EBPF_COUNT_OF(_ebpf_btf_resolved_function_prototype_supported_size)},
     {_ebpf_program_info_supported_size, EBPF_COUNT_OF(_ebpf_program_info_supported_size)},
     {_ebpf_helper_function_addresses_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_addresses_supported_size)},
     {_ebpf_program_data_supported_size, EBPF_COUNT_OF(_ebpf_program_data_supported_size)},
     {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
     {_ebpf_map_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_data_supported_size)},
+    {_ebpf_btf_resolved_function_provider_data_supported_size,
+     EBPF_COUNT_OF(_ebpf_btf_resolved_function_provider_data_supported_size)},
     {_ebpf_map_client_data_supported_size, EBPF_COUNT_OF(_ebpf_map_client_data_supported_size)},
     {_ebpf_map_provider_dispatch_table_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_dispatch_table_supported_size)},
     {_ebpf_map_provider_properties_supported_size, EBPF_COUNT_OF(_ebpf_map_provider_properties_supported_size)},
@@ -197,13 +213,22 @@ _ebpf_validate_extension_object_header(
     __analysis_assume(supported_sizes != NULL);
 
     return (
-        (header->version == _supported_ebpf_extension_version[object_type]) &&
+        (header->version > 0) && (header->version <= _supported_ebpf_extension_version[object_type]) &&
         (_ebpf_is_size_supported(supported_sizes, count, header->size)));
 }
 
 #ifndef GUID_NULL
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
+
+static bool
+_ebpf_validate_btf_resolved_function_prototype(_In_ const ebpf_btf_resolved_function_prototype_t* function_prototype)
+{
+    return (
+        (function_prototype != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE, &function_prototype->header) &&
+        (function_prototype->name != NULL) && (function_prototype->prototype != NULL));
+}
 
 bool
 ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attach_provider_data)
@@ -212,6 +237,43 @@ ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attac
         (attach_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_ATTACH_PROVIDER_DATA, &attach_provider_data->header) &&
         !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL));
+}
+
+bool
+ebpf_validate_btf_resolved_function_prototype_array(
+    _In_reads_(count) const ebpf_btf_resolved_function_prototype_t* function_prototype_array, uint32_t count)
+{
+    if (count > 0) {
+        if (function_prototype_array == NULL) {
+            return false;
+        }
+
+        size_t function_prototype_size = function_prototype_array[0].header.total_size;
+        for (uint32_t i = 0; i < count; i++) {
+            const ebpf_btf_resolved_function_prototype_t* function_prototype =
+                (const ebpf_btf_resolved_function_prototype_t*)ARRAY_ELEMENT_INDEX(
+                    function_prototype_array, i, function_prototype_size);
+            if (!_ebpf_validate_btf_resolved_function_prototype(function_prototype)) {
+                return false;
+            }
+        }
+    } else if (function_prototype_array != NULL) {
+        return false;
+    }
+
+    return true;
+}
+
+bool
+ebpf_validate_btf_resolved_function_provider_data(_In_ const ebpf_btf_resolved_function_provider_data_t* provider_data)
+{
+    return (
+        (provider_data != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA, &provider_data->header) &&
+        (provider_data->btf_resolved_function_count > 0) &&
+        ebpf_validate_btf_resolved_function_prototype_array(
+            provider_data->btf_resolved_function_prototypes, provider_data->btf_resolved_function_count) &&
+        (provider_data->btf_resolved_function_addresses != NULL));
 }
 
 static bool
@@ -325,9 +387,18 @@ ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t*
 bool
 ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header)
 {
-    return (
-        (native_program_entry_header != NULL) &&
-        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header));
+    if (native_program_entry_header == NULL) {
+        return false;
+    }
+
+    switch (native_program_entry_header->version) {
+    case EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION:
+        return native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE;
+    case EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION:
+        return native_program_entry_header->size == EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_SIZE;
+    default:
+        return false;
+    }
 }
 
 bool

@@ -25,6 +25,7 @@ extern "C"
     typedef int32_t fd_t;
     extern __declspec(selectany) const fd_t ebpf_fd_invalid = -1;
     typedef intptr_t ebpf_handle_t;
+    typedef struct _ebpf_btf_resolved_function_info ebpf_btf_resolved_function_info_t;
 
     struct bpf_object;
     struct bpf_program;
@@ -539,6 +540,18 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program_info) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get BTF-resolved function metadata from the verifier cache for the last verification.
+     *
+     * @param[in] btf_id Session-local BTF ID assigned during verification.
+     * @param[out] function_info Pointer to the BTF-resolved function metadata.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_OBJECT_NOT_FOUND No BTF-resolved function was found for the supplied ID.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_btf_resolved_function_info_from_verifier(
+        int32_t btf_id, _Outptr_ const ebpf_btf_resolved_function_info_t** function_info) EBPF_NO_EXCEPT;
 
     typedef struct _ebpf_test_run_options
     {

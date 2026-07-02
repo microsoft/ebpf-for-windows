@@ -724,19 +724,21 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        func,
-        "bind",
-        "bind",
-        "func",
-        NULL,
-        0,
-        func_helpers,
-        5,
-        170,
-        &func_program_type_guid,
-        &func_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = func,
+        .pe_section_name = "bind",
+        .section_name = "bind",
+        .program_name = "func",
+        .referenced_map_indices = NULL,
+        .referenced_map_count = 0,
+        .helpers = func_helpers,
+        .helper_count = 5,
+        .bpf_instruction_count = 170,
+        .program_type = &func_program_type_guid,
+        .expected_attach_type = &func_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

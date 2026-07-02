@@ -225,19 +225,21 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        GlobalVariableAndMapTest,
-        "sample~1",
-        "sample_ext",
-        "GlobalVariableAndMapTest",
-        GlobalVariableAndMapTest_maps,
-        2,
-        GlobalVariableAndMapTest_helpers,
-        2,
-        18,
-        &GlobalVariableAndMapTest_program_type_guid,
-        &GlobalVariableAndMapTest_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = GlobalVariableAndMapTest,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "GlobalVariableAndMapTest",
+        .referenced_map_indices = GlobalVariableAndMapTest_maps,
+        .referenced_map_count = 2,
+        .helpers = GlobalVariableAndMapTest_helpers,
+        .helper_count = 2,
+        .bpf_instruction_count = 18,
+        .program_type = &GlobalVariableAndMapTest_program_type_guid,
+        .expected_attach_type = &GlobalVariableAndMapTest_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

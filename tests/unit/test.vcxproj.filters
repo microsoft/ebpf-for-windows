@@ -49,6 +49,9 @@
     <ClCompile Include="wer_report_test_wrapper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="btf_verifier_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="export_program_info_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>

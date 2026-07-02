@@ -3,6 +3,7 @@
 
 #define CATCH_CONFIG_MAIN
 
+#include "..\..\libs\store_helper\user\ebpf_registry_helper.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "api_service.h"
@@ -13,6 +14,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_core.h"
+#include "ebpf_store_helper.h"
 #include "ebpf_tracelog.h"
 #include "end_to_end_jit.h"
 #include "helpers.h"
@@ -56,6 +58,71 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define BPF_PROG_TYPE_INVALID 100
 #define BPF_ATTACH_TYPE_INVALID 100
+
+static const GUID _btf_test_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER;
+
+static const ebpf_btf_resolved_function_prototype_t _btf_test_prototype = {
+    EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
+    SAMPLE_EXT_BTF_FUNCTION_NAME,
+    SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
+    EBPF_RETURN_TYPE_INTEGER,
+    {EBPF_ARGUMENT_TYPE_ANYTHING,
+     EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+     EBPF_ARGUMENT_TYPE_CONST_SIZE,
+     EBPF_ARGUMENT_TYPE_DONTCARE,
+     EBPF_ARGUMENT_TYPE_DONTCARE},
+    0};
+
+static uint64_t
+_btf_test_lookup(
+    uint64_t key, uint64_t value, uint64_t value_size, uint64_t reserved1, uint64_t reserved2, void* context)
+{
+    UNREFERENCED_PARAMETER(reserved1);
+    UNREFERENCED_PARAMETER(reserved2);
+    UNREFERENCED_PARAMETER(context);
+
+    if (value != 0 && value_size >= sizeof(uint64_t)) {
+        *reinterpret_cast<uint64_t*>(value) = key;
+    }
+
+    return key + value_size;
+}
+
+static uint64_t _btf_test_function_addresses[] = {(uint64_t)_btf_test_lookup};
+
+static const ebpf_btf_resolved_function_provider_data_t _btf_test_provider_data = {
+    EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_DATA_HEADER, 1, &_btf_test_prototype, _btf_test_function_addresses};
+
+static std::wstring
+_get_btf_store_relative_path()
+{
+    return std::wstring(ebpf_store_root_sub_key) + L"\\" + EBPF_PROVIDERS_REGISTRY_KEY + L"\\" +
+           EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY;
+}
+
+static ebpf_result_t
+_clear_btf_store()
+{
+    ebpf_result_t result = ebpf_delete_registry_tree(ebpf_store_hkcu_root_key, _get_btf_store_relative_path().c_str());
+    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+        return result;
+    }
+
+    result = ebpf_delete_registry_tree(ebpf_store_hklm_root_key, _get_btf_store_relative_path().c_str());
+    if (result == EBPF_ACCESS_DENIED || result == EBPF_FILE_NOT_FOUND) {
+        result = EBPF_SUCCESS;
+    }
+
+    return result;
+}
+
+static void
+_publish_btf_test_provider()
+{
+    ebpf_btf_resolved_function_provider_info_t provider_info = {
+        EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_HEADER, _btf_test_module_guid, 1, &_btf_test_prototype};
+    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_SUCCESS);
+}
 
 #define DECLARE_ALL_TEST_CASES(_name, _group, _function) \
     DECLARE_JIT_TEST(_name, _group, _function)           \
@@ -3043,6 +3110,65 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
+
+TEST_CASE("btf_resolved_native_load_fails_without_runtime_provider", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    _publish_btf_test_provider();
+
+    bpf_object_ptr object;
+    fd_t program_fd = ebpf_fd_invalid;
+    const char* error_message = nullptr;
+    int result = ebpf_program_load(
+        "btf_resolved_um.dll", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd, &error_message);
+
+    if (error_message != nullptr) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+
+    REQUIRE(result != 0);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+}
+
+TEST_CASE("btf_resolved_native_runtime_fails_after_provider_detach", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+    _publish_btf_test_provider();
+
+    program_load_attach_helper_t program_helper;
+    INITIALIZE_SAMPLE_CONTEXT
+    ctx->uint32_data = 123;
+
+    uint32_t hook_result = MAXUINT32;
+    {
+        btf_function_provider_t btf_provider;
+        REQUIRE(btf_provider.initialize(_btf_test_module_guid, &_btf_test_provider_data) == EBPF_SUCCESS);
+        program_helper.initialize(
+            "btf_resolved_um.dll", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == ctx->uint32_data + sizeof(uint64_t));
+    }
+
+    REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
+
+    REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
+}
 
 static void
 _extension_reload_test_implicit_context(ebpf_execution_type_t execution_type)

@@ -70,7 +70,10 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
 }
 
 std::vector<uint8_t>
-get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const std::string& algorithm)
+get_program_info_type_hash(
+    const std::vector<int32_t>& actual_helper_ids,
+    const std::vector<bpf_code_generator::btf_resolved_function_dependency_t>& btf_resolved_functions,
+    const std::string& algorithm)
 {
     std::map<uint32_t, size_t> helper_id_ordering;
     size_t actual_helper_id_count = actual_helper_ids.size();
@@ -125,6 +128,21 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
             }
         }
     }
+
+    size_t btf_resolved_function_count = btf_resolved_functions.size();
+    if (btf_resolved_function_count > 0) {
+        hash_t::append_byte_range(byte_range, btf_resolved_function_count);
+        for (const auto& dependency : btf_resolved_functions) {
+            hash_t::append_byte_range(byte_range, dependency.module_guid);
+            hash_t::append_byte_range(byte_range, dependency.name);
+            hash_t::append_byte_range(byte_range, dependency.return_type);
+            for (size_t argument = 0; argument < dependency.arguments.size(); argument++) {
+                hash_t::append_byte_range(byte_range, dependency.arguments[argument]);
+            }
+            hash_t::append_byte_range(byte_range, dependency.flags);
+        }
+    }
+
     hash_t hash(algorithm);
     return hash.hash_byte_ranges(byte_range);
 }
@@ -355,8 +373,9 @@ main(int argc, char** argv)
 
             if (hash_algorithm != "none") {
                 std::vector<int32_t> helper_ids = generator.get_helper_ids(program->program_name);
+                auto btf_resolved_functions = generator.get_btf_resolved_function_dependencies(program->program_name);
                 std::optional<std::vector<uint8_t>> program_info_hash =
-                    get_program_info_type_hash(helper_ids, hash_algorithm);
+                    get_program_info_type_hash(helper_ids, btf_resolved_functions, hash_algorithm);
                 generator.set_program_hash_info(program->program_name, program_info_hash);
             }
         }

@@ -25,6 +25,12 @@ extern "C"
      */
     __declspec(selectany) GUID EBPF_MAP_INFO_EXTENSION_IID = {
         0x3c2b0f4e, 0x8b0e, 0x4e5e, {0x8e, 0x1b, 0x7f, 0x4b, 0x1f, 0x0e, 0x1f, 0x0e}};
+
+    /** @brief NPI ID for eBPF BTF-resolved function extension.
+     */
+    /* 8cf35ce4-7cf4-4407-883e-59b4e73dbe4f */
+    __declspec(selectany) GUID EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID = {
+        0x8cf35ce4, 0x7cf4, 0x4407, {0x88, 0x3e, 0x59, 0xb4, 0xe7, 0x3d, 0xbe, 0x4f}};
 #ifdef __cplusplus
 }
 #endif

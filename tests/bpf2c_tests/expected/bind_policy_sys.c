@@ -669,19 +669,21 @@ label_5:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        authorize_bind,
-        "bind",
-        "bind",
-        "authorize_bind",
-        authorize_bind_maps,
-        1,
-        authorize_bind_helpers,
-        3,
-        149,
-        &authorize_bind_program_type_guid,
-        &authorize_bind_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = authorize_bind,
+        .pe_section_name = "bind",
+        .section_name = "bind",
+        .program_name = "authorize_bind",
+        .referenced_map_indices = authorize_bind_maps,
+        .referenced_map_count = 1,
+        .helpers = authorize_bind_helpers,
+        .helper_count = 3,
+        .bpf_instruction_count = 149,
+        .program_type = &authorize_bind_program_type_guid,
+        .expected_attach_type = &authorize_bind_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

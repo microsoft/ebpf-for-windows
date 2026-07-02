@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ebpf_store_helper.h"
 #include "windows_program_type.h"
 
 _Must_inspect_result_ ebpf_result_t
@@ -19,6 +20,15 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_store_load_global_helper_information(
     _Outptr_result_buffer_maybenull_(*global_helper_info_count) ebpf_helper_function_prototype_t** global_helper_info,
     _Out_ uint32_t* global_helper_info_count);
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_store_load_btf_resolved_function(
+    _In_ const GUID* module_guid,
+    _In_z_ const char* function_name,
+    _Outptr_ ebpf_btf_resolved_function_info_t** function_info);
+
+void
+ebpf_store_free_btf_resolved_function(_Frees_ptr_opt_ ebpf_btf_resolved_function_info_t* function_info);
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_store_clear(_In_ const ebpf_store_key_t root_key_path);

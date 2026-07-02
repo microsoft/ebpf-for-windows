@@ -292,19 +292,21 @@ label_3:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        perf_event_burst,
-        "sample~1",
-        "sample_ext",
-        "perf_event_burst",
-        perf_event_burst_maps,
-        1,
-        perf_event_burst_helpers,
-        1,
-        41,
-        &perf_event_burst_program_type_guid,
-        &perf_event_burst_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = perf_event_burst,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "perf_event_burst",
+        .referenced_map_indices = perf_event_burst_maps,
+        .referenced_map_count = 1,
+        .helpers = perf_event_burst_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 41,
+        .program_type = &perf_event_burst_program_type_guid,
+        .expected_attach_type = &perf_event_burst_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

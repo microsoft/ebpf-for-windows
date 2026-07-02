@@ -560,19 +560,21 @@ label_6:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        BindMonitor,
-        "bind",
-        "bind",
-        "BindMonitor",
-        BindMonitor_maps,
-        3,
-        BindMonitor_helpers,
-        7,
-        103,
-        &BindMonitor_program_type_guid,
-        &BindMonitor_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = BindMonitor,
+        .pe_section_name = "bind",
+        .section_name = "bind",
+        .program_name = "BindMonitor",
+        .referenced_map_indices = BindMonitor_maps,
+        .referenced_map_count = 3,
+        .helpers = BindMonitor_helpers,
+        .helper_count = 7,
+        .bpf_instruction_count = 103,
+        .program_type = &BindMonitor_program_type_guid,
+        .expected_attach_type = &BindMonitor_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

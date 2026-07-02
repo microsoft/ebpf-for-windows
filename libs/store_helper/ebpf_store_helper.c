@@ -10,6 +10,10 @@
 
 #define IS_SUCCESS(x) (x == EBPF_SUCCESS)
 
+#ifndef GUID_NULL
+static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
 static ebpf_result_t
 _ebpf_store_update_extension_header_information(ebpf_store_key_t key, _In_ const ebpf_extension_header_t* header)
 {
@@ -102,6 +106,225 @@ _ebpf_store_update_helper_prototype(
 Exit:
     ebpf_free_wstring(wide_helper_name);
     ebpf_close_registry_key(helper_function_key);
+
+    return result;
+}
+
+static bool
+_ebpf_validate_btf_resolved_function_provider_info(_In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    if ((provider_info == NULL) ||
+        (provider_info->header.version != EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION) ||
+        (provider_info->header.size != EBPF_BTF_RESOLVED_FUNCTION_PROVIDER_INFO_CURRENT_VERSION_SIZE) ||
+        IsEqualGUID(&provider_info->module_guid, &GUID_NULL) || (provider_info->btf_resolved_function_count == 0) ||
+        !ebpf_validate_btf_resolved_function_prototype_array(
+            provider_info->btf_resolved_function_prototypes, provider_info->btf_resolved_function_count)) {
+        return false;
+    }
+
+    return true;
+}
+
+static ebpf_result_t
+_ebpf_store_update_btf_resolved_function(
+    ebpf_store_key_t function_collection_key, _In_ const ebpf_btf_resolved_function_prototype_t* function_prototype)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t function_key = NULL;
+    wchar_t* wide_function_name = NULL;
+    wchar_t* wide_prototype = NULL;
+
+    wide_function_name = ebpf_get_wstring_from_string(function_prototype->name);
+    if (wide_function_name == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    wide_prototype = ebpf_get_wstring_from_string(function_prototype->prototype);
+    if (wide_prototype == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    result = ebpf_create_registry_key(function_collection_key, wide_function_name, REG_CREATE_FLAGS, &function_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_write_registry_value_string(function_key, EBPF_BTF_FUNCTION_DATA_PROTOTYPE, wide_prototype);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_write_registry_value_dword(
+        function_key, EBPF_BTF_FUNCTION_DATA_RETURN_TYPE, function_prototype->return_type);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_write_registry_value_binary(
+        function_key,
+        EBPF_BTF_FUNCTION_DATA_ARGUMENTS,
+        (uint8_t*)function_prototype->arguments,
+        sizeof(function_prototype->arguments));
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_write_registry_value_dword(function_key, EBPF_BTF_FUNCTION_DATA_FLAGS, function_prototype->flags);
+
+Exit:
+    ebpf_free_wstring(wide_prototype);
+    ebpf_free_wstring(wide_function_name);
+    ebpf_close_registry_key(function_key);
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_store_update_btf_resolved_function_provider_information(
+    ebpf_store_key_t root_key, _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t btf_resolved_functions_key = NULL;
+    ebpf_store_key_t provider_info_key = NULL;
+    ebpf_store_key_t function_collection_key = NULL;
+
+    if (!_ebpf_validate_btf_resolved_function_provider_info(provider_info)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_create_registry_key(
+        provider_key, EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY, REG_CREATE_FLAGS, &btf_resolved_functions_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    wchar_t guid_string[GUID_STRING_LENGTH + 1];
+    result = ebpf_convert_guid_to_string(&provider_info->module_guid, guid_string, GUID_STRING_LENGTH + 1);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_create_registry_key(btf_resolved_functions_key, guid_string, REG_CREATE_FLAGS, &provider_info_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = _ebpf_store_update_extension_header_information(provider_info_key, &provider_info->header);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(provider_info_key, EBPF_BTF_FUNCTIONS_REGISTRY_KEY);
+    if (result != EBPF_SUCCESS && result != EBPF_FILE_NOT_FOUND) {
+        goto Exit;
+    }
+
+    result = ebpf_create_registry_key(
+        provider_info_key, EBPF_BTF_FUNCTIONS_REGISTRY_KEY, REG_CREATE_FLAGS, &function_collection_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    for (uint32_t i = 0; i < provider_info->btf_resolved_function_count; i++) {
+        result = _ebpf_store_update_btf_resolved_function(
+            function_collection_key, &provider_info->btf_resolved_function_prototypes[i]);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
+    }
+
+Exit:
+    ebpf_close_registry_key(function_collection_key);
+    ebpf_close_registry_key(provider_info_key);
+    ebpf_close_registry_key(btf_resolved_functions_key);
+    ebpf_close_registry_key(provider_key);
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_update_btf_resolved_function_provider_information(
+    _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    result = _ebpf_store_update_btf_resolved_function_provider_information(ebpf_store_hkcu_root_key, provider_info);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    result = _ebpf_store_update_btf_resolved_function_provider_information(ebpf_store_hklm_root_key, provider_info);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
+
+    return result;
+}
+
+static bool
+_ebpf_validate_btf_resolved_function_provider_identity(
+    _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    return provider_info != NULL && !IsEqualGUID(&provider_info->module_guid, &GUID_NULL);
+}
+
+static ebpf_result_t
+_ebpf_store_delete_btf_resolved_function_provider_information(
+    ebpf_store_key_t root_key, _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t btf_resolved_functions_key = NULL;
+
+    if (!_ebpf_validate_btf_resolved_function_provider_identity(provider_info)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_open_registry_key(
+        provider_key, EBPF_BTF_RESOLVED_FUNCTIONS_REGISTRY_KEY, REG_DELETE_FLAGS, &btf_resolved_functions_key);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    wchar_t guid_string[GUID_STRING_LENGTH + 1];
+    result = ebpf_convert_guid_to_string(&provider_info->module_guid, guid_string, GUID_STRING_LENGTH + 1);
+    if (!IS_SUCCESS(result)) {
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(btf_resolved_functions_key, guid_string);
+
+Exit:
+    ebpf_close_registry_key(btf_resolved_functions_key);
+    ebpf_close_registry_key(provider_key);
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_delete_btf_resolved_function_provider_information(
+    _In_ const ebpf_btf_resolved_function_provider_info_t* provider_info)
+{
+    ebpf_result_t result =
+        _ebpf_store_delete_btf_resolved_function_provider_information(ebpf_store_hkcu_root_key, provider_info);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    result = _ebpf_store_delete_btf_resolved_function_provider_information(ebpf_store_hklm_root_key, provider_info);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
 
     return result;
 }
