@@ -902,6 +902,15 @@ TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform]")
 
 TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform]")
 {
+    struct _environment_variable_guard
+    {
+        explicit _environment_variable_guard(const char* name) : _name(name) {}
+        ~_environment_variable_guard() { SetEnvironmentVariableA(_name, nullptr); }
+
+      private:
+        const char* _name;
+    };
+
     const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
     if (maximum_cpu_count < 2) {
         return;
@@ -920,6 +929,7 @@ TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform]")
             module_path) > 0);
 
     REQUIRE(SetEnvironmentVariableA("EBPF_EPOCH_FAIL_FAST_CHILD", "true"));
+    _environment_variable_guard environment_variable_guard("EBPF_EPOCH_FAIL_FAST_CHILD");
 
     STARTUPINFOA startup_info = {};
     startup_info.cb = sizeof(startup_info);
@@ -931,10 +941,8 @@ TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform]")
 
     DWORD exit_code = 0;
     REQUIRE(GetExitCodeProcess(process_information.hProcess, &exit_code));
-
     CloseHandle(process_information.hThread);
     CloseHandle(process_information.hProcess);
-    REQUIRE(SetEnvironmentVariableA("EBPF_EPOCH_FAIL_FAST_CHILD", nullptr));
 
     REQUIRE((exit_code == 3 || exit_code == STATUS_STACK_BUFFER_OVERRUN));
 }
@@ -2721,12 +2729,11 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
             return std::abs(a) < std::abs(b);
         });
 
-    auto average_frequency = std::abs(
-                                 std::accumulate(
-                                     output_values.begin(),
-                                     output_values.end(),
-                                     0.0,
-                                     [](double a, kissfft<double>::cpx_t b) { return a + std::abs(b); })) /
+    auto average_frequency = std::abs(std::accumulate(
+                                 output_values.begin(),
+                                 output_values.end(),
+                                 0.0,
+                                 [](double a, kissfft<double>::cpx_t b) { return a + std::abs(b); })) /
                              sequence_length;
 
     auto std_dev_frequency = std::sqrt(
