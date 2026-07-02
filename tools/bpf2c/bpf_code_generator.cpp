@@ -89,16 +89,6 @@ static const std::set<std::string> _callee_register_args = {
     "r10",
 };
 
-static bool
-_map_annotation_trace_enabled()
-{
-    static const bool enabled = []() {
-        char value[2] = {0};
-        return GetEnvironmentVariableA("BPF2C_TRACE_MAP_ANNOTATIONS", value, sizeof(value)) > 0;
-    }();
-    return enabled;
-}
-
 enum class AluOperations
 {
     Add,
@@ -385,9 +375,6 @@ bpf_code_generator::set_map_annotations(
     auto& map_name_storage = _program_map_annotation_names[program_name];
     entry.clear();
     map_name_storage.clear();
-    if (_map_annotation_trace_enabled()) {
-        std::cerr << "[bpf2c][map-ann] program='" << program_name.raw() << "' annotation_count=" << count << std::endl;
-    }
     if (annotations != nullptr) {
         for (size_t i = 0; i < count; i++) {
             ebpf_verifier_map_info_t annotation_copy = annotations[i];
@@ -396,14 +383,6 @@ bpf_code_generator::set_map_annotations(
                 annotation_copy.map_name = map_name_storage.back().c_str();
             }
             entry[annotations[i].instruction_offset] = annotation_copy;
-            if (_map_annotation_trace_enabled()) {
-                std::cerr << "[bpf2c][map-ann]  pc=" << annotations[i].instruction_offset
-                          << " helper_id=" << annotations[i].helper_id << " map_type=" << annotations[i].map_type
-                          << " is_inner_template=" << (annotations[i].is_inner_map_template ? "true" : "false")
-                          << " map_name='"
-                          << ((annotations[i].map_name != nullptr) ? annotations[i].map_name : "<null>") << "'"
-                          << std::endl;
-            }
         }
     }
 }
@@ -1802,30 +1781,6 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                             output.lines.push_back(INDENT "}");
                             output.lines.push_back("}");
                             inlined = true;
-                            if (_map_annotation_trace_enabled()) {
-                                std::cerr << "[bpf2c][inline] program='" << program_name.raw()
-                                          << "' pc=" << output.instruction_offset << " map='" << ann.map_name
-                                          << "' map_index=" << map_it->second.index << " inlined=true" << std::endl;
-                            }
-                        } else if (_map_annotation_trace_enabled()) {
-                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
-                                      << "' pc=" << output.instruction_offset << " map='" << ann_it->second.map_name
-                                      << "' inlined=false reason=map_definition_not_found" << std::endl;
-                        }
-                    } else if (_map_annotation_trace_enabled()) {
-                        if (ann_it == map_annotations.end()) {
-                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
-                                      << "' pc=" << output.instruction_offset
-                                      << " inlined=false reason=no_annotation_for_callsite" << std::endl;
-                        } else {
-                            const auto& ann = ann_it->second;
-                            std::cerr << "[bpf2c][inline] program='" << program_name.raw()
-                                      << "' pc=" << output.instruction_offset
-                                      << " inlined=false reason=annotation_not_optimizable"
-                                      << " helper_id=" << ann.helper_id << " map_type=" << ann.map_type
-                                      << " is_inner_template=" << (ann.is_inner_map_template ? "true" : "false")
-                                      << " map_name='" << ((ann.map_name != nullptr) ? ann.map_name : "<null>") << "'"
-                                      << std::endl;
                         }
                     }
                 }

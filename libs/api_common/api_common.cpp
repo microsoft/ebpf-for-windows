@@ -243,6 +243,12 @@ ebpf_verify_program(
         _map_annotations.clear();
         _map_annotation_names.clear();
         if (!analysis_result.failed) {
+            // Pre-build fd → descriptor index lookup table to avoid linear scans.
+            std::unordered_map<int32_t, size_t> fd_to_descriptor_index;
+            for (size_t i = 0; i < info.map_descriptors.size(); i++) {
+                fd_to_descriptor_index[info.map_descriptors[i].original_fd] = i;
+            }
+
             for (const auto& [label, inv_pair] : analysis_result.invariants) {
                 if (label.isjump() || !label.stack_frame_prefix.empty() || !label.special_label.empty()) {
                     continue;
@@ -270,22 +276,20 @@ ebpf_verify_program(
                 }
 
                 // Look up the map descriptor to get name, value_size, max_entries.
-                // Find the descriptor by original_fd.
                 const std::string* map_name = nullptr;
                 uint32_t value_size = 0;
                 uint32_t max_entries = 0;
                 bool is_inner_map_template = false;
-                for (const auto& desc : info.map_descriptors) {
-                    if (desc.original_fd == start_fd) {
-                        if (!desc.name.empty()) {
-                            _map_annotation_names.push_back(desc.name);
-                            map_name = &_map_annotation_names.back();
-                        }
-                        value_size = desc.value_size;
-                        max_entries = desc.max_entries;
-                        is_inner_map_template = desc.is_inner_map_template;
-                        break;
+                auto fd_it = fd_to_descriptor_index.find(start_fd);
+                if (fd_it != fd_to_descriptor_index.end()) {
+                    const auto& desc = info.map_descriptors[fd_it->second];
+                    if (!desc.name.empty()) {
+                        _map_annotation_names.push_back(desc.name);
+                        map_name = &_map_annotation_names.back();
                     }
+                    value_size = desc.value_size;
+                    max_entries = desc.max_entries;
+                    is_inner_map_template = desc.is_inner_map_template;
                 }
 
                 if (map_name == nullptr) {

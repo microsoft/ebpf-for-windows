@@ -54,22 +54,6 @@ For **undocked** programs (`tests\sample\undocked\*.c`), also add:
 Add **`--verbose`** to get detailed verifier output (pre/post invariants at each instruction)
 on failure.
 
-### 3. Regenerate bpf2c Expected Files
-
-When sample programs or bpf2c output changes, regenerate expected outputs used by
-`tests\bpf2c_tests`:
-
-1. Build the solution in `x64\Debug`.
-2. Run:
-
-```powershell
-.\scripts\generate_expected_bpf2c_output.ps1 x64\Debug
-```
-
-Notes:
-- This script regenerates files under `tests\bpf2c_tests\expected`.
-- Use the exact build output directory you built (for example, `x64\Debug`).
-
 ### bpf2c Options
 
 | Flag | Purpose |

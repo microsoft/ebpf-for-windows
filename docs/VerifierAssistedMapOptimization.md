@@ -1,9 +1,9 @@
 # Verifier-Assisted Inline Array Map Lookup Optimization for bpf2c
 
-## 1. Problem Statement
+## 1. Background
 
-Today, bpf2c generates code where **every** helper function call (including
-`bpf_map_lookup_elem`) goes through an indirect function pointer:
+Without this optimization, bpf2c generates code where **every** helper function
+call (including `bpf_map_lookup_elem`) goes through an indirect function pointer:
 
 ```c
 r1 = POINTER(runtime_context->map_data[2].address);  // LDDW loads map
@@ -20,14 +20,14 @@ if (key < max_entries)
 This indirect call overhead is unnecessary when the map type and dimensions are
 known at compile time.
 
-## 2. Goal
+## 2. Design Summary
 
-Enable bpf2c to **inline array map lookups** by leveraging the PREVAIL
-verifier's abstract domain to deterministically identify which map each helper
-call operates on, eliminating the indirect function call for the most common
-map operations.
+bpf2c **inlines array map lookups** by leveraging the PREVAIL verifier's
+abstract domain to deterministically identify which map each helper call
+operates on, eliminating the indirect function call for the most common map
+operations.
 
-## 3. Design Approach: Verifier Abstract Domain
+## 3. Verifier Abstract Domain
 
 The PREVAIL verifier performs abstract interpretation over the eBPF program's
 control flow graph. At each instruction, it maintains an `EbpfDomain` that
@@ -144,12 +144,17 @@ the result, and must consume it before the next verification call.
 
 ### Annotation consumption (in `bpf_code_generator.cpp`)
 
-bpf2c stores annotations in an `unordered_map<uint32_t, ebpf_verifier_map_info_t>`
-keyed by `instruction_offset` for O(1) lookup during code generation.
+bpf2c stores annotations per entry-program in
+`_program_map_annotations[program_name]`, an
+`unordered_map<uint32_t, ebpf_verifier_map_info_t>` keyed by
+`instruction_offset` for O(1) lookup during code generation.
+Subprograms are not annotated (bpf2c skips `.text` subprograms when calling
+`set_map_annotations`), so their local offsets cannot collide with entry
+program annotations.
 
 At each `BPF_FUNC_map_lookup_elem` CALL instruction:
 
-1. Look up `_map_annotations[instruction_offset]`.
+1. Look up `_program_map_annotations[program_name][instruction_offset]`.
 2. If found and `map_type == BPF_MAP_TYPE_ARRAY` and `map_name != NULL`
    and `!is_inner_map_template`:
 3. Look up `map_definitions.find(map_name)` → get bpf2c's own map index.
@@ -188,7 +193,7 @@ r2 += IMMEDIATE(-84);
 
 ### `map_data_t` extension
 
-Added `array_data` field to `map_data_t` in `bpf2c.h`:
+The `map_data_t` structure in `bpf2c.h` includes an `array_data` field:
 
 ```c
 typedef struct _map_data
@@ -217,10 +222,10 @@ size_t _ebpf_native_map_data_supported_size[] = {
 
 In `ebpf_native.c`, the function `_ebpf_native_get_map_data_element_size()`
 determines which layout a module expects by comparing the module's bpf2c
-version against `{1, 2, 0}` (the minimum version that supports `array_data`):
+version against `{1, 4, 0}` (the minimum version that supports `array_data`):
 
 ```c
-static const bpf2c_version_t _ebpf_version_map_data_v2 = {1, 2, 0};
+static const bpf2c_version_t _ebpf_version_map_data_v2 = {1, 4, 0};
 
 static size_t
 _ebpf_native_get_map_data_element_size(_In_ const ebpf_native_module_t* module)
