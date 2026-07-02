@@ -8,6 +8,7 @@
     <ClCompile Include="capture_helper.cpp" />
     <ClCompile Include="..\..\..\libs\shared\hash.cpp" />
     <ClCompile Include="filter_helper.cpp" />
+    <ClCompile Include="hook_provider.cpp" />
     <ClCompile Include="ioctl_helper.cpp" />
     <ClCompile Include="native_helper.cpp" />
     <ClCompile Include="netsh_helper.cpp" />

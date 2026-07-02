@@ -50,6 +50,17 @@
     <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &gt;= '18.0'">10.0.28000.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformVersion Condition="'$(WindowsTargetPlatformVersion)' == '' and '$(VisualStudioVersion)' &lt; '18.0'">10.0.26100.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <ResolveNuGetPackages>false</ResolveNuGetPackages>
+  </PropertyGroup>
+  <!-- Reference the Windows SDK as a NuGet package so the user-mode DLL resolves $(WindowsSdkDir) from
+       the package instead of requiring the SDK to be installed on the machine. The kernel-mode template
+       does the same (plus the WDK); user mode only needs the SDK. Restore is performed in
+       Convert-BpfToNative.ps1 before the build. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(Platform)" Version="$(WDKVersion)"/>
+    <PackageReference Include="Microsoft.Windows.SDK.CPP.$(HostPlatform)" Condition="'$(HostPlatform)' != '$(Platform)'" Version="$(WDKVersion)"/>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
