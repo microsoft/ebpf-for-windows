@@ -63,6 +63,7 @@ var searchData=
   ['ebpf_5fstore_5fkey_5ft_60',['ebpf_store_key_t',['../ebpf__store__helper_8h.html#a2c2cbb58cc8cc7afd7f1e5177b6680b7',1,'ebpf_store_helper.h']]],
   ['ebpf_5ftest_5frun_5foptions_5ft_61',['ebpf_test_run_options_t',['../ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341',1,'ebpf_api.h']]],
   ['ebpf_5fverification_5fverbosity_5ft_62',['ebpf_verification_verbosity_t',['../ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f',1,'ebpf_api.h']]],
-  ['epoch_5fstate_5ft_63',['epoch_state_t',['../ebpf__extension_8h.html#adcb3a366ae5b8ff0cd26f3dd779a1876',1,'ebpf_extension.h']]],
-  ['ethernet_5fheader_64',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]]
+  ['ebpf_5fverifier_5fmap_5finfo_5ft_63',['ebpf_verifier_map_info_t',['../ebpf__api_8h.html#a4aa57585f7df9d0b26492c42647d29de',1,'ebpf_api.h']]],
+  ['epoch_5fstate_5ft_64',['epoch_state_t',['../ebpf__extension_8h.html#adcb3a366ae5b8ff0cd26f3dd779a1876',1,'ebpf_extension.h']]],
+  ['ethernet_5fheader_65',['ETHERNET_HEADER',['../net_2if__ether_8h.html#a1fde3e40112a3b51e40754a129d6447a',1,'if_ether.h']]]
 ];

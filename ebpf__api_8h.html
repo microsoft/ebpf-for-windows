@@ -102,6 +102,9 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__verifier__map__info.html">_ebpf_verifier_map_info</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-instruction map annotation from the verifier. For map helper calls where the verifier can prove which map is being used, this carries the map identity and type information.  <a href="struct__ebpf__verifier__map__info.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__ring__buffer__consumer__page.html">_ebpf_ring_buffer_consumer_page</a></td></tr>
@@ -135,6 +138,9 @@ Typedefs</h2></td></tr>
 <tr class="separator:a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa03448fc652a54db51ef86dc3d89c724" id="r_aa03448fc652a54db51ef86dc3d89c724"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__api__program__info.html">_ebpf_api_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa03448fc652a54db51ef86dc3d89c724">ebpf_api_program_info_t</a></td></tr>
 <tr class="separator:aa03448fc652a54db51ef86dc3d89c724"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4aa57585f7df9d0b26492c42647d29de" id="r_a4aa57585f7df9d0b26492c42647d29de"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__verifier__map__info.html">_ebpf_verifier_map_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4aa57585f7df9d0b26492c42647d29de">ebpf_verifier_map_info_t</a></td></tr>
+<tr class="memdesc:a4aa57585f7df9d0b26492c42647d29de"><td class="mdescLeft">&#160;</td><td class="mdescRight">Per-instruction map annotation from the verifier. For map helper calls where the verifier can prove which map is being used, this carries the map identity and type information.  <br /></td></tr>
+<tr class="separator:a4aa57585f7df9d0b26492c42647d29de"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a77a54bc7b898a9e72050b9af829c7f8f" id="r_a77a54bc7b898a9e72050b9af829c7f8f"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0">_ebpf_verification_verbosity</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a></td></tr>
 <tr class="separator:a77a54bc7b898a9e72050b9af829c7f8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4c03ef813e8625b8c4c869eea6e7a43" id="r_af4c03ef813e8625b8c4c869eea6e7a43"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__info.html">_ebpf_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a></td></tr>
@@ -188,6 +194,9 @@ Functions</h2></td></tr>
 <tr class="memitem:abe961a47c538ba729a48d3672085e2ca" id="r_abe961a47c538ba729a48d3672085e2ca"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abe961a47c538ba729a48d3672085e2ca">ebpf_api_elf_disassemble_program</a> (const char *file, _In_opt_z_ const char *section_name, _In_opt_z_ const char *program_name, const char **disassembly, const char **error_message) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:abe961a47c538ba729a48d3672085e2ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <br /></td></tr>
 <tr class="separator:abe961a47c538ba729a48d3672085e2ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abdb03d9ccc81cb0a1e7060763d2c87a3" id="r_abdb03d9ccc81cb0a1e7060763d2c87a3"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#abdb03d9ccc81cb0a1e7060763d2c87a3">ebpf_get_map_annotations_from_verifier</a> ((*count) const <a class="el" href="ebpf__api_8h.html#a4aa57585f7df9d0b26492c42647d29de">ebpf_verifier_map_info_t</a> **annotations, size_t *count) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:abdb03d9ccc81cb0a1e7060763d2c87a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get map annotations from the most recent verification.  <br /></td></tr>
+<tr class="separator:abdb03d9ccc81cb0a1e7060763d2c87a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a73c883c637944afa2487a08ba2d81e9f" id="r_a73c883c637944afa2487a08ba2d81e9f"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a73c883c637944afa2487a08ba2d81e9f">ebpf_api_elf_verify_program_from_file</a> (const char *file, _In_opt_z_ const char *section_name, _In_opt_z_ const char *program_name, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a> verbosity, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a73c883c637944afa2487a08ba2d81e9f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <br /></td></tr>
 <tr class="separator:a73c883c637944afa2487a08ba2d81e9f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -473,6 +482,22 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4aa57585f7df9d0b26492c42647d29de" name="a4aa57585f7df9d0b26492c42647d29de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4aa57585f7df9d0b26492c42647d29de">&#9670;&#160;</a></span>ebpf_verifier_map_info_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__verifier__map__info.html">_ebpf_verifier_map_info</a> <a class="el" href="ebpf__api_8h.html#a4aa57585f7df9d0b26492c42647d29de">ebpf_verifier_map_info_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Per-instruction map annotation from the verifier. For map helper calls where the verifier can prove which map is being used, this carries the map identity and type information. </p>
 
 </div>
 </div>
@@ -1464,6 +1489,49 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to eBPF program type, or NULL if not found. </dd></dl>
+
+</div>
+</div>
+<a id="abdb03d9ccc81cb0a1e7060763d2c87a3" name="abdb03d9ccc81cb0a1e7060763d2c87a3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abdb03d9ccc81cb0a1e7060763d2c87a3">&#9670;&#160;</a></span>ebpf_get_map_annotations_from_verifier()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_get_map_annotations_from_verifier </td>
+          <td>(</td>
+          <td class="paramtype">*count const <a class="el" href="ebpf__api_8h.html#a4aa57585f7df9d0b26492c42647d29de">ebpf_verifier_map_info_t</a> **&#160;</td>
+          <td class="paramname"><em>annotations</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t *&#160;</td>
+          <td class="paramname"><em>count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get map annotations from the most recent verification. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">annotations</td><td>Pointer to the annotation array (owned by TLS, do not free). </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">count</td><td>Number of annotations. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>Success. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
