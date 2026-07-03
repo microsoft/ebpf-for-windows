@@ -338,18 +338,20 @@ _ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
 {
     ebpf_ring_buffer_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
     ebpf_ring_buffer_kernel_page_t* kernel_page = _ring_buffer_kernel_page(buffer);
-    PKEVENT wait_event = NULL;
-    if (flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP) {
-        wait_event = kernel_page->wait_event;
-    } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
-        // Notify only if ring might not be empty.
-        if (kernel_page->wait_event != NULL) {
+
+    // Read wait_event once; it remains valid for the current epoch.
+    PKEVENT wait_event = (PKEVENT)ReadPointerNoFence((void* const volatile*)&kernel_page->wait_event);
+
+    if (wait_event != NULL && !(flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP)) {
+        if (flags & EBPF_RINGBUF_FLAG_NO_WAKEUP) {
+            wait_event = NULL;
+        } else {
+            // Notify only if ring might not be empty.
             ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
-            // Notify the producer that a record is available.
             size_t consumer_offset = ReadULong64Acquire(&consumer_page->consumer_offset);
             size_t producer_offset = ReadULong64Acquire(&producer_page->producer_offset);
-            if (producer_offset != consumer_offset) {
-                wait_event = kernel_page->wait_event;
+            if (producer_offset == consumer_offset) {
+                wait_event = NULL;
             }
         }
     }
@@ -476,9 +478,14 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 #pragma warning(push)
 #pragma warning(disable : 6001)
         // Release the event object reference if one was set via ebpf_ring_buffer_set_wait_handle.
-        if (ring->kernel_page && ring->kernel_page->wait_event != NULL) {
-            ObDereferenceObject(ring->kernel_page->wait_event);
-            ring->kernel_page->wait_event = NULL;
+        // By the time destroy runs, all BPF programs have released references, so no concurrent
+        // readers exist. Use InterlockedExchangePointer for consistency with the setter path.
+        if (ring->kernel_page) {
+            PKEVENT old_event =
+                (PKEVENT)InterlockedExchangePointer((PVOID volatile*)&ring->kernel_page->wait_event, NULL);
+            if (old_event != NULL) {
+                ObDereferenceObject(old_event);
+            }
         }
 #pragma warning(pop)
 
@@ -501,6 +508,16 @@ ebpf_perf_event_array_get_producer_page(_Inout_ ebpf_ring_buffer_t* ring_buffer)
     return (ebpf_perf_event_array_producer_page_t*)ring_buffer->producer_page;
 }
 
+// Epoch work item callback to dereference a wait event object after the
+// current epoch ends, ensuring no in-flight _ring_buffer_notify_consumer
+// caller can call KeSetEvent on the freed event.
+static void
+_ebpf_ring_buffer_deref_wait_event(_Inout_ void* context)
+{
+    PKEVENT event = (PKEVENT)context;
+    ObDereferenceObject(event);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_set_wait_handle(
     _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t wait_handle, uint64_t flags)
@@ -510,22 +527,51 @@ ebpf_ring_buffer_set_wait_handle(
     }
 
     ebpf_ring_buffer_kernel_page_t* kernel_page = ring_buffer->kernel_page;
-    PKEVENT old_wait_event = kernel_page->wait_event;
+    PKEVENT new_wait_event = NULL;
 
-    PKEVENT wait_event = NULL;
-    NTSTATUS status = ObReferenceObjectByHandle(
-        (HANDLE)wait_handle, EVENT_MODIFY_STATE, *ExEventObjectType, UserMode, (PVOID*)&wait_event, NULL);
-
-    if (!NT_SUCCESS(status)) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ObReferenceObjectByHandle, status);
-        return EBPF_INVALID_ARGUMENT;
+    // Treat ebpf_handle_invalid as clearing the current wait event.
+    if (wait_handle != ebpf_handle_invalid) {
+        NTSTATUS status = ObReferenceObjectByHandle(
+            (HANDLE)wait_handle, EVENT_MODIFY_STATE, *ExEventObjectType, UserMode, (PVOID*)&new_wait_event, NULL);
+        if (!NT_SUCCESS(status)) {
+            EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ObReferenceObjectByHandle, status);
+            return EBPF_INVALID_ARGUMENT;
+        }
     }
 
-    kernel_page->wait_event = wait_event;
+    // Pre-allocate the epoch work item before the swap; this path cannot synchronize in-epoch.
+    {
+        ebpf_epoch_work_item_t* probe_work_item = ebpf_epoch_allocate_work_item(
+            (void*)_ebpf_ring_buffer_deref_wait_event, _ebpf_ring_buffer_deref_wait_event);
+        if (probe_work_item == NULL) {
+            if (new_wait_event != NULL) {
+                ObDereferenceObject(new_wait_event);
+            }
+            return EBPF_NO_MEMORY;
+        }
+        ebpf_epoch_cancel_work_item(probe_work_item);
+    }
 
-    // Dereference the old event if it exists.
+    // Atomically swap wait_event; the old event stays valid for the current epoch.
+    PKEVENT old_wait_event =
+        (PKEVENT)InterlockedExchangePointer((PVOID volatile*)&kernel_page->wait_event, new_wait_event);
+
     if (old_wait_event != NULL) {
-        ObDereferenceObject(old_wait_event);
+        // Defer ObDereferenceObject until the current epoch ends.
+        ebpf_epoch_work_item_t* work_item =
+            ebpf_epoch_allocate_work_item(old_wait_event, _ebpf_ring_buffer_deref_wait_event);
+        if (work_item != NULL) {
+            ebpf_epoch_schedule_work_item(work_item);
+        } else {
+            // Probe succeeded but real allocation failed (extremely unlikely).
+            // Cannot use ebpf_epoch_synchronize (deadlock). Leak the event
+            // reference rather than risk a deadlock — this is a non-paged pool
+            // leak under extreme memory pressure, not a security issue.
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_BASE,
+                "Epoch work item allocation failed after probe; leaking wait event reference");
+        }
     }
 
     return EBPF_SUCCESS;
