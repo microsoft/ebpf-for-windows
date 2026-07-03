@@ -318,6 +318,138 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
 }
 
 void
+map_annotation_collision_native_test(ebpf_execution_type_t execution_type)
+{
+    UNREFERENCED_PARAMETER(execution_type);
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // This sample exercises bpf2c map-annotation scoping with bpf-to-bpf subprograms.
+    // The main program does an array-map lookup (annotated/inlineable), while the
+    // subprogram does a lookup on a different map.
+    result = ebpf_program_load(
+        "map_annotation_collision_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t array_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "array_map");
+    REQUIRE(array_map_fd > 0);
+
+    fd_t hash_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "hash_map");
+    REQUIRE(hash_map_fd > 0);
+
+    uint32_t key = 0;
+    uint64_t array_value = 10;
+    uint64_t hash_value = 3;
+    REQUIRE(bpf_map_update_elem(array_map_fd, &key, &array_value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(hash_map_fd, &key, &hash_value, EBPF_ANY) == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == (uint32_t)(array_value + hash_value));
+
+    // Update only hash_map to validate the subprogram reads hash_map and not array_map.
+    hash_value = 7;
+    REQUIRE(bpf_map_update_elem(hash_map_fd, &key, &hash_value, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == (uint32_t)(array_value + hash_value));
+
+    hook.detach_and_close_link(&link);
+    bpf_object__close(unique_object.release());
+}
+
+void
+map_sequential_lookup_inline_test(ebpf_execution_type_t execution_type)
+{
+    UNREFERENCED_PARAMETER(execution_type);
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Load the native program that performs two sequential array-map lookups.
+    // bpf2c inlines both lookups via the array_data optimization path.
+    result = ebpf_program_load(
+        "map_sequential_lookup_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t stats_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "stats_map");
+    REQUIRE(stats_map_fd > 0);
+
+    // Pre-populate the array map with known values.
+    uint32_t key_0 = 0;
+    uint32_t key_1 = 1;
+    uint32_t value_0 = 42;
+    uint32_t value_1 = 58;
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_0, &value_0, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_1, &value_1, EBPF_ANY) == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+
+    INITIALIZE_SAMPLE_CONTEXT;
+
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    // Program returns *val_0 + *val_1 = 42 + 58 = 100.
+    REQUIRE(hook_result == 100);
+
+    // Update values and re-run to confirm the inline path reads the correct addresses.
+    value_0 = 7;
+    value_1 = 13;
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_0, &value_0, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(bpf_map_update_elem(stats_map_fd, &key_1, &value_1, EBPF_ANY) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 20);
+
+    hook.detach_and_close_link(&link);
+    bpf_object__close(unique_object.release());
+}
+
+void
 bad_map_name_um(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -1133,6 +1265,8 @@ global_variable_and_map_test(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
+DECLARE_NATIVE_TEST("map-annotation-collision", "[end_to_end]", map_annotation_collision_native_test);
+DECLARE_NATIVE_TEST("map-sequential-lookup-inline", "[end_to_end]", map_sequential_lookup_inline_test);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
 DECLARE_ALL_TEST_CASES("bpf2bpf-loop", "[end_to_end]", _bpf2bpf_loop_test);

@@ -105,10 +105,6 @@ DropPacket(void* context, const program_runtime_context_t* runtime_context)
 #line 44 "sample/droppacket.c"
     register uint64_t r3 = 0;
 #line 44 "sample/droppacket.c"
-    register uint64_t r4 = 0;
-#line 44 "sample/droppacket.c"
-    register uint64_t r5 = 0;
-#line 44 "sample/droppacket.c"
     register uint64_t r6 = 0;
 #line 44 "sample/droppacket.c"
     register uint64_t r10 = 0;
@@ -138,7 +134,21 @@ DropPacket(void* context, const program_runtime_context_t* runtime_context)
     r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 57 "sample/droppacket.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 57 "sample/droppacket.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 57 "sample/droppacket.c"
+        if (_array_key < 1) {
+#line 57 "sample/droppacket.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[0].array_data + (uint64_t)_array_key * 4);
+#line 57 "sample/droppacket.c"
+        } else {
+#line 57 "sample/droppacket.c"
+            r0 = 0;
+#line 57 "sample/droppacket.c"
+        }
+#line 57 "sample/droppacket.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 57 "sample/droppacket.c"
     r1 = r0;
@@ -262,7 +272,21 @@ label_1:
     r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 81 "sample/droppacket.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    {
+#line 81 "sample/droppacket.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 81 "sample/droppacket.c"
+        if (_array_key < 1) {
+#line 81 "sample/droppacket.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 8);
+#line 81 "sample/droppacket.c"
+        } else {
+#line 81 "sample/droppacket.c"
+            r0 = 0;
+#line 81 "sample/droppacket.c"
+        }
+#line 81 "sample/droppacket.c"
+    }
     // EBPF_OP_MOV64_REG pc=40 dst=r1 src=r0 offset=0 imm=0
 #line 81 "sample/droppacket.c"
     r1 = r0;

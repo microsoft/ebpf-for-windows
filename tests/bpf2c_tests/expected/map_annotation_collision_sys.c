@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from tail_call_bad.o
+// This file was generated from map_annotation_collision.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table tail_call_bad##_metadata_table
+#define metadata_table map_annotation_collision##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -173,21 +173,21 @@ static map_entry_t _maps[] = {
     {
      {0, 0},
      {
-         1,                       // Current Version.
-         80,                      // Struct size up to the last field.
-         80,                      // Total struct size including padding.
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
      },
      {
-         BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
-         4,                       // Size in bytes of a map key.
-         4,                       // Size in bytes of a map value.
-         10,                      // Maximum number of entries allowed in the map.
-         0,                       // Inner map index.
-         LIBBPF_PIN_NONE,         // Pinning type for the map.
-         10,                      // Identifier for a map template.
-         0,                       // The id of the inner map template.
+         BPF_MAP_TYPE_HASH, // Type of map.
+         4,                 // Size in bytes of a map key.
+         8,                 // Size in bytes of a map value.
+         16,                // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         LIBBPF_PIN_NONE,   // Pinning type for the map.
+         13,                // Identifier for a map template.
+         0,                 // The id of the inner map template.
      },
-     "map"},
+     "hash_map"},
     {
      {0, 0},
      {
@@ -198,14 +198,14 @@ static map_entry_t _maps[] = {
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
-         4,                  // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
+         8,                  // Size in bytes of a map value.
+         10,                 // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_NONE,    // Pinning type for the map.
-         16,                 // Identifier for a map template.
+         19,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
-     "canary"},
+     "array_map"},
 };
 #pragma data_seg(pop)
 
@@ -225,48 +225,7 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static GUID callee_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static GUID callee_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-#pragma code_seg(push, "sample~1")
-static uint64_t
-callee(void* context, const program_runtime_context_t* runtime_context)
-#line 49 "sample/undocked/tail_call_bad.c"
-{
-#line 49 "sample/undocked/tail_call_bad.c"
-    // Prologue.
-#line 49 "sample/undocked/tail_call_bad.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 49 "sample/undocked/tail_call_bad.c"
-    register uint64_t r0 = 0;
-#line 49 "sample/undocked/tail_call_bad.c"
-    register uint64_t r1 = 0;
-#line 49 "sample/undocked/tail_call_bad.c"
-    register uint64_t r10 = 0;
-
-#line 49 "sample/undocked/tail_call_bad.c"
-    r1 = (uintptr_t)context;
-#line 49 "sample/undocked/tail_call_bad.c"
-    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
-#line 49 "sample/undocked/tail_call_bad.c"
-    UNREFERENCED_PARAMETER(runtime_context);
-
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
-#line 49 "sample/undocked/tail_call_bad.c"
-    r0 = IMMEDIATE(42);
-    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 49 "sample/undocked/tail_call_bad.c"
-    return r0;
-#line 49 "sample/undocked/tail_call_bad.c"
-}
-#pragma code_seg(pop)
-#line __LINE__ __FILE__
-
-static helper_function_entry_t caller_helpers[] = {
-    {
-     {1, 40, 40}, // Version header.
-     5,
-     "helper_id_5",
-    },
+static helper_function_entry_t map_annotation_collision_helpers[] = {
     {
      {1, 40, 40}, // Version header.
      1,
@@ -274,152 +233,176 @@ static helper_function_entry_t caller_helpers[] = {
     },
 };
 
-static GUID caller_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static GUID caller_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static uint16_t caller_maps[] = {
+// Forward references for local functions.
+static uint64_t
+lookup_hash_value(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context);
+
+static GUID map_annotation_collision_program_type_guid = {
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID map_annotation_collision_attach_type_guid = {
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static uint16_t map_annotation_collision_maps[] = {
     0,
     1,
 };
 
-#pragma code_seg(push, "sample~2")
+#pragma code_seg(push, "sample~1")
 static uint64_t
-caller(void* context, const program_runtime_context_t* runtime_context)
-#line 33 "sample/undocked/tail_call_bad.c"
+map_annotation_collision(void* context, const program_runtime_context_t* runtime_context)
+#line 59 "sample/undocked/map_annotation_collision.c"
 {
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     // Prologue.
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r0 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r1 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r2 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r3 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r4 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r5 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r6 = 0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     register uint64_t r10 = 0;
 
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     r1 = (uintptr_t)context;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 33 "sample/undocked/tail_call_bad.c"
-    r2 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
-#line 35 "sample/undocked/tail_call_bad.c"
-    WRITE_ONCE_32(r10, (uint32_t)r2, OFFSET(-4));
-    // EBPF_OP_LDDW pc=2 dst=r2 src=r1 offset=0 imm=1
-#line 39 "sample/undocked/tail_call_bad.c"
-    r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=10
-#line 39 "sample/undocked/tail_call_bad.c"
-    r3 = IMMEDIATE(10);
-    // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=5
-#line 39 "sample/undocked/tail_call_bad.c"
-    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 39 "sample/undocked/tail_call_bad.c"
-    if (r0 == 0) {
-#line 39 "sample/undocked/tail_call_bad.c"
-        return 0;
-#line 39 "sample/undocked/tail_call_bad.c"
-    }
-#line 39 "sample/undocked/tail_call_bad.c"
-    PreFetchCacheLine(PF_TEMPORAL_LEVEL_1, runtime_context->map_data[1].array_data);
-    // EBPF_OP_MOV64_REG pc=6 dst=r6 src=r0 offset=0 imm=0
-#line 39 "sample/undocked/tail_call_bad.c"
-    r6 = r0;
-    // EBPF_OP_MOV64_REG pc=7 dst=r2 src=r10 offset=0 imm=0
-#line 39 "sample/undocked/tail_call_bad.c"
+    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
+#line 59 "sample/undocked/map_annotation_collision.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
+#line 63 "sample/undocked/map_annotation_collision.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
+#line 63 "sample/undocked/map_annotation_collision.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=8 dst=r2 src=r0 offset=0 imm=-4
-#line 39 "sample/undocked/tail_call_bad.c"
+    // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
+#line 63 "sample/undocked/map_annotation_collision.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r1 offset=0 imm=2
-#line 41 "sample/undocked/tail_call_bad.c"
+    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
+#line 65 "sample/undocked/map_annotation_collision.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
-#line 41 "sample/undocked/tail_call_bad.c"
+    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
+#line 65 "sample/undocked/map_annotation_collision.c"
     {
-#line 41 "sample/undocked/tail_call_bad.c"
+#line 65 "sample/undocked/map_annotation_collision.c"
         uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
-#line 41 "sample/undocked/tail_call_bad.c"
-        if (_array_key < 1) {
-#line 41 "sample/undocked/tail_call_bad.c"
-            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 4);
-#line 41 "sample/undocked/tail_call_bad.c"
+#line 65 "sample/undocked/map_annotation_collision.c"
+        if (_array_key < 10) {
+#line 65 "sample/undocked/map_annotation_collision.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[1].array_data + (uint64_t)_array_key * 8);
+#line 65 "sample/undocked/map_annotation_collision.c"
         } else {
-#line 41 "sample/undocked/tail_call_bad.c"
+#line 65 "sample/undocked/map_annotation_collision.c"
             r0 = 0;
-#line 41 "sample/undocked/tail_call_bad.c"
+#line 65 "sample/undocked/map_annotation_collision.c"
         }
-#line 41 "sample/undocked/tail_call_bad.c"
+#line 65 "sample/undocked/map_annotation_collision.c"
     }
-    // EBPF_OP_JEQ_IMM pc=12 dst=r0 src=r0 offset=2 imm=0
-#line 42 "sample/undocked/tail_call_bad.c"
-    if (r0 == IMMEDIATE(0)) {
-#line 42 "sample/undocked/tail_call_bad.c"
+    // EBPF_OP_MOV64_REG pc=7 dst=r6 src=r0 offset=0 imm=0
+#line 65 "sample/undocked/map_annotation_collision.c"
+    r6 = r0;
+    // EBPF_OP_LDDW pc=8 dst=r0 src=r0 offset=0 imm=-1
+#line 65 "sample/undocked/map_annotation_collision.c"
+    r0 = (uint64_t)4294967295;
+    // EBPF_OP_JEQ_IMM pc=10 dst=r6 src=r0 offset=5 imm=0
+#line 66 "sample/undocked/map_annotation_collision.c"
+    if (r6 == IMMEDIATE(0)) {
+#line 66 "sample/undocked/map_annotation_collision.c"
         goto label_1;
-#line 42 "sample/undocked/tail_call_bad.c"
+#line 66 "sample/undocked/map_annotation_collision.c"
     }
-    // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=1
-#line 42 "sample/undocked/tail_call_bad.c"
-    r1 = IMMEDIATE(1);
-    // EBPF_OP_STXW pc=14 dst=r0 src=r1 offset=0 imm=0
-#line 43 "sample/undocked/tail_call_bad.c"
-    WRITE_ONCE_32(r0, (uint32_t)r1, OFFSET(0));
+    // EBPF_OP_LDXW pc=11 dst=r1 src=r10 offset=-4 imm=0
+#line 70 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_32(r1, r10, OFFSET(-4));
+    // EBPF_OP_CALL pc=12 dst=r0 src=r1 offset=0 imm=4
+#line 70 "sample/undocked/map_annotation_collision.c"
+    r0 = lookup_hash_value(r1, r2, r3, r4, r5, r10, context, runtime_context);
+    // EBPF_OP_MOV64_REG pc=13 dst=r1 src=r0 offset=0 imm=0
+#line 70 "sample/undocked/map_annotation_collision.c"
+    r1 = r0;
+    // EBPF_OP_LDXDW pc=14 dst=r0 src=r6 offset=0 imm=0
+#line 71 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_64(r0, r6, OFFSET(0));
+    // EBPF_OP_ADD64_REG pc=15 dst=r0 src=r1 offset=0 imm=0
+#line 71 "sample/undocked/map_annotation_collision.c"
+    r0 += r1;
 label_1:
-    // EBPF_OP_MOV64_REG pc=15 dst=r0 src=r6 offset=0 imm=0
-#line 46 "sample/undocked/tail_call_bad.c"
-    r0 = r6;
     // EBPF_OP_EXIT pc=16 dst=r0 src=r0 offset=0 imm=0
-#line 46 "sample/undocked/tail_call_bad.c"
+#line 72 "sample/undocked/map_annotation_collision.c"
     return r0;
-#line 33 "sample/undocked/tail_call_bad.c"
+#line 59 "sample/undocked/map_annotation_collision.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
+static uint64_t
+lookup_hash_value(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context, const program_runtime_context_t* runtime_context)
+{
+    register uint64_t r0 = 0;
+
+    // EBPF_OP_STXW pc=0 dst=r10 src=r1 offset=-4 imm=0
+#line 48 "sample/undocked/map_annotation_collision.c"
+    WRITE_ONCE_32(r10, (uint32_t)r1, OFFSET(-4));
+    // EBPF_OP_MOV64_REG pc=1 dst=r2 src=r10 offset=0 imm=0
+#line 48 "sample/undocked/map_annotation_collision.c"
+    r2 = r10;
+    // EBPF_OP_ADD64_IMM pc=2 dst=r2 src=r0 offset=0 imm=-4
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r2 += IMMEDIATE(-4);
+    // EBPF_OP_LDDW pc=3 dst=r1 src=r1 offset=0 imm=1
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r1 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=1
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
+    // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r0 offset=0 imm=0
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r1 = r0;
+    // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
+#line 50 "sample/undocked/map_annotation_collision.c"
+    r0 = IMMEDIATE(0);
+    // EBPF_OP_JEQ_IMM pc=8 dst=r1 src=r0 offset=1 imm=0
+#line 51 "sample/undocked/map_annotation_collision.c"
+    if (r1 == IMMEDIATE(0)) {
+#line 51 "sample/undocked/map_annotation_collision.c"
+        goto label_1;
+#line 51 "sample/undocked/map_annotation_collision.c"
+    }
+    // EBPF_OP_LDXDW pc=9 dst=r0 src=r1 offset=0 imm=0
+#line 54 "sample/undocked/map_annotation_collision.c"
+    READ_ONCE_64(r0, r1, OFFSET(0));
+label_1:
+    // EBPF_OP_EXIT pc=10 dst=r0 src=r0 offset=0 imm=0
+#line 55 "sample/undocked/map_annotation_collision.c"
+    return r0;
+}
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
         0,
         {1, 144, 144}, // Version header.
-        callee,
+        map_annotation_collision,
         "sample~1",
-        "sample_ext/0",
-        "callee",
-        NULL,
-        0,
-        NULL,
-        0,
-        2,
-        &callee_program_type_guid,
-        &callee_attach_type_guid,
-    },
-    {
-        0,
-        {1, 144, 144}, // Version header.
-        caller,
-        "sample~2",
         "sample_ext",
-        "caller",
-        caller_maps,
+        "map_annotation_collision",
+        map_annotation_collision_maps,
         2,
-        caller_helpers,
-        2,
+        map_annotation_collision_helpers,
+        1,
         17,
-        &caller_program_type_guid,
-        &caller_attach_type_guid,
+        &map_annotation_collision_program_type_guid,
+        &map_annotation_collision_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
@@ -428,7 +411,7 @@ static void
 _get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)
 {
     *programs = _programs;
-    *count = 2;
+    *count = 1;
 }
 
 static void
@@ -446,7 +429,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t tail_call_bad_metadata_table = {
+metadata_table_t map_annotation_collision_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,
