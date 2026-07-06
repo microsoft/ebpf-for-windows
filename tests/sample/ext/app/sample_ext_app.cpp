@@ -86,6 +86,51 @@ struct _sample_extension_helper
     }
 
     void
+    invoke_by_attach_parameter(
+        _In_reads_bytes_(attach_parameter_size) const void* attach_parameter,
+        size_t attach_parameter_size,
+        std::vector<char>& input_buffer,
+        std::vector<char>& output_buffer)
+    {
+        REQUIRE(
+            try_invoke_by_attach_parameter(attach_parameter, attach_parameter_size, input_buffer, output_buffer) ==
+            true);
+    }
+
+    bool
+    try_invoke_by_attach_parameter(
+        _In_reads_bytes_(attach_parameter_size) const void* attach_parameter,
+        size_t attach_parameter_size,
+        std::vector<char>& input_buffer,
+        std::vector<char>& output_buffer)
+    {
+        uint32_t count_of_bytes_returned;
+        size_t request_size =
+            EBPF_OFFSET_OF(sample_ebpf_ext_run_request_t, data) + attach_parameter_size + input_buffer.size();
+        std::vector<uint8_t> request_buffer(request_size);
+        sample_ebpf_ext_run_request_t* request = (sample_ebpf_ext_run_request_t*)request_buffer.data();
+        request->version = SAMPLE_EBPF_EXT_RUN_REQUEST_VERSION;
+        request->attach_parameter_size = static_cast<uint32_t>(attach_parameter_size);
+        request->program_data_size = static_cast<uint32_t>(input_buffer.size());
+        memcpy(request->data, attach_parameter, attach_parameter_size);
+        memcpy(request->data + attach_parameter_size, input_buffer.data(), input_buffer.size());
+
+        BOOL success = ::DeviceIoControl(
+            device_handle,
+            IOCTL_SAMPLE_EBPF_EXT_CTL_RUN,
+            request_buffer.data(),
+            static_cast<uint32_t>(request_buffer.size()),
+            output_buffer.data(),
+            static_cast<uint32_t>(output_buffer.size()),
+            (unsigned long*)&count_of_bytes_returned,
+            nullptr);
+        if (success != TRUE) {
+            printf("DeviceIoControl(IOCTL_SAMPLE_EBPF_EXT_CTL_RUN) failed: %lu\n", GetLastError());
+        }
+        return success == TRUE;
+    }
+
+    void
     invoke_batch(std::vector<char>& input_buffer, std::vector<char>& output_buffer)
     {
         uint32_t count_of_bytes_returned;
@@ -226,6 +271,42 @@ sample_ebpf_ext_test_batch(_In_ const struct bpf_object* object)
     REQUIRE(memcmp(reply->data, expected_output, strlen(expected_output)) == 0);
 }
 
+void
+sample_ebpf_ext_invoke_and_validate(
+    _In_ const struct bpf_object* object,
+    _In_ _sample_extension_helper* extension,
+    uint8_t attach_data,
+    _In_z_ const char* map_value0,
+    _In_z_ const char* map_value1,
+    _In_z_ const char* input_string,
+    _In_z_ const char* expected_output)
+{
+    struct bpf_map* map;
+    fd_t map_fd;
+    const int VALUE_SIZE = 32;
+    std::vector<char> map_entry_buffer(VALUE_SIZE);
+    std::vector<char> input_buffer(input_string, input_string + strlen(input_string));
+    std::vector<char> output_buffer(256);
+    uint32_t key = 0;
+
+    map = bpf_object__find_map_by_name(object, "test_map");
+    REQUIRE(map != nullptr);
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
+    memset(map_entry_buffer.data(), 0, map_entry_buffer.size());
+    memcpy(map_entry_buffer.data(), map_value0, strlen(map_value0));
+    REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffer.data(), EBPF_ANY) == EBPF_SUCCESS);
+
+    key = 1;
+    memset(map_entry_buffer.data(), 0, map_entry_buffer.size());
+    memcpy(map_entry_buffer.data(), map_value1, strlen(map_value1));
+    REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffer.data(), EBPF_ANY) == EBPF_SUCCESS);
+
+    extension->invoke_by_attach_parameter(&attach_data, sizeof(attach_data), input_buffer, output_buffer);
+    REQUIRE(memcmp(output_buffer.data(), expected_output, strlen(expected_output)) == 0);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("jit_test", "[sample_ext_test]")
 {
@@ -318,6 +399,111 @@ TEST_CASE("native_test_data", "[sample_ext_test]")
     object = _helper.get_object();
 
     sample_ebpf_ext_test_prog_test_run(object);
+}
+
+TEST_CASE("native_multi_attach_by_parameter", "[sample_ext_test]")
+{
+    struct bpf_object* object1 = nullptr;
+    struct bpf_object* object2 = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t helper1;
+    program_load_attach_helper_t helper2;
+    native_module_helper_t native_helper1;
+    native_module_helper_t native_helper2;
+    _sample_extension_helper extension;
+    uint8_t attach_data0 = 0;
+    uint8_t attach_data1 = 1;
+
+    native_helper1.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    native_helper2.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    helper1.initialize(
+        native_helper1.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        EBPF_EXECUTION_NATIVE,
+        &attach_data0,
+        sizeof(attach_data0),
+        hook);
+    helper2.initialize(
+        native_helper2.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        EBPF_EXECUTION_NATIVE,
+        &attach_data1,
+        sizeof(attach_data1),
+        hook);
+
+    object1 = helper1.get_object();
+    object2 = helper2.get_object();
+    sample_ebpf_ext_invoke_and_validate(
+        object1, &extension, attach_data0, "rainy", "sunny", "Seattle is a rainy city", "Seattle is a sunny city");
+    sample_ebpf_ext_invoke_and_validate(
+        object2, &extension, attach_data1, "frowny", "smiley", "Seattle is a frowny city", "Seattle is a smiley city");
+}
+
+TEST_CASE("ebpf_program_attach_with_attach_data_race_native", "[sample_ext_test]")
+{
+    struct bpf_object* object = nullptr;
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+    program_load_attach_helper_t helper;
+    native_module_helper_t native_helper;
+    uint8_t attach_data = 0;
+    constexpr int value_size = 32;
+    std::vector<char> map_entry_buffer(value_size);
+    _sample_extension_helper extension;
+    std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
+    std::vector<char> output_buffer(256);
+    std::atomic<bool> stop{false};
+
+    native_helper.initialize("test_sample_ebpf", EBPF_EXECUTION_NATIVE);
+    helper.initialize(
+        native_helper.get_file_name().c_str(),
+        BPF_PROG_TYPE_SAMPLE,
+        "test_program_entry",
+        EBPF_EXECUTION_NATIVE,
+        &attach_data,
+        sizeof(attach_data),
+        hook);
+    object = helper.get_object();
+
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "test_map");
+    REQUIRE(map != nullptr);
+    fd_t map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+    uint32_t key = 0;
+    memset(map_entry_buffer.data(), 0, map_entry_buffer.size());
+    memcpy(map_entry_buffer.data(), "rainy", 5);
+    REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffer.data(), EBPF_ANY) == EBPF_SUCCESS);
+    key = 1;
+    memset(map_entry_buffer.data(), 0, map_entry_buffer.size());
+    memcpy(map_entry_buffer.data(), "sunny", 5);
+    REQUIRE(bpf_map_update_elem(map_fd, &key, map_entry_buffer.data(), EBPF_ANY) == EBPF_SUCCESS);
+
+    bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
+    REQUIRE(program != nullptr);
+    fd_t program_fd = bpf_program__fd(program);
+    REQUIRE(program_fd > 0);
+
+    std::thread fire_thread([&]() {
+        while (!stop) {
+            (void)extension.try_invoke_by_attach_parameter(
+                &attach_data, sizeof(attach_data), input_buffer, output_buffer);
+        }
+    });
+
+    std::thread detach_thread([&]() {
+        while (!stop) {
+            (void)hook.detach(program_fd, &attach_data, sizeof(attach_data));
+            (void)hook.attach(program, &attach_data, sizeof(attach_data));
+        }
+    });
+
+    Sleep(1000);
+    stop = true;
+    fire_thread.join();
+    detach_thread.join();
+
+    (void)hook.detach(program_fd, &attach_data, sizeof(attach_data));
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
