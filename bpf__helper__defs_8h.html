@@ -191,6 +191,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a48e196df5a0bd4b4b4c2eece6ca2469e" id="r_a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a48e196df5a0bd4b4b4c2eece6ca2469e">bpf_get_current_thread_create_time</a> ()</td></tr>
 <tr class="memdesc:a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the current thread create time.  <br /></td></tr>
 <tr class="separator:a48e196df5a0bd4b4b4c2eece6ca2469e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac09ac10567432135bf89956d7004c2e3" id="r_ac09ac10567432135bf89956d7004c2e3"><td class="memItemLeft" align="right" valign="top">intptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ac09ac10567432135bf89956d7004c2e3">bpf_redirect_map</a> (void *map, uint64_t key, uint64_t flags)</td></tr>
+<tr class="memdesc:ac09ac10567432135bf89956d7004c2e3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Redirect the packet to the endpoint referenced by the map and key.  <br /></td></tr>
+<tr class="separator:ac09ac10567432135bf89956d7004c2e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a790f064e410c68e5eae2c4862feef22a" name="a790f064e410c68e5eae2c4862feef22a"></a>
@@ -1158,6 +1161,51 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The number of bytes written, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
+<a id="ac09ac10567432135bf89956d7004c2e3" name="ac09ac10567432135bf89956d7004c2e3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac09ac10567432135bf89956d7004c2e3">&#9670;&#160;</a></span>bpf_redirect_map()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">intptr_t bpf_redirect_map </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>map</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>key</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Redirect the packet to the endpoint referenced by the map and key. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map</td><td>A pointer to a BPF map. Valid map type varies by the program type. See documentation of each program type for details on which map types are supported. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">key</td><td>The key of the entry in the map to redirect to. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Redirect flags. The supported flags vary by program type. See the documentation of each program type for details on which redirect flags are supported, if any.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>specific action code depending on the program type on success, or a drop/aborted action code in case of failure. </dd></dl>
 
 </div>
 </div>
