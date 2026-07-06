@@ -873,7 +873,7 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
     REQUIRE(ebpf_epoch_is_free_list_empty(hot_add_cpu));
 }
 
-TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform]")
+TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform][.]")
 {
     if (!_environment_variable_equals("EBPF_EPOCH_FAIL_FAST_CHILD", "true")) {
         return;
@@ -900,7 +900,7 @@ TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform]")
     FAIL("ebpf_epoch_enter should fail fast on an unadmitted CPU");
 }
 
-TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform]")
+TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform][epoch_fail_fast][.]")
 {
     struct _environment_variable_guard
     {
