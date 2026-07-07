@@ -390,19 +390,21 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        map_annotation_collision,
-        "sample~1",
-        "sample_ext",
-        "map_annotation_collision",
-        map_annotation_collision_maps,
-        2,
-        map_annotation_collision_helpers,
-        1,
-        17,
-        &map_annotation_collision_program_type_guid,
-        &map_annotation_collision_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = map_annotation_collision,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "map_annotation_collision",
+        .referenced_map_indices = map_annotation_collision_maps,
+        .referenced_map_count = 2,
+        .helpers = map_annotation_collision_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 17,
+        .program_type = &map_annotation_collision_program_type_guid,
+        .expected_attach_type = &map_annotation_collision_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)

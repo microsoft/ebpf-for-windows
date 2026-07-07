@@ -234,19 +234,21 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        0,
-        {1, 144, 144}, // Version header.
-        map_sequential_lookup,
-        "sample~1",
-        "sample_ext",
-        "map_sequential_lookup",
-        map_sequential_lookup_maps,
-        1,
-        map_sequential_lookup_helpers,
-        1,
-        26,
-        &map_sequential_lookup_program_type_guid,
-        &map_sequential_lookup_attach_type_guid,
+        .zero = 0,
+        .header = {1, 144, 160}, // Version header.
+        .function = map_sequential_lookup,
+        .pe_section_name = "sample~1",
+        .section_name = "sample_ext",
+        .program_name = "map_sequential_lookup",
+        .referenced_map_indices = map_sequential_lookup_maps,
+        .referenced_map_count = 1,
+        .helpers = map_sequential_lookup_helpers,
+        .helper_count = 1,
+        .bpf_instruction_count = 26,
+        .program_type = &map_sequential_lookup_program_type_guid,
+        .expected_attach_type = &map_sequential_lookup_attach_type_guid,
+        .btf_resolved_functions = NULL,
+        .btf_resolved_function_count = 0,
     },
 };
 #pragma data_seg(pop)
