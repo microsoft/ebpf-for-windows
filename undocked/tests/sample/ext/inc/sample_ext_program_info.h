@@ -85,6 +85,13 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_global_help
         "bpf_get_current_pid_tgid",
         EBPF_RETURN_TYPE_INTEGER,
     },
+    {
+        EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+        BPF_FUNC_redirect_map,
+        "bpf_redirect_map",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING},
+    },
 };
 
 static const ebpf_program_type_descriptor_t _sample_ebpf_extension_program_type_descriptor = {

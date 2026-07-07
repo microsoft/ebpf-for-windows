@@ -182,6 +182,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_perf_event_output,
     (void*)&_ebpf_core_get_current_process_start_key,
     (void*)&_ebpf_core_get_current_thread_create_time,
+    // No default implementation of bpf_redirect_map
+    (void*)NULL, // bpf_redirect_map
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {

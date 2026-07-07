@@ -7,6 +7,7 @@
 #include "ebpf_error.h"
 #include "ebpf_handle.h"
 #include "ebpf_hash_table.h"
+#include "ebpf_maps.h"
 #include "ebpf_native.h"
 #include "ebpf_object.h"
 #include "ebpf_program.h"
@@ -28,6 +29,9 @@ static bpf2c_version_t _ebpf_minimum_version = {0, 21, 0};
 
 // Minimum bpf2c version that supports implicit context.
 static const bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
+
+// Minimum bpf2c version that supports map_data_t v2 (with array_data field).
+static const bpf2c_version_t _ebpf_version_map_data_v2 = {1, 4, 0};
 
 #ifndef __CGUID_H__
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
@@ -58,6 +62,7 @@ typedef struct _ebpf_native_program
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
+    size_t map_data_element_size; // Element size for map_data_t array, resolved based on module version.
     bool loaded;
 } ebpf_native_program_t;
 
@@ -204,6 +209,18 @@ typedef struct _ebpf_native_helper_address_changed_context
     const ebpf_native_module_t* module;
     ebpf_native_program_t* native_program;
 } ebpf_native_helper_address_changed_context_t;
+
+static size_t
+_ebpf_native_get_map_data_element_size(_In_ const ebpf_native_module_t* module)
+{
+    if (_ebpf_compare_versions(&module->version, &_ebpf_version_map_data_v2) >= 0) {
+        // Module expects map_data_t with array_data (v2).
+        return EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data);
+    } else {
+        // Module expects map_data_t without array_data (v1).
+        return EBPF_SIZE_INCLUDING_FIELD(map_data_t, address);
+    }
+}
 
 static bool
 _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
@@ -1645,8 +1662,23 @@ _ebpf_native_resolve_maps_for_program(
     }
 
     // Update the addresses in the map entries.
+    size_t map_data_element_size = program->map_data_element_size;
     for (uint16_t i = 0; i < map_count; i++) {
-        program->runtime_context.map_data[map_indices[i]].address = map_addresses[i];
+        uint16_t map_idx = map_indices[i];
+        map_data_t* map_data_entry =
+            (map_data_t*)ARRAY_ELEMENT_INDEX(program->runtime_context.map_data, map_idx, map_data_element_size);
+        map_data_entry->address = map_addresses[i];
+
+        // For array maps, populate the direct data pointer for inline lookups
+        // only if the module version supports the array_data field.
+        if (map_data_element_size >= EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)) {
+            uintptr_t value_address = 0;
+            if (ebpf_map_get_value_address((ebpf_map_t*)map_addresses[i], &value_address) == EBPF_SUCCESS) {
+                map_data_entry->array_data = (uint8_t*)value_address;
+            } else {
+                map_data_entry->array_data = NULL;
+            }
+        }
     }
 
 Done:
@@ -1906,7 +1938,9 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         }
 
         if (instance->map_count > 0) {
-            result = ebpf_safe_size_t_multiply(sizeof(map_data_t), instance->map_count, &map_data_size);
+            native_program->map_data_element_size = _ebpf_native_get_map_data_element_size(module);
+            result =
+                ebpf_safe_size_t_multiply(native_program->map_data_element_size, instance->map_count, &map_data_size);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,

@@ -1309,7 +1309,21 @@ label_22:
     r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_CALL pc=325 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
+    {
+#line 80 "sample/undocked/map.c"
+        uint32_t _array_key = *(uint32_t*)(uintptr_t)r2;
+#line 80 "sample/undocked/map.c"
+        if (_array_key < 10) {
+#line 80 "sample/undocked/map.c"
+            r0 = (uint64_t)(uintptr_t)(runtime_context->map_data[2].array_data + (uint64_t)_array_key * 4);
+#line 80 "sample/undocked/map.c"
+        } else {
+#line 80 "sample/undocked/map.c"
+            r0 = 0;
+#line 80 "sample/undocked/map.c"
+        }
+#line 80 "sample/undocked/map.c"
+    }
     // EBPF_OP_JNE_IMM pc=326 dst=r0 src=r0 offset=21 imm=0
 #line 81 "sample/undocked/map.c"
     if (r0 != IMMEDIATE(0)) {
