@@ -150,6 +150,8 @@ static const NPI_MODULEID _ebpf_native_provider_module_id = {
 
 static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_native_provider_attach_client_callback;
 static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_native_provider_detach_client_callback;
+static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_native_btf_provider_attach_callback;
+static NPI_CLIENT_DETACH_PROVIDER_FN _ebpf_native_btf_provider_detach_callback;
 
 static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics = {
     0,
@@ -162,6 +164,22 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
         sizeof(NPI_REGISTRATION_INSTANCE),
         &_ebpf_native_npi_id,
         &_ebpf_native_provider_module_id,
+        0,
+        NULL,
+    },
+};
+
+static const NPI_CLIENT_CHARACTERISTICS _ebpf_native_btf_client_characteristics = {
+    0,
+    sizeof(_ebpf_native_btf_client_characteristics),
+    _ebpf_native_btf_provider_attach_callback,
+    _ebpf_native_btf_provider_detach_callback,
+    NULL,
+    {
+        0,
+        sizeof(NPI_REGISTRATION_INSTANCE),
+        &EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID,
+        NULL,
         0,
         NULL,
     },
@@ -186,6 +204,14 @@ ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
 static void
 _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* work_item_context);
+static ebpf_result_t
+_ebpf_native_build_btf_provider_bindings(_Inout_ ebpf_native_module_t* module);
+static void
+_ebpf_native_clear_btf_provider_bindings(_Inout_ ebpf_native_module_t* module);
+static ebpf_result_t
+_ebpf_native_register_btf_provider_client(_Inout_ ebpf_native_module_t* module);
+static void
+_ebpf_native_deregister_btf_provider_client(_Inout_ ebpf_native_module_t* module);
 
 // Free native program context only if the program is not loaded.
 // If the program is loaded, it will be freed when the ebpf program object is freed.
