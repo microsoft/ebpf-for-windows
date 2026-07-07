@@ -3080,7 +3080,7 @@ _ebpf_sock_addr_context_create(
     ebpf_result_t result;
     net_ebpf_sock_addr_t* ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx = NULL;
-    bpf_sock_addr_network_context_t network_context = {0};
+    bpf_sock_addr_test_context_t test_context = {0};
     BOOLEAN has_network_context = FALSE;
 
     *context = NULL;
@@ -3101,18 +3101,25 @@ _ebpf_sock_addr_context_create(
     }
 
     // Check if we have a test context from BPF_PROG_RUN.
-    if (context_size_in >= sizeof(bpf_sock_addr_test_context_t)) {
-        memcpy(
-            &network_context,
-            context_in + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
-            sizeof(network_context));
+    if (context_size_in >= sizeof(test_context)) {
+        memcpy(&test_context, context_in, sizeof(test_context));
 
-        if (network_context.version != BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION) {
+        if (test_context.header.version != BPF_SOCK_ADDR_TEST_CONTEXT_VERSION ||
+            test_context.header.size != BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE ||
+            test_context.header.total_size != BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE) {
+            EBPF_EXT_LOG_MESSAGE(
+                EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Invalid test context version");
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        if (test_context.network_context.version != BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION) {
             EBPF_EXT_LOG_MESSAGE(
                 EBPF_EXT_TRACELOG_LEVEL_ERROR, EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Invalid network context version");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
+
         has_network_context = TRUE;
     }
 
@@ -3123,18 +3130,21 @@ _ebpf_sock_addr_context_create(
     memset(ctx, 0, sizeof(net_ebpf_sock_addr_t));
 
     sock_addr_ctx = &ctx->base;
-    memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
 
     if (has_network_context) {
-        ctx->interface_type = network_context.interface_type;
-        ctx->tunnel_type = network_context.tunnel_type;
-        ctx->next_hop_interface_luid = network_context.next_hop_interface_luid;
-        ctx->sub_interface_index = network_context.sub_interface_index;
+        memcpy(sock_addr_ctx, &test_context.context, sizeof(bpf_sock_addr_t));
+
+        ctx->interface_type = test_context.network_context.interface_type;
+        ctx->tunnel_type = test_context.network_context.tunnel_type;
+        ctx->next_hop_interface_luid = test_context.network_context.next_hop_interface_luid;
+        ctx->sub_interface_index = test_context.network_context.sub_interface_index;
 
         // NOTE: Set hook Id to unblock _ebpf_sock_addr_get_network_context(). The hook Id is not used by any other
         // functions in BPF_PROG_RUN code path. Use value based on the socket address family (best effort).
         ctx->hook_id = sock_addr_ctx->family == AF_INET ? EBPF_HOOK_ALE_AUTH_CONNECT_V4 : EBPF_HOOK_ALE_AUTH_CONNECT_V6;
     } else {
+        memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
+
         // Set hook Id to invalid value.
         // if _ebpf_sock_addr_get_network_context() is called in BPF_PROG_RUN code path, it will fail.
         // For regular program execution, hook Id will be updated from callout.
@@ -3163,7 +3173,7 @@ _ebpf_sock_addr_context_destroy(
 {
     EBPF_EXT_LOG_ENTRY();
     net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
-    bpf_sock_addr_network_context_t network_context = {0};
+    bpf_sock_addr_test_context_t test_context = {0};
 
     UNREFERENCED_PARAMETER(data_out);
     *data_size_out = 0;
@@ -3185,25 +3195,22 @@ _ebpf_sock_addr_context_destroy(
         memcpy(context_out, context, sizeof(bpf_sock_addr_t));
         *context_size_out = sizeof(bpf_sock_addr_t);
     } else {
-        network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
-        network_context.interface_type = sock_addr_ctx->interface_type;
-        network_context.tunnel_type = sock_addr_ctx->tunnel_type;
-        network_context.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
-        network_context.sub_interface_index = sock_addr_ctx->sub_interface_index;
+        // Populate test context
+        test_context.header.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION;
+        test_context.header.size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE;
+        test_context.header.total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE;
 
-        // NOTE: this is workaround for analyzer false positive warning/error 6385.
-        // Below we write bpf_sock_addr_t first (64 bytes), followed by the network context (32 bytes),
-        // 96 bytes in total (sizeof(bpf_sock_addr_test_context_t)). There is no padding.
-        // Analyzer thinks we write only 64 bytes. Zero out the entire context first to make analyzer happy.
-        memset(context_out, 0, sizeof(bpf_sock_addr_test_context_t));
+        memcpy(&test_context.context, context, sizeof(bpf_sock_addr_t));
 
-        memcpy(context_out, context, sizeof(bpf_sock_addr_t));
-        memcpy(
-            context_out + EBPF_OFFSET_OF(bpf_sock_addr_test_context_t, network_context),
-            &network_context,
-            sizeof(network_context));
+        test_context.network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+        test_context.network_context.interface_type = sock_addr_ctx->interface_type;
+        test_context.network_context.tunnel_type = sock_addr_ctx->tunnel_type;
+        test_context.network_context.next_hop_interface_luid = sock_addr_ctx->next_hop_interface_luid;
+        test_context.network_context.sub_interface_index = sock_addr_ctx->sub_interface_index;
 
-        *context_size_out = sizeof(bpf_sock_addr_test_context_t);
+        memcpy(context_out, &test_context, sizeof(test_context));
+
+        *context_size_out = sizeof(test_context);
     }
 
 Exit:

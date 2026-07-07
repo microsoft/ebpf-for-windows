@@ -196,6 +196,7 @@ To unblock testing of the programs that rely on `bpf_sock_addr_get_network_conte
 ```c
 typedef struct _bpf_sock_addr_test_context
 {
+    bpf_sock_addr_test_context_header_t header;      // Versioning header.
     bpf_sock_addr_t context;                         // Socket address context.
     bpf_sock_addr_network_context_t network_context; // Network context.
 } bpf_sock_addr_test_context_t;
@@ -211,6 +212,9 @@ bpf_sock_addr_test_context_t in_ctx = {0};
 bpf_sock_addr_test_context_t out_ctx = {0};
 bpf_test_run_opts opts = {0};
 
+in_ctx.header.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION;
+in_ctx.header.size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE;
+in_ctx.header.total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE;
 in_ctx.network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
 in_ctx.network_context.interface_type = IF_TYPE_TUNNEL;
 in_ctx.network_context.tunnel_type = TUNNEL_TYPE_6TO4;
