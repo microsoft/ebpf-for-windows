@@ -10,10 +10,10 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(OutDir)\EbpfProtocol.c">
+    <ClCompile Include="$(ProjectDir)generated\EbpfProtocol.c">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="$(OutDir)\EbpfProtocolWrapper.c">
+    <ClCompile Include="$(ProjectDir)generated\EbpfProtocolWrapper.c">
       <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -21,16 +21,16 @@
     <ClInclude Include="ebpf_protocol_layout_check.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(OutDir)\EbpfProtocol.h">
+    <ClInclude Include="$(ProjectDir)generated\EbpfProtocol.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(OutDir)\EbpfProtocolWrapper.h">
+    <ClInclude Include="$(ProjectDir)generated\EbpfProtocolWrapper.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(OutDir)\EverParse.h">
+    <ClInclude Include="$(ProjectDir)generated\EverParse.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="$(OutDir)\EverParseEndianness.h">
+    <ClInclude Include="$(ProjectDir)generated\EverParseEndianness.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

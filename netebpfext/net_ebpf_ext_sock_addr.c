@@ -1696,6 +1696,10 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     // Verify hook_id is within the valid range for the wfp_connection_fields array.
     ASSERT(hook_id >= EBPF_HOOK_ALE_AUTH_CONNECT_V4 && hook_id <= EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6);
 
+    // hook_id is returned by net_ebpf_extension_get_hook_id_from_wfp_layer_id(), which only yields the
+    // connection-layer hook ids validated by the ASSERT above, so the index is in range by construction.
+    // The VS2026 Code Analysis engine cannot see the ASSERT (compiled out in release), so suppress C33010.
+#pragma warning(suppress : 33010) // Unchecked lower bound for enum hook_id used as index.
     const wfp_ale_layer_fields_t* fields = &wfp_connection_fields[hook_id - EBPF_HOOK_ALE_AUTH_CONNECT_V4];
 
     uint16_t source_ip_address_field =

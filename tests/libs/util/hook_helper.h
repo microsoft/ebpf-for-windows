@@ -15,9 +15,23 @@
 #include "usersim/ex.h"
 #include "usersim/ke.h"
 
-// Prototype added as the libbpf headers cause conflicts with the execution context headers.
-int
+#include <algorithm>
+#include <memory>
+#include <mutex>
+#include <vector>
+
+// Prototypes added as the libbpf headers cause conflicts with the execution context headers.
+extern "C" int
 bpf_link__destroy(bpf_link* link);
+
+extern "C" int
+bpf_link__fd(const struct bpf_link* link);
+
+extern "C" int
+bpf_link_detach(int link_fd);
+
+extern "C" int
+bpf_program__fd(const struct bpf_program* prog);
 
 typedef struct _close_bpf_link
 {
@@ -30,10 +44,20 @@ typedef struct _close_bpf_link
 
 typedef std::unique_ptr<bpf_link, close_bpf_link_t> bpf_link_ptr;
 
+/**
+ * @brief Thin wrapper over eBPF attach/detach APIs.
+ *        Manages a collection of bpf_link objects. Links created via the attach() methods
+ *        are owned by this class and cleaned up in the destructor. Links created via
+ *        attach_link() are returned to the caller and not tracked internally.
+ */
 typedef class _hook_helper
 {
   public:
     _hook_helper(ebpf_attach_type_t attach_type) : _attach_type(attach_type) {}
+
+    ~_hook_helper() { detach_all(); }
+
+    // Existing methods (backward compat) — caller manages link lifetime.
 
     _Must_inspect_result_ ebpf_result_t
     attach_link(
@@ -63,171 +87,274 @@ typedef class _hook_helper
         return ebpf_program_attach_by_fd(program_fd, &_attach_type, attach_parameters, attach_parameters_size, link);
     }
 
-  private:
-    ebpf_attach_type_t _attach_type;
-} hook_helper_t;
-
-typedef class _single_instance_hook : public _hook_helper
-{
-  public:
-    _single_instance_hook(
-        ebpf_program_type_t program_type,
-        ebpf_attach_type_t attach_type,
-        bpf_link_type link_type = BPF_LINK_TYPE_UNSPEC)
-        : _hook_helper{attach_type}, client_binding_context(nullptr), client_data(nullptr),
-          client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
-          nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
-    {
-        attach_provider_data.header = EBPF_ATTACH_PROVIDER_DATA_HEADER;
-        attach_provider_data.supported_program_type = program_type;
-        attach_provider_data.bpf_attach_type = ebpf_get_bpf_attach_type(&attach_type);
-        this->attach_type = attach_type;
-        attach_provider_data.link_type = link_type;
-        module_id.Guid = attach_type;
-    }
-    ebpf_result_t
-    initialize()
-    {
-        NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
-        return (status == STATUS_SUCCESS) ? EBPF_SUCCESS : EBPF_FAILED;
-    }
-    ~_single_instance_hook()
-    {
-        // Best effort cleanup. Ignore errors.
-        if (link_object) {
-            (void)ebpf_link_detach(link_object);
-            (void)ebpf_link_close(link_object);
-        }
-        if (nmr_provider_handle != NULL) {
-            NTSTATUS status = NmrDeregisterProvider(nmr_provider_handle);
-            if (status == STATUS_PENDING) {
-                NmrWaitForProviderDeregisterComplete(nmr_provider_handle);
-            } else {
-                ebpf_assert(status == STATUS_SUCCESS);
-            }
-        }
-    }
-
-    uint32_t
-    attach(_In_ const bpf_program* program)
-    {
-        return ebpf_program_attach(program, &attach_type, nullptr, 0, &link_object);
-    }
-
-    uint32_t
-    attach(
-        _In_ const bpf_program* program,
-        _In_reads_bytes_(attach_parameters_size) void* attach_parameters,
-        size_t attach_parameters_size)
-    {
-        return ebpf_program_attach(program, &attach_type, attach_parameters, attach_parameters_size, &link_object);
-    }
-
-    void
-    detach()
-    {
-        if (link_object != nullptr) {
-            if (ebpf_link_detach(link_object) == EBPF_SUCCESS) {
-                throw std::runtime_error("ebpf_link_detach failed");
-            }
-            ebpf_link_close(link_object);
-            link_object = nullptr;
-        }
-    }
-
-    _Must_inspect_result_ ebpf_result_t
-    detach(
-        fd_t program_fd, _In_reads_bytes_(attach_parameter_size) void* attach_parameter, size_t attach_parameter_size)
-    {
-        ebpf_result_t result = ebpf_program_detach(program_fd, &attach_type, attach_parameter, attach_parameter_size);
-        if (result == EBPF_SUCCESS) {
-            ebpf_link_close(link_object);
-            link_object = nullptr;
-        }
-        return result;
-    }
-
     void
     detach_link(_Inout_ bpf_link* link)
     {
-        if (ebpf_link_detach(link) != EBPF_SUCCESS) {
-            throw std::runtime_error("ebpf_link_detach failed");
-        }
+        bpf_link_detach(bpf_link__fd(link));
     }
 
     void
     close_link(_Frees_ptr_ bpf_link* link)
     {
-#pragma warning(push)
-#pragma warning(disable : 6001) // Using uninitialized memory '*link'.
-        ebpf_link_close(link);
-#pragma warning(pop)
+        bpf_link__destroy(link);
     }
 
     void
     detach_and_close_link(_Inout_ bpf_link_ptr* unique_link)
     {
-        bpf_link* link = unique_link->release();
-        detach_link(link);
-        close_link(link);
+        unique_link->reset();
+    }
+
+    // New methods — hook_helper owns the link lifetime.
+
+    _Ret_maybenull_ bpf_link*
+    attach(fd_t program_fd, _In_reads_bytes_opt_(params_size) void* params, size_t params_size)
+    {
+        bpf_link* link = nullptr;
+        ebpf_result_t result = ebpf_program_attach_by_fd(program_fd, &_attach_type, params, params_size, &link);
+        if (result == EBPF_SUCCESS && link != nullptr) {
+            try {
+                _entries.push_back({link, program_fd, _copy_params(params, params_size)});
+            } catch (const std::bad_alloc&) {
+                bpf_link__destroy(link);
+                link = nullptr;
+            }
+        }
+        return link;
+    }
+
+    _Ret_maybenull_ bpf_link*
+    attach(_In_ const bpf_program* program, _In_reads_bytes_opt_(params_size) void* params, size_t params_size)
+    {
+        bpf_link* link = nullptr;
+        ebpf_result_t result = ebpf_program_attach(program, &_attach_type, params, params_size, &link);
+        if (result == EBPF_SUCCESS && link != nullptr) {
+            try {
+                fd_t fd = bpf_program__fd(program);
+                _entries.push_back({link, fd, _copy_params(params, params_size)});
+            } catch (const std::bad_alloc&) {
+                bpf_link__destroy(link);
+                link = nullptr;
+            }
+        }
+        return link;
+    }
+
+    void
+    detach(_In_ bpf_link* link)
+    {
+        auto it =
+            std::find_if(_entries.begin(), _entries.end(), [link](const link_entry_t& e) { return e.link == link; });
+        if (it != _entries.end()) {
+            _entries.erase(it);
+        }
+        bpf_link__destroy(link);
+    }
+
+    void
+    detach_first()
+    {
+        if (_entries.empty()) {
+            return;
+        }
+        bpf_link* link = _entries.front().link;
+        _entries.erase(_entries.begin());
+        bpf_link__destroy(link);
     }
 
     _Must_inspect_result_ ebpf_result_t
-    fire(_Inout_ void* context, _Out_ uint32_t* result)
+    detach(fd_t program_fd, _In_reads_bytes_(params_size) void* params, size_t params_size)
     {
-        if (client_binding_context == nullptr) {
-            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        auto it = std::find_if(_entries.begin(), _entries.end(), [&](const link_entry_t& e) {
+            return e.program_fd == program_fd && e.params.size() == params_size &&
+                   (params_size == 0 || memcmp(e.params.data(), params, params_size) == 0);
+        });
+        if (it == _entries.end()) {
+            return EBPF_INVALID_ARGUMENT;
         }
-        ebpf_result_t (*invoke_program)(_In_ const void* link, _Inout_ void* context, _Out_ uint32_t* result) =
-            reinterpret_cast<decltype(invoke_program)>(client_dispatch_table->function[0]);
-
-        return invoke_program(client_binding_context, context, result);
+        bpf_link* link = it->link;
+        _entries.erase(it);
+        bpf_link__destroy(link);
+        return EBPF_SUCCESS;
     }
 
-    _Must_inspect_result_ ebpf_result_t
-    batch_begin(size_t state_size, _Out_writes_(state_size) void* state)
+    void
+    detach_all()
     {
-        if (client_binding_context == nullptr) {
-            return EBPF_EXTENSION_FAILED_TO_LOAD;
+        for (auto& entry : _entries) {
+            bpf_link__destroy(entry.link);
         }
-
-        ebpf_program_batch_begin_invoke_function_t batch_begin_function;
-        batch_begin_function = reinterpret_cast<decltype(batch_begin_function)>(client_dispatch_table->function[1]);
-
-        return batch_begin_function(state_size, state);
+        _entries.clear();
     }
 
-    _Must_inspect_result_ ebpf_result_t
-    batch_invoke(_Inout_ void* program_context, _Out_ uint32_t* result, _In_ const void* state)
+    ebpf_attach_type_t
+    get_attach_type() const
     {
-        if (client_binding_context == nullptr) {
-            return EBPF_EXTENSION_FAILED_TO_LOAD;
-        }
-
-        ebpf_program_batch_invoke_function_t batch_invoke_function;
-        batch_invoke_function = reinterpret_cast<decltype(batch_invoke_function)>(client_dispatch_table->function[2]);
-        return batch_invoke_function(client_binding_context, program_context, result, state);
-    }
-
-    _Must_inspect_result_ ebpf_result_t
-    batch_end(_In_ void* state)
-    {
-        if (client_binding_context == nullptr) {
-            return EBPF_EXTENSION_FAILED_TO_LOAD;
-        }
-
-        ebpf_program_batch_end_invoke_function_t batch_end_function;
-        batch_end_function = reinterpret_cast<decltype(batch_end_function)>(client_dispatch_table->function[3]);
-        return batch_end_function(state);
-    }
-
-    _Ret_maybenull_ const ebpf_extension_data_t*
-    get_client_data() const
-    {
-        return client_data;
+        return _attach_type;
     }
 
   private:
+    struct link_entry_t
+    {
+        bpf_link* link;
+        fd_t program_fd;
+        std::vector<uint8_t> params;
+    };
+
+    static std::vector<uint8_t>
+    _copy_params(_In_reads_bytes_opt_(size) const void* params, size_t size)
+    {
+        if (params == nullptr || size == 0) {
+            return {};
+        }
+        auto* bytes = static_cast<const uint8_t*>(params);
+        return std::vector<uint8_t>(bytes, bytes + size);
+    }
+
+    ebpf_attach_type_t _attach_type;
+    std::vector<link_entry_t> _entries;
+} hook_helper_t;
+
+/**
+ * @brief Mock NMR hook provider for user-mode testing.
+ *        Supports multiple clients, each identified by unique attach parameters (client_data).
+ *        Clients are stored in a vector of shared_ptr for safe concurrent fire/detach.
+ *
+ *        Typical usage:
+ *          single_instance_hook_t hook(prog_type, attach_type);
+ *          hook.initialize();
+ *          hook.attach(fd);                          // single client
+ *          hook.attach(fd, &params, sizeof(params)); // additional clients
+ *          hook.fire(ctx, &result);                  // invoke client[0]
+ *          hook.fire(attach_data, ctx, &result);     // invoke by matching client_data
+ */
+typedef class _single_instance_hook
+{
+  public:
+    _single_instance_hook(
+        ebpf_program_type_t program_type,
+        ebpf_attach_type_t attach_type,
+        bpf_link_type link_type = BPF_LINK_TYPE_UNSPEC);
+
+    ~_single_instance_hook();
+
+    // NMR provider registration.
+    ebpf_result_t
+    initialize();
+
+    // Delegated to hook_helper (backward compat — caller manages link lifetime).
+    _Must_inspect_result_ ebpf_result_t
+    attach_link(
+        fd_t program_fd,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Out_ bpf_link_ptr* unique_link)
+    {
+        return _helper.attach_link(program_fd, attach_parameters, attach_parameters_size, unique_link);
+    }
+
+    _Must_inspect_result_ ebpf_result_t
+    attach_link(
+        fd_t program_fd,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Outptr_ bpf_link** link)
+    {
+        return _helper.attach_link(program_fd, attach_parameters, attach_parameters_size, link);
+    }
+
+    void
+    detach_link(_Inout_ bpf_link* link)
+    {
+        _helper.detach_link(link);
+    }
+
+    void
+    close_link(_Frees_ptr_ bpf_link* link)
+    {
+        _helper.close_link(link);
+    }
+
+    void
+    detach_and_close_link(_Inout_ bpf_link_ptr* unique_link)
+    {
+        _helper.detach_and_close_link(unique_link);
+    }
+
+    // Attach — hook_helper owns the link, NMR callback tracks the client.
+    _Must_inspect_result_ ebpf_result_t
+    attach(_In_ const bpf_program* program);
+
+    _Must_inspect_result_ ebpf_result_t
+    attach(_In_ const bpf_program* program, _In_reads_bytes_(params_size) void* params, size_t params_size);
+
+    // Detach — single client (client[0]).
+    void
+    detach();
+
+    // Detach — by attach parameters (finds matching client_data, first match wins).
+    _Must_inspect_result_ ebpf_result_t
+    detach(fd_t program_fd, _In_reads_bytes_(params_size) void* params, size_t params_size);
+
+    // Fire client[0].
+    _Must_inspect_result_ ebpf_result_t
+    fire(_Inout_ void* context, _Out_ uint32_t* result);
+
+    // Fire client matching attach parameters in client_data.
+    _Must_inspect_result_ ebpf_result_t
+    fire(
+        _In_reads_bytes_(params_size) const void* params,
+        size_t params_size,
+        _Inout_ void* context,
+        _Out_ uint32_t* result);
+
+    // Batch operations — param-less targets client[0].
+    _Must_inspect_result_ ebpf_result_t
+    batch_begin(size_t state_size, _Out_writes_(state_size) void* state);
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_invoke(_Inout_ void* program_context, _Out_ uint32_t* result, _In_ const void* state);
+
+    _Must_inspect_result_ ebpf_result_t
+    batch_end(_In_ void* state);
+
+    // Client data — param-less returns client[0].
+    _Ret_maybenull_ const ebpf_extension_data_t*
+    get_client_data() const;
+
+    _Ret_maybenull_ const ebpf_extension_data_t*
+    get_client_data(_In_reads_bytes_(params_size) const void* params, size_t params_size) const;
+
+    // Allow implicit conversion to hook_helper_t& for backward compatibility
+    // (e.g., _program_load_attach_helper::initialize takes hook_helper_t&).
+    operator hook_helper_t&() { return _helper; }
+
+  private:
+    struct client_entry_t
+    {
+        _single_instance_hook* owner = nullptr;
+        PNPI_REGISTRATION_INSTANCE registration_instance = nullptr;
+        const void* binding_context = nullptr;
+        const ebpf_extension_data_t* data = nullptr;
+        const ebpf_extension_dispatch_table_t* dispatch_table = nullptr;
+        HANDLE nmr_binding_handle = nullptr;
+        std::atomic<int32_t> invoke_count{0};
+        std::atomic<bool> detached{false};
+    };
+
+    // Find client whose client_data matches the given params (raw byte comparison).
+    std::shared_ptr<client_entry_t>
+    find_client_by_params(_In_reads_bytes_(params_size) const void* params, size_t params_size) const;
+
+    // Find client[0] — returns shared_ptr copy for refcount safety.
+    std::shared_ptr<client_entry_t>
+    first_client() const;
+
+    // Invoke a client's dispatch function with rundown protection.
+    _Must_inspect_result_ ebpf_result_t
+    invoke_client(_In_ std::shared_ptr<client_entry_t> client, _Inout_ void* context, _Out_ uint32_t* result);
+
+    // NMR callbacks.
     static NTSTATUS
     provider_attach_client_callback(
         HANDLE nmr_binding_handle,
@@ -236,66 +363,21 @@ typedef class _single_instance_hook : public _hook_helper
         _In_ const void* client_binding_context,
         _In_ const void* client_dispatch,
         _Out_ void** provider_binding_context,
-        _Outptr_result_maybenull_ const void** provider_dispatch)
-    {
-        auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
-
-        if (hook->client_binding_context != nullptr) {
-            // Can't attach a single-instance provider to a second client.
-            return STATUS_NOINTERFACE;
-        }
-        UNREFERENCED_PARAMETER(nmr_binding_handle);
-        hook->client_registration_instance = client_registration_instance;
-        hook->client_binding_context = client_binding_context;
-        hook->nmr_binding_handle = nmr_binding_handle;
-        hook->client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
-        hook->client_data =
-            reinterpret_cast<const ebpf_extension_data_t*>(client_registration_instance->NpiSpecificCharacteristics);
-        *provider_binding_context = provider_context;
-        *provider_dispatch = NULL;
-        return STATUS_SUCCESS;
-    };
+        _Outptr_result_maybenull_ const void** provider_dispatch);
 
     static NTSTATUS
-    provider_detach_client_callback(_Inout_ void* provider_binding_context)
-    {
-        auto hook = reinterpret_cast<_single_instance_hook*>(provider_binding_context);
-        hook->client_binding_context = nullptr;
-        hook->client_data = nullptr;
-        hook->client_dispatch_table = nullptr;
+    provider_detach_client_callback(_Inout_ void* provider_binding_context);
 
-        // There should be no in-progress calls to any client functions,
-        // we we can return success rather than pending.
-        return EBPF_SUCCESS;
-    };
-    ebpf_attach_type_t attach_type;
-    ebpf_attach_provider_data_t attach_provider_data;
+    _hook_helper _helper;
+    std::vector<std::shared_ptr<client_entry_t>> _clients;
+    mutable std::mutex _mutex;
 
-    NPI_MODULEID module_id = {
-        sizeof(NPI_MODULEID),
-        MIT_GUID,
-    };
-    const NPI_PROVIDER_CHARACTERISTICS provider_characteristics = {
-        0,
-        sizeof(provider_characteristics),
-        (NPI_PROVIDER_ATTACH_CLIENT_FN*)provider_attach_client_callback,
-        (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
-        NULL,
-        {
-            0,
-            sizeof(NPI_REGISTRATION_INSTANCE),
-            &EBPF_HOOK_EXTENSION_IID,
-            &module_id,
-            0,
-            &attach_provider_data,
-        },
-    };
-    HANDLE nmr_provider_handle;
-
-    PNPI_REGISTRATION_INSTANCE client_registration_instance = nullptr;
-    const void* client_binding_context = nullptr;
-    const ebpf_extension_data_t* client_data = nullptr;
-    const ebpf_extension_dispatch_table_t* client_dispatch_table = nullptr;
-    HANDLE nmr_binding_handle = nullptr;
-    bpf_link* link_object = nullptr;
+    // NMR provider data.
+    ebpf_attach_provider_data_t _attach_provider_data = {};
+    NPI_MODULEID _module_id = {sizeof(NPI_MODULEID), MIT_GUID};
+    NPI_PROVIDER_CHARACTERISTICS _provider_characteristics = {};
+    HANDLE _nmr_provider_handle = nullptr;
 } single_instance_hook_t;
+
+// Alias for multi-client usage (same class, just a name).
+typedef _single_instance_hook multi_instance_hook_t;
