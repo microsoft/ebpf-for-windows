@@ -2245,6 +2245,10 @@ ebpf_program_get_info(
             result = EBPF_INVALID_POINTER;
             goto Done;
         }
+    } else {
+        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
+        map_count = program->count_of_maps;
+        ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
     }
 
     struct bpf_prog_info local_program = {0};
@@ -2269,11 +2273,6 @@ ebpf_program_get_info(
         program_name_length);
     if (program_name_length < sizeof(output_info->name)) {
         memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
-    }
-    if ((input_info->map_ids == 0) || (input_info->nr_map_ids == 0)) {
-        ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
-        map_count = program->count_of_maps;
-        ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
     }
     output_info->nr_map_ids = map_count;
     output_info->map_ids = (uintptr_t)map_ids;
