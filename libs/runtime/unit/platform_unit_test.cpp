@@ -37,6 +37,7 @@
 #include <mutex>
 #include <new>
 #include <numeric>
+#include <optional>
 #include <sddl.h>
 #include <stop_token>
 #include <thread>
@@ -836,11 +837,12 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
     usersim_active_processor_count_scope_t active_processor_count_scope(startup_active_cpu_count);
     REQUIRE(NT_SUCCESS(active_processor_count_scope.status()));
 
+    std::optional<ebpf_cpu_affinity_scope_t> cpu0_affinity;
     _test_helper test_helper;
     test_helper.initialize();
 
-    ebpf_cpu_affinity_scope_t cpu0_affinity(0);
-    REQUIRE(cpu0_affinity.status() == EBPF_SUCCESS);
+    cpu0_affinity.emplace(0);
+    REQUIRE(cpu0_affinity->status() == EBPF_SUCCESS);
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
