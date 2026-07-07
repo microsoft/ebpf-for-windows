@@ -1,0 +1,50 @@
+{
+  "generation_units": [
+    {
+      "id": "ioctl_spec",
+      "project": "libs/ioctl_spec/ioctl_spec.vcxproj",
+      "trigger_paths": [
+        "libs/ioctl_spec/EbpfProtocol.3d",
+        "libs/ioctl_spec/ioctl_spec.vcxproj",
+        "libs/ioctl_spec/packages.config",
+        "libs/ioctl_spec/generated/EbpfProtocol.h",
+        "libs/ioctl_spec/generated/EbpfProtocolWrapper.h",
+        "libs/ioctl_spec/generated/EverParse.h",
+        "libs/ioctl_spec/generated/EverParseEndianness.h",
+        "libs/ioctl_spec/generated/EbpfProtocol.c",
+        "libs/ioctl_spec/generated/EbpfProtocolWrapper.c"
+      ],
+      "generated_outputs": [
+        "libs/ioctl_spec/generated/EbpfProtocol.h",
+        "libs/ioctl_spec/generated/EbpfProtocolWrapper.h",
+        "libs/ioctl_spec/generated/EverParse.h",
+        "libs/ioctl_spec/generated/EverParseEndianness.h",
+        "libs/ioctl_spec/generated/EbpfProtocol.c",
+        "libs/ioctl_spec/generated/EbpfProtocolWrapper.c"
+      ]
+    },
+    {
+      "id": "elf_spec",
+      "project": "libs/elf_spec/elf_spec.vcxproj",
+      "trigger_paths": [
+        "libs/elf_spec/Elf.3d",
+        "libs/elf_spec/elf_spec.vcxproj",
+        "libs/elf_spec/packages.config",
+        "libs/elf_spec/generated/Elf.h",
+        "libs/elf_spec/generated/ElfWrapper.h",
+        "libs/elf_spec/generated/EverParse.h",
+        "libs/elf_spec/generated/EverParseEndianness.h",
+        "libs/elf_spec/generated/Elf.c",
+        "libs/elf_spec/generated/ElfWrapper.c"
+      ],
+      "generated_outputs": [
+        "libs/elf_spec/generated/Elf.h",
+        "libs/elf_spec/generated/ElfWrapper.h",
+        "libs/elf_spec/generated/EverParse.h",
+        "libs/elf_spec/generated/EverParseEndianness.h",
+        "libs/elf_spec/generated/Elf.c",
+        "libs/elf_spec/generated/ElfWrapper.c"
+      ]
+    }
+  ]
+}

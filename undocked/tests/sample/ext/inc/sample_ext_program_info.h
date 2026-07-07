@@ -15,7 +15,7 @@
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 
-static const ebpf_ctx_descriptor_t _sample_ebpf_context_descriptor = {
+static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),
     EBPF_OFFSET_OF(sample_program_context_t, data_start),
     EBPF_OFFSET_OF(sample_program_context_t, data_end),
@@ -84,6 +84,13 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_global_help
         BPF_FUNC_get_current_pid_tgid,
         "bpf_get_current_pid_tgid",
         EBPF_RETURN_TYPE_INTEGER,
+    },
+    {
+        EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+        BPF_FUNC_redirect_map,
+        "bpf_redirect_map",
+        EBPF_RETURN_TYPE_INTEGER,
+        {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING},
     },
 };
 

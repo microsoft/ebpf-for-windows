@@ -103,7 +103,8 @@ size_t _ebpf_native_helper_function_data_supported_size[] = {EBPF_NATIVE_HELPER_
 size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
 
 #define EBPF_NATIVE_MAP_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
-size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0};
+#define EBPF_NATIVE_MAP_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
+size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0, EBPF_NATIVE_MAP_DATA_SIZE_1};
 
 #define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
 size_t _ebpf_native_program_entry_supported_size[] = {EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0};
@@ -246,9 +247,9 @@ ebpf_validate_helper_function_prototype_array(
 }
 
 static bool
-_ebpf_validate_context_descriptor(_In_ const ebpf_ctx_descriptor_t* context_descriptor)
+_ebpf_validate_context_descriptor(_In_ const ebpf_context_descriptor_t* context_descriptor)
 {
-    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_ctx_descriptor_t)));
+    return ((context_descriptor != NULL) && (context_descriptor->size >= sizeof(ebpf_context_descriptor_t)));
 }
 
 static bool
@@ -381,7 +382,7 @@ _duplicate_program_descriptor(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_type_descriptor_t* program_type_descriptor_copy = NULL;
-    ebpf_ctx_descriptor_t* context_descriptor_copy = NULL;
+    ebpf_context_descriptor_t* context_descriptor_copy = NULL;
 
     program_type_descriptor_copy = (ebpf_program_type_descriptor_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_type_descriptor_t), EBPF_POOL_TAG_DEFAULT);
@@ -405,13 +406,13 @@ _duplicate_program_descriptor(
     }
 
     context_descriptor_copy =
-        (ebpf_ctx_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_ctx_descriptor_t), EBPF_POOL_TAG_DEFAULT);
+        (ebpf_context_descriptor_t*)ebpf_allocate_with_tag(sizeof(ebpf_context_descriptor_t), EBPF_POOL_TAG_DEFAULT);
     if (context_descriptor_copy == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
 
-    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_ctx_descriptor_t));
+    memcpy(context_descriptor_copy, program_type_descriptor->context_descriptor, sizeof(ebpf_context_descriptor_t));
     program_type_descriptor_copy->context_descriptor = context_descriptor_copy;
     context_descriptor_copy = NULL;
 

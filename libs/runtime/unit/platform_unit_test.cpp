@@ -1449,7 +1449,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}}};
     // The values of the fields in the context_descriptor variable are completely arbitrary
     // and have no effect on the test.
-    ebpf_ctx_descriptor_t context_descriptor = {32, 0, 8, -1};
+    ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
     GUID program_type_test = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
     ebpf_program_type_descriptor_t program_type = {
         EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER, "unit_test_program", &context_descriptor, program_type_test};
@@ -1497,7 +1497,7 @@ TEST_CASE("serialize_program_info_test", "[platform]")
         memcmp(
             in_program_info.program_type_descriptor->context_descriptor,
             out_program_info->program_type_descriptor->context_descriptor,
-            sizeof(ebpf_ctx_descriptor_t)) == 0);
+            sizeof(ebpf_context_descriptor_t)) == 0);
     REQUIRE(
         strncmp(
             in_program_info.program_type_descriptor->name,
