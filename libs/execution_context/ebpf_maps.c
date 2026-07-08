@@ -2611,7 +2611,9 @@ static void
 _query_ring_buffer_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return;
+    }
     ebpf_ring_buffer_query(
         (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
 }
@@ -2645,7 +2647,9 @@ _query_perf_event_array_map(
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
-    ebpf_assert((uint32_t)index < perf_event_array_map->ring_count);
+    if ((uint32_t)index >= perf_event_array_map->ring_count) {
+        return;
+    }
 
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[(uint32_t)index];
     ebpf_ring_buffer_query(ring->ring, &async_query_result->consumer, &async_query_result->producer);
@@ -2735,7 +2739,9 @@ _map_user_ring_buffer_map(
     _Outptr_result_buffer_(*data_size) uint8_t** data,
     _Out_ size_t* data_size)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
     return ebpf_ring_buffer_map_user(ring_buffer, consumer, producer, data, data_size);
 }
@@ -2743,7 +2749,9 @@ _map_user_ring_buffer_map(
 static ebpf_result_t
 _unmap_user_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
     return ebpf_ring_buffer_unmap_user(ring_buffer);
 }
@@ -2752,7 +2760,9 @@ static ebpf_result_t
 _query_buffer_ring_buffer_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     size_t producer_offset;
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, consumer_offset, &producer_offset);
     void* consumer = NULL;
@@ -2774,7 +2784,9 @@ _async_query_ring_buffer_map(
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
     ebpf_core_map_async_contexts_t* async_contexts = &ring_buffer_map->async;
@@ -2791,7 +2803,9 @@ _async_query_ring_buffer_map(
 static ebpf_result_t
 _return_buffer_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index, size_t consumer_offset)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     return ebpf_ring_buffer_return_buffer((ebpf_ring_buffer_t*)map->data, consumer_offset);
 }
 
@@ -2813,10 +2827,11 @@ _map_user_perf_event_array_map(
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
-    uint32_t cpu_id = (uint32_t)index;
-    if (cpu_id >= perf_event_array_map->ring_count) {
+    // Compare the full uint64_t index before truncating to uint32_t to avoid bypassing the bounds check.
+    if (index >= perf_event_array_map->ring_count) {
         return EBPF_INVALID_ARGUMENT;
     }
+    uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
     return ebpf_ring_buffer_map_user(ring->ring, consumer, producer, data, data_size);
 }
@@ -2826,10 +2841,11 @@ _unmap_user_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t index
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
-    uint32_t cpu_id = (uint32_t)index;
-    if (cpu_id >= perf_event_array_map->ring_count) {
+    // Compare the full uint64_t index before truncating to uint32_t to avoid bypassing the bounds check.
+    if (index >= perf_event_array_map->ring_count) {
         return EBPF_INVALID_ARGUMENT;
     }
+    uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
     return ebpf_ring_buffer_unmap_user(ring->ring);
 }
@@ -2840,10 +2856,11 @@ _query_buffer_perf_event_array_map(
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
-    uint32_t cpu_id = (uint32_t)index;
-    if (cpu_id >= perf_event_array_map->ring_count) {
+    // Compare the full uint64_t index before truncating to uint32_t to avoid bypassing the bounds check.
+    if (index >= perf_event_array_map->ring_count) {
         return EBPF_INVALID_ARGUMENT;
     }
+    uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
     void* consumer = NULL;
     void* producer = NULL;
@@ -2867,6 +2884,10 @@ _async_query_perf_event_array_map(
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
+    // Compare the full uint64_t index before truncating to uint32_t to avoid bypassing the bounds check.
+    if (index >= perf_event_array_map->ring_count) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
     ebpf_core_map_async_contexts_t* async_contexts = &ring->async;
@@ -2886,6 +2907,10 @@ _return_buffer_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t in
     EBPF_LOG_ENTRY();
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
+    // Compare the full uint64_t index before truncating to uint32_t to avoid bypassing the bounds check.
+    if (index >= perf_event_array_map->ring_count) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
