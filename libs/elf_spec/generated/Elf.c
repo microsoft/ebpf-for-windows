@@ -364,8 +364,9 @@ ValidateEIdent(
                                                         [(uint32_t)
                                                              positionAfterFIVE_refinement0];
                                                     BOOLEAN
-                                                    noneConstraintIsOk5 =
-                                                        none5 == (uint8_t)1U;
+                                                        noneConstraintIsOk5 =
+                                                            none5 ==
+                                                            (uint8_t)1U;
                                                     uint64_t positionAfternone11 =
                                                         EverParseCheckConstraintOk(
                                                             noneConstraintIsOk5,
@@ -573,7 +574,8 @@ ValidateEIdent(
                                                                  * 0. */
                                                                 BOOLEAN
                                                                 hasEnoughBytes =
-                                                                    (uint64_t)(uint32_t)
+                                                                    (uint64_t)(
+                                                                        uint32_t)
                                                                         ELF____E_IDENT_PADDING_SIZE <=
                                                                     (InputLength -
                                                                      positionAfterEIGHT_refinement0);
@@ -593,7 +595,8 @@ ValidateEIdent(
                                                                             Input;
                                                                     uint64_t truncatedInputLength =
                                                                         positionAfterEIGHT_refinement0 +
-                                                                        (uint64_t)(uint32_t)
+                                                                        (uint64_t)(
+                                                                            uint32_t)
                                                                             ELF____E_IDENT_PADDING_SIZE;
                                                                     uint64_t result =
                                                                         positionAfterEIGHT_refinement0;
@@ -602,7 +605,7 @@ ValidateEIdent(
                                                                         uint64_t position =
                                                                             *&result;
                                                                         BOOLEAN
-                                                                        ite;
+                                                                            ite;
                                                                         if (!((uint64_t)1U <=
                                                                               (truncatedInputLength -
                                                                                position)))
@@ -2664,19 +2667,23 @@ ElfValidateElf(
                                                             (uint32_t)
                                                                 positionAfterEPhentsize);
                                                         uint16_t none3 =
-                                                            (uint16_t)(uint32_t)
-                                                                r0;
+                                                            (uint16_t)(
+                                                                uint32_t)r0;
                                                         BOOLEAN
                                                         noneConstraintIsOk3 =
                                                             (none3 ==
-                                                                 (uint16_t)(uint8_t)0U &&
+                                                                 (uint16_t)(
+                                                                     uint8_t)0U &&
                                                              ePhoff ==
-                                                                 (uint64_t)(uint8_t)0U) ||
-                                                            ((uint16_t)(uint8_t)0U <
+                                                                 (uint64_t)(
+                                                                     uint8_t)0U) ||
+                                                            ((uint16_t)(
+                                                                 uint8_t)0U <
                                                                  none3 &&
                                                              none3 <
                                                                  ELF____PN_XNUM &&
-                                                             (uint64_t)(uint32_t)64U ==
+                                                             (uint64_t)(
+                                                                 uint32_t)64U ==
                                                                  ePhoff &&
                                                              (uint32_t)
                                                                      ePhentsize ==
@@ -2751,7 +2758,8 @@ ElfValidateElf(
                                                                     (uint32_t)
                                                                         positionAfternone7);
                                                                 uint16_t eShentsize =
-                                                                    (uint16_t)(uint32_t)
+                                                                    (uint16_t)(
+                                                                        uint32_t)
                                                                         r0;
                                                                 /* Checking that
                                                                  * we have
@@ -2794,15 +2802,19 @@ ElfValidateElf(
                                                                         (uint32_t)
                                                                             positionAfterEShentsize);
                                                                     uint16_t none4 =
-                                                                        (uint16_t)(uint32_t)
+                                                                        (uint16_t)(
+                                                                            uint32_t)
                                                                             r0;
                                                                     BOOLEAN
                                                                     noneConstraintIsOk4 =
                                                                         (none4 ==
-                                                                             (uint16_t)(uint8_t)0U &&
+                                                                             (uint16_t)(
+                                                                                 uint8_t)0U &&
                                                                          eShoff ==
-                                                                             (uint64_t)(uint8_t)0U) ||
-                                                                        ((uint16_t)(uint8_t)0U <
+                                                                             (uint64_t)(
+                                                                                 uint8_t)0U) ||
+                                                                        ((uint16_t)(
+                                                                             uint8_t)0U <
                                                                              none4 &&
                                                                          none4 <
                                                                              ELF____SHN_LORESERVE &&
@@ -2868,16 +2880,19 @@ ElfValidateElf(
                                                                                 (uint32_t)
                                                                                     positionAfternone9);
                                                                             uint16_t none5 =
-                                                                                (uint16_t)(uint32_t)
+                                                                                (uint16_t)(
+                                                                                    uint32_t)
                                                                                     r;
                                                                             BOOLEAN
                                                                             noneConstraintIsOk5 =
                                                                                 (none4 ==
-                                                                                     (uint16_t)(uint8_t)0U &&
+                                                                                     (uint16_t)(
+                                                                                         uint8_t)0U &&
                                                                                  none5 ==
                                                                                      (uint16_t)
                                                                                          ELF____SHN_UNDEF) ||
-                                                                                ((uint16_t)(uint8_t)0U <
+                                                                                ((uint16_t)(
+                                                                                     uint8_t)0U <
                                                                                      none4 &&
                                                                                  none5 <
                                                                                      none4);
@@ -2934,7 +2949,8 @@ ElfValidateElf(
                                                                                     uint64_t
                                                                                         ite;
                                                                                     if (none3 ==
-                                                                                        (uint16_t)(uint8_t)0U)
+                                                                                        (uint16_t)(
+                                                                                            uint8_t)0U)
                                                                                     {
                                                                                         ite = (uint64_t)
                                                                                             none2;
@@ -2946,9 +2962,10 @@ ElfValidateElf(
                                                                                     }
                                                                                     uint64_t positionAfterElf0 = ValidateSectionHeaderTableOpt(
                                                                                         ite +
-                                                                                            (uint64_t)((uint32_t)56U *
-                                                                                                       (uint32_t)
-                                                                                                           none3),
+                                                                                            (uint64_t)(
+                                                                                                (uint32_t)56U *
+                                                                                                (uint32_t)
+                                                                                                    none3),
                                                                                         eShoff,
                                                                                         none4,
                                                                                         ElfFileSize,

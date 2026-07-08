@@ -19,6 +19,7 @@ nswamy, protz, taramana 5-Feb-2020
 
 --*/
 
+
 #ifndef __EverParse_H
 #define __EverParse_H
 
@@ -184,11 +185,12 @@ extern "C"
     {
         if (!(*Context).filled)
         {
-            *Context = ((EverParseErrorFrame){.filled = TRUE,
-                                              .start_pos = StartPos,
-                                              .typename_s = TypenameS,
-                                              .fieldname = Fieldname,
-                                              .reason = Reason});
+            *Context = ((EverParseErrorFrame){
+                .filled = TRUE,
+                .start_pos = StartPos,
+                .typename_s = TypenameS,
+                .fieldname = Fieldname,
+                .reason = Reason});
             return;
         }
     }

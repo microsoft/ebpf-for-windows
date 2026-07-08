@@ -212,9 +212,10 @@ ValidateCreateProgramBody(
                                 /* Validating field Data */
                                 BOOLEAN
                                 hasEnoughBytes =
-                                    (uint64_t)(uint32_t)(MessageLength -
-                                                         (uint16_t)
-                                                             EBPFPROTOCOL____CREATE_PROGRAM_DATA_OFFSET) <=
+                                    (uint64_t)(uint32_t)(
+                                        MessageLength -
+                                        (uint16_t)
+                                            EBPFPROTOCOL____CREATE_PROGRAM_DATA_OFFSET) <=
                                     (InputLength - positionAfternone5);
                                 uint64_t positionAfterCreateProgramBody0;
                                 if (!hasEnoughBytes)
@@ -229,9 +230,10 @@ ValidateCreateProgramBody(
                                     uint8_t *truncatedInput = Input;
                                     uint64_t truncatedInputLength =
                                         positionAfternone5 +
-                                        (uint64_t)(uint32_t)(MessageLength -
-                                                             (uint16_t)
-                                                                 EBPFPROTOCOL____CREATE_PROGRAM_DATA_OFFSET);
+                                        (uint64_t)(uint32_t)(
+                                            MessageLength -
+                                            (uint16_t)
+                                                EBPFPROTOCOL____CREATE_PROGRAM_DATA_OFFSET);
                                     uint64_t result = positionAfternone5;
                                     while (TRUE)
                                     {
@@ -595,9 +597,9 @@ ValidateCreateMapBody(
                     /* Validating field Data */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET) <=
                         (InputLength - positionAfterInnerMapHandle);
                     uint64_t positionAfterCreateMapBody0;
                     if (!hasEnoughBytes)
@@ -612,9 +614,10 @@ ValidateCreateMapBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfterInnerMapHandle +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____CREATE_MAP_DATA_OFFSET);
                         uint64_t result = positionAfterInnerMapHandle;
                         while (TRUE)
                         {
@@ -871,9 +874,10 @@ ValidateLoadCodeBody(
                         /* Validating field Code */
                         BOOLEAN
                         hasEnoughBytes =
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____LOAD_CODE_CODE_OFFSET) <=
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____LOAD_CODE_CODE_OFFSET) <=
                             (InputLength - positionAfternone3);
                         uint64_t positionAfterLoadCodeBody;
                         if (!hasEnoughBytes)
@@ -888,9 +892,10 @@ ValidateLoadCodeBody(
                             uint8_t *truncatedInput = Input;
                             uint64_t truncatedInputLength =
                                 positionAfternone3 +
-                                (uint64_t)(uint32_t)(MessageLength -
-                                                     (uint16_t)
-                                                         EBPFPROTOCOL____LOAD_CODE_CODE_OFFSET);
+                                (uint64_t)(uint32_t)(
+                                    MessageLength -
+                                    (uint16_t)
+                                        EBPFPROTOCOL____LOAD_CODE_CODE_OFFSET);
                             uint64_t result = positionAfternone3;
                             while (TRUE)
                             {
@@ -1174,9 +1179,10 @@ ValidateMapFindElementBody(
                     /* Validating field Key */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____FIND_ELEMENT_KEY_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____FIND_ELEMENT_KEY_OFFSET) <=
                         (InputLength - positionAfterFindAndDelete);
                     uint64_t positionAfterMapFindElementBody0;
                     if (!hasEnoughBytes)
@@ -1191,9 +1197,10 @@ ValidateMapFindElementBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfterFindAndDelete +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____FIND_ELEMENT_KEY_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____FIND_ELEMENT_KEY_OFFSET);
                         uint64_t result = positionAfterFindAndDelete;
                         while (TRUE)
                         {
@@ -1450,9 +1457,10 @@ ValidateMapUpdateBody(
                         /* Validating field Data */
                         BOOLEAN
                         hasEnoughBytes =
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____MAP_UPDATE_DATA_OFFSET) <=
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____MAP_UPDATE_DATA_OFFSET) <=
                             (InputLength - positionAfternone3);
                         uint64_t positionAfterMapUpdateBody;
                         if (!hasEnoughBytes)
@@ -1467,9 +1475,10 @@ ValidateMapUpdateBody(
                             uint8_t *truncatedInput = Input;
                             uint64_t truncatedInputLength =
                                 positionAfternone3 +
-                                (uint64_t)(uint32_t)(MessageLength -
-                                                     (uint16_t)
-                                                         EBPFPROTOCOL____MAP_UPDATE_DATA_OFFSET);
+                                (uint64_t)(uint32_t)(
+                                    MessageLength -
+                                    (uint16_t)
+                                        EBPFPROTOCOL____MAP_UPDATE_DATA_OFFSET);
                             uint64_t result = positionAfternone3;
                             while (TRUE)
                             {
@@ -1855,9 +1864,10 @@ ValidateMapUpdateWithHandleBody(
                             /* Validating field Key */
                             BOOLEAN
                             hasEnoughBytes =
-                                (uint64_t)(uint32_t)(MessageLength -
-                                                     (uint16_t)
-                                                         EBPFPROTOCOL____MAP_UPDATE_WITH_HANDLE_KEY_OFFSET) <=
+                                (uint64_t)(uint32_t)(
+                                    MessageLength -
+                                    (uint16_t)
+                                        EBPFPROTOCOL____MAP_UPDATE_WITH_HANDLE_KEY_OFFSET) <=
                                 (InputLength - positionAfternone3);
                             uint64_t positionAfterMapUpdateWithHandleBody;
                             if (!hasEnoughBytes)
@@ -1872,9 +1882,10 @@ ValidateMapUpdateWithHandleBody(
                                 uint8_t *truncatedInput = Input;
                                 uint64_t truncatedInputLength =
                                     positionAfternone3 +
-                                    (uint64_t)(uint32_t)(MessageLength -
-                                                         (uint16_t)
-                                                             EBPFPROTOCOL____MAP_UPDATE_WITH_HANDLE_KEY_OFFSET);
+                                    (uint64_t)(uint32_t)(
+                                        MessageLength -
+                                        (uint16_t)
+                                            EBPFPROTOCOL____MAP_UPDATE_WITH_HANDLE_KEY_OFFSET);
                                 uint64_t result = positionAfternone3;
                                 while (TRUE)
                                 {
@@ -2126,9 +2137,9 @@ ValidateMapDeleteElementBody(
                 /* Validating field Key */
                 BOOLEAN
                 hasEnoughBytes =
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____DELETE_ELEMENT_KEY_OFFSET) <=
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)EBPFPROTOCOL____DELETE_ELEMENT_KEY_OFFSET) <=
                     (InputLength - positionAfterHandle);
                 uint64_t positionAfterMapDeleteElementBody0;
                 if (!hasEnoughBytes)
@@ -2143,9 +2154,10 @@ ValidateMapDeleteElementBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterHandle +
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____DELETE_ELEMENT_KEY_OFFSET);
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____DELETE_ELEMENT_KEY_OFFSET);
                     uint64_t result = positionAfterHandle;
                     while (TRUE)
                     {
@@ -2370,9 +2382,10 @@ ValidateMapGetNextKeyBody(
                 /* Validating field PreviousKey */
                 BOOLEAN
                 hasEnoughBytes =
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____GET_NEXT_KEY_PREVIOUS_KEY_OFFSET) <=
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)
+                            EBPFPROTOCOL____GET_NEXT_KEY_PREVIOUS_KEY_OFFSET) <=
                     (InputLength - positionAfterHandle);
                 uint64_t positionAfterMapGetNextKeyBody0;
                 if (!hasEnoughBytes)
@@ -2387,9 +2400,10 @@ ValidateMapGetNextKeyBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterHandle +
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____GET_NEXT_KEY_PREVIOUS_KEY_OFFSET);
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____GET_NEXT_KEY_PREVIOUS_KEY_OFFSET);
                     uint64_t result = positionAfterHandle;
                     while (TRUE)
                     {
@@ -2614,9 +2628,9 @@ ValidateUpdatePinningBody(
                 /* Validating field Path */
                 BOOLEAN
                 hasEnoughBytes =
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____UPDATE_PINNING_PATH_OFFSET) <=
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)EBPFPROTOCOL____UPDATE_PINNING_PATH_OFFSET) <=
                     (InputLength - positionAfterHandle);
                 uint64_t positionAfterUpdatePinningBody0;
                 if (!hasEnoughBytes)
@@ -2631,9 +2645,10 @@ ValidateUpdatePinningBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterHandle +
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____UPDATE_PINNING_PATH_OFFSET);
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____UPDATE_PINNING_PATH_OFFSET);
                     uint64_t result = positionAfterHandle;
                     while (TRUE)
                     {
@@ -2764,9 +2779,9 @@ ValidateGetPinnedObjectBody(
             /* Validating field Path */
             BOOLEAN
             hasEnoughBytes =
-                (uint64_t)(uint32_t)(MessageLength -
-                                     (uint16_t)
-                                         EBPFPROTOCOL____GET_PINNED_OBJECT_PATH_OFFSET) <=
+                (uint64_t)(uint32_t)(
+                    MessageLength -
+                    (uint16_t)EBPFPROTOCOL____GET_PINNED_OBJECT_PATH_OFFSET) <=
                 (InputLength - positionAfternone1);
             uint64_t positionAfterGetPinnedObjectBody0;
             if (!hasEnoughBytes)
@@ -2781,9 +2796,10 @@ ValidateGetPinnedObjectBody(
                 uint8_t *truncatedInput = Input;
                 uint64_t truncatedInputLength =
                     positionAfternone1 +
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____GET_PINNED_OBJECT_PATH_OFFSET);
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)
+                            EBPFPROTOCOL____GET_PINNED_OBJECT_PATH_OFFSET);
                 uint64_t result = positionAfternone1;
                 while (TRUE)
                 {
@@ -3102,9 +3118,10 @@ ValidateLinkProgramBody(
                     /* Validating field Data */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____LINK_PROGRAM_DATA_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____LINK_PROGRAM_DATA_OFFSET) <=
                         (InputLength - positionAfterAttachType);
                     uint64_t positionAfterLinkProgramBody0;
                     if (!hasEnoughBytes)
@@ -3119,9 +3136,10 @@ ValidateLinkProgramBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfterAttachType +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____LINK_PROGRAM_DATA_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____LINK_PROGRAM_DATA_OFFSET);
                         uint64_t result = positionAfterAttachType;
                         while (TRUE)
                         {
@@ -3594,9 +3612,10 @@ ValidateUnlinkProgramBody(
                             /* Validating field Data */
                             BOOLEAN
                             hasEnoughBytes =
-                                (uint64_t)(uint32_t)(MessageLength -
-                                                     (uint16_t)
-                                                         EBPFPROTOCOL____UNLINK_PROGRAM_DATA_OFFSET) <=
+                                (uint64_t)(uint32_t)(
+                                    MessageLength -
+                                    (uint16_t)
+                                        EBPFPROTOCOL____UNLINK_PROGRAM_DATA_OFFSET) <=
                                 (InputLength - positionAfterAttachDataPresent);
                             uint64_t positionAfterUnlinkProgramBody0;
                             if (!hasEnoughBytes)
@@ -3611,9 +3630,10 @@ ValidateUnlinkProgramBody(
                                 uint8_t *truncatedInput = Input;
                                 uint64_t truncatedInputLength =
                                     positionAfterAttachDataPresent +
-                                    (uint64_t)(uint32_t)(MessageLength -
-                                                         (uint16_t)
-                                                             EBPFPROTOCOL____UNLINK_PROGRAM_DATA_OFFSET);
+                                    (uint64_t)(uint32_t)(
+                                        MessageLength -
+                                        (uint16_t)
+                                            EBPFPROTOCOL____UNLINK_PROGRAM_DATA_OFFSET);
                                 uint64_t result =
                                     positionAfterAttachDataPresent;
                                 while (TRUE)
@@ -3944,9 +3964,10 @@ ValidateMapWriteDataBody(
                     /* Validating field Data */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____MAP_WRITE_DATA_DATA_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____MAP_WRITE_DATA_DATA_OFFSET) <=
                         (InputLength - positionAfterFlags);
                     uint64_t positionAfterMapWriteDataBody0;
                     if (!hasEnoughBytes)
@@ -3961,9 +3982,10 @@ ValidateMapWriteDataBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfterFlags +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____MAP_WRITE_DATA_DATA_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____MAP_WRITE_DATA_DATA_OFFSET);
                         uint64_t result = positionAfterFlags;
                         while (TRUE)
                         {
@@ -4191,9 +4213,10 @@ ValidateLoadNativeModuleBody(
                 /* Validating field Data */
                 BOOLEAN
                 hasEnoughBytes =
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____LOAD_NATIVE_MODULE_DATA_OFFSET) <=
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)
+                            EBPFPROTOCOL____LOAD_NATIVE_MODULE_DATA_OFFSET) <=
                     (InputLength - positionAfterModuleId);
                 uint64_t positionAfterLoadNativeModuleBody0;
                 if (!hasEnoughBytes)
@@ -4208,9 +4231,10 @@ ValidateLoadNativeModuleBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterModuleId +
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____LOAD_NATIVE_MODULE_DATA_OFFSET);
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____LOAD_NATIVE_MODULE_DATA_OFFSET);
                     uint64_t result = positionAfterModuleId;
                     while (TRUE)
                     {
@@ -4772,9 +4796,10 @@ ValidateProgramTestRunBody(
                                         /* Validating field Data */
                                         BOOLEAN
                                         hasEnoughBytes =
-                                            (uint64_t)(uint32_t)(MessageLength -
-                                                                 (uint16_t)
-                                                                     EBPFPROTOCOL____PROGRAM_TEST_RUN_DATA_OFFSET) <=
+                                            (uint64_t)(uint32_t)(
+                                                MessageLength -
+                                                (uint16_t)
+                                                    EBPFPROTOCOL____PROGRAM_TEST_RUN_DATA_OFFSET) <=
                                             (InputLength - positionAfternone3);
                                         uint64_t
                                             positionAfterProgramTestRunBody;
@@ -4790,9 +4815,10 @@ ValidateProgramTestRunBody(
                                             uint8_t *truncatedInput = Input;
                                             uint64_t truncatedInputLength =
                                                 positionAfternone3 +
-                                                (uint64_t)(uint32_t)(MessageLength -
-                                                                     (uint16_t)
-                                                                         EBPFPROTOCOL____PROGRAM_TEST_RUN_DATA_OFFSET);
+                                                (uint64_t)(uint32_t)(
+                                                    MessageLength -
+                                                    (uint16_t)
+                                                        EBPFPROTOCOL____PROGRAM_TEST_RUN_DATA_OFFSET);
                                             uint64_t result =
                                                 positionAfternone3;
                                             while (TRUE)
@@ -4991,9 +5017,10 @@ ValidatePinnedObjectPathBody(
                     /* Validating field StartPath */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____PINNED_OBJECT_PATH_START_PATH_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____PINNED_OBJECT_PATH_START_PATH_OFFSET) <=
                         (InputLength - positionAfternone3);
                     uint64_t positionAfterPinnedObjectPathBody;
                     if (!hasEnoughBytes)
@@ -5008,9 +5035,10 @@ ValidatePinnedObjectPathBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfternone3 +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____PINNED_OBJECT_PATH_START_PATH_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____PINNED_OBJECT_PATH_START_PATH_OFFSET);
                         uint64_t result = positionAfternone3;
                         while (TRUE)
                         {
@@ -5255,9 +5283,10 @@ ValidateMapDeleteElementBatchBody(
                 /* Validating field Keys */
                 BOOLEAN
                 hasEnoughBytes =
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)
-                                             EBPFPROTOCOL____DELETE_ELEMENT_BATCH_KEYS_OFFSET) <=
+                    (uint64_t)(uint32_t)(
+                        MessageLength -
+                        (uint16_t)
+                            EBPFPROTOCOL____DELETE_ELEMENT_BATCH_KEYS_OFFSET) <=
                     (InputLength - positionAfterHandle);
                 uint64_t positionAfterMapDeleteElementBatchBody0;
                 if (!hasEnoughBytes)
@@ -5272,9 +5301,10 @@ ValidateMapDeleteElementBatchBody(
                     uint8_t *truncatedInput = Input;
                     uint64_t truncatedInputLength =
                         positionAfterHandle +
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____DELETE_ELEMENT_BATCH_KEYS_OFFSET);
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____DELETE_ELEMENT_BATCH_KEYS_OFFSET);
                     uint64_t result = positionAfterHandle;
                     while (TRUE)
                     {
@@ -5544,9 +5574,10 @@ ValidateMapGetNextKeyValueBatchBody(
                     /* Validating field PreviousKey */
                     BOOLEAN
                     hasEnoughBytes =
-                        (uint64_t)(uint32_t)(MessageLength -
-                                             (uint16_t)
-                                                 EBPFPROTOCOL____GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET) <=
+                        (uint64_t)(uint32_t)(
+                            MessageLength -
+                            (uint16_t)
+                                EBPFPROTOCOL____GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET) <=
                         (InputLength - positionAfterFindAndDelete);
                     uint64_t positionAfterMapGetNextKeyValueBatchBody0;
                     if (!hasEnoughBytes)
@@ -5561,9 +5592,10 @@ ValidateMapGetNextKeyValueBatchBody(
                         uint8_t *truncatedInput = Input;
                         uint64_t truncatedInputLength =
                             positionAfterFindAndDelete +
-                            (uint64_t)(uint32_t)(MessageLength -
-                                                 (uint16_t)
-                                                     EBPFPROTOCOL____GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET);
+                            (uint64_t)(uint32_t)(
+                                MessageLength -
+                                (uint16_t)
+                                    EBPFPROTOCOL____GET_NEXT_KEY_VALUE_BATCH_KEY_OFFSET);
                         uint64_t result = positionAfterFindAndDelete;
                         while (TRUE)
                         {
@@ -5697,8 +5729,8 @@ ValidateGenericBody(
             /* Validating field Rest */
             BOOLEAN
             hasEnoughBytes =
-                (uint64_t)(uint32_t)(MessageLength -
-                                     (uint16_t)EBPFPROTOCOL____HEADER_SIZE) <=
+                (uint64_t)(uint32_t)(
+                    MessageLength - (uint16_t)EBPFPROTOCOL____HEADER_SIZE) <=
                 (InputLength - positionAfternone1);
             uint64_t positionAfterGenericBody0;
             if (!hasEnoughBytes)
@@ -5712,8 +5744,8 @@ ValidateGenericBody(
                 uint8_t *truncatedInput = Input;
                 uint64_t truncatedInputLength =
                     positionAfternone1 +
-                    (uint64_t)(uint32_t)(MessageLength -
-                                         (uint16_t)EBPFPROTOCOL____HEADER_SIZE);
+                    (uint64_t)(uint32_t)(
+                        MessageLength - (uint16_t)EBPFPROTOCOL____HEADER_SIZE);
                 uint64_t result = positionAfternone1;
                 while (TRUE)
                 {
