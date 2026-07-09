@@ -107,49 +107,8 @@ static void
 _ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* source, size_t source_size)
 {
     memset(destination, 0, sizeof(*destination));
-
-    const program_entry_t* source_entry = (const program_entry_t*)source;
-
-    if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION &&
-        source_size >= EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE) {
-        const uint8_t* source_bytes = (const uint8_t*)source;
-
-        memcpy(destination, source, EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count));
-        memcpy(
-            &destination->btf_resolved_functions,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET,
-            sizeof(destination->btf_resolved_functions));
-        memcpy(
-            &destination->btf_resolved_function_count,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET,
-            sizeof(destination->btf_resolved_function_count));
-        memcpy(
-            &destination->bpf_instruction_count,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET,
-            sizeof(destination->bpf_instruction_count));
-        memcpy(
-            &destination->program_type,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET,
-            sizeof(destination->program_type));
-        memcpy(
-            &destination->expected_attach_type,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET,
-            sizeof(destination->expected_attach_type));
-        memcpy(
-            &destination->program_info_hash,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET,
-            sizeof(destination->program_info_hash));
-        memcpy(
-            &destination->program_info_hash_length,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET,
-            sizeof(destination->program_info_hash_length));
-        memcpy(
-            &destination->program_info_hash_type,
-            source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET,
-            sizeof(destination->program_info_hash_type));
-    } else {
-        memcpy(destination, source, min(source_size, sizeof(*destination)));
-    }
+    memcpy(destination, source, min(source_size, sizeof(*destination)));
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_PROGRAM_ENTRY_HEADER;
 }
 
 typedef struct _ebpf_native_authorized_module_entry
