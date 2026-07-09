@@ -133,13 +133,20 @@ get_program_info_type_hash(
     if (btf_resolved_function_count > 0) {
         hash_t::append_byte_range(byte_range, btf_resolved_function_count);
         for (const auto& dependency : btf_resolved_functions) {
+            const ebpf_btf_resolved_function_info_t* function_info = nullptr;
+
+            result = ebpf_get_btf_resolved_function_info_from_verifier(dependency.btf_id, &function_info);
+            if (result != EBPF_SUCCESS || function_info == nullptr || function_info->prototype.name == nullptr) {
+                throw std::runtime_error(std::string("Failed to get BTF-resolved function information"));
+            }
+
             hash_t::append_byte_range(byte_range, dependency.module_guid);
             hash_t::append_byte_range(byte_range, dependency.name);
-            hash_t::append_byte_range(byte_range, dependency.return_type);
-            for (size_t argument = 0; argument < dependency.arguments.size(); argument++) {
-                hash_t::append_byte_range(byte_range, dependency.arguments[argument]);
+            hash_t::append_byte_range(byte_range, function_info->prototype.return_type);
+            for (size_t argument = 0; argument < _countof(function_info->prototype.arguments); argument++) {
+                hash_t::append_byte_range(byte_range, function_info->prototype.arguments[argument]);
             }
-            hash_t::append_byte_range(byte_range, dependency.flags);
+            hash_t::append_byte_range(byte_range, function_info->prototype.flags);
         }
     }
 

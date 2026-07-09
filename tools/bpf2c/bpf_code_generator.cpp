@@ -451,9 +451,8 @@ bpf_code_generator::get_btf_resolved_function_dependencies(const bpf_code_genera
     std::map<std::string, btf_resolved_function_dependency_t> dependency_map;
 
     auto append_dependencies = [&dependency_map](const bpf_code_generator_program& program) {
-        for (const auto& [_, function] : program.btf_resolved_functions) {
-            btf_resolved_function_dependency_t dependency{
-                function.name.raw(), function.module_guid, function.return_type, function.arguments, function.flags};
+        for (const auto& [btf_id, function] : program.btf_resolved_functions) {
+            btf_resolved_function_dependency_t dependency{function.name.raw(), function.module_guid, btf_id};
             dependency_map.try_emplace(_btf_resolved_function_key(function.module_guid, dependency.name), dependency);
         }
     };
@@ -1350,14 +1349,7 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
             btf_resolved_function_t function{
                 function_info->prototype.name,
                 function_info->module_guid,
-                function_info->prototype.return_type,
-                {},
-                function_info->prototype.flags,
                 0};
-            std::copy(
-                std::begin(function_info->prototype.arguments),
-                std::end(function_info->prototype.arguments),
-                function.arguments.begin());
             btf_resolved_functions[btf_id] = function;
         } else {
             // Non-BTF calls are handled elsewhere and do not add BTF-resolved dependencies.
