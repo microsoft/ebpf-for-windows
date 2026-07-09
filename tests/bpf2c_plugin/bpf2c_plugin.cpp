@@ -105,7 +105,7 @@ void
 compile_c_file(const std::filesystem::path& file_path, const std::string& include_string)
 {
     std::string cc = env_or_default("CC", "cl.exe");
-    std::string cxxflags = env_or_default("CXXFLAGS", "/std:c++20 /EHsc /nologo");
+    std::string cxxflags = env_or_default("CXXFLAGS", "/EHsc /nologo");
 
     std::filesystem::path c_file = file_path.string() + ".cpp";
     std::filesystem::path log_file = file_path.string() + ".log";

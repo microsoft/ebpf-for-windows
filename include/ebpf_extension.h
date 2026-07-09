@@ -118,14 +118,6 @@ typedef struct _ebpf_attach_provider_data
     enum bpf_link_type link_type;
 } ebpf_attach_provider_data_t;
 
-typedef struct _ebpf_btf_resolved_function_provider_data
-{
-    ebpf_extension_header_t header;
-    uint32_t btf_resolved_function_count;
-    const ebpf_btf_resolved_function_prototype_t* btf_resolved_function_prototypes;
-    const uint64_t* btf_resolved_function_addresses;
-} ebpf_btf_resolved_function_provider_data_t;
-
 /***
  * The state of the execution context when the eBPF program was invoked.
  * This is used to cache state that won't change during the execution of
