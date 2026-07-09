@@ -95,7 +95,15 @@ extern "C"
         bool tail_call;
     } helper_function_data_t;
 
-    typedef struct _btf_resolved_function_entry
+    typedef struct _btf_resolved_function_entry_v1
+    {
+        uint64_t zero_marker;
+        ebpf_native_module_header_t header;
+        const char* name;
+        GUID module_guid;
+    } btf_resolved_function_entry_v1_t;
+
+    typedef struct _btf_resolved_function_entry_v2
     {
         uint64_t zero_marker;
         ebpf_native_module_header_t header;
@@ -104,15 +112,15 @@ extern "C"
         uint32_t return_type;
         uint32_t arguments[5];
         uint32_t flags;
-    } btf_resolved_function_entry_t;
+    } btf_resolved_function_entry_v2_t;
 
-    typedef struct _btf_resolved_function_entry_v1
+    typedef struct _btf_resolved_function_entry
     {
         uint64_t zero_marker;
         ebpf_native_module_header_t header;
         const char* name;
         GUID module_guid;
-    } btf_resolved_function_entry_v1_t;
+    } btf_resolved_function_entry_t;
     typedef struct _btf_resolved_function_data
     {
         ebpf_native_module_header_t header;
@@ -330,9 +338,14 @@ extern "C"
     EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_v1_t, module_guid)
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE sizeof(btf_resolved_function_entry_v1_t)
 
-#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 2
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2 2
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_v2_t, flags)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2_TOTAL_SIZE sizeof(btf_resolved_function_entry_v2_t)
+
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 3
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, flags)
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, module_guid)
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(btf_resolved_function_entry_t)
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER             \
     {EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION,      \
