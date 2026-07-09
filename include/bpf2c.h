@@ -102,6 +102,7 @@ extern "C"
         const char* name;
         GUID module_guid;
     } btf_resolved_function_entry_t;
+
     typedef struct _btf_resolved_function_data
     {
         ebpf_native_module_header_t header;
