@@ -167,7 +167,6 @@ typedef struct _ebpf_btf_resolved_function_prototype
 {
     ebpf_extension_header_t header;
     const char* name;
-    const char* prototype;       // Human-readable prototype string published to the store
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
     uint32_t flags;
@@ -256,11 +255,11 @@ typedef struct _btf_resolved_function_entry
     ebpf_native_module_header_t header;
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding
-    uint32_t return_type;      // Verifier-approved return type, embedded for PoV hashing
-    uint32_t arguments[5];     // Verifier-approved argument types, embedded for PoV hashing
-    uint32_t flags;            // Verifier-approved flags, embedded for PoV hashing
 } btf_resolved_function_entry_t;
 ```
+
+Only the BTF-resolved function identity is embedded in the native image. The verifier/provider contract
+(`return_type`, `arguments`, and `flags`) stays in verifier/provider metadata and is not carried in native imports.
 
 When bpf2c emits a shared global BTF array for programs with subprograms, unused slots remain zero-initialized and use
 `name = ""` plus `module_guid = GUID_NULL` as sentinels. Native load skips those placeholders.
@@ -295,20 +294,17 @@ For a BTF-resolved function call, bpf2c generates:
 // BTF-resolved function import table
 static btf_resolved_function_entry_t _btf_resolved_functions[] = {
     {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_lookup",
-     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}},
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING, 0, 0},
-     0},
+     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
     {0, BTF_RESOLVED_FUNCTION_ENTRY_HEADER, "my_driver_update",
-     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}},
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING, 0, 0},
-     0},
+     {0x12345678, 0x1234, 0x1234, {0x12, 0x34, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc}}},
 };
 
 // In program code, BTF-resolved function calls go through the runtime context
 result = ((int (*)(uint64_t, void*, uint32_t))runtime_context->btf_resolved_function_data[0].address)(key, value, size);
 ```
+
+The generated native import table carries only identity (`name` + `module_guid`). The function prototype used for
+verification and proof-of-verification hashing comes from verifier/provider metadata, not from this emitted table.
 
 ### 6.4 Hash Computation
 

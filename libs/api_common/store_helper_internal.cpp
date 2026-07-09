@@ -896,7 +896,6 @@ _ebpf_store_free_btf_resolved_function(_Frees_ptr_opt_ ebpf_btf_resolved_functio
     }
 
     ebpf_free((void*)function_info->prototype.name);
-    ebpf_free((void*)function_info->prototype.prototype);
     ebpf_free(function_info);
 }
 
@@ -920,7 +919,6 @@ ebpf_store_load_btf_resolved_function(
     HKEY function_key = nullptr;
     wchar_t guid_string[GUID_STRING_LENGTH + 1] = {};
     wchar_t* function_name_wide = nullptr;
-    wchar_t* prototype_string = nullptr;
     ebpf_btf_resolved_function_info_t* local_function_info = nullptr;
     ebpf_extension_header_t provider_header = {};
 
@@ -987,25 +985,9 @@ ebpf_store_load_btf_resolved_function(
     local_function_info->module_guid = *module_guid;
     local_function_info->prototype.header = EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER;
 
-    result = ebpf_read_registry_value_string(function_key, EBPF_BTF_FUNCTION_DATA_PROTOTYPE, &prototype_string);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    if (prototype_string == nullptr) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     try {
         local_function_info->prototype.name = cxplat_duplicate_string(function_name);
         if (local_function_info->prototype.name == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-
-        local_function_info->prototype.prototype =
-            cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(prototype_string)).c_str());
-        if (local_function_info->prototype.prototype == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
@@ -1041,7 +1023,6 @@ ebpf_store_load_btf_resolved_function(
     local_function_info = nullptr;
 
 Exit:
-    ebpf_free(prototype_string);
     ebpf_free_wstring(function_name_wide);
     _ebpf_store_free_btf_resolved_function(local_function_info);
     ebpf_close_registry_key(function_key);

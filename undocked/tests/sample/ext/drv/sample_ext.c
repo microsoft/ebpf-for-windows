@@ -106,7 +106,6 @@ static const ebpf_helper_function_addresses_t _sample_global_helper_function_add
 static const ebpf_btf_resolved_function_prototype_t _sample_ebpf_extension_btf_function_prototypes[] = {
     {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
      SAMPLE_EXT_BTF_FUNCTION_NAME,
-     SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_ANYTHING,
       EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
