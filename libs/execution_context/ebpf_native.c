@@ -277,6 +277,7 @@ _ebpf_native_is_unused_btf_resolved_function_entry(_In_ const btf_resolved_funct
         (native_btf_entry != NULL) && (native_btf_entry->name != NULL) && (native_btf_entry->name[0] == '\0') &&
         IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL));
 }
+
 static bool
 _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
 {
@@ -295,10 +296,10 @@ _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_functi
         return false;
     }
 
-    valid_header = ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
-                    (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
-                    (native_btf_entry->header.total_size ==
-                     EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
+    valid_header =
+        ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
+         (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
+         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
 
     return (
         valid_header &&

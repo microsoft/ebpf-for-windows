@@ -170,9 +170,6 @@ extern "C"
     } program_runtime_context_t;
 
     /**
-     * @brief Legacy v1 program entry layout used before BTF-resolved function metadata was added.
-     */
-    /**
      * @brief Program entry.
      * This structure contains the address of the program and additional information about the program.
      */
@@ -361,7 +358,7 @@ extern "C"
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 2
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 1
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, btf_resolved_function_data)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE sizeof(program_runtime_context_t)

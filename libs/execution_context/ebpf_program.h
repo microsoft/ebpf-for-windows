@@ -297,9 +297,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_get_btf_resolved_function_addresses(
-        _In_ const ebpf_program_t* program,
-        size_t addresses_count,
-        _Out_writes_(addresses_count) uint64_t* addresses);
+        _In_ const ebpf_program_t* program, size_t addresses_count, _Out_writes_(addresses_count) uint64_t* addresses);
 
     /**
      * @brief Compute program info hash for the program object. This function

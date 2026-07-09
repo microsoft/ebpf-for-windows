@@ -2598,9 +2598,7 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_btf_resolved_function_addresses(
-    _In_ const ebpf_program_t* program,
-    size_t addresses_count,
-    _Out_writes_(addresses_count) uint64_t* addresses)
+    _In_ const ebpf_program_t* program, size_t addresses_count, _Out_writes_(addresses_count) uint64_t* addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
