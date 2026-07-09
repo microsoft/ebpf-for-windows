@@ -936,252 +936,541 @@
 
 \begin{document}
 \tlatex
-\begin{lcom}{0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
- \ensuremath{\.{\,\backslash\,}}* Copyright (c) \ensuremath{eBPF} for Windows
- contributors
-\end{cpar}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-\ensuremath{\.{\,\backslash\,}}* SPDX-License-Identifier: \ensuremath{MIT
-}%
-\end{cpar}%
-\end{lcom}%
- \@x{}\moduleLeftDash\@xx{ {\MODULE}
- ObjectArrayMapModel}\moduleRightDash\@xx{}%
-\@x{ {\EXTENDS} Naturals ,\, FiniteSets ,\, TLC}%
-\@pvspace{8.0pt}%
-\begin{lcom}{0}%
-\begin{cpar}{0}{T}{F}{5.0}{0}{}%
-****************************************************************
-\end{cpar}%
-\begin{cpar}{1}{F}{F}{0}{0}{}%
-Bounded, executable TLA+ model of the lock-free (no-lock) read of an
- object pointer stored in an array map slot, as used by prog-array and
- (map-in-map) array variants.
-\end{cpar}%
-\vshade{5.0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
- Key implementation pattern
- (libs/\ensuremath{execution\_context}/\ensuremath{ebpf\_maps.c}):
- - Reader: atomically reads a pointer from a map slot with
- \ensuremath{NoFence} and
-\end{cpar}%
-\begin{cpar}{0}{T}{F}{5.0}{0}{}%
-then uses it without taking the map lock and without taking an extra
- object reference.
-\end{cpar}%
-\begin{cpar}{1}{T}{T}{0}{2.5}{%
--}%
-Writer: updates the slot under a lock, releases the old object
- reference, and writes the new pointer.
-\end{cpar}%
-\vshade{5.0}%
-\begin{cpar}{1}{F}{F}{0}{0}{}%
-Correctness relies on a lifetime rule:
- - The reader must be executing inside an epoch (or equivalent guard)
-\end{cpar}%
-\begin{cpar}{0}{T}{F}{5.0}{0}{}%
-such that objects whose refcount reaches zero are not actually freed
- until after the epoch ends.
-\end{cpar}%
-\vshade{5.0}%
-\begin{cpar}{1}{F}{F}{0}{0}{}%
-This model checks a core safety property:
- - A reader must never hold/use an object that has been \ensuremath{Freed}.
-\end{cpar}%
-\vshade{5.0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-It provides a buggy configuration that permits reads outside an epoch.
-\end{cpar}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-****************************************************************
-\end{cpar}%
-\end{lcom}%
-\@x{ {\CONSTANTS}}%
-\@x{\@s{8.2} ObjIds ,\,\@s{74.11}}%
+\fl{}\moduleLeftDash\cl{ {\MODULE} EpochHotAddModel}\moduleRightDash\cl{}
+\fl{ {\EXTENDS} FiniteSets ,\, Naturals ,\, TLC}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ {\CONSTANTS}}
+\fl{ UseQuiesceBeforeModify ,\,}\al{28}{2}{%
 \@y{\@s{0}%
- Finite set of object identities.
+ if \ensuremath{{\TRUE}}, require \ensuremath{CPU}-0 quiesce before splicing
 }%
-\@xx{}%
-\@x{\@s{8.2} MaxEpoch ,\,\@s{58.14}}%
+}
+\fl{ AllowEarlyResume}\al{29}{1}{%
 \@y{\@s{0}%
- \ensuremath{Nat}: upper bound for published epoch.
+ if \ensuremath{{\TRUE}}, allow clearing quiesce before add-complete
 }%
-\@xx{}%
-\@x{\@s{8.2} AllowReadOutsideEpoch\@s{4.09}}%
+}
+\fl{}
+\fl{ Cpu0}\al{31}{1}{ \.{\defeq}}\al{31}{2}{ 0}
+\fl{ Cpu1}\al{32}{1}{ \.{\defeq}}\al{32}{2}{ 1}
+\fl{ HotCpu \.{\defeq} 2}
+\fl{ CPUS \.{\defeq} \{ Cpu0 ,\, Cpu1 ,\, HotCpu \}}
+\fl{}
+ \fl{ HotStates \.{\defeq} \{\@w{Offline} ,\,\@w{Initializing}
+ ,\,\@w{QuiescePending} ,\,\@w{Quiesced} ,\,\@w{Inserted} ,\,\@w{Active}
+ ,\,\@w{Failed} \}}
+\fl{}
+\fl{ {\VARIABLES}}
+\fl{ ring\_next ,\,}\al{39}{2}{%
 \@y{\@s{0}%
- \ensuremath{{\BOOLEAN}}: if \ensuremath{{\TRUE}}, allow reader to load
- without entering epoch.
+ next pointer for the admitted \ensuremath{CPU} ring
 }%
-\@xx{}%
-\@pvspace{8.0pt}%
-\@x{ {\ASSUME} ObjIds \.{\subseteq} Nat}%
-\@x{ {\ASSUME} MaxEpoch \.{\in} Nat}%
-\@x{ {\ASSUME} Cardinality ( ObjIds ) \.{\geq} 2}%
-\@pvspace{8.0pt}%
-\@x{ Epochs \.{\defeq} 0 \.{\dotdot} MaxEpoch}%
-\@x{ NoEpoch \.{\defeq} MaxEpoch \.{+} 1}%
-\@x{ AllEpochVals \.{\defeq} Epochs \.{\cup} \{ NoEpoch \}}%
-\@pvspace{8.0pt}%
-\@x{ ObjStates \.{\defeq} \{\@w{Live} ,\,\@w{Retired} ,\,\@w{Freed} \}}%
-\@pvspace{8.0pt}%
-\@x{ {\VARIABLES}}%
-\@x{\@s{8.2} publishedEpoch ,\,\@s{8.2}}%
+}
+\fl{ admitted ,\,}\al{40}{2}{%
 \@y{\@s{0}%
- global/published epoch (monotonic).
+ \ensuremath{admitted[c]} iff \ensuremath{CPU} \ensuremath{c} participates in
+ the ring
 }%
-\@xx{}%
-\@x{\@s{8.2} readerEpoch ,\,\@s{20.5}}%
+}
+\fl{ schedulable ,\,}\al{41}{2}{%
 \@y{\@s{0}%
- reader\mbox{'}s current epoch, or \ensuremath{NoEpoch} if not in epoch.
+ \ensuremath{schedulable[c]} iff \ensuremath{CPU} \ensuremath{c} may execute
+ epoch code
 }%
-\@xx{}%
-\@x{\@s{8.2} slot ,\,\@s{57.73}}%
+}
+\fl{ hot\_state ,\,}\al{42}{2}{%
 \@y{\@s{0}%
- array slot pointer: 0 (NULL) or an \ensuremath{ObjId}.
-}%
-\@xx{}%
-\@x{\@s{8.2} objState ,\,\@s{38.25}}%
+ lifecycle of the hot-added \ensuremath{CPU
+}}%
+}
+\fl{ topology\_exclusive ,\,}\al{43}{2}{%
 \@y{\@s{0}%
- [\ensuremath{ObjIds \.{\rightarrow} ObjStates}]
+ topology modifier holds the passive \ensuremath{SRW} lock exclusively
 }%
-\@xx{}%
-\@x{\@s{8.2} retireEpoch ,\,\@s{24.29}}%
+}
+\fl{ passive\_sync\_active ,\,}\al{44}{2}{%
 \@y{\@s{0}%
- [\ensuremath{ObjIds \.{\rightarrow} AllEpochVals}]
+ a passive synchronize caller holds the \ensuremath{SRW} lock shared
 }%
-\@xx{}%
-\@x{\@s{8.2} held\@s{61.46}}%
+}
+\fl{ quiescent\_requested ,\,}\al{45}{2}{%
 \@y{\@s{0}%
- 0 (none) or \ensuremath{ObjId} the reader is currently using.
+ \ensuremath{CPU}-0-owned flag: do not start new timer computations
 }%
-\@xx{}%
-\@pvspace{8.0pt}%
-\@x{ TypeOK \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} publishedEpoch \.{\in} Epochs}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{\in} AllEpochVals}%
-\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{\in} ( ObjIds \.{\cup} \{ 0 \} )}%
-\@x{\@s{8.2} \.{\land} held \.{\in} ( ObjIds \.{\cup} \{ 0 \} )}%
-\@x{\@s{8.2} \.{\land} objState \.{\in} [ ObjIds \.{\rightarrow} ObjStates ]}%
- \@x{\@s{8.2} \.{\land} retireEpoch \.{\in} [ ObjIds \.{\rightarrow}
- AllEpochVals ]}%
-\@pvspace{8.0pt}%
-\@x{ Safety \.{\defeq}}%
- \@x{\@s{8.2} \.{\land} held \.{=} 0 \.{\lor} objState [ held ]
- \.{\neq}\@w{Freed}}%
-\@pvspace{8.0pt}%
-\@x{ Init \.{\defeq}}%
-\@x{\@s{8.2} \.{\LET} o1 \.{\defeq} {\CHOOSE} o \.{\in} ObjIds \.{:} {\TRUE}}%
- \@x{\@s{28.59} o2 \.{\defeq} {\CHOOSE} o \.{\in} ( ObjIds \.{\,\backslash\,}
- \{ o1 \} ) \.{:} {\TRUE}}%
-\@x{\@s{8.2} \.{\IN}}%
-\@x{\@s{8.2} \.{\land} publishedEpoch \.{=} 0}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{=} NoEpoch}%
-\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{=} o1}%
-\@x{\@s{8.2} \.{\land} held \.{=} 0}%
- \@x{\@s{8.2} \.{\land} objState \.{=} [ o \.{\in} ObjIds \.{\mapsto} {\IF} o
- \.{=} o1 \.{\THEN}\@w{Live} \.{\ELSE}\@w{Freed} ]}%
- \@x{\@s{8.2} \.{\land} retireEpoch \.{=} [ o \.{\in} ObjIds \.{\mapsto}
- NoEpoch ]}%
-\@pvspace{8.0pt}%
-\@x{}%
+}
+\fl{ quiesce\_waiter\_pending ,\,%
 \@y{\@s{0}%
- Reader operations
+ \ensuremath{CPU} 0 owes completion to the current quiesce waiter
 }%
-\@xx{}%
-\@x{ ReaderEnter \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{=} NoEpoch}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{'} \.{=} publishedEpoch}%
- \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{ ReaderExit \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{\neq} NoEpoch}%
-\@x{\@s{8.2} \.{\land} held \.{=} 0}%
-\@x{\@s{8.2} \.{\land} readerEpoch \.{'} \.{=} NoEpoch}%
- \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{ ReaderLoad \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} held \.{=} 0}%
-\@x{\@s{8.2} \.{\land} slot\@s{2.38} \.{\neq} 0}%
- \@x{\@s{8.2} \.{\land} ( AllowReadOutsideEpoch \.{\lor} readerEpoch \.{\neq}
- NoEpoch )}%
-\@x{\@s{8.2} \.{\land} held \.{'} \.{=} slot}%
- \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, readerEpoch
- ,\, slot ,\, objState ,\, retireEpoch {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{ ReaderDrop \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} held \.{\neq} 0}%
-\@x{\@s{8.2} \.{\land} held \.{'} \.{=} 0}%
- \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\, readerEpoch
- ,\, slot ,\, objState ,\, retireEpoch {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{}%
+}
+\fl{ timer\_requested ,\,}\al{47}{2}{%
 \@y{\@s{0}%
- Writer operations
+ timer path requested an election
 }%
-\@xx{}%
-\@x{ AllocateNewLiveObject \.{\defeq}}%
-\@x{\@s{8.2} {\CHOOSE} o \.{\in} ObjIds \.{:} objState [ o ] \.{=}\@w{Freed}}%
-\@pvspace{8.0pt}%
-\@x{ WriterUpdate \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} slot \.{\neq} 0}%
-\@x{\@s{8.2} \.{\land} \E\, new \.{\in} ObjIds \.{:}}%
-\@x{\@s{27.51} \.{\land} objState [ new ] \.{=}\@w{Freed}}%
-\@x{\@s{27.51} \.{\land} slot \.{'} \.{=} new}%
-\@x{\@s{27.51} \.{\land} objState \.{'} \.{=} [ objState {\EXCEPT}}%
-\@x{\@s{93.04} {\bang} [ slot ] \.{=}\@w{Retired} ,\,}%
-\@x{\@s{93.04} {\bang} [ new ] \.{=}\@w{Live} ]}%
- \@x{\@s{27.51} \.{\land} retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
- {\bang} [ slot ] \.{=} publishedEpoch ]}%
- \@x{\@s{27.51} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{}%
+}
+\fl{ election\_in\_progress ,\,}\al{48}{2}{%
 \@y{\@s{0}%
- Epoch progression + reclamation
+ a timer-driven election walk is in flight
 }%
-\@xx{}%
-\@x{ AdvanceEpoch \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} publishedEpoch \.{<} MaxEpoch}%
-\@x{\@s{8.2} \.{\land} publishedEpoch \.{'} \.{=} publishedEpoch \.{+} 1}%
- \@x{\@s{8.2} \.{\land} {\UNCHANGED} {\langle} readerEpoch ,\, slot ,\,
- objState ,\, retireEpoch ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
- \@x{ MinActiveEpoch \.{\defeq} {\IF} readerEpoch \.{=} NoEpoch \.{\THEN}
- NoEpoch \.{\ELSE} readerEpoch}%
-\@pvspace{8.0pt}%
-\@x{ CanReclaim ( o ) \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} objState [ o ] \.{=}\@w{Retired}}%
-\@x{\@s{8.2} \.{\land} retireEpoch [ o ] \.{\in} Epochs}%
-\@x{\@s{8.2} \.{\land} retireEpoch [ o ] \.{<} MinActiveEpoch}%
-\@pvspace{8.0pt}%
-\@x{ ReclaimOne \.{\defeq}}%
-\@x{\@s{8.2} \.{\land} \E\, o \.{\in} ObjIds \.{:} CanReclaim ( o )}%
- \@x{\@s{8.2} \.{\land} \.{\LET} o \.{\defeq} {\CHOOSE} x \.{\in} ObjIds \.{:}
- CanReclaim ( x )}%
-\@x{\@s{19.31} \.{\IN}}%
- \@x{\@s{19.31} \.{\land} objState \.{'} \.{=} [ objState {\EXCEPT} {\bang} [
- o ] \.{=}\@w{Freed} ]}%
- \@x{\@s{19.31} \.{\land} retireEpoch \.{'} \.{=} [ retireEpoch {\EXCEPT}
- {\bang} [ o ] \.{=} NoEpoch ]}%
- \@x{\@s{19.31} \.{\land} {\UNCHANGED} {\langle} publishedEpoch ,\,
- readerEpoch ,\, slot ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
- \@x{ vars\@s{2.10} \.{\defeq} {\langle} publishedEpoch ,\, readerEpoch ,\,
- slot ,\, objState ,\, retireEpoch ,\, held {\rangle}}%
-\@pvspace{8.0pt}%
-\@x{ Next \.{\defeq}}%
-\@x{\@s{8.2} ReaderEnter}%
-\@x{\@s{8.2} \.{\lor} ReaderExit}%
-\@x{\@s{8.2} \.{\lor} ReaderLoad}%
-\@x{\@s{8.2} \.{\lor} ReaderDrop}%
-\@x{\@s{8.2} \.{\lor} WriterUpdate}%
-\@x{\@s{8.2} \.{\lor} AdvanceEpoch}%
-\@x{\@s{8.2} \.{\lor} ReclaimOne}%
-\@pvspace{8.0pt}%
-\@x{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}%
-\@pvspace{8.0pt}%
-\@x{}\bottombar\@xx{}%
+}
+\fl{ election\_cursor ,\,}\al{49}{2}{%
+\@y{\@s{0}%
+ \ensuremath{CPU} currently processing the election message
+}%
+}
+\fl{ epoch\_enter\_failed}\al{50}{1}{%
+\@y{\@s{0}%
+ sticky flag: \ensuremath{{\TRUE}} iff \ensuremath{epoch\_enter} would
+ fail-fast
+}%
+}
+\fl{}
+\fl{ vars \.{\defeq}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ AdmittedCPUs \.{\defeq} \{ c \.{\in} CPUS \.{:} admitted [ c ] \}}
+\fl{}
+\fl{ TypeOK}\al{70}{1}{ \.{\defeq}}
+\fl{ \.{\land}}\al{71}{1}{ ring\_next \.{\in} [ CPUS \.{\rightarrow} CPUS ]}
+ \fl{ \.{\land}}\al{72}{1}{ admitted \.{\in} [ CPUS \.{\rightarrow} {\BOOLEAN}
+ ]}
+ \fl{ \.{\land}}\al{73}{1}{ schedulable \.{\in} [ CPUS \.{\rightarrow}
+ {\BOOLEAN} ]}
+\fl{ \.{\land}}\al{74}{1}{ hot\_state \.{\in} HotStates}
+\fl{ \.{\land}}\al{75}{1}{ topology\_exclusive \.{\in} {\BOOLEAN}}
+ \fl{ \.{\land}}\al{76}{1}{ passive\_sync\_active}\al{76}{2}{
+ \.{\in}}\al{76}{3}{ {\BOOLEAN}}
+ \fl{ \.{\land}}\al{77}{1}{ quiescent\_requested}\al{77}{2}{
+ \.{\in}}\al{77}{3}{ {\BOOLEAN}}
+\fl{ \.{\land}}\al{78}{1}{ quiesce\_waiter\_pending \.{\in} {\BOOLEAN}}
+\fl{ \.{\land}}\al{79}{1}{ timer\_requested \.{\in} {\BOOLEAN}}
+\fl{ \.{\land}}\al{80}{1}{ election\_in\_progress \.{\in} {\BOOLEAN}}
+\fl{ \.{\land}}\al{81}{1}{ election\_cursor \.{\in} CPUS}
+\fl{ \.{\land}}\al{82}{1}{ epoch\_enter\_failed \.{\in} {\BOOLEAN}}
+\fl{}
+\fl{ Init \.{\defeq}}
+\fl{ \.{\land}}\al{85}{1}{ ring\_next \.{=}}
+\fl{ [ c}\al{86}{2}{ \.{\in} CPUS \.{\mapsto}}
+ \fl{ {\CASE}}\al{87}{1}{ c}\al{87}{2}{ \.{=}}\al{87}{3}{ Cpu0}\al{87}{4}{
+ \.{\rightarrow}}\al{87}{5}{ Cpu1}
+ \fl{ {\Box}}\al{88}{1}{ c}\al{88}{2}{ \.{=}}\al{88}{3}{ Cpu1}\al{88}{4}{
+ \.{\rightarrow}}\al{88}{5}{ Cpu0}
+\fl{ {\Box}}\al{89}{1}{ {\OTHER} \.{\rightarrow} HotCpu ]}
+\fl{ \.{\land}}\al{90}{1}{ admitted \.{=}}
+\fl{ [ c}\al{91}{2}{ \.{\in} CPUS \.{\mapsto}}
+\fl{ {\CASE}}\al{92}{1}{ c \.{=} HotCpu \.{\rightarrow} {\FALSE}}
+\fl{ {\Box}}\al{93}{1}{ {\OTHER} \.{\rightarrow} {\TRUE} ]}
+\fl{ \.{\land}}\al{94}{1}{ schedulable \.{=}}
+\fl{ [ c}\al{95}{2}{ \.{\in} CPUS \.{\mapsto}}
+\fl{ {\CASE}}\al{96}{1}{ c \.{=} HotCpu \.{\rightarrow} {\FALSE}}
+\fl{ {\Box}}\al{97}{1}{ {\OTHER} \.{\rightarrow} {\TRUE} ]}
+\fl{ \.{\land}}\al{98}{1}{ hot\_state \.{=}\@w{Offline}}
+\fl{ \.{\land}}\al{99}{1}{ topology\_exclusive \.{=} {\FALSE}}
+ \fl{ \.{\land}}\al{100}{1}{ passive\_sync\_active}\al{100}{2}{
+ \.{=}}\al{100}{3}{ {\FALSE}}
+ \fl{ \.{\land}}\al{101}{1}{ quiescent\_requested}\al{101}{2}{
+ \.{=}}\al{101}{3}{ {\FALSE}}
+\fl{ \.{\land}}\al{102}{1}{ quiesce\_waiter\_pending \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{103}{1}{ timer\_requested \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{104}{1}{ election\_in\_progress \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{105}{1}{ election\_cursor \.{=} Cpu0}
+\fl{ \.{\land}}\al{106}{1}{ epoch\_enter\_failed \.{=} {\FALSE}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ PassiveSyncStart \.{\defeq}}
+\fl{ \.{\land}}\al{113}{1}{ {\lnot} topology\_exclusive}
+\fl{ \.{\land}}\al{114}{1}{ {\lnot} passive\_sync\_active}
+\fl{ \.{\land}}\al{115}{1}{ passive\_sync\_active \.{'} \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{116}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ PassiveSyncFinish \.{\defeq}}
+\fl{ \.{\land}}\al{132}{1}{ passive\_sync\_active}
+\fl{ \.{\land}}\al{133}{1}{ passive\_sync\_active \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{134}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ RequestTimerElection \.{\defeq}}
+\fl{ \.{\land}}\al{150}{1}{ {\lnot} timer\_requested}
+\fl{ \.{\land}}\al{151}{1}{ timer\_requested \.{'} \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{152}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ StartElection \.{\defeq}}
+\fl{ \.{\land}}\al{168}{1}{ {\lnot} election\_in\_progress}
+\fl{ \.{\land}}\al{169}{1}{ {\lnot} quiescent\_requested}
+\fl{ \.{\land}}\al{170}{1}{ timer\_requested}
+\fl{ \.{\land}}\al{171}{1}{ election\_in\_progress \.{'} \.{=} {\TRUE}}
+ \fl{ \.{\land}}\al{172}{1}{ election\_cursor \.{'}}\al{172}{3}{
+ \.{=}}\al{172}{4}{ Cpu0}
+ \fl{ \.{\land}}\al{173}{1}{ timer\_requested \.{'}}\al{173}{3}{
+ \.{=}}\al{173}{4}{ {\FALSE}}
+\fl{ \.{\land}}\al{174}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ AdvanceElection \.{\defeq}}
+\fl{ \.{\land}}\al{188}{1}{ election\_in\_progress}
+ \fl{ \.{\land}}\al{189}{1}{ \.{\LET} next\_cpu \.{\defeq} ring\_next [
+ election\_cursor ]}
+\fl{ \.{\IN}}\al{190}{1}{ {\IF} next\_cpu \.{=} Cpu0}
+ \fl{ \.{\THEN}}\al{191}{1}{ \.{\land}}\al{191}{2}{ election\_in\_progress
+ \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{192}{1}{ election\_cursor \.{'} \.{=} Cpu0}
+\fl{ \.{\land}}\al{193}{1}{ {\IF}}\al{193}{2}{ quiesce\_waiter\_pending}
+ \fl{ \.{\THEN}}\al{194}{1}{ \.{\land}}\al{194}{2}{ quiesce\_waiter\_pending
+ \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{195}{1}{ hot\_state \.{'} \.{=}\@w{Quiesced}}
+ \fl{ \.{\ELSE}}\al{196}{1}{ \.{\land}}\al{196}{2}{ quiesce\_waiter\_pending
+ \.{'} \.{=} quiesce\_waiter\_pending}
+\fl{ \.{\land}}\al{197}{1}{ hot\_state \.{'} \.{=} hot\_state}
+ \fl{ \.{\ELSE}}\al{198}{1}{ \.{\land}}\al{198}{2}{ election\_in\_progress
+ \.{'} \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{199}{1}{ election\_cursor \.{'} \.{=} next\_cpu}
+ \fl{ \.{\land}}\al{200}{1}{ quiesce\_waiter\_pending \.{'} \.{=}
+ quiesce\_waiter\_pending}
+\fl{ \.{\land}}\al{201}{1}{ hot\_state \.{'} \.{=} hot\_state}
+\fl{ \.{\land}}\al{202}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ BeginHotAdd \.{\defeq}}
+\fl{ \.{\land}}\al{219}{1}{ hot\_state \.{=}\@w{Offline}}
+\fl{ \.{\land}}\al{220}{1}{ {\lnot} topology\_exclusive}
+\fl{ \.{\land}}\al{221}{1}{ {\lnot} passive\_sync\_active}
+\fl{ \.{\land}}\al{222}{1}{ hot\_state \.{'} \.{=}\@w{Initializing}}
+\fl{ \.{\land}}\al{223}{1}{ topology\_exclusive \.{'} \.{=} {\TRUE}}
+ \fl{ \.{\land}}\al{224}{1}{ admitted \.{'} \.{=} [ admitted {\EXCEPT} {\bang}
+ [ HotCpu ] \.{=} {\TRUE} ]}
+ \fl{ \.{\land}}\al{225}{1}{ ring\_next \.{'} \.{=} [ ring\_next {\EXCEPT}
+ {\bang} [ HotCpu ] \.{=} Cpu0 ]}
+\fl{ \.{\land}}\al{226}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ schedulable ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ RequestQuiesce \.{\defeq}}
+\fl{ \.{\land}}\al{239}{1}{ topology\_exclusive}
+\fl{ \.{\land}}\al{240}{1}{ hot\_state \.{=}\@w{Initializing}}
+\fl{ \.{\land}}\al{241}{1}{ {\lnot} quiescent\_requested}
+\fl{ \.{\land}}\al{242}{1}{ quiescent\_requested \.{'} \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{243}{1}{ {\IF} election\_in\_progress}
+ \fl{ \.{\THEN}}\al{244}{1}{ \.{\land}}\al{244}{2}{ quiesce\_waiter\_pending
+ \.{'} \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{245}{1}{ hot\_state \.{'} \.{=}\@w{QuiescePending}}
+ \fl{ \.{\ELSE}}\al{246}{1}{ \.{\land}}\al{246}{2}{ quiesce\_waiter\_pending
+ \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{247}{1}{ hot\_state \.{'} \.{=}\@w{Quiesced}}
+\fl{ \.{\land}}\al{248}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ SpliceHotCpu \.{\defeq}}
+\fl{ \.{\land}}\al{262}{1}{ topology\_exclusive}
+ \fl{ \.{\land}}\al{263}{1}{ ( {\IF} UseQuiesceBeforeModify \.{\THEN}
+ hot\_state \.{=}\@w{Quiesced} \.{\ELSE} hot\_state \.{\in}
+ \{\@w{Initializing} ,\,\@w{QuiescePending} ,\,\@w{Quiesced} \} )}
+ \fl{ \.{\land}}\al{264}{1}{ hot\_state \.{'}}\al{264}{3}{
+ \.{=}}\al{264}{4}{\@w{Inserted}}
+ \fl{ \.{\land}}\al{265}{1}{ ring\_next \.{'}}\al{265}{3}{ \.{=}}\al{265}{4}{
+ [ ring\_next {\EXCEPT} {\bang} [ Cpu1 ] \.{=} HotCpu ]}
+\fl{ \.{\land}}\al{266}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ AddComplete \.{\defeq}}
+\fl{ \.{\land}}\al{281}{1}{ hot\_state \.{=}\@w{Inserted}}
+\fl{ \.{\land}}\al{282}{1}{ {\lnot} schedulable [ HotCpu ]}
+\fl{ \.{\land}}\al{283}{1}{ hot\_state \.{'} \.{=}\@w{Active}}
+ \fl{ \.{\land}}\al{284}{1}{ schedulable \.{'} \.{=} [ schedulable {\EXCEPT}
+ {\bang} [ HotCpu ] \.{=} {\TRUE} ]}
+\fl{ \.{\land}}\al{285}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ AddFailureBeforeSplice \.{\defeq}}
+\fl{ \.{\land}}\al{300}{1}{ topology\_exclusive}
+ \fl{ \.{\land}}\al{301}{1}{ hot\_state \.{\in} \{\@w{Initializing}
+ ,\,\@w{Quiesced} \}}
+\fl{ \.{\land}}\al{302}{1}{ hot\_state \.{'} \.{=}\@w{Failed}}
+ \fl{ \.{\land}}\al{303}{1}{ admitted \.{'} \.{=} [ admitted {\EXCEPT} {\bang}
+ [ HotCpu ] \.{=} {\FALSE} ]}
+ \fl{ \.{\land}}\al{304}{1}{ ring\_next \.{'} \.{=} [ ring\_next {\EXCEPT}
+ {\bang} [ HotCpu ] \.{=} HotCpu ]}
+\fl{ \.{\land}}\al{305}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ schedulable ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ AddFailureAfterSplice \.{\defeq}}
+\fl{ \.{\land}}\al{319}{1}{ topology\_exclusive}
+\fl{ \.{\land}}\al{320}{1}{ hot\_state \.{=}\@w{Inserted}}
+\fl{ \.{\land}}\al{321}{1}{ {\lnot} schedulable [ HotCpu ]}
+\fl{ \.{\land}}\al{322}{1}{ hot\_state \.{'} \.{=}\@w{Failed}}
+ \fl{ \.{\land}}\al{323}{1}{ admitted \.{'} \.{=} [ admitted {\EXCEPT} {\bang}
+ [ HotCpu ]}\al{323}{11}{ \.{=}}\al{323}{12}{ {\FALSE} ]}
+ \fl{ \.{\land}}\al{324}{1}{ ring\_next \.{'} \.{=} [ ring\_next {\EXCEPT}
+ {\bang} [ Cpu1 ]}\al{324}{11}{ \.{=}}\al{324}{12}{ Cpu0 ,\, {\bang} [ HotCpu
+ ] \.{=} HotCpu ]}
+\fl{ \.{\land}}\al{325}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ schedulable ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{ ResumeAfterTopologyModification \.{\defeq}}
+\fl{ \.{\land}}\al{339}{1}{ topology\_exclusive}
+\fl{ \.{\land}}\al{340}{1}{ quiescent\_requested}
+ \fl{ \.{\land}}\al{341}{1}{ hot\_state \.{=}\@w{Failed} \.{\lor} hot\_state
+ \.{=}\@w{Active} \.{\lor} ( AllowEarlyResume \.{\land} hot\_state
+ \.{=}\@w{Inserted} )}
+\fl{ \.{\land}}\al{342}{1}{ topology\_exclusive \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{343}{1}{ quiescent\_requested \.{'} \.{=} {\FALSE}}
+\fl{ \.{\land}}\al{344}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor ,\,}
+\fl{ epoch\_enter\_failed}
+\fl{ {\rangle}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ EpochEnter ( c ) \.{\defeq}}
+\fl{ \.{\land}}\al{363}{1}{ c \.{\in} CPUS}
+\fl{ \.{\land}}\al{364}{1}{ schedulable [ c ]}
+\fl{ \.{\land}}\al{365}{1}{ {\lnot} epoch\_enter\_failed}
+\fl{ \.{\land}}\al{366}{1}{ {\IF} admitted [ c ]}
+\fl{ \.{\THEN}}\al{367}{1}{ \.{\land}}\al{367}{2}{ {\UNCHANGED} vars}
+ \fl{ \.{\ELSE}}\al{368}{1}{ \.{\land}}\al{368}{2}{ epoch\_enter\_failed \.{'}
+ \.{=} {\TRUE}}
+\fl{ \.{\land}}\al{369}{1}{ {\UNCHANGED}}
+\fl{ {\langle}}
+\fl{ ring\_next ,\,}
+\fl{ admitted ,\,}
+\fl{ schedulable ,\,}
+\fl{ hot\_state ,\,}
+\fl{ topology\_exclusive ,\,}
+\fl{ passive\_sync\_active ,\,}
+\fl{ quiescent\_requested ,\,}
+\fl{ quiesce\_waiter\_pending ,\,}
+\fl{ timer\_requested ,\,}
+\fl{ election\_in\_progress ,\,}
+\fl{ election\_cursor}
+\fl{ {\rangle}}
+\fl{}
+\fl{ Next \.{\defeq}}
+\fl{ \.{\lor}}\al{385}{1}{ PassiveSyncStart}
+\fl{ \.{\lor}}\al{386}{1}{ PassiveSyncFinish}
+\fl{ \.{\lor}}\al{387}{1}{ RequestTimerElection}
+\fl{ \.{\lor}}\al{388}{1}{ StartElection}
+\fl{ \.{\lor}}\al{389}{1}{ AdvanceElection}
+\fl{ \.{\lor}}\al{390}{1}{ BeginHotAdd}
+\fl{ \.{\lor}}\al{391}{1}{ RequestQuiesce}
+\fl{ \.{\lor}}\al{392}{1}{ SpliceHotCpu}
+\fl{ \.{\lor}}\al{393}{1}{ AddComplete}
+\fl{ \.{\lor}}\al{394}{1}{ AddFailureBeforeSplice}
+\fl{ \.{\lor}}\al{395}{1}{ AddFailureAfterSplice}
+\fl{ \.{\lor}}\al{396}{1}{ ResumeAfterTopologyModification}
+\fl{ \.{\lor}}\al{397}{1}{ \E\, c \.{\in} CPUS \.{:} EpochEnter ( c )}
+\fl{}
+\fl{ Spec \.{\defeq} Init \.{\land} {\Box} [ Next ]_{ vars}}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ RingTargetsAdmitted \.{\defeq}}
+\fl{ \A\, c \.{\in} AdmittedCPUs \.{:} admitted [ ring\_next [ c ] ]}
+\fl{}
+\fl{}
+\fl{ BaseCpusAlwaysAvailable \.{\defeq}}
+\fl{ \.{\land}}\al{411}{1}{ admitted [ Cpu0 ]}
+\fl{ \.{\land}}\al{412}{1}{ admitted [ Cpu1 ]}
+\fl{ \.{\land}}\al{413}{1}{ schedulable [ Cpu0 ]}
+\fl{ \.{\land}}\al{414}{1}{ schedulable [ Cpu1 ]}
+\fl{}
+\fl{}
+\fl{}
+\fl{ PassiveLockDiscipline \.{\defeq}}
+\fl{ topology\_exclusive \.{\implies} {\lnot} passive\_sync\_active}
+\fl{}
+\fl{}
+\fl{}
+\fl{}
+\fl{ ElectionCursorSafe \.{\defeq}}
+ \fl{ election\_in\_progress \.{\implies} ( admitted [ election\_cursor ]
+ \.{\land} schedulable [ election\_cursor ] )}
+\fl{}
+\fl{}
+\fl{}
+\fl{ SchedulableImpliesAdmitted \.{\defeq}}
+\fl{ \A\, c \.{\in} CPUS \.{:} schedulable [ c ] \.{\implies} admitted [ c ]}
+\fl{}
+\fl{}
+\fl{ QuiesceWaiterIsConsistent \.{\defeq}}
+\fl{ quiesce\_waiter\_pending \.{\implies} quiescent\_requested}
+\fl{}
+\fl{}
+\fl{}
+\fl{ EpochEnterNeverFails \.{\defeq} {\lnot} epoch\_enter\_failed}
+\fl{}
+\fl{}\bottombar\cl{}
 \end{document}

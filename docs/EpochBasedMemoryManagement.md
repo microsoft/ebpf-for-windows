@@ -44,6 +44,13 @@ Each admitted CPU maintains:
 - A per-CPU `current_epoch` value (a cache of the globally published epoch).
 - A per-CPU `released_epoch` value (the newest epoch that is safe to reclaim).
 
+The ownership rule for this state is:
+
+- **After publication/admission:** per-CPU hot-path state is owner-CPU state and is mutated only by that CPU at
+  DISPATCH_LEVEL.
+- **Before publication/admission:** initialization and hot-add setup may prepare or patch per-CPU state from another
+  context, but only while it is guaranteed that no CPU-at-DISPATCH path can observe or use that state.
+
 In addition to the per-admitted-CPU state, there is a globally published epoch value used as the
 source of truth for:
 
@@ -214,14 +221,27 @@ The epoch module distinguishes between:
 
 CPUs that are inactive at startup remain backed by preallocated but inactive table entries.
 When a CPU becomes active later, the epoch module must complete a CPU-admission sequence before
-that CPU can participate in current-CPU epoch operations. The intended design is to use
-processor-change notification to initialize the CPU's local queue/state and stage the active
-participant-ring update during add-start notification, then publish admission during add-complete
-notification once Windows reports that the processor has started.
+that CPU can participate in current-CPU epoch operations. The current design uses processor-change
+notification and splits quiescing by source:
 
-As a safety backstop, if a current-CPU epoch API is reached on a CPU that has not completed
-admission, the implementation must fail fast rather than touching inactive state or blocking
-in `ebpf_epoch_enter()`.
+- Passive `ebpf_epoch_synchronize()` callers take a shared push lock.
+- Hot-add topology modification takes that same lock exclusively, which drains any in-flight
+  passive synchronizations and blocks new ones until the hot-add completes or fails.
+- Timer-driven epoch computation remains owned by CPU 0. A quiesce message sent to CPU 0 blocks
+  new timer-driven computations immediately and completes only after any in-flight timer-driven
+  computation has drained.
+
+This preserves the per-CPU ownership rule described above: hot-add may patch per-CPU state before the new topology
+is published, but once a CPU is admitted, subsequent hot-path mutations of that CPU's state remain owner-CPU
+operations.
+
+Once both passive and timer-driven computation are quiesced, add-start notification initializes
+the CPU's local queue/state, splices the CPU into the active participant ring, and publishes
+admission before add-complete. Add-complete then clears the quiesced state so passive and
+timer-driven epoch computations can resume once Windows reports that the processor has started.
+
+This protocol intentionally allows only one hot-add quiesce operation at a time. A second
+concurrent quiesce attempt is treated as an internal protocol bug.
 
 ## Future investigations
 The implementation currently performs epoch computations via inter-CPU messaging and
