@@ -224,6 +224,11 @@ When a CPU becomes active later, the epoch module must complete a CPU-admission 
 that CPU can participate in current-CPU epoch operations. The current design uses processor-change
 notification and splits quiescing by source:
 
+- During `ebpf_epoch_initiate()`, the module initializes per-CPU queue/state for every CPU in the
+  maximum table before registering for processor-change notification.
+- Registration replay identifies the CPUs that are already active at startup; after replay completes,
+  the module links those admitted CPUs into the initial participant ring before publishing epoch.
+
 - Passive `ebpf_epoch_synchronize()` callers take a shared push lock.
 - Hot-add topology modification takes that same lock exclusively, which drains any in-flight
   passive synchronizations and blocks new ones until the hot-add completes or fails.
