@@ -5,11 +5,11 @@
 
 #define CATCH_CONFIG_MAIN
 
-#include "sample_ext_helpers.h"
 #include "bpf_code_generator.h"
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "ebpf_store_helper.h"
+#include "sample_ext_helpers.h"
 
 #include <filesystem>
 #include <map>
@@ -94,7 +94,7 @@ static const ebpf_btf_resolved_function_prototype_t _btf_test_prototypes[] = {
      SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_ANYTHING,
-      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_DONTCARE,
       EBPF_ARGUMENT_TYPE_DONTCARE},

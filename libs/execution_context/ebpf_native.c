@@ -323,6 +323,9 @@ _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_functi
         ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1) &&
          (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE) &&
          (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE)) ||
+        ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2) &&
+         (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2_SIZE) &&
+         (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_2_TOTAL_SIZE)) ||
         ((native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
          (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
          (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE));
@@ -355,6 +358,16 @@ _ebpf_validate_native_btf_resolved_function_entry_array(
     }
 
     return true;
+}
+
+static void
+_ebpf_copy_btf_resolved_function_entry(
+    _Out_ btf_resolved_function_entry_t* destination, _In_ const btf_resolved_function_entry_t* source)
+{
+    destination->zero_marker = source->zero_marker;
+    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_HEADER;
+    destination->name = source->name;
+    destination->module_guid = source->module_guid;
 }
 
 static bool
@@ -2072,7 +2085,8 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
             for (uint32_t i = 0; i < native_program->program_entry.btf_resolved_function_count; i++) {
                 const btf_resolved_function_entry_t* btf_entry =
                     (const btf_resolved_function_entry_t*)ARRAY_ELEMENT_INDEX(btf_info, i, btf_entry_size);
-                memcpy(&native_program->program_entry.btf_resolved_functions[i], btf_entry, btf_entry_size);
+                _ebpf_copy_btf_resolved_function_entry(
+                    &native_program->program_entry.btf_resolved_functions[i], btf_entry);
                 btf_entry = NULL;
             }
         }

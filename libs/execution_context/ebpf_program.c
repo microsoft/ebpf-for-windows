@@ -125,6 +125,15 @@ typedef struct _ebpf_program_btf_provider
     bool attached;
 } ebpf_program_btf_provider_t;
 
+typedef struct _ebpf_program_btf_hash_entry
+{
+    GUID module_guid;
+    char* name;
+    ebpf_return_type_t return_type;
+    ebpf_argument_type_t arguments[5];
+    uint32_t flags;
+} ebpf_program_btf_hash_entry_t;
+
 static struct
 {
     int reserved;
@@ -280,7 +289,7 @@ _ebpf_program_clear_btf_resolved_function_entries(_Inout_ ebpf_program_t* progra
 
 static ebpf_result_t
 _ebpf_program_update_hash_with_btf_resolved_function(
-    _In_ void* hash_context, _In_ const btf_resolved_function_entry_t* function_entry)
+    _In_ void* hash_context, _In_ const ebpf_program_btf_hash_entry_t* function_entry)
 {
     ebpf_result_t return_value;
     return_value = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->module_guid);
@@ -306,6 +315,21 @@ _ebpf_program_update_hash_with_btf_resolved_function(
     }
 
     return EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(hash_context, function_entry->flags);
+}
+
+static void
+_ebpf_program_free_btf_hash_entries(
+    _In_ size_t btf_hash_entry_count, _Frees_ptr_opt_ ebpf_program_btf_hash_entry_t* btf_hash_entries)
+{
+    if (btf_hash_entries == NULL) {
+        return;
+    }
+
+    for (size_t index = 0; index < btf_hash_entry_count; index++) {
+        ebpf_free(btf_hash_entries[index].name);
+    }
+
+    ebpf_free(btf_hash_entries);
 }
 
 static bool
@@ -342,6 +366,100 @@ _Success_(return) static bool _ebpf_program_find_btf_provider_function_index(
     }
 
     return false;
+}
+
+_Requires_lock_held_(program->lock) static ebpf_result_t
+    _ebpf_program_copy_btf_resolved_function_hash_entries_under_lock(
+        _In_ const ebpf_program_t* program,
+        _Outptr_result_buffer_maybenull_(*btf_hash_entry_count) ebpf_program_btf_hash_entry_t** btf_hash_entries,
+        _Out_ size_t* btf_hash_entry_count)
+{
+    ebpf_program_btf_hash_entry_t* local_btf_hash_entries = NULL;
+    size_t local_btf_hash_entry_count = 0;
+    size_t used_btf_resolved_function_count = 0;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    *btf_hash_entries = NULL;
+    *btf_hash_entry_count = 0;
+
+    for (size_t function_index = 0; function_index < program->btf_resolved_function_count; function_index++) {
+        if (!_ebpf_program_is_unused_btf_resolved_function_entry(&program->btf_resolved_functions[function_index])) {
+            used_btf_resolved_function_count++;
+        }
+    }
+
+    if (used_btf_resolved_function_count == 0) {
+        return EBPF_SUCCESS;
+    }
+
+    size_t btf_hash_entries_length = 0;
+    result = ebpf_safe_size_t_multiply(
+        used_btf_resolved_function_count, sizeof(ebpf_program_btf_hash_entry_t), &btf_hash_entries_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    local_btf_hash_entries =
+        (ebpf_program_btf_hash_entry_t*)ebpf_allocate_with_tag(btf_hash_entries_length, EBPF_POOL_TAG_PROGRAM);
+    if (local_btf_hash_entries == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memset(local_btf_hash_entries, 0, btf_hash_entries_length);
+
+    for (size_t function_index = 0; function_index < program->btf_resolved_function_count; function_index++) {
+        const btf_resolved_function_entry_t* function_entry = &program->btf_resolved_functions[function_index];
+        const ebpf_btf_resolved_function_provider_data_t* provider_data = NULL;
+        const ebpf_btf_resolved_function_prototype_t* provider_function_prototype = NULL;
+        ebpf_program_btf_provider_t* provider = NULL;
+        uint32_t provider_function_index = 0;
+        size_t name_length = 0;
+
+        if (_ebpf_program_is_unused_btf_resolved_function_entry(function_entry)) {
+            continue;
+        }
+
+        provider = _ebpf_program_find_btf_provider(program, &function_entry->module_guid);
+        if ((provider == NULL) || !provider->attached || (provider->provider_data == NULL)) {
+            result = EBPF_EXTENSION_FAILED_TO_LOAD;
+            goto Exit;
+        }
+
+        provider_data = provider->provider_data;
+        if (!_ebpf_program_find_btf_provider_function_index(
+                provider_data, function_entry->name, &provider_function_index)) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        provider_function_prototype = &provider_data->btf_resolved_function_prototypes[provider_function_index];
+        name_length = strlen(function_entry->name) + 1;
+        local_btf_hash_entries[local_btf_hash_entry_count].name =
+            (char*)ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
+        if (local_btf_hash_entries[local_btf_hash_entry_count].name == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        memcpy(local_btf_hash_entries[local_btf_hash_entry_count].name, function_entry->name, name_length);
+        local_btf_hash_entries[local_btf_hash_entry_count].module_guid = function_entry->module_guid;
+        local_btf_hash_entries[local_btf_hash_entry_count].return_type = provider_function_prototype->return_type;
+        memcpy(
+            local_btf_hash_entries[local_btf_hash_entry_count].arguments,
+            provider_function_prototype->arguments,
+            sizeof(provider_function_prototype->arguments));
+        local_btf_hash_entries[local_btf_hash_entry_count].flags = provider_function_prototype->flags;
+        local_btf_hash_entry_count++;
+    }
+
+    *btf_hash_entries = local_btf_hash_entries;
+    *btf_hash_entry_count = local_btf_hash_entry_count;
+    local_btf_hash_entries = NULL;
+    local_btf_hash_entry_count = 0;
+
+Exit:
+    _ebpf_program_free_btf_hash_entries(local_btf_hash_entry_count, local_btf_hash_entries);
+    return result;
 }
 
 static void
@@ -410,7 +528,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_add_btf_p
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
-    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions,
+    _In_reads_opt_(btf_resolved_function_count) const ebpf_program_btf_hash_entry_t* btf_resolved_functions,
     size_t btf_resolved_function_count,
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,
@@ -785,7 +903,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     size_t hash_length = 0;
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
-    btf_resolved_function_entry_t* actual_btf_resolved_functions = NULL;
+    ebpf_program_btf_hash_entry_t* actual_btf_resolved_functions = NULL;
     size_t actual_btf_resolved_function_count = 0;
     bool actual_helper_ids_set = false;
 
@@ -852,9 +970,15 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
-    actual_btf_resolved_functions = program->btf_resolved_functions;
-    actual_btf_resolved_function_count = program->btf_resolved_function_count;
     actual_helper_ids_set = program->helper_ids_set;
+    if (actual_helper_ids_set) {
+        result = _ebpf_program_copy_btf_resolved_function_hash_entries_under_lock(
+            program, &actual_btf_resolved_functions, &actual_btf_resolved_function_count);
+        if (result != EBPF_SUCCESS) {
+            status = ebpf_result_to_ntstatus(result);
+            goto Done;
+        }
+    }
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -959,6 +1083,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     }
 
 Done:
+    _ebpf_program_free_btf_hash_entries(actual_btf_resolved_function_count, actual_btf_resolved_functions);
     ebpf_free(hash);
     ebpf_free(hash_algorithm.value);
 
@@ -2660,7 +2785,7 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     cxplat_utf8_string_t hash_algorithm = {0};
     uint32_t* actual_helper_function_ids = NULL;
     size_t actual_helper_function_count = 0;
-    btf_resolved_function_entry_t* actual_btf_resolved_functions = NULL;
+    ebpf_program_btf_hash_entry_t* actual_btf_resolved_functions = NULL;
     size_t actual_btf_resolved_function_count = 0;
     uint8_t* hash = NULL;
     size_t hash_length = 0;
@@ -2691,8 +2816,11 @@ ebpf_program_set_program_info_hash(_Inout_ ebpf_program_t* program)
     extension_program_data = program->extension_program_data;
     actual_helper_function_ids = program->helper_function_ids;
     actual_helper_function_count = program->helper_function_count;
-    actual_btf_resolved_functions = program->btf_resolved_functions;
-    actual_btf_resolved_function_count = program->btf_resolved_function_count;
+    result = _ebpf_program_copy_btf_resolved_function_hash_entries_under_lock(
+        program, &actual_btf_resolved_functions, &actual_btf_resolved_function_count);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -2741,6 +2869,7 @@ Exit:
         ebpf_program_dereference_providers(program);
     }
 
+    _ebpf_program_free_btf_hash_entries(actual_btf_resolved_function_count, actual_btf_resolved_functions);
     ebpf_free(hash);
     ebpf_free(hash_algorithm.value);
 
@@ -3040,7 +3169,7 @@ _ebpf_contains_helper_id(_In_ const uint32_t* helper_ids, size_t count_of_helper
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
-    _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions,
+    _In_reads_opt_(btf_resolved_function_count) const ebpf_program_btf_hash_entry_t* btf_resolved_functions,
     size_t btf_resolved_function_count,
     _In_ const ebpf_program_data_t* general_program_information_data,
     _In_ const ebpf_program_data_t* extension_program_data,

@@ -187,18 +187,9 @@ _get_global_variable_sections(
 static btf_resolved_function_entry_t func_btf_resolved_functions[] = {
     {
      0,
-     {2, 84, 88}, // Version header.
+     {3, 56, 56}, // Version header.
      "sample_ebpf_extension_btf_lookup",
      {0x8f6c1f83, 0xce4c, 0x4b58, {0x8b, 0x91, 0x65, 0x4a, 0x29, 0xe2, 0x3b, 0x7c}},
-     0,
-     {
-         1,
-         9,
-         2,
-         0,
-         0,
-     },
-     0,
     },
 };
 
