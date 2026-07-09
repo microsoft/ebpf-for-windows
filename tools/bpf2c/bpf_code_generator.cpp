@@ -2692,29 +2692,25 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto attach_type_guid_name = program_name.c_identifier() + "_attach_type_guid";
             auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
             output_stream << INDENT "{" << std::endl;
-            output_stream << INDENT INDENT ".zero = 0," << std::endl;
-            output_stream << INDENT INDENT ".header = {" << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION << ", "
+            output_stream << INDENT INDENT << "0," << std::endl;
+            output_stream << INDENT INDENT "{" << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION << ", "
                           << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE << ", "
                           << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
                           << " // Version header." << std::endl;
-            output_stream << INDENT INDENT ".function = " << program_name.c_identifier() << "," << std::endl;
-            output_stream << INDENT INDENT ".pe_section_name = " << program.pe_section_name.quoted() << ","
-                          << std::endl;
-            output_stream << INDENT INDENT ".section_name = " << program.elf_section_name.quoted() << "," << std::endl;
-            output_stream << INDENT INDENT ".program_name = " << program_name.quoted() << "," << std::endl;
-            output_stream << INDENT INDENT ".referenced_map_indices = " << map_array_name << "," << std::endl;
-            output_stream << INDENT INDENT ".referenced_map_count = " << program.referenced_map_indices.size() << ","
-                          << std::endl;
-            output_stream << INDENT INDENT ".helpers = " << helper_array_name.c_str() << "," << std::endl;
-            output_stream << INDENT INDENT ".helper_count = " << helper_count << "," << std::endl;
-            output_stream << INDENT INDENT ".bpf_instruction_count = " << program.output_instructions.size() << ","
-                          << std::endl;
-            output_stream << INDENT INDENT ".program_type = &" << program_type_guid_name << "," << std::endl;
-            output_stream << INDENT INDENT ".expected_attach_type = &" << attach_type_guid_name << "," << std::endl;
+            output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
+            output_stream << INDENT INDENT << program.pe_section_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << program.elf_section_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << program_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << map_array_name << "," << std::endl;
+            output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
+            output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
+            output_stream << INDENT INDENT << helper_count << "," << std::endl;
+            output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
+            output_stream << INDENT INDENT << "&" << program_type_guid_name << "," << std::endl;
+            output_stream << INDENT INDENT << "&" << attach_type_guid_name << "," << std::endl;
             if (program.program_info_hash.has_value()) {
-                output_stream << INDENT INDENT ".program_info_hash = " << program_info_hash_name << "," << std::endl;
-                output_stream << INDENT INDENT ".program_info_hash_length = "
-                              << program.program_info_hash.value().size() << "," << std::endl;
+                output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
+                output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
                 // Append the hash type.
                 std::string hash_string = program.program_info_hash_type;
                 if (hash_string.empty()) {
@@ -2722,11 +2718,17 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                     hash_string = EBPF_HASH_ALGORITHM;
                     program.program_info_hash_type = hash_string;
                 }
-                output_stream << INDENT INDENT ".program_info_hash_type = \"" << hash_string << "\"," << std::endl;
+                output_stream << INDENT INDENT << "\"" << hash_string << "\"," << std::endl;
             }
-            output_stream << INDENT INDENT ".btf_resolved_functions = " << btf_array_name.c_str() << "," << std::endl;
-            output_stream << INDENT INDENT ".btf_resolved_function_count = " << btf_resolved_function_count << ","
-                          << std::endl;
+            if (btf_resolved_function_count > 0) {
+                if (!program.program_info_hash.has_value()) {
+                    output_stream << INDENT INDENT << "NULL," << std::endl;
+                    output_stream << INDENT INDENT << "0," << std::endl;
+                    output_stream << INDENT INDENT << "NULL," << std::endl;
+                }
+                output_stream << INDENT INDENT << btf_array_name.c_str() << "," << std::endl;
+                output_stream << INDENT INDENT << btf_resolved_function_count << "," << std::endl;
+            }
             output_stream << INDENT "}," << std::endl;
         }
         output_stream << "};" << std::endl;
