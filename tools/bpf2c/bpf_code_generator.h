@@ -29,9 +29,7 @@ class bpf_code_generator
     {
         std::string name;
         GUID module_guid = {};
-        ebpf_return_type_t return_type = EBPF_RETURN_TYPE_INTEGER;
-        std::array<ebpf_argument_type_t, 5> arguments = {};
-        uint32_t flags = 0;
+        int32_t btf_id = 0;
     } btf_resolved_function_dependency_t;
 
     /**
@@ -340,9 +338,6 @@ class bpf_code_generator
     {
         unsafe_string name;
         GUID module_guid = {};
-        ebpf_return_type_t return_type = EBPF_RETURN_TYPE_INTEGER;
-        std::array<ebpf_argument_type_t, 5> arguments = {};
-        uint32_t flags = 0;
         size_t index = 0;
     } btf_resolved_function_t;
 
