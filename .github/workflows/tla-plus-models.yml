@@ -126,31 +126,31 @@ jobs:
             done
           done
 
-      tlaps:
-        name: TLAPS proof check
-        runs-on: ubuntu-latest
+  tlaps:
+    name: TLAPS proof check
+    runs-on: ubuntu-latest
 
-        steps:
-          - name: Checkout
-            uses: actions/checkout@v6.0.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.1
 
-          - name: Install TLAPS (tlapm)
-            shell: bash
-            run: |
-              set -euo pipefail
+      - name: Install TLAPS (tlapm)
+        shell: bash
+        run: |
+          set -euo pipefail
 
-              installer="tlaps-1.5.0-x86_64-linux-gnu-inst.bin"
-              curl -fsSL -o "${installer}" \
-                https://github.com/tlaplus/tlapm/releases/download/202210041448/${installer}
-              chmod a+x "${installer}"
+          installer="tlaps-1.5.0-x86_64-linux-gnu-inst.bin"
+          curl -fsSL -o "${installer}" \
+            https://github.com/tlaplus/tlapm/releases/download/202210041448/${installer}
+          chmod a+x "${installer}"
 
-              prefix="${RUNNER_TEMP}/tlaps"
-              "./${installer}" -d "${prefix}"
+          prefix="${RUNNER_TEMP}/tlaps"
+          "./${installer}" -d "${prefix}"
 
-              echo "${prefix}/bin" >> "$GITHUB_PATH"
+          echo "${prefix}/bin" >> "$GITHUB_PATH"
 
-          - name: Run TLAPS proofs
-            shell: bash
-            run: |
-              set -euo pipefail
-              bash scripts/run_tlaps.sh
+      - name: Run TLAPS proofs
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/run_tlaps.sh
