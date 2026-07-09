@@ -24,7 +24,7 @@ static const ebpf_btf_resolved_function_prototype_t _btf_test_function_prototype
      "int my_driver_lookup(uint64_t, void*, uint32_t)",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_ANYTHING,
-      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_DONTCARE,
       EBPF_ARGUMENT_TYPE_DONTCARE},
