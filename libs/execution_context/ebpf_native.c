@@ -805,7 +805,7 @@ _ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_progr
         return false;
     }
 
-    memset(&normalized_program_entry, 0, sizeof(normalized_program_entry));
+    // Normalize older program entry layouts before validating optional fields that were added later.
     _ebpf_copy_program_entry(&normalized_program_entry, native_program_entry, native_program_entry->header.total_size);
 
     return (
