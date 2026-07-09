@@ -1,0 +1,10 @@
+{
+  "procdump": {
+    "url": "https://download.sysinternals.com/files/Procdump.zip",
+    "hash": "28588D9CFD3354A3A71204A570B9B60129761962F505B3CFE26DAA9A5175C14A"
+  },
+  "opencppcoverage": {
+    "version": "release-0.9.9.0",
+    "hash": "2295A733DA39412C61E4F478677519DD0BB1893D88313CE56B468C9E50517888"
+  }
+}

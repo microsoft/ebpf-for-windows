@@ -30,14 +30,14 @@ jobs:
         run: |
           set -euo pipefail
           # Download current ProcDump and compute hash.
-          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --connect-timeout 30 --max-time 300 -o /tmp/Procdump.zip https://download.sysinternals.com/files/Procdump.zip
+          URL=$(jq -r '.procdump.url' .github/curl-dependencies.json)
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors --connect-timeout 30 --max-time 300 -o /tmp/Procdump.zip "$URL"
           test -s /tmp/Procdump.zip || { echo "ERROR: ProcDump download is empty"; exit 1; }
           NEW_HASH=$(sha256sum /tmp/Procdump.zip | awk '{print toupper($1)}')
           rm /tmp/Procdump.zip
 
-          # Extract current hash from workflow files.
-          OLD_HASH=$(grep -oP "PROCDUMP_EXPECTED_HASH: '\K[A-F0-9]+" \
-            .github/workflows/reusable-test.yml | head -1)
+          # Extract current hash from the dependency manifest.
+          OLD_HASH=$(jq -r '.procdump.hash' .github/curl-dependencies.json)
 
           echo "old_hash=$OLD_HASH" >> "$GITHUB_OUTPUT"
           echo "new_hash=$NEW_HASH" >> "$GITHUB_OUTPUT"
@@ -57,11 +57,11 @@ jobs:
           set -euo pipefail
           BRANCH="auto/update-procdump-hash"
           git switch -C "$BRANCH"
-          sed -i "s/$OLD_HASH/$NEW_HASH/g" .github/workflows/reusable-test.yml
-          sed -i "s/$OLD_HASH/$NEW_HASH/g" .azure/reusable-test.yml
+          jq --arg h "$NEW_HASH" '.procdump.hash = $h' .github/curl-dependencies.json > /tmp/dependencies.json
+          mv /tmp/dependencies.json .github/curl-dependencies.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/reusable-test.yml .azure/reusable-test.yml
+          git add .github/curl-dependencies.json
           git commit -m "Update ProcDump expected hash to $NEW_HASH"
           git push -f origin "$BRANCH"
           gh pr create --title "Update ProcDump hash" \
@@ -83,9 +83,8 @@ jobs:
           # Get latest release tag from GitHub API.
           LATEST=$(gh api repos/OpenCppCoverage/OpenCppCoverage/releases/latest \
             --jq '.tag_name')
-          # Current version pinned in workflow.
-          CURRENT=$(grep -oP 'releases/download/\K[^/]+' \
-            .github/workflows/reusable-test.yml | head -1)
+          # Current version pinned in the dependency manifest.
+          CURRENT=$(jq -r '.opencppcoverage.version' .github/curl-dependencies.json)
 
           echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
@@ -105,8 +104,7 @@ jobs:
           NEW_HASH=$(sha256sum /tmp/setup.exe | awk '{print toupper($1)}')
           rm /tmp/setup.exe
 
-          OLD_HASH=$(grep -oP "OPENCPPCOVERAGE_EXPECTED_HASH: '\K[A-F0-9]+" \
-            .github/workflows/reusable-test.yml | head -1)
+          OLD_HASH=$(jq -r '.opencppcoverage.hash' .github/curl-dependencies.json)
 
           echo "new_hash=$NEW_HASH" >> "$GITHUB_OUTPUT"
           echo "old_hash=$OLD_HASH" >> "$GITHUB_OUTPUT"
@@ -121,20 +119,15 @@ jobs:
           NEW_HASH: ${{ steps.check.outputs.new_hash }}
         run: |
           set -euo pipefail
-          CURRENT_VERSION="${CURRENT#release-}"
-          LATEST_VERSION="${LATEST#release-}"
-
           BRANCH="auto/update-opencppcoverage"
           git switch -C "$BRANCH"
-          sed -i "s|$CURRENT|$LATEST|g" .github/workflows/reusable-test.yml
-          sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .github/workflows/reusable-test.yml
-          sed -i "s|$OLD_HASH|$NEW_HASH|g" .github/workflows/reusable-test.yml
-          sed -i "s|$CURRENT|$LATEST|g" .azure/reusable-test.yml
-          sed -i "s|OpenCppCoverageSetup-x64-$CURRENT_VERSION|OpenCppCoverageSetup-x64-$LATEST_VERSION|g" .azure/reusable-test.yml
-          sed -i "s|$OLD_HASH|$NEW_HASH|g" .azure/reusable-test.yml
+          jq --arg v "$LATEST" --arg h "$NEW_HASH" \
+            '.opencppcoverage.version = $v | .opencppcoverage.hash = $h' \
+            .github/curl-dependencies.json > /tmp/deps.json
+          mv /tmp/deps.json .github/curl-dependencies.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .github/workflows/reusable-test.yml .azure/reusable-test.yml
+          git add .github/curl-dependencies.json
           git commit -m "Update OpenCppCoverage to $LATEST"
           git push -f origin "$BRANCH"
           gh pr create --title "Update OpenCppCoverage to $LATEST" \
