@@ -3,9 +3,9 @@
 ## Ambiguities in this area
 
 - [KNOWN] The source specifies a structural convention that `zero_marker` must precede the header, but it does not define the generic bpf2c section-parsing rules that make this field-order constraint necessary. (Source: `docs/BtfResolvedFunctions.md:251-258`)
-- [KNOWN] The source specifies that non-default flags are included in the program-info hash, but it does not define what values count as default flags. (Source: `docs/BtfResolvedFunctions.md:302-310`)
-- [KNOWN] The current `tools\bpf2c` code computes program-info hashes using helper IDs and helper prototypes returned by `ebpf_get_program_info_from_verifier(...)`, but the in-scope code contains no BTF-resolved-function hashing path, so the integration point for BTF dependency hashing is not yet defined in the current implementation. (Source: `tools/bpf2c/bpf2c.cpp:73-129`, `tools/bpf2c/bpf2c.cpp:343-360`)
-- [KNOWN] The current code generator emits helper-function import tables and helper-data runtime indirection, but it does not define a BTF-resolved-function entry type or emit a parallel BTF-resolved import table in the provided code scope. (Source: `tools/bpf2c/bpf_code_generator.cpp:1951-1975`, `tools/bpf2c/bpf_code_generator.cpp:2060-2089`)
+- [KNOWN] The source specifies that flags are included in the program-info hash, but it does not separately define any flag-normalization rules beyond the stored value itself. (Source: `docs/BtfResolvedFunctions.md:313-317`)
+- [KNOWN] The current `tools\bpf2c` code computes program-info hashes using both helper metadata from `ebpf_get_program_info_from_verifier(...)` and BTF-resolved-function dependency metadata supplied by the verifier/code-generator pipeline. (Source: `tools/bpf2c/bpf2c.cpp:73-145`, `tools/bpf2c/bpf2c.cpp:362-379`)
+- [KNOWN] The current code generator emits both helper-function import tables and BTF-resolved-function import tables, including the native runtime indirection needed for generated BTF calls. (Source: `tools/bpf2c/bpf_code_generator.cpp:2343-2411`, `tests\bpf2c_tests\expected\btf_resolved_sys.c:237-247`)
 
 ## Implicit requirements in this area
 
@@ -14,8 +14,7 @@
 
 ## Actual or possible conflicts
 
-- [KNOWN] The source requires a BTF-resolved-function import table and BTF-resolved runtime-context indirection, but the current generator emits only helper-function import tables and `runtime_context->helper_data[...]` access in the provided code scope. (Source: `docs/BtfResolvedFunctions.md:247-298`, `tools/bpf2c/bpf_code_generator.cpp:1084`, `tools/bpf2c/bpf_code_generator.cpp:1951-1975`)
-- [KNOWN] The source requires BTF-resolved-function dependency hashing, but the current bpf2c hash path only hashes program type data plus actually-called helper IDs and helper prototypes. (Source: `docs/BtfResolvedFunctions.md:300-310`, `tools/bpf2c/bpf2c.cpp:73-129`)
+- [KNOWN] The source requires the emitted BTF-resolved import table to preserve verifier-approved signature metadata as well as provider identity, because proof-of-verification hashing consumes return type, argument types, and flags in addition to name and module GUID. (Source: `docs/BtfResolvedFunctions.md:313-317`, `tools/bpf2c/bpf2c.cpp:132-141`, `tools/bpf2c/bpf_code_generator.cpp:2353-2372`)
 
 ## Coverage statement
 
@@ -56,7 +55,7 @@
 | --- | --- |
 | BTF-resolved function import table | [KNOWN] The generated native array of `btf_resolved_function_entry_t` records emitted alongside the helper import table. (Source: `docs/BtfResolvedFunctions.md:247-258`, `docs/BtfResolvedFunctions.md:287-294`) |
 | `zero_marker` | [KNOWN] The leading field in `btf_resolved_function_entry_t` that must precede the header per bpf2c convention. (Source: `docs/BtfResolvedFunctions.md:252-255`) |
-| Helper-only hash baseline | [KNOWN] The current bpf2c hash path that includes program type data and actually-called helper metadata returned by `ebpf_get_program_info_from_verifier(...)`. (Source: `tools/bpf2c/bpf2c.cpp:73-129`) |
+| Program-info hash inputs | [KNOWN] The current bpf2c hash path includes program type data, actually-called helper metadata returned by `ebpf_get_program_info_from_verifier(...)`, and BTF-resolved-function dependency metadata. (Source: `tools/bpf2c/bpf2c.cpp:73-145`) |
 
 ## 4. Requirements
 
@@ -72,10 +71,10 @@ Acceptance Criteria:
 Acceptance Criteria:
 - [INFERRED] AC-1: The entry-structure requirements state that `zero_marker` is the first field in the record. (Source: `docs/BtfResolvedFunctions.md:252-255`)
 
-[KNOWN] REQ-B2C-003: Each `btf_resolved_function_entry_t` record MUST include the function name and module GUID, so that load-time binding can match emitted imports to provider modules. (Source: `docs/BtfResolvedFunctions.md:255-258`)
+[KNOWN] REQ-B2C-003: Each `btf_resolved_function_entry_t` record MUST include the function name, module GUID, return type, argument-type array, and flags, so that load-time binding preserves the same callable contract that proof-of-verification hashing approved. (Source: `docs/BtfResolvedFunctions.md:253-262`, `docs/BtfResolvedFunctions.md:313-317`)
 
 Acceptance Criteria:
-- [INFERRED] AC-1: The entry-structure requirements preserve both `name` and `module_guid` as required fields. (Source: `docs/BtfResolvedFunctions.md:256-258`)
+- [INFERRED] AC-1: The entry-structure requirements preserve both provider identity fields and hashed signature fields in each emitted record. (Source: `docs/BtfResolvedFunctions.md:253-262`, `docs/BtfResolvedFunctions.md:313-317`)
 
 [KNOWN] REQ-B2C-004: The generated `program_runtime_context_t` contract MUST include `btf_resolved_function_data`, so that generated program code has access to resolved BTF-resolved function addresses at runtime. (Source: `docs/BtfResolvedFunctions.md:263-280`)
 
@@ -93,7 +92,7 @@ Acceptance Criteria:
 - [INFERRED] AC-1: Two requirement-review examples with identical dependency sets in different declaration order still produce the same dependency ordering rule for hashing. (Source: `docs/BtfResolvedFunctions.md:304-305`)
 - [INFERRED] AC-2: The count of BTF-resolved functions appears as a required hash input independent of the per-function data list. (Source: `docs/BtfResolvedFunctions.md:304`)
 
-[KNOWN] REQ-B2C-007: For each hashed BTF-resolved function dependency, the system MUST include the function name, module GUID, return type, each argument-type element, and flags when the flags are non-default, so that verification is tied to the callable contract that was approved. (Source: `docs/BtfResolvedFunctions.md:305-310`)
+[KNOWN] REQ-B2C-007: For each hashed BTF-resolved function dependency, the system MUST include the function name, module GUID, return type, each argument-type element, and flags, so that verification is tied to the callable contract that was approved. (Source: `docs/BtfResolvedFunctions.md:313-317`)
 
 Acceptance Criteria:
 - [INFERRED] AC-1: The requirements enumerate all five documented classes of hash input for each dependency. (Source: `docs/BtfResolvedFunctions.md:305-310`)
@@ -113,9 +112,8 @@ Acceptance Criteria:
 ### 4.3 Constraints
 
 - [KNOWN] CON-001: The documented `program_runtime_context_t` and related types are proposed extensions to `include/bpf2c.h`, not current public-header contracts. (Source: `docs/BtfResolvedFunctions.md:14-16`, `docs/BtfResolvedFunctions.md:263-280`)
-- [UNKNOWN: the source does not define what values count as default for `ebpf_btf_resolved_function_prototype_t::flags`.] (Source: `docs/BtfResolvedFunctions.md:310`)
-- [KNOWN] CON-002: The current in-scope generator emits only `helper_function_entry_t` import arrays and only references `runtime_context->helper_data[...]`; no BTF-resolved-function entry or runtime-context field is emitted in the provided code scope. (Source: `tools/bpf2c/bpf_code_generator.cpp:1084`, `tools/bpf2c/bpf_code_generator.cpp:1951-1975`)
-- [KNOWN] CON-003: The current program-info hash path in `bpf2c.cpp` derives its dependency data only from helper IDs and helper prototypes returned by `ebpf_get_program_info_from_verifier(...)`. (Source: `tools/bpf2c/bpf2c.cpp:73-129`, `tools/bpf2c/bpf2c.cpp:343-360`)
+- [KNOWN] CON-002: In shared global-array mode, unused BTF-resolved-function slots remain zero-initialized placeholders identified by `name = ""` and `module_guid = GUID_NULL`; generated code and native load must tolerate those sentinels. (Source: `docs/BtfResolvedFunctions.md:265-266`, `tools/bpf2c/bpf_code_generator.cpp:2353-2374`)
+- [KNOWN] CON-003: The current program-info hash path in `bpf2c.cpp` derives dependency data from both helper metadata and BTF-resolved-function metadata, so any generated entry shape change must stay hash-compatible. (Source: `tools/bpf2c/bpf2c.cpp:73-145`)
 
 ## 5. Dependencies
 
