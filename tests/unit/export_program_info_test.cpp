@@ -21,7 +21,6 @@ static const GUID _btf_test_module_guid = {
 static const ebpf_btf_resolved_function_prototype_t _btf_test_function_prototypes[] = {
     {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
      "my_driver_lookup",
-     "int my_driver_lookup(uint64_t, void*, uint32_t)",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_ANYTHING,
       EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
@@ -31,7 +30,6 @@ static const ebpf_btf_resolved_function_prototype_t _btf_test_function_prototype
      1},
     {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
      "my_driver_update",
-     "int my_driver_update(void*, uint64_t)",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
       EBPF_ARGUMENT_TYPE_ANYTHING,
@@ -95,25 +93,15 @@ _require_btf_function_metadata(
     _In_ const ebpf_btf_resolved_function_prototype_t* function_prototype)
 {
     ebpf_store_key_t function_key = nullptr;
-    wchar_t* prototype = nullptr;
     wchar_t* function_name = nullptr;
-    wchar_t* expected_prototype = nullptr;
     uint32_t return_type = MAXUINT32;
     ebpf_argument_type_t arguments[5] = {};
     uint32_t flags = MAXUINT32;
 
     function_name = ebpf_get_wstring_from_string(function_prototype->name);
     REQUIRE(function_name != nullptr);
-    expected_prototype = ebpf_get_wstring_from_string(function_prototype->prototype);
-    REQUIRE(expected_prototype != nullptr);
 
     REQUIRE(ebpf_open_registry_key(function_collection_key, function_name, KEY_READ, &function_key) == EBPF_SUCCESS);
-    REQUIRE(
-        ebpf_read_registry_value_string(function_key, EBPF_BTF_FUNCTION_DATA_PROTOTYPE, &prototype) == EBPF_SUCCESS);
-    REQUIRE(prototype != nullptr);
-    REQUIRE(std::wstring(prototype) == std::wstring(expected_prototype));
-    ebpf_free(prototype);
-    prototype = nullptr;
 
     REQUIRE(
         ebpf_read_registry_value_dword(function_key, EBPF_BTF_FUNCTION_DATA_RETURN_TYPE, &return_type) == EBPF_SUCCESS);
@@ -126,9 +114,8 @@ _require_btf_function_metadata(
 
     REQUIRE(ebpf_read_registry_value_dword(function_key, EBPF_BTF_FUNCTION_DATA_FLAGS, &flags) == EBPF_SUCCESS);
     REQUIRE(flags == function_prototype->flags);
-
     ebpf_close_registry_key(function_key);
-    ebpf_free_wstring(expected_prototype);
+    ebpf_close_registry_key(function_key);
     ebpf_free_wstring(function_name);
 }
 
@@ -254,9 +241,6 @@ TEST_CASE("export_btf_resolved_function_provider_information rejects invalid inp
     function_prototypes[0].name = nullptr;
     REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_INVALID_ARGUMENT);
     function_prototypes[0].name = _btf_test_function_prototypes[0].name;
-
-    function_prototypes[0].prototype = nullptr;
-    REQUIRE(ebpf_store_update_btf_resolved_function_provider_information(&provider_info) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("validate_btf_resolved_function_provider_data", "[shared]")

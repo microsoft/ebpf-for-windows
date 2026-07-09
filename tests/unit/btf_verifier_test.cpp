@@ -30,7 +30,6 @@ static const GUID _btf_test_module_guid_2 = {
 static const ebpf_btf_resolved_function_prototype_t _supported_btf_function = {
     EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
     "my_driver_lookup",
-    "int my_driver_lookup(uint64_t, void*, uint32_t)",
     EBPF_RETURN_TYPE_INTEGER,
     {EBPF_ARGUMENT_TYPE_ANYTHING,
      EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,

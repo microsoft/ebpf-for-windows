@@ -132,7 +132,6 @@ _ebpf_store_update_btf_resolved_function(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t function_key = NULL;
     wchar_t* wide_function_name = NULL;
-    wchar_t* wide_prototype = NULL;
 
     wide_function_name = ebpf_get_wstring_from_string(function_prototype->name);
     if (wide_function_name == NULL) {
@@ -140,18 +139,7 @@ _ebpf_store_update_btf_resolved_function(
         goto Exit;
     }
 
-    wide_prototype = ebpf_get_wstring_from_string(function_prototype->prototype);
-    if (wide_prototype == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
     result = ebpf_create_registry_key(function_collection_key, wide_function_name, REG_CREATE_FLAGS, &function_key);
-    if (!IS_SUCCESS(result)) {
-        goto Exit;
-    }
-
-    result = ebpf_write_registry_value_string(function_key, EBPF_BTF_FUNCTION_DATA_PROTOTYPE, wide_prototype);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -172,9 +160,7 @@ _ebpf_store_update_btf_resolved_function(
     }
 
     result = ebpf_write_registry_value_dword(function_key, EBPF_BTF_FUNCTION_DATA_FLAGS, function_prototype->flags);
-
 Exit:
-    ebpf_free_wstring(wide_prototype);
     ebpf_free_wstring(wide_function_name);
     ebpf_close_registry_key(function_key);
     return result;

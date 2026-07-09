@@ -230,7 +230,7 @@ _ebpf_validate_btf_resolved_function_prototype(_In_ const ebpf_btf_resolved_func
     return (
         (function_prototype != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE, &function_prototype->header) &&
-        (function_prototype->name != NULL) && (function_prototype->prototype != NULL));
+        (function_prototype->name != NULL));
 }
 
 bool

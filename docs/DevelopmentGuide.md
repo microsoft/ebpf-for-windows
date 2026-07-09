@@ -16,10 +16,6 @@ Coding Conventions
   headers. This is also encouraged, but not strictly required, for internal API
   headers as well.
 
-* **DO** use SAL annotations consistently on function parameters that participate in code analysis.
-  Apply the same `_In_`, `_Out_`, `_Inout_`, and optional variants to C++ reference parameters
-  and HANDLE-like types that you would use for equivalent pointer semantics.
-
 * **DON'T** use global variables where possible.
 
 * **DON'T** use abbreviations unless they are already well-known terms known by

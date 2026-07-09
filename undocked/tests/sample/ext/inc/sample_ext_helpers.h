@@ -137,7 +137,6 @@ EBPF_HELPER(int64_t, sample_ext_helper_map_get_value, (void* map, const void* ke
 
 // Sample BTF-resolved function contract shared between the sample provider and test programs.
 #define SAMPLE_EXT_BTF_FUNCTION_NAME "sample_ebpf_extension_btf_lookup"
-#define SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE "int sample_ebpf_extension_btf_lookup(uint64_t, void*, uint32_t)"
 #define SAMPLE_EXT_BTF_DECL_TAG "module_id:{8f6c1f83-ce4c-4b58-8b91-654a29e23b7c}"
 #define SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZER                                         \
     {                                                                                  \

@@ -29,7 +29,6 @@ static const GUID _sample_btf_module_guid = SAMPLE_EXT_BTF_MODULE_GUID_INITIALIZ
 static const ebpf_btf_resolved_function_prototype_t _sample_btf_function_prototypes[] = {
     {EBPF_BTF_RESOLVED_FUNCTION_PROTOTYPE_HEADER,
      SAMPLE_EXT_BTF_FUNCTION_NAME,
-     SAMPLE_EXT_BTF_FUNCTION_PROTOTYPE,
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_ANYTHING,
       EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,

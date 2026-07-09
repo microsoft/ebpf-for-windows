@@ -50,7 +50,6 @@ typedef struct _ebpf_btf_resolved_function_prototype
 {
     ebpf_extension_header_t header;
     const char* name;
-    const char* prototype;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
     uint32_t flags;
