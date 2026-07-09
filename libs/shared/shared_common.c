@@ -114,10 +114,8 @@ size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
 #define EBPF_NATIVE_MAP_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_data_t, array_data)
 size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0, EBPF_NATIVE_MAP_DATA_SIZE_1};
 
-#define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)
-#define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
-size_t _ebpf_native_program_entry_supported_size[] = {
-    EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0, EBPF_NATIVE_PROGRAM_ENTRY_SIZE_1};
+#define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+size_t _ebpf_native_program_entry_supported_size[] = {EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0};
 
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_SIZE_0 \
     EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, global_variable_section_data)

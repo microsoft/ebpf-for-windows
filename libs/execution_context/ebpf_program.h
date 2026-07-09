@@ -299,7 +299,7 @@ extern "C"
     ebpf_program_get_btf_resolved_function_addresses(
         _In_ const ebpf_program_t* program,
         size_t addresses_count,
-        _Out_writes_(addresses_count) helper_function_t* addresses);
+        _Out_writes_(addresses_count) uint64_t* addresses);
 
     /**
      * @brief Compute program info hash for the program object. This function
@@ -436,7 +436,7 @@ extern "C"
         _In_opt_ void* context);
 
     typedef ebpf_result_t (*ebpf_btf_resolved_function_addresses_changed_callback_t)(
-        size_t address_count, _In_reads_opt_(address_count) helper_function_t* addresses, _In_opt_ void* context);
+        size_t address_count, _In_reads_opt_(address_count) uint64_t* addresses, _In_opt_ void* context);
 
     /**
      * @brief Register to be notified when the helper function addresses change.

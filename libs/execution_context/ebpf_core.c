@@ -454,7 +454,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_btf_resolved_functions(
     ebpf_handle_t program_handle,
     size_t count_of_functions,
-    _Out_writes_(count_of_functions) helper_function_t* function_addresses)
+    _Out_writes_(count_of_functions) uint64_t* function_addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
