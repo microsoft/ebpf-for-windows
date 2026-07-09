@@ -188,21 +188,19 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = perf_event_cpu_target,
-        .pe_section_name = "sample~1",
-        .section_name = "sample_ext",
-        .program_name = "perf_event_cpu_target",
-        .referenced_map_indices = perf_event_cpu_target_maps,
-        .referenced_map_count = 1,
-        .helpers = perf_event_cpu_target_helpers,
-        .helper_count = 1,
-        .bpf_instruction_count = 14,
-        .program_type = &perf_event_cpu_target_program_type_guid,
-        .expected_attach_type = &perf_event_cpu_target_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        perf_event_cpu_target,
+        "sample~1",
+        "sample_ext",
+        "perf_event_cpu_target",
+        perf_event_cpu_target_maps,
+        1,
+        perf_event_cpu_target_helpers,
+        1,
+        14,
+        &perf_event_cpu_target_program_type_guid,
+        &perf_event_cpu_target_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

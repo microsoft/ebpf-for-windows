@@ -361,21 +361,19 @@ label_3:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = count_tcp_connect6,
-        .pe_section_name = "cgroup~1",
-        .section_name = "cgroup/connect6",
-        .program_name = "count_tcp_connect6",
-        .referenced_map_indices = count_tcp_connect6_maps,
-        .referenced_map_count = 1,
-        .helpers = count_tcp_connect6_helpers,
-        .helper_count = 2,
-        .bpf_instruction_count = 29,
-        .program_type = &count_tcp_connect6_program_type_guid,
-        .expected_attach_type = &count_tcp_connect6_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        count_tcp_connect6,
+        "cgroup~1",
+        "cgroup/connect6",
+        "count_tcp_connect6",
+        count_tcp_connect6_maps,
+        1,
+        count_tcp_connect6_helpers,
+        2,
+        29,
+        &count_tcp_connect6_program_type_guid,
+        &count_tcp_connect6_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

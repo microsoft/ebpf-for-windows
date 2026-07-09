@@ -178,21 +178,19 @@ label_2:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = ambiguous_map_lookup,
-        .pe_section_name = "bind",
-        .section_name = "bind",
-        .program_name = "ambiguous_map_lookup",
-        .referenced_map_indices = ambiguous_map_lookup_maps,
-        .referenced_map_count = 2,
-        .helpers = ambiguous_map_lookup_helpers,
-        .helper_count = 1,
-        .bpf_instruction_count = 16,
-        .program_type = &ambiguous_map_lookup_program_type_guid,
-        .expected_attach_type = &ambiguous_map_lookup_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        ambiguous_map_lookup,
+        "bind",
+        "bind",
+        "ambiguous_map_lookup",
+        ambiguous_map_lookup_maps,
+        2,
+        ambiguous_map_lookup_helpers,
+        1,
+        16,
+        &ambiguous_map_lookup_program_type_guid,
+        &ambiguous_map_lookup_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

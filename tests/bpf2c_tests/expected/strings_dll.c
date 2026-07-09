@@ -454,21 +454,19 @@ label_2:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = StringOpsTest,
-        .pe_section_name = "bind",
-        .section_name = "bind",
-        .program_name = "StringOpsTest",
-        .referenced_map_indices = NULL,
-        .referenced_map_count = 0,
-        .helpers = StringOpsTest_helpers,
-        .helper_count = 4,
-        .bpf_instruction_count = 101,
-        .program_type = &StringOpsTest_program_type_guid,
-        .expected_attach_type = &StringOpsTest_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        StringOpsTest,
+        "bind",
+        "bind",
+        "StringOpsTest",
+        NULL,
+        0,
+        StringOpsTest_helpers,
+        4,
+        101,
+        &StringOpsTest_program_type_guid,
+        &StringOpsTest_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

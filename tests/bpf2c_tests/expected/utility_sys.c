@@ -651,21 +651,19 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = UtilityTest,
-        .pe_section_name = "bind",
-        .section_name = "bind",
-        .program_name = "UtilityTest",
-        .referenced_map_indices = NULL,
-        .referenced_map_count = 0,
-        .helpers = UtilityTest_helpers,
-        .helper_count = 4,
-        .bpf_instruction_count = 111,
-        .program_type = &UtilityTest_program_type_guid,
-        .expected_attach_type = &UtilityTest_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        UtilityTest,
+        "bind",
+        "bind",
+        "UtilityTest",
+        NULL,
+        0,
+        UtilityTest_helpers,
+        4,
+        111,
+        &UtilityTest_program_type_guid,
+        &UtilityTest_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
