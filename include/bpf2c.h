@@ -106,6 +106,13 @@ extern "C"
         uint32_t flags;
     } btf_resolved_function_entry_t;
 
+    typedef struct _btf_resolved_function_entry_v1
+    {
+        uint64_t zero_marker;
+        ebpf_native_module_header_t header;
+        const char* name;
+        GUID module_guid;
+    } btf_resolved_function_entry_v1_t;
     typedef struct _btf_resolved_function_data
     {
         ebpf_native_module_header_t header;
@@ -172,6 +179,30 @@ extern "C"
         global_variable_section_data_t* global_variable_section_data;
         btf_resolved_function_data_t* btf_resolved_function_data;
     } program_runtime_context_t;
+
+    /**
+     * @brief Legacy v1 program entry layout used before BTF-resolved function metadata was added.
+     */
+    typedef struct _program_entry_v1
+    {
+        uint64_t zero;
+
+        ebpf_native_module_header_t header;
+        uint64_t (*function)(void*, const program_runtime_context_t*);
+        const char* pe_section_name;
+        const char* section_name;
+        const char* program_name;
+        uint16_t* referenced_map_indices;
+        uint16_t referenced_map_count;
+        helper_function_entry_t* helpers;
+        uint16_t helper_count;
+        size_t bpf_instruction_count;
+        ebpf_program_type_t* program_type;
+        ebpf_attach_type_t* expected_attach_type;
+        const uint8_t* program_info_hash;
+        size_t program_info_hash_length;
+        const char* program_info_hash_type;
+    } program_entry_v1_t;
 
     /**
      * @brief Program entry.
@@ -296,9 +327,8 @@ extern "C"
 
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1 1
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_t, module_guid)
-#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE \
-    EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_SIZE
+    EBPF_SIZE_INCLUDING_FIELD(btf_resolved_function_entry_v1_t, module_guid)
+#define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_VERSION_1_TOTAL_SIZE sizeof(btf_resolved_function_entry_v1_t)
 
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION 2
 #define EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE \
@@ -368,9 +398,9 @@ extern "C"
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE, \
      EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
 
-#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 1
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 2
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, global_variable_section_data)
+    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, btf_resolved_function_data)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE sizeof(program_runtime_context_t)
 #define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_HEADER             \
     {EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION,      \

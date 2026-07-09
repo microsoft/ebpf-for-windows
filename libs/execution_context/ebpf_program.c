@@ -496,7 +496,6 @@ _ebpf_program_validate_btf_provider_bindings(_In_ const ebpf_program_t* program)
 
     return EBPF_SUCCESS;
 }
-
 _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_program_information_hash(
     _In_ const uint32_t* actual_helper_ids,
     size_t count_of_actual_helper_ids,
@@ -2121,6 +2120,8 @@ ebpf_program_invoke(
             &current_program->parameters.program_name);
 
         if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+            const ebpf_native_module_binding_context_t* native_module_context =
+                current_program->code_or_vm.native.code_context.native_module_context;
             const program_runtime_context_t* runtime_context =
                 current_program->code_or_vm.native.code_context.runtime_context;
             ebpf_program_native_entry_point_t function_pointer;
@@ -2436,7 +2437,6 @@ ebpf_program_set_btf_resolved_function_entries(
         program->btf_resolved_functions_set = true;
         goto Exit;
     }
-
     size_t entries_length = 0;
     result =
         ebpf_safe_size_t_multiply(sizeof(btf_resolved_function_entry_t), btf_resolved_function_count, &entries_length);
@@ -2978,7 +2978,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   c. Helper return type.
     //   d. Helper argument types.
     //   e. reallocate_packet flag (if set).
-    // 8. If any BTF-resolved functions are present, append their count.
+    // 8. Count of BTF-resolved functions.
     // 9. For each BTF-resolved function (sorted by module GUID then name).
     //   a. Module GUID.
     //   b. Function name.

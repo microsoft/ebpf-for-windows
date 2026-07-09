@@ -249,7 +249,6 @@ TEST_CASE("btf verifier preprocessing rejects ambiguous duplicate .ksyms names",
         Catch::Matchers::ContainsSubstring("Ambiguous BTF-resolved function name across multiple module GUIDs"));
     clear_program_info_cache();
 }
-
 TEST_CASE("btf verifier preprocessing ignores unrelated top-level decl tags", "[verifier][btf]")
 {
     const std::string module_tag = _guid_to_decl_tag_string(&_btf_test_module_guid);

@@ -146,7 +146,6 @@ _require_btf_function_missing(
 
     ebpf_free_wstring(function_name);
 }
-
 static void
 _populate_ebpf_store()
 {
@@ -229,7 +228,6 @@ TEST_CASE("export_btf_resolved_function_provider_information removes stale delet
     ebpf_close_registry_key(provider_key);
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
 }
-
 TEST_CASE("export_btf_resolved_function_provider_information rejects invalid input", "[store_helper]")
 {
     ebpf_btf_resolved_function_provider_info_t provider_info = _btf_test_provider_info;

@@ -267,6 +267,20 @@
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
+    <!-- Build the BTF resolved-function sample as a native image even though it lives under unsafe\. -->
+    <CustomBuild Include="unsafe\btf_resolved.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -I../../undocked/tests/sample/ext/inc -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
+        pushd $(OutDir)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
+        powershell -NonInteractive -Command "Copy-Item -LiteralPath '%(Filename)_um.dll' -Destination '%(Filename).sys' -Force"
+        popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <AdditionalInputs>$(BpfUndockedHeaderDeps);$(BpfNativeDeps)</AdditionalInputs>
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
     <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
     <CustomBuild Include="unsafe\*.o">
       <FileType>Document</FileType>
@@ -350,7 +364,7 @@
   </ItemGroup>
   <!-- For BPF programs that fail verification, build native images without verification only for Debug build. -->
   <ItemGroup Condition="'$(Configuration)'=='Debug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\btf_resolved.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -360,7 +374,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\btf_resolved.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -370,7 +384,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\btf_resolved.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -380,7 +394,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\btf_resolved.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
@@ -391,7 +405,7 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
-    <CustomBuild Include="unsafe\*.c">
+    <CustomBuild Include="unsafe\*.c" Exclude="unsafe\btf_resolved.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../include -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o

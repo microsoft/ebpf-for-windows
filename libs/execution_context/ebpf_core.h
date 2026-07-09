@@ -255,6 +255,23 @@ extern "C"
         _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses);
 
     /**
+     * @brief Store BTF-resolved function metadata on the program and compute the program-info hash.
+     *
+     * @param[in] program_handle Handle of the program to update.
+     * @param[in] btf_resolved_function_count Number of BTF-resolved functions.
+     * @param[in] btf_resolved_functions Array of BTF-resolved function metadata.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_set_btf_resolved_function_entries(
+        ebpf_handle_t program_handle,
+        size_t btf_resolved_function_count,
+        _In_reads_opt_(btf_resolved_function_count) const btf_resolved_function_entry_t* btf_resolved_functions);
+
+    /**
      * @brief Close the FsContext2 from a file object.
      *
      * @param[in] context The FsContext2 from a fileobject to close.
