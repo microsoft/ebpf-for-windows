@@ -166,8 +166,8 @@ jobs:
           $curlDependencies = Get-Content "${{github.workspace}}\.github\curl-dependencies.json" | ConvertFrom-Json
           $version = $curlDependencies.opencppcoverage.version
           $expectedHash = $curlDependencies.opencppcoverage.hash
-          $number = $version -replace '^release-', ''
-          $url = "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/$version/OpenCppCoverageSetup-x64-$number.exe"
+          $versionNumber = $version -replace '^release-', ''
+          $url = "https://github.com/OpenCppCoverage/OpenCppCoverage/releases/download/$version/OpenCppCoverageSetup-x64-$versionNumber.exe"
           $setupPath = "${{github.workspace}}\OpenCppCoverageSetup.exe"
           & ${{github.workspace}}\scripts\Download-AndVerify.ps1 -Url $url -DestinationPath $setupPath -ExpectedHash $expectedHash
           $process = Start-Process -FilePath $setupPath -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait -PassThru

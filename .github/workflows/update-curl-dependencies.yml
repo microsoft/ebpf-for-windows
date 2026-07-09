@@ -3,6 +3,12 @@
 #
 # Checks for updates to dependencies downloaded via curl in CI workflows.
 # Currently monitors: ProcDump (Sysinternals), OpenCppCoverage.
+#
+# Versions and hashes live in .github/curl-dependencies.json (a regular,
+# non-workflow file) rather than inline in the workflow files. This lets the
+# built-in GITHUB_TOKEN push updates without the `workflow` scope, since no file
+# under .github/workflows/ is modified. Do not inline these values back into the
+# workflow files or this automation will fail to push.
 
 name: Update curl-downloaded dependencies
 
@@ -56,8 +62,8 @@ jobs:
           set -euo pipefail
           BRANCH="auto/update-procdump-hash"
           git switch -C "$BRANCH"
-          jq --arg h "$NEW_HASH" '.procdump.hash = $h' .github/curl-dependencies.json > /tmp/dependencies.json
-          mv /tmp/dependencies.json .github/curl-dependencies.json
+          jq --arg h "$NEW_HASH" '.procdump.hash = $h' .github/curl-dependencies.json > /tmp/deps.json
+          mv /tmp/deps.json .github/curl-dependencies.json
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .github/curl-dependencies.json
