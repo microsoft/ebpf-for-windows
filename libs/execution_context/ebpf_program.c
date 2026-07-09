@@ -2294,8 +2294,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-static ebpf_result_t
-_ebpf_program_get_btf_resolved_function_addresses(
+_Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_btf_resolved_function_addresses_under_lock(
     _In_ const ebpf_program_t* program,
     size_t addresses_count,
     _Out_writes_(addresses_count) helper_function_t* addresses,
@@ -2304,7 +2303,6 @@ _ebpf_program_get_btf_resolved_function_addresses(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_btf_provider_t** referenced_providers = NULL;
     size_t referenced_provider_count = 0;
-    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
 
     if (program->btf_resolved_function_count > addresses_count) {
         result = EBPF_INSUFFICIENT_BUFFER;
@@ -2388,7 +2386,6 @@ _ebpf_program_get_btf_resolved_function_addresses(
     }
 
 Exit:
-    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     if (referenced_providers != NULL) {
         for (size_t provider_index = 0; provider_index < referenced_provider_count; provider_index++) {
             ExReleaseRundownProtection(&referenced_providers[provider_index]->rundown_reference);
@@ -2430,35 +2427,47 @@ static ebpf_result_t
 _ebpf_program_notify_btf_resolved_function_changes(_Inout_ ebpf_program_t* program)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = 0;
     helper_function_t* addresses = NULL;
+    ebpf_btf_resolved_function_addresses_changed_callback_t callback = NULL;
+    void* callback_context = NULL;
+    size_t btf_resolved_function_count = 0;
 
-    if (program->btf_resolved_function_addresses_changed_callback == NULL) {
+    state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+
+    callback = program->btf_resolved_function_addresses_changed_callback;
+    callback_context = program->btf_resolved_function_addresses_changed_context;
+    btf_resolved_function_count = program->btf_resolved_function_count;
+
+    if (callback == NULL) {
+        ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
         return EBPF_SUCCESS;
     }
 
-    if (program->btf_resolved_function_count > 0) {
+    if (btf_resolved_function_count > 0) {
         size_t addresses_length = 0;
-        result = ebpf_safe_size_t_multiply(program->btf_resolved_function_count, sizeof(*addresses), &addresses_length);
+        result = ebpf_safe_size_t_multiply(btf_resolved_function_count, sizeof(*addresses), &addresses_length);
         if (result != EBPF_SUCCESS) {
-            return result;
+            goto Done;
         }
 
         addresses = ebpf_allocate_with_tag(addresses_length, EBPF_POOL_TAG_PROGRAM);
         if (addresses == NULL) {
-            return EBPF_NO_MEMORY;
+            result = EBPF_NO_MEMORY;
+            goto Done;
         }
 
-        result = _ebpf_program_get_btf_resolved_function_addresses(
-            program, program->btf_resolved_function_count, addresses, false);
+        result = _ebpf_program_get_btf_resolved_function_addresses_under_lock(
+            program, btf_resolved_function_count, addresses, false);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
     }
 
-    result = program->btf_resolved_function_addresses_changed_callback(
-        program->btf_resolved_function_count, addresses, program->btf_resolved_function_addresses_changed_context);
+    result = callback(btf_resolved_function_count, addresses, callback_context);
 
 Done:
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     ebpf_free(addresses);
     return result;
 }
@@ -2470,7 +2479,10 @@ ebpf_program_get_btf_resolved_function_addresses(
     _Out_writes_(addresses_count) helper_function_t* addresses)
 {
     EBPF_LOG_ENTRY();
-    ebpf_result_t result = _ebpf_program_get_btf_resolved_function_addresses(program, addresses_count, addresses, true);
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    ebpf_result_t result =
+        _ebpf_program_get_btf_resolved_function_addresses_under_lock(program, addresses_count, addresses, true);
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
     EBPF_RETURN_RESULT(result);
 }
 

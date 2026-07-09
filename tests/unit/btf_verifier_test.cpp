@@ -33,7 +33,7 @@ static const ebpf_btf_resolved_function_prototype_t _supported_btf_function = {
     "int my_driver_lookup(uint64_t, void*, uint32_t)",
     EBPF_RETURN_TYPE_INTEGER,
     {EBPF_ARGUMENT_TYPE_ANYTHING,
-     EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+     EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
      EBPF_ARGUMENT_TYPE_CONST_SIZE,
      EBPF_ARGUMENT_TYPE_DONTCARE,
      EBPF_ARGUMENT_TYPE_DONTCARE},
@@ -168,7 +168,7 @@ TEST_CASE("btf verifier resolves published function metadata", "[verifier][btf]"
     REQUIRE(resolved_call->contract.singles.size() == 1);
     REQUIRE(resolved_call->contract.singles[0].kind == prevail::ArgSingle::Kind::ANYTHING);
     REQUIRE(resolved_call->contract.pairs.size() == 1);
-    REQUIRE(resolved_call->contract.pairs[0].kind == prevail::ArgPair::Kind::PTR_TO_READABLE_MEM);
+    REQUIRE(resolved_call->contract.pairs[0].kind == prevail::ArgPair::Kind::PTR_TO_WRITABLE_MEM);
 
     clear_program_info_cache();
     REQUIRE(_clear_btf_store() == EBPF_SUCCESS);
