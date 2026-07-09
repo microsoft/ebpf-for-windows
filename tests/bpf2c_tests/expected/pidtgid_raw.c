@@ -221,21 +221,19 @@ label_1:
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = func,
-        .pe_section_name = "bind",
-        .section_name = "bind",
-        .program_name = "func",
-        .referenced_map_indices = func_maps,
-        .referenced_map_count = 1,
-        .helpers = func_helpers,
-        .helper_count = 2,
-        .bpf_instruction_count = 24,
-        .program_type = &func_program_type_guid,
-        .expected_attach_type = &func_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        func,
+        "bind",
+        "bind",
+        "func",
+        func_maps,
+        1,
+        func_helpers,
+        2,
+        24,
+        &func_program_type_guid,
+        &func_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

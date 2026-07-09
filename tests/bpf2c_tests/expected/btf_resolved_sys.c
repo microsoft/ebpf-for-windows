@@ -187,7 +187,7 @@ _get_global_variable_sections(
 static btf_resolved_function_entry_t func_btf_resolved_functions[] = {
     {
      0,
-     {3, 56, 56}, // Version header.
+     {1, 56, 56}, // Version header.
      "sample_ebpf_extension_btf_lookup",
      {0x8f6c1f83, 0xce4c, 0x4b58, {0x8b, 0x91, 0x65, 0x4a, 0x29, 0xe2, 0x3b, 0x7c}},
     },
@@ -256,21 +256,24 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = func,
-        .pe_section_name = "sample~1",
-        .section_name = "sample_ext",
-        .program_name = "func",
-        .referenced_map_indices = NULL,
-        .referenced_map_count = 0,
-        .helpers = NULL,
-        .helper_count = 0,
-        .bpf_instruction_count = 8,
-        .program_type = &func_program_type_guid,
-        .expected_attach_type = &func_attach_type_guid,
-        .btf_resolved_functions = func_btf_resolved_functions,
-        .btf_resolved_function_count = 1,
+        0,
+        {1, 144, 160}, // Version header.
+        func,
+        "sample~1",
+        "sample_ext",
+        "func",
+        NULL,
+        0,
+        NULL,
+        0,
+        8,
+        &func_program_type_guid,
+        &func_attach_type_guid,
+        NULL,
+        0,
+        NULL,
+        func_btf_resolved_functions,
+        1,
     },
 };
 #pragma data_seg(pop)
@@ -286,7 +289,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 1;
-    version->minor = 4;
+    version->minor = 5;
     version->revision = 0;
 }
 

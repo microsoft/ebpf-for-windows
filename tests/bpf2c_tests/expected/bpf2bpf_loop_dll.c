@@ -254,21 +254,19 @@ increment(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint6
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
-        .zero = 0,
-        .header = {1, 144, 160}, // Version header.
-        .function = caller_with_loop,
-        .pe_section_name = "sample~1",
-        .section_name = "sample_ext",
-        .program_name = "caller_with_loop",
-        .referenced_map_indices = caller_with_loop_maps,
-        .referenced_map_count = 1,
-        .helpers = caller_with_loop_helpers,
-        .helper_count = 1,
-        .bpf_instruction_count = 28,
-        .program_type = &caller_with_loop_program_type_guid,
-        .expected_attach_type = &caller_with_loop_attach_type_guid,
-        .btf_resolved_functions = NULL,
-        .btf_resolved_function_count = 0,
+        0,
+        {1, 144, 160}, // Version header.
+        caller_with_loop,
+        "sample~1",
+        "sample_ext",
+        "caller_with_loop",
+        caller_with_loop_maps,
+        1,
+        caller_with_loop_helpers,
+        1,
+        28,
+        &caller_with_loop_program_type_guid,
+        &caller_with_loop_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
