@@ -255,6 +255,23 @@ extern "C"
         _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses);
 
     /**
+     * @brief Resolve the current BTF-resolved function addresses for a program.
+     *
+     * @param[in] program_handle Handle of the program to query.
+     * @param[in] count_of_functions Number of BTF-resolved function slots expected by the caller.
+     * @param[out] function_addresses Array that receives the current BTF-resolved function addresses.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD A required BTF provider is not attached.
+     * @retval EBPF_INVALID_ARGUMENT A required BTF function is not published by its provider.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_resolve_btf_resolved_functions(
+        ebpf_handle_t program_handle,
+        size_t count_of_functions,
+        _Out_writes_(count_of_functions) helper_function_t* function_addresses);
+
+    /**
      * @brief Close the FsContext2 from a file object.
      *
      * @param[in] context The FsContext2 from a fileobject to close.

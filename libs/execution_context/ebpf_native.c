@@ -41,18 +41,6 @@ static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 typedef uint64_t (*helper_function_address)(
     uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context);
 
-typedef struct _ebpf_native_btf_provider_binding
-{
-    struct _ebpf_native_module* module;
-    uint16_t binding_index;
-    GUID module_guid;
-    HANDLE nmr_binding_handle;
-    void* provider_binding_context;
-    const ebpf_btf_resolved_function_provider_data_t* provider_data;
-    EX_RUNDOWN_REF rundown_reference;
-    bool attached;
-} ebpf_native_btf_provider_binding_t;
-
 typedef struct _ebpf_native_map
 {
     void* entry_pointer;
@@ -76,8 +64,6 @@ typedef struct _ebpf_native_program
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
     size_t map_data_element_size; // Element size for map_data_t array, resolved based on module version.
-    uint16_t* btf_provider_binding_indices;
-    uint16_t btf_provider_binding_count;
     bool loaded;
 } ebpf_native_program_t;
 
@@ -101,14 +87,11 @@ typedef struct _ebpf_native_module
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
     ebpf_lock_t lock;
     HANDLE nmr_binding_handle;
-    HANDLE btf_nmr_client_handle;
     cxplat_preemptible_work_item_t* cleanup_work_item;
     bpf2c_version_t version;
     cxplat_utf8_string_t module_path;
     ebpf_native_program_t** programs;
     size_t program_count;
-    ebpf_native_btf_provider_binding_t* btf_provider_bindings;
-    uint16_t btf_provider_binding_count;
     uint8_t module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
 } ebpf_native_module_t;
 
@@ -148,7 +131,48 @@ _ebpf_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void* so
         destination->program_info_hash_length = source_entry->program_info_hash_length;
         destination->program_info_hash_type = source_entry->program_info_hash_type;
     } else {
-        memcpy(destination, source, min(source_size, sizeof(*destination)));
+        const program_entry_t* source_entry = (const program_entry_t*)source;
+
+        if (source_entry->header.version == EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION &&
+            source_size >= EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE) {
+            const uint8_t* source_bytes = (const uint8_t*)source;
+
+            memcpy(destination, source, EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count));
+            memcpy(
+                &destination->btf_resolved_functions,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET,
+                sizeof(destination->btf_resolved_functions));
+            memcpy(
+                &destination->btf_resolved_function_count,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET,
+                sizeof(destination->btf_resolved_function_count));
+            memcpy(
+                &destination->bpf_instruction_count,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET,
+                sizeof(destination->bpf_instruction_count));
+            memcpy(
+                &destination->program_type,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET,
+                sizeof(destination->program_type));
+            memcpy(
+                &destination->expected_attach_type,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET,
+                sizeof(destination->expected_attach_type));
+            memcpy(
+                &destination->program_info_hash,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET,
+                sizeof(destination->program_info_hash));
+            memcpy(
+                &destination->program_info_hash_length,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET,
+                sizeof(destination->program_info_hash_length));
+            memcpy(
+                &destination->program_info_hash_type,
+                source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET,
+                sizeof(destination->program_info_hash_type));
+        } else {
+            memcpy(destination, source, min(source_size, sizeof(*destination)));
+        }
     }
 }
 
@@ -178,8 +202,6 @@ static const NPI_MODULEID _ebpf_native_provider_module_id = {
 
 static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_native_provider_attach_client_callback;
 static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_native_provider_detach_client_callback;
-static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_native_btf_provider_attach_callback;
-static NPI_CLIENT_DETACH_PROVIDER_FN _ebpf_native_btf_provider_detach_callback;
 
 static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics = {
     0,
@@ -192,22 +214,6 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
         sizeof(NPI_REGISTRATION_INSTANCE),
         &_ebpf_native_npi_id,
         &_ebpf_native_provider_module_id,
-        0,
-        NULL,
-    },
-};
-
-static const NPI_CLIENT_CHARACTERISTICS _ebpf_native_btf_client_characteristics = {
-    0,
-    sizeof(_ebpf_native_btf_client_characteristics),
-    _ebpf_native_btf_provider_attach_callback,
-    _ebpf_native_btf_provider_detach_callback,
-    NULL,
-    {
-        0,
-        sizeof(NPI_REGISTRATION_INSTANCE),
-        &EBPF_BTF_RESOLVED_FUNCTION_EXTENSION_IID,
-        NULL,
         0,
         NULL,
     },
@@ -232,14 +238,6 @@ ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
 static void
 _ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* work_item_context);
-static ebpf_result_t
-_ebpf_native_build_btf_provider_bindings(_Inout_ ebpf_native_module_t* module);
-static void
-_ebpf_native_clear_btf_provider_bindings(_Inout_ ebpf_native_module_t* module);
-static ebpf_result_t
-_ebpf_native_register_btf_provider_client(_Inout_ ebpf_native_module_t* module);
-static void
-_ebpf_native_deregister_btf_provider_client(_Inout_ ebpf_native_module_t* module);
 
 // Free native program context only if the program is not loaded.
 // If the program is loaded, it will be freed when the ebpf program object is freed.
@@ -296,339 +294,12 @@ _ebpf_native_get_map_data_element_size(_In_ const ebpf_native_module_t* module)
     }
 }
 
-_Success_(return) static bool _ebpf_native_find_btf_provider_binding_index(
-    _In_ const ebpf_native_module_t* module, _In_ const GUID* module_guid, _Out_ uint16_t* binding_index)
-{
-    for (uint16_t index = 0; index < module->btf_provider_binding_count; index++) {
-        if (IsEqualGUID(module_guid, &module->btf_provider_bindings[index].module_guid)) {
-            *binding_index = index;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-_Success_(return) static bool _ebpf_native_find_btf_provider_function_index(
-    _In_ const ebpf_btf_resolved_function_provider_data_t* provider_data,
-    _In_z_ const char* function_name,
-    _Out_ uint32_t* function_index)
-{
-    for (uint32_t index = 0; index < provider_data->btf_resolved_function_count; index++) {
-        if (strcmp(provider_data->btf_resolved_function_prototypes[index].name, function_name) == 0) {
-            *function_index = index;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 static bool
 _ebpf_native_is_unused_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* native_btf_entry)
 {
     return (
         (native_btf_entry != NULL) && (native_btf_entry->name != NULL) && (native_btf_entry->name[0] == '\0') &&
         IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL));
-}
-static ebpf_result_t
-_ebpf_native_update_btf_provider_binding_addresses(
-    _Inout_ ebpf_native_module_t* module, _In_ const ebpf_native_btf_provider_binding_t* binding, bool clear_addresses)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    for (size_t program_index = 0; program_index < module->program_count; program_index++) {
-        ebpf_native_program_t* program = module->programs[program_index];
-        if (program == NULL || program->program_entry.btf_resolved_function_count == 0) {
-            continue;
-        }
-
-        if (program->runtime_context.btf_resolved_function_data == NULL) {
-            result = EBPF_INVALID_ARGUMENT;
-            break;
-        }
-
-        for (uint16_t function_index = 0; function_index < program->program_entry.btf_resolved_function_count;
-             function_index++) {
-            btf_resolved_function_entry_t* function_entry =
-                &program->program_entry.btf_resolved_functions[function_index];
-            if (_ebpf_native_is_unused_btf_resolved_function_entry(function_entry)) {
-                if (clear_addresses) {
-                    program->runtime_context.btf_resolved_function_data[function_index].address = NULL;
-                }
-                continue;
-            }
-            if (!IsEqualGUID(&function_entry->module_guid, &binding->module_guid)) {
-                continue;
-            }
-
-            if (clear_addresses) {
-                program->runtime_context.btf_resolved_function_data[function_index].address = NULL;
-                continue;
-            }
-
-            uint32_t provider_function_index = 0;
-            if (!_ebpf_native_find_btf_provider_function_index(
-                    binding->provider_data, function_entry->name, &provider_function_index)) {
-                result = EBPF_INVALID_ARGUMENT;
-                break;
-            }
-
-            program->runtime_context.btf_resolved_function_data[function_index].address =
-                (helper_function_t)binding->provider_data->btf_resolved_function_addresses[provider_function_index];
-        }
-
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-    }
-
-    return result;
-}
-
-static ebpf_result_t
-_ebpf_native_build_btf_provider_bindings(_Inout_ ebpf_native_module_t* module)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    size_t total_btf_function_count = 0;
-
-    _ebpf_native_clear_btf_provider_bindings(module);
-
-    for (size_t program_index = 0; program_index < module->program_count; program_index++) {
-        total_btf_function_count += module->programs[program_index]->program_entry.btf_resolved_function_count;
-    }
-
-    if (total_btf_function_count == 0) {
-        return EBPF_SUCCESS;
-    }
-
-    size_t bindings_length = 0;
-    result = ebpf_safe_size_t_multiply(
-        total_btf_function_count, sizeof(ebpf_native_btf_provider_binding_t), &bindings_length);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    module->btf_provider_bindings =
-        (ebpf_native_btf_provider_binding_t*)ebpf_allocate_with_tag(bindings_length, EBPF_POOL_TAG_NATIVE);
-    if (module->btf_provider_bindings == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    memset(module->btf_provider_bindings, 0, bindings_length);
-
-    for (size_t program_index = 0; program_index < module->program_count; program_index++) {
-        ebpf_native_program_t* program = module->programs[program_index];
-        uint16_t function_count = program->program_entry.btf_resolved_function_count;
-
-        if (function_count == 0) {
-            continue;
-        }
-
-        size_t binding_indices_length = 0;
-        result = ebpf_safe_size_t_multiply(function_count, sizeof(uint16_t), &binding_indices_length);
-        if (result != EBPF_SUCCESS) {
-            goto Done;
-        }
-
-        program->btf_provider_binding_indices =
-            (uint16_t*)ebpf_allocate_with_tag(binding_indices_length, EBPF_POOL_TAG_NATIVE);
-        if (program->btf_provider_binding_indices == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-
-        for (uint16_t function_index = 0; function_index < function_count; function_index++) {
-            btf_resolved_function_entry_t* function_entry =
-                &program->program_entry.btf_resolved_functions[function_index];
-            GUID* module_guid = &function_entry->module_guid;
-
-            if (_ebpf_native_is_unused_btf_resolved_function_entry(function_entry)) {
-                continue;
-            }
-            uint16_t binding_index = 0;
-            if (!_ebpf_native_find_btf_provider_binding_index(module, module_guid, &binding_index)) {
-                binding_index = module->btf_provider_binding_count++;
-                module->btf_provider_bindings[binding_index].module = module;
-                module->btf_provider_bindings[binding_index].binding_index = binding_index;
-                module->btf_provider_bindings[binding_index].module_guid = *module_guid;
-                ExInitializeRundownProtection(&module->btf_provider_bindings[binding_index].rundown_reference);
-            }
-
-            bool already_present = false;
-            for (uint16_t index = 0; index < program->btf_provider_binding_count; index++) {
-                if (program->btf_provider_binding_indices[index] == binding_index) {
-                    already_present = true;
-                    break;
-                }
-            }
-
-            if (!already_present) {
-                program->btf_provider_binding_indices[program->btf_provider_binding_count++] = binding_index;
-            }
-        }
-    }
-
-Done:
-    if (result != EBPF_SUCCESS) {
-        _ebpf_native_clear_btf_provider_bindings(module);
-    }
-
-    return result;
-}
-
-static void
-_ebpf_native_clear_btf_provider_bindings(_Inout_ ebpf_native_module_t* module)
-{
-    for (size_t program_index = 0; program_index < module->program_count; program_index++) {
-        ebpf_native_program_t* program = module->programs[program_index];
-        if (program == NULL) {
-            continue;
-        }
-
-        ebpf_free(program->btf_provider_binding_indices);
-        program->btf_provider_binding_indices = NULL;
-        program->btf_provider_binding_count = 0;
-    }
-
-    ebpf_free(module->btf_provider_bindings);
-    module->btf_provider_bindings = NULL;
-    module->btf_provider_binding_count = 0;
-}
-
-static ebpf_result_t
-_ebpf_native_register_btf_provider_client(_Inout_ ebpf_native_module_t* module)
-{
-    if (module->btf_provider_binding_count == 0 || module->btf_nmr_client_handle != NULL) {
-        return EBPF_SUCCESS;
-    }
-
-    NTSTATUS status =
-        NmrRegisterClient(&_ebpf_native_btf_client_characteristics, module, &module->btf_nmr_client_handle);
-    return NT_SUCCESS(status) ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD;
-}
-
-static void
-_ebpf_native_deregister_btf_provider_client(_Inout_ ebpf_native_module_t* module)
-{
-    if (module->btf_nmr_client_handle != NULL) {
-        NTSTATUS status = NmrDeregisterClient(module->btf_nmr_client_handle);
-        if (status == STATUS_PENDING) {
-            NmrWaitForClientDeregisterComplete(module->btf_nmr_client_handle);
-        } else {
-            ebpf_assert(status == STATUS_SUCCESS);
-        }
-
-        module->btf_nmr_client_handle = NULL;
-    }
-}
-
-static NTSTATUS
-_ebpf_native_btf_provider_attach_callback(
-    _In_ HANDLE nmr_binding_handle,
-    _In_ void* client_context,
-    _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
-{
-    ebpf_native_module_t* module = (ebpf_native_module_t*)client_context;
-    const ebpf_btf_resolved_function_provider_data_t* provider_data =
-        (const ebpf_btf_resolved_function_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    ebpf_lock_state_t state = 0;
-    bool lock_acquired = false;
-    uint16_t binding_index = 0;
-    void* provider_binding_context = NULL;
-    void* provider_dispatch = NULL;
-    NTSTATUS status = STATUS_SUCCESS;
-
-    if (provider_registration_instance->ModuleId == NULL ||
-        provider_registration_instance->ModuleId->Type != MIT_GUID) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    if (!ebpf_validate_btf_resolved_function_provider_data(provider_data)) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    state = ebpf_lock_lock(&module->lock);
-    lock_acquired = true;
-
-    if (!_ebpf_native_find_btf_provider_binding_index(
-            module, &provider_registration_instance->ModuleId->Guid, &binding_index)) {
-        status = STATUS_NOINTERFACE;
-        goto Done;
-    }
-
-    if (module->detaching || module->btf_provider_bindings[binding_index].attached) {
-        status = STATUS_INVALID_DEVICE_STATE;
-        goto Done;
-    }
-
-    ebpf_lock_unlock(&module->lock, state);
-    lock_acquired = false;
-
-#pragma warning(push)
-#pragma warning(disable : 6387) // NULL is allowed for client dispatch.
-    status = NmrClientAttachProvider(
-        nmr_binding_handle,
-        &module->btf_provider_bindings[binding_index],
-        NULL,
-        &provider_binding_context,
-        &provider_dispatch);
-#pragma warning(pop)
-    if (!NT_SUCCESS(status)) {
-        goto Done;
-    }
-
-    state = ebpf_lock_lock(&module->lock);
-    lock_acquired = true;
-
-    module->btf_provider_bindings[binding_index].provider_binding_context = provider_binding_context;
-    module->btf_provider_bindings[binding_index].provider_data = provider_data;
-    module->btf_provider_bindings[binding_index].nmr_binding_handle = nmr_binding_handle;
-    module->btf_provider_bindings[binding_index].attached = true;
-
-    ebpf_result_t result = _ebpf_native_update_btf_provider_binding_addresses(
-        module, &module->btf_provider_bindings[binding_index], false);
-    if (result != EBPF_SUCCESS) {
-        module->btf_provider_bindings[binding_index].attached = false;
-        module->btf_provider_bindings[binding_index].nmr_binding_handle = NULL;
-        module->btf_provider_bindings[binding_index].provider_data = NULL;
-        module->btf_provider_bindings[binding_index].provider_binding_context = NULL;
-        status = ebpf_result_to_ntstatus(result);
-    }
-
-Done:
-    if (lock_acquired) {
-        ebpf_lock_unlock(&module->lock, state);
-    }
-    return status;
-}
-
-static NTSTATUS
-_ebpf_native_btf_provider_detach_callback(_In_ void* client_binding_context)
-{
-    ebpf_native_btf_provider_binding_t* binding = (ebpf_native_btf_provider_binding_t*)client_binding_context;
-    if (binding == NULL || binding->module == NULL) {
-        return STATUS_SUCCESS;
-    }
-
-    ebpf_native_module_t* module = binding->module;
-    uint16_t binding_index = binding->binding_index;
-
-    ebpf_lock_state_t module_state = ebpf_lock_lock(&module->lock);
-    module->btf_provider_bindings[binding_index].attached = false;
-    ebpf_lock_unlock(&module->lock, module_state);
-
-    ExWaitForRundownProtectionRelease(&module->btf_provider_bindings[binding_index].rundown_reference);
-
-    module_state = ebpf_lock_lock(&module->lock);
-    (void)_ebpf_native_update_btf_provider_binding_addresses(
-        module, &module->btf_provider_bindings[binding_index], true);
-    module->btf_provider_bindings[binding_index].provider_data = NULL;
-    module->btf_provider_bindings[binding_index].nmr_binding_handle = NULL;
-    module->btf_provider_bindings[binding_index].provider_binding_context = NULL;
-    ebpf_lock_unlock(&module->lock, module_state);
-
-    return STATUS_SUCCESS;
 }
 static bool
 _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
@@ -637,56 +308,6 @@ _ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* 
         (native_helper_function_entry != NULL) &&
         ebpf_validate_object_header_native_helper_function_entry(&native_helper_function_entry->header) &&
         (native_helper_function_entry->name != NULL));
-}
-
-static void
-_ebpf_copy_program_entry(
-    _Out_ program_entry_t* destination, _In_reads_bytes_(source_size) const void* source, size_t source_size)
-{
-    const program_entry_t* source_entry = (const program_entry_t*)source;
-
-    memset(destination, 0, sizeof(*destination));
-    if (source_entry->header.version != EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_VERSION ||
-        source_size < EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_TOTAL_SIZE) {
-        memcpy(destination, source, min(source_size, sizeof(*destination)));
-        return;
-    }
-
-    const uint8_t* source_bytes = (const uint8_t*)source;
-
-    memcpy(destination, source, EBPF_SIZE_INCLUDING_FIELD(program_entry_t, helper_count));
-    memcpy(
-        &destination->btf_resolved_functions,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTIONS_OFFSET,
-        sizeof(destination->btf_resolved_functions));
-    memcpy(
-        &destination->btf_resolved_function_count,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BTF_RESOLVED_FUNCTION_COUNT_OFFSET,
-        sizeof(destination->btf_resolved_function_count));
-    memcpy(
-        &destination->bpf_instruction_count,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_BPF_INSTRUCTION_COUNT_OFFSET,
-        sizeof(destination->bpf_instruction_count));
-    memcpy(
-        &destination->program_type,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_TYPE_OFFSET,
-        sizeof(destination->program_type));
-    memcpy(
-        &destination->expected_attach_type,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_EXPECTED_ATTACH_TYPE_OFFSET,
-        sizeof(destination->expected_attach_type));
-    memcpy(
-        &destination->program_info_hash,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_OFFSET,
-        sizeof(destination->program_info_hash));
-    memcpy(
-        &destination->program_info_hash_length,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_LENGTH_OFFSET,
-        sizeof(destination->program_info_hash_length));
-    memcpy(
-        &destination->program_info_hash_type,
-        source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET,
-        sizeof(destination->program_info_hash_type));
 }
 
 static bool
@@ -710,41 +331,6 @@ _ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_functi
         valid_header &&
         ((_ebpf_native_is_unused_btf_resolved_function_entry(native_btf_entry)) ||
          ((native_btf_entry->name != NULL) && !IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL))));
-}
-
-static bool
-_ebpf_validate_native_btf_resolved_function_entry_array(
-    _In_reads_(count) const btf_resolved_function_entry_t* native_btf_entry_array, uint16_t count)
-{
-    if (count > 0) {
-        if (native_btf_entry_array == NULL) {
-            return false;
-        }
-
-        size_t entry_size = native_btf_entry_array[0].header.total_size;
-        for (uint16_t i = 0; i < count; i++) {
-            const btf_resolved_function_entry_t* native_btf_entry =
-                (const btf_resolved_function_entry_t*)ARRAY_ELEMENT_INDEX(native_btf_entry_array, i, entry_size);
-            if (!_ebpf_validate_native_btf_resolved_function_entry(native_btf_entry)) {
-                return false;
-            }
-        }
-    } else if (native_btf_entry_array != NULL) {
-        return false;
-    }
-
-    return true;
-}
-
-static bool
-_ebpf_validate_native_btf_resolved_function_entry(_In_ const btf_resolved_function_entry_t* native_btf_entry)
-{
-    return (
-        (native_btf_entry != NULL) &&
-        (native_btf_entry->header.version == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION) &&
-        (native_btf_entry->header.size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_SIZE) &&
-        (native_btf_entry->header.total_size == EBPF_NATIVE_BTF_RESOLVED_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE) &&
-        (native_btf_entry->name != NULL) && !IsEqualGUID(&native_btf_entry->module_guid, &GUID_NULL));
 }
 
 static bool
@@ -1047,7 +633,6 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
         ebpf_free(program->runtime_context.map_data);
         ebpf_free(program->runtime_context.global_variable_section_data);
         ebpf_free(program->runtime_context.btf_resolved_function_data);
-        ebpf_free(program->btf_provider_binding_indices);
         ebpf_free(program->program_entry.helpers);
         ebpf_free(program->program_entry.btf_resolved_functions);
         program->program_entry.helpers = NULL;
@@ -1063,8 +648,6 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
 static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    _ebpf_native_deregister_btf_provider_client(module);
-    _ebpf_native_clear_btf_provider_bindings(module);
     ebpf_free(module->programs);
     cxplat_free_preemptible_work_item(module->cleanup_work_item);
     cxplat_free_utf8_string(&module->module_path);
@@ -1218,54 +801,6 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_program_t* bin
         ebpf_lock_unlock(&module->lock, state);
         _ebpf_native_release_reference(module);
         _ebpf_native_clean_up_program(binding_context);
-    }
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_native_acquire_btf_references(_In_ const ebpf_native_program_t* program)
-{
-    ebpf_native_module_t* module = program->module;
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    if (program->btf_provider_binding_count == 0) {
-        return EBPF_SUCCESS;
-    }
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&module->lock);
-    uint16_t acquired_count = 0;
-
-    for (; acquired_count < program->btf_provider_binding_count; acquired_count++) {
-        uint16_t binding_index = program->btf_provider_binding_indices[acquired_count];
-        ebpf_native_btf_provider_binding_t* binding = &module->btf_provider_bindings[binding_index];
-
-        if (!binding->attached || !ExAcquireRundownProtection(&binding->rundown_reference)) {
-            result = EBPF_EXTENSION_FAILED_TO_LOAD;
-            break;
-        }
-    }
-
-    ebpf_lock_unlock(&module->lock, state);
-
-    if (result != EBPF_SUCCESS) {
-        while (acquired_count > 0) {
-            acquired_count--;
-            ExReleaseRundownProtection(
-                &module->btf_provider_bindings[program->btf_provider_binding_indices[acquired_count]]
-                     .rundown_reference);
-        }
-    }
-
-    return result;
-}
-
-void
-ebpf_native_release_btf_references(_In_ const ebpf_native_program_t* program)
-{
-    ebpf_native_module_t* module = program->module;
-
-    for (uint16_t index = 0; index < program->btf_provider_binding_count; index++) {
-        ExReleaseRundownProtection(
-            &module->btf_provider_bindings[program->btf_provider_binding_indices[index]].rundown_reference);
     }
 }
 
@@ -2424,6 +1959,47 @@ Done:
 }
 
 static ebpf_result_t
+_ebpf_native_resolve_btf_resolved_functions_for_program(_In_ const ebpf_native_program_t* program)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    helper_function_t* addresses = NULL;
+
+    if (program->program_entry.btf_resolved_function_count == 0) {
+        return EBPF_SUCCESS;
+    }
+
+    if (program->runtime_context.btf_resolved_function_data == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    size_t addresses_length = 0;
+    result = ebpf_safe_size_t_multiply(
+        program->program_entry.btf_resolved_function_count, sizeof(*addresses), &addresses_length);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    addresses = ebpf_allocate_with_tag(addresses_length, EBPF_POOL_TAG_NATIVE);
+    if (addresses == NULL) {
+        return EBPF_NO_MEMORY;
+    }
+
+    result = ebpf_core_resolve_btf_resolved_functions(
+        program->handle, program->program_entry.btf_resolved_function_count, addresses);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = _ebpf_native_btf_resolved_function_address_changed(
+        program->program_entry.btf_resolved_function_count, addresses, program->addresses_changed_callback_context);
+
+Done:
+    ebpf_free(addresses);
+    return result;
+}
+
+static ebpf_result_t
 _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance)
 {
     EBPF_LOG_ENTRY();
@@ -2556,11 +2132,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 
     module->programs = instance->programs;
     module->program_count = instance->program_count;
-
-    result = _ebpf_native_build_btf_provider_bindings(module);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
         const program_entry_t* program = &native_program->program_entry;
@@ -2632,31 +2203,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
                 result = EBPF_NO_MEMORY;
                 goto Done;
             }
-        }
-    }
-
-    if (module->btf_provider_binding_count > 0) {
-        result = _ebpf_native_register_btf_provider_client(module);
-        if (result != EBPF_SUCCESS) {
-            goto Done;
-        }
-
-        ebpf_lock_state_t state = ebpf_lock_lock(&module->lock);
-        for (uint16_t index = 0; index < module->btf_provider_binding_count; index++) {
-            if (!module->btf_provider_bindings[index].attached) {
-                result = EBPF_EXTENSION_FAILED_TO_LOAD;
-                break;
-            }
-        }
-        ebpf_lock_unlock(&module->lock, state);
-
-        if (result != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "_ebpf_native_load_programs: required BTF-resolved function provider is not attached",
-                &module->client_module_id);
-            goto Done;
         }
     }
     for (uint32_t count = 0; count < program_count; count++) {
@@ -2803,6 +2349,11 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
+        result = _ebpf_native_resolve_btf_resolved_functions_for_program(native_program);
+        if (result != EBPF_SUCCESS) {
+            goto Done;
+        }
+
         // Load machine code.
         ebpf_core_code_context_t code_context = {0};
         code_context.native_code_context.runtime_context = &native_program->runtime_context;
@@ -2822,7 +2373,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_deregister_btf_provider_client(module);
         // Release reference for each program.
         for (size_t i = 0; i < instance->program_count; i++) {
             EBPF_NATIVE_CLEANUP_PROGRAM(native_programs[i]);
@@ -2832,7 +2382,6 @@ Done:
         instance->program_count = 0;
         module->programs = NULL;
         module->program_count = 0;
-        _ebpf_native_clear_btf_provider_bindings(module);
     }
 
     ebpf_free(program_name);
