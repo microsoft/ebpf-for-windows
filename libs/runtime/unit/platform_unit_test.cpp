@@ -847,7 +847,11 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
-    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    auto synchronize_future = std::async(std::launch::async, []() {
+        ebpf_cpu_affinity_scope_t cpu0_affinity(0);
+        REQUIRE(cpu0_affinity.status() == EBPF_SUCCESS);
+        ebpf_epoch_synchronize();
+    });
     REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
     {
@@ -899,7 +903,11 @@ TEST_CASE("epoch_test_hot_add_cpu_failure_rollback", "[platform]")
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
-    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    auto synchronize_future = std::async(std::launch::async, []() {
+        ebpf_cpu_affinity_scope_t cpu0_affinity(0);
+        REQUIRE(cpu0_affinity.status() == EBPF_SUCCESS);
+        ebpf_epoch_synchronize();
+    });
     REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_failure(hot_add_cpu)));
