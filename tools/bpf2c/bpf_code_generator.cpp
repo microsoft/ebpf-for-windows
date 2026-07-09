@@ -1346,10 +1346,7 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
                 throw bpf_code_generator_exception("Failed to get BTF-resolved function information");
             }
 
-            btf_resolved_function_t function{
-                function_info->prototype.name,
-                function_info->module_guid,
-                0};
+            btf_resolved_function_t function{function_info->prototype.name, function_info->module_guid, 0};
             btf_resolved_functions[btf_id] = function;
         } else {
             // Non-BTF calls are handled elsewhere and do not add BTF-resolved dependencies.

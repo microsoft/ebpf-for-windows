@@ -4,6 +4,7 @@
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_program_types.h"
+#include "ebpf_store_helper.h"
 #include "hash.h"
 
 #include <Windows.h>
