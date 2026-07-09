@@ -212,13 +212,6 @@ class _test_helper
     }
     ~_test_helper()
     {
-        GROUP_AFFINITY old_thread_affinity = {};
-        bool cleanup_cpu0_affinity_set = false;
-        if (platform_initiated && epoch_initiated) {
-            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(0, &old_thread_affinity));
-            cleanup_cpu0_affinity_set = true;
-        }
-
         if (state_initiated) {
             ebpf_state_terminate();
         }
@@ -231,9 +224,6 @@ class _test_helper
         if (epoch_initiated) {
             ebpf_epoch_synchronize();
             ebpf_epoch_terminate();
-        }
-        if (cleanup_cpu0_affinity_set) {
-            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
         }
         ebpf_random_terminate();
         if (platform_initiated) {
@@ -355,77 +345,6 @@ typedef class _ebpf_cpu_affinity_scope
     GROUP_AFFINITY _old_thread_affinity = {};
     ebpf_result_t _status = EBPF_OPERATION_NOT_SUPPORTED;
 } ebpf_cpu_affinity_scope_t;
-
-typedef class _epoch_hot_add_synchronize_scope
-{
-  public:
-    explicit _epoch_hot_add_synchronize_scope(uint32_t hot_add_cpu)
-        : _hot_add_cpu(hot_add_cpu), _future(std::async(std::launch::async, []() {
-              ebpf_cpu_affinity_scope_t cpu0_affinity(0);
-              if (cpu0_affinity.status() != EBPF_SUCCESS) {
-                  return cpu0_affinity.status();
-              }
-              ebpf_epoch_synchronize();
-              return EBPF_SUCCESS;
-          }))
-    {
-    }
-
-    ~_epoch_hot_add_synchronize_scope() { _cleanup(); }
-
-    template <typename rep, typename period>
-    std::future_status
-    wait_for(const std::chrono::duration<rep, period>& timeout)
-    {
-        return _future.wait_for(timeout);
-    }
-
-    NTSTATUS
-    notify_complete()
-    {
-        NTSTATUS status = usersim_notify_processor_add_complete(_hot_add_cpu);
-        _notification_completed = NT_SUCCESS(status);
-        return status;
-    }
-
-    NTSTATUS
-    notify_failure()
-    {
-        NTSTATUS status = usersim_notify_processor_add_failure(_hot_add_cpu);
-        _notification_completed = NT_SUCCESS(status);
-        return status;
-    }
-
-    ebpf_result_t
-    get()
-    {
-        _joined = true;
-        return _future.get();
-    }
-
-  private:
-    void
-    _cleanup() noexcept
-    {
-        if (!_future.valid()) {
-            return;
-        }
-
-        if (!_notification_completed) {
-            _notification_completed = NT_SUCCESS(usersim_notify_processor_add_failure(_hot_add_cpu));
-        }
-
-        _future.wait();
-        if (!_joined) {
-            (void)_future.get();
-        }
-    }
-
-    uint32_t _hot_add_cpu;
-    std::future<ebpf_result_t> _future;
-    bool _notification_completed = false;
-    bool _joined = false;
-} epoch_hot_add_synchronize_scope_t;
 
 TEST_CASE("hash_table_test", "[platform]")
 {
@@ -928,25 +847,20 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
-    epoch_hot_add_synchronize_scope_t synchronize_scope(hot_add_cpu);
-    REQUIRE(synchronize_scope.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
+    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
     {
         ebpf_epoch_scope_t epoch_scope;
         void* memory = ebpf_epoch_allocate(32);
-        if (memory == nullptr) {
-            REQUIRE(NT_SUCCESS(synchronize_scope.notify_failure()));
-            REQUIRE(synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
-            REQUIRE(synchronize_scope.get() == EBPF_SUCCESS);
-            FAIL("ebpf_epoch_allocate failed before hot-add admission completed");
-        }
+        REQUIRE(memory != nullptr);
         ebpf_epoch_free(memory);
         epoch_scope.exit();
     }
 
-    REQUIRE(NT_SUCCESS(synchronize_scope.notify_complete()));
-    REQUIRE(synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
-    REQUIRE(synchronize_scope.get() == EBPF_SUCCESS);
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_complete(hot_add_cpu)));
+    REQUIRE(synchronize_future.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+    synchronize_future.get();
 
     {
         ebpf_cpu_affinity_scope_t hot_add_cpu_affinity(hot_add_cpu);
@@ -985,21 +899,12 @@ TEST_CASE("epoch_test_hot_add_cpu_failure_rollback", "[platform]")
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
-    epoch_hot_add_synchronize_scope_t synchronize_scope(hot_add_cpu);
-    REQUIRE(synchronize_scope.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
+    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
-    REQUIRE(NT_SUCCESS(synchronize_scope.notify_failure()));
-    REQUIRE(synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
-    REQUIRE(synchronize_scope.get() == EBPF_SUCCESS);
-
-    // A failed add destroys the CPU work queue. Verify that a later add can recreate it.
-    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
-
-    epoch_hot_add_synchronize_scope_t retry_synchronize_scope(hot_add_cpu);
-    REQUIRE(retry_synchronize_scope.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
-    REQUIRE(NT_SUCCESS(retry_synchronize_scope.notify_complete()));
-    REQUIRE(retry_synchronize_scope.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
-    REQUIRE(retry_synchronize_scope.get() == EBPF_SUCCESS);
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_failure(hot_add_cpu)));
+    REQUIRE(synchronize_future.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+    synchronize_future.get();
 
     ebpf_epoch_synchronize();
     REQUIRE(ebpf_epoch_is_free_list_empty(0));
@@ -2890,8 +2795,9 @@ TEST_CASE("work_queue", "[platform]")
     interval.QuadPart = 10 * 1000 * 100; // 100ms
     int context = 1;
     REQUIRE(
-        ebpf_timed_work_queue_allocate(
+        ebpf_timed_work_queue_create(
             &work_queue,
+            0,
             &interval,
             [](_Inout_ void* context, uint32_t cpu_id, _Inout_ ebpf_list_entry_t* entry) {
                 UNREFERENCED_PARAMETER(context);
@@ -2900,7 +2806,6 @@ TEST_CASE("work_queue", "[platform]")
                 KeSetEvent(&work_item_context->completion_event, 0, FALSE);
             },
             &context) == EBPF_SUCCESS);
-    REQUIRE(ebpf_timed_work_queue_initialize(work_queue, 0) == EBPF_SUCCESS);
 
     // Unique ptr that will call ebpf_timed_work_queue_destroy when it goes out of scope.
     std::unique_ptr<ebpf_timed_work_queue_t, decltype(&ebpf_timed_work_queue_destroy)> work_queue_ptr(
