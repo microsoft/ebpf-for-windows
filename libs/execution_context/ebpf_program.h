@@ -282,6 +282,26 @@ extern "C"
         _Out_writes_(addresses_count) helper_function_address_t* addresses);
 
     /**
+     * @brief Get the addresses of BTF-resolved functions referred to by the program.
+     * Assumes ebpf_program_set_btf_resolved_function_entries has already been invoked on the
+     * program object.
+     *
+     * @param[in] program Program object to query this on.
+     * @param[in] addresses_count Length of caller supplied output array.
+     * @param[out] addresses Caller supplied output array where the addresses of the BTF-resolved
+     * function slots are written to.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INSUFFICIENT_BUFFER Output array is insufficient.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD A required BTF provider is not attached.
+     * @retval EBPF_INVALID_ARGUMENT A required BTF function is not published by its provider.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_get_btf_resolved_function_addresses(
+        _In_ const ebpf_program_t* program,
+        size_t addresses_count,
+        _Out_writes_(addresses_count) helper_function_t* addresses);
+
+    /**
      * @brief Compute program info hash for the program object. This function
      * assumes ebpf_program_set_helper_function_ids has
      * already been invoked on the program object.
@@ -440,9 +460,6 @@ extern "C"
      * @param[in] callback Function to call when the BTF-resolved function addresses change.
      * @param[in] context Context to pass to the callback.
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_ARGUMENT Invalid argument.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources.
-     * @retval EBPF_EXTENSION_FAILED_TO_LOAD A required provider is not available.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_register_for_btf_resolved_function_changes(
