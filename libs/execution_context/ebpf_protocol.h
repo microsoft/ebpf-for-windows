@@ -6,7 +6,6 @@
 // This file must only include headers that are safe
 // to include in both user mode and kernel mode.
 #include "ebpf_core_structs.h"
-#include "ebpf_program_types.h"
 
 typedef enum _ebpf_operation_id
 {
@@ -56,7 +55,6 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
     EBPF_OPERATION_EPOCH_SYNCHRONIZE,
     EBPF_OPERATION_LINK_SET_LEGACY_MODE,
-    EBPF_OPERATION_SET_BTF_RESOLVED_FUNCTIONS, /* reserved */
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
