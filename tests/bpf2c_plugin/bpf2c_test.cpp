@@ -21,20 +21,18 @@
 extern metadata_table_t metadata_table;
 
 static uint64_t
-_gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_gather_bytes(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
-    UNREFERENCED_PARAMETER(context);
     return ((uint64_t)(a & 0xff) << 32) | ((uint64_t)(b & 0xff) << 24) | ((uint64_t)(c & 0xff) << 16) |
            ((uint64_t)(d & 0xff) << 8) | (e & 0xff);
 }
 
 static uint64_t
-_memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    UNREFERENCED_PARAMETER(context);
 
     uint8_t* p = reinterpret_cast<uint8_t*>(a);
     for (uint64_t i = 0; i < b; i++) {
@@ -44,48 +42,44 @@ _memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* conte
 }
 
 static uint64_t
-_no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_no_op(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(a);
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    UNREFERENCED_PARAMETER(context);
 
     return 0;
 }
 
 static uint64_t
-_sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_sqrti(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    UNREFERENCED_PARAMETER(context);
 
     return static_cast<uint64_t>(std::sqrt(a));
 }
 
 static uint64_t
-_strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    UNREFERENCED_PARAMETER(context);
     return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
 }
 
 static uint64_t
-_unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e, void* context)
+_unwind(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
 {
     UNREFERENCED_PARAMETER(b);
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    UNREFERENCED_PARAMETER(context);
     return a;
 }
 
@@ -104,7 +98,7 @@ _my_driver_lookup(
     return key + value_size;
 }
 
-static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context)>
+static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5)>
     _helper_functions = {
         {0, _gather_bytes},
         {1, _memfrob},
@@ -112,7 +106,7 @@ static std::map<uint32_t, uint64_t (*)(uint64_t r1, uint64_t r2, uint64_t r3, ui
         {3, _sqrti},
         {4, _strcmp_ext},
         {5, _unwind},
-};
+    };
 
 static std::map<std::string, helper_function_t> _btf_resolved_functions = {
     {"my_driver_lookup", _my_driver_lookup},
