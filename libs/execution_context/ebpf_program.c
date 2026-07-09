@@ -325,9 +325,15 @@ _ebpf_program_free_btf_hash_entries(
         return;
     }
 
+#pragma warning(push)
+#pragma warning(disable : 6001)
     for (size_t index = 0; index < btf_hash_entry_count; index++) {
-        ebpf_free(btf_hash_entries[index].name);
+        ebpf_program_btf_hash_entry_t* hash_entry = &btf_hash_entries[index];
+        if (hash_entry->name != NULL) {
+            ebpf_free(hash_entry->name);
+        }
     }
+#pragma warning(pop)
 
     ebpf_free(btf_hash_entries);
 }
@@ -419,6 +425,11 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
             continue;
         }
 
+        if (local_btf_hash_entry_count >= used_btf_resolved_function_count) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
         provider = _ebpf_program_find_btf_provider(program, &function_entry->module_guid);
         if ((provider == NULL) || !provider->attached || (provider->provider_data == NULL)) {
             result = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -434,21 +445,21 @@ _Requires_lock_held_(program->lock) static ebpf_result_t
 
         provider_function_prototype = &provider_data->btf_resolved_function_prototypes[provider_function_index];
         name_length = strlen(function_entry->name) + 1;
-        local_btf_hash_entries[local_btf_hash_entry_count].name =
-            (char*)ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
-        if (local_btf_hash_entries[local_btf_hash_entry_count].name == NULL) {
+        ebpf_program_btf_hash_entry_t* hash_entry = &local_btf_hash_entries[local_btf_hash_entry_count];
+        hash_entry->name = (char*)ebpf_allocate_with_tag(name_length, EBPF_POOL_TAG_PROGRAM);
+        if (hash_entry->name == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
 
-        memcpy(local_btf_hash_entries[local_btf_hash_entry_count].name, function_entry->name, name_length);
-        local_btf_hash_entries[local_btf_hash_entry_count].module_guid = function_entry->module_guid;
-        local_btf_hash_entries[local_btf_hash_entry_count].return_type = provider_function_prototype->return_type;
+        memcpy(hash_entry->name, function_entry->name, name_length);
+        hash_entry->module_guid = function_entry->module_guid;
+        hash_entry->return_type = provider_function_prototype->return_type;
         memcpy(
-            local_btf_hash_entries[local_btf_hash_entry_count].arguments,
+            hash_entry->arguments,
             provider_function_prototype->arguments,
             sizeof(provider_function_prototype->arguments));
-        local_btf_hash_entries[local_btf_hash_entry_count].flags = provider_function_prototype->flags;
+        hash_entry->flags = provider_function_prototype->flags;
         local_btf_hash_entry_count++;
     }
 
