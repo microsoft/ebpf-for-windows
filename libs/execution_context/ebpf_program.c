@@ -2422,7 +2422,7 @@ Done:
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_btf_resolved_function_addresses_under_lock(
     _In_ const ebpf_program_t* program,
     size_t addresses_count,
-    _Out_writes_(addresses_count) helper_function_t* addresses,
+    _Out_writes_(addresses_count) uint64_t* addresses,
     bool fail_if_unresolved)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2506,8 +2506,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_btf_r
             goto Exit;
         }
 
-        addresses[function_index] =
-            (helper_function_t)provider_data->btf_resolved_function_addresses[provider_function_index];
+        addresses[function_index] = provider_data->btf_resolved_function_addresses[provider_function_index];
     }
 
 Exit:
@@ -2553,7 +2552,7 @@ _ebpf_program_notify_btf_resolved_function_changes(_Inout_ ebpf_program_t* progr
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = 0;
-    helper_function_t* addresses = NULL;
+    uint64_t* addresses = NULL;
     ebpf_btf_resolved_function_addresses_changed_callback_t callback = NULL;
     void* callback_context = NULL;
     size_t btf_resolved_function_count = 0;
@@ -2601,7 +2600,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_btf_resolved_function_addresses(
     _In_ const ebpf_program_t* program,
     size_t addresses_count,
-    _Out_writes_(addresses_count) helper_function_t* addresses)
+    _Out_writes_(addresses_count) uint64_t* addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
