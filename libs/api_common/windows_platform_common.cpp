@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "..\store_helper\user\ebpf_registry_helper.h"
 #include "api_common.hpp"
 #include "api_internal.h"
 #include "device_helper.hpp"
@@ -225,7 +226,6 @@ _is_module_guid_decl_tag(_In_ const std::string& tag_string)
     static constexpr std::string_view module_id_prefix{"module_id:"};
     return tag_string.compare(0, module_id_prefix.size(), module_id_prefix) == 0;
 }
-
 void
 set_program_under_verification(ebpf_handle_t program)
 {
@@ -953,7 +953,6 @@ cache_btf_resolved_functions(_In_ const libbtf::btf_type_data& btf_data)
         if (!_is_module_guid_decl_tag(decl_tag.name)) {
             continue;
         }
-
         GUID module_guid = _parse_module_guid_or_throw(decl_tag.name);
         auto existing = function_modules.find(decl_tag.type);
         if (existing != function_modules.end()) {

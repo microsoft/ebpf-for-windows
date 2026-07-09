@@ -1,6 +1,7 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "../../undocked/tests/sample/ext/inc/sample_ext_helpers.h"
 #include "bpf2c.h"
 #include "sample_ext_helpers.h"
 #include "test_helpers.h"

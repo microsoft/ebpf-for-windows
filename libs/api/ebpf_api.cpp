@@ -3013,6 +3013,25 @@ _ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void*
             &destination->program_info_hash_type,
             source_bytes + EBPF_NATIVE_PROGRAM_ENTRY_LEGACY_PROGRAM_INFO_HASH_TYPE_OFFSET,
             sizeof(destination->program_info_hash_type));
+    } else if (source_size == EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
+        const program_entry_v1_t* source_entry_v1 = reinterpret_cast<const program_entry_v1_t*>(source);
+
+        destination->zero = source_entry_v1->zero;
+        destination->header = source_entry_v1->header;
+        destination->function = source_entry_v1->function;
+        destination->pe_section_name = source_entry_v1->pe_section_name;
+        destination->section_name = source_entry_v1->section_name;
+        destination->program_name = source_entry_v1->program_name;
+        destination->referenced_map_indices = source_entry_v1->referenced_map_indices;
+        destination->referenced_map_count = source_entry_v1->referenced_map_count;
+        destination->helpers = source_entry_v1->helpers;
+        destination->helper_count = source_entry_v1->helper_count;
+        destination->bpf_instruction_count = source_entry_v1->bpf_instruction_count;
+        destination->program_type = source_entry_v1->program_type;
+        destination->expected_attach_type = source_entry_v1->expected_attach_type;
+        destination->program_info_hash = source_entry_v1->program_info_hash;
+        destination->program_info_hash_length = source_entry_v1->program_info_hash_length;
+        destination->program_info_hash_type = source_entry_v1->program_info_hash_type;
     } else {
         size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
         memcpy(destination, source, program_copy_size);
@@ -3183,7 +3202,7 @@ _ebpf_pe_get_section_names(
 
         const program_entry_t* first_program = reinterpret_cast<const program_entry_t*>(buffer->buf + program_offset);
         if (!ebpf_validate_object_header_native_program_entry(&first_program->header) ||
-            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)) {
+            first_program->header.total_size < EBPF_SIZE_INCLUDING_FIELD(program_entry_v1_t, program_info_hash_type)) {
             pe_context->result = EBPF_INVALID_ARGUMENT;
             return 1;
         }
