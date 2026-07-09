@@ -2976,7 +2976,6 @@ _ebpf_pe_copy_program_entry(_Out_ program_entry_t* destination, _In_ const void*
     memset(destination, 0, sizeof(*destination));
     size_t program_copy_size = (source_size < sizeof(*destination)) ? source_size : sizeof(*destination);
     memcpy(destination, source, program_copy_size);
-    destination->header = (ebpf_native_module_header_t)EBPF_NATIVE_PROGRAM_ENTRY_HEADER;
 }
 
 static int // Returns 0 on success, 1 on error.

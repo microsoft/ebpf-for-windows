@@ -251,7 +251,6 @@ When generating native code, bpf2c emits a BTF-resolved function import table al
 ```c
 typedef struct _btf_resolved_function_entry
 {
-    uint64_t zero_marker;      // Marker for section parsing (must precede header per bpf2c convention)
     ebpf_native_module_header_t header;
     const char* name;          // Function name
     GUID module_guid;          // Module GUID for NMR binding
