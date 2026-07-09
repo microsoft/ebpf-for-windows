@@ -51,12 +51,38 @@ _ebpf_epoch_get_published_epoch()
         __fastfail(REASON);                     \
     }
 
+#define EBPF_EPOCH_ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) \
+    do {                                             \
+        KeEnterCriticalRegion();                     \
+        ExAcquirePushLockExclusive(lock);            \
+    } while (false)
+
+#define EBPF_EPOCH_RELEASE_PUSH_LOCK_EXCLUSIVE(lock) \
+    do {                                             \
+        ExReleasePushLockExclusive(lock);            \
+        KeLeaveCriticalRegion();                     \
+    } while (false)
+
+#define EBPF_EPOCH_ACQUIRE_PUSH_LOCK_SHARED(lock) \
+    do {                                          \
+        KeEnterCriticalRegion();                  \
+        ExAcquirePushLockShared(lock);            \
+    } while (false)
+
+#define EBPF_EPOCH_RELEASE_PUSH_LOCK_SHARED(lock) \
+    do {                                          \
+        ExReleasePushLockShared(lock);            \
+        KeLeaveCriticalRegion();                  \
+    } while (false)
+
 #pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
 /**
  * @brief Per-CPU state.
- * Each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
- * This ensures that no locks are required to access the per CPU hot-path state.
- * Entries are prepared at PASSIVE_LEVEL before a CPU is admitted into the active participant set.
+ * After publication, each entry is only accessed by the CPU that owns it and only at IRQL >= DISPATCH_LEVEL.
+ * This ensures that no locks are required to access the per-CPU hot-path state.
+ * During initialization and hot-add admission, an entry may be prepared or patched at PASSIVE_LEVEL before any
+ * CPU-at-DISPATCH path can observe it. Once the entry is admitted into the active participant set, owner-CPU access
+ * rules apply.
  */
 typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
 {
@@ -70,6 +96,7 @@ typedef __declspec(align(EBPF_CACHE_LINE_SIZE)) struct _ebpf_epoch_cpu_entry
     int timer_armed : 1;                   ///< Set if the flush timer is armed.
     int rundown_in_progress : 1;           ///< Set if rundown is in progress.
     int epoch_computation_in_progress : 1; ///< Set if epoch computation is in progress.
+    int timer_computation_quiesced : 1;    ///< Meaningful on CPU 0: timer-driven computation is intentionally blocked.
     ebpf_timed_work_queue_t* work_queue;   ///< Work queue used to schedule work items.
 } ebpf_epoch_cpu_entry_t;
 
@@ -128,6 +155,11 @@ typedef enum _ebpf_epoch_cpu_message_type
                                                      ///< future messages should be ignored.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_IS_FREE_LIST_EMPTY,  ///< This message is sent to each CPU to query if its local free
                                                      ///< list is empty.
+    EBPF_EPOCH_CPU_MESSAGE_TYPE_QUIESCE_TIMER_COMPUTATION, ///< This message is sent to CPU 0 to block new timer-driven
+                                                           ///< epoch computations until the current one, if any,
+                                                           ///< drains.
+    EBPF_EPOCH_CPU_MESSAGE_TYPE_RESUME_TIMER_COMPUTATION,  ///< This message is sent to CPU 0 to resume timer-driven
+                                                          ///< epoch computations after topology modification completes.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU, ///< This message updates the next CPU in the active participant
                                                         ///< ring for the current CPU.
     EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU, ///< This message updates the previous CPU in the active
@@ -167,6 +199,14 @@ typedef struct _ebpf_epoch_cpu_message
         } is_free_list_empty;
         struct
         {
+            uint8_t unused; ///< Unused.
+        } quiesce_timer_computation;
+        struct
+        {
+            uint8_t unused; ///< Unused.
+        } resume_timer_computation;
+        struct
+        {
             uint32_t next_cpu; ///< Next CPU in the active participant ring.
         } update_next_active_cpu;
         struct
@@ -186,6 +226,26 @@ static KTIMER _ebpf_epoch_compute_release_epoch_timer;
  * @brief Message used to compute the release epoch.
  */
 static ebpf_epoch_cpu_message_t _ebpf_epoch_compute_release_epoch_message = {0};
+
+/**
+ * @brief Push lock that drains passive ebpf_epoch_synchronize callers while topology is being modified.
+ */
+static EX_PUSH_LOCK _ebpf_epoch_passive_synchronize_lock;
+
+/**
+ * @brief Pointer to the pending quiesce message waiting for the current timer-driven epoch computation to drain.
+ */
+static ebpf_epoch_cpu_message_t* _ebpf_epoch_timer_quiesce_wait_message = NULL;
+
+/**
+ * @brief CPU currently undergoing hot-add topology modification, if any.
+ */
+static uint32_t _ebpf_epoch_quiesced_cpu = UINT32_MAX;
+
+/**
+ * @brief Thread that entered the current hot-add quiescent section, if any.
+ */
+static PKTHREAD _ebpf_epoch_quiesced_thread = NULL;
 
 /**
  * @brief DPC used to process timer expiration.
@@ -288,6 +348,33 @@ static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf
 static void
 _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context);
 
+/**
+ * @brief Begin a hot-add quiescent section.
+ *
+ * Side effects:
+ * - Acquires the passive synchronization push lock exclusive and leaves it held.
+ * - Records the CPU whose hot-add transaction owns the quiescent section.
+ * - Records the thread that must later resume the quiescent section on the same callback thread.
+ * - Sends a synchronous message to CPU 0 to quiesce and, if necessary, drain timer-driven epoch computation.
+ *
+ * @param[in] cpu_id CPU being hot-added.
+ */
+static void
+_ebpf_epoch_quiesce_passive_synchronization(uint32_t cpu_id);
+
+/**
+ * @brief End a hot-add quiescent section.
+ *
+ * Side effects:
+ * - Verifies that the specified CPU owns the current quiescent section.
+ * - Sends a synchronous message to CPU 0 to resume timer-driven epoch computation.
+ * - Clears the recorded hot-add owner and releases the passive synchronization push lock.
+ *
+ * @param[in] cpu_id CPU whose hot-add transaction is completing.
+ */
+static void
+_ebpf_epoch_resume_passive_synchronization(uint32_t cpu_id);
+
 static _Must_inspect_result_ ebpf_result_t
 _ebpf_epoch_initialize_cpu_entry(uint32_t cpu_id)
 {
@@ -336,6 +423,60 @@ _ebpf_epoch_fail_fast_if_unadmitted_cpu(uint32_t cpu_id)
 {
     EBPF_EPOCH_FAIL_FAST(
         FAST_FAIL_INVALID_ARG, cpu_id < _ebpf_epoch_cpu_count && _ebpf_epoch_cpu_table[cpu_id].admitted);
+}
+
+/**
+ * @brief Begin a hot-add quiescent section.
+ *
+ * Side effects:
+ * - Acquires the passive synchronization push lock exclusive and leaves it held.
+ * - Records the CPU whose hot-add transaction owns the quiescent section.
+ * - Sends a synchronous message to CPU 0 to quiesce and, if necessary, drain timer-driven epoch computation.
+ *
+ * @param[in] cpu_id CPU being hot-added.
+ */
+static void
+_ebpf_epoch_quiesce_passive_synchronization(uint32_t cpu_id)
+{
+    ebpf_epoch_cpu_message_t message = {0};
+
+    EBPF_EPOCH_ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_ebpf_epoch_passive_synchronize_lock);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_quiesced_cpu == UINT32_MAX);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_quiesced_thread == NULL);
+    _ebpf_epoch_quiesced_cpu = cpu_id;
+    _ebpf_epoch_quiesced_thread = KeGetCurrentThread();
+
+    message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_QUIESCE_TIMER_COMPUTATION;
+    message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+    _ebpf_epoch_send_message_and_wait(&message, 0);
+}
+
+/**
+ * @brief End a hot-add quiescent section.
+ *
+ * Side effects:
+ * - Verifies that the specified CPU owns the current quiescent section.
+ * - Verifies that the current thread matches the thread that entered the quiescent section.
+ * - Sends a synchronous message to CPU 0 to resume timer-driven epoch computation.
+ * - Clears the recorded hot-add owner and releases the passive synchronization push lock.
+ *
+ * @param[in] cpu_id CPU whose hot-add transaction is completing.
+ */
+static void
+_ebpf_epoch_resume_passive_synchronization(uint32_t cpu_id)
+{
+    ebpf_epoch_cpu_message_t message = {0};
+
+    EBPF_EPOCH_FAIL_FAST(
+        FAST_FAIL_INVALID_ARG,
+        _ebpf_epoch_quiesced_cpu == cpu_id && _ebpf_epoch_cpu_table[0].timer_computation_quiesced);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_quiesced_thread == KeGetCurrentThread());
+    message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_RESUME_TIMER_COMPUTATION;
+    message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+    _ebpf_epoch_send_message_and_wait(&message, 0);
+    _ebpf_epoch_quiesced_cpu = UINT32_MAX;
+    _ebpf_epoch_quiesced_thread = NULL;
+    EBPF_EPOCH_RELEASE_PUSH_LOCK_EXCLUSIVE(&_ebpf_epoch_passive_synchronize_lock);
 }
 
 static _Must_inspect_result_ ebpf_result_t
@@ -424,6 +565,8 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
             return;
         }
 
+        _ebpf_epoch_quiesce_passive_synchronization(cpu_id);
+
         uint32_t predecessor_cpu = UINT32_MAX;
         uint32_t first_cpu = UINT32_MAX;
         uint32_t last_cpu = UINT32_MAX;
@@ -443,9 +586,9 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
                 predecessor_cpu = candidate_cpu;
             }
         }
-
         if (first_cpu == UINT32_MAX) {
             *operation_status = STATUS_INVALID_DEVICE_STATE;
+            _ebpf_epoch_resume_passive_synchronization(cpu_id);
             _ebpf_epoch_destroy_cpu_entry(cpu_entry);
             return;
         }
@@ -469,14 +612,15 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
         update_previous_message.message.update_previous_active_cpu.previous_cpu = cpu_id;
         update_previous_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
         _ebpf_epoch_send_message_and_wait(&update_previous_message, successor_cpu);
+        MemoryBarrier();
+        cpu_entry->admitted = true;
 
         return;
     }
 
     case KeProcessorAddCompleteNotify:
-        if (cpu_entry->work_queue != NULL) {
-            MemoryBarrier();
-            cpu_entry->admitted = true;
+        if (cpu_entry->work_queue != NULL && _ebpf_epoch_processor_change_callback_handle != NULL) {
+            _ebpf_epoch_resume_passive_synchronization(cpu_id);
         }
         return;
 
@@ -485,27 +629,31 @@ _Function_class_(PROCESSOR_CALLBACK_FUNCTION) static void _ebpf_epoch_processor_
             return;
         }
 
-        if (_ebpf_epoch_processor_change_callback_handle != NULL &&
-            cpu_entry->previous_active_cpu < _ebpf_epoch_cpu_count &&
-            _ebpf_epoch_cpu_table[cpu_entry->previous_active_cpu].admitted) {
-            ebpf_epoch_cpu_message_t update_next_message = {0};
-            update_next_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU;
-            update_next_message.message.update_next_active_cpu.next_cpu = cpu_entry->next_active_cpu;
-            update_next_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
-            _ebpf_epoch_send_message_and_wait(&update_next_message, cpu_entry->previous_active_cpu);
-        }
+        if (_ebpf_epoch_processor_change_callback_handle != NULL && _ebpf_epoch_quiesced_cpu == cpu_id) {
+            if (cpu_entry->previous_active_cpu < _ebpf_epoch_cpu_count &&
+                _ebpf_epoch_cpu_table[cpu_entry->previous_active_cpu].admitted) {
+                ebpf_epoch_cpu_message_t update_next_message = {0};
+                update_next_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_NEXT_ACTIVE_CPU;
+                update_next_message.message.update_next_active_cpu.next_cpu = cpu_entry->next_active_cpu;
+                update_next_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+                _ebpf_epoch_send_message_and_wait(&update_next_message, cpu_entry->previous_active_cpu);
+            }
 
-        if (_ebpf_epoch_processor_change_callback_handle != NULL &&
-            cpu_entry->next_active_cpu < _ebpf_epoch_cpu_count &&
-            _ebpf_epoch_cpu_table[cpu_entry->next_active_cpu].admitted) {
-            ebpf_epoch_cpu_message_t update_previous_message = {0};
-            update_previous_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU;
-            update_previous_message.message.update_previous_active_cpu.previous_cpu = cpu_entry->previous_active_cpu;
-            update_previous_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
-            _ebpf_epoch_send_message_and_wait(&update_previous_message, cpu_entry->next_active_cpu);
+            if (cpu_entry->next_active_cpu < _ebpf_epoch_cpu_count &&
+                _ebpf_epoch_cpu_table[cpu_entry->next_active_cpu].admitted) {
+                ebpf_epoch_cpu_message_t update_previous_message = {0};
+                update_previous_message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_UPDATE_PREVIOUS_ACTIVE_CPU;
+                update_previous_message.message.update_previous_active_cpu.previous_cpu =
+                    cpu_entry->previous_active_cpu;
+                update_previous_message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
+                _ebpf_epoch_send_message_and_wait(&update_previous_message, cpu_entry->next_active_cpu);
+            }
         }
 
         _ebpf_epoch_destroy_cpu_entry(cpu_entry);
+        if (_ebpf_epoch_processor_change_callback_handle != NULL && _ebpf_epoch_quiesced_cpu == cpu_id) {
+            _ebpf_epoch_resume_passive_synchronization(cpu_id);
+        }
         return;
     }
 
@@ -553,6 +701,11 @@ ebpf_epoch_initiate()
     }
 
     _ebpf_epoch_published_current_epoch = 1;
+    _ebpf_epoch_cpu_table[0].timer_computation_quiesced = false;
+    _ebpf_epoch_timer_quiesce_wait_message = NULL;
+    _ebpf_epoch_quiesced_cpu = UINT32_MAX;
+    _ebpf_epoch_quiesced_thread = NULL;
+    ExInitializePushLock(&_ebpf_epoch_passive_synchronize_lock);
 
     KeInitializeDpc(&_ebpf_epoch_timer_dpc, _ebpf_epoch_timer_worker, NULL);
     KeSetTargetProcessorDpc(&_ebpf_epoch_timer_dpc, 0);
@@ -861,6 +1014,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize()
         return;
     }
 
+    EBPF_EPOCH_ACQUIRE_PUSH_LOCK_SHARED(&_ebpf_epoch_passive_synchronize_lock);
+
     // Allocate on stack to avoid out of memory issues.
     ebpf_epoch_synchronization_t synchronization = {0};
     synchronization.header.entry_type = EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION;
@@ -875,6 +1030,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize()
     _ebpf_epoch_send_message_and_wait(&message, 0);
 
     KeWaitForSingleObject(&synchronization.event, Executive, KernelMode, false, NULL);
+    EBPF_EPOCH_RELEASE_PUSH_LOCK_SHARED(&_ebpf_epoch_passive_synchronize_lock);
 }
 
 bool
@@ -1049,7 +1205,8 @@ _Function_class_(KDEFERRED_ROUTINE) _IRQL_requires_(DISPATCH_LEVEL) static void 
         return;
     }
 
-    if (!_ebpf_epoch_cpu_table[0].epoch_computation_in_progress) {
+    if (!_ebpf_epoch_cpu_table[0].timer_computation_quiesced &&
+        !_ebpf_epoch_cpu_table[0].epoch_computation_in_progress) {
         _ebpf_epoch_cpu_table[0].epoch_computation_in_progress = true;
         _ebpf_epoch_skipped_timers = 0;
         memset(&_ebpf_epoch_compute_release_epoch_message, 0, sizeof(_ebpf_epoch_compute_release_epoch_message));
@@ -1189,6 +1346,10 @@ _ebpf_epoch_messenger_compute_epoch_complete(
     // If this is the timer's DPC, then mark the computation as complete.
     if (message == &_ebpf_epoch_compute_release_epoch_message) {
         cpu_entry->epoch_computation_in_progress = false;
+        if (_ebpf_epoch_timer_quiesce_wait_message != NULL) {
+            KeSetEvent(&_ebpf_epoch_timer_quiesce_wait_message->completion_event, 0, FALSE);
+            _ebpf_epoch_timer_quiesce_wait_message = NULL;
+        }
     } else {
         // This is an adhoc flush. Signal the caller that the flush is complete.
         KeSetEvent(&message->completion_event, 0, FALSE);
@@ -1263,6 +1424,44 @@ _ebpf_epoch_messenger_is_free_list_empty(
 }
 
 /**
+ * @brief Message to quiesce timer-driven epoch computations on CPU 0.
+ */
+void
+_ebpf_epoch_messenger_quiesce_timer_computation(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
+{
+    UNREFERENCED_PARAMETER(cpu_entry);
+
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, current_cpu == 0);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, !_ebpf_epoch_cpu_table[0].timer_computation_quiesced);
+    _ebpf_epoch_cpu_table[0].timer_computation_quiesced = true;
+
+    if (_ebpf_epoch_cpu_table[0].epoch_computation_in_progress) {
+        EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_timer_quiesce_wait_message == NULL);
+        _ebpf_epoch_timer_quiesce_wait_message = message;
+        return;
+    }
+
+    KeSetEvent(&message->completion_event, 0, FALSE);
+}
+
+/**
+ * @brief Message to resume timer-driven epoch computations on CPU 0.
+ */
+void
+_ebpf_epoch_messenger_resume_timer_computation(
+    _Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, _Inout_ ebpf_epoch_cpu_message_t* message, uint32_t current_cpu)
+{
+    UNREFERENCED_PARAMETER(cpu_entry);
+
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, current_cpu == 0);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_cpu_table[0].timer_computation_quiesced);
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_INVALID_ARG, _ebpf_epoch_timer_quiesce_wait_message == NULL);
+    _ebpf_epoch_cpu_table[0].timer_computation_quiesced = false;
+    KeSetEvent(&message->completion_event, 0, FALSE);
+}
+
+/**
  * @brief Message to update the next active CPU in the participant ring.
  */
 void
@@ -1296,6 +1495,8 @@ static ebpf_epoch_messenger_worker_t _ebpf_epoch_messenger_workers[] = {
     _ebpf_epoch_messenger_exit_epoch,
     _ebpf_epoch_messenger_rundown_in_progress,
     _ebpf_epoch_messenger_is_free_list_empty,
+    _ebpf_epoch_messenger_quiesce_timer_computation,
+    _ebpf_epoch_messenger_resume_timer_computation,
     _ebpf_epoch_messenger_update_next_active_cpu,
     _ebpf_epoch_messenger_update_previous_active_cpu};
 

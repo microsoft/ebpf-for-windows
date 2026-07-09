@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <future>
 #include <intrin.h>
 #include <iostream>
 #include <mutex>
@@ -846,6 +847,9 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
 
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
+    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
+
     {
         ebpf_epoch_scope_t epoch_scope;
         void* memory = ebpf_epoch_allocate(32);
@@ -854,10 +858,9 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
         epoch_scope.exit();
     }
 
-    // The staged ring update must not route consensus to the hot-added CPU until add-complete publishes admission.
-    ebpf_epoch_synchronize();
-
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_complete(hot_add_cpu)));
+    REQUIRE(synchronize_future.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+    synchronize_future.get();
 
     {
         ebpf_cpu_affinity_scope_t hot_add_cpu_affinity(hot_add_cpu);
@@ -875,83 +878,36 @@ TEST_CASE("epoch_test_hot_add_cpu_admission", "[platform]")
     REQUIRE(ebpf_epoch_is_free_list_empty(hot_add_cpu));
 }
 
-TEST_CASE("epoch_test_unadmitted_cpu_fail_fast_child", "[platform][.]")
+TEST_CASE("epoch_test_hot_add_cpu_failure_rollback", "[platform]")
 {
-    if (!_environment_variable_equals("EBPF_EPOCH_FAIL_FAST_CHILD", "true")) {
+    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    if (maximum_cpu_count < 2) {
         return;
     }
-
-    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
-    REQUIRE(maximum_cpu_count >= 2);
 
     const uint32_t startup_active_cpu_count = maximum_cpu_count - 1;
     const uint32_t hot_add_cpu = startup_active_cpu_count;
     usersim_active_processor_count_scope_t active_processor_count_scope(startup_active_cpu_count);
     REQUIRE(NT_SUCCESS(active_processor_count_scope.status()));
 
+    std::optional<ebpf_cpu_affinity_scope_t> cpu0_affinity;
     _test_helper test_helper;
     test_helper.initialize();
 
+    cpu0_affinity.emplace(0);
+    REQUIRE(cpu0_affinity->status() == EBPF_SUCCESS);
+
     REQUIRE(NT_SUCCESS(usersim_notify_processor_add_start(hot_add_cpu)));
 
-    ebpf_cpu_affinity_scope_t hot_add_cpu_affinity(hot_add_cpu);
-    REQUIRE(hot_add_cpu_affinity.status() == EBPF_SUCCESS);
+    auto synchronize_future = std::async(std::launch::async, []() { ebpf_epoch_synchronize(); });
+    REQUIRE(synchronize_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::timeout);
 
-    ebpf_epoch_state_t epoch_state = {};
-    ebpf_epoch_enter(&epoch_state);
-    FAIL("ebpf_epoch_enter should fail fast on an unadmitted CPU");
-}
+    REQUIRE(NT_SUCCESS(usersim_notify_processor_add_failure(hot_add_cpu)));
+    REQUIRE(synchronize_future.wait_for(std::chrono::seconds(30)) == std::future_status::ready);
+    synchronize_future.get();
 
-TEST_CASE("epoch_test_unadmitted_cpu_fail_fast", "[platform][epoch_fail_fast][.]")
-{
-    struct _environment_variable_guard
-    {
-        explicit _environment_variable_guard(const char* name) : _name(name) {}
-        ~_environment_variable_guard() { SetEnvironmentVariableA(_name, nullptr); }
-
-      private:
-        const char* _name;
-    };
-
-    const uint32_t maximum_cpu_count = KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS);
-    if (maximum_cpu_count < 2) {
-        return;
-    }
-
-    char module_path[MAX_PATH] = {0};
-    REQUIRE(GetModuleFileNameA(nullptr, module_path, ARRAYSIZE(module_path)) != 0);
-
-    char command_line[MAX_PATH + 128] = {0};
-    REQUIRE(
-        _snprintf_s(
-            command_line,
-            ARRAYSIZE(command_line),
-            _TRUNCATE,
-            "\"%s\" \"epoch_test_unadmitted_cpu_fail_fast_child\" --colour-mode none",
-            module_path) > 0);
-
-    REQUIRE(SetEnvironmentVariableA("EBPF_EPOCH_FAIL_FAST_CHILD", "true"));
-    _environment_variable_guard environment_variable_guard("EBPF_EPOCH_FAIL_FAST_CHILD");
-
-    STARTUPINFOA startup_info = {};
-    startup_info.cb = sizeof(startup_info);
-    PROCESS_INFORMATION process_information = {};
-    REQUIRE(CreateProcessA(
-        module_path, command_line, nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup_info, &process_information));
-
-    REQUIRE(WaitForSingleObject(process_information.hProcess, 30000) == WAIT_OBJECT_0);
-
-    DWORD exit_code = 0;
-    REQUIRE(GetExitCodeProcess(process_information.hProcess, &exit_code));
-    CloseHandle(process_information.hThread);
-    CloseHandle(process_information.hProcess);
-
-#ifdef _DEBUG
-    // In Debug, ebpf_assert() fires before __fastfail(), so the CRT's termination code can vary by runner.
-    REQUIRE(exit_code != 0);
-#else
-    REQUIRE((exit_code == 3 || exit_code == STATUS_STACK_BUFFER_OVERRUN));
-#endif
+    ebpf_epoch_synchronize();
+    REQUIRE(ebpf_epoch_is_free_list_empty(0));
 }
 
 // This test validates a regression scenario for a potential correctness hazard

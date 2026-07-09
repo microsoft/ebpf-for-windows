@@ -119,6 +119,10 @@ The GitHub workflow `.github/workflows/tla-plus-models.yml` regenerates these fi
   - Models the epoch-based reclamation scheme and checks safety properties around published/released epochs.
   - Includes “fixed” and “buggy” configurations to demonstrate the hazard.
 
+- `models/epoch_hot_add/`
+  - Models the epoch CPU hot-add topology protocol, including quiescing elections before ring modification and resuming only after add-complete.
+  - Includes a “safe” configuration plus buggy configurations demonstrating both “no quiesce” and “resume too early” hazards.
+
 - `models/hash_table/`
   - Models the runtime hash table’s immutable-bucket replacement pattern plus simplified epoch-based reclamation.
   - Includes a “safe usage” configuration and a deliberately unsafe “use-after-exit” configuration that demonstrates a safety violation.
