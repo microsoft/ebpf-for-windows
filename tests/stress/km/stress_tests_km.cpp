@@ -9,12 +9,19 @@
 #include "ebpf_structs.h"
 #include "misc_helper.h"
 #include "program_helper.h"
+#include "sample_ext_helper.h"
+#include "sample_ext_test_common.h"
 #include "service_helper.h"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
 #include <windows.h>
+#include <atomic>
 #include <io.h>
+#include <vector>
+
+constexpr uint32_t DEFAULT_KM_NATIVE_MT_THREAD_COUNT = 32;
+constexpr uint32_t DEFAULT_KM_NATIVE_MT_DURATION_MINUTES = 10;
 
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
@@ -37,30 +44,9 @@ struct object_table_entry
     uint32_t tag{0};
 };
 
-// Possible roles for each thread. A thread is assigned a specific role at creation and it does not change thereafter.
-//
-// 'Creator' threads create as many ebpf program objects as they can, gated by the size of the object_table array.
-//
-// The 'Attacher' threads will alternatively 'attach' or 'detach' the program objects created by the 'Creator' threads
-// w/o considering if the objects have already been attached or detached.  Any errors returned by the ebpfapi are
-// ignored.
-//
-// 'Destroyer' threads close as many 'opened' eBPF program objects as then can.  These threads synchronize access to
-// the object table entries with the 'Creator' and 'Attacher' threads as the destroyer threads can only destroy program
-// objects that were created by the creator threads in the first place.
-//
-// The intent here is to cause the maximum nondeterministic multi-threaded stress scenarios as possible. Note that we
-// do not care about user mode failures in, or errors returned from, ebpfapi and focus only on exercing the in-kernel
-// eBPF components' ability to deal with such situations w/o causing a kernel hang or crash. The primary test goal here
-// is to ensure that such races do not cause hangs or crashes in the in-kernel eBPF sub-system components
-// (ebpfcore, netebpfext drivers).
-
 enum class thread_role_type : uint32_t
 {
     ROLE_NOT_SET = 0,
-    CREATOR,
-    ATTACHER,
-    DESTROYER,
     MONITOR_IPV4,
     MONITOR_IPV6
 };
@@ -328,335 +314,6 @@ _start_extension_restart_thread(
         thread_lifetime_minutes);
 }
 
-static void
-_do_creator_work(thread_context& context, std::time_t endtime_seconds)
-{
-    // Wait for an entry to become available.
-    for (auto& entry : context.object_table) {
-
-        // Abort operations if we're past the test duration time quantum.
-        using sc = std::chrono::system_clock;
-        auto timenow = sc::now();
-        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
-        if (timenow_seconds >= endtime_seconds) {
-            break;
-        }
-
-        // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry _is_ in use.
-        if (entry.available) {
-            {
-                // Note that we're deliberately splitting the lock grab between the 'open' and 'load' calls.  This is
-                // to force a race between 'load', 'attach' and 'destroy'.
-                std::lock_guard lock(*entry.lock.get());
-
-                // Make sure entry is _still_ free (some other creator thread may have grabbed it).
-                if (!entry.available) {
-                    continue;
-                }
-
-                bpf_object* object_raw_ptr = nullptr;
-                try {
-
-                    // Load program and store returned object pointer.
-                    object_raw_ptr = bpf_object__open(context.file_name.c_str());
-                    if (object_raw_ptr == nullptr) {
-                        if (context.extension_restart_enabled) {
-
-                            // While this is a fatal error, we need to ignore such errors if the 'extension restart'
-                            // thread is running.  Such errors are expected in that scenario especially when the
-                            // extension keeps getting yanked from under us.
-                            continue;
-                        }
-
-                        LOG_ERROR(
-                            "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__open() failed for {}. errno: {}",
-                            context.thread_index,
-                            entry.index,
-                            context.file_name.c_str(),
-                            errno);
-
-                        context.succeeded = false;
-                        exit(-1);
-                    }
-
-                    // So far so good, so mark the entry as 'not available', i.e. we have 'opened' the ebpf program.
-                    // This should now trigger a race between 'load', 'attach' and 'destroy' which should be handled
-                    // in a robust manner by ebpfcore.
-                    entry.object.reset(object_raw_ptr);
-                    entry.reuse_count++;
-                    entry.available = false;
-                } catch (...) {
-
-                    // If the 'extension restart' thread is enabled (-jre=true specified on the command line), errors
-                    // in any/all of the ebpfapi calls in the above 'try' block are expected and are ignored.
-                    if (context.extension_restart_enabled) {
-                        continue;
-                    }
-
-                    // OTOH, if the 'extension restart' thread is _NOT_ active, these calls must always succeed and any
-                    // errors/exceptions here are fatal.  In this scenario, we cannot attach (and subsequently close)
-                    // program objects if they don't exist in the first place, so there's no point in letting the test
-                    // continue execution.
-                    LOG_ERROR(
-                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__open). file: {} "
-                        "errno: {}",
-                        context.thread_index,
-                        entry.index,
-                        context.file_name.c_str(),
-                        errno);
-                    context.succeeded = false;
-                    exit(-1);
-                }
-                LOG_VERBOSE("(CREATOR)[{}][{}] - Object created.", context.thread_index, entry.index);
-            }
-
-            {
-                // This is the second lock grab to 'load' the program.
-                std::lock_guard lock(*entry.lock.get());
-
-                // We're racing with 'attach' _AND_ 'destroy', so make sure the object was not already destroyed
-                // by the time we get here.
-                if (entry.available) {
-                    continue;
-                }
-
-                // Move on if the bpf program has already been loaded by some other 'creator' thread.
-                if (entry.loaded) {
-                    continue;
-                }
-
-                try {
-                    auto result = bpf_object__load(entry.object.get());
-                    if (result != 0) {
-                        if (context.extension_restart_enabled) {
-
-                            // While this is a fatal error for non-native programs (native programs are windows kernel
-                            // mode drivers and the OS will not allow loading the same driver multiple times), we need
-                            // to ignore such errors (for non-native programs as well) if the 'extension restart'
-                            // thread is running.  Such errors are expected in that scenario especially when the
-                            // extension keeps getting yanked from under us.
-                            continue;
-                        }
-
-                        if (!context.is_native_program) {
-                            LOG_ERROR(
-                                "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__load() failed. result: {}, errno: {} "
-                                "progname: {}",
-                                context.thread_index,
-                                entry.index,
-                                result,
-                                errno,
-                                context.file_name.c_str());
-
-                            context.succeeded = false;
-                            exit(-1);
-                        }
-                    } else {
-                        LOG_VERBOSE(
-                            "(CREATOR)[{}][{}] - bpf_object__load() succeeded progname: {}",
-                            context.thread_index,
-                            entry.index,
-                            context.file_name.c_str());
-                    }
-                } catch (...) {
-
-                    // If the 'extension restart' thread is enabled, errors in any/all of the ebpfapi calls in the
-                    // above 'try' block are expected and are ignored.
-                    if (context.extension_restart_enabled) {
-                        continue;
-                    }
-
-                    // OTOH, if the 'extension restart' thread is _NOT_ active, these calls must always succeed and any
-                    // errors/exceptions here are fatal.  In this scenario, we cannot attach (and subsequently close)
-                    // program objects if they don't exist in the first place, so there's no point in letting the test
-                    // continue execution.
-                    LOG_ERROR(
-                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__load). errno: {} "
-                        "filename: {}",
-                        context.thread_index,
-                        entry.index,
-                        errno,
-                        context.file_name.c_str());
-                    context.succeeded = false;
-                    exit(-1);
-                }
-                entry.loaded = true;
-                LOG_VERBOSE(
-                    "(CREATOR)[{}][{}][{}] - Object loaded.",
-                    context.thread_index,
-                    entry.index,
-                    context.file_name.c_str());
-            }
-        }
-    }
-}
-
-static void
-_do_attacher_work(thread_context& context, std::time_t endtime_seconds)
-{
-    for (auto& entry : context.object_table) {
-
-        // Abort operations if we're past the test duration time quantum.
-        using sc = std::chrono::system_clock;
-        auto timenow = sc::now();
-        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
-        if (timenow_seconds >= endtime_seconds) {
-            break;
-        }
-
-        // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry is not in use.
-        if (!entry.available) {
-
-            // Take the lock and make sure entry is _still_ in use (some other 'destroyer' may have closed this
-            // object and marked this entry as 'available').
-            std::lock_guard lock(*entry.lock.get());
-            if (entry.available) {
-                continue;
-            }
-
-            try {
-                std::string connect_program_name{"authorize_connect4"};
-
-                // Try to get a handle to the 'connect' program.
-                bpf_program* connect_program =
-                    bpf_object__find_program_by_name(entry.object.get(), connect_program_name.c_str());
-                if (connect_program == nullptr) {
-
-                    // This failure (and in other ebpf api calls) in this 'try' block is fine as some 'destroyer'
-                    // thread may have just destroyed this object.  This should not cause any issues with the in-kernel
-                    // ebpf components.
-                    LOG_VERBOSE(
-                        "(ATTACHER)[{}][{}] - bpf_object__find_program_by_name() failed. errno: {}",
-                        context.thread_index,
-                        entry.index,
-                        errno);
-                    continue;
-                }
-
-                auto fd = bpf_program__fd(connect_program);
-                if (fd < 0) {
-                    LOG_VERBOSE(
-                        "(ATTACHER)[{}][{}] - bpf_program__fd() failed. errno: {}",
-                        context.thread_index,
-                        entry.index,
-                        errno);
-                    continue;
-                }
-
-                // Try to attach or detach the 'connect' program at BPF_CGROUP_INET4_CONNECT hook.
-                int result{0};
-                if (entry.attach) {
-                    result = bpf_prog_attach(fd, context.compartment_id, BPF_CGROUP_INET4_CONNECT, 0);
-                } else {
-                    result = bpf_prog_detach(context.compartment_id, BPF_CGROUP_INET4_CONNECT);
-                }
-                if (result != 0) {
-                    LOG_VERBOSE(
-                        "(ATTACHER)[{}][{}] - {} failed for compartment_id: {}. errno: {}",
-                        context.thread_index,
-                        entry.index,
-                        (entry.attach ? "bpf_prog_attach()" : "bpf_prog_detach()"),
-                        context.compartment_id,
-                        errno);
-                } else {
-                    LOG_VERBOSE(
-                        "(ATTACHER)[{}][{}] - {}. compartment_id: {}.",
-                        context.thread_index,
-                        entry.index,
-                        (entry.attach ? "Attached" : "Detached"),
-                        context.compartment_id);
-                }
-
-                // Flip the next attach/detach action on this object irrespective of errors (if any) above.
-                entry.attach = !entry.attach;
-
-            } catch (...) {
-
-                // No need to terminate. We don't care about user mode issues here.
-            }
-        }
-    }
-}
-
-static void
-_do_destroyer_work(thread_context& context, std::time_t endtime_seconds)
-{
-    for (auto& entry : context.object_table) {
-
-        // Abort operations if we're past the test duration time quantum.
-        using sc = std::chrono::system_clock;
-        auto timenow = sc::now();
-        std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
-        if (timenow_seconds >= endtime_seconds) {
-            break;
-        }
-
-        // Do an un-protected read of 'entry.available' flag to avoid an un-necessary lock if the entry not in use.
-        if (!entry.available) {
-
-            // Take the lock and make sure entry is _still_ in use (some other 'destroyer' may have closed this object
-            // and marked this entry as 'available').
-            std::lock_guard lock(*entry.lock.get());
-            if (entry.available) {
-                continue;
-            }
-
-            // Close the object.
-            bpf_object__close(entry.object.get());
-            entry.object.release();
-            entry.available = true;
-            entry.loaded = false;
-
-            LOG_VERBOSE(
-                "(DESTROYER)[{}][{}] - Destroyed. comparment_id: {}",
-                context.thread_index,
-                entry.index,
-                context.compartment_id);
-        }
-    }
-}
-
-static void
-_test_thread_function(thread_context& context)
-{
-    LOG_VERBOSE(
-        "**** {}[{}] thread started. ****",
-        (context.role == thread_role_type::CREATOR    ? "CREATOR"
-         : context.role == thread_role_type::ATTACHER ? "ATTACHER"
-                                                      : "DESTROYER"),
-        context.thread_index);
-
-    using sc = std::chrono::system_clock;
-    auto timenow = sc::now();
-    std::time_t timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
-    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
-    std::time_t endtime_seconds = std::chrono::system_clock::to_time_t(endtime);
-    while (timenow_seconds < endtime_seconds) {
-
-        if (context.role == thread_role_type::CREATOR) {
-            _do_creator_work(context, endtime_seconds);
-        } else if (context.role == thread_role_type::ATTACHER) {
-            _do_attacher_work(context, endtime_seconds);
-        } else if (context.role == thread_role_type::DESTROYER) {
-            _do_destroyer_work(context, endtime_seconds);
-        } else {
-            LOG_ERROR("FATAL ERROR: Unknown thread role: {}", (uint32_t)context.role);
-            context.succeeded = false;
-            exit(-1);
-        }
-
-        timenow = sc::now();
-        timenow_seconds = std::chrono::system_clock::to_time_t(timenow);
-    }
-
-    LOG_VERBOSE(
-        "**** {}[{}] thread done. Exiting. ****",
-        (context.role == thread_role_type::CREATOR    ? "CREATOR"
-         : context.role == thread_role_type::ATTACHER ? "ATTACHER"
-                                                      : "DESTROYER"),
-        context.thread_index);
-}
-
 static std::string
 _generate_random_string()
 {
@@ -777,105 +434,6 @@ wait_and_verify_test_threads(
     }
 }
 
-static void
-_mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
-{
-    constexpr uint32_t OBJECT_TABLE_SIZE{64};
-    std::vector<object_table_entry> object_table(OBJECT_TABLE_SIZE);
-    for (uint32_t index = 0; auto& entry : object_table) {
-        entry.available = true;
-        entry.lock = std::make_unique<std::mutex>();
-        entry.object.reset();
-        entry.attach = !(index % 2) ? true : false;
-        entry.index = index++;
-        entry.reuse_count = 0;
-        entry.tag = 0xC001DEA1;
-    }
-
-    // We have 3 types of threads, so we need (test_control_info.threads_count * 3) total threads.
-    size_t total_threads = ((size_t)test_control_info.threads_count * 3);
-    std::vector<thread_context> thread_context_table(
-        total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
-    std::vector<std::thread> test_thread_table(total_threads);
-
-    // Another table for the 'extension restart' threads (1 thread per program).
-    std::vector<std::string> extension_names;
-    std::vector<std::thread> extension_restart_thread_table;
-    std::vector<thread_context> extension_restart_thread_context_table;
-
-    // An incrementing 'compartment Id' to ensure that _each_ 'Attacher' thread gets a unique compartment id.
-    uint32_t compartment_id{1};
-
-    for (const auto& program_info : _test_program_info) {
-        const auto& program_name = program_info.first;
-        const auto& program_attribs = program_info.second;
-        for (size_t i = 0; i < total_threads; i++) {
-
-            // First, prepare the context for this thread.
-            auto& context_entry = thread_context_table[i];
-            context_entry.program_name = program_name;
-
-            if (!(compartment_id % 3)) {
-                context_entry.role = thread_role_type::DESTROYER;
-            } else if (!(compartment_id % 2)) {
-                context_entry.role = thread_role_type::ATTACHER;
-            } else {
-                context_entry.role = thread_role_type::CREATOR;
-            }
-
-            if (program_type == EBPF_EXECUTION_NATIVE) {
-                context_entry.is_native_program = true;
-                if (test_control_info.use_unique_native_programs && context_entry.role == thread_role_type::CREATOR) {
-
-                    // Create unique native programs for 'creator' threads only.
-                    context_entry.file_name = _make_unique_file_copy(program_attribs.native_file_name);
-                } else {
-
-                    // Use the same file name for all 'creator' threads.
-                    context_entry.file_name = program_attribs.native_file_name;
-                }
-            } else {
-                context_entry.is_native_program = false;
-                context_entry.file_name = program_attribs.jit_file_name;
-            }
-            context_entry.thread_index = (compartment_id - 1);
-            context_entry.compartment_id = compartment_id;
-            context_entry.duration_minutes = test_control_info.duration_minutes;
-            context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
-            compartment_id++;
-
-            // Now create the thread.
-            auto& thread_entry = test_thread_table[i];
-            thread_entry = std::move(std::thread(_test_thread_function, std::ref(context_entry)));
-        }
-
-        // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-        extension_names.push_back(program_attribs.extension_name);
-    }
-
-    if (test_control_info.extension_restart_enabled) {
-        configure_extension_restart(
-            test_control_info,
-            extension_names,
-            extension_restart_thread_table,
-            extension_restart_thread_context_table,
-            object_table);
-    }
-
-    wait_and_verify_test_threads(
-        test_control_info,
-        test_thread_table,
-        thread_context_table,
-        extension_restart_thread_table,
-        extension_restart_thread_context_table);
-}
-
-enum class program_map_usage : uint32_t
-{
-    IGNORE_MAP,
-    USE_MAP
-};
-
 static std::pair<bpf_object_ptr, fd_t>
 _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
 {
@@ -972,231 +530,6 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
         "{}({}) Attached program:{}, file_name:{}", __func__, thread_index, program->program_name, file_name.c_str());
 
     return std::make_pair(std::move(object_ptr), program_fd);
-}
-
-static void
-_prep_program(thread_context& context, program_map_usage map_usage)
-{
-    enum bpf_attach_type attach_type =
-        context.role == thread_role_type::MONITOR_IPV4 ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
-    auto [program_object, program_fd] = _load_attach_program(context, attach_type);
-    if (context.succeeded == false) {
-        LOG_ERROR("{}({}) - FATAL ERROR: _load_attach_program() failed.", __func__, context.thread_index);
-        exit(-1);
-    }
-
-    // Stash the object pointer as we'll need it at 'close' time.
-    auto& entry = context.object_table[context.thread_index];
-    entry.object = std::move(program_object);
-    context.program_fd = program_fd;
-
-    if (map_usage == program_map_usage::USE_MAP) {
-        // Get the map fd for the map for this program.
-        context.map_fd = bpf_object__find_map_fd_by_name(entry.object.get(), context.map_name.c_str());
-        if (context.map_fd < 0) {
-            LOG_ERROR(
-                "{}({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. file_name:{}, errno:{}",
-                __func__,
-                context.thread_index,
-                context.map_name.c_str(),
-                context.file_name.c_str(),
-                errno);
-            context.succeeded = false;
-            exit(-1);
-        }
-        LOG_VERBOSE(
-            "{}({}) Opened fd:{} for map:{}, file_name:{}",
-            __func__,
-            context.thread_index,
-            context.map_fd,
-            context.map_name.c_str(),
-            context.file_name.c_str());
-    }
-}
-
-void
-_invoke_test_thread_function(thread_context& context)
-{
-    _prep_program(context, program_map_usage::USE_MAP);
-    if (context.succeeded == false) {
-        LOG_ERROR("{}({}) - FATAL ERROR: _prep_program() failed.", __func__, context.thread_index);
-        exit(-1);
-    }
-    SOCKET socket_handle;
-    SOCKADDR_STORAGE remote_endpoint{};
-
-    if (context.role == thread_role_type::MONITOR_IPV4) {
-        socket_handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        remote_endpoint.ss_family = AF_INET;
-    } else {
-        socket_handle = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-        remote_endpoint.ss_family = AF_INET6;
-    }
-    if (socket_handle == INVALID_SOCKET) {
-        LOG_ERROR("{}({}) - FATAL ERROR: socket() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
-        context.succeeded = false;
-        exit(-1);
-    }
-
-    // Set the timeout for connect attempts.
-    timeval timeout;
-    timeout.tv_sec = 5; // 5 seconds
-    timeout.tv_usec = 0;
-    if (setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) < 0) {
-        LOG_ERROR("{}({}) - ERROR: setsockopt() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
-        context.succeeded = false;
-        exit(-1);
-    }
-    if (setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout)) < 0) {
-        LOG_ERROR("{}({}) - ERROR: setsockopt() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
-        context.succeeded = false;
-        exit(-1);
-    }
-
-    INETADDR_SETLOOPBACK(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
-    constexpr uint16_t remote_port = SOCKET_TEST_PORT;
-    (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
-
-    // Now send out a burst of TCP 'connect' attempts for the duration of the test.  The burst should keep invoking the
-    // program at a very high rate while we're also restarting the extension underneath it.
-    //
-    // The test is considered 'failed' if the count is detected as 'stalled' (i.e. it is not continuously incrementing).
-    // This is a fatal error as ebpf programs are/should be completely oblivious to such events and their invocation
-    // will/should resume once the extension is reloaded. Note that the count will not exactly match the actual connect
-    // attempts as the program will not be invoked for connect attempts made while the extension is restarting.
-    using sc = std::chrono::steady_clock;
-    auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
-    bool first_map_lookup = true;
-    while (sc::now() < endtime) {
-
-        uint16_t key = remote_port;
-        uint64_t start_count = 0;
-        // Map lookup before the program invocation may fail if the program has not inserted the map entry yet.
-        auto result = bpf_map_lookup_elem(context.map_fd, &key, &start_count);
-        if (first_map_lookup) {
-            first_map_lookup = false;
-        } else if (result != 0) {
-            LOG_ERROR(
-                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed for fd {} before connect. errno:{}",
-                __func__,
-                context.thread_index,
-                context.map_fd,
-                errno);
-            context.succeeded = false;
-            exit(-1);
-        }
-
-        constexpr uint32_t BURST_SIZE = 8192;
-        for (uint32_t i = 0; i < BURST_SIZE; i++) {
-
-            // Our ebpf program _will_ fail all connect attempts to the target port, so ignore the return value.
-            (void)connect(
-                socket_handle,
-                reinterpret_cast<SOCKADDR*>(&remote_endpoint),
-                static_cast<int>(sizeof(remote_endpoint)));
-
-            if (sc::now() >= endtime) {
-                break;
-            }
-        }
-
-        uint64_t end_count = 0;
-        result = bpf_map_lookup_elem(context.map_fd, &key, &end_count);
-        if (result != 0) {
-            LOG_ERROR(
-                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed for fd {} after connect. errno:{}",
-                __func__,
-                context.thread_index,
-                context.map_fd,
-                errno);
-            context.succeeded = false;
-            exit(-1);
-        }
-        LOG_VERBOSE(
-            "{}({}) connect start_count:{}, end_count:{}", __func__, context.thread_index, start_count, end_count);
-        if (end_count <= start_count) {
-            LOG_ERROR(
-                "{}({}) - FATAL ERROR: connect count mismatched. start_count:{}, end_count:{}",
-                __func__,
-                context.thread_index,
-                start_count,
-                end_count);
-            context.succeeded = false;
-            exit(-1);
-        }
-        start_count = end_count;
-    }
-}
-
-void
-_mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
-{
-    WSAData data{};
-    auto error = WSAStartup(MAKEWORD(2, 2), &data);
-    REQUIRE(error == 0);
-
-    // As of now, we support a maximum of 2 ebpf test programs for this test.
-    constexpr uint32_t MAX_TCP_CONNECT_PROGRAMS = 2;
-
-    // Storage for object pointers for each ebpf program file opened by bpf_object__open().
-    std::vector<object_table_entry> object_table(MAX_TCP_CONNECT_PROGRAMS);
-    for (auto& entry : object_table) {
-        entry.object.reset();
-    }
-
-    size_t total_threads = MAX_TCP_CONNECT_PROGRAMS;
-    std::vector<thread_context> thread_context_table(
-        total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
-    std::vector<std::thread> test_thread_table(total_threads);
-
-    // Choose file extension based on execution type.
-    std::string file_extension = (program_type == EBPF_EXECUTION_NATIVE) ? ".sys" : ".o";
-    bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
-
-    std::vector<std::pair<std::string, std::string>> program_file_map_names = {
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect4.sys") : "cgroup_count_connect4.o"},
-         {"connect4_count_map"}},
-        {{is_native ? _make_unique_file_copy("cgroup_count_connect6.sys") : "cgroup_count_connect6.o"},
-         {"connect6_count_map"}}};
-    ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
-
-    for (uint32_t i = 0; i < total_threads; i++) {
-        // First, prepare the context for this thread.
-        auto& context_entry = thread_context_table[i];
-        auto& [file_name, map_name] = program_file_map_names[i];
-        context_entry.file_name = file_name;
-        context_entry.is_native_program = is_native;
-        context_entry.map_name = map_name;
-        context_entry.role = (i == 0 ? thread_role_type::MONITOR_IPV4 : thread_role_type::MONITOR_IPV6);
-        context_entry.thread_index = i;
-        context_entry.compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-        context_entry.duration_minutes = test_control_info.duration_minutes;
-        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
-
-        // Now create the thread.
-        auto& thread_entry = test_thread_table[i];
-        thread_entry = std::move(std::thread(_invoke_test_thread_function, std::ref(context_entry)));
-    }
-
-    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    std::vector<std::string> extension_names = {"netebpfext"};
-    std::vector<std::thread> extension_restart_thread_table;
-    std::vector<thread_context> extension_restart_thread_context_table;
-    if (test_control_info.extension_restart_enabled) {
-        configure_extension_restart(
-            test_control_info,
-            extension_names,
-            extension_restart_thread_table,
-            extension_restart_thread_context_table,
-            object_table);
-    }
-
-    wait_and_verify_test_threads(
-        test_control_info,
-        test_thread_table,
-        thread_context_table,
-        extension_restart_thread_table,
-        extension_restart_thread_context_table);
 }
 
 static void
@@ -1312,7 +645,13 @@ _mt_sockaddr_invoke_program_test(ebpf_execution_type_t program_type, const test_
 static void
 _print_test_control_info(const test_control_info& test_control_info)
 {
-    LOG_INFO("test threads per program    : {}", test_control_info.threads_count);
+    uint32_t resolved_thread_count = test_control_info.threads_count;
+    if (resolved_thread_count == 0) {
+        resolved_thread_count = default_km_invoke_thread_count();
+    }
+    if (resolved_thread_count != 0) {
+        LOG_INFO("test thread count          : {}", resolved_thread_count);
+    }
     LOG_INFO("test duration (in minutes)  : {}", test_control_info.duration_minutes);
     LOG_INFO("test verbose output         : {}", test_control_info.verbose_output);
     LOG_INFO("test extension restart      : {}", test_control_info.extension_restart_enabled);
@@ -1638,84 +977,6 @@ _mt_bindmonitor_tail_call_invoke_program_test(
     WSACleanup();
 }
 
-TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
-{
-    // This test attempts to load the same native ebpf program multiple times in different threads. Specifically:
-    //
-    // - Load, attach, detach and unload the native ebpf program with each event happening in a different thread with
-    //   all threads executing in parallel with the bare minimum synchronization between them.
-    //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
-    //   (if specified on the command line).
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_load_attach_detach_unload_random_v4_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
-{
-    // This test attempts to load a unique native ebpf program multiple times in different threads. Specifically:
-    //
-    // - Load, attach, detach and unload each native ebpf program with each event happening in a different thread with
-    //   all threads executing in parallel with the bare minimum synchronization between them.
-    //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
-    //   (if specified on the command line).
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_unique_load_attach_detach_unload_random_v4_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // Use a unique native driver for each 'creator' thread.
-    local_test_control_info.use_unique_native_programs = true;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
-{
-    // Multi-threaded stress test where each thread loads different programs with extension restart.
-    // Test layout:
-    // 1. Create 2 'monitor' threads, each loading a DIFFERENT native eBPF program:
-    //    - Thread #1 loads a native eBPF SOCK_ADDR program (cgroup_count_connect4.sys) that attaches to
-    //    CGROUP/CONNECT4.
-    //      > This program monitors an IPv4 endpoint, 127.0.0.1:<target_port>. On every invocation, the program updates
-    //        the count (TCP) 'connect' attempts in the 'connect4_count_map' map at its port.
-    //    - Thread #2 loads a DIFFERENT native eBPF SOCK_ADDR program (cgroup_count_connect6.sys) that attaches to
-    //    CGROUP/CONNECT6.
-    //      > The behavior of this program is similar to the v4 program (loaded by thread #1), except it is
-    //        invoked for IPv6 connection attempts ([::1]:<target_port>).
-    //
-    // 2  Until the end of test, each test thread will:
-    //    - Read the initial 'connect' count from its respective 'connect<v4|v6>_map' map.
-    //    - Attempt to (TCP) connect to its respective end-point 'n' times.  Make 'n' large enough (4096?) to try
-    //      and collide with the extension restart event.
-    //    - Read the 'connect' count its respective map after this 'burst' connect attempt.
-    //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
-    //      number of times.  A stalled counter is a fatal bug and the test should return failure.
-    //
-    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
-    //    (if specified on the command line).
-    //
-    // NOTE: Each thread loads different programs to test eBPF component resiliency with different program instances.
-    // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // This test needs only 2 threads (one per different program).
-    local_test_control_info.threads_count = 2;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
 TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
 {
     // Test layout:
@@ -1739,6 +1000,12 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     _km_test_init();
     LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+    if (local_test_control_info.threads_count == 0) {
+        local_test_control_info.threads_count = DEFAULT_KM_NATIVE_MT_THREAD_COUNT;
+    }
+    if (local_test_control_info.duration_minutes == 0) {
+        local_test_control_info.duration_minutes = DEFAULT_KM_NATIVE_MT_DURATION_MINUTES;
+    }
 
     _print_test_control_info(local_test_control_info);
     _mt_sockaddr_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
@@ -1756,246 +1023,83 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     _km_test_init();
     LOG_INFO("\nStarting test *** bindmonitor_tailcall_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+    if (local_test_control_info.threads_count == 0) {
+        local_test_control_info.threads_count = DEFAULT_KM_NATIVE_MT_THREAD_COUNT;
+    }
+    if (local_test_control_info.duration_minutes == 0) {
+        local_test_control_info.duration_minutes = DEFAULT_KM_NATIVE_MT_DURATION_MINUTES;
+    }
 
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
 
-static void
-_mt_load_stress_test_with_restart_timing(
-    ebpf_execution_type_t program_type, const test_control_info& test_control_info, bool start_restart_before_load)
+TEST_CASE("sample_attach_invoke_detach_race_km", "[stress_km]")
 {
-    constexpr uint32_t OBJECT_TABLE_SIZE{64};
-    std::vector<object_table_entry> object_table(OBJECT_TABLE_SIZE);
-    for (uint32_t index = 0; auto& entry : object_table) {
-        entry.available = true;
-        entry.lock = std::make_unique<std::mutex>();
-        entry.object.reset();
-        entry.attach = !(index % 2) ? true : false;
-        entry.index = index++;
-        entry.reuse_count = 0;
-        entry.tag = 0xC001DEA1;
+    _km_test_init();
+    LOG_INFO("\nStarting test *** sample_attach_invoke_detach_race_km ***");
+
+    hook_helper_t hook(EBPF_ATTACH_TYPE_SAMPLE);
+
+    bpf_object* object = nullptr;
+    bpf_program* program = nullptr;
+    fd_t program_fd = -1;
+    fd_t map_fd = -1;
+    REQUIRE(
+        sample_stress_load_program(
+            "test_sample_ebpf.sys", BPF_PROG_TYPE_SAMPLE, &object, &program, &program_fd, &map_fd) == 0);
+    (void)map_fd;
+
+    auto test_control = get_test_control_info();
+    uint32_t duration_minutes =
+        test_control.duration_minutes == 0 ? DEFAULT_DURATION_MINUTES : test_control.duration_minutes;
+    uint32_t invoke_thread_count =
+        test_control.threads_count == 0 ? default_km_invoke_thread_count() : test_control.threads_count;
+    uint32_t attach_detach_delay_ms =
+        test_control.attach_detach_delay_ms == 0 ? DEFAULT_ATTACH_DETACH_DELAY_MS : test_control.attach_detach_delay_ms;
+
+    std::vector<uint32_t> attach_data(invoke_thread_count);
+    for (uint32_t i = 0; i < invoke_thread_count; i++) {
+        attach_data[i] = i;
+        REQUIRE(hook.attach(program, &attach_data[i], sizeof(attach_data[i])) != nullptr);
     }
 
-    // We have 3 types of threads, so we need (test_control_info.threads_count * 3) total threads.
-    size_t total_threads = ((size_t)test_control_info.threads_count * 3);
-    std::vector<thread_context> thread_context_table(
-        total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
-    std::vector<std::thread> test_thread_table(total_threads);
-
-    // Extension restart thread setup.
-    std::vector<std::string> extension_names;
-    std::vector<std::thread> extension_restart_thread_table;
-    std::vector<thread_context> extension_restart_thread_context_table;
-
-    // An incrementing 'compartment Id' to ensure that _each_ 'Attacher' thread gets a unique compartment id.
-    uint32_t compartment_id{1};
-
-    // Get the single program info - we only have one program in km tests.
-    const auto& program_info = _test_program_info.begin();
-    const auto& program_name = program_info->first;
-    const auto& program_attribs = program_info->second;
-    extension_names.push_back(program_attribs.extension_name);
-
-    // Configure context for each thread.
-    for (size_t i = 0; i < total_threads; i++) {
-        // First, prepare the context for this thread.
-        auto& context_entry = thread_context_table[i];
-        context_entry.program_name = program_name;
-
-        if (!(compartment_id % 3)) {
-            context_entry.role = thread_role_type::DESTROYER;
-        } else if (!(compartment_id % 2)) {
-            context_entry.role = thread_role_type::ATTACHER;
-        } else {
-            context_entry.role = thread_role_type::CREATOR;
-        }
-
-        if (program_type == EBPF_EXECUTION_NATIVE) {
-            context_entry.is_native_program = true;
-            if (test_control_info.use_unique_native_programs && context_entry.role == thread_role_type::CREATOR) {
-                // Create unique native programs for 'creator' threads only.
-                context_entry.file_name = _make_unique_file_copy(program_attribs.native_file_name);
-            } else {
-                context_entry.file_name = program_attribs.native_file_name;
+    std::atomic<uint32_t> next_worker_id{0};
+    std::atomic<uint64_t> detach_failure_count{0};
+    std::atomic<uint64_t> attach_failure_count{0};
+    auto invoke_routine = [&]() {
+        thread_local const uint32_t worker_id = next_worker_id.fetch_add(1);
+        thread_local _sample_extension_helper invoke_extension(false);
+        thread_local std::vector<char> input_buffer = {'r', 'a', 'i', 'n', 'y'};
+        thread_local std::vector<char> output_buffer(256);
+        uint32_t attach_value = attach_data[worker_id % invoke_thread_count];
+        (void)invoke_extension.try_invoke_by_attach_parameter(
+            &attach_value, sizeof(attach_value), input_buffer, output_buffer);
+    };
+    auto detach_routine = [&]() {
+        for (uint32_t i = 0; i < invoke_thread_count; i++) {
+            if (hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i])) != EBPF_SUCCESS) {
+                ++detach_failure_count;
             }
-        } else {
-            context_entry.file_name = program_attribs.jit_file_name;
         }
-        context_entry.thread_index = (uint32_t)i;
-        context_entry.compartment_id = compartment_id++;
-        context_entry.duration_minutes = test_control_info.duration_minutes;
-        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
-    }
-
-    // Handle extension restart timing.
-    if (test_control_info.extension_restart_enabled) {
-        if (start_restart_before_load) {
-            // Start extension restart immediately, then start load threads.
-            LOG_INFO("Starting extension restart BEFORE program loading threads");
-            configure_extension_restart(
-                test_control_info,
-                extension_names,
-                extension_restart_thread_table,
-                extension_restart_thread_context_table,
-                object_table);
-            // Small delay to ensure restart thread is running before we start load threads.
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    };
+    auto attach_routine = [&]() {
+        for (uint32_t i = 0; i < invoke_thread_count; i++) {
+            if (hook.attach(program, &attach_data[i], sizeof(attach_data[i])) == nullptr) {
+                ++attach_failure_count;
+            }
         }
+    };
+
+    run_attach_invoke_detach_race(
+        invoke_routine, detach_routine, attach_routine, duration_minutes, invoke_thread_count, attach_detach_delay_ms);
+    LOG_INFO(
+        "Race attach/detach failures: detach_failures={}, attach_failures={}",
+        detach_failure_count.load(),
+        attach_failure_count.load());
+
+    for (uint32_t i = 0; i < invoke_thread_count; i++) {
+        (void)hook.detach(program_fd, &attach_data[i], sizeof(attach_data[i]));
     }
-
-    // Now create the program loading threads.
-    for (size_t i = 0; i < total_threads; i++) {
-        auto& context_entry = thread_context_table[i];
-        auto& thread_entry = test_thread_table[i];
-        thread_entry = std::move(std::thread(_test_thread_function, std::ref(context_entry)));
-    }
-
-    if (test_control_info.extension_restart_enabled && !start_restart_before_load) {
-        // Wait for programs to load, then start extension restart.
-        LOG_INFO("Waiting for programs to load, then starting extension restart");
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // Give programs time to load and attach.
-        configure_extension_restart(
-            test_control_info,
-            extension_names,
-            extension_restart_thread_table,
-            extension_restart_thread_context_table,
-            object_table);
-    }
-
-    wait_and_verify_test_threads(
-        test_control_info,
-        test_thread_table,
-        thread_context_table,
-        extension_restart_thread_table,
-        extension_restart_thread_context_table);
-}
-
-static void
-_mt_invoke_stress_test_multiple_programs(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
-{
-    WSAData data{};
-    auto error = WSAStartup(MAKEWORD(2, 2), &data);
-    REQUIRE(error == 0);
-
-    // For testing different programs per thread, create multiple copies of programs.
-    constexpr uint32_t MAX_PROGRAM_COPIES = 4;
-
-    size_t actual_threads = std::min((size_t)test_control_info.threads_count, (size_t)MAX_PROGRAM_COPIES);
-    std::vector<object_table_entry> object_table(actual_threads);
-    for (uint32_t index = 0; auto& entry : object_table) {
-        entry.available = true;
-        entry.lock = std::make_unique<std::mutex>();
-        entry.object.reset();
-        entry.attach = !(index % 2) ? true : false;
-        entry.index = index++;
-        entry.reuse_count = 0;
-        entry.tag = 0xC001DEA1;
-    }
-
-    std::vector<thread_context> thread_context_table(
-        actual_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
-    std::vector<std::thread> test_thread_table(actual_threads);
-
-    for (uint32_t i = 0; i < actual_threads; i++) {
-        // First, prepare the context for this thread.
-        auto& context_entry = thread_context_table[i];
-
-        if (program_type == EBPF_EXECUTION_NATIVE) {
-            // For native programs, create unique file copies so each thread has a different program.
-            context_entry.file_name = _make_unique_file_copy("cgroup_sock_addr.sys");
-            context_entry.is_native_program = true;
-        } else {
-            // For JIT programs, all threads can load the same file (but get different instances).
-            context_entry.file_name = "cgroup_sock_addr.o";
-            context_entry.is_native_program = false;
-        }
-
-        context_entry.program_name = "cgroup_sock_addr";
-        context_entry.role = thread_role_type::CREATOR; // All threads are creators for this test.
-        context_entry.thread_index = i;
-        context_entry.compartment_id = i + 1; // Unique compartment IDs.
-        context_entry.duration_minutes = test_control_info.duration_minutes;
-        context_entry.extension_restart_enabled = test_control_info.extension_restart_enabled;
-    }
-
-    // Now create all the threads after context setup is complete.
-    for (uint32_t i = 0; i < actual_threads; i++) {
-        auto& context_entry = thread_context_table[i];
-        auto& thread_entry = test_thread_table[i];
-        thread_entry = std::move(std::thread(_test_thread_function, std::ref(context_entry)));
-    }
-
-    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    std::vector<std::string> extension_names = {"netebpfext"};
-    std::vector<std::thread> extension_restart_thread_table;
-    std::vector<thread_context> extension_restart_thread_context_table;
-    if (test_control_info.extension_restart_enabled) {
-        configure_extension_restart(
-            test_control_info,
-            extension_names,
-            extension_restart_thread_table,
-            extension_restart_thread_context_table,
-            object_table);
-    }
-
-    wait_and_verify_test_threads(
-        test_control_info,
-        test_thread_table,
-        thread_context_table,
-        extension_restart_thread_table,
-        extension_restart_thread_context_table);
-}
-
-TEST_CASE("load_attach_stress_test_restart_during_load_native", "[native_mt_stress_test]")
-{
-    // Test resiliency during program 'open + load + attach' sequence with extension restart.
-    // Starts extension restart immediately and then begins program loading in multiple threads.
-    // Tests native programs with multiple threads loading copies of programs.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** load_attach_stress_test_restart_during_load_native ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // Enable extension restart and unique native programs for this test.
-    local_test_control_info.extension_restart_enabled = true;
-    local_test_control_info.use_unique_native_programs = true;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, true);
-}
-
-TEST_CASE("load_attach_stress_test_restart_after_load_native", "[native_mt_stress_test]")
-{
-    // Test resiliency after program 'open + load + attach' sequence with extension restart.
-    // Completes program loading first, then starts extension restart.
-    // Ensures loaded + attached programs continue to be invoked after extension restart.
-    // Tests native programs with multiple threads loading copies of programs.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** load_attach_stress_test_restart_after_load_native ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // Enable extension restart and unique native programs for this test.
-    local_test_control_info.extension_restart_enabled = true;
-    local_test_control_info.use_unique_native_programs = true;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_load_stress_test_with_restart_timing(EBPF_EXECUTION_NATIVE, local_test_control_info, false);
-}
-
-TEST_CASE("invoke_different_programs_restart_extension_test_native", "[native_mt_stress_test]")
-{
-    // Multi-threaded stress test where each thread loads different programs with extension restart.
-    // Tests native programs with different programs in each thread.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** invoke_different_programs_restart_extension_test_native ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // This test needs multiple threads for different programs.
-    local_test_control_info.threads_count = std::max(local_test_control_info.threads_count, 4u);
-
-    _print_test_control_info(local_test_control_info);
-    _mt_invoke_stress_test_multiple_programs(EBPF_EXECUTION_NATIVE, local_test_control_info);
+    sample_stress_close_program(object);
 }
