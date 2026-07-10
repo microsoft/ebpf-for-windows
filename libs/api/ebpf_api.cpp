@@ -37,6 +37,14 @@ extern "C"
 typedef unsigned char boolean;
 #endif
 #include "Verifier.h"
+
+enum : uint32_t
+{
+    // Must match ebpf_ring_buffer_user_section_t.
+    EBPF_RING_BUFFER_USER_SECTION_CONSUMER = 0,
+    EBPF_RING_BUFFER_USER_SECTION_PRODUCER = 1,
+    EBPF_RING_BUFFER_USER_SECTION_DATA = 2,
+};
 #include "utilities.hpp"
 #include "windows_platform_common.hpp"
 
@@ -62,6 +70,20 @@ static std::mutex _ebpf_state_mutex;
 _Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_program_t*> _ebpf_programs;
 _Guarded_by_(_ebpf_state_mutex) static std::map<ebpf_handle_t, ebpf_map_t*> _ebpf_maps;
 _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects;
+static std::mutex _ebpf_ring_mapping_mutex;
+
+typedef struct _ebpf_ring_buffer_user_mapping
+{
+    HANDLE consumer_handle;
+    HANDLE producer_handle;
+    HANDLE data_handle;
+    void* consumer_view;
+    void* producer_view;
+    void* data_view_1;
+    void* data_view_2;
+} ebpf_ring_buffer_user_mapping_t;
+
+_Guarded_by_(_ebpf_ring_mapping_mutex) static std::map<void*, ebpf_ring_buffer_user_mapping_t> _ebpf_ring_mappings;
 
 #define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 
@@ -5399,9 +5421,6 @@ _map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) const void* d
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-static _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) noexcept;
-
 bool
 ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) NO_EXCEPT_TRY
 {
@@ -5409,15 +5428,8 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
     ebpf_assert(subscription);
     boolean cancel_result = true;
 
-    // Collect CPU IDs before cancellation erases contexts from the map.
-    std::vector<uint32_t> cpu_ids_to_unmap;
-
     {
         std::scoped_lock lock{subscription->lock};
-
-        for (const auto& [cpu_id, ctx] : subscription->async_query_contexts) {
-            cpu_ids_to_unmap.push_back(cpu_id);
-        }
 
         // Set the unsubscribed flag, so that if a completion callback is ongoing, it does not issue another async
         // IOCTL.
@@ -5466,12 +5478,6 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
         subscription->cleanup_complete_event.wait(lock_wait, all_done_or_failed);
         // Clean up remaining (failed) contexts.
         subscription->async_query_contexts.clear();
-    }
-
-    // Unmap per-CPU ring buffers so the kernel clears the user-mode mappings,
-    // allowing future perf_buffer__new / ring_buffer__new calls on the same map within this process.
-    for (uint32_t cpu_id : cpu_ids_to_unmap) {
-        (void)ebpf_ring_buffer_map_unmap_buffer_with_handle(subscription->map_handle, cpu_id);
     }
 
     delete subscription;
@@ -5738,6 +5744,75 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
     return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
 
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_ring_buffer_request_section_handle(
+    ebpf_handle_t map_handle, uint64_t index, uint32_t section, _Out_ HANDLE* handle, _Out_ size_t* view_size) NO_EXCEPT_TRY
+{
+    ebpf_operation_ring_buffer_map_map_buffer_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle, index, section};
+    ebpf_operation_ring_buffer_map_map_buffer_reply_t reply{};
+    ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    *handle = reinterpret_cast<HANDLE>(static_cast<uintptr_t>(reply.section_handle));
+    *view_size = reply.view_size;
+    return EBPF_SUCCESS;
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_ring_buffer_map_double_view(
+    HANDLE section_handle, size_t view_size, _Outptr_ void** first_view, _Outptr_ void** second_view) NO_EXCEPT_TRY
+{
+    uint8_t* placeholder1 = nullptr;
+    uint8_t* placeholder2 = nullptr;
+    void* view1 = nullptr;
+    void* view2 = nullptr;
+
+    placeholder1 = reinterpret_cast<uint8_t*>(VirtualAlloc2(
+        nullptr, nullptr, view_size * 2, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
+    if (placeholder1 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, VirtualAlloc2);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+#pragma warning(push)
+#pragma warning(disable : 6333)
+#pragma warning(disable : 28160)
+    if (!VirtualFree(placeholder1, view_size, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER)) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, VirtualFree);
+        VirtualFree(placeholder1, 0, MEM_RELEASE);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+#pragma warning(pop)
+    placeholder2 = placeholder1 + view_size;
+
+    view1 = MapViewOfFile3(
+        section_handle, nullptr, placeholder1, 0, view_size, MEM_REPLACE_PLACEHOLDER, PAGE_READONLY, nullptr, 0);
+    if (view1 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile3);
+        VirtualFree(placeholder1, 0, MEM_RELEASE);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    placeholder1 = nullptr;
+    view2 = MapViewOfFile3(
+        section_handle, nullptr, placeholder2, 0, view_size, MEM_REPLACE_PLACEHOLDER, PAGE_READONLY, nullptr, 0);
+    if (view2 == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile3);
+        UnmapViewOfFileEx(view1, 0);
+        VirtualFree(placeholder2, 0, MEM_RELEASE);
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    *first_view = view1;
+    *second_view = view2;
+    return EBPF_SUCCESS;
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_map_buffer_with_index(
     fd_t map_fd,
@@ -5750,32 +5825,98 @@ ebpf_ring_buffer_map_map_buffer_with_index(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
+    HANDLE consumer_handle = nullptr;
+    HANDLE producer_handle = nullptr;
+    HANDLE data_handle = nullptr;
+    void* consumer_view = nullptr;
+    void* producer_view = nullptr;
+    void* data_view_1 = nullptr;
+    void* data_view_2 = nullptr;
+    size_t consumer_view_size = 0;
+    size_t producer_view_size = 0;
+    size_t local_data_size = 0;
 
     if (!consumer || !producer || !data || !data_size) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_RETURN_RESULT(result);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
-        result = EBPF_INVALID_FD;
-        EBPF_RETURN_RESULT(result);
+        EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    ebpf_operation_ring_buffer_map_map_buffer_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER, map_handle, index};
-    ebpf_operation_ring_buffer_map_map_buffer_reply_t reply{};
-
-    result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+    result = _ebpf_ring_buffer_request_section_handle(
+        map_handle, index, EBPF_RING_BUFFER_USER_SECTION_CONSUMER, &consumer_handle, &consumer_view_size);
     if (result != EBPF_SUCCESS) {
-        EBPF_RETURN_RESULT(result);
+        goto Done;
     }
 
-    *consumer = reinterpret_cast<void*>(static_cast<uintptr_t>(reply.consumer_address));
-    *producer = reinterpret_cast<const void*>(static_cast<uintptr_t>(reply.producer_address));
-    *data = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(reply.data_address));
-    *data_size = reply.data_size;
+    result = _ebpf_ring_buffer_request_section_handle(
+        map_handle, index, EBPF_RING_BUFFER_USER_SECTION_PRODUCER, &producer_handle, &producer_view_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
 
+    result =
+        _ebpf_ring_buffer_request_section_handle(map_handle, index, EBPF_RING_BUFFER_USER_SECTION_DATA, &data_handle, &local_data_size);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    consumer_view = MapViewOfFile(consumer_handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, consumer_view_size);
+    if (consumer_view == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile);
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Done;
+    }
+
+    producer_view = MapViewOfFile(producer_handle, FILE_MAP_READ, 0, 0, producer_view_size);
+    if (producer_view == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, MapViewOfFile);
+        result = win32_error_code_to_ebpf_result(GetLastError());
+        goto Done;
+    }
+
+    result = _ebpf_ring_buffer_map_double_view(data_handle, local_data_size, &data_view_1, &data_view_2);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    {
+        std::scoped_lock lock(_ebpf_ring_mapping_mutex);
+        _ebpf_ring_mappings[consumer_view] =
+            {consumer_handle, producer_handle, data_handle, consumer_view, producer_view, data_view_1, data_view_2};
+    }
+
+    *consumer = consumer_view;
+    *producer = producer_view;
+    *data = reinterpret_cast<const uint8_t*>(data_view_1);
+    *data_size = local_data_size;
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+
+Done:
+    if (data_view_2 != nullptr) {
+        UnmapViewOfFileEx(data_view_2, 0);
+    }
+    if (data_view_1 != nullptr) {
+        UnmapViewOfFileEx(data_view_1, 0);
+    }
+    if (producer_view != nullptr) {
+        UnmapViewOfFile(producer_view);
+    }
+    if (consumer_view != nullptr) {
+        UnmapViewOfFile(consumer_view);
+    }
+    if (data_handle != nullptr) {
+        CloseHandle(data_handle);
+    }
+    if (producer_handle != nullptr) {
+        CloseHandle(producer_handle);
+    }
+    if (consumer_handle != nullptr) {
+        CloseHandle(consumer_handle);
+    }
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -5792,32 +5933,36 @@ ebpf_ring_buffer_map_map_buffer(
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-// Shared helper: send unmap IOCTL by map handle and index.
-// The kernel uses its internally-stored addresses for unmapping, so no user-space
-// addresses need to be provided.
-static _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_unmap_buffer_with_handle(ebpf_handle_t map_handle, uint64_t index) NO_EXCEPT_TRY
-{
-    ebpf_operation_ring_buffer_map_unmap_buffer_request_t request{
-        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER, map_handle, index};
-    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
-}
-CATCH_NO_MEMORY_EBPF_RESULT
-
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_unmap_buffer_with_index(
     fd_t map_fd, uint64_t index, _In_opt_ void* consumer, _In_opt_ const void* producer, _In_opt_ const void* data)
     NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(consumer);
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(index);
     UNREFERENCED_PARAMETER(producer);
     UNREFERENCED_PARAMETER(data);
-    ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
-    if (map_handle == ebpf_handle_invalid)
-        return EBPF_INVALID_FD;
-    ebpf_result_t result = ebpf_ring_buffer_map_unmap_buffer_with_handle(map_handle, index);
-    EBPF_RETURN_RESULT(result);
+
+    ebpf_ring_buffer_user_mapping_t mapping{};
+    {
+        std::scoped_lock lock(_ebpf_ring_mapping_mutex);
+        auto it = _ebpf_ring_mappings.find(consumer);
+        if (it == _ebpf_ring_mappings.end()) {
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+        mapping = it->second;
+        _ebpf_ring_mappings.erase(it);
+    }
+
+    UnmapViewOfFile(mapping.consumer_view);
+    UnmapViewOfFile(mapping.producer_view);
+    UnmapViewOfFileEx(mapping.data_view_2, 0);
+    UnmapViewOfFileEx(mapping.data_view_1, 0);
+    CloseHandle(mapping.consumer_handle);
+    CloseHandle(mapping.producer_handle);
+    CloseHandle(mapping.data_handle);
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 

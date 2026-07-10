@@ -253,6 +253,25 @@ extern "C"
     ebpf_ring_buffer_map_unmap_user(_In_ const ebpf_map_t* map, uint64_t index);
 
     /**
+     * @brief Open a region-scoped user mapping handle for a ring buffer or perf event array map.
+     *
+     * @param[in] map Map to query.
+     * @param[in] index Buffer index to query.
+     * @param[in] section Requested logical region.
+     * @param[out] handle Region-scoped handle valid in the calling process.
+     * @param[out] view_size Size of the returned view.
+     * @retval EBPF_SUCCESS Successfully opened a handle.
+     * @retval EBPF_INVALID_ARGUMENT The operation is not supported on this map or the arguments are invalid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_get_user_mapping_handle(
+        _In_ const ebpf_map_t* map,
+        uint64_t index,
+        ebpf_ring_buffer_user_section_t section,
+        _Out_ ebpf_handle_t* handle,
+        _Out_ size_t* view_size);
+
+    /**
      * @brief Set the wait handle for a map.
      *
      * @param[in] map Map to set the wait handle for.

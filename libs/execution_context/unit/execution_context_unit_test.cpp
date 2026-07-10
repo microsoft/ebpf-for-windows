@@ -1211,6 +1211,7 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
                     completion->buffer_size,
                     async_query_result->consumer,
                     async_query_result->producer);
+                REQUIRE(record != nullptr);
                 if (!ebpf_ring_buffer_record_is_locked(record)) {
                     completion->value = *(uint64_t*)(record->data);
                 }
@@ -1437,6 +1438,31 @@ TEST_CASE("ring_buffer_map_unmap_remap", "[execution_context][ring_buffer]")
     REQUIRE(consumer2 != nullptr);
     REQUIRE(data2 != nullptr);
     // unmap_guard handles cleanup on scope exit.
+}
+
+TEST_CASE("ring_buffer_get_user_mapping_handle", "[execution_context][ring_buffer]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_RINGBUF, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    ebpf_handle_t handle = ebpf_handle_invalid;
+    size_t view_size = 0;
+    auto result = ebpf_map_get_user_mapping_handle(
+        map.get(), 0, EBPF_RING_BUFFER_USER_SECTION_CONSUMER, &handle, &view_size);
+    INFO("result=" << result << " handle=" << handle << " view_size=" << view_size);
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(handle != ebpf_handle_invalid);
+    REQUIRE(view_size == PAGE_SIZE);
+    CloseHandle((HANDLE)handle);
 }
 
 struct perf_event_array_test_async_context_t
