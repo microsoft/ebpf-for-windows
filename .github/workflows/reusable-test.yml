@@ -146,7 +146,7 @@ jobs:
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         env:
           # Hash of the latest ProcDump release from https://download.sysinternals.com/files/Procdump.zip
-          PROCDUMP_EXPECTED_HASH: '28588D9CFD3354A3A71204A570B9B60129761962F505B3CFE26DAA9A5175C14A'
+          PROCDUMP_EXPECTED_HASH: '68E057587B0FD654EFA095F76D80D633C0E5C60EA26FD3E7C0011C076BB2D00C'
         run: |
           $procDumpZipPath = "${{github.workspace}}\Procdump.zip"
           & ${{github.workspace}}\scripts\Download-AndVerify.ps1 -Url "https://download.sysinternals.com/files/Procdump.zip" -DestinationPath $procDumpZipPath -ExpectedHash $env:PROCDUMP_EXPECTED_HASH
