@@ -30,6 +30,7 @@
 #include <iostream>
 #include <ipifcons.h>
 #include <memory>
+#include <random>
 #include <sstream>
 #include <tuple>
 #include <variant>
@@ -1424,6 +1425,343 @@ TEST_CASE(
     }
 
     printf("Conditional policy validation test completed successfully\n");
+}
+
+TEST_CASE(
+    "connect_authorization_conditional_policy_prog_run_v4", "[sock_addr_tests][helper_validation][conditional_policy]")
+{
+    native_module_helper_t helper;
+    helper.initialize("cgroup_sock_addr_helpers", _is_main_thread);
+
+    struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
+    bpf_object_ptr object_ptr(object);
+
+    SAFE_REQUIRE(object != nullptr);
+    // Load the programs.
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
+
+    // Use the conditional authorization program that makes policy decisions.
+    bpf_program* conditional_program = bpf_object__find_program_by_name(object, "conditional_authorization_v4");
+    SAFE_REQUIRE(conditional_program != nullptr);
+
+    // Get the connection count map to verify tunnel connection tracking.
+    bpf_map* connection_count_map = bpf_object__find_map_by_name(object, "connection_count_map");
+    SAFE_REQUIRE(connection_count_map != nullptr);
+
+    int prog_fd = bpf_program__fd(conditional_program);
+    SAFE_REQUIRE(prog_fd >= 0);
+
+    int map_fd = bpf_map__fd(connection_count_map);
+    SAFE_REQUIRE(map_fd >= 0);
+
+    // key 100 is used for tunnel connections.
+    constexpr uint32_t tunnel_key = 100;
+    constexpr uint32_t max_luid_index = (1 << 24) - 1;
+    uint64_t tunnel_count = 0;
+    bpf_test_run_opts opts{.repeat = 1};
+
+    union
+    {
+        bpf_sock_addr_t context;
+        bpf_sock_addr_test_context_t test_context;
+        char buffer[sizeof(bpf_sock_addr_test_context_t) + 1];
+    } buffer_in{}, buffer_out{};
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dist(1u, max_luid_index);
+
+    // Test data.
+    constexpr struct
+    {
+        const uint32_t ctx_size_in;                              ///< Size of the input context.
+        const uint32_t ctx_size_out;                             ///< Size of the output context.
+        IPPROTO protocol{IPPROTO_TCP};                           ///< The protocol to test.
+        uint32_t version{BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION}; ///< The version of the network context.
+        uint32_t interface_type{0};                              ///< The type of the interface.
+        uint32_t tunnel_type{0};                                 ///< The type of the tunnel.
+        bool expect_success{true}; ///< Whether the bpf_prog_test_run_opts() is expected to succeed.
+        ebpf_sock_addr_verdict_t verdict{static_cast<ebpf_sock_addr_verdict_t>(
+            -1)}; ///< The verdict of the test program. Ignored if expect_success is false.
+    } test_data[] = {
+        // invalid input context.
+        {.ctx_size_in = 0u, .ctx_size_out = sizeof(bpf_sock_addr_test_context_t), .expect_success = false},
+        // invalid input context.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .expect_success = false},
+        // invalid input context.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .expect_success = false},
+        // bpf_sock_addr_t input context, protocol mismatch. bpf_sock_addr_get_network_context() is not invoked by the
+        // program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_t input context, protocol mismatch. bpf_sock_addr_get_network_context() is not invoked by the
+        // program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context larger than bpf_sock_addr_t, but smaller than bpf_sock_addr_test_context_t. Protocol mismatch.
+        // bpf_sock_addr_get_network_context() is not invoked by the program.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t) + 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .protocol = IPPROTO_UDP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_t input context. Protocol match. bpf_sock_addr_get_network_context() fails.
+        {.ctx_size_in = sizeof(bpf_sock_addr_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // input context larger than bpf_sock_addr_t, but smaller than bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() fails.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t) - 1,
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t) - 1,
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Interface type is PPP, which is rejected.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_PPP,
+         .verdict = BPF_SOCK_ADDR_VERDICT_REJECT},
+        // bpf_sock_addr_test_context_t input context. Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Map is updated.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context context is larger than bpf_sock_addr_test_context_t. Output context is smaller than input
+        // context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(buffer_in),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t input context. Output context larger than bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() succeeds.
+        // Map is updated.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(buffer_out),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // input context context is larger than bpf_sock_addr_test_context_t. Output context larger than
+        // bpf_sock_addr_test_context_t.
+        // Protocol match. bpf_sock_addr_get_network_context() succeeds. Map is updated.
+        {.ctx_size_in = sizeof(buffer_in),
+         .ctx_size_out = sizeof(buffer_out),
+         .interface_type = IF_TYPE_TUNNEL,
+         .tunnel_type = TUNNEL_TYPE_6TO4,
+         .verdict = BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT},
+        // bpf_sock_addr_test_context_t input context. Invalid network context version.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_test_context_t),
+         .version = 0,
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t input context. Output context is smaller than input context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t),
+         .expect_success = false},
+        // bpf_sock_addr_test_context_t in context. Output context is smaller than input context.
+        // bpf_prog_test_run_opts() fails. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        {.ctx_size_in = sizeof(bpf_sock_addr_test_context_t),
+         .ctx_size_out = sizeof(bpf_sock_addr_t) - 1,
+         .expect_success = false},
+    };
+
+    for (const auto& data : test_data) {
+        CAPTURE(data.ctx_size_in);
+        CAPTURE(data.ctx_size_out);
+        CAPTURE(data.protocol);
+        CAPTURE(data.version);
+        CAPTURE(data.interface_type);
+        CAPTURE(data.tunnel_type);
+        CAPTURE(data.verdict);
+
+        memset(&buffer_in, 0, sizeof(buffer_in));
+        memset(&buffer_out, 0, sizeof(buffer_out));
+
+        NET_LUID luid{};
+
+        luid.Info.NetLuidIndex = dist(gen);
+        luid.Info.IfType = data.interface_type;
+
+        bpf_sock_addr_t* sock_addr_in = nullptr;
+        bpf_sock_addr_test_context_t* test_context_in = nullptr;
+        bpf_sock_addr_t* sock_addr_out = nullptr;
+        bpf_sock_addr_test_context_t* test_context_out = nullptr;
+
+        if (data.ctx_size_in < sizeof(bpf_sock_addr_test_context_t)) {
+            sock_addr_in = &buffer_in.context;
+            opts.ctx_in = sock_addr_in;
+        } else {
+            test_context_in = &buffer_in.test_context;
+            sock_addr_in = &test_context_in->context;
+            opts.ctx_in = test_context_in;
+
+            test_context_in->header = BPF_SOCK_ADDR_TEST_CONTEXT_HEADER_VERSION;
+
+            test_context_in->network_context.version = data.version;
+            test_context_in->network_context.interface_type = data.interface_type;
+            test_context_in->network_context.tunnel_type = data.tunnel_type;
+            test_context_in->network_context.next_hop_interface_luid = luid.Value;
+            test_context_in->network_context.sub_interface_index = dist(gen);
+        }
+
+        luid.Info.NetLuidIndex = dist(gen);
+
+        sock_addr_in->family = AF_INET;
+        sock_addr_in->protocol = static_cast<uint32_t>(data.protocol);
+        sock_addr_in->compartment_id = dist(gen);
+        sock_addr_in->interface_luid = luid.Value;
+
+        opts.ctx_out = &buffer_out;
+
+        opts.ctx_size_in = data.ctx_size_in;
+        opts.ctx_size_out = data.ctx_size_out;
+
+        if (!data.expect_success) {
+            SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) < 0);
+            continue;
+        }
+
+        SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) == 0);
+        SAFE_REQUIRE(opts.retval == static_cast<uint32_t>(data.verdict));
+
+        // Map is populated only when verdict is BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT, protocol is TCP , and tunnel type
+        // is not 0.
+        if (data.verdict != BPF_SOCK_ADDR_VERDICT_PROCEED_SOFT || data.protocol != IPPROTO_TCP ||
+            (test_context_in != nullptr && test_context_in->network_context.tunnel_type == 0)) {
+            SAFE_REQUIRE(bpf_map_lookup_elem(map_fd, &tunnel_key, &tunnel_count) < 0);
+        } else {
+            SAFE_REQUIRE(bpf_map_lookup_elem(map_fd, &tunnel_key, &tunnel_count) == 0);
+            SAFE_REQUIRE(tunnel_count == 1);
+            SAFE_REQUIRE(bpf_map_delete_elem(map_fd, &tunnel_key) == 0);
+        }
+
+        // bpf_prog_test_run_opts() assumes that output context size is the same as
+        // input context size. See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+        const uint32_t ctx_size_out = data.ctx_size_in < sizeof(bpf_sock_addr_test_context_t)
+                                          ? sizeof(bpf_sock_addr_t)
+                                          : sizeof(bpf_sock_addr_test_context_t);
+        SAFE_REQUIRE(opts.ctx_size_out == ctx_size_out);
+
+        if (data.ctx_size_in < data.ctx_size_out) {
+            // If the output context is larger than the input context, output context is not correctly populated.
+            // See issue 4441 - https://github.com/microsoft/ebpf-for-windows/issues/4441.
+            continue;
+        }
+
+        if (ctx_size_out == sizeof(bpf_sock_addr_test_context_t)) {
+            sock_addr_out = &buffer_out.test_context.context;
+            test_context_out = &buffer_out.test_context;
+        } else {
+            sock_addr_out = &buffer_out.context;
+        }
+
+        SAFE_REQUIRE(sock_addr_out->family == sock_addr_in->family);
+        SAFE_REQUIRE(sock_addr_out->protocol == sock_addr_in->protocol);
+        SAFE_REQUIRE(sock_addr_out->compartment_id == sock_addr_in->compartment_id);
+        SAFE_REQUIRE(sock_addr_out->interface_luid == sock_addr_in->interface_luid);
+
+        if (test_context_out == nullptr) {
+            continue;
+        }
+
+        // bpf_sock_addr_get_network_context() is not invoked by program if protocol is not TCP.
+        // bpf_sock_addr_get_network_context() fails if the context is not a bpf_sock_addr_test_context_t.
+        if (data.protocol != IPPROTO_TCP) {
+            SAFE_REQUIRE(test_context_out->network_context.version == 0);
+            SAFE_REQUIRE(test_context_out->network_context.interface_type == 0u);
+            SAFE_REQUIRE(test_context_out->network_context.tunnel_type == 0u);
+            SAFE_REQUIRE(test_context_out->network_context.next_hop_interface_luid == 0ui64);
+            SAFE_REQUIRE(test_context_out->network_context.sub_interface_index == 0u);
+        } else {
+            SAFE_REQUIRE(test_context_out->network_context.version == BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION);
+            SAFE_REQUIRE(test_context_out->network_context.interface_type == data.interface_type);
+            SAFE_REQUIRE(test_context_out->network_context.tunnel_type == data.tunnel_type);
+
+            SAFE_REQUIRE(test_context_in != nullptr);
+            SAFE_REQUIRE(
+                test_context_out->network_context.next_hop_interface_luid ==
+                test_context_in->network_context.next_hop_interface_luid);
+            SAFE_REQUIRE(
+                test_context_out->network_context.sub_interface_index ==
+                test_context_in->network_context.sub_interface_index);
+        }
+    }
+
+    // Test invalid header
+    memset(&buffer_in, 0, sizeof(buffer_in));
+    opts.ctx_in = &buffer_in.test_context;
+    opts.ctx_size_in = sizeof(buffer_in.test_context);
+    opts.ctx_out = &buffer_out.test_context;
+    opts.ctx_size_out = sizeof(buffer_out.test_context);
+
+    bpf_sock_addr_test_context_header_t headers[] = {
+        // invalid version
+        {.version = 0,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid version
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION + 1,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid version
+        {.version = UINT16_MAX,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = 0,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE - 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE + 1,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = 0},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = 1},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE - 1},
+        // invalid total size
+        {.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,
+         .size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,
+         .total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE + 1},
+    };
+
+    for (const auto& header : headers) {
+        buffer_in.test_context.header = header;
+
+        SAFE_REQUIRE(bpf_prog_test_run_opts(prog_fd, &opts) < 0);
+    }
+
+    printf("Conditional policy validation test (prog_run) completed successfully\n");
 }
 
 // Listen hook helper functions validation: validates that bpf_sock_addr_get_network_context
