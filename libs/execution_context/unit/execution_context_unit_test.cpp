@@ -24,10 +24,14 @@ extern "C"
     // - Defined in ebpf_program.c, declared here for unit testing.
     void
     ebpf_program_set_header_context_descriptor(
-        _In_ const ebpf_ctx_descriptor_t* context_descriptor, _Inout_ void* program_context);
+        _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context);
     void
     ebpf_program_get_header_context_descriptor(
-        _In_ const void* program_context, _Outptr_ const ebpf_ctx_descriptor_t** context_descriptor);
+        _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+
+    bool
+    ebpf_program_is_valid_general_helper_provider_data(
+        _In_ PNPI_MODULEID npi_module_id, _In_opt_ const ebpf_program_data_t* program_data);
 }
 
 struct scoped_cpu_affinity
@@ -1723,7 +1727,7 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     context.data_end = test_context_data.data() + test_context_data.size();
 
     void* ctx = &context.data;
-    ebpf_ctx_descriptor_t context_descriptor = {0};
+    ebpf_context_descriptor_t context_descriptor = {0};
     context_descriptor.size = sizeof(context);
     context_descriptor.data = 0;
     context_descriptor.end = EBPF_OFFSET_OF(decltype(context), data_end) - EBPF_OFFSET_OF(decltype(context), data);
@@ -1815,11 +1819,11 @@ TEST_CASE("context_descriptor_header", "[platform][perf_event_array]")
     void* ctx = &context.ctx;
 
     // The context descriptor tells the platform where to find the data pointers.
-    ebpf_ctx_descriptor_t context_descriptor = {
+    ebpf_context_descriptor_t context_descriptor = {
         sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
     ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
 
-    const ebpf_ctx_descriptor_t* test_ctx_descriptor;
+    const ebpf_context_descriptor_t* test_ctx_descriptor;
     ebpf_program_get_header_context_descriptor(ctx, &test_ctx_descriptor);
     REQUIRE(test_ctx_descriptor == &context_descriptor);
 
@@ -2096,6 +2100,44 @@ TEST_CASE("perf_event_array_sync_query", "[execution_context][perf_event_array]"
     }
 
     // Cleanup will be done in the scope_exit block above.
+}
+
+TEST_CASE("perf_event_array_oob_index", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    uint32_t ring_count = ebpf_get_cpu_count();
+    REQUIRE(ring_count > 0);
+
+    // Verify out-of-range cpu_id is rejected.
+    uint32_t oob_index = ring_count; // First invalid index.
+    uint8_t* buffer = nullptr;
+    size_t consumer_offset = 0;
+    REQUIRE(ebpf_map_query_buffer(map.get(), oob_index, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+
+    // async_context is required to be non-null, but the out-of-range check rejects the
+    // request before the context is ever used, so a placeholder is sufficient here.
+    int dummy_async_context = 0;
+    ebpf_map_async_query_result_t async_query_result = {};
+    REQUIRE(ebpf_map_async_query(map.get(), oob_index, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+
+    REQUIRE(ebpf_map_return_buffer(map.get(), oob_index, 0) == EBPF_INVALID_ARGUMENT);
+
+    // Also test UINT32_MAX.
+    REQUIRE(ebpf_map_query_buffer(map.get(), UINT32_MAX, &buffer, &consumer_offset) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_async_query(map.get(), UINT32_MAX, &async_query_result, &dummy_async_context) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_map_return_buffer(map.get(), UINT32_MAX, 0) == EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
@@ -2508,10 +2550,7 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             completion) == EBPF_INVALID_ARGUMENT); // EverParse validator rejects undersized message.
 }
 
-#define EBPF_PROGRAM_TYPE_TEST_GUID                                                    \
-    {                                                                                  \
-        0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
-    }
+#define EBPF_PROGRAM_TYPE_TEST_GUID {0x8ee1b757, 0xc0b2, 0x4c84, {0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9}}
 
 void
 test_register_provider(
@@ -2565,7 +2604,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _ebpf_core_initializer core;
     core.initialize();
 
-    ebpf_ctx_descriptor_t _test_context_descriptor = {sizeof(ebpf_ctx_descriptor_t), -1, -1, -1};
+    ebpf_context_descriptor_t _test_context_descriptor = {sizeof(ebpf_context_descriptor_t), -1, -1, -1};
 
     const uint32_t _test_prog_type = 1000;
     ebpf_program_type_descriptor_t _test_program_type_descriptor = {
@@ -2680,7 +2719,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     _test_context_descriptor.size = 0;
     test_register_provider(&provider_characteristics);
     // Fix up the context descriptor.
-    _test_context_descriptor.size = sizeof(ebpf_ctx_descriptor_t);
+    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
 
     // Remove the helper function prototype from the program info.
     _test_program_info.program_type_specific_helper_prototype = nullptr;
@@ -2691,6 +2730,48 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
     // Invalidate the helper function prototype by removing the name of the helper function.
     _test_helper_function_prototype[0].name = nullptr;
     test_register_provider(&provider_characteristics);
+}
+
+TEST_CASE("INVALID_GENERAL_HELPER_PROGRAM_DATA", "[execution_context][negative]")
+{
+    ebpf_program_type_descriptor_t general_helper_program_type_descriptor = {
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
+        "global_helper",
+        nullptr,
+        ebpf_general_helper_function_module_id.Guid,
+        0,
+        0};
+
+    ebpf_helper_function_prototype_t general_helper_prototype[] = {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+         1,
+         "general_helper",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
+
+    ebpf_program_info_t general_helper_program_info = {
+        EBPF_PROGRAM_INFORMATION_HEADER,
+        &general_helper_program_type_descriptor,
+        0,
+        nullptr,
+        1,
+        general_helper_prototype};
+
+    ebpf_program_data_t invalid_general_helper_program_data = {
+        EBPF_PROGRAM_DATA_HEADER, &general_helper_program_info, nullptr, nullptr, nullptr, nullptr, 0, {0}};
+
+    REQUIRE(!ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
+
+    const void* general_helper_functions[] = {reinterpret_cast<const void*>(1)};
+    ebpf_helper_function_addresses_t general_helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+        EBPF_COUNT_OF(general_helper_functions),
+        (uint64_t*)general_helper_functions};
+    invalid_general_helper_program_data.global_helper_function_addresses = &general_helper_function_addresses;
+
+    REQUIRE(ebpf_program_is_valid_general_helper_provider_data(
+        &ebpf_general_helper_function_module_id, &invalid_general_helper_program_data));
 }
 
 // TODO: Add more native module loading IOCTL negative tests.

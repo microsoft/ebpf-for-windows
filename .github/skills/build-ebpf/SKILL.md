@@ -238,6 +238,17 @@ Use these when the user describes what area they're working on:
 | Verifier changes | `libs\user\prevail,tests\unit_tests` |
 | Shared library changes | Rebuild all dependents — prefer full solution build |
 
+## bpf2c Expected Output Regeneration
+
+If bpf2c output changes and `tests\bpf2c_tests` expected files must be updated:
+
+1. Build `x64\Debug`.
+2. Run:
+
+```powershell
+.\scripts\generate_expected_bpf2c_output.ps1 x64\Debug
+```
+
 ## Dependency Chain
 
 When building specific components, be aware of the dependency order:

@@ -224,8 +224,12 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      BPF_FUNC_get_current_thread_create_time,
      "bpf_get_current_thread_create_time",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_DONTCARE}}
-};
+     {EBPF_ARGUMENT_TYPE_DONTCARE}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_redirect_map,
+     "bpf_redirect_map",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_ANYTHING, EBPF_ARGUMENT_TYPE_ANYTHING}}};
 
 #ifdef __cplusplus
 extern "C"

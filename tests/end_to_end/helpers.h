@@ -126,6 +126,17 @@ typedef class _test_global_helper
         // Return an arbitrary non-zero value for pid and tgid.
         return 9999;
     }
+
+    // Returns 1 on success, or -1 on failure.
+    static intptr_t
+    _sample_redirect_map(_In_ void* map, uint64_t key, uint64_t flags)
+    {
+        UNREFERENCED_PARAMETER(map);
+        UNREFERENCED_PARAMETER(key);
+        UNREFERENCED_PARAMETER(flags);
+        // Return 1 to indicate success.
+        return 1;
+    }
 } test_global_helper_t;
 
 class _test_sample_map_provider;
@@ -507,7 +518,7 @@ _test_sample_hash_map_preprocess_delete_entry(
 #pragma warning(pop)
 
 // XDP program information.
-static const ebpf_ctx_descriptor_t _ebpf_xdp_test_context_descriptor = {
+static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
     sizeof(xdp_md_t),
     EBPF_OFFSET_OF(xdp_md_t, data),
     EBPF_OFFSET_OF(xdp_md_t, data_end),
@@ -1058,7 +1069,7 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype,
     0,
-    NULL};
+    nullptr};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
     EBPF_PROGRAM_DATA_HEADER,
@@ -1471,7 +1482,8 @@ static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address
     EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
     (uint64_t*)_sample_ebpf_ext_helper_functions};
 
-static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
+static const void* _test_global_helper_functions[] = {
+    test_global_helper_t::_sample_get_pid_tgid, test_global_helper_t::_sample_redirect_map};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

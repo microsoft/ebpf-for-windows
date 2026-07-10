@@ -1,9 +1,8 @@
 ADVAPI32.dll
 api-ms-win-core-debug-l1-1-0.dll
 api-ms-win-core-errorhandling-l1-1-0.dll
+api-ms-win-core-fibers-l1-1-0.dll
 api-ms-win-core-file-l1-1-0.dll
-api-ms-win-core-file-l1-2-0.dll
-api-ms-win-core-file-l2-1-0.dll
 api-ms-win-core-handle-l1-1-0.dll
 api-ms-win-core-heap-l1-1-0.dll
 api-ms-win-core-heap-l2-1-0.dll
@@ -22,6 +21,7 @@ api-ms-win-core-string-l1-1-0.dll
 api-ms-win-core-synch-l1-1-0.dll
 api-ms-win-core-synch-l1-2-0.dll
 api-ms-win-core-sysinfo-l1-1-0.dll
+api-ms-win-core-sysinfo-l1-2-0.dll
 api-ms-win-core-threadpool-l1-2-0.dll
 api-ms-win-core-util-l1-1-0.dll
 api-ms-win-eventing-provider-l1-1-0.dll

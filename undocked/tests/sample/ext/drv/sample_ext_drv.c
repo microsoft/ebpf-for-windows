@@ -21,6 +21,7 @@
 
 #define HELPER_DATA_1 1
 #define HELPER_DATA_2 2
+#define SAMPLE_EBPF_EXT_ATTACH_PARAMETER_TAG 'apms'
 
 // Driver global variables.
 static DEVICE_OBJECT* _sample_ebpf_ext_driver_device_object;
@@ -224,8 +225,10 @@ _sample_ebpf_ext_driver_io_device_control(
     WDFDEVICE device;
     void* input_buffer = NULL;
     void* output_buffer = NULL;
+    uint8_t* attach_parameter_copy = NULL;
     size_t actual_input_length = 0;
     size_t actual_output_length = 0;
+    size_t complete_length = output_buffer_length;
     sample_program_context_header_t context_header = {0};
     sample_program_context_t* program_context = &context_header.context;
     uint32_t program_result = 0;
@@ -236,6 +239,14 @@ _sample_ebpf_ext_driver_io_device_control(
     switch (io_control_code) {
     case IOCTL_SAMPLE_EBPF_EXT_CTL_RUN:
         if (input_buffer_length != 0) {
+            const void* attach_parameter = NULL;
+            size_t attach_parameter_size = 0;
+            size_t program_data_size = 0;
+            uint8_t* program_data = NULL;
+            sample_ebpf_ext_run_request_t* run_request = NULL;
+            size_t run_request_offset = FIELD_OFFSET(sample_ebpf_ext_run_request_t, data);
+            BOOLEAN run_request_detected = FALSE;
+
             // Retrieve the input buffer associated with the request object.
             status = WdfRequestRetrieveInputBuffer(
                 request,             // Request object.
@@ -259,47 +270,84 @@ _sample_ebpf_ext_driver_io_device_control(
                 goto Done;
             }
 
-            if (input_buffer != NULL) {
-                size_t minimum_request_size = 0;
-                size_t minimum_reply_size = actual_input_length;
+            size_t minimum_request_size = 0;
+            size_t minimum_reply_size = actual_input_length;
 
-                if (actual_input_length < minimum_request_size) {
+            if (actual_input_length < minimum_request_size) {
+                status = STATUS_INVALID_PARAMETER;
+                goto Done;
+            }
+
+            // Be aware: Input and output buffer point to the same memory.
+            if (minimum_reply_size > 0) {
+                // Retrieve output buffer associated with the request object.
+                status = WdfRequestRetrieveOutputBuffer(
+                    request, output_buffer_length, &output_buffer, &actual_output_length);
+                if (!NT_SUCCESS(status)) {
+                    KdPrintEx(
+                        (DPFLTR_IHVDRIVER_ID,
+                         DPFLTR_INFO_LEVEL,
+                         "%s: Output buffer failure %d\n",
+                         SAMPLE_EBPF_EXT_NAME_A,
+                         status));
+                    goto Done;
+                }
+                if (output_buffer == NULL) {
                     status = STATUS_INVALID_PARAMETER;
                     goto Done;
                 }
 
-                // Be aware: Input and output buffer point to the same memory.
-                if (minimum_reply_size > 0) {
-                    // Retrieve output buffer associated with the request object.
-                    status = WdfRequestRetrieveOutputBuffer(
-                        request, output_buffer_length, &output_buffer, &actual_output_length);
-                    if (!NT_SUCCESS(status)) {
-                        KdPrintEx(
-                            (DPFLTR_IHVDRIVER_ID,
-                             DPFLTR_INFO_LEVEL,
-                             "%s: Output buffer failure %d\n",
-                             SAMPLE_EBPF_EXT_NAME_A,
-                             status));
-                        goto Done;
-                    }
-                    if (output_buffer == NULL) {
+                if (actual_output_length < minimum_reply_size) {
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    goto Done;
+                }
+            }
+
+            if (actual_input_length >= run_request_offset) {
+                run_request = (sample_ebpf_ext_run_request_t*)input_buffer;
+                if (run_request->version == SAMPLE_EBPF_EXT_RUN_REQUEST_VERSION) {
+                    size_t expected_request_size =
+                        run_request_offset + run_request->attach_parameter_size + run_request->program_data_size;
+                    if (actual_input_length != expected_request_size) {
                         status = STATUS_INVALID_PARAMETER;
                         goto Done;
                     }
-
-                    if (actual_output_length < minimum_reply_size) {
+                    if (actual_output_length < run_request->program_data_size) {
                         status = STATUS_BUFFER_TOO_SMALL;
                         goto Done;
                     }
-                }
 
-                // Invoke the eBPF program. Pass the output buffer as program context data.
-                program_context->data_start = output_buffer;
-                program_context->data_end = (uint8_t*)output_buffer + output_buffer_length;
-                program_context->helper_data_1 = HELPER_DATA_1;
-                program_context->helper_data_2 = HELPER_DATA_2;
-                result = sample_ebpf_extension_invoke_program(program_context, &program_result);
+                    attach_parameter_size = run_request->attach_parameter_size;
+                    if (attach_parameter_size > 0) {
+                        attach_parameter_copy = ExAllocatePool2(
+                            POOL_FLAG_NON_PAGED, attach_parameter_size, SAMPLE_EBPF_EXT_ATTACH_PARAMETER_TAG);
+                        if (attach_parameter_copy == NULL) {
+                            status = STATUS_NO_MEMORY;
+                            goto Done;
+                        }
+                        RtlCopyMemory(attach_parameter_copy, run_request->data, attach_parameter_size);
+                        attach_parameter = attach_parameter_copy;
+                    }
+                    program_data = (uint8_t*)run_request->data + run_request->attach_parameter_size;
+                    program_data_size = run_request->program_data_size;
+                    RtlMoveMemory(output_buffer, program_data, program_data_size);
+                    complete_length = program_data_size;
+                    run_request_detected = TRUE;
+                }
             }
+
+            if (!run_request_detected) {
+                complete_length = output_buffer_length;
+                program_data_size = output_buffer_length;
+            }
+
+            // Invoke the eBPF program. Pass the output buffer as program context data.
+            program_context->data_start = output_buffer;
+            program_context->data_end = (uint8_t*)output_buffer + program_data_size;
+            program_context->helper_data_1 = HELPER_DATA_1;
+            program_context->helper_data_2 = HELPER_DATA_2;
+            result = sample_ebpf_extension_invoke_program(
+                attach_parameter, attach_parameter_size, program_context, &program_result);
         } else {
             status = STATUS_INVALID_PARAMETER;
             goto Done;
@@ -477,6 +525,9 @@ _sample_ebpf_ext_driver_io_device_control(
     }
 
 Done:
-    WdfRequestCompleteWithInformation(request, status, output_buffer_length);
+    if (attach_parameter_copy != NULL) {
+        ExFreePool(attach_parameter_copy);
+    }
+    WdfRequestCompleteWithInformation(request, status, complete_length);
     return;
 }

@@ -38,7 +38,7 @@ _native_module_helper::initialize(
         }
         bpf_link_detach(link_fd);
         if (link_fd >= 0) {
-            _close(link_fd);
+            (void)ebpf_close_fd(link_fd);
         }
     }
     // }

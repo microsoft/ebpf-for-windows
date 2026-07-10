@@ -64,6 +64,8 @@ The release manager must download the relevant artifacts from the build pipeline
 
 1.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1.  Once the uploads are complete, click "`Publish release`". Github will automatically upload the zipped up source code file.
+1.  Update any regression test release references so tests that validate backward compatibility now use the release that just became N-1.
+    This keeps the regression tests pointed at the previous release after the new release is published.
 
 ## Publishing the Release to NuGet.org
 

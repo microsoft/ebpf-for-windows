@@ -5,24 +5,25 @@
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="$(OutDir)\Elf.c" />
-    <ClCompile Include="$(OutDir)\ElfWrapper.c" />
+    <ClCompile Include="$(ProjectDir)generated\Elf.c" />
+    <ClCompile Include="$(ProjectDir)generated\ElfWrapper.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="$(OutDir)\Elf.h" />
-    <ClInclude Include="$(OutDir)\ElfWrapper.h" />
-    <ClInclude Include="$(OutDir)\EverParse.h" />
-    <ClInclude Include="$(OutDir)\EverParseEndianness.h" />
+    <ClInclude Include="$(ProjectDir)generated\Elf.h" />
+    <ClInclude Include="$(ProjectDir)generated\ElfWrapper.h" />
+    <ClInclude Include="$(ProjectDir)generated\EverParse.h" />
+    <ClInclude Include="$(ProjectDir)generated\EverParseEndianness.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Elf.3d">
       <FileType>Document</FileType>
       <Command>
-         pushd $(OutDir)
-         $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)Elf.3d
-         popd
-       </Command>
-      <Outputs>$(OutDir)Elf.h;$(OutDir)ElfWrapper.h;$(OutDir)EverParse.h;$(OutDir)Elf.c;$(OutDir)\ElfWrapper.c;%(Outputs)</Outputs>
+       if not exist "$(ProjectDir)generated" mkdir "$(ProjectDir)generated"
+       pushd "$(ProjectDir)generated"
+       $(SolutionDir)packages\EverParse.2022.6.13\lib\native\win-x86_64\everparse.cmd $(ProjectDir)Elf.3d
+       popd
+     </Command>
+    <Outputs>$(ProjectDir)generated\Elf.h;$(ProjectDir)generated\ElfWrapper.h;$(ProjectDir)generated\EverParse.h;$(ProjectDir)generated\EverParseEndianness.h;$(ProjectDir)generated\Elf.c;$(ProjectDir)generated\ElfWrapper.c;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -39,19 +40,19 @@
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='FuzzerDebug'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>$(EbpfPlatformToolset)</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

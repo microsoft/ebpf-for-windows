@@ -86,7 +86,7 @@ jobs:
 
     # Make runs-on conditionally based on the architecture input.
     # This is needed to support both x64 and ARM64 builds.
-    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2022' || 'windows-11-arm' }}
+    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2025' || 'windows-11-arm' }}
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ${{inputs.solution_file}}
@@ -99,7 +99,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc  # v2.15.1
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411  # v2.19.4
         with:
           egress-policy: audit
 
@@ -113,7 +113,10 @@ jobs:
       - name: Set MSVC Environment Variables
         shell: cmd
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+          for /f "usebackq delims=" %%i in (`"%VSWHERE%" -latest -property installationPath`) do set "VSINSTALLPATH=%%i"
+          if not defined VSINSTALLPATH ( echo Could not locate a Visual Studio installation via vswhere. & exit /b 1 )
+          call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvars64.bat"
           powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
@@ -145,6 +148,51 @@ jobs:
         uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
         with:
           msbuild-architecture: x64
+
+      # The hosted runner images do not always ship the Spectre-mitigated VC
+      # runtime libraries for the installed MSVC toolset, which causes MSB8040
+      # because the drivers in this solution require Spectre mitigation. Install
+      # the architecture-appropriate component on demand before building.
+      - name: Install Spectre-mitigated libraries
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $arch = '${{env.BUILD_PLATFORM}}'
+          $libArch = if ($arch -eq 'x64') { 'x64' } else { 'arm64' }
+          $component = if ($arch -eq 'x64') {
+            'Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre'
+          } else {
+            'Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre'
+          }
+
+          # Skip the (slow) installer modify if the Spectre libraries for the
+          # active toolset are already present.
+          if ($env:msvc_tools_path) {
+            $spectreDir = Join-Path $env:msvc_tools_path "lib\spectre\$libArch"
+            if (Test-Path $spectreDir) {
+              Write-Host "Spectre-mitigated libraries already present at $spectreDir"
+              exit 0
+            }
+          }
+
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $installPath = & $vswhere -latest -property installationPath
+          if (-not $installPath) { throw "Could not locate a Visual Studio installation via vswhere." }
+          Write-Host "Visual Studio install path: $installPath"
+
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          Write-Host "Installing component '$component'..."
+          $proc = Start-Process -FilePath $setup -Wait -PassThru -NoNewWindow -ArgumentList @(
+            'modify',
+            '--installPath', "`"$installPath`"",
+            '--add', $component,
+            '--quiet', '--norestart', '--nocache'
+          )
+          Write-Host "Installer exit code: $($proc.ExitCode)"
+          # 3010 == success, reboot required (not needed for libraries).
+          if ($proc.ExitCode -ne 0 -and $proc.ExitCode -ne 3010) {
+            throw "Visual Studio installer failed with exit code $($proc.ExitCode)."
+          }
 
       - name: Cache LLVM 18.1.8 installer
         if: steps.skip_check.outputs.should_skip != 'true'

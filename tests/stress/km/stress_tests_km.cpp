@@ -1254,6 +1254,10 @@ _mt_sockaddr_invoke_program_test(ebpf_execution_type_t program_type, const test_
 
     // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
+    // The VS2026 Code Analysis engine newly flags this pre-existing call (VS2022 did not): _make_unique_file_copy()
+    // is _Must_inspect_result_, and on failure it returns an empty string. That empty string makes the subsequent
+    // program load fail the REQUIRE check below, so explicit inspection of the result here is unnecessary.
+#pragma warning(suppress : 28193) // 'file_name' holds a value that must be examined.
     std::string file_name = is_native ? _make_unique_file_copy("cgroup_mt_connect6.sys") : "cgroup_mt_connect6.o";
 
     std::vector<object_table_entry> dummy_table(1);
@@ -1553,6 +1557,10 @@ _mt_bindmonitor_tail_call_invoke_program_test(
 
     // Choose file extension based on execution type.
     bool is_native = (program_type == EBPF_EXECUTION_NATIVE);
+    // The VS2026 Code Analysis engine newly flags this pre-existing call (VS2022 did not): _make_unique_file_copy()
+    // is _Must_inspect_result_, and on failure it returns an empty string. That empty string makes the subsequent
+    // program load fail the REQUIRE check below, so explicit inspection of the result here is unnecessary.
+#pragma warning(suppress : 28193) // 'file_name' holds a value that must be examined.
     std::string file_name =
         is_native ? _make_unique_file_copy("bindmonitor_mt_tailcall.sys") : "bindmonitor_mt_tailcall.o";
 

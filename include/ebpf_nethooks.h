@@ -1,6 +1,8 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 #pragma once
+#include "ebpf_windows.h"
+
 #include <stdint.h>
 
 // This file contains APIs for hooks and helpers that are
@@ -189,6 +191,40 @@ typedef struct _bpf_sock_addr_network_context
 } bpf_sock_addr_network_context_t;
 
 #define BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION 1
+
+/**
+ * @brief Header of an eBPF sock_addr test context structure.
+ * @see bpf_sock_addr_test_context_t.
+ * Every eBPF sock_addr test context structure must start with this header.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
+ * @note Original bpf_sock_addr_t context does not have the header.
+ * @see bpf_sock_addr_t.
+ */
+typedef ebpf_extension_header_t bpf_sock_addr_test_context_header_t;
+
+/**
+ * @brief Extended test context for for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.
+ * This context can be used for testing eBPF programs that call \ref bpf_sock_addr_get_network_context helper function.
+ * eBPF programs that do not call \ref bpf_sock_addr_get_network_context helper function, can use \ref bpf_sock_addr_t
+ * context.
+ */
+typedef struct _bpf_sock_addr_test_context
+{
+    bpf_sock_addr_test_context_header_t header;      ///< Standard versioning header.
+    bpf_sock_addr_t context;                         ///< Socket address context.
+    bpf_sock_addr_network_context_t network_context; ///< Network context.
+} bpf_sock_addr_test_context_t;
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION 1
+
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(bpf_sock_addr_test_context_t, network_context)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE sizeof(bpf_sock_addr_test_context_t)
+#define BPF_SOCK_ADDR_TEST_CONTEXT_HEADER_VERSION \
+    {BPF_SOCK_ADDR_TEST_CONTEXT_VERSION,          \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE,     \
+     BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE}
 
 /**
  * @brief Get the network context for the connection (CONNECT_AUTHORIZATION, RECV_ACCEPT, BIND, and LISTEN).

@@ -163,3 +163,42 @@ void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
 #include "ubpf_instruction_valid.c"
 #include "ubpf_jit.c"
 #pragma warning(pop)
+
+// eBPF for Windows uses only the default (legacy) ubpf execution profile; it does not use
+// ubpf's opt-in "safe" execution profile. ubpf_vm.c references these safe-profile entry points
+// unconditionally, so stub them out rather than compiling vm/ubpf_safe.c (which duplicates
+// ubpf_vm.c's file-static interpreter helpers and so cannot be amalgamated into this translation
+// unit). This mirrors how the unused ubpf JIT is thunked out above.
+#pragma warning(push)
+#pragma warning(disable : 4100) // unreferenced formal parameter
+int
+ubpf_set_execution_profile_impl(struct ubpf_vm* vm, enum ubpf_execution_profile profile)
+{
+    return (profile == UBPF_EXECUTION_PROFILE_LEGACY) ? 0 : -1;
+}
+
+int
+ubpf_register_safe_helper_impl(struct ubpf_vm* vm, const struct ubpf_safe_helper_descriptor* descriptor)
+{
+    return -1;
+}
+
+int
+ubpf_register_safe_region_impl(struct ubpf_vm* vm, const struct ubpf_safe_region* region)
+{
+    return -1;
+}
+
+int
+ubpf_exec_ex_safe(
+    const struct ubpf_vm* vm,
+    void* mem,
+    size_t mem_len,
+    uint64_t* bpf_return_value,
+    uint8_t* stack_start,
+    size_t stack_length)
+{
+    // Unreachable: the safe profile is never selected (ubpf_set_execution_profile_impl rejects it).
+    return -1;
+}
+#pragma warning(pop)
