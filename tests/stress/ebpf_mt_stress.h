@@ -1,12 +1,17 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "bpf/bpf.h"
+#include "bpf/libbpf.h"
+
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <intsafe.h>
 #include <iostream>
 #include <map>
@@ -47,13 +52,23 @@ _log(log_level msg_level, const std::string_view& fmt, Args&&... args)
 #define LOG_VERBOSE(fmt, ...) _log(log_level::LOG_VERBOSE, fmt, ##__VA_ARGS__)
 #define LOG_DEBUG(fmt, ...) _log(log_level::LOG_DEBUG, fmt, ##__VA_ARGS__)
 
+// Default values for test_control_info fields.
+constexpr uint32_t DEFAULT_DURATION_MINUTES = 1;
+constexpr uint32_t DEFAULT_ATTACH_DETACH_DELAY_MS = 10;
+constexpr uint32_t DEFAULT_UM_INVOKE_THREAD_COUNT = 4;
+inline uint32_t
+default_km_invoke_thread_count()
+{
+    return static_cast<uint32_t>(std::thread::hardware_concurrency());
+}
+
 // Test control info.
 struct test_control_info
 {
-    // The number of threads allocated per jit program.
+    // The number of invoke worker threads for the race tests.
     uint32_t threads_count{0};
 
-    // The run time for each jit program test thread in minutes.
+    // The run time for each race test in minutes.
     uint32_t duration_minutes{0};
 
     // Flag to enable verbose progress output.
@@ -64,6 +79,9 @@ struct test_control_info
 
     // Delay between extension restarts (in milliseconds).
     uint32_t extension_restart_delay_ms{0};
+
+    // Delay between detach/attach operations in the race thread (in milliseconds).
+    uint32_t attach_detach_delay_ms{0};
 
     // Programs to load.
     std::vector<std::string> programs;
@@ -101,10 +119,17 @@ struct test_program_attributes
 inline std::variant<bool, test_program_attributes>
 get_jit_program_attributes(const std::string& program_name);
 
-// The query_supported_program_names() call is 'exported' by both the user and kernel mode test suites.
-const std::vector<std::string>
-query_supported_program_names();
-
 // The test_process_cleanup() call is 'exported' by both the user and kernel mode test suites.
 void
 test_process_cleanup();
+
+// Common 2-thread race pattern used by UM and KM stress tests.
+// Invoke worker thread(s) continuously invoke the program while one thread repeatedly detaches and reattaches it.
+void
+run_attach_invoke_detach_race(
+    const std::function<void()>& invoke_routine,
+    const std::function<void()>& detach_routine,
+    const std::function<void()>& attach_routine,
+    uint32_t duration_minutes,
+    uint32_t invoke_thread_count,
+    uint32_t attach_detach_delay_ms);
