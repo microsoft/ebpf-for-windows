@@ -189,7 +189,60 @@ To identify VPN traffic in your programs, you may need to:
 
 Do not rely solely on `interface_type` to detect VPNs.
 
+### BPF_PROG_RUN
+If `BPF_PROG_TYPE_CGROUP_SOCK_ADDR` program is executed via `bpf_prog_test_run_opts()` with `bpf_sock_addr` context, `bpf_sock_addr_get_network_context()` helper function will fail.
+To unblock testing of the programs that rely on `bpf_sock_addr_get_network_context()` helper function, a new test context structure was added. Struct definition:
 
+```c
+typedef struct _bpf_sock_addr_test_context
+{
+    bpf_sock_addr_test_context_header_t header;      // Versioning header.
+    bpf_sock_addr_t context;                         // Socket address context.
+    bpf_sock_addr_network_context_t network_context; // Network context.
+} bpf_sock_addr_test_context_t;
+```
+
+When `bpf_prog_test_run_opts()` is called with `bpf_sock_addr_test_context_t` as the context, the `context` field will be passed to the program as usual,
+and `bpf_sock_addr_get_network_context()` will return values from the `network_context` field.
+
+Sample usage:
+
+```c
+bpf_sock_addr_test_context_t in_ctx = {0};
+bpf_sock_addr_test_context_t out_ctx = {0};
+bpf_test_run_opts opts = {0};
+
+in_ctx.header.version = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION;
+in_ctx.header.size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_SIZE;
+in_ctx.header.total_size = BPF_SOCK_ADDR_TEST_CONTEXT_VERSION_TOTAL_SIZE;
+in_ctx.network_context.version = BPF_SOCK_ADDR_NETWORK_CONTEXT_VERSION;
+in_ctx.network_context.interface_type = IF_TYPE_TUNNEL;
+in_ctx.network_context.tunnel_type = TUNNEL_TYPE_6TO4;
+
+opts.repeat = 1;
+opts.ctx_in = &in_ctx;
+opts.ctx_size_in = sizeof(in_ctx);
+opts.ctx_size_out = sizeof(out_ctx);
+opts.ctx_out = &out_ctx;
+
+int result = bpf_prog_test_run_opts(prog_fd, &opts);
+```
+
+Programs that do not use `bpf_sock_addr_get_network_context()` can be tested using the existing `bpf_sock_addr` context:
+
+```c
+bpf_sock_addr_t in_ctx = {0};
+bpf_sock_addr_t out_ctx = {0};
+bpf_test_run_opts opts = {0};
+
+opts.repeat = 1;
+opts.ctx_in = &in_ctx;
+opts.ctx_size_in = sizeof(in_ctx);
+opts.ctx_out = &out_ctx;
+opts.ctx_size_out = sizeof(out_ctx);
+
+int result = bpf_prog_test_run_opts(prog_fd, &opts);
+```
 
 ## Program Interaction: CONNECT and CONNECT_AUTHORIZATION Together
 
