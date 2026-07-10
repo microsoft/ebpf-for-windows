@@ -9,6 +9,8 @@ var searchData=
   ['bpf_5fprog_5ftype_5ft_6',['bpf_prog_type_t',['../ebpf__structs_8h.html#a35a5dda657202d3aa5cdbc41f809714f',1,'ebpf_structs.h']]],
   ['bpf_5fsock_5faddr_5fnetwork_5fcontext_5ft_7',['bpf_sock_addr_network_context_t',['../ebpf__nethooks_8h.html#aeef68886022d053818d22c6e9837305a',1,'ebpf_nethooks.h']]],
   ['bpf_5fsock_5faddr_5ft_8',['bpf_sock_addr_t',['../ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0',1,'ebpf_nethooks.h']]],
-  ['bpf_5fsock_5fop_5ftype_5ft_9',['bpf_sock_op_type_t',['../ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9',1,'ebpf_nethooks.h']]],
-  ['bpf_5fsock_5fops_5ft_10',['bpf_sock_ops_t',['../ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00',1,'ebpf_nethooks.h']]]
+  ['bpf_5fsock_5faddr_5ftest_5fcontext_5fheader_5ft_9',['bpf_sock_addr_test_context_header_t',['../ebpf__nethooks_8h.html#a49b2249548619396d89f72e405dc7bab',1,'ebpf_nethooks.h']]],
+  ['bpf_5fsock_5faddr_5ftest_5fcontext_5ft_10',['bpf_sock_addr_test_context_t',['../ebpf__nethooks_8h.html#af0d4aa9537c93bed401a45dba5ea9708',1,'ebpf_nethooks.h']]],
+  ['bpf_5fsock_5fop_5ftype_5ft_11',['bpf_sock_op_type_t',['../ebpf__nethooks_8h.html#a3fe3512916a92a4073c475cbae9299d9',1,'ebpf_nethooks.h']]],
+  ['bpf_5fsock_5fops_5ft_12',['bpf_sock_ops_t',['../ebpf__nethooks_8h.html#aebf60907274448aa9047f1716c2aef00',1,'ebpf_nethooks.h']]]
 ];
