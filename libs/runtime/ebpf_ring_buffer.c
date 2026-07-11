@@ -27,16 +27,16 @@ static volatile int32_t _ebpf_ring_buffer_registry_state;
 static void
 _ebpf_ring_buffer_registry_initialize()
 {
-    if (ReadInt32Acquire(&_ebpf_ring_buffer_registry_state) == 2) {
+    if (ebpf_interlocked_compare_exchange_int32(&_ebpf_ring_buffer_registry_state, 2, 2) == 2) {
         return;
     }
 
     if (ebpf_interlocked_compare_exchange_int32(&_ebpf_ring_buffer_registry_state, 1, 0) == 0) {
         ebpf_lock_create(&_ebpf_ring_buffer_registry_lock);
         ebpf_list_initialize(&_ebpf_ring_buffer_registry);
-        WriteInt32Release(&_ebpf_ring_buffer_registry_state, 2);
+        (void)ebpf_interlocked_compare_exchange_int32(&_ebpf_ring_buffer_registry_state, 2, 1);
     } else {
-        while (ReadInt32Acquire(&_ebpf_ring_buffer_registry_state) != 2) {
+        while (ebpf_interlocked_compare_exchange_int32(&_ebpf_ring_buffer_registry_state, 2, 2) != 2) {
             YieldProcessor();
         }
     }
