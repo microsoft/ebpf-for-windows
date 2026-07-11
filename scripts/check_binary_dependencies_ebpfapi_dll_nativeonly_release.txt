@@ -12,6 +12,8 @@ api-ms-win-core-io-l1-1-0.dll
 api-ms-win-core-libraryloader-l1-2-0.dll
 api-ms-win-core-localization-l1-2-0.dll
 api-ms-win-core-memory-l1-1-0.dll
+api-ms-win-core-memory-l1-1-1.dll
+api-ms-win-core-memory-l1-1-6.dll
 api-ms-win-core-processthreads-l1-1-0.dll
 api-ms-win-core-profile-l1-1-0.dll
 api-ms-win-core-registry-l1-1-0.dll
