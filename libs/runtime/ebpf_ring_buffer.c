@@ -27,7 +27,7 @@ static volatile int32_t _ebpf_ring_buffer_registry_state;
 static void
 _ebpf_ring_buffer_registry_initialize()
 {
-    if (_ebpf_ring_buffer_registry_state == 2) {
+    if (ReadInt32Acquire(&_ebpf_ring_buffer_registry_state) == 2) {
         return;
     }
 

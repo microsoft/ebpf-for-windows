@@ -267,6 +267,7 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     if (!ring) {
         EBPF_RETURN_VOID();
     }
+    _Analysis_assume_(ring != nullptr);
 
     if (ring->data_secondary_view != nullptr) {
         UnmapViewOfFileEx(ring->data_secondary_view, 0);

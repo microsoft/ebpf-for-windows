@@ -317,7 +317,7 @@ ebpf_ring_map_user(
 
     *consumer = ring->consumer.kernel_view;
     *producer = ring->producer.kernel_view;
-    *data = (uint8_t*)ring->data.kernel_view;
+    *data = ring->data_double_mapped_view;
     return EBPF_SUCCESS;
 }
 

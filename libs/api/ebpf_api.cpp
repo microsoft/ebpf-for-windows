@@ -5955,13 +5955,27 @@ ebpf_ring_buffer_map_unmap_buffer_with_index(
         _ebpf_ring_mappings.erase(it);
     }
 
-    UnmapViewOfFile(mapping.consumer_view);
-    UnmapViewOfFile(mapping.producer_view);
-    UnmapViewOfFileEx(mapping.data_view_2, 0);
-    UnmapViewOfFileEx(mapping.data_view_1, 0);
-    CloseHandle(mapping.consumer_handle);
-    CloseHandle(mapping.producer_handle);
-    CloseHandle(mapping.data_handle);
+    if (mapping.consumer_view != nullptr) {
+        UnmapViewOfFile(mapping.consumer_view);
+    }
+    if (mapping.producer_view != nullptr) {
+        UnmapViewOfFile(mapping.producer_view);
+    }
+    if (mapping.data_view_2 != nullptr) {
+        UnmapViewOfFileEx(mapping.data_view_2, 0);
+    }
+    if (mapping.data_view_1 != nullptr) {
+        UnmapViewOfFileEx(mapping.data_view_1, 0);
+    }
+    if (mapping.consumer_handle != nullptr) {
+        CloseHandle(mapping.consumer_handle);
+    }
+    if (mapping.producer_handle != nullptr) {
+        CloseHandle(mapping.producer_handle);
+    }
+    if (mapping.data_handle != nullptr) {
+        CloseHandle(mapping.data_handle);
+    }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
