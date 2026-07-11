@@ -267,18 +267,23 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
     if (!ring) {
         EBPF_RETURN_VOID();
     }
-    _Analysis_assume_(ring != nullptr);
+    ebpf_ring_descriptor_t* descriptor = ring;
+    __analysis_assume(descriptor != NULL);
 
-    if (ring->data_secondary_view != nullptr) {
-        UnmapViewOfFileEx(ring->data_secondary_view, 0);
+#pragma warning(push)
+#pragma warning(suppress : 6001) // Ring descriptors are zero-initialized on allocation, so partially constructed
+                                 // descriptors can be cleaned up by testing members against nullptr.
+    if (descriptor->data_secondary_view != nullptr) {
+        UnmapViewOfFileEx(descriptor->data_secondary_view, 0);
     }
-    _ebpf_ring_cleanup_section(&ring->data);
-    _ebpf_ring_cleanup_section(&ring->producer);
-    _ebpf_ring_cleanup_section(&ring->consumer);
-    if (ring->kernel_page != nullptr) {
-        ebpf_free(ring->kernel_page);
+    _ebpf_ring_cleanup_section(&descriptor->data);
+    _ebpf_ring_cleanup_section(&descriptor->producer);
+    _ebpf_ring_cleanup_section(&descriptor->consumer);
+    if (descriptor->kernel_page != nullptr) {
+        ebpf_free(descriptor->kernel_page);
     }
-    ebpf_free(ring);
+#pragma warning(pop)
+    ebpf_free(descriptor);
     EBPF_RETURN_VOID();
 }
 
