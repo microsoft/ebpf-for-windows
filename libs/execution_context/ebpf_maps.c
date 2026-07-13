@@ -564,6 +564,12 @@ ebpf_map_get_effective_value_size(_In_ const ebpf_map_t* map)
     return map->original_value_size;
 }
 
+// Forward declarations for ring buffer unmap functions used by the pre-close callback.
+static ebpf_result_t
+_unmap_user_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index);
+static ebpf_result_t
+_unmap_user_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t index);
+
 static void
 _ebpf_map_object_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
 {
@@ -581,6 +587,26 @@ _ebpf_map_object_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
         _clean_up_object_array_map(core_map, type);
     } else {
         _clean_up_object_hash_map(core_map);
+    }
+}
+
+// Unmap user mappings when the last user reference drops to zero in process context.
+static void
+_ebpf_ring_map_zero_user_reference(_Inout_ ebpf_core_object_t* object)
+{
+    ebpf_core_map_t* core_map = EBPF_FROM_FIELD(ebpf_core_map_t, object, object);
+    ebpf_assert(object->type == EBPF_OBJECT_MAP);
+
+    if (core_map->ebpf_map_definition.type == BPF_MAP_TYPE_RINGBUF) {
+        // Ring buffer has a single ring.
+        (void)_unmap_user_ring_buffer_map(core_map, 0);
+    } else if (core_map->ebpf_map_definition.type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        // Perf event array has one ring per CPU — unmap all.
+        ebpf_core_perf_event_array_map_t* perf_event_array_map =
+            EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, core_map);
+        for (uint32_t cpu_id = 0; cpu_id < perf_event_array_map->ring_count; cpu_id++) {
+            (void)_unmap_user_perf_event_array_map(core_map, cpu_id);
+        }
     }
 }
 
@@ -3739,6 +3765,8 @@ ebpf_map_create(
 
     if (type == BPF_MAP_TYPE_ARRAY_OF_MAPS || type == BPF_MAP_TYPE_HASH_OF_MAPS || type == BPF_MAP_TYPE_PROG_ARRAY) {
         zero_user_function = _ebpf_map_object_map_zero_user_reference;
+    } else if (type == BPF_MAP_TYPE_RINGBUF || type == BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        zero_user_function = _ebpf_ring_map_zero_user_reference;
     }
 
     if (properties->per_cpu) {
