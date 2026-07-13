@@ -115,7 +115,6 @@ _require_btf_function_metadata(
     REQUIRE(ebpf_read_registry_value_dword(function_key, EBPF_BTF_FUNCTION_DATA_FLAGS, &flags) == EBPF_SUCCESS);
     REQUIRE(flags == function_prototype->flags);
     ebpf_close_registry_key(function_key);
-    ebpf_close_registry_key(function_key);
     ebpf_free_wstring(function_name);
 }
 
