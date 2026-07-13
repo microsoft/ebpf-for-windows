@@ -933,191 +933,182 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%% end of tlatex.sty file %%%%%%%%%%%%%%%%%%%%%%%
 % last modified on Fri  3 August 2012 at 14:23:49 PST by lamport
-
 \begin{document}
 \tlatex
 \@x{}\moduleLeftDash\@xx{ {\MODULE} EpochModelProofs}\moduleRightDash\@xx{}%
-\@x{ {\EXTENDS} EpochModel ,\, Naturals}%
+\@x{ {\EXTENDS} EpochModel ,\, Naturals ,\, TLAPS}%
 \@x{}%
 \@y{\@s{0}%
  Copyright (\ensuremath{c}) \ensuremath{eBPF} for Windows contributors
-}%
-\@xx{}%
-\@x{}%
-\@y{\@s{0}%
- SPDX-License-Identifier: \ensuremath{MIT
-}}%
-\@xx{}%
-\@pvspace{8.0pt}%
-\begin{lcom}{0}%
-\begin{cpar}{0}{T}{F}{5.0}{0}{}%
-**************************************************************************
 \end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{F}{F}{0}{0}{}%
+Goal: prove the fixed configuration is always safe.
+\end{cpar}%
+\vshade{5.0}%
+\begin{cpar}{0}{T}{F}{0}{5.0}{}%
+Concretely, we prove:
+ \ensuremath{FixedAssumptions \.{\implies}} (\ensuremath{Spec \.{\implies}
+ {\Box}Safety})
+\end{cpar}%
+\vshade{5.0}%
 \begin{cpar}{1}{F}{F}{0}{0}{}%
-Proof entrypoint for \ensuremath{EpochModel}.
+ We do this by proving a strengthened inductive invariant
+ (\ensuremath{FixedInv}) that
+ contains \ensuremath{Safety} plus the extra facts needed to make the
+ \ensuremath{Safety} step provable.
 \end{cpar}%
 \vshade{5.0}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
- This is intentionally a very small, starter \ensuremath{TLAPS} proof: it
- shows how to turn
- an existing model into a proof obligation and discharge it with
- \ensuremath{TLAPS}.
-\end{cpar}%
-\vshade{5.0}%
-\begin{cpar}{0}{F}{F}{0}{0}{}%
-Notes:
- - These \ensuremath{{\ASSUME}} clauses are the ``type'' assumptions that
- \ensuremath{TLC} gets implicitly via
-\end{cpar}%
-\begin{cpar}{0}{T}{F}{5.0}{0}{}%
 the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \end{cpar}%
 \begin{cpar}{1}{F}{F}{0}{0}{}%
-- We start with proving that \ensuremath{Init} implies \ensuremath{TypeOK}.
+ - \ensuremath{TLAPS}\mbox{'}s \ensuremath{PTL} step expects the step lemma
+ over [\ensuremath{Next]\_vars} (includes stuttering).
 \end{cpar}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
 **************************************************************************
 \end{cpar}%
 \end{lcom}%
 \@x{ CfgAssumptions \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Basic well-typedness / bounds for constants.
+}%
+\@xx{}%
 \@x{\@s{8.2} \.{\land} NCPUS \.{\in} Nat}%
 \@x{\@s{8.2} \.{\land} NCPUS \.{\geq} 1}%
 \@x{\@s{8.2} \.{\land} MaxEpoch \.{\in} Nat \.{\land} MaxEpoch \.{\geq} 1}%
-\@x{\@s{8.2} \.{\land} UsePublishedEpochForReader \.{\in} {\BOOLEAN}}%
- \@x{\@s{8.2} \.{\land} UsePublishedEpochForRetire\@s{4.15} \.{\in}
  {\BOOLEAN}}%
 \@pvspace{8.0pt}%
 \@x{ FixedAssumptions \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ The configuration we want to prove safe (the ``fixed'' behavior).
+}%
+\@xx{}%
 \@x{\@s{8.2} \.{\land} CfgAssumptions}%
 \@x{\@s{8.2} \.{\land} UsePublishedEpochForReader \.{=} {\TRUE}}%
 \@x{\@s{8.2} \.{\land} UsePublishedEpochForRetire\@s{4.15} \.{=} {\TRUE}}%
 \@pvspace{8.0pt}%
 \@x{}%
 \@y{\@s{0}%
- Useful strengthening that is true in both fixed and buggy configs.
+ \cdash{3} Strengthening invariants used in \ensuremath{FixedInv} \cdash{3}
+}%
+\@xx{}%
+\@x{}%
+\@y{}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ These are not ``the goal'' themselves; they\mbox{'}re the extra facts we
+ need to
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ make the \ensuremath{Safety} preservation proof go through (especially in
+ the \ensuremath{Reclaim} case).
+}%
+\@xx{}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ \ensuremath{CPU} local epochs never get ahead of the published epoch.
 }%
 \@xx{}%
 \@x{ CpuEpochNeverAhead \.{\defeq}}%
  \@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:} cpu\_epoch [ c ] \.{\leq}
  published\_epoch}%
 \@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Reader-captured epochs never get ahead of the published epoch.
+}%
+\@xx{}%
 \@x{ ReaderEpochNeverAhead \.{\defeq}}%
  \@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:} reader\_epoch [ c ] \.{\leq}
  published\_epoch}%
-\@pvspace{8.0pt}%
-\@x{}%
-\@y{\@s{0}%
- Any reader that still ``holds'' must have read while the object was
- reachable.
-}%
-\@xx{}%
-\@x{}%
-\@y{\@s{0}%
- After retirement, such a holder must have entered no later than retirement.
-}%
-\@xx{}%
-\@x{ HolderEpochBoundedByRetire \.{\defeq}}%
-\@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:}}%
- \@x{\@s{16.4} reader\_holds [ c ] \.{\implies} ( obj\_state
  \.{=}\@w{Reachable} \.{\lor} reader\_epoch [ c ] \.{\leq}
  retire\_published\_epoch )}%
 \@pvspace{8.0pt}%
-\@x{ {\THEOREM} InitImpliesTypeOK \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
-\@x{\@s{8.2} {\PROVE} Init \.{\implies} TypeOK}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, Init ,\, TypeOK ,\, CPUS ,\,
- ObjStates}%
+\@x{}%
+\@y{\@s{0}%
+ A reader can only hold while active (\ensuremath{ReaderExit} always clears
+ holds).
+}%
+\@xx{}%
+\@x{ HoldsImpliesActive \.{\defeq}}%
+ \@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:} reader\_holds [ c ] \.{\implies}
+ reader\_active [ c ]}%
 \@pvspace{8.0pt}%
-\@x{ {\THEOREM} InitImpliesRetireStampIsMaxWhenEnabled \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
-\@x{\@s{8.2} {\PROVE} Init \.{\implies} RetireStampIsMaxWhenEnabled}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, Init ,\,
- RetireStampIsMaxWhenEnabled ,\, Max2}%
+\@x{}%
+\@y{\@s{0}%
+ Release epoch always strictly lags the published epoch.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ This is used to preserve \ensuremath{ReleaseBelowActiveReaderEpoch} across
+ \ensuremath{ReaderEnter
+}}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ when \ensuremath{UsePublishedEpochForReader\.{=}{\TRUE}} (new active reader
+ captures \ensuremath{published\_epoch}).
+}%
+\@xx{}%
+\@x{ ReleasedStrictlyBehind \.{\defeq}}%
+\@x{\@s{8.2} released\_epoch \.{<} published\_epoch}%
 \@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByAdvanceEpoch \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} RetireStampIsMaxWhenEnabled \.{\land} AdvanceEpoch
- \.{\implies} RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- AdvanceEpoch ,\, Max2}%
+\@x{}%
+\@y{\@s{0}%
+ The release epoch must remain strictly less than the epoch of any active
+ reader.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ (This is the key strengthening we use to prove \ensuremath{Safety} at
+ reclaim time.)
+}%
+\@xx{}%
+\@x{ ReleaseBelowActiveReaderEpoch \.{\defeq}}%
+ \@x{\@s{8.2} \A\, c \.{\in} ActiveCPUs \.{:} released\_epoch \.{<}
+ reader\_epoch [ c ]}%
 \@pvspace{8.0pt}%
- \@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByProcessEpochUpdate
- \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ( \E\, c
- \.{\in} CPUS \.{\,\backslash\,} \{ 0 \} \.{:} ProcessEpochUpdate ( c ) ) )
- \.{\implies} RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- ProcessEpochUpdate ,\, Max2}%
-\@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByReaderEnter \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ( \E\, c
- \.{\in} CPUS \.{:} ReaderEnter ( c ) ) ) \.{\implies}
- RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- ReaderEnter ,\, Max2}%
-\@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByReaderRead \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ( \E\, c
- \.{\in} CPUS \.{:} ReaderRead ( c ) ) ) \.{\implies}
- RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- ReaderRead ,\, Max2}%
-\@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByReaderExit \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ( \E\, c
- \.{\in} CPUS \.{:} ReaderExit ( c ) ) ) \.{\implies}
- RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- ReaderExit ,\, Max2}%
-\@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByRetire \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ( \E\, c
- \.{\in} CPUS \.{:} Retire ( c ) ) ) \.{\implies} RetireStampIsMaxWhenEnabled
- \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- Retire ,\, Max2}%
-\@pvspace{8.0pt}%
- \@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByComputeRelease
- \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} ComputeRelease
- ) \.{\implies} RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- ComputeRelease ,\, Max2}%
-\@pvspace{8.0pt}%
-\@x{ {\LEMMA} RetireStampIsMaxWhenEnabledPreservedByReclaim \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} ( RetireStampIsMaxWhenEnabled \.{\land} Reclaim )
- \.{\implies} RetireStampIsMaxWhenEnabled \.{'}}%
-\@x{ {\PROOF}}%
- \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, RetireStampIsMaxWhenEnabled ,\,
- Reclaim ,\, Max2}%
+\@x{}%
+\@y{\@s{0}%
+ \cdash{3} Preservation lemmas for the strengthening invariants \cdash{3}
+}%
+\@xx{}%
+\@x{}%
+\@y{}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ We keep these as separate theorems because they are reused when proving
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ \ensuremath{FixedInv} is inductive.
+}%
+\@xx{}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} RetireStampIsMaxWhenEnabledPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: show the retirement stamping invariant is inductive.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: \ensuremath{Safety} preservation uses it to relate
+ \ensuremath{obj\_freed\_epoch} to the retirement snapshot.
+}%
+\@xx{}%
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} RetireStampIsMaxWhenEnabled \.{\land} Next \.{\implies}
@@ -1136,107 +1127,661 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{36.21} Reclaim ,\,}%
 \@x{\@s{36.21} Max2}%
 \@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByAdvanceEpoch \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{AdvanceEpoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} AdvanceEpoch \.{\implies} TypeOK
+ \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, AdvanceEpoch ,\, CPUS
+ ,\, ObjStates}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByProcessEpochUpdate \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by
+ \ensuremath{ProcessEpochUpdate(c)}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS
+ \.{\,\backslash\,} \{ 0 \} \.{:} ProcessEpochUpdate ( c ) ) ) \.{\implies}
+ TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, ProcessEpochUpdate
+ ,\, CPUS ,\, ObjStates}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByReaderEnter \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{ReaderEnter(c)}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderEnter ( c ) ) ) \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, ReaderEnter ,\, CPUS
+ ,\, ObjStates}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByReaderRead \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{ReaderRead(c)}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderRead ( c ) ) ) \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, ReaderRead ,\, CPUS
+ ,\, ObjStates}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByReaderExit \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{ReaderExit(c)}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderExit ( c ) ) ) \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, ReaderExit ,\, CPUS
+ ,\, ObjStates}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByRetire \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{Retire(c)}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:} Retire (
+ c ) ) ) \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, Retire ,\, CPUS ,\,
+ ObjStates ,\, Max2}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByComputeRelease \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{ComputeRelease}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} ComputeRelease \.{\implies} TypeOK
+ \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, ComputeRelease ,\,
+ CPUS ,\, ObjStates ,\, Max2 ,\, ActiveCPUs}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} TypeOKPreservedByReclaim \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by \ensuremath{Reclaim}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of \ensuremath{TypeOKPreservedByNext}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+\@x{\@s{8.2} {\PROVE} TypeOK \.{\land} Reclaim \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\, TypeOK ,\, Reclaim ,\, CPUS ,\,
+ ObjStates}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ \ensuremath{TypeOK} is preserved by any \ensuremath{Next} step.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ This is written as a case split to keep \ensuremath{SMT} obligations small.
+}%
+\@xx{}%
+\@x{ {\THEOREM} TypeOKPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{TypeOK} is preserved by any \ensuremath{Next} step.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: almost every other preservation theorem assumes \ensuremath{TypeOK}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+\@x{\@s{8.2} {\PROVE} TypeOK \.{\land} Next \.{\implies} TypeOK \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2}\@pfstepnum{1}{1.}\  TypeOK \.{\land} Next}%
+\@x{\@s{32.08} \.{\implies} \.{\lor} ( TypeOK \.{\land} AdvanceEpoch )}%
+ \@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS
+ \.{\,\backslash\,} \{ 0 \} \.{:} ProcessEpochUpdate ( c ) ) )}%
+ \@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderEnter ( c ) ) )}%
+ \@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderRead ( c ) ) )}%
+ \@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderExit ( c ) ) )}%
+ \@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:} Retire
+ ( c ) ) )}%
+\@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} ComputeRelease )}%
+\@x{\@s{47.64} \.{\lor} ( TypeOK \.{\land} Reclaim )}%
+\@x{\@s{20.5} {\BY} {\DEF} Next}%
+ \@x{\@s{8.2}\@pfstepnum{1}{2.}\  ( \.{\lor} ( TypeOK \.{\land} AdvanceEpoch
+ )}%
+ \@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS
+ \.{\,\backslash\,} \{ 0 \} \.{:} ProcessEpochUpdate ( c ) ) )}%
+ \@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderEnter ( c ) ) )}%
+ \@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderRead ( c ) ) )}%
+ \@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:}
+ ReaderExit ( c ) ) )}%
+ \@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ( \E\, c \.{\in} CPUS \.{:} Retire
+ ( c ) ) )}%
+\@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} ComputeRelease )}%
+\@x{\@s{36.18} \.{\lor} ( TypeOK \.{\land} Reclaim ) )}%
+\@x{\@s{32.08} \.{\implies} TypeOK \.{'}}%
+\@x{\@s{20.5} {\BY} TypeOKPreservedByAdvanceEpoch ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByReaderEnter ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByReaderRead ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByReaderExit ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByRetire ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByComputeRelease ,\,}%
+\@x{\@s{36.21} TypeOKPreservedByReclaim}%
+\@x{\@s{8.2}\@pfstepnum{1}{}\  {\QED}}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} ReleaseNeverAheadPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{released\_epoch} never exceeds
+ \ensuremath{published\_epoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: supports \ensuremath{ReleasedStrictlyBehind} and helps bound release
+ growth.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} ReleaseNeverAhead \.{\land} Next
+ \.{\implies} ReleaseNeverAhead \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} ReleaseNeverAhead ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} CPUS ,\,}%
+\@x{\@s{36.21} ObjStates ,\,}%
+\@x{\@s{36.21} Max2 ,\,}%
+\@x{\@s{36.21} ActiveCPUs ,\,}%
+\@x{\@s{36.21} ActiveReaderEpochs ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
+\@x{\@s{36.21} Reclaim}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} ReleasedStrictlyBehindPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: \ensuremath{released\_epoch} stays strictly behind
+ \ensuremath{published\_epoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: preserves \ensuremath{ReleaseBelowActiveReaderEpoch} across
+ \ensuremath{ReaderEnter} in fixed config.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} ReleaseNeverAhead \.{\land}
+ ReleasedStrictlyBehind \.{\land} Next \.{\implies} ReleasedStrictlyBehind
+ \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} ReleaseNeverAhead ,\,}%
+\@x{\@s{36.21} ReleasedStrictlyBehind ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} CPUS ,\,}%
+\@x{\@s{36.21} ObjStates ,\,}%
+\@x{\@s{36.21} Max2 ,\,}%
+\@x{\@s{36.21} ActiveCPUs ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
+\@x{\@s{36.21} Reclaim}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} HoldsImpliesActivePreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: holding implies being active stays true.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: \ensuremath{Safety} preservation relies on \ensuremath{ReaderExit}
+ clearing holds.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} HoldsImpliesActive \.{\land} Next
+ \.{\implies} HoldsImpliesActive \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} HoldsImpliesActive ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
+\@x{\@s{36.21} Reclaim}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} ReleaseBelowActiveReaderEpochPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: release threshold stays below every active reader\mbox{'}s captured
+ epoch.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: core fact that prevents reclaim while any reader can still be
+ holding.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} FixedAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} ReleaseNeverAhead \.{\land}
+ ReleasedStrictlyBehind \.{\land} ReleaseBelowActiveReaderEpoch \.{\land}
+ Next \.{\implies} ReleaseBelowActiveReaderEpoch \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} FixedAssumptions ,\,}%
+\@x{\@s{36.21} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} ReleaseNeverAhead ,\,}%
+\@x{\@s{36.21} ReleasedStrictlyBehind ,\,}%
+\@x{\@s{36.21} ReleaseBelowActiveReaderEpoch ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} ActiveCPUs ,\,}%
+\@x{\@s{36.21} ActiveReaderEpochs ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
+\@x{\@s{36.21} Reclaim ,\,}%
+\@x{\@s{36.21} Max2}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} SafetyPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: show \ensuremath{Safety} is preserved by \ensuremath{Next},
+ assuming the strengthening invariants.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: this is the key step for proving \ensuremath{{\Box}Safety} (via
+ \ensuremath{{\Box}FixedInv}).
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} FixedAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} RetireStampIsMaxWhenEnabled \.{\land}
+ HolderEpochBoundedByRetire \.{\land} HoldsImpliesActive \.{\land}
+ ReleaseBelowActiveReaderEpoch \.{\land} Safety \.{\land} Next \.{\implies}
+ Safety \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} FixedAssumptions ,\,}%
+\@x{\@s{36.21} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} RetireStampIsMaxWhenEnabled ,\,}%
+\@x{\@s{36.21} HolderEpochBoundedByRetire ,\,}%
+\@x{\@s{36.21} HoldsImpliesActive ,\,}%
+\@x{\@s{36.21} ReleaseBelowActiveReaderEpoch ,\,}%
+\@x{\@s{36.21} Safety ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} ActiveCPUs ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} Max2}%
+\@pvspace{8.0pt}%
 \@x{ {\THEOREM} ReaderEpochNeverAheadPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: readers\mbox{'} captured epochs stay \ensuremath{\.{\leq}
+ published\_epoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: supports \ensuremath{HolderEpochBoundedByRetire} preservation.
+}%
+\@xx{}%
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} CpuEpochNeverAhead \.{\land}
- ReaderEpochNeverAhead \.{\land} Next \.{\implies} ReaderEpochNeverAhead
- \.{'}}%
-\@x{ {\PROOF}}%
-\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
-\@x{\@s{36.21} TypeOK ,\,}%
-\@x{\@s{36.21} CpuEpochNeverAhead ,\,}%
-\@x{\@s{36.21} ReaderEpochNeverAhead ,\,}%
-\@x{\@s{36.21} Next ,\,}%
-\@x{\@s{36.21} AdvanceEpoch ,\,}%
-\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
-\@x{\@s{36.21} ReaderEnter ,\,}%
-\@x{\@s{36.21} ReaderRead ,\,}%
-\@x{\@s{36.21} ReaderExit ,\,}%
-\@x{\@s{36.21} Retire ,\,}%
-\@x{\@s{36.21} ComputeRelease ,\,}%
 \@x{\@s{36.21} Reclaim}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} CpuEpochNeverAheadPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: cpu epochs stay \ensuremath{\.{\leq} published\_epoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: required hypothesis for
+ \ensuremath{ReaderEpochNeverAheadPreservedByNext}.
+}%
+\@xx{}%
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} CpuEpochNeverAhead \.{\land} Next
- \.{\implies} CpuEpochNeverAhead \.{'}}%
-\@x{ {\PROOF}}%
-\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
-\@x{\@s{36.21} TypeOK ,\,}%
-\@x{\@s{36.21} CpuEpochNeverAhead ,\,}%
-\@x{\@s{36.21} Next ,\,}%
-\@x{\@s{36.21} AdvanceEpoch ,\,}%
-\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
-\@x{\@s{36.21} ReaderEnter ,\,}%
-\@x{\@s{36.21} ReaderRead ,\,}%
-\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Reclaim}%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} HolderEpochBoundedByRetirePreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: if a reader holds, its captured epoch is bounded by retirement
+ snapshot.
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: part of the argument that any holder implies a still-active reader
+ with epoch \ensuremath{\.{>} released\_epoch}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} CfgAssumptions}%
+ \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} HolderEpochBoundedByRetire \.{\land}
 \@x{\@s{36.21} Retire ,\,}%
 \@x{\@s{36.21} ComputeRelease ,\,}%
 \@x{\@s{36.21} Reclaim}%
 \@pvspace{8.0pt}%
-\@x{ {\THEOREM} HolderEpochBoundedByRetirePreservedByNext \.{\defeq}}%
-\@x{\@s{8.2} {\ASSUME}}%
-\@x{\@s{16.4} CfgAssumptions}%
- \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} HolderEpochBoundedByRetire \.{\land}
- ReaderEpochNeverAhead \.{\land} Next \.{\implies} HolderEpochBoundedByRetire
- \.{'}}%
-\@x{ {\PROOF}}%
-\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
-\@x{\@s{36.21} TypeOK ,\,}%
-\@x{\@s{36.21} HolderEpochBoundedByRetire ,\,}%
-\@x{\@s{36.21} ReaderEpochNeverAhead ,\,}%
-\@x{\@s{36.21} Next ,\,}%
-\@x{\@s{36.21} AdvanceEpoch ,\,}%
-\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
-\@x{\@s{36.21} ReaderEnter ,\,}%
-\@x{\@s{36.21} ReaderRead ,\,}%
-\@x{\@s{36.21} ReaderExit ,\,}%
-\@x{\@s{36.21} Retire ,\,}%
-\@x{\@s{36.21} ComputeRelease ,\,}%
-\@x{\@s{36.21} Reclaim}%
-\@pvspace{16.0pt}%
 \@x{}%
 \@y{\@s{0}%
- \ensuremath{TODO}: \ensuremath{ReleaseNeverAhead} preservation (requires
- \ensuremath{Min}/finite-set reasoning).
+ \cdash{3} The strengthened inductive invariant for the fixed configuration
+ \cdash{3}
 }%
 \@xx{}%
 \@pvspace{8.0pt}%
 \@x{ FixedInv \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ \ensuremath{FixedInv} bundles \ensuremath{Safety} plus the supporting
+ invariants needed to prove
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ that \ensuremath{Safety} is preserved by \ensuremath{Reclaim}.
+}%
+\@xx{}%
 \@x{\@s{8.2} \.{\land} TypeOK}%
 \@x{\@s{8.2} \.{\land} RetireStampIsMaxWhenEnabled}%
 \@x{\@s{8.2} \.{\land} ReleaseNeverAhead}%
+\@x{\@s{8.2} \.{\land} ReleasedStrictlyBehind}%
+\@x{\@s{8.2} \.{\land} CpuEpochNeverAhead}%
 \@x{\@s{8.2} \.{\land} ReaderEpochNeverAhead}%
 \@x{\@s{8.2} \.{\land} HolderEpochBoundedByRetire}%
+\@x{\@s{8.2} \.{\land} HoldsImpliesActive}%
+\@x{\@s{8.2} \.{\land} ReleaseBelowActiveReaderEpoch}%
 \@x{\@s{8.2} \.{\land} Safety}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} InitImpliesFixedInv \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: establish the strengthened invariant initially (fixed config).
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: base case for the \ensuremath{PTL} invariant proof.
+}%
+\@xx{}%
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} FixedAssumptions}%
 \@x{\@s{8.2} {\PROVE} Init \.{\implies} FixedInv}%
 \@x{ {\PROOF}}%
 \@x{\@s{8.2} {\BY} {\DEF} FixedAssumptions ,\, FixedInv ,\,}%
 \@x{\@s{36.21} CfgAssumptions ,\,}%
- \@x{\@s{36.21} Init ,\, TypeOK ,\, RetireStampIsMaxWhenEnabled ,\,
- ReleaseNeverAhead ,\,}%
- \@x{\@s{36.21} ReaderEpochNeverAhead ,\, HolderEpochBoundedByRetire ,\,
- Safety ,\,}%
+ \@x{\@s{28.01} Init ,\, TypeOK ,\, RetireStampIsMaxWhenEnabled ,\,
+ ReleaseNeverAhead ,\, ReleasedStrictlyBehind ,\,}%
+ \@x{\@s{36.21} CpuEpochNeverAhead ,\, ReaderEpochNeverAhead ,\,
+ HolderEpochBoundedByRetire ,\,}%
+\@x{\@s{36.21} HoldsImpliesActive ,\, ReleaseBelowActiveReaderEpoch ,\,}%
+\@x{\@s{36.21} ActiveCPUs ,\,}%
+\@x{\@s{36.21} Safety ,\,}%
 \@x{\@s{36.21} CPUS ,\, ObjStates ,\, Max2}%
 \@pvspace{8.0pt}%
-\@x{}%
+\@x{ {\THEOREM} FixedInvPreservedByNext \.{\defeq}}%
+\@x{\@s{8.2}}%
 \@y{\@s{0}%
- Next step: discharge \ensuremath{FixedInv \.{\land} Next \.{\implies}
- FixedInv\.{'}}.
+ Purpose: show the strengthened invariant is preserved by \ensuremath{Next}.
 }%
 \@xx{}%
-\@x{}%
+\@x{\@s{8.2}}%
 \@y{\@s{0}%
- \ensuremath{TODO}: \ensuremath{FixedInv \.{\land} Next \.{\implies}
- FixedInv\.{'}} (this is where the real \ensuremath{Safety} proof work lives).
+ Needed: inductive step for the \ensuremath{PTL} invariant proof
+ (non-stuttering case).
 }%
 \@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} FixedAssumptions}%
+\@x{\@s{8.2} {\PROVE} FixedInv \.{\land} Next \.{\implies} FixedInv \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2}\@pfstepnum{1}{1.}\  FixedInv \.{\land} Next \.{\implies} TypeOK
+ \.{'}}%
+ \@x{\@s{16.4} {\BY} TypeOKPreservedByNext {\DEF} FixedAssumptions ,\,
+ FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{2.}\  FixedInv \.{\land} Next \.{\implies}
+ RetireStampIsMaxWhenEnabled \.{'}}%
+ \@x{\@s{16.4} {\BY} RetireStampIsMaxWhenEnabledPreservedByNext {\DEF}
+ FixedAssumptions ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{3.}\  FixedInv \.{\land} Next \.{\implies}
+ ReleaseNeverAhead \.{'}}%
+ \@x{\@s{16.4} {\BY} ReleaseNeverAheadPreservedByNext {\DEF} FixedAssumptions
+ ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{4.}\  FixedInv \.{\land} Next \.{\implies}
+ ReleasedStrictlyBehind \.{'}}%
+ \@x{\@s{16.4} {\BY} ReleasedStrictlyBehindPreservedByNext {\DEF}
+ FixedAssumptions ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{5.}\  FixedInv \.{\land} Next \.{\implies}
+ CpuEpochNeverAhead \.{'}}%
+ \@x{\@s{16.4} {\BY} CpuEpochNeverAheadPreservedByNext {\DEF} FixedAssumptions
+ ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{6.}\  FixedInv \.{\land} Next \.{\implies}
+ ReaderEpochNeverAhead \.{'}}%
+ \@x{\@s{16.4} {\BY} ReaderEpochNeverAheadPreservedByNext {\DEF}
+ FixedAssumptions ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{7.}\  FixedInv \.{\land} Next \.{\implies}
+ HolderEpochBoundedByRetire \.{'}}%
+ \@x{\@s{16.4} {\BY} HolderEpochBoundedByRetirePreservedByNext {\DEF}
+ FixedAssumptions ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{8.}\  FixedInv \.{\land} Next \.{\implies}
+ HoldsImpliesActive \.{'}}%
+ \@x{\@s{16.4} {\BY} HoldsImpliesActivePreservedByNext {\DEF} FixedAssumptions
+ ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{9.}\  FixedInv \.{\land} Next \.{\implies}
+ ReleaseBelowActiveReaderEpoch \.{'}}%
+ \@x{\@s{16.4} {\BY} ReleaseBelowActiveReaderEpochPreservedByNext {\DEF}
+ FixedAssumptions ,\, FixedInv}%
+ \@x{\@s{8.2}\@pfstepnum{1}{10.}\  FixedInv \.{\land} Next \.{\implies} Safety
+ \.{'}}%
+ \@x{\@s{16.4} {\BY} SafetyPreservedByNext {\DEF} FixedAssumptions ,\,
+ FixedInv}%
+\@x{\@s{8.2}\@pfstepnum{1}{}\  {\QED}}%
+ \@x{\@s{16.4} {\BY}\@pfstepnum{1}{1} ,\,\@pfstepnum{1}{2}
+ ,\,\@pfstepnum{1}{3} ,\,\@pfstepnum{1}{4} ,\,\@pfstepnum{1}{5}
+ ,\,\@pfstepnum{1}{6} ,\,\@pfstepnum{1}{7} ,\,\@pfstepnum{1}{8}
+ ,\,\@pfstepnum{1}{9} ,\,\@pfstepnum{1}{10}\ }%
+\@x{\@s{32.11} {\DEF} FixedAssumptions ,\, FixedInv}%
+\@pvspace{8.0pt}%
+\@x{ {\LEMMA} NextFixedInv \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: lift preservation from \ensuremath{Next} to
+ [\ensuremath{Next]\_vars} by handling stuttering (\ensuremath{{\UNCHANGED}
+ vars}).
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: \ensuremath{PTL} expects the step lemma over
+ [\ensuremath{Next]\_vars}.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} FixedAssumptions}%
+ \@x{\@s{8.2} {\PROVE} FixedInv \.{\land} [ Next ]_{ vars} \.{\implies}
+ FixedInv \.{'}}%
+\@x{ {\PROOF}}%
+ \@x{\@s{8.2}\@pfstepnum{1}{1.}\  FixedInv \.{\land} Next \.{\implies}
+ FixedInv \.{'}}%
+\@x{\@s{16.4} {\BY} FixedInvPreservedByNext {\DEF} FixedAssumptions}%
+\@pvspace{8.0pt}%
+ \@x{\@s{8.2}\@pfstepnum{1}{2.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} FixedInv \.{'}}%
+\@x{\@s{8.2} {\PROOF}}%
+ \@x{\@s{16.4}\@pfstepnum{2}{1.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} TypeOK \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, TypeOK ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{2.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} RetireStampIsMaxWhenEnabled \.{'}}%
+ \@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, RetireStampIsMaxWhenEnabled ,\, vars
+ ,\, Max2}%
+ \@x{\@s{16.4}\@pfstepnum{2}{3.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} ReleaseNeverAhead \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, ReleaseNeverAhead ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{4.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} ReleasedStrictlyBehind \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, ReleasedStrictlyBehind ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{5.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} CpuEpochNeverAhead \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, CpuEpochNeverAhead ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{6.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} ReaderEpochNeverAhead \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, ReaderEpochNeverAhead ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{7.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} HolderEpochBoundedByRetire \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, HolderEpochBoundedByRetire ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{8.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} HoldsImpliesActive \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, HoldsImpliesActive ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{9.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} ReleaseBelowActiveReaderEpoch \.{'}}%
+ \@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, ReleaseBelowActiveReaderEpoch ,\,
+ ActiveCPUs ,\, vars}%
+ \@x{\@s{16.4}\@pfstepnum{2}{10.}\  FixedInv \.{\land} {\UNCHANGED} vars
+ \.{\implies} Safety \.{'}}%
+\@x{\@s{24.59} {\BY} {\DEF} FixedInv ,\, Safety ,\, vars}%
+\@x{\@s{16.4}\@pfstepnum{2}{}\  {\QED}}%
+ \@x{\@s{24.59} {\BY}\@pfstepnum{2}{1} ,\,\@pfstepnum{2}{2}
+ ,\,\@pfstepnum{2}{3} ,\,\@pfstepnum{2}{4} ,\,\@pfstepnum{2}{5}
+ ,\,\@pfstepnum{2}{6} ,\,\@pfstepnum{2}{7} ,\,\@pfstepnum{2}{8}
+ ,\,\@pfstepnum{2}{9} ,\,\@pfstepnum{2}{10}\ }%
+\@x{\@s{40.31} {\DEF} FixedInv}%
+\@pvspace{8.0pt}%
+\@x{\@s{8.2}\@pfstepnum{1}{}\  {\QED}}%
+\@x{\@s{16.4} {\BY}\@pfstepnum{1}{1} ,\,\@pfstepnum{1}{2}\ }%
+\@pvspace{8.0pt}%
+\@x{ {\THEOREM} FixedInvInvariant \.{\defeq}}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Purpose: conclude the temporal invariant: \ensuremath{Spec \.{\implies}
+ {\Box}FixedInv} (and thus \ensuremath{{\Box}Safety}).
+}%
+\@xx{}%
+\@x{\@s{8.2}}%
+\@y{\@s{0}%
+ Needed: this is the final theorem establishing always-safe for the fixed
+ configuration.
+}%
+\@xx{}%
+\@x{\@s{8.2} {\ASSUME}}%
+\@x{\@s{16.4} FixedAssumptions}%
+\@x{\@s{8.2} {\PROVE} Spec \.{\implies} {\Box} FixedInv}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} InitImpliesFixedInv ,\,}%
+\@x{\@s{23.91} NextFixedInv ,\,}%
+\@x{\@s{23.91} PTL {\DEF} Spec}%
 \@pvspace{8.0pt}%
 \@x{}\bottombar\@xx{}%
 \end{document}
