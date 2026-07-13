@@ -940,6 +940,20 @@
 \@x{}%
 \@y{\@s{0}%
  Copyright (\ensuremath{c}) \ensuremath{eBPF} for Windows contributors
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ SPDX-License-Identifier: \ensuremath{MIT
+}}%
+\@xx{}%
+\@pvspace{8.0pt}%
+\begin{lcom}{0}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
+**************************************************************************
+\end{cpar}%
+\begin{cpar}{1}{F}{F}{0}{0}{}%
+Proof entrypoint for \ensuremath{EpochModel}.
 \end{cpar}%
 \vshade{5.0}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
@@ -960,6 +974,11 @@ Concretely, we prove:
 \end{cpar}%
 \vshade{5.0}%
 \begin{cpar}{0}{F}{F}{0}{0}{}%
+Notes:
+ - These \ensuremath{{\ASSUME}} clauses are the ``type'' assumptions that
+ \ensuremath{TLC} gets implicitly via
+\end{cpar}%
+\begin{cpar}{0}{T}{F}{5.0}{0}{}%
 the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \end{cpar}%
 \begin{cpar}{1}{F}{F}{0}{0}{}%
@@ -979,6 +998,8 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{8.2} \.{\land} NCPUS \.{\in} Nat}%
 \@x{\@s{8.2} \.{\land} NCPUS \.{\geq} 1}%
 \@x{\@s{8.2} \.{\land} MaxEpoch \.{\in} Nat \.{\land} MaxEpoch \.{\geq} 1}%
+\@x{\@s{8.2} \.{\land} UsePublishedEpochForReader \.{\in} {\BOOLEAN}}%
+ \@x{\@s{8.2} \.{\land} UsePublishedEpochForRetire\@s{4.15} \.{\in}
  {\BOOLEAN}}%
 \@pvspace{8.0pt}%
 \@x{ FixedAssumptions \.{\defeq}}%
@@ -1029,6 +1050,21 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{ ReaderEpochNeverAhead \.{\defeq}}%
  \@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:} reader\_epoch [ c ] \.{\leq}
  published\_epoch}%
+\@pvspace{8.0pt}%
+\@x{}%
+\@y{\@s{0}%
+ Any reader that still ``holds'' must have read while the object was
+ reachable.
+}%
+\@xx{}%
+\@x{}%
+\@y{\@s{0}%
+ After retirement, such a holder must have entered no later than retirement.
+}%
+\@xx{}%
+\@x{ HolderEpochBoundedByRetire \.{\defeq}}%
+\@x{\@s{8.2} \A\, c \.{\in} CPUS \.{:}}%
+ \@x{\@s{16.4} reader\_holds [ c ] \.{\implies} ( obj\_state
  \.{=}\@w{Reachable} \.{\lor} reader\_epoch [ c ] \.{\leq}
  retire\_published\_epoch )}%
 \@pvspace{8.0pt}%
@@ -1519,6 +1555,11 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{36.21} AdvanceEpoch ,\,}%
 \@x{\@s{36.21} ProcessEpochUpdate ,\,}%
 \@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
+\@x{\@s{36.21} Reclaim ,\,}%
 \@x{\@s{36.21} Max2}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} ReaderEpochNeverAheadPreservedByNext \.{\defeq}}%
@@ -1536,6 +1577,21 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} CpuEpochNeverAhead \.{\land}
+ ReaderEpochNeverAhead \.{\land} Next \.{\implies} ReaderEpochNeverAhead
+ \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} CpuEpochNeverAhead ,\,}%
+\@x{\@s{36.21} ReaderEpochNeverAhead ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
 \@x{\@s{36.21} Reclaim}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} CpuEpochNeverAheadPreservedByNext \.{\defeq}}%
@@ -1553,6 +1609,19 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} CpuEpochNeverAhead \.{\land} Next
+ \.{\implies} CpuEpochNeverAhead \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} CpuEpochNeverAhead ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
+\@x{\@s{36.21} Retire ,\,}%
+\@x{\@s{36.21} ComputeRelease ,\,}%
 \@x{\@s{36.21} Reclaim}%
 \@pvspace{8.0pt}%
 \@x{ {\THEOREM} HolderEpochBoundedByRetirePreservedByNext \.{\defeq}}%
@@ -1571,6 +1640,19 @@ the concrete constant assignments in the \ensuremath{\.{*}.cfg} files.
 \@x{\@s{8.2} {\ASSUME}}%
 \@x{\@s{16.4} CfgAssumptions}%
  \@x{\@s{8.2} {\PROVE} TypeOK \.{\land} HolderEpochBoundedByRetire \.{\land}
+ ReaderEpochNeverAhead \.{\land} Next \.{\implies} HolderEpochBoundedByRetire
+ \.{'}}%
+\@x{ {\PROOF}}%
+\@x{\@s{8.2} {\BY} {\DEF} CfgAssumptions ,\,}%
+\@x{\@s{36.21} TypeOK ,\,}%
+\@x{\@s{36.21} HolderEpochBoundedByRetire ,\,}%
+\@x{\@s{36.21} ReaderEpochNeverAhead ,\,}%
+\@x{\@s{36.21} Next ,\,}%
+\@x{\@s{36.21} AdvanceEpoch ,\,}%
+\@x{\@s{36.21} ProcessEpochUpdate ,\,}%
+\@x{\@s{36.21} ReaderEnter ,\,}%
+\@x{\@s{36.21} ReaderRead ,\,}%
+\@x{\@s{36.21} ReaderExit ,\,}%
 \@x{\@s{36.21} Retire ,\,}%
 \@x{\@s{36.21} ComputeRelease ,\,}%
 \@x{\@s{36.21} Reclaim}%
