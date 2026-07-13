@@ -2203,35 +2203,30 @@ ebpf_program_get_info(
             goto Done;
         }
 
+        uint32_t copied_map_count = 0;
+
         // Snapshot the map IDs under the lock, then copy them to user memory after the lock is released.
         ebpf_lock_state_t state = ebpf_lock_lock(&((ebpf_program_t*)program)->lock);
         __try {
             map_count = program->count_of_maps;
-            if (map_count > max_nr_map_ids) {
-                result = EBPF_INVALID_POINTER;
-            } else {
-                for (uint32_t i = 0; i < map_count; i++) {
-                    ebpf_map_t* map = program->maps[i];
-                    local_map_ids[i] = ebpf_map_get_id(map);
-                }
+            copied_map_count = min(map_count, max_nr_map_ids);
+            for (uint32_t i = 0; i < copied_map_count; i++) {
+                ebpf_map_t* map = program->maps[i];
+                local_map_ids[i] = ebpf_map_get_id(map);
             }
         } __finally {
             ebpf_lock_unlock(&((ebpf_program_t*)program)->lock, state);
         }
 
-        if (result != EBPF_SUCCESS) {
-            goto Done;
-        }
-
         __try {
             size_t copied_length = 0;
-            result = ebpf_safe_size_t_multiply(map_count, sizeof(ebpf_id_t), &copied_length);
+            result = ebpf_safe_size_t_multiply(copied_map_count, sizeof(ebpf_id_t), &copied_length);
             if (result != EBPF_SUCCESS) {
                 goto Done;
             }
 
             if (copied_length > 0) {
-                for (uint32_t i = 0; i < map_count; i++) {
+                for (uint32_t i = 0; i < copied_map_count; i++) {
                     // Volatile user mode pointer.
                     WriteNoFence((volatile long*)&map_ids[i], local_map_ids[i]);
                 }
@@ -2242,6 +2237,11 @@ ebpf_program_get_info(
                 EBPF_TRACELOG_KEYWORD_PROGRAM,
                 "User mode map_ids buffer invalid or too small.",
                 (uint64_t)((uintptr_t)map_ids));
+            result = EBPF_INVALID_POINTER;
+            goto Done;
+        }
+
+        if (map_count > max_nr_map_ids) {
             result = EBPF_INVALID_POINTER;
             goto Done;
         }
