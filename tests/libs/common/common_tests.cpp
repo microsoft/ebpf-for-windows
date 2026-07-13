@@ -16,9 +16,6 @@
 #include <map>
 using namespace std::chrono_literals;
 
-// This file intentionally exercises deprecated APIs.
-#pragma warning(disable : 4996)
-
 bool use_ebpf_store = true;
 
 void
@@ -220,6 +217,8 @@ ring_buffer_api_test_helper(
     }
 
     // Write an interleaved message to the ring buffer map.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     REQUIRE(ebpf_ring_buffer_map_write(ring_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
 
     // Get the std::future from the promise field in ring buffer event context, which should be in ready state
@@ -241,6 +240,7 @@ ring_buffer_api_test_helper(
     // Write another interleaved message to the ring buffer map.
     message[message.length() - 1] = '2';
     REQUIRE(ebpf_ring_buffer_map_write(ring_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
+#pragma warning(pop)
 
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
@@ -383,6 +383,8 @@ perf_buffer_api_test_helper(
     }
 
     // Write an interleaved message to the perf buffer map.
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     REQUIRE(ebpf_perf_event_array_map_write(perf_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
 
     // Get the std::future from the promise field in perf buffer event context, which should be in ready state
@@ -409,6 +411,7 @@ perf_buffer_api_test_helper(
     // Write another interleaved message to the perf buffer map.
     message[message.length() - 1] = '2';
     REQUIRE(ebpf_perf_event_array_map_write(perf_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
+#pragma warning(pop)
     // Wait for event handler getting notifications for all PERF_BUFFER_TEST_EVENT_COUNT events.
     bool test_completed = perf_buffer_event_callback.wait_for(10s) == std::future_status::ready;
     CAPTURE(context->matched_entry_count, context->lost_entry_count, context->test_event_count);

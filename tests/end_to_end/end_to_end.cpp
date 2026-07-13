@@ -42,9 +42,6 @@ namespace ebpf {
 #include <ntsecapi.h>
 #include <thread>
 
-// This file intentionally exercises deprecated APIs.
-#pragma warning(disable : 4996)
-
 using namespace Platform;
 
 CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
@@ -964,9 +961,11 @@ negative_ring_buffer_test(ebpf_execution_type_t execution_type)
 
     // Calls to ring buffer APIs on this map (array_map) must fail.
     ebpf_ring_buffer_opts ring_opts{.sz = sizeof(ring_opts), .flags = EBPF_RINGBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(suppress : 4996) // deprecated
     REQUIRE(ebpf_ring_buffer__new(map_fd, [](void*, void*, size_t) { return 0; }, nullptr, &ring_opts) == nullptr);
     REQUIRE(libbpf_get_error(nullptr) == -EINVAL);
     uint8_t data = 0;
+#pragma warning(suppress : 4996) // deprecated
     REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
 
     bpf_object__close(unique_object.release());
@@ -3554,6 +3553,8 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
 
     // Calls to perf buffer APIs on this map (array_map) must fail.
     ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     REQUIRE(
         ebpf_perf_buffer__new(
             map_fd,
@@ -3565,6 +3566,7 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(libbpf_get_error(nullptr) == -EINVAL);
     uint8_t data = 0;
     REQUIRE(ebpf_perf_event_array_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
+#pragma warning(pop)
     bpf_object__close(unique_object.release());
 }
 

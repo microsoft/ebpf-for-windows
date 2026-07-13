@@ -37,8 +37,6 @@ using namespace prevail;
 // "The enum type 'bpf_attach_type' is unscoped.
 // Prefer 'enum class' over 'enum'"
 #pragma warning(disable : 26812)
-// This file intentionally exercises deprecated APIs.
-#pragma warning(disable : 4996)
 
 // Set of all attach_types defined in ebpfcore. This must be updated any time a new bpf_attach_type is added.
 static const std::set<bpf_attach_type> ebpf_core_attach_types = {
@@ -1001,6 +999,8 @@ TEST_CASE("ring buffer Linux-compatible APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1094,6 +1094,7 @@ TEST_CASE("ring buffer Windows-specific APIs", "[libbpf][ring_buffer]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
@@ -1175,6 +1176,8 @@ TEST_CASE("ring buffer memory mapping APIs", "[libbpf][ring_buffer]")
 
 TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1353,6 +1356,7 @@ TEST_CASE("ring buffer manager APIs", "[libbpf][ring_buffer]")
     // No null parameter tests (violates SAL).
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 // Test helper for perf buffer callback.
@@ -1559,6 +1563,8 @@ TEST_CASE("perf buffer Linux-compatible APIs", "[libbpf][perf_event_array]")
 
 TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
 {
+#pragma warning(push)
+#pragma warning(disable : 4996) // deprecated
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
@@ -1658,6 +1664,7 @@ TEST_CASE("perf buffer Windows-specific APIs", "[libbpf][perf_event_array]")
     }
 
     Platform::_close(map_fd);
+#pragma warning(pop)
 }
 
 TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
@@ -1676,6 +1683,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts = {.sz = sizeof(perf_opts), .flags = 0};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1694,6 +1702,7 @@ TEST_CASE("perf buffer manager APIs", "[libbpf][perf_event_array]")
     {
         ebpf_perf_buffer_opts perf_opts{.sz = sizeof(perf_opts), .flags = EBPF_PERFBUF_FLAG_AUTO_CALLBACK};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd, 0, perf_buffer_test_sample_callback, perf_buffer_test_lost_callback, &callback_context, &perf_opts);
         REQUIRE(pb != nullptr);
@@ -1789,6 +1798,7 @@ TEST_CASE("perf buffer error handling", "[libbpf][perf_event_array]")
         // Test with a flag value that's not defined.
         ebpf_perf_buffer_opts opts_with_unknown_flag{.sz = sizeof(ebpf_perf_buffer_opts), .flags = 0xFFFFFFFF};
 
+#pragma warning(suppress : 4996) // deprecated
         struct perf_buffer* pb = ebpf_perf_buffer__new(
             map_fd,
             0,
